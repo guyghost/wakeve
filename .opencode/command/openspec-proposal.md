@@ -1,10 +1,10 @@
 ---
 agent: build
-description: Scaffold a new OpenSpec change and validate strictly.
+description: Scaffold a new OpenSpec change with GitHub workflow and validate strictly.
 ---
-L'utilisateur a soumis la proposition de modification suivante. Veuillez utiliser les instructions d'OpenSpec pour créer votre proposition de modification.
+L'utilisateur a soumis la proposition de modification suivante. Veuillez utiliser les instructions d'OpenSpec pour créer votre proposition de modification en suivant le workflow GitHub.
 <UserRequest>
-  $ARGUMENTS
+$ARGUMENTS
 </UserRequest>
 <!-- OPENSPEC:START -->
 **Recommandations**
@@ -13,16 +13,95 @@ L'utilisateur a soumis la proposition de modification suivante. Veuillez utilise
 - Consultez `openspec/AGENTS.md` (situé dans le répertoire `openspec/`; exécutez `ls openspec` ou `openspec update` si vous ne le voyez pas) si vous avez besoin de conventions OpenSpec supplémentaires ou de clarifications.
 - Identifiez tout détail vague ou ambigu et posez les questions nécessaires avant de modifier les fichiers.
 
+**Workflow GitHub**
+Ce processus intègre GitHub Issues, Wiki et Pull Requests pour une gestion complète des changements.
+
 **Étapes**
-1. Consultez `openspec/project.md`, exécutez `openspec list` et `openspec list --specs`, et examinez le code ou la documentation associés (par exemple, via `rg`/`ls`) afin de fonder la proposition sur le comportement actuel; notez les lacunes nécessitant des éclaircissements.
-2. Choisissez un identifiant unique `change-id` (identifiant de changement) basé sur un verbe et créez les fichiers `proposal.md`, `tasks.md` et `design.md` (le cas échéant) sous `openspec/changes/<id>/`.
-3. Traduisez le changement en capacités ou exigences concrètes, en décomposant les efforts multi-périphériques en deltas de spécification distincts, avec des relations et une séquence claires.
-4. Consignez le raisonnement architectural dans `design.md` lorsque la solution s'étend sur plusieurs systèmes, introduit de nouveaux modèles ou nécessite une discussion sur les compromis avant de valider les spécifications.
-5. Rédigez les deltas de spécification dans `changes/<id>/specs/<capability>/spec.md` (un dossier par capacité) en utilisant `## ADDED|MODIFIED|REMOVED Requirements` avec au moins un `#### Scenario:` par exigence et en faisant référence aux capacités connexes le cas échéant. 6. Rédigez le fichier `tasks.md` sous forme de liste ordonnée de petites tâches vérifiables, permettant de visualiser la progression pour l'utilisateur, incluant la validation (tests, outils) et mettant en évidence les dépendances et les tâches parallélisables.
-7. Validez avec `openspec validate <id> --strict` et corrigez chaque problème avant de soumettre la proposition.
+1. **Contexte**: Consultez `openspec/project.md`, exécutez `openspec list` et `openspec list --specs`, et examinez le code ou la documentation associés (par exemple, via `rg`/`ls`) afin de fonder la proposition sur le comportement actuel; notez les lacunes nécessitant des éclaircissements.
+
+2. **Change ID**: Choisissez un identifiant unique `change-id` (identifiant de changement) basé sur un verbe (kebab-case: `add-`, `update-`, `remove-`, `refactor-`).
+
+3. **GitHub Issue**: Créez une issue GitHub avec:
+    - **Titre**: `[Change] <Description avec verbe>`
+    - **Change ID**: `<change-id>` dans le corps
+    - **Tasks**: Liste de contrôle des tâches d'implémentation
+    - **Labels**: `openspec-change`, `in-progress`
+    - Notez le numéro d'issue (ex: #42)
+
+4. **GitHub Wiki - Design**: Créez une page wiki `changes/<change-id>/design` avec:
+    - Contexte et contraintes
+    - Objectifs (Goals) et Non-Objectifs (Non-Goals)
+    - Architecture et composants
+    - Décisions techniques avec alternatives considérées
+    - Plan d'implémentation par phases
+    - Risques et mitigation
+    - Plan de migration et rollback
+    - Questions ouvertes
+
+5. **GitHub Wiki - Specs**: Créez une page wiki `changes/<change-id>/specs` avec:
+    - Liste des spécifications affectées
+    - `## ADDED Requirements` - Nouvelles capacités avec au moins un `#### Scenario:` (format Given-When-Then) par exigence
+    - `## MODIFIED Requirements` - Comportements modifiés (copier l'exigence complète existante et la modifier)
+    - `## REMOVED Requirements` - Fonctionnalités dépréciées avec raison et impact
+    - Résultats de validation avec `openspec validate <id> --strict`
+    - Cartographie des cross-références
+
+6. **Mise à jour Issue**: Ajoutez les liens vers les pages wiki dans l'issue:
+   ```markdown
+   ## Documentation Links
+   - **Design**: https://github.com/<org>/<repo>/wiki/changes/<id>/design
+   - **Specs**: https://github.com/<org>/<repo>/wiki/changes/<id>/specs
+   ```
+
+7. **Validation locale**: Exécutez `openspec validate <id> --strict` et corrigez tous les problèmes avant de continuer.
+
+8. **Feature Branch**: Créez une branche:
+   ```bash
+   git checkout -b change/<change-id>
+   ```
+
+9. **Proposal local**: Créez `openspec/changes/<change-id>/proposal.md` avec:
+    - **Change ID**: `<change-id>`
+    - **Related Links**: Liens vers l'issue (#N) et les pages wiki
+    - **Why**: 1-2 phrases sur le problème/opportunité
+    - **What Changes**: Liste à puces des modifications (marquer les breaking changes avec **BREAKING**)
+    - **Impact**: Specs affectées, code affecté, issues liées
+    - **Next Steps**: Ce qui se passe après l'approbation
+
+10. **Commit et Push**:
+    ```bash
+    git add openspec/changes/<change-id>/proposal.md
+    git commit -m "[#<issue-number>] Add proposal for <change-id>"
+    git push -u origin change/<change-id>
+    ```
+
+11. **Pull Request**: Créez un PR avec:
+    - **Titre**: `[Proposal] <Description avec verbe>`
+    - **Body**: Lien vers l'issue (`Relates to #<issue-number>`) et les pages wiki
+    - **Labels**: `proposal`, `needs-review`
+    - Utilisez le template PR si disponible
+
+12. **Attendre approbation**: Ne pas démarrer l'implémentation avant que le PR de proposition soit approuvé et mergé.
+
+**Format critique des scénarios**
+Chaque exigence DOIT avoir au moins un scénario au format:
+```markdown
+#### Scenario: <Nom descriptif>
+**Given**: Conditions initiales
+**When**: Action ou déclencheur
+**Then**: Résultat attendu
+```
 
 **Référence**
 - Utilisez `openspec show <id> --json --deltas-only` ou `openspec show <spec> --type spec` pour examiner les détails en cas d'échec de la validation.
 - Recherchez les exigences existantes avec `rg -n "Requirement:|Scenario:" openspec/specs` avant d'en rédiger de nouvelles.
 - Explorez le code source avec `rg <mot-clé>`, `ls` ou en lisant directement les fichiers afin que les propositions correspondent aux réalités de l'implémentation actuelle.
+- Vérifiez les issues et PRs existants sur GitHub pour éviter les doublons.
+- Assurez-vous que le Wiki GitHub est activé dans Settings → Features.
+
+**Aide-mémoire**
+```
+Issue (#) → Wiki (Design + Specs) → Validate → Branch → 
+Proposal (PR) → Review → Approve → Implement
+```
 <!-- OPENSPEC:END -->
