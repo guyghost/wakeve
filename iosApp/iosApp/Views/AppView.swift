@@ -2,12 +2,15 @@ import SwiftUI
 import Shared
 
 struct AppView: View {
+    @State private var authRepository = EventRepository() // TODO: Create proper auth repository
     @State private var repository = EventRepository()
     @State private var events: [Event] = []
     @State private var currentScreen: NavigationScreen = .eventList
     @State private var selectedEvent: Event?
+    @State private var authManager: AuthenticationManager?
     
     enum NavigationScreen {
+        case login
         case eventList
         case eventCreation
         case participantManagement
@@ -31,15 +34,22 @@ struct AppView: View {
             NavigationStack {
                 Group {
                     switch currentScreen {
+                    case .login:
+                        LoginView(authRepository: authRepository)
+                    
                     case .eventList:
-                        EventListView(
+                        EventListViewWithAuth(
                             events: events,
+                            authManager: authManager,
                             onCreateEvent: {
                                 currentScreen = .eventCreation
                             },
                             onSelectEvent: { event in
                                 selectedEvent = event
                                 navigateToEventScreen(event)
+                            },
+                            onLogout: {
+                                currentScreen = .login
                             }
                         )
                     
@@ -94,6 +104,14 @@ struct AppView: View {
                 }
             }
         }
+        .onAppear {
+            authManager = AuthenticationManager(authRepository: authRepository)
+            
+            // Vérifier l'authentification
+            if authManager?.isAuthenticated == false {
+                currentScreen = .login
+            }
+        }
     }
     
     private func navigateToEventScreen(_ event: Event) {
@@ -106,6 +124,59 @@ struct AppView: View {
             currentScreen = .pollResults
         @unknown default:
             currentScreen = .eventList
+        }
+    }
+}
+
+struct EventListViewWithAuth: View {
+    let events: [Event]
+    let authManager: AuthenticationManager?
+    let onCreateEvent: () -> Void
+    let onSelectEvent: (Event) -> Void
+    let onLogout: () -> Void
+    
+    var body: some View {
+        ZStack {
+            EventListView(
+                events: events,
+                onCreateEvent: onCreateEvent,
+                onSelectEvent: onSelectEvent
+            )
+            
+            VStack {
+                HStack {
+                    Spacer()
+                    
+                    HStack(spacing: LiquidGlassDesign.spacingM) {
+                        if let user = authManager?.currentUser {
+                            VStack(alignment: .trailing, spacing: LiquidGlassDesign.spacingXS) {
+                                Text(user.name)
+                                    .font(LiquidGlassDesign.caption)
+                                Text(user.email)
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        Button(action: {
+                            authManager?.logout()
+                            onLogout()
+                        }) {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.system(size: 16))
+                                .foregroundColor(LiquidGlassDesign.accentBlue)
+                        }
+                    }
+                    .padding(LiquidGlassDesign.spacingM)
+                    .background(
+                        RoundedRectangle(cornerRadius: LiquidGlassDesign.radiusM)
+                            .fill(LiquidGlassDesign.glassColor)
+                    )
+                    .padding(LiquidGlassDesign.spacingL)
+                }
+                
+                Spacer()
+            }
         }
     }
 }
