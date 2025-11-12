@@ -8,11 +8,11 @@ Instructions for AI coding assistants using OpenSpec for spec-driven development
 - Decide scope: new capability vs modify existing capability
 - Pick a unique `change-id`: kebab-case, verb-led (`add-`, `update-`, `remove-`, `refactor-`)
 - Create GitHub Issue with change ID and tasks checklist
-- Create GitHub Wiki pages (design + specs) with spec deltas
-- Write spec deltas in wiki: use `## ADDED|MODIFIED|REMOVED|RENAMED Requirements`; include at least one `#### Scenario:` per requirement
+- Create GitHub Project item with design and specs in description
+- Write spec deltas in project: use `## ADDED|MODIFIED|REMOVED|RENAMED Requirements`; include at least one `#### Scenario:` per requirement
 - Validate: `openspec validate [change-id] --strict` and fix issues locally
 - Create feature branch `change/<change-id>` and scaffold `proposal.md`
-- Submit Pull Request linking to issue and wiki pages
+- Submit Pull Request linking to issue and project item
 - Request approval: Do not start implementation until proposal PR is approved
 
 ## Three-Stage Workflow
@@ -50,21 +50,23 @@ Skip proposal for:
     - Change ID in body (kebab-case, verb-led)
     - Tasks checklist
     - Labels: `openspec-change`, `in-progress`
-3. Create GitHub Wiki pages:
-    - `changes/<change-id>/design` - Technical design, architecture, decisions
-    - `changes/<change-id>/specs` - Spec deltas using `## ADDED|MODIFIED|REMOVED Requirements` with at least one `#### Scenario:` per requirement
-4. Update Issue with links to wiki pages
+3. Create GitHub Project item with:
+    - Title: `<change-id>` - `<Verb-led description>`
+    - Description containing:
+      - **Design section**: Technical design, architecture, decisions
+      - **Specs section**: Spec deltas using `## ADDED|MODIFIED|REMOVED Requirements` with at least one `#### Scenario:` per requirement
+4. Update Issue with link to project item
 5. Run `openspec validate <id> --strict` locally and resolve any issues
 6. Create feature branch: `git checkout -b change/<change-id>`
 7. Create `openspec/changes/<change-id>/proposal.md` with:
     - Overview and rationale
-    - Links to issue and wiki pages
+    - Links to issue and project item
     - Summary of changes
 8. Commit with message: `[#<issue-number>] Add proposal for <change-id>`
 9. Create Pull Request:
     - Title: `[Proposal] <Verb-led description>`
     - Link to issue: `Relates to #<issue-number>`
-    - Link to wiki pages in description
+    - Link to project item in description
     - Labels: `proposal`, `needs-review`
 10. Wait for approval before implementation
 
@@ -72,7 +74,7 @@ Skip proposal for:
 Track these steps as TODOs and complete them one by one.
 1. **Approval gate** - Do not start until proposal PR is approved and merged
 2. **Read proposal.md** - Understand what's being built
-3. **Read wiki design page** - Review technical decisions
+3. **Read project item design** - Review technical decisions from GitHub Project description
 4. **Read issue tasks** - Get implementation checklist
 5. **Implement tasks sequentially** - Complete in order, updating issue checklist
 6. **Create implementation PRs** - Link back to original issue with `[#<issue-number>]`
@@ -83,7 +85,7 @@ Track these steps as TODOs and complete them one by one.
 After deployment, create separate PR to:
 - Move `changes/[name]/` → `changes/archive/YYYY-MM-DD-[name]/`
 - Update `specs/` if capabilities changed
-- Update wiki pages with archive status
+- Update project item status to mark as complete/archived
 - Use `openspec archive [change] --skip-specs --yes` for tooling-only changes
 - Run `openspec validate --strict` to confirm the archived change passes checks
 
@@ -101,7 +103,7 @@ After deployment, create separate PR to:
 - Always check if capability already exists
 - Prefer modifying existing specs over creating duplicates
 - Use `openspec show [spec]` to review current state
-- Check GitHub Wiki for existing design docs
+- Check GitHub Projects for existing design docs
 - If request is ambiguous, ask 1–2 clarifying questions before scaffolding
 
 ### Search Guidance
@@ -165,11 +167,9 @@ openspec/
 GitHub (separate from repository):
 ├── Issues/
 │   └── #N [Change] <description>    # Task tracking with checklist
-├── Wiki/
-│   └── changes/
-│       └── <change-id>/
-│           ├── design.md            # Technical decisions
-│           └── specs.md             # ADDED/MODIFIED/REMOVED requirements
+├── Projects/
+│   └── Change: <change-id>
+│       └── [Description with Design + Specs sections]
 └── Pull Requests/
     └── #M [Proposal] <description>  # Proposal review
 ```
@@ -181,11 +181,11 @@ GitHub (separate from repository):
 ```
 New request?
 ├─ Bug fix restoring spec behavior? → Fix directly
-├─ Typo/format/comment? → Fix directly  
-├─ New feature/capability? → Create GitHub Issue + Wiki + PR
-├─ Breaking change? → Create GitHub Issue + Wiki + PR
-├─ Architecture change? → Create GitHub Issue + Wiki + PR
-└─ Unclear? → Create GitHub Issue + Wiki + PR (safer)
+├─ Typo/format/comment? → Fix directly
+├─ New feature/capability? → Create GitHub Issue + Project + PR
+├─ Breaking change? → Create GitHub Issue + Project + PR
+├─ Architecture change? → Create GitHub Issue + Project + PR
+└─ Unclear? → Create GitHub Issue + Project + PR (safer)
 ```
 
 ### GitHub Issue Structure
@@ -200,13 +200,12 @@ Create issue with template or manually:
 [1-2 sentences on problem/opportunity]
 
 ## Documentation Links
-- **Design**: https://github.com/<org>/<repo>/wiki/changes/<id>/design
-- **Specs**: https://github.com/<org>/<repo>/wiki/changes/<id>/specs
+- **Project Item**: [GitHub Project Item Link]
 - **Proposal PR**: #<pr-number> (add after PR is created)
 
 ## Tasks
 - [ ] Review current context
-- [ ] Create wiki pages for design and specs
+- [ ] Create GitHub Project item with design and specs
 - [ ] Draft spec deltas with scenarios
 - [ ] Run `openspec validate <id> --strict`
 - [ ] Create proposal PR
@@ -226,29 +225,31 @@ openspec validate <id> --strict
 [Additional context, dependencies, or concerns]
 ```
 
-### GitHub Wiki - Design Page
+### GitHub Project Item Structure
 
-Create page at `changes/<change-id>/design`:
+Create item in GitHub Project with the following structure in the **Description** field:
 
 ```markdown
-# Design: <Change ID>
+# <change-id>: <Verb-led description>
 
 > **Change ID**: `<change-id>`
 > **Issue**: #<issue-number>
 > **Status**: Draft | Under Review | Approved | Implemented
 
-## Context
+## Design
+
+### Context
 [Background, constraints, stakeholders]
 
-## Goals / Non-Goals
+### Goals / Non-Goals
 - Goals: [...]
 - Non-Goals: [...]
 
-## Architecture
+### Architecture
 [Components, data flow, sequence diagrams]
 
-## Technical Decisions
-### Decision 1: <Title>
+### Technical Decisions
+#### Decision 1: <Title>
 **Context**: Why this decision is needed
 **Options Considered**:
 - Option A: Pros and cons
@@ -256,47 +257,38 @@ Create page at `changes/<change-id>/design`:
 **Decision**: Which option was chosen
 **Rationale**: Why this option is best
 
-## Implementation Approach
+### Implementation Approach
 [Phases, steps, milestones]
 
-## Risks & Mitigation
+### Risks & Mitigation
 | Risk | Impact | Likelihood | Mitigation |
 |------|--------|------------|------------|
 | ...  | ...    | ...        | ...        |
 
-## Migration Plan
+### Migration Plan
 [Steps, rollback strategy]
 
-## Open Questions
+### Open Questions
 - [ ] Question 1?
 - [ ] Question 2?
-```
 
-### GitHub Wiki - Specs Page
+---
 
-Create page at `changes/<change-id>/specs`:
+## Specs
 
-```markdown
-# Specs: <Change ID>
-
-> **Change ID**: `<change-id>`
-> **Issue**: #<issue-number>
-> **Design**: [Link to design wiki page](./design)
-> **Status**: Draft | Under Review | Approved
-
-## Affected Specifications
+### Affected Specifications
 - `openspec/specs/<spec-1>.md` - Brief description
 - `openspec/specs/<spec-2>.md` - Brief description
 
-## ADDED Requirements
-### REQ-<ID>: <Requirement Title>
+### ADDED Requirements
+#### REQ-<ID>: <Requirement Title>
 **Priority**: High | Medium | Low
 **Category**: Functional | Non-Functional | Security | Performance
 
 **Description**:
 The system SHALL provide...
 
-#### Scenario: Success case
+##### Scenario: Success case
 **Given**: Initial conditions
 **When**: Action or trigger
 **Then**: Expected outcome
@@ -305,8 +297,8 @@ The system SHALL provide...
 - [ ] Criterion 1
 - [ ] Criterion 2
 
-## MODIFIED Requirements
-### REQ-<ID>: <Existing Requirement>
+### MODIFIED Requirements
+#### REQ-<ID>: <Existing Requirement>
 **Original Spec**: `openspec/specs/<spec-name>.md`
 
 **Previous Version**:
@@ -321,13 +313,13 @@ The system SHALL provide...
 
 **Rationale**: Why this change is needed
 
-#### Scenario: Updated behavior
+##### Scenario: Updated behavior
 **Given**: Initial conditions
 **When**: Action
 **Then**: Expected outcome
 
-## REMOVED Requirements
-### REQ-<ID>: <Requirement Being Removed>
+### REMOVED Requirements
+#### REQ-<ID>: <Requirement Being Removed>
 **Original Spec**: `openspec/specs/<spec-name>.md`
 
 **Requirement Text**:
@@ -339,7 +331,7 @@ The system SHALL provide...
 **Impact Analysis**: Who/what is affected
 **Migration Path**: How to handle existing implementations
 
-## Validation Results
+### Validation Results
 ```bash
 $ openspec validate <id> --strict
 [Paste validation output]
@@ -358,8 +350,7 @@ Create in `openspec/changes/<change-id>/proposal.md`:
 
 ## Related Links
 - **Issue**: #<issue-number>
-- **Design**: [Wiki](https://github.com/<org>/<repo>/wiki/changes/<id>/design)
-- **Specs**: [Wiki](https://github.com/<org>/<repo>/wiki/changes/<id>/specs)
+- **GitHub Project**: [Project Item URL]
 
 ## Why
 [1-2 sentences on problem/opportunity]
@@ -482,14 +473,14 @@ openspec list
 # - Add tasks checklist
 # Note the issue number (e.g., #42)
 
-# 3) Create GitHub Wiki pages
-# Navigate to repository Wiki
-# Create: changes/add-two-factor-auth/design
-# Create: changes/add-two-factor-auth/specs
+# 3) Create GitHub Project item
+# Navigate to GitHub Project
+# Create new item: add-two-factor-auth
+# In Description add Design + Specs sections:
 # - Add ADDED/MODIFIED/REMOVED requirements
 # - Include scenarios with Given-When-Then
 
-# 4) Update issue with wiki links
+# 4) Update issue with project item link
 
 # 5) Validate locally
 CHANGE=add-two-factor-auth
@@ -506,8 +497,7 @@ cat > openspec/changes/$CHANGE/proposal.md << 'EOF'
 
 ## Related Links
 - **Issue**: #42
-- **Design**: https://github.com/org/repo/wiki/changes/add-two-factor-auth/design
-- **Specs**: https://github.com/org/repo/wiki/changes/add-two-factor-auth/specs
+- **GitHub Project**: [Link to project item]
 
 ## Why
 Enhance security by requiring second factor during login.
@@ -540,17 +530,16 @@ git push -u origin change/$CHANGE
 ```
 GitHub Issue #42: [Change] Add 2FA with notifications
 
-GitHub Wiki:
-├── changes/add-2fa-notify/
-│   ├── design.md     # Architecture across auth and notifications
-│   └── specs.md      # Combined spec deltas
+GitHub Project Item: add-2fa-notify
+├── Design section (architecture across auth and notifications)
+└── Specs section (combined spec deltas with ADDED/MODIFIED/REMOVED)
 
 Repository:
 openspec/changes/add-2fa-notify/
-└── proposal.md       # Links to issue #42 and wiki
+└── proposal.md       # Links to issue #42 and project item
 ```
 
-In wiki specs.md:
+In project item description (Specs section):
 ```markdown
 ## ADDED Requirements
 
@@ -646,26 +635,25 @@ Only add complexity with:
 6. Ask for clarification
 
 ### GitHub Integration Issues
-- **Wiki not accessible**: Ensure Wiki is enabled in Settings → Features
+- **Project not accessible**: Ensure Project is enabled and visible
 - **Cannot find issue**: Check issue number and status
 - **PR not linking**: Use `Relates to #N` or `Closes #N` in description
-- **Wiki page not found**: Verify path: `changes/<id>/design` or `changes/<id>/specs`
+- **Project item not found**: Verify item exists and has correct title format
 
 ## Quick Reference
 
 ### Stage Indicators
 - `GitHub Issue` - Tasks to complete
-- `GitHub Wiki` - Design and spec deltas
+- `GitHub Project` - Design and spec deltas
 - `Pull Request` - Proposal review
-- `openspec/changes/` - Proposal files (links to issue/wiki)
+- `openspec/changes/` - Proposal files (links to issue/project)
 - `openspec/specs/` - Built and deployed
 - `changes/archive/` - Completed changes
 
 ### File Purposes
-- `proposal.md` (local) - Why and what, links to issue/wiki
+- `proposal.md` (local) - Why and what, links to issue/project
 - GitHub Issue - Task tracking and checklist
-- Wiki `design.md` - Technical decisions and architecture
-- Wiki `specs.md` - Requirements with ADDED/MODIFIED/REMOVED
+- Project Item Description - Technical decisions and architecture with ADDED/MODIFIED/REMOVED requirements
 
 ### CLI Essentials
 ```bash
