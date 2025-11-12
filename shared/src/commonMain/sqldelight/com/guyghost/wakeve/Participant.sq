@@ -1,0 +1,53 @@
+-- Participants table: attendees of an event
+CREATE TABLE participant (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    userId TEXT NOT NULL,
+    role TEXT NOT NULL, -- ORGANIZER, PARTICIPANT
+    hasValidatedDate INTEGER NOT NULL DEFAULT 0, -- boolean: 0 or 1
+    joinedAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    UNIQUE(eventId, userId),
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+-- Queries
+selectAll:
+SELECT * FROM participant;
+
+selectById:
+SELECT * FROM participant WHERE id = ?;
+
+selectByEventId:
+SELECT * FROM participant WHERE eventId = ? ORDER BY joinedAt ASC;
+
+selectByEventIdAndUserId:
+SELECT * FROM participant WHERE eventId = ? AND userId = ?;
+
+selectByRole:
+SELECT * FROM participant WHERE eventId = ? AND role = ?;
+
+selectValidated:
+SELECT * FROM participant WHERE eventId = ? AND hasValidatedDate = 1;
+
+insertParticipant:
+INSERT INTO participant(id, eventId, userId, role, hasValidatedDate, joinedAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+updateParticipant:
+UPDATE participant
+SET role = ?, hasValidatedDate = ?, updatedAt = ?
+WHERE id = ?;
+
+updateValidation:
+UPDATE participant
+SET hasValidatedDate = ?, updatedAt = ?
+WHERE id = ?;
+
+deleteParticipant:
+DELETE FROM participant WHERE id = ?;
+
+deleteByEventId:
+DELETE FROM participant WHERE eventId = ?;
+
+
