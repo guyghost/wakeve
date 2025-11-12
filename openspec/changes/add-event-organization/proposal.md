@@ -4,9 +4,9 @@
 `add-event-organization`
 
 ## Related Links
-- **Issue**: #1 (placeholder - create GitHub issue manually)
-- **Design**: https://github.com/guy/wakeve/wiki/changes/add-event-organization/design (placeholder - create wiki page manually)
-- **Specs**: https://github.com/guy/wakeve/wiki/changes/add-event-organization/specs (placeholder - create wiki page manually)
+- **Issue**: #2
+- **Design**: https://github.com/guyghost/wakeve/blob/change/add-event-organization/docs/changes/add-event-organization/design.md
+- **Specs**: https://github.com/guyghost/wakeve/blob/change/add-event-organization/docs/changes/add-event-organization/specs.md
 
 ## Why
 The Wakeve application requires core functionality for event organizers to create events, set up availability polls, define deadlines, and validate final dates, as described in the AGENTS.md specification.
