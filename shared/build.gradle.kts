@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.sqldelight)
+    kotlin("plugin.serialization") version "2.2.20"
 }
 
 kotlin {
@@ -22,6 +23,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.sqldelight.runtime)
+            implementation(libs.kotlinx.serialization)
         }
         androidMain.dependencies {
             implementation(libs.sqldelight.androidDriver)
