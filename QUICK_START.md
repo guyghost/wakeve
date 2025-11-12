@@ -1,0 +1,415 @@
+# Wakeve Quick Start Guide
+
+Welcome to Wakeve! This guide will get you up and running in minutes.
+
+## What is Wakeve?
+Wakeve is a collaborative event planning application that makes scheduling across timezones easy. Features include:
+- **Availability Polling**: Create events and let participants vote on their preferred times
+- **Smart Scheduling**: Automatic calculation of the best meeting time based on weighted voting
+- **Offline-First**: Work without internet and sync changes when back online
+- **Multiplatform**: Android, iOS, and web support
+
+## Project Status
+
+**Phase 2 Complete** ✅
+- Core event organization with polls and voting
+- Multiplatform database (Android/iOS/JVM)
+- REST API server
+- Android Compose UI
+- 36 comprehensive tests
+
+**Phase 3 Planning** 🚀
+- User authentication (OAuth2)
+- Offline-first synchronization
+- Push notifications
+- Calendar integration
+
+## Quick Start (5 minutes)
+
+### Prerequisites
+```bash
+# Check you have required tools
+java -version          # Java 11 or higher
+kotlin -version        # Kotlin 2.2.20
+gradle --version       # Gradle 8.14+
+```
+
+### Clone & Build
+```bash
+# Clone the repository
+git clone https://github.com/guyghost/wakeve.git
+cd wakeve
+
+# Build all modules (takes 2-3 minutes first time)
+./gradlew build
+
+# Run tests to verify everything works
+./gradlew shared:test
+# Expected: 36/36 tests passing ✅
+```
+
+### Explore the Project
+```bash
+# View project structure
+tree -I 'build|.gradle' -L 2
+
+# Check git history
+git log --oneline | head -20
+
+# View current branch and status
+git branch -v
+git status
+```
+
+## What's Included
+
+### Phase 1: Core Features (Implemented)
+✅ Event creation with time slots  
+✅ Participant management  
+✅ Availability polling (YES/MAYBE/NO)  
+✅ Automatic best time calculation  
+✅ Role-based access control  
+✅ 4 Android Compose screens  
+
+### Phase 2: Database & API (Implemented)
+✅ SQLDelight multiplatform database  
+✅ 6 database tables with constraints  
+✅ Platform-specific drivers (Android/iOS/JVM)  
+✅ Ktor REST server  
+✅ 8 API endpoints  
+✅ Offline data recovery  
+
+### Phase 3: Enterprise Features (Planning)
+⏳ OAuth2 authentication  
+⏳ Offline-first synchronization  
+⏳ Push notifications  
+⏳ Native calendar integration  
+
+## Development Workflow
+
+### 1. Start a New Feature
+```bash
+# Create a feature branch
+git checkout -b change/your-feature-name
+
+# Make your changes
+# ... edit files ...
+
+# Run tests
+./gradlew shared:test
+
+# Commit your work
+git commit -m "[#123] Your feature description"
+
+# Push to remote
+git push origin change/your-feature-name
+```
+
+### 2. Run the Server
+```bash
+# Start the Ktor server (listens on http://localhost:8080)
+./gradlew server:run
+
+# Test an endpoint
+curl http://localhost:8080/health
+# Expected response: OK
+
+# View available endpoints
+curl http://localhost:8080/api/events
+```
+
+### 3. Run Tests
+```bash
+# Run all tests
+./gradlew shared:test
+
+# Run specific test class
+./gradlew shared:test --tests "EventRepositoryTest"
+
+# Run a single test
+./gradlew shared:test --tests "EventRepositoryTest.testCreateEvent"
+
+# Run with verbose output
+./gradlew shared:test --info
+```
+
+### 4. Build Android App
+```bash
+# Build debug APK
+./gradlew composeApp:assembleDebug
+
+# Build release APK
+./gradlew composeApp:assembleRelease
+
+# Run on emulator
+./gradlew composeApp:installDebug
+```
+
+## Key Files to Know
+
+### Specifications
+- `openspec/specs/event-organization/spec.md` - Full requirements
+- `openspec/changes/add-event-organization/IMPLEMENTATION_SUMMARY.md` - What was built
+
+### Implementation
+- `shared/src/commonMain/kotlin/com/guyghost/wakeve/models/` - Domain models
+- `shared/src/commonMain/kotlin/com/guyghost/wakeve/EventRepository.kt` - Business logic
+- `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/` - Android UI screens
+- `server/src/main/kotlin/com/guyghost/wakeve/routes/` - REST API endpoints
+- `shared/src/commonMain/sqldelight/` - Database schema
+
+### Testing
+- `shared/src/commonTest/kotlin/com/guyghost/wakeve/EventRepositoryTest.kt` - Domain tests
+- `shared/src/jvmTest/kotlin/com/guyghost/wakeve/DatabaseEventRepositoryTest.kt` - Persistence tests
+- `shared/src/jvmTest/kotlin/com/guyghost/wakeve/OfflineScenarioTest.kt` - Offline tests
+
+### Configuration
+- `gradle/libs.versions.toml` - Dependency versions
+- `shared/build.gradle.kts` - Shared module config
+- `server/build.gradle.kts` - Server config
+- `composeApp/build.gradle.kts` - Android app config
+
+## Understanding the Architecture
+
+### Layer 1: Domain Models
+Classes representing core concepts:
+- `Event` - Event with participants and time slots
+- `TimeSlot` - Proposed meeting time with timezone
+- `Vote` - Participant's preference (YES/MAYBE/NO)
+- `Poll` - Collection of votes
+
+### Layer 2: Business Logic
+Services handling operations:
+- `EventRepository` - In-memory event management
+- `PollLogic` - Vote scoring and slot calculation
+
+### Layer 3: Database
+Persistent storage:
+- `SQLDelight` - Type-safe database queries
+- `DatabaseEventRepository` - Database-backed implementation
+- Platform-specific drivers (Android/iOS/JVM)
+
+### Layer 4: API
+REST endpoints:
+- `EventRoutes` - Event CRUD and status updates
+- `ParticipantRoutes` - Participant management
+- `VoteRoutes` - Vote submission and results
+
+### Layer 5: UI
+User interfaces:
+- `EventCreationScreen` - Create events
+- `ParticipantManagementScreen` - Invite participants
+- `PollVotingScreen` - Cast votes
+- `PollResultsScreen` - View results and confirm
+
+## API Examples
+
+### Create an Event
+```bash
+curl -X POST http://localhost:8080/api/events \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Team Retreat 2025",
+    "description": "Annual team planning",
+    "organizerId": "org-123",
+    "deadline": "2025-11-20T18:00:00Z",
+    "proposedSlots": [
+      {
+        "id": "slot-1",
+        "start": "2025-12-01T10:00:00Z",
+        "end": "2025-12-01T12:00:00Z",
+        "timezone": "UTC"
+      }
+    ]
+  }'
+```
+
+### Submit a Vote
+```bash
+curl -X POST http://localhost:8080/api/events/event-1/poll/votes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "eventId": "event-1",
+    "participantId": "user-123",
+    "slotId": "slot-1",
+    "vote": "YES"
+  }'
+```
+
+### View Poll Results
+```bash
+curl http://localhost:8080/api/events/event-1/poll
+```
+
+## Common Tasks
+
+### Add a New Feature
+1. Create feature branch: `git checkout -b change/my-feature`
+2. Create proposal: `openspec/changes/my-feature/proposal.md`
+3. Create spec: `openspec/specs/my-capability/spec.md`
+4. Implement with tests
+5. Submit PR with issue reference
+
+### Run on Android Device
+1. Connect Android device via USB
+2. Enable USB debugging
+3. Run: `./gradlew composeApp:installDebug`
+4. App appears in launcher as "Wakeve"
+
+### Debug Tests
+```bash
+# Run with debug output
+./gradlew shared:test --info
+
+# Run single test with debug
+./gradlew shared:test --tests "TestClass.testMethod" -d
+
+# View test reports
+open build/reports/tests/test/index.html
+```
+
+### Update Dependencies
+1. Edit `gradle/libs.versions.toml`
+2. Update version numbers
+3. Run: `./gradlew --refresh-dependencies`
+4. Run tests to verify compatibility
+
+## Troubleshooting
+
+### Build Fails
+```bash
+# Clean build caches
+./gradlew clean
+
+# Full rebuild
+./gradlew build
+
+# Check Java version
+java -version  # Should be 11 or higher
+```
+
+### Tests Failing
+```bash
+# Run tests with more verbose output
+./gradlew shared:test --info
+
+# Run single failing test
+./gradlew shared:test --tests "FailingTest" -d
+
+# Check test logs
+find . -name "*.log" -type f | head -5
+```
+
+### Server Won't Start
+```bash
+# Check port 8080 is not in use
+lsof -i :8080
+
+# Run with debug output
+./gradlew server:run --info
+
+# Check database initialization
+ls -la wakev_server.db
+```
+
+### Database Errors
+```bash
+# Regenerate database interface
+./gradlew shared:generateSqlDelightInterface
+
+# Clean database
+rm wakev.db
+rm wakev_server.db
+
+# Rebuild project
+./gradlew clean build
+```
+
+## Next Steps
+
+### For Developers
+1. ✅ Read `IMPLEMENTATION_CHECKLIST.md` to understand Phase 2 completion
+2. ✅ Explore `PHASE_3_ROADMAP.md` for upcoming features
+3. ✅ Review `CONTRIBUTING.md` for development guidelines
+4. 🚀 Start working on Phase 3 features or bug fixes
+
+### For Contributors
+1. Create GitHub Issue describing your feature/fix
+2. Create feature branch: `change/<issue-id>-<description>`
+3. Follow OpenSpec process (proposal → spec → implementation)
+4. Write tests for all new code
+5. Submit PR linking to issue
+
+### For Project Maintainers
+1. Review Phase 3 roadmap and timeline
+2. Create GitHub Issues for Phase 3 sprints
+3. Set up OAuth provider credentials (Google/Apple)
+4. Plan Phase 3 Sprint 1 team assignments
+
+## Learning Resources
+
+### Architecture
+- `shared/src/commonMain/kotlin/` - Domain models and business logic
+- `server/src/main/kotlin/` - API implementation
+- `composeApp/src/commonMain/` - UI implementation
+
+### Testing Examples
+- `EventRepositoryTest.kt` - Unit testing patterns
+- `DatabaseEventRepositoryTest.kt` - Integration testing
+- `OfflineScenarioTest.kt` - Scenario testing
+
+### Documentation
+- `openspec/specs/event-organization/spec.md` - Requirements
+- `PHASE_3_ROADMAP.md` - Future planning
+- `CONTRIBUTING.md` - Detailed guidelines
+
+## Getting Help
+
+**Documentation**: See README.md and docs/ folder  
+**Issues**: Create GitHub Issue with detailed description  
+**Discussions**: Use GitHub Discussions for questions  
+**Code Review**: Submit PR for feedback from maintainers  
+
+## Key Statistics
+
+| Metric | Value |
+|--------|-------|
+| Total Tests | 36 passing ✅ |
+| Code Files | 30+ |
+| Lines of Code | ~3500 |
+| Database Tables | 6 |
+| API Endpoints | 8 |
+| Supported Platforms | Android, iOS, JVM |
+| Build Time | ~2-3 minutes |
+
+## Commands Cheat Sheet
+
+```bash
+# Development
+git checkout -b change/your-feature      # Create feature branch
+./gradlew build                          # Full build
+./gradlew shared:test                    # Run tests
+./gradlew server:run                     # Run server
+
+# Testing
+./gradlew shared:test --tests "TestName" # Run specific test
+./gradlew shared:test --info             # Verbose output
+./gradlew server:compileKotlin          # Compile server
+
+# Code Quality
+./gradlew spotlessApply                  # Format code
+./gradlew detekt                         # Check code style
+
+# Android
+./gradlew composeApp:build               # Build Android app
+./gradlew composeApp:installDebug        # Install on device
+
+# Git
+git status                               # Check changes
+git commit -m "[#123] Description"       # Commit with issue ref
+git push origin change/your-feature      # Push branch
+```
+
+---
+
+**Ready to contribute?** Pick an issue or start with Phase 3 planning! 🚀
