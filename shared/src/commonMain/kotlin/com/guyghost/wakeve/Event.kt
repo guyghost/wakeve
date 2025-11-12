@@ -5,10 +5,11 @@ data class Event(
     val title: String,
     val description: String,
     val organizerId: String,
+    val participants: List<String> = emptyList(), // List of participant IDs/emails
     val proposedSlots: List<TimeSlot>,
-    val deadline: String, // ISO string
+    val deadline: String, // ISO string (UTC)
     val status: EventStatus,
-    val finalDate: String? = null // ISO string
+    val finalDate: String? = null // ISO string (UTC)
 )
 
 enum class EventStatus {
