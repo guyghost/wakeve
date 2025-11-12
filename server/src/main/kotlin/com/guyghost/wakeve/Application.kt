@@ -12,6 +12,7 @@ import com.guyghost.wakeve.routes.eventRoutes
 import com.guyghost.wakeve.routes.participantRoutes
 import com.guyghost.wakeve.routes.voteRoutes
 import com.guyghost.wakeve.routes.authRoutes
+import com.guyghost.wakeve.routes.syncRoutes
 
 fun main() {
     // Initialize database
@@ -45,6 +46,9 @@ fun Application.module(eventRepository: DatabaseEventRepository = DatabaseEventR
         route("/api") {
             // Authentication routes
             authRoutes()
+            
+            // Synchronization routes
+            syncRoutes()
             
             // Event management routes
             eventRoutes(eventRepository)
