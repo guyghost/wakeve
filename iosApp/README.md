@@ -2,6 +2,32 @@
 
 This is the iOS implementation of the Wakeve event scheduling application using SwiftUI.
 
+## Design System: Apple Liquid Glass
+
+The iOS app follows Apple's Liquid Glass design guidelines, featuring:
+
+- **Glass Morphism Effects**: Frosted glass appearance with blur and gradient borders
+- **Material Design**: Deep color hierarchy with support for light and dark modes
+- **Spacing System**: Consistent 8pt grid-based spacing (4, 8, 12, 16, 24, 32pt)
+- **Typography**: Hierarchical font system with clear visual hierarchy
+- **Color Palette**:
+  - Primary Blue: `#007AFF` (Apple Blue)
+  - Success Green: `#34C759`
+  - Warning Orange: `#FF9500`
+  - Error Red: `#FF3B30`
+  - Dark Background: `#1C1C1E`
+  - Light Background: `#FAFAFE`
+
+### Design Components
+
+The design system is implemented in `Design/LiquidGlassDesign.swift` and includes:
+
+- `GlassView`: Reusable component for glass effect surfaces
+- `LiquidGlassCard`: Pre-styled cards with glass morphism
+- `LiquidGlassButtonStyle`: Custom primary button style
+- `LiquidGlassSecondaryButtonStyle`: Secondary button style
+- `LiquidGlassTextFieldStyle`: Styled input fields
+
 ## Architecture
 
 The iOS app consists of several key SwiftUI views that follow the same flow as the Android Compose implementation:
@@ -92,11 +118,17 @@ xcodebuild test -scheme iosApp
 4. **Lists**: Uses SwiftUI's `List` and `ForEach` instead of Compose's `LazyColumn`
 5. **Styling**: Uses SwiftUI's `buttonStyle()` modifiers instead of Compose's `ButtonDefaults`
 
+## Localization
+
+The UI is currently in French (`fr`) with support for expanding to other languages. All UI strings are defined in the view files.
+
 ## Future Enhancements
 
 - Date picker integration for better deadline/slot selection
 - Native calendar integration
-- Offline persistence using Core Data
-- Dark mode support
-- Localization support
+- Offline persistence using Core Data (integration with SQLDelight)
+- Expanded localization support (English, Spanish, German, etc.)
 - Push notifications via UserNotifications framework
+- Haptic feedback for user interactions
+- Animated transitions between views
+- Real-time collaboration features
