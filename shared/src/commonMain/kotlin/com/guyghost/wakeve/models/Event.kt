@@ -1,4 +1,4 @@
-package com.guyghost.wakeve
+package com.guyghost.wakeve.models
 
 data class Event(
     val id: String,

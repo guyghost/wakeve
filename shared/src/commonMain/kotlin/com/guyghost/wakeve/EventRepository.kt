@@ -1,5 +1,10 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.Poll
+import com.guyghost.wakeve.models.Vote
+
 class EventRepository {
     private val events = mutableMapOf<String, Event>()
     private val polls = mutableMapOf<String, Poll>()
