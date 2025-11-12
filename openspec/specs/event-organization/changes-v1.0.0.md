@@ -1,30 +1,6 @@
-# Specification: Event Organization
+# Change: Event Organization v1.0.0
 
-> **Capability**: `event-organization`
-> **Version**: 1.0.0
-> **Status**: Draft
-> **Last Updated**: 2025-11-12
-
-## Purpose
-
-The Event Organization capability enables organizers to create collaborative events, invite participants, manage availability polls, and validate final event dates. This is the foundational capability for the Wakeve event planning system.
-
-### Core Concepts
-
-**Event**: A collaborative event created by an organizer with proposed time slots and a voting deadline.
-
-**TimeSlot**: A proposed date and time range for the event, stored in UTC with timezone information.
-
-**Poll**: A collection of participant votes on proposed time slots.
-
-**Vote**: A participant's preference (YES, MAYBE, NO) for a specific time slot.
-
-**Event Status**: 
-- `DRAFT`: Event created, not yet open for voting
-- `POLLING`: Event open for participant voting
-- `CONFIRMED`: Event has a final confirmed date
-
-## Requirements
+## ADDED Requirements
 
 ### Organizers SHALL be able to create a new event with a title, description, proposed time slots, and voting deadline
 

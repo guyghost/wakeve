@@ -3,8 +3,11 @@
 ## Change ID
 `add-event-organization`
 
+## Affected Spec
+- **Spec**: `event-organization` (New capability)
+
 ## Related Links
-- **Issue**: #2
+- **Issue**: https://github.com/guyghost/wakeve/issues/2
 - **Design**: https://github.com/guyghost/wakeve/blob/change/add-event-organization/docs/changes/add-event-organization/design.md
 - **Specs**: https://github.com/guyghost/wakeve/blob/change/add-event-organization/docs/changes/add-event-organization/specs.md
 
