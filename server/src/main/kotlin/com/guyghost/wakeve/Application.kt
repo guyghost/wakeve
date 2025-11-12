@@ -11,6 +11,7 @@ import kotlinx.serialization.json.Json
 import com.guyghost.wakeve.routes.eventRoutes
 import com.guyghost.wakeve.routes.participantRoutes
 import com.guyghost.wakeve.routes.voteRoutes
+import com.guyghost.wakeve.routes.authRoutes
 
 fun main() {
     // Initialize database
@@ -42,6 +43,10 @@ fun Application.module(eventRepository: DatabaseEventRepository = DatabaseEventR
 
         // API endpoints
         route("/api") {
+            // Authentication routes
+            authRoutes()
+            
+            // Event management routes
             eventRoutes(eventRepository)
             participantRoutes(eventRepository)
             voteRoutes(eventRepository)
