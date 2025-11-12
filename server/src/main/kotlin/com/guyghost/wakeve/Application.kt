@@ -8,6 +8,9 @@ import io.ktor.server.routing.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
+import com.guyghost.wakeve.routes.eventRoutes
+import com.guyghost.wakeve.routes.participantRoutes
+import com.guyghost.wakeve.routes.voteRoutes
 
 fun main() {
     // Initialize database
@@ -39,15 +42,9 @@ fun Application.module(eventRepository: DatabaseEventRepository = DatabaseEventR
 
         // API endpoints
         route("/api") {
-            route("/events") {
-                // Event endpoints (will be implemented in p2-14)
-            }
-            route("/polls") {
-                // Poll endpoints (will be implemented in p2-14)
-            }
-            route("/votes") {
-                // Vote endpoints (will be implemented in p2-14)
-            }
+            eventRoutes(eventRepository)
+            participantRoutes(eventRepository)
+            voteRoutes(eventRepository)
         }
 
         // Root endpoint for compatibility
