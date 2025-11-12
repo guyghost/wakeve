@@ -1,0 +1,59 @@
+CREATE TABLE IF NOT EXISTS SyncConflict (
+    id TEXT PRIMARY KEY,
+    changeId TEXT NOT NULL,
+    entityType TEXT NOT NULL,
+    entityId TEXT NOT NULL,
+    conflictType TEXT NOT NULL,
+    localVersion TEXT NOT NULL,
+    remoteVersion TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    resolved INTEGER NOT NULL DEFAULT 0,
+    resolvedAt INTEGER,
+    resolutionStrategy TEXT,
+    selectedVersion TEXT,
+    FOREIGN KEY (changeId) REFERENCES SyncChange(id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_sync_conflict_change ON SyncConflict(changeId);
+CREATE INDEX IF NOT EXISTS idx_sync_conflict_entity ON SyncConflict(entityType, entityId);
+CREATE INDEX IF NOT EXISTS idx_sync_conflict_resolved ON SyncConflict(resolved);
+CREATE INDEX IF NOT EXISTS idx_sync_conflict_timestamp ON SyncConflict(timestamp);
+
+-- Insérer un conflit
+insertConflict:
+INSERT INTO SyncConflict(id, changeId, entityType, entityId, conflictType, localVersion, remoteVersion, timestamp, resolved)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Récupérer les conflits non résolus
+getUnresolvedConflicts:
+SELECT * FROM SyncConflict
+WHERE resolved = 0
+ORDER BY timestamp DESC;
+
+-- Résoudre un conflit
+resolveConflict:
+UPDATE SyncConflict
+SET resolved = 1, resolvedAt = ?, resolutionStrategy = ?, selectedVersion = ?
+WHERE id = ?;
+
+-- Compter les conflits non résolus
+countUnresolved:
+SELECT COUNT(*) as count FROM SyncConflict WHERE resolved = 0;
+
+-- Récupérer un conflit par ID
+getById:
+SELECT * FROM SyncConflict WHERE id = ?;
+
+-- Récupérer les conflits pour une entité
+getConflictsForEntity:
+SELECT * FROM SyncConflict
+WHERE entityType = ? AND entityId = ?
+ORDER BY timestamp DESC;
+
+-- Supprimer un conflit
+deleteConflict:
+DELETE FROM SyncConflict WHERE id = ?;
+
+-- Supprimer les conflits résolus
+deleteResolvedConflicts:
+DELETE FROM SyncConflict WHERE resolved = 1 AND resolvedAt IS NOT NULL;
