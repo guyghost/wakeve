@@ -16,86 +16,117 @@ struct ParticipantManagementView: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Manage Participants")
-                    .font(.system(size: 32, weight: .bold))
-                
-                Text("Event: \(event.title)")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                
-                // Add Participant Section
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Add Participant")
-                        .font(.system(size: 16, weight: .semibold))
-                    
-                    HStack(spacing: 8) {
-                        TextField("Email", text: $newParticipantEmail)
-                            .textFieldStyle(.roundedBorder)
-                            .keyboardType(.emailAddress)
-                        
-                        Button(action: addParticipant) {
-                            Text("Add")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    
-                    if showError {
-                        Text(errorMessage)
-                            .font(.caption)
-                            .foregroundColor(.red)
-                            .padding(.top, 4)
-                    }
+            VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingL) {
+                // Header
+                VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingS) {
+                    Text("Inviter les participants")
+                        .font(LiquidGlassDesign.titleL)
+                    Text("Événement: \(event.title)")
+                        .font(LiquidGlassDesign.bodySmall)
+                        .foregroundColor(.secondary)
                 }
-                .padding(16)
-                .background(Color.gray.opacity(0.05))
-                .cornerRadius(8)
+                .padding(.horizontal, LiquidGlassDesign.spacingL)
                 
-                // Participants List
-                if !participants.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Participants (\(participants.count))")
-                            .font(.system(size: 16, weight: .semibold))
+                VStack(spacing: LiquidGlassDesign.spacingL) {
+                    // Add Participant Section
+                    VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingM) {
+                        Text("Ajouter un participant")
+                            .font(LiquidGlassDesign.titleS)
                         
-                        ForEach(participants, id: \.self) { email in
-                            ParticipantRow(
-                                email: email,
-                                onRemove: { removeParticipant(email) }
+                        HStack(spacing: LiquidGlassDesign.spacingS) {
+                            TextField("email@exemple.com", text: $newParticipantEmail)
+                                .textFieldStyle(LiquidGlassTextFieldStyle())
+                                .keyboardType(.emailAddress)
+                                .autocorrectionDisabled()
+                            
+                            Button(action: addParticipant) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(LiquidGlassDesign.accentBlue)
+                            }
+                            .padding(.top, LiquidGlassDesign.spacingM)
+                        }
+                        
+                        if showError {
+                            HStack(spacing: LiquidGlassDesign.spacingS) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .foregroundColor(LiquidGlassDesign.errorRed)
+                                
+                                Text(errorMessage)
+                                    .font(LiquidGlassDesign.bodySmall)
+                                    .foregroundColor(LiquidGlassDesign.errorRed)
+                            }
+                            .padding(LiquidGlassDesign.spacingM)
+                            .background(
+                                RoundedRectangle(cornerRadius: LiquidGlassDesign.radiusM)
+                                    .fill(LiquidGlassDesign.errorRed.opacity(0.1))
                             )
                         }
                     }
-                } else {
-                    VStack {
-                        Text("No participants added yet")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(32)
-                }
-                
-                Spacer()
-                
-                // Action Buttons
-                HStack(spacing: 12) {
-                    Button(action: { onParticipantsAdded(event.id) }) {
-                        Text("Back")
-                            .frame(maxWidth: .infinity)
-                            .padding(12)
-                    }
-                    .buttonStyle(.bordered)
+                    .liquidGlassCard()
                     
-                    Button(action: startPoll) {
-                        Text("Start Poll")
-                            .frame(maxWidth: .infinity)
-                            .padding(12)
+                    // Participants List
+                    if !participants.isEmpty {
+                        VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingM) {
+                            HStack {
+                                Text("Participants")
+                                    .font(LiquidGlassDesign.titleS)
+                                
+                                Text("\(participants.count)")
+                                    .font(LiquidGlassDesign.titleS)
+                                    .foregroundColor(LiquidGlassDesign.accentBlue)
+                            }
+                            
+                            VStack(spacing: LiquidGlassDesign.spacingS) {
+                                ForEach(participants, id: \.self) { email in
+                                    ParticipantRow(
+                                        email: email,
+                                        onRemove: { removeParticipant(email) }
+                                    )
+                                }
+                            }
+                        }
+                        .padding(.horizontal, LiquidGlassDesign.spacingL)
+                    } else {
+                        VStack(spacing: LiquidGlassDesign.spacingM) {
+                            Image(systemName: "person.2.slash")
+                                .font(.system(size: 48))
+                                .foregroundColor(.secondary.opacity(0.5))
+                            
+                            Text("Aucun participant")
+                                .font(LiquidGlassDesign.titleS)
+                            
+                            Text("Ajoutez des participants pour pouvoir créer un sondage")
+                                .font(LiquidGlassDesign.bodySmall)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, LiquidGlassDesign.spacingXXL)
+                        .padding(.horizontal, LiquidGlassDesign.spacingL)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(participants.isEmpty)
+                    
+                    Spacer()
+                    
+                    // Action Buttons
+                    HStack(spacing: LiquidGlassDesign.spacingM) {
+                        Button(action: { onParticipantsAdded(event.id) }) {
+                            Text("Retour")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(LiquidGlassSecondaryButtonStyle())
+                        
+                        Button(action: startPoll) {
+                            Text("Lancer le vote")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(LiquidGlassButtonStyle(isEnabled: !participants.isEmpty))
+                        .disabled(participants.isEmpty)
+                    }
+                    .padding(.horizontal, LiquidGlassDesign.spacingL)
                 }
             }
-            .padding(16)
+            .padding(.vertical, LiquidGlassDesign.spacingL)
         }
         .onAppear {
             participants = event.participants
@@ -106,19 +137,19 @@ struct ParticipantManagementView: View {
         let email = newParticipantEmail.trimmingCharacters(in: .whitespaces)
         
         guard !email.isEmpty else {
-            errorMessage = "Email is required"
+            errorMessage = "L'email est requis"
             showError = true
             return
         }
         
         guard isValidEmail(email) else {
-            errorMessage = "Invalid email format"
+            errorMessage = "Format d'email invalide"
             showError = true
             return
         }
         
         guard !participants.contains(email) else {
-            errorMessage = "Participant already added"
+            errorMessage = "Ce participant a déjà été ajouté"
             showError = true
             return
         }
@@ -130,7 +161,7 @@ struct ParticipantManagementView: View {
             newParticipantEmail = ""
             showError = false
         } else {
-            errorMessage = "Failed to add participant"
+            errorMessage = "Erreur lors de l'ajout du participant"
             showError = true
         }
     }
@@ -154,26 +185,30 @@ struct ParticipantRow: View {
     let onRemove: () -> Void
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(email)
-                    .font(.callout)
-                Text("Not yet voted")
-                    .font(.caption)
-                    .foregroundColor(.gray)
+        HStack(spacing: LiquidGlassDesign.spacingM) {
+            HStack(spacing: LiquidGlassDesign.spacingS) {
+                Image(systemName: "person.circle.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(LiquidGlassDesign.accentBlue.opacity(0.6))
+                
+                VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingXS) {
+                    Text(email)
+                        .font(LiquidGlassDesign.bodyRegular)
+                        .lineLimit(1)
+                    Text("En attente de vote")
+                        .font(LiquidGlassDesign.caption)
+                        .foregroundColor(.secondary)
+                }
             }
             
             Spacer()
             
             Button(action: onRemove) {
-                Text("Remove")
-                    .font(.caption)
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(LiquidGlassDesign.errorRed.opacity(0.6))
             }
-            .buttonStyle(.bordered)
         }
-        .padding(12)
-        .background(Color.gray.opacity(0.05))
-        .cornerRadius(6)
+        .liquidGlassCard()
     }
 }
 
@@ -187,7 +222,7 @@ struct ParticipantRow: View {
         participants: ["john@example.com", "jane@example.com"],
         proposedSlots: [],
         deadline: "2025-12-25T18:00:00Z",
-        status: EventStatus.draft
+        status: EventStatus.DRAFT
     )
     
     ParticipantManagementView(

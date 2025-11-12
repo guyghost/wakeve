@@ -16,105 +16,131 @@ struct PollResultsView: View {
         let bestResult = poll != nil ? PollLogic.getBestSlotWithScore(poll!, slots: event.proposedSlots) : nil
         
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Poll Results")
-                    .font(.system(size: 32, weight: .bold))
+            VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingL) {
+                // Header
+                VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingS) {
+                    Text("Résultats du vote")
+                        .font(LiquidGlassDesign.titleL)
+                    Text("Événement: \(event.title)")
+                        .font(LiquidGlassDesign.bodySmall)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, LiquidGlassDesign.spacingL)
                 
-                Text("Event: \(event.title)")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                
-                // Best Slot Recommendation
-                if let (bestSlot, score) = bestResult {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Recommended Time Slot")
-                            .font(.system(size: 14, weight: .semibold))
-                        
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(bestSlot.start)
-                                .font(.callout)
-                            Text("to")
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                            Text(bestSlot.end)
-                                .font(.callout)
-                        }
-                        
-                        // Score Breakdown
-                        HStack(spacing: 16) {
-                            ScoreIndicator(
-                                label: "Yes",
-                                count: score.yesCount,
-                                color: Color(red: 0.3, green: 0.8, blue: 0.3)
-                            )
+                VStack(spacing: LiquidGlassDesign.spacingL) {
+                    // Best Slot Recommendation
+                    if let (bestSlot, score) = bestResult {
+                        VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingM) {
+                            HStack(spacing: LiquidGlassDesign.spacingS) {
+                                Image(systemName: "star.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(LiquidGlassDesign.warningOrange)
+                                
+                                Text("Créneau recommandé")
+                                    .font(LiquidGlassDesign.titleS)
+                            }
                             
-                            ScoreIndicator(
-                                label: "Maybe",
-                                count: score.maybeCount,
-                                color: Color(red: 1, green: 0.8, blue: 0.2)
-                            )
+                            VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingXS) {
+                                Text(bestSlot.start)
+                                    .font(LiquidGlassDesign.bodySmall)
+                                Text("à")
+                                    .font(LiquidGlassDesign.caption)
+                                    .foregroundColor(.secondary)
+                                Text(bestSlot.end)
+                                    .font(LiquidGlassDesign.bodySmall)
+                            }
                             
-                            ScoreIndicator(
-                                label: "No",
-                                count: score.noCount,
-                                color: Color(red: 1, green: 0.3, blue: 0.3)
-                            )
+                            // Score Breakdown
+                            HStack(spacing: LiquidGlassDesign.spacingL) {
+                                ScoreIndicator(
+                                    label: "Oui",
+                                    count: score.yesCount,
+                                    color: LiquidGlassDesign.successGreen
+                                )
+                                
+                                ScoreIndicator(
+                                    label: "Peut-être",
+                                    count: score.maybeCount,
+                                    color: LiquidGlassDesign.warningOrange
+                                )
+                                
+                                ScoreIndicator(
+                                    label: "Non",
+                                    count: score.noCount,
+                                    color: LiquidGlassDesign.errorRed
+                                )
+                                
+                                Spacer()
+                                
+                                VStack(alignment: .trailing, spacing: LiquidGlassDesign.spacingXS) {
+                                    Text("Score")
+                                        .font(LiquidGlassDesign.caption)
+                                        .foregroundColor(.secondary)
+                                    Text("\(Int(score.totalScore))")
+                                        .font(LiquidGlassDesign.titleS)
+                                        .foregroundColor(score.totalScore > 0 ? LiquidGlassDesign.successGreen : LiquidGlassDesign.errorRed)
+                                }
+                            }
                         }
+                        .liquidGlassCard()
+                    }
+                    
+                    // All Scores
+                    VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingM) {
+                        Text("Tous les créneaux")
+                            .font(LiquidGlassDesign.titleS)
+                            .padding(.horizontal, LiquidGlassDesign.spacingL)
                         
-                        Text("Score: \(Int(score.totalScore))")
-                            .font(.callout)
-                            .padding(.top, 8)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(Color.blue.opacity(0.1))
-                    .cornerRadius(8)
-                }
-                
-                // All Scores
-                Text("All Time Slots")
-                    .font(.system(size: 16, weight: .semibold))
-                
-                VStack(spacing: 12) {
-                    ForEach(scores, id: \.slotId) { score in
-                        if let slot = event.proposedSlots.first(where: { $0.id == score.slotId }) {
-                            SlotResultCard(
-                                slot: slot,
-                                score: score,
-                                isSelected: selectedSlotId == slot.id,
-                                onSelect: { selectedSlotId = slot.id }
-                            )
+                        VStack(spacing: LiquidGlassDesign.spacingS) {
+                            ForEach(scores, id: \.slotId) { score in
+                                if let slot = event.proposedSlots.first(where: { $0.id == score.slotId }) {
+                                    SlotResultCard(
+                                        slot: slot,
+                                        score: score,
+                                        isSelected: selectedSlotId == slot.id,
+                                        onSelect: { selectedSlotId = slot.id }
+                                    )
+                                }
+                            }
                         }
+                        .padding(.horizontal, LiquidGlassDesign.spacingL)
                     }
-                }
-                
-                Spacer()
-                
-                // Confirmation Section
-                if !isConfirmed && selectedSlotId != nil {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Confirm selected time slot?")
-                            .font(.callout)
-                        Text("Once confirmed, participants will be notified and the event will be finalized.")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                    
+                    // Confirmation Section
+                    if !isConfirmed && selectedSlotId != nil {
+                        VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingS) {
+                            HStack(spacing: LiquidGlassDesign.spacingS) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(LiquidGlassDesign.successGreen)
+                                
+                                Text("Confirmer le créneau?")
+                                    .font(LiquidGlassDesign.titleS)
+                            }
+                            
+                            Text("Une fois confirmé, les participants seront notifiés et l'événement sera finalisé.")
+                                .font(LiquidGlassDesign.bodySmall)
+                                .foregroundColor(.secondary)
+                        }
+                        .liquidGlassCard()
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(Color.gray.opacity(0.05))
-                    .cornerRadius(8)
+                    
+                    // Action Button
+                    Button(action: confirmDate) {
+                        Text("Confirmer la date finale")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(LiquidGlassButtonStyle(
+                        isEnabled: selectedSlotId != nil && !isConfirmed
+                    ))
+                    .disabled(selectedSlotId == nil || isConfirmed)
+                    .padding(.horizontal, LiquidGlassDesign.spacingL)
+                    
+                    Spacer()
+                        .frame(height: LiquidGlassDesign.spacingL)
                 }
-                
-                // Action Button
-                Button(action: confirmDate) {
-                    Text("Confirm Final Date")
-                        .frame(maxWidth: .infinity)
-                        .padding(12)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(selectedSlotId == nil || isConfirmed)
             }
-            .padding(16)
+            .padding(.vertical, LiquidGlassDesign.spacingL)
         }
         .onAppear {
             if let bestResult = bestResult {
@@ -127,8 +153,7 @@ struct PollResultsView: View {
         guard let selectedSlotId = selectedSlotId else { return }
         guard let selectedSlot = event.proposedSlots.first(where: { $0.id == selectedSlotId }) else { return }
         
-        // Check if user is organizer
-        if repository.isOrganizer(eventId: event.id, participantId: "organizer-1") { // TODO: Get from auth
+        if repository.isOrganizer(eventId: event.id, participantId: "organizer-1") {
             repository.updateEventStatus(
                 eventId: event.id,
                 status: EventStatus.CONFIRMED,
@@ -146,18 +171,19 @@ struct ScoreIndicator: View {
     let color: Color
     
     var body: some View {
-        VStack(alignment: .center, spacing: 4) {
+        VStack(alignment: .center, spacing: LiquidGlassDesign.spacingXS) {
             Circle()
                 .fill(color)
-                .frame(width: 40, height: 40)
+                .frame(width: 44, height: 44)
                 .overlay {
                     Text("\(count)")
-                        .font(.caption)
+                        .font(LiquidGlassDesign.titleS)
                         .foregroundColor(.white)
                 }
             
             Text(label)
-                .font(.caption2)
+                .font(LiquidGlassDesign.caption)
+                .foregroundColor(.secondary)
         }
     }
 }
@@ -170,32 +196,36 @@ struct SlotResultCard: View {
     
     var body: some View {
         Button(action: onSelect) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(slot.start)
-                        .font(.caption)
-                    Text("→")
-                        .font(.caption)
-                    Text(slot.end)
-                        .font(.caption)
+            HStack(spacing: LiquidGlassDesign.spacingM) {
+                VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingXS) {
+                    Text("De: \(slot.start)")
+                        .font(LiquidGlassDesign.bodySmall)
+                    Text("À: \(slot.end)")
+                        .font(LiquidGlassDesign.bodySmall)
                 }
                 
                 Spacer()
                 
-                Text("Score: \(Int(score.totalScore))")
-                    .font(.caption)
-                    .foregroundColor(score.totalScore > 0 ? Color(red: 0.3, green: 0.8, blue: 0.3) : Color(red: 1, green: 0.3, blue: 0.3))
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(Color.gray.opacity(0.05))
-            .overlay {
-                if isSelected {
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.blue, lineWidth: 2)
+                VStack(alignment: .trailing, spacing: LiquidGlassDesign.spacingXS) {
+                    Text("Score")
+                        .font(LiquidGlassDesign.caption)
+                        .foregroundColor(.secondary)
+                    
+                    Text("\(Int(score.totalScore))")
+                        .font(LiquidGlassDesign.titleS)
+                        .foregroundColor(
+                            score.totalScore > 0
+                                ? LiquidGlassDesign.successGreen
+                                : LiquidGlassDesign.errorRed
+                        )
                 }
             }
-            .cornerRadius(6)
+            .liquidGlassCard(cornerRadius: LiquidGlassDesign.radiusL)
+            .overlay(
+                isSelected ? RoundedRectangle(cornerRadius: LiquidGlassDesign.radiusL)
+                    .stroke(LiquidGlassDesign.accentBlue, lineWidth: 2)
+                    : nil
+            )
         }
         .buttonStyle(.plain)
     }
@@ -214,7 +244,7 @@ struct SlotResultCard: View {
             TimeSlot(id: "slot-2", start: "2025-12-26T14:00:00Z", end: "2025-12-26T16:00:00Z", timezone: "UTC")
         ],
         deadline: "2025-12-25T18:00:00Z",
-        status: EventStatus.polling
+        status: EventStatus.CONFIRMED
     )
     
     PollResultsView(

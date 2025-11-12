@@ -16,110 +16,125 @@ struct EventCreationView: View {
     var onNavigateToParticipants: (String) -> Void = { _ in }
     
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .center, spacing: 16) {
-                    Text("Create Event")
-                        .font(.system(size: 32, weight: .bold))
-                        .padding(.bottom, 8)
-                    
+        ScrollView {
+            VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingL) {
+                // Header
+                VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingS) {
+                    Text("Créer un événement")
+                        .font(LiquidGlassDesign.titleL)
+                    Text("Définissez les détails et les créneaux disponibles")
+                        .font(LiquidGlassDesign.bodySmall)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, LiquidGlassDesign.spacingL)
+                
+                VStack(spacing: LiquidGlassDesign.spacingL) {
                     // Title Input
-                    TextField("Event Title", text: $title)
-                        .textFieldStyle(.roundedBorder)
-                        .padding(.horizontal)
+                    VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingS) {
+                        Text("Titre de l'événement")
+                            .font(LiquidGlassDesign.titleS)
+                        TextField("Ex: Réunion d'équipe", text: $title)
+                            .textFieldStyle(LiquidGlassTextFieldStyle())
+                    }
                     
                     // Description Input
-                    TextEditor(text: $description)
-                        .frame(height: 100)
-                        .border(Color.gray.opacity(0.3), width: 1)
-                        .cornerRadius(6)
-                        .padding(.horizontal)
-                        .overlay(
-                            VStack {
-                                HStack {
-                                    Text("Description")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                        .padding(8)
-                                    Spacer()
-                                }
-                                Spacer()
-                            }
-                            .allowsHitTesting(false)
-                        )
+                    VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingS) {
+                        Text("Description")
+                            .font(LiquidGlassDesign.titleS)
+                        TextEditor(text: $description)
+                            .frame(height: 100)
+                            .padding(LiquidGlassDesign.spacingM)
+                            .background(
+                                RoundedRectangle(cornerRadius: LiquidGlassDesign.radiusM)
+                                    .fill(LiquidGlassDesign.glassColor)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: LiquidGlassDesign.radiusM)
+                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            )
+                            .font(LiquidGlassDesign.bodyRegular)
+                    }
                     
                     // Deadline Input
-                    TextField("Deadline (ISO 8601, e.g., 2025-12-25T18:00:00Z)", text: $deadline)
-                        .textFieldStyle(.roundedBorder)
-                        .padding(.horizontal)
+                    VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingS) {
+                        Text("Date limite de vote")
+                            .font(LiquidGlassDesign.titleS)
+                        TextField("ISO 8601 (2025-12-25T18:00:00Z)", text: $deadline)
+                            .textFieldStyle(LiquidGlassTextFieldStyle())
+                    }
                     
                     Divider()
-                        .padding(.vertical, 8)
+                        .opacity(0.3)
                     
                     // Time Slots Section
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Proposed Time Slots")
-                            .font(.system(size: 16, weight: .semibold))
+                    VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingM) {
+                        Text("Créneaux proposés")
+                            .font(LiquidGlassDesign.titleS)
                         
-                        HStack(spacing: 8) {
-                            TextField("Start", text: $slotStart)
-                                .textFieldStyle(.roundedBorder)
+                        HStack(spacing: LiquidGlassDesign.spacingS) {
+                            TextField("Début", text: $slotStart)
+                                .textFieldStyle(LiquidGlassTextFieldStyle())
                             
-                            TextField("End", text: $slotEnd)
-                                .textFieldStyle(.roundedBorder)
+                            TextField("Fin", text: $slotEnd)
+                                .textFieldStyle(LiquidGlassTextFieldStyle())
                             
                             Button(action: addSlot) {
-                                Text("Add")
-                                    .frame(maxWidth: .infinity)
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 24))
+                                    .foregroundColor(LiquidGlassDesign.accentBlue)
                             }
-                            .buttonStyle(.bordered)
+                            .padding(.top, LiquidGlassDesign.spacingM)
                         }
                         
                         // Display Added Slots
                         if !slots.isEmpty {
-                            Text("Added Slots (\(slots.count))")
-                                .font(.system(size: 14, weight: .medium))
-                                .padding(.top, 8)
-                            
-                            ForEach(slots, id: \.id) { slot in
-                                SlotCard(
-                                    slot: slot,
-                                    onRemove: { removeSlot(slot) }
-                                )
+                            VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingS) {
+                                Text("Créneaux ajoutés (\(slots.count))")
+                                    .font(LiquidGlassDesign.titleS)
+                                
+                                ForEach(slots, id: \.id) { slot in
+                                    SlotCard(
+                                        slot: slot,
+                                        onRemove: { removeSlot(slot) }
+                                    )
+                                }
                             }
+                            .padding(.top, LiquidGlassDesign.spacingS)
                         }
                     }
-                    .padding(.horizontal)
-                    
-                    Divider()
-                        .padding(.vertical, 8)
                     
                     // Error Display
                     if showError {
-                        VStack(alignment: .leading) {
+                        HStack(spacing: LiquidGlassDesign.spacingM) {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .foregroundColor(LiquidGlassDesign.errorRed)
+                            
                             Text(errorMessage)
-                                .font(.caption)
-                                .foregroundColor(.red)
+                                .font(LiquidGlassDesign.bodySmall)
+                                .foregroundColor(LiquidGlassDesign.errorRed)
+                            
+                            Spacer()
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
-                        .background(Color.red.opacity(0.1))
-                        .cornerRadius(6)
-                        .padding(.horizontal)
+                        .padding(LiquidGlassDesign.spacingM)
+                        .background(
+                            RoundedRectangle(cornerRadius: LiquidGlassDesign.radiusM)
+                                .fill(LiquidGlassDesign.errorRed.opacity(0.1))
+                        )
                     }
                     
                     // Create Button
                     Button(action: createEvent) {
-                        Text("Create Event")
-                            .frame(maxWidth: .infinity)
-                            .padding(12)
+                        Text("Créer l'événement")
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(LiquidGlassButtonStyle(isEnabled: !slots.isEmpty))
                     .disabled(slots.isEmpty)
-                    .padding(.horizontal)
+                    
+                    Spacer()
+                        .frame(height: LiquidGlassDesign.spacingL)
                 }
-                .padding(.vertical, 16)
+                .padding(.horizontal, LiquidGlassDesign.spacingL)
             }
+            .padding(.vertical, LiquidGlassDesign.spacingL)
         }
     }
     
@@ -142,21 +157,20 @@ struct EventCreationView: View {
     }
     
     private func createEvent() {
-        // Validate inputs
         if title.isEmpty {
-            errorMessage = "Event title is required"
+            errorMessage = "Le titre de l'événement est requis"
             showError = true
             return
         }
         
         if deadline.isEmpty {
-            errorMessage = "Deadline is required"
+            errorMessage = "La date limite est requise"
             showError = true
             return
         }
         
         if slots.isEmpty {
-            errorMessage = "At least one time slot is required"
+            errorMessage = "Au moins un créneau est requis"
             showError = true
             return
         }
@@ -165,7 +179,7 @@ struct EventCreationView: View {
             id: "event-\(Int.random(in: 1000000...9999999))",
             title: title,
             description: description,
-            organizerId: "organizer-1", // TODO: Get from auth
+            organizerId: "organizer-1",
             participants: [],
             proposedSlots: slots,
             deadline: deadline,
@@ -182,27 +196,22 @@ struct SlotCard: View {
     let onRemove: () -> Void
     
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(slot.start)
-                    .font(.caption)
-                Text("→")
-                    .font(.caption)
-                Text(slot.end)
-                    .font(.caption)
+        HStack(spacing: LiquidGlassDesign.spacingM) {
+            VStack(alignment: .leading, spacing: LiquidGlassDesign.spacingXS) {
+                Text("De: \(slot.start)")
+                    .font(LiquidGlassDesign.bodySmall)
+                Text("À: \(slot.end)")
+                    .font(LiquidGlassDesign.bodySmall)
             }
             
             Spacer()
             
             Button(action: onRemove) {
-                Text("Remove")
-                    .font(.caption)
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(LiquidGlassDesign.errorRed)
             }
-            .buttonStyle(.bordered)
         }
-        .padding(12)
-        .background(Color.gray.opacity(0.1))
-        .cornerRadius(6)
+        .liquidGlassCard()
     }
 }
 
