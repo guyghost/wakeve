@@ -10,6 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import kotlin.random.Random
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.TimeSlot
 
 data class EventCreationState(
     val title: String = "",

@@ -6,6 +6,10 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.models.Vote
 
 class EventRepositoryTest {
 

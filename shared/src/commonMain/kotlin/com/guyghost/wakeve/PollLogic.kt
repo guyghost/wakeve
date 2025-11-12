@@ -1,5 +1,9 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.models.Poll
+import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.models.Vote
+
 object PollLogic {
     data class SlotScore(
         val slotId: String,
