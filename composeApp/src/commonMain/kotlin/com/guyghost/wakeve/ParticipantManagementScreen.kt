@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
 
 data class ParticipantManagementState(
     val eventId: String = "",

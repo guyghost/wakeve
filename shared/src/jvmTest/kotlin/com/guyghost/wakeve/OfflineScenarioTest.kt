@@ -262,6 +262,6 @@ class OfflineScenarioTest {
         assertTrue(pending.any { it.operation == "CREATE" }, "CREATE operations should be tracked")
         
         // Verify sync flags
-        assertTrue(pending.all { it.synced == 0 }, "All pending records should have synced=0")
+        assertTrue(pending.all { it.synced == 0L }, "All pending records should have synced=0")
     }
 }
