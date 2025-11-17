@@ -8,8 +8,8 @@
 
 ## Related Links
 - **Issue**: https://github.com/guyghost/wakeve/issues/2
-- **Design**: https://github.com/guyghost/wakeve/blob/change/add-event-organization/docs/changes/add-event-organization/design.md
-- **Specs**: https://github.com/guyghost/wakeve/blob/change/add-event-organization/docs/changes/add-event-organization/specs.md
+- **Specification**: openspec/specs/event-organization/spec.md
+- **Design**: openspec/specs/event-organization/design.md
 
 ## Why
 The Wakeve application requires core functionality for event organizers to create events, set up availability polls, define deadlines, and validate final dates, as described in the AGENTS.md specification.
