@@ -9,7 +9,7 @@
 - **Specs**: https://github.com/guyghost/wakeve/blob/change/add-event-organization/docs/changes/add-event-organization/specs.md
 
 ## Why
-The Wakeve application requires core functionality for event organizers to create events, set up availability polls, define deadlines, and validate final dates, as described in the AGENTS.md specification.
+The Wakeve application requires core functionality for event organizers to create events, set up availability polls, define deadlines, and validate final dates, as described in the domain context and requirements in `openspec/project.md` (Domain Context section, lines 44-66).
 
 ## What Changes
 - Add event data models and domain logic in the shared Kotlin module
