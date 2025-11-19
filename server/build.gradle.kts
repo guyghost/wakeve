@@ -18,6 +18,9 @@ dependencies {
     implementation(libs.logback)
     implementation(libs.ktor.serverCore)
     implementation(libs.ktor.serverNetty)
+    implementation(libs.ktor.contentNegotiation)
+    implementation(libs.ktor.serialization)
+    implementation(libs.sqldelight.jvmDriver)
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)
 }

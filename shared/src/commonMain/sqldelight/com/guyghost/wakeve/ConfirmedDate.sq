@@ -1,0 +1,41 @@
+-- Confirmed dates table: final selected date after organizer confirmation
+CREATE TABLE confirmedDate (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL UNIQUE,
+    timeslotId TEXT NOT NULL,
+    confirmedByOrganizerId TEXT NOT NULL,
+    confirmedAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE,
+    FOREIGN KEY (timeslotId) REFERENCES timeSlot(id) ON DELETE CASCADE
+);
+
+-- Queries
+selectAll:
+SELECT * FROM confirmedDate;
+
+selectById:
+SELECT * FROM confirmedDate WHERE id = ?;
+
+selectByEventId:
+SELECT * FROM confirmedDate WHERE eventId = ?;
+
+selectWithTimeslotDetails:
+SELECT cd.*, t.startTime, t.endTime, t.timezone FROM confirmedDate cd
+JOIN timeSlot t ON cd.timeslotId = t.id
+WHERE cd.eventId = ?;
+
+insertConfirmedDate:
+INSERT INTO confirmedDate(id, eventId, timeslotId, confirmedByOrganizerId, confirmedAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?);
+
+updateConfirmedDate:
+UPDATE confirmedDate
+SET timeslotId = ?, updatedAt = ?
+WHERE eventId = ?;
+
+deleteByEventId:
+DELETE FROM confirmedDate WHERE eventId = ?;
+
+existsByEventId:
+SELECT * FROM confirmedDate WHERE eventId = ?;

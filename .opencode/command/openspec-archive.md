@@ -35,11 +35,10 @@ L'archivage finalise le changement après le déploiement et met à jour toutes 
     - La modification a été enregistrée dans `changes/archive/`
     - Aucune erreur de validation n'est remontée
 
-5. **Mise à jour GitHub Wiki**: Après l'archivage:
-    - Accédez aux pages wiki `changes/<id>/design` et `changes/<id>/specs`
+5. **Mise à jour GitHub Project**: Après l'archivage:
+    - Accédez à l'item du projet `<id>`
     - Mettez à jour le statut: `Status: Archived`
     - Ajoutez la date d'archivage: `Archived: YYYY-MM-DD`
-    - Optionnellement, déplacez les pages vers `changes/archive/<id>/` dans le wiki
     - Ajoutez un lien vers les specs finales dans `openspec/specs/`
 
 6. **Mise à jour GitHub Issue**:
@@ -71,7 +70,7 @@ L'archivage finalise le changement après le déploiement et met à jour toutes 
 **Référence**
 - Vérifiez les spécifications mises à jour avec `openspec list --specs`
 - Corrigez les problèmes de validation avant de committer
-- Consultez le wiki pour confirmer que toutes les exigences sont reflétées dans les specs finales
+- Consultez le projet GitHub pour confirmer que toutes les exigences sont reflétées dans les specs finales
 - Utilisez `openspec show <spec> --type spec` pour voir l'état final d'une spec
 
 **Structure après archivage**
@@ -85,18 +84,15 @@ openspec/
 │       └── YYYY-MM-DD-<id>/
 │           └── proposal.md       # ✅ Archivé
 
-GitHub Wiki:
-└── changes/
-    └── <id>/
-        ├── design.md             # ✅ Status: Archived
-        └── specs.md              # ✅ Status: Archived
+GitHub Project:
+└── Change: <id>                 # ✅ Status: Archived
 
 GitHub Issue #N:                  # ✅ Closed + Label: archived
 ```
 
 **Aide-mémoire**
 ```
-Deploy → Close Issue → Archive CLI → Update Wiki → 
+Deploy → Close Issue → Archive CLI → Update Project →
 Validate → Commit Archive → PR Archive → Done
 ```
 

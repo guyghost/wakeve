@@ -1,16 +1,12 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.sqldelight)
+    kotlin("plugin.serialization") version "2.2.20"
 }
 
 kotlin {
-    androidTarget {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
-        }
-    }
+    androidTarget()
     
     listOf(
         iosArm64(),
@@ -24,19 +20,19 @@ kotlin {
     
     jvm()
     
-    js {
-        outputModuleName = "shared"
-        browser()
-        binaries.library()
-        generateTypeScriptDefinitions()
-        compilerOptions {
-            target = "es2015"
-        }
-    }
-    
     sourceSets {
         commonMain.dependencies {
-            // put your Multiplatform dependencies here
+            implementation(libs.sqldelight.runtime)
+            implementation(libs.kotlinx.serialization)
+        }
+        androidMain.dependencies {
+            implementation(libs.sqldelight.androidDriver)
+        }
+        iosMain.dependencies {
+            implementation(libs.sqldelight.iosDriver)
+        }
+        jvmMain.dependencies {
+            implementation(libs.sqldelight.jvmDriver)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -53,5 +49,14 @@ android {
     }
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
+    }
+}
+
+sqldelight {
+    databases {
+        create("WakevDb") {
+            packageName.set("com.guyghost.wakeve.database")
+            schemaOutputDirectory.set(file("src/commonMain/sqldelight"))
+        }
     }
 }

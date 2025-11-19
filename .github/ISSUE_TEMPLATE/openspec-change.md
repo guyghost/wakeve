@@ -13,13 +13,12 @@ assignees: ''
 Brief description of what this change aims to accomplish.
 
 ## Documentation Links
-- **Design**: [Wiki - Design](https://github.com/<org>/<repo>/wiki/changes/<id>/design)
-- **Specs**: [Wiki - Specs](https://github.com/<org>/<repo>/wiki/changes/<id>/specs)
+- **GitHub Project Item**: [Project Item URL]
 - **Proposal PR**: #<pr-number> (add after PR is created)
 
 ## Tasks
 - [ ] Review current context (`openspec/project.md`, `openspec list`)
-- [ ] Create wiki pages for design and specs
+- [ ] Create GitHub Project item with design and specs
 - [ ] Draft spec deltas with scenarios
 - [ ] Run `openspec validate <id> --strict`
 - [ ] Create proposal PR

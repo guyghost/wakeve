@@ -1,0 +1,43 @@
+-- Time slots table: candidate times for an event
+CREATE TABLE timeSlot (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    startTime TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    endTime TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    timezone TEXT NOT NULL, -- e.g., "Europe/Paris", "America/New_York"
+    proposedByParticipantId TEXT, -- null if proposed by organizer
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    UNIQUE(eventId, startTime, timezone),
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+-- Queries
+selectAll:
+SELECT * FROM timeSlot;
+
+selectById:
+SELECT * FROM timeSlot WHERE id = ?;
+
+selectByEventId:
+SELECT * FROM timeSlot WHERE eventId = ? ORDER BY startTime ASC;
+
+selectByEventIdAndProposer:
+SELECT * FROM timeSlot WHERE eventId = ? AND proposedByParticipantId = ? ORDER BY startTime ASC;
+
+insertTimeSlot:
+INSERT INTO timeSlot(id, eventId, startTime, endTime, timezone, proposedByParticipantId, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+updateTimeSlot:
+UPDATE timeSlot
+SET endTime = ?, updatedAt = ?
+WHERE id = ?;
+
+deleteTimeSlot:
+DELETE FROM timeSlot WHERE id = ?;
+
+deleteByEventId:
+DELETE FROM timeSlot WHERE eventId = ?;
+
+
