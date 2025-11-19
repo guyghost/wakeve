@@ -1,0 +1,73 @@
+-- Votes table: vote records (YES, MAYBE, NO)
+CREATE TABLE vote (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    timeslotId TEXT NOT NULL,
+    participantId TEXT NOT NULL,
+    vote TEXT NOT NULL, -- YES, MAYBE, NO
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    UNIQUE(timeslotId, participantId),
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE,
+    FOREIGN KEY (timeslotId) REFERENCES timeSlot(id) ON DELETE CASCADE,
+    FOREIGN KEY (participantId) REFERENCES participant(id) ON DELETE CASCADE
+);
+
+-- Queries
+selectAll:
+SELECT * FROM vote;
+
+selectById:
+SELECT * FROM vote WHERE id = ?;
+
+selectByEventId:
+SELECT * FROM vote WHERE eventId = ? ORDER BY createdAt DESC;
+
+selectByTimeslotId:
+SELECT * FROM vote WHERE timeslotId = ? ORDER BY createdAt ASC;
+
+selectByParticipantId:
+SELECT * FROM vote WHERE participantId = ? ORDER BY createdAt DESC;
+
+selectByTimeslotAndParticipant:
+SELECT * FROM vote WHERE timeslotId = ? AND participantId = ?;
+
+selectVotesByTimeslot:
+SELECT v.*, p.userId FROM vote v
+JOIN participant p ON v.participantId = p.id
+WHERE v.timeslotId = ?
+ORDER BY v.createdAt ASC;
+
+selectVotesForEventTimeslots:
+SELECT v.*, t.eventId, p.userId FROM vote v
+JOIN timeSlot t ON v.timeslotId = t.id
+JOIN participant p ON v.participantId = p.id
+WHERE t.eventId = ?
+ORDER BY t.startTime ASC, v.createdAt ASC;
+
+insertVote:
+INSERT INTO vote(id, eventId, timeslotId, participantId, vote, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+updateVote:
+UPDATE vote
+SET vote = ?, updatedAt = ?
+WHERE id = ?;
+
+deleteVote:
+DELETE FROM vote WHERE id = ?;
+
+deleteByEventId:
+DELETE FROM vote WHERE eventId = ?;
+
+deleteByTimeslotId:
+DELETE FROM vote WHERE timeslotId = ?;
+
+selectYesByTimeslot:
+SELECT * FROM vote WHERE timeslotId = ? AND vote = 'YES';
+
+selectMaybeByTimeslot:
+SELECT * FROM vote WHERE timeslotId = ? AND vote = 'MAYBE';
+
+selectNoByTimeslot:
+SELECT * FROM vote WHERE timeslotId = ? AND vote = 'NO';

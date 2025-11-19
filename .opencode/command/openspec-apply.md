@@ -18,15 +18,14 @@ Suivez ces étapes comme des tâches à accomplir et effectuez-les une par une.
 
 2. **Lecture de contexte**: Lisez les fichiers suivants pour confirmer la portée et les critères d'acceptation:
     - `openspec/changes/<id>/proposal.md` - Vue d'ensemble et raison d'être
-    - GitHub Wiki `changes/<id>/design` - Décisions techniques et architecture
-    - GitHub Wiki `changes/<id>/specs` - Exigences détaillées avec scénarios
+    - GitHub Project Item - Décisions techniques, architecture et exigences détaillées avec scénarios
     - GitHub Issue #N - Liste de contrôle des tâches
 
 3. **Implémentation séquentielle**: Traitez les tâches de l'issue GitHub une par une, en minimisant les modifications et en les concentrant sur le changement demandé:
     - Créez des PRs d'implémentation avec le format: `[#<issue>] <description>`
     - Liez chaque PR à l'issue originale
-    - Suivez les décisions architecturales documentées dans le wiki
-    - Respectez les exigences et scénarios de la page wiki specs
+    - Suivez les décisions architecturales documentées dans l'item du projet GitHub
+    - Respectez les exigences et scénarios du projet GitHub
 
 4. **Mise à jour de l'issue**: Au fur et à mesure de la progression:
     - Cochez les tâches complétées dans l'issue GitHub: `- [x]`
@@ -37,17 +36,17 @@ Suivez ces étapes comme des tâches à accomplir et effectuez-les une par une.
     - Assurez-vous que chaque élément de la liste de contrôle est terminé
     - Vérifiez que tous les PRs d'implémentation sont mergés
     - Confirmez que les tests passent
-    - Validez que le comportement correspond aux scénarios du wiki
+    - Validez que le comportement correspond aux scénarios du projet GitHub
 
 6. **Fermeture**:
     - Fermez l'issue GitHub avec un commentaire de synthèse
-    - Mettez à jour le statut des pages wiki: `Status: Implemented`
+    - Mettez à jour le statut du projet GitHub: `Status: Implemented`
     - Préparez pour l'archivage (étape suivante: `openspec-archive`)
 
 **Référence**
 - Utilisez `openspec show <id> --json --deltas-only` si vous avez besoin d'informations supplémentaires issues de la proposition lors de la mise en œuvre.
 - Consultez `openspec list` ou `openspec show <item>` lorsque des informations supplémentaires sont nécessaires.
-- Vérifiez le wiki pour les décisions de design et les compromis: `https://github.com/<org>/<repo>/wiki/changes/<id>/design`
+- Vérifiez le projet GitHub pour les décisions de design et les compromis dans la description de l'item
 - Référencez l'issue GitHub dans tous les commits: `[#<issue-number>] <description>`
 
 **Format des commits**
