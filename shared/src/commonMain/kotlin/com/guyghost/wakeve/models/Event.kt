@@ -4,8 +4,8 @@ data class Event(
     val id: String,
     val title: String,
     val description: String,
-    val organizerId: String,
-    val participants: List<String> = emptyList(), // List of participant IDs/emails
+    val organizerId: String,  // Keep as string for backward compatibility, will be replaced with User reference
+    val participants: List<String> = emptyList(), // List of participant IDs/emails - will be replaced with User references
     val proposedSlots: List<TimeSlot>,
     val deadline: String, // ISO string (UTC)
     val status: EventStatus,

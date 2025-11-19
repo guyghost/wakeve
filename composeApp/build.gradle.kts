@@ -22,6 +22,9 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
+            // OAuth2 dependencies
+            implementation(libs.google.auth)
+            implementation(libs.androidx.credentials)
         }
         commonMain.dependencies {
             implementation(compose.runtime)

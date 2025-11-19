@@ -10,6 +10,7 @@ import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
+import kotlinx.coroutines.runBlocking
 
 class EventRepositoryTest {
 
@@ -41,7 +42,7 @@ class EventRepositoryTest {
     )
 
     @Test
-    fun createEventSuccess() {
+    fun createEventSuccess() = runBlocking {
         val result = repository.createEvent(event)
         
         assertTrue(result.isSuccess)
@@ -52,7 +53,7 @@ class EventRepositoryTest {
     }
 
     @Test
-    fun addParticipantToDraftEvent() {
+    fun addParticipantToDraftEvent() = runBlocking {
         repository.createEvent(event)
         
         val result = repository.addParticipant("event-1", "participant-1")
@@ -64,7 +65,7 @@ class EventRepositoryTest {
     }
 
     @Test
-    fun cannotAddDuplicateParticipant() {
+    fun cannotAddDuplicateParticipant() = runBlocking {
         repository.createEvent(event)
         repository.addParticipant("event-1", "participant-1")
         
@@ -74,9 +75,9 @@ class EventRepositoryTest {
     }
 
     @Test
-    fun cannotAddParticipantAfterDraft() {
+    fun cannotAddParticipantAfterDraft() = runBlocking {
         repository.createEvent(event)
-        repository.updateEventStatus("event-1", EventStatus.POLLING)
+        repository.updateEventStatus("event-1", EventStatus.POLLING, null)
         
         val result = repository.addParticipant("event-1", "participant-2")
         
@@ -84,7 +85,7 @@ class EventRepositoryTest {
     }
 
     @Test
-    fun organizerCanModifyEvent() {
+    fun organizerCanModifyEvent() = runBlocking {
         repository.createEvent(event)
         
         val canModify = repository.canModifyEvent("event-1", "organizer-1")
@@ -93,7 +94,7 @@ class EventRepositoryTest {
     }
 
     @Test
-    fun participantCannotModifyEvent() {
+    fun participantCannotModifyEvent() = runBlocking {
         repository.createEvent(event)
         
         val canModify = repository.canModifyEvent("event-1", "participant-1")
@@ -102,7 +103,7 @@ class EventRepositoryTest {
     }
 
     @Test
-    fun addVoteDuringPolling() {
+    fun addVoteDuringPolling() = runBlocking {
         val eventWithParticipant = event.copy(
             participants = listOf("participant-1"),
             status = EventStatus.POLLING
@@ -118,7 +119,7 @@ class EventRepositoryTest {
     }
 
     @Test
-    fun cannotVoteAfterDeadline() {
+    fun cannotVoteAfterDeadline() = runBlocking {
         val pastDeadline = "2020-01-01T00:00:00Z"
         val eventWithPastDeadline = event.copy(
             participants = listOf("participant-1"),
@@ -133,7 +134,7 @@ class EventRepositoryTest {
     }
 
     @Test
-    fun cannotVoteIfNotParticipant() {
+    fun cannotVoteIfNotParticipant() = runBlocking {
         val eventWithParticipant = event.copy(
             participants = listOf("participant-1"),
             status = EventStatus.POLLING
@@ -146,7 +147,7 @@ class EventRepositoryTest {
     }
 
     @Test
-    fun updateEventStatus() {
+    fun updateEventStatus() = runBlocking {
         repository.createEvent(event)
         
         val result = repository.updateEventStatus("event-1", EventStatus.CONFIRMED, "2025-12-01T10:00:00Z")

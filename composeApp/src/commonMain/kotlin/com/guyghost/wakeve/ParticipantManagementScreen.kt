@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
+import kotlinx.coroutines.launch
 
 data class ParticipantManagementState(
     val eventId: String = "",
@@ -23,7 +24,7 @@ data class ParticipantManagementState(
 @Composable
 fun ParticipantManagementScreen(
     event: Event,
-    repository: EventRepository,
+    repository: EventRepositoryInterface,
     onParticipantsAdded: (String) -> Unit,
     onNavigateToPoll: (String) -> Unit
 ) {
@@ -31,10 +32,11 @@ fun ParticipantManagementScreen(
         mutableStateOf(
             ParticipantManagementState(
                 eventId = event.id,
-                participants = event.participants
+                participants = repository.getParticipants(event.id) ?: emptyList()
             )
         )
     }
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -106,18 +108,20 @@ fun ParticipantManagementScreen(
                                     )
                                 }
                                 else -> {
-                                    val result = repository.addParticipant(event.id, email)
-                                    if (result.isSuccess) {
-                                        state = state.copy(
-                                            participants = state.participants + email,
-                                            newParticipantEmail = "",
-                                            isError = false
-                                        )
-                                    } else {
-                                        state = state.copy(
-                                            isError = true,
-                                            errorMessage = result.exceptionOrNull()?.message ?: "Failed to add participant"
-                                        )
+                                    scope.launch {
+                                        val result = repository.addParticipant(event.id, email)
+                                        if (result.isSuccess) {
+                                            state = state.copy(
+                                                participants = state.participants + email,
+                                                newParticipantEmail = "",
+                                                isError = false
+                                            )
+                                        } else {
+                                            state = state.copy(
+                                                isError = true,
+                                                errorMessage = result.exceptionOrNull()?.message ?: "Failed to add participant"
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -228,8 +232,10 @@ fun ParticipantManagementScreen(
             Button(
                 onClick = {
                     // Transition event to POLLING status
-                    repository.updateEventStatus(event.id, EventStatus.POLLING)
-                    onNavigateToPoll(event.id)
+                    scope.launch {
+                        repository.updateEventStatus(event.id, EventStatus.POLLING, null)
+                        onNavigateToPoll(event.id)
+                    }
                 },
                 modifier = Modifier
                     .weight(1f)
