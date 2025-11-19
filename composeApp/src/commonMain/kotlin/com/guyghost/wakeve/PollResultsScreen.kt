@@ -14,11 +14,12 @@ import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
+import kotlinx.coroutines.launch
 
 @Composable
 fun PollResultsScreen(
     event: Event,
-    repository: EventRepository,
+    repository: EventRepositoryInterface,
     onDateConfirmed: (String) -> Unit
 ) {
     val poll = repository.getPoll(event.id)
@@ -36,9 +37,9 @@ fun PollResultsScreen(
             null
         }
     }
-
-    var selectedSlotId by remember { mutableStateOf<String?>(bestResult?.first?.id) }
+    var selectedSlotId by remember { mutableStateOf<String?>(null) }
     var isConfirmed by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -171,13 +172,15 @@ fun PollResultsScreen(
                 if (selectedSlot != null) {
                     // Check if user is organizer
                     if (repository.isOrganizer(event.id, "organizer-1")) { // TODO: Get from auth
-                        repository.updateEventStatus(
-                            event.id,
-                            EventStatus.CONFIRMED,
-                            selectedSlot.start
-                        )
-                        isConfirmed = true
-                        onDateConfirmed(event.id)
+                        scope.launch {
+                            repository.updateEventStatus(
+                                event.id,
+                                EventStatus.CONFIRMED,
+                                selectedSlot.start
+                            )
+                            isConfirmed = true
+                            onDateConfirmed(event.id)
+                        }
                     }
                 }
             },

@@ -18,21 +18,36 @@ kotlin {
         }
     }
     
-    jvm()
+    jvm {
+        compilerOptions {
+            freeCompilerArgs.add("-Xexpect-actual-classes")
+        }
+    }
     
     sourceSets {
         commonMain.dependencies {
             implementation(libs.sqldelight.runtime)
             implementation(libs.kotlinx.serialization)
+            implementation(libs.kotlinx.coroutines)
         }
         androidMain.dependencies {
             implementation(libs.sqldelight.androidDriver)
+            implementation(libs.ktor.clientCore)
+            implementation(libs.ktor.clientContentNegotiation)
+            implementation(libs.ktor.clientCio)
         }
         iosMain.dependencies {
             implementation(libs.sqldelight.iosDriver)
+            implementation(libs.ktor.clientCore)
+            implementation(libs.ktor.clientContentNegotiation)
+            implementation(libs.ktor.clientCio)
         }
         jvmMain.dependencies {
             implementation(libs.sqldelight.jvmDriver)
+            implementation(libs.ktor.clientCore)
+            implementation(libs.ktor.clientContentNegotiation)
+            implementation(libs.ktor.clientCio)
+            implementation(libs.kotlinx.serialization)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -5,11 +5,25 @@ import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.Vote
 
-class EventRepository {
+interface EventRepositoryInterface {
+    suspend fun createEvent(event: Event): Result<Event>
+    fun getEvent(id: String): Event?
+    fun getPoll(eventId: String): Poll?
+    suspend fun addParticipant(eventId: String, participantId: String): Result<Boolean>
+    fun getParticipants(eventId: String): List<String>?
+    suspend fun addVote(eventId: String, participantId: String, slotId: String, vote: Vote): Result<Boolean>
+    suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean>
+    fun isDeadlinePassed(deadline: String): Boolean
+    fun isOrganizer(eventId: String, userId: String): Boolean
+    fun canModifyEvent(eventId: String, userId: String): Boolean
+    fun getAllEvents(): List<Event>
+}
+
+class EventRepository : EventRepositoryInterface {
     private val events = mutableMapOf<String, Event>()
     private val polls = mutableMapOf<String, Poll>()
 
-    fun createEvent(event: Event): Result<Event> {
+    override suspend fun createEvent(event: Event): Result<Event> {
         return try {
             events[event.id] = event
             polls[event.id] = Poll(event.id, event.id, emptyMap())
@@ -19,11 +33,11 @@ class EventRepository {
         }
     }
 
-    fun getEvent(id: String): Event? = events[id]
+    override fun getEvent(id: String): Event? = events[id]
 
-    fun getPoll(eventId: String): Poll? = polls[eventId]
+    override fun getPoll(eventId: String): Poll? = polls[eventId]
 
-    fun addParticipant(eventId: String, participantId: String): Result<Boolean> {
+    override suspend fun addParticipant(eventId: String, participantId: String): Result<Boolean> {
         val event = events[eventId] ?: return Result.failure(IllegalArgumentException("Event not found"))
         
         if (event.status != EventStatus.DRAFT) {
@@ -38,9 +52,9 @@ class EventRepository {
         return Result.success(true)
     }
 
-    fun getParticipants(eventId: String): List<String>? = events[eventId]?.participants
+    override fun getParticipants(eventId: String): List<String>? = events[eventId]?.participants
 
-    fun addVote(eventId: String, participantId: String, slotId: String, vote: Vote): Result<Boolean> {
+    override suspend fun addVote(eventId: String, participantId: String, slotId: String, vote: Vote): Result<Boolean> {
         val event = events[eventId] ?: return Result.failure(IllegalArgumentException("Event not found"))
         val poll = polls[eventId] ?: return Result.failure(IllegalStateException("Poll not found"))
         
@@ -66,7 +80,7 @@ class EventRepository {
         return Result.success(true)
     }
 
-    fun updateEventStatus(id: String, status: EventStatus, finalDate: String? = null): Result<Boolean> {
+    override suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean> {
         val event = events[id] ?: return Result.failure(IllegalArgumentException("Event not found"))
         
         // Only organizer can change status (should be enforced at higher level)
@@ -74,7 +88,7 @@ class EventRepository {
         return Result.success(true)
     }
 
-    fun isDeadlinePassed(deadline: String): Boolean {
+    override fun isDeadlinePassed(deadline: String): Boolean {
         // Simple string comparison for ISO format (works for UTC "2025-12-31T23:59:59Z")
         return try {
             deadline < getCurrentUtcIsoString()
@@ -89,13 +103,13 @@ class EventRepository {
         return "2025-11-12T10:00:00Z" // Use current test date (will be updated with actual time in Phase 2)
     }
 
-    fun isOrganizer(eventId: String, userId: String): Boolean {
+    override fun isOrganizer(eventId: String, userId: String): Boolean {
         return events[eventId]?.organizerId == userId
     }
 
-    fun canModifyEvent(eventId: String, userId: String): Boolean {
+    override fun canModifyEvent(eventId: String, userId: String): Boolean {
         return isOrganizer(eventId, userId)
     }
 
-    fun getAllEvents(): List<Event> = events.values.toList()
+    override fun getAllEvents(): List<Event> = events.values.toList()
 }

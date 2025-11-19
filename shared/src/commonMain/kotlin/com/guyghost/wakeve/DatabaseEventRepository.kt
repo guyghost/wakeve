@@ -6,12 +6,14 @@ import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.models.SyncOperation
+import com.guyghost.wakeve.sync.SyncManager
 
 /**
  * Database-backed event repository using SQLDelight for persistence.
  * Mirrors the EventRepository interface but stores data in SQLite.
  */
-class DatabaseEventRepository(private val db: WakevDb) {
+class DatabaseEventRepository(private val db: WakevDb, private val syncManager: SyncManager? = null) : EventRepositoryInterface {
     private val eventQueries = db.eventQueries
     private val timeSlotQueries = db.timeSlotQueries
     private val participantQueries = db.participantQueries
@@ -19,7 +21,7 @@ class DatabaseEventRepository(private val db: WakevDb) {
     private val confirmedDateQueries = db.confirmedDateQueries
     private val syncMetadataQueries = db.syncMetadataQueries
 
-    fun createEvent(event: Event): Result<Event> {
+    override suspend fun createEvent(event: Event): Result<Event> {
         return try {
             val now = getCurrentUtcIsoString()
             eventQueries.insertEvent(
@@ -61,6 +63,15 @@ class DatabaseEventRepository(private val db: WakevDb) {
             }
 
             // Record creation in sync metadata
+            // Record sync change for offline tracking
+            syncManager?.recordLocalChange(
+                table = "events",
+                operation = SyncOperation.CREATE,
+                recordId = event.id,
+                data = """{"id":"${event.id}","title":"${event.title}","description":"${event.description}","organizerId":"${event.organizerId}","deadline":"${event.deadline}"}""",
+                userId = event.organizerId
+            )
+
             syncMetadataQueries.insertSyncMetadata(
                 id = "sync_${event.id}",
                 entityType = "event",
@@ -76,7 +87,7 @@ class DatabaseEventRepository(private val db: WakevDb) {
         }
     }
 
-    fun getEvent(id: String): Event? {
+    override fun getEvent(id: String): Event? {
         val eventRow = eventQueries.selectById(id).executeAsOneOrNull() ?: return null
         val participants = participantQueries.selectByEventId(id).executeAsList()
         val timeSlots = timeSlotQueries.selectByEventId(id).executeAsList()
@@ -94,7 +105,7 @@ class DatabaseEventRepository(private val db: WakevDb) {
         )
     }
 
-    fun getPoll(eventId: String): Poll? {
+    override fun getPoll(eventId: String): Poll? {
         val event = getEvent(eventId) ?: return null
         val votes = mutableMapOf<String, Map<String, Vote>>()
 
@@ -114,7 +125,7 @@ class DatabaseEventRepository(private val db: WakevDb) {
         return Poll(eventId, eventId, votes)
     }
 
-    fun addParticipant(eventId: String, participantId: String): Result<Boolean> {
+    override suspend fun addParticipant(eventId: String, participantId: String): Result<Boolean> {
         val event = getEvent(eventId) ?: return Result.failure(IllegalArgumentException("Event not found"))
 
         if (event.status != EventStatus.DRAFT) {
@@ -138,6 +149,15 @@ class DatabaseEventRepository(private val db: WakevDb) {
                 updatedAt = now
             )
 
+            // Record sync change for offline tracking
+            syncManager?.recordLocalChange(
+                table = "participants",
+                operation = SyncOperation.CREATE,
+                recordId = newParticipantId,
+                data = """{"eventId":"$eventId","userId":"$participantId"}""",
+                userId = participantId
+            )
+
             syncMetadataQueries.insertSyncMetadata(
                 id = "sync_${newParticipantId}",
                 entityType = "participant",
@@ -153,7 +173,7 @@ class DatabaseEventRepository(private val db: WakevDb) {
         }
     }
 
-    fun getParticipants(eventId: String): List<String>? {
+    override fun getParticipants(eventId: String): List<String>? {
         return try {
             participantQueries.selectByEventId(eventId).executeAsList().map { it.userId }
         } catch (e: Exception) {
@@ -161,7 +181,7 @@ class DatabaseEventRepository(private val db: WakevDb) {
         }
     }
 
-    fun addVote(eventId: String, participantId: String, slotId: String, vote: Vote): Result<Boolean> {
+    override suspend fun addVote(eventId: String, participantId: String, slotId: String, vote: Vote): Result<Boolean> {
         val event = getEvent(eventId) ?: return Result.failure(IllegalArgumentException("Event not found"))
 
         if (event.status != EventStatus.POLLING) {
@@ -189,6 +209,15 @@ class DatabaseEventRepository(private val db: WakevDb) {
                 updatedAt = now
             )
 
+            // Record sync change for offline tracking
+            syncManager?.recordLocalChange(
+                table = "votes",
+                operation = SyncOperation.CREATE,
+                recordId = voteId,
+                data = """{"eventId":"$eventId","participantId":"$participantId","slotId":"$slotId","preference":"${vote.name}"}""",
+                userId = participantId
+            )
+
             syncMetadataQueries.insertSyncMetadata(
                 id = "sync_${voteId}",
                 entityType = "vote",
@@ -204,7 +233,7 @@ class DatabaseEventRepository(private val db: WakevDb) {
         }
     }
 
-    fun updateEventStatus(id: String, status: EventStatus, finalDate: String? = null): Result<Boolean> {
+    override suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean> {
         val event = getEvent(id) ?: return Result.failure(IllegalArgumentException("Event not found"))
 
         return try {
@@ -246,7 +275,7 @@ class DatabaseEventRepository(private val db: WakevDb) {
         }
     }
 
-    fun isDeadlinePassed(deadline: String): Boolean {
+    override fun isDeadlinePassed(deadline: String): Boolean {
         return try {
             deadline < getCurrentUtcIsoString()
         } catch (e: Exception) {
@@ -260,15 +289,15 @@ class DatabaseEventRepository(private val db: WakevDb) {
         return "2025-11-12T10:00:00Z"
     }
 
-    fun isOrganizer(eventId: String, userId: String): Boolean {
+    override fun isOrganizer(eventId: String, userId: String): Boolean {
         return getEvent(eventId)?.organizerId == userId
     }
 
-    fun canModifyEvent(eventId: String, userId: String): Boolean {
+    override fun canModifyEvent(eventId: String, userId: String): Boolean {
         return isOrganizer(eventId, userId)
     }
 
-    fun getAllEvents(): List<Event> {
+    override fun getAllEvents(): List<Event> {
         return eventQueries.selectAll().executeAsList().mapNotNull { eventRow ->
             getEvent(eventRow.id)
         }

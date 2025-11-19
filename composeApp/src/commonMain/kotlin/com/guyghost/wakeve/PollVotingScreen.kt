@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
+import kotlinx.coroutines.launch
 
 data class PollVotingState(
     val eventId: String = "",
@@ -26,12 +27,13 @@ data class PollVotingState(
 @Composable
 fun PollVotingScreen(
     event: Event,
-    repository: EventRepository,
+    repository: EventRepositoryInterface,
     onVoteSubmitted: (String) -> Unit
 ) {
     var state by remember {
         mutableStateOf(PollVotingState(eventId = event.id))
     }
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -128,25 +130,27 @@ fun PollVotingScreen(
                     )
                 } else {
                     // Submit votes
-                    var allSuccess = true
-                    state.votes.forEach { (slotId, vote) ->
-                        val result = repository.addVote(
-                            event.id,
-                            state.participantId,
-                            slotId,
-                            vote
-                        )
-                        if (result.isFailure) {
-                            allSuccess = false
-                            state = state.copy(
-                                isError = true,
-                                errorMessage = result.exceptionOrNull()?.message ?: "Failed to submit vote"
+                    scope.launch {
+                        var allSuccess = true
+                        state.votes.forEach { (slotId, vote) ->
+                            val result = repository.addVote(
+                                event.id,
+                                state.participantId,
+                                slotId,
+                                vote
                             )
+                            if (result.isFailure) {
+                                allSuccess = false
+                                state = state.copy(
+                                    isError = true,
+                                    errorMessage = result.exceptionOrNull()?.message ?: "Failed to submit vote"
+                                )
+                            }
                         }
-                    }
-                    if (allSuccess) {
-                        state = state.copy(hasVoted = true)
-                        onVoteSubmitted(event.id)
+                        if (allSuccess) {
+                            state = state.copy(hasVoted = true)
+                            onVoteSubmitted(event.id)
+                        }
                     }
                 }
             },
