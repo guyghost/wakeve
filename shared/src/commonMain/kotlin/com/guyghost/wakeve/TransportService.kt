@@ -144,12 +144,12 @@ class DefaultTransportService : TransportService {
     }
 
     private fun addHours(time: String, hours: Int): String {
-        // Simple mock - add hours to ISO string
         val hour = time.substring(11, 13).toInt()
         val newHour = (hour + hours) % 24
         val dayOffset = (hour + hours) / 24
         val day = time.substring(8, 10).toInt() + dayOffset
-        return time.substring(0, 8) + String.format("%02d", day) + "T" + String.format("%02d", newHour) + time.substring(13)
+        val dayStr = if (day < 10) "0$day" else day.toString()
+        return time.substring(0, 8) + dayStr + "T" + String.format("%02d", newHour) + time.substring(13)
     }
 
     private fun timeDiffMinutes(time1: String, time2: String): Int {

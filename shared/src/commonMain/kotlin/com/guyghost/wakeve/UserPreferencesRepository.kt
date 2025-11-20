@@ -2,6 +2,7 @@ package com.guyghost.wakeve
 
 import com.guyghost.wakeve.models.UserPreferences
 import com.guyghost.wakeve.models.BudgetRange
+import com.guyghost.wakeve.database.WakevDb
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 

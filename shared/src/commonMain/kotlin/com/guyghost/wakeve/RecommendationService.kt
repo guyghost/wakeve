@@ -1,6 +1,8 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.Recommendation
+import com.guyghost.wakeve.models.UserPreferences
 
 class RecommendationService(
     private val suggestionEngine: SuggestionEngine = DefaultSuggestionEngine(),

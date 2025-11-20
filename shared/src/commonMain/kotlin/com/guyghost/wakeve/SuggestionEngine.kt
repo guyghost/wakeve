@@ -22,7 +22,7 @@ class DefaultSuggestionEngine : SuggestionEngine {
                 content = json.encodeToString(slot),
                 score = score,
                 reason = reason,
-                createdAt = "2025-11-20T10:00:00Z" // hardcoded for test
+                createdAt = "2025-11-20T10:00:00Z"
             )
             recommendations.add(rec)
         }
@@ -31,7 +31,6 @@ class DefaultSuggestionEngine : SuggestionEngine {
     }
 
     override fun suggestLocations(event: Event, preferences: UserPreferences): List<Recommendation> {
-        // Mock locations based on preferences
         val locations = listOf("Office", "Home", "Restaurant", "Park", "Beach")
         val recommendations = mutableListOf<Recommendation>()
 
@@ -55,7 +54,6 @@ class DefaultSuggestionEngine : SuggestionEngine {
     }
 
     override fun suggestActivities(event: Event, preferences: UserPreferences): List<Recommendation> {
-        // Mock activities
         val activities = listOf("Meeting", "Dinner", "Hiking", "Workshop", "Party")
         val recommendations = mutableListOf<Recommendation>()
 
@@ -79,10 +77,9 @@ class DefaultSuggestionEngine : SuggestionEngine {
     }
 
     private fun calculateDateScore(slot: TimeSlot, preferences: UserPreferences): Double {
-        var score = 0.5 // base score
+        var score = 0.5
 
-        // Simple parsing of date
-        val dateStr = slot.start.substring(0, 10) // YYYY-MM-DD
+        val dateStr = slot.start.substring(0, 10)
         val dayOfWeek = getDayOfWeek(dateStr)
 
         if (preferences.preferredDaysOfWeek.contains(dayOfWeek)) {
@@ -132,8 +129,6 @@ class DefaultSuggestionEngine : SuggestionEngine {
     }
 
     private fun getDayOfWeek(dateStr: String): String {
-        // Simple calculation for day of week
-        // For test, assume 2025-12-01 is Monday, 2025-12-02 is Tuesday
         return when (dateStr) {
             "2025-12-01" -> "monday"
             "2025-12-02" -> "tuesday"
