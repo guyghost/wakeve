@@ -66,6 +66,6 @@ END:VCALENDAR
     }
 
     private fun generateUID(): String {
-        return "wakeve-${System.currentTimeMillis()}@wakeve.com"
+        return "wakeve-${kotlin.random.Random.nextLong()}@wakeve.com"
     }
 }
