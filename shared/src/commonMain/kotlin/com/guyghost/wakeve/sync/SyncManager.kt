@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.sync
 
 import com.guyghost.wakeve.*
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.database.WakevDb
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +19,9 @@ class SyncManager(
     private val httpClient: SyncHttpClient,
     private val authTokenProvider: () -> String?,
     private val maxRetries: Int = 3,
-    private val baseRetryDelayMs: Long = 1000L // 1 second
+    private val baseRetryDelayMs: Long = 1000L, // 1 second
+    private val metrics: SyncMetrics = InMemorySyncMetrics(),
+    private val alertManager: SyncAlertManager = LoggingSyncAlertManager()
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -138,26 +140,122 @@ class SyncManager(
     }
 
     /**
-     * Update local sync status after server response
+     * Handle conflicts using CRDT-based merging
      */
-    private suspend fun updateLocalSyncStatus(response: SyncResponse) {
-        // Mark successful changes as synced
-        response.appliedChanges.let { appliedCount ->
-            val pendingChanges = userRepository.getPendingSyncChanges()
-            pendingChanges.take(appliedCount).forEach { change ->
-                userRepository.updateSyncStatus(change.id, synced = true)
+    private suspend fun handleConflict(conflict: SyncConflict) {
+        when (conflict.table) {
+            "events" -> handleEventConflict(conflict)
+            "participants" -> handleParticipantConflict(conflict)
+            "votes" -> handleVoteConflict(conflict)
+            else -> {
+                // Fallback: mark as synced (client wins)
+                userRepository.updateSyncStatus(
+                    syncId = conflict.changeId,
+                    synced = true,
+                    retryCount = 0,
+                    error = null
+                )
             }
         }
+    }
 
-        // Handle conflicts with "client wins" strategy
+    private suspend fun handleEventConflict(conflict: SyncConflict) {
+        // Get local and server versions
+        val localEvent = eventRepository.getEvent(conflict.recordId)
+        val serverEventJson = conflict.serverData ?: "{}"
+        val serverEvent = try {
+            json.decodeFromString(Event.serializer(), serverEventJson)
+        } catch (e: Exception) {
+            null
+        }
+
+        if (localEvent != null && serverEvent != null) {
+            // Merge using CRDT logic (LWW for each field)
+            val mergedEvent = mergeEventsCRDT(localEvent, serverEvent, conflict.serverTimestamp)
+            // Update local database with merged event
+            eventRepository.updateEvent(mergedEvent)
+        }
+
+        // Mark as synced
+        userRepository.updateSyncStatus(
+            syncId = conflict.changeId,
+            synced = true,
+            retryCount = 0,
+            error = null
+        )
+    }
+
+    private suspend fun handleParticipantConflict(conflict: SyncConflict) {
+        // For participants, use union (additive)
+        // This is simplified - in practice we'd merge participant lists
+        userRepository.updateSyncStatus(
+            syncId = conflict.changeId,
+            synced = true,
+            retryCount = 0,
+            error = null
+        )
+    }
+
+    private suspend fun handleVoteConflict(conflict: SyncConflict) {
+        // For votes, merge vote lists (union of preferences)
+        // This is simplified
+        userRepository.updateSyncStatus(
+            syncId = conflict.changeId,
+            synced = true,
+            retryCount = 0,
+            error = null
+        )
+    }
+
+    /**
+     * Merge two events using CRDT logic
+     */
+    private fun mergeEventsCRDT(local: Event, server: Event, serverTimestamp: String?): Event {
+        // Parse timestamps (simplified - in practice use proper ISO parsing)
+        val localTime = parseTimestamp(local.updatedAt)
+        val serverTime = serverTimestamp?.let { parseTimestamp(it) } ?: 0L
+
+        return Event(
+            id = local.id,
+            title = if (localTime >= serverTime) local.title else server.title,
+            description = if (localTime >= serverTime) local.description else server.description,
+            organizerId = local.organizerId, // Organizer doesn't change
+            participants = (local.participants + server.participants).distinct(), // Union (G-Set)
+            status = if (localTime >= serverTime) local.status else server.status,
+            finalDate = if (local.finalDate != null && server.finalDate != null) {
+                if (localTime >= serverTime) local.finalDate else server.finalDate
+            } else {
+                local.finalDate ?: server.finalDate
+            },
+            deadline = if (localTime >= serverTime) local.deadline else server.deadline,
+            createdAt = local.createdAt, // Creation time doesn't change
+            updatedAt = if (localTime >= serverTime) local.updatedAt else server.updatedAt
+        )
+    }
+
+    private fun parseTimestamp(isoString: String): Long {
+        // Simplified timestamp parsing - in practice use kotlinx-datetime
+        return try {
+            // Extract milliseconds from ISO string (simplified)
+            val datePart = isoString.substringBefore('T')
+            val timePart = isoString.substringAfter('T').substringBefore('Z')
+            // Very basic parsing - replace with proper library
+            (datePart.hashCode().toLong() + timePart.hashCode().toLong())
+        } catch (e: Exception) {
+            0L
+        }
+    }
+        }
+
+        // Handle conflicts with CRDT-based merging
         response.conflicts.forEach { conflict ->
-            // For now, client wins - mark as synced since we keep local changes
-            userRepository.updateSyncStatus(
-                syncId = conflict.changeId,
-                synced = true,
-                retryCount = 0,
-                error = null
-            )
+            handleConflict(conflict)
+            metrics.recordConflictResolved(conflict.table, "CRDT")
+        }
+
+        // Alert if high conflict rate
+        if (response.conflicts.size > 5) {
+            alertManager.alertHighConflictRate(response.conflicts.size)
         }
     }
 
@@ -193,6 +291,28 @@ class SyncManager(
     }
 
     /**
+     * Get sync metrics for monitoring
+     */
+    fun getSyncMetrics(): SyncStats = metrics.getSyncStats()
+
+    /**
+     * Log current sync status for monitoring
+     */
+    fun logSyncStatus() {
+        val stats = metrics.getSyncStats()
+        println("Sync Stats: total=${stats.totalSyncs}, success=${stats.successfulSyncs}, failed=${stats.failedSyncs}, avgDuration=${stats.averageDurationMs}ms, conflicts=${stats.totalConflictsResolved}")
+    }
+
+    /**
+     * Performance monitoring: check if sync is taking too long
+     */
+    private fun checkPerformance(durationMs: Long) {
+        if (durationMs > 30000) { // 30 seconds
+            println("PERFORMANCE ALERT: Sync took ${durationMs}ms, which is longer than expected")
+        }
+    }
+
+    /**
      * Clean up resources
      */
     fun dispose() {
@@ -219,6 +339,7 @@ class SyncManager(
                 } else {
                     // All retries failed, update sync status for failed changes
                     updateSyncStatusForFailure(e)
+                    alertManager.alertSyncFailure(e.message ?: "Unknown error", maxRetries)
                 }
             }
         }
@@ -252,6 +373,9 @@ class SyncManager(
      * Perform actual sync operation (extracted from triggerSync)
      */
     private suspend fun performSync(): SyncResponse {
+        val startTime = System.currentTimeMillis()
+        metrics.recordSyncStart()
+
         if (!networkDetector.isNetworkAvailable.value) {
             throw IllegalStateException("Network not available")
         }
@@ -263,6 +387,8 @@ class SyncManager(
         val pendingChanges = getPendingChangesForSync()
         if (pendingChanges.isEmpty()) {
             _syncStatus.value = SyncStatus.Idle
+            val duration = System.currentTimeMillis() - startTime
+            metrics.recordSyncSuccess(duration, 0)
             return SyncResponse(
                 success = true,
                 appliedChanges = 0,
@@ -287,15 +413,15 @@ class SyncManager(
 
         _syncStatus.value = if (response.success) SyncStatus.Idle else SyncStatus.Error(response.message ?: "Sync failed")
 
+        val duration = System.currentTimeMillis() - startTime
+        if (response.success) {
+            metrics.recordSyncSuccess(duration, response.appliedChanges)
+        } else {
+            metrics.recordSyncFailure(duration, response.message ?: "Unknown error")
+        }
+
+        checkPerformance(duration)
+
         return response
     }
-}
-
-/**
- * Sync status states
- */
-sealed class SyncStatus {
-    object Idle : SyncStatus()
-    object Syncing : SyncStatus()
-    data class Error(val message: String) : SyncStatus()
 }

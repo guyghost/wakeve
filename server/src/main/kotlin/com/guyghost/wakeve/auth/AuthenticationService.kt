@@ -40,7 +40,8 @@ class AuthenticationService(
     suspend fun loginWithOAuth(request: OAuthLoginRequest): Result<OAuthLoginResponse> = runCatching {
         val provider = OAuthProvider.valueOf(request.provider.uppercase())
         val service = getOAuthService(provider)
-        val tokenResponse = service.exchangeCodeForToken(request.authorizationCode ?: request.idToken)
+        val code = request.authorizationCode ?: request.idToken ?: throw OAuth2Exception("No authorization code or id token provided")
+        val tokenResponse = service.exchangeCodeForToken(code)
 
         // Get user info from OAuth provider
         val userInfo = when (provider) {
