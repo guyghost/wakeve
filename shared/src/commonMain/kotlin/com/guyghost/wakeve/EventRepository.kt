@@ -12,6 +12,7 @@ interface EventRepositoryInterface {
     suspend fun addParticipant(eventId: String, participantId: String): Result<Boolean>
     fun getParticipants(eventId: String): List<String>?
     suspend fun addVote(eventId: String, participantId: String, slotId: String, vote: Vote): Result<Boolean>
+    suspend fun updateEvent(event: Event): Result<Event>
     suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean>
     fun isDeadlinePassed(deadline: String): Boolean
     fun isOrganizer(eventId: String, userId: String): Boolean
@@ -78,6 +79,15 @@ class EventRepository : EventRepositoryInterface {
         polls[eventId] = poll.copy(votes = poll.votes + (participantId to participantVotes))
         
         return Result.success(true)
+    }
+
+    override suspend fun updateEvent(event: Event): Result<Event> {
+        return try {
+            events[event.id] = event
+            Result.success(event)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     override suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean> {

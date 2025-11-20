@@ -176,25 +176,31 @@ git push origin change/<change-id>
 ### Key Practices
 
 1. **Reference requirements in code**
-   ```kotlin
-   // REQ-EVT-001: The system SHALL enforce voting deadline
-   fun validateVote(eventId: String): Result<Boolean> { ... }
-   ```
+    ```kotlin
+    // REQ-EVT-001: The system SHALL enforce voting deadline
+    fun validateVote(eventId: String): Result<Boolean> { ... }
+    ```
 
 2. **Write tests per scenario**
-   ```kotlin
-   @Test
-   fun REQ_EVT_001_cannotVoteAfterDeadline() { ... }
-   ```
+    ```kotlin
+    @Test
+    fun REQ_EVT_001_cannotVoteAfterDeadline() { ... }
+    ```
 
 3. **Track requirement coverage**
-   - Ensure each requirement is tested
-   - Use REQ-ID in test names
-   - Document implementation in PR
+    - Ensure each requirement is tested
+    - Use REQ-ID in test names
+    - Document implementation in PR
 
 4. **Update spec if clarifications needed**
-   - Only non-breaking clarifications
-   - Major changes require new spec proposal
+    - Only non-breaking clarifications
+    - Major changes require new spec proposal
+
+5. **Update GitHub issues regularly**
+    - Check off completed actions in issue descriptions
+    - Close issues when work is fully completed
+    - Add comments documenting progress and completion
+    - Remember to update issues after each major step
 
 ## Reference: OpenSpec Commands
 

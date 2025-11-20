@@ -55,9 +55,10 @@ data class NotificationPreferences(
 @Serializable
 data class OAuthLoginRequest(
     val provider: String,  // "google" or "apple"
-    val idToken: String,   // JWT token from OAuth provider
+    val idToken: String? = null,   // JWT token from OAuth provider
     val accessToken: String? = null,
-    val authorizationCode: String? = null
+    val authorizationCode: String? = null,
+    val refreshToken: String? = null
 )
 
 /**

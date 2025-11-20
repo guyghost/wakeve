@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import org.jetbrains.compose.ui.tooling.preview.Preview
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Vote
@@ -15,9 +14,6 @@ import com.guyghost.wakeve.sync.SyncManager
 import com.guyghost.wakeve.sync.NetworkStatusDetector
 import com.guyghost.wakeve.sync.SyncHttpClient
 import kotlinx.coroutines.launch
-import com.guyghost.wakeve.JvmDatabaseFactory
-import com.guyghost.wakeve.sync.JvmNetworkStatusDetector
-import com.guyghost.wakeve.sync.KtorSyncHttpClient
 
 /**
  * Event repository that uses database persistence and sync capabilities
@@ -96,14 +92,14 @@ data class AppState(
 )
 
 @Composable
-@Preview
 fun App() {
     MaterialTheme {
-        // Initialize dependencies
-        val database = remember { DatabaseProvider.getDatabase(JvmDatabaseFactory()) }
-        val networkDetector = remember { JvmNetworkStatusDetector() }
-        val httpClient = remember { KtorSyncHttpClient() }
-        val userRepository = remember { UserRepository(database) }
+        // For JVM, use a simple in-memory database or mock
+        // TODO: Implement proper JVM database factory
+        val database = DatabaseProvider.getDatabase(JvmDatabaseFactory())
+        val networkDetector = JvmNetworkStatusDetector()
+        val httpClient = KtorSyncHttpClient()
+        val userRepository = UserRepository(database)
 
         val syncManager = remember {
             SyncManager(
@@ -135,12 +131,12 @@ fun App() {
                 .background(MaterialTheme.colorScheme.background)
                 .fillMaxSize()
         ) {
-            // Sync status indicator
-            SyncStatusIndicator(
-                syncStatus = repository.syncStatus,
-                isNetworkAvailable = repository.isNetworkAvailable,
-                hasPendingChanges = hasPendingChanges
-            )
+            // Sync status indicator (commented out for now)
+            // SyncStatusIndicator(
+            //     syncStatus = repository.syncStatus,
+            //     isNetworkAvailable = repository.isNetworkAvailable,
+            //     hasPendingChanges = hasPendingChanges
+            // )
 
             when (appState.currentScreen) {
                 Screen.EVENT_CREATION -> {

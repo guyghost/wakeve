@@ -233,6 +233,33 @@ class DatabaseEventRepository(private val db: WakevDb, private val syncManager: 
         }
     }
 
+    override suspend fun updateEvent(event: Event): Result<Event> {
+        return try {
+            val now = getCurrentUtcIsoString()
+            eventQueries.updateEvent(
+                title = event.title,
+                description = event.description,
+                status = event.status.name,
+                deadline = event.deadline,
+                updatedAt = now,
+                id = event.id
+            )
+
+            // Record sync change
+            syncManager?.recordLocalChange(
+                table = "events",
+                operation = SyncOperation.UPDATE,
+                recordId = event.id,
+                data = """{"title":"${event.title}","description":"${event.description}","status":"${event.status}","deadline":"${event.deadline}"}""",
+                userId = event.organizerId
+            )
+
+            Result.success(event)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     override suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean> {
         val event = getEvent(id) ?: return Result.failure(IllegalArgumentException("Event not found"))
 

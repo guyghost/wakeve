@@ -25,6 +25,11 @@ kotlin {
             // OAuth2 dependencies
             implementation(libs.google.auth)
             implementation(libs.androidx.credentials)
+            implementation(libs.androidx.security.crypto)
+            // Ktor client for HTTP requests
+            implementation(libs.ktor.clientCore)
+            implementation(libs.ktor.clientCio)
+            implementation(libs.ktor.clientContentNegotiation)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -36,6 +41,7 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(projects.shared)
+            implementation(libs.kotlinx.serialization)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -43,6 +49,10 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            // Ktor client for HTTP requests
+            implementation(libs.ktor.clientCore)
+            implementation(libs.ktor.clientCio)
+            implementation(libs.ktor.clientContentNegotiation)
         }
     }
 }
