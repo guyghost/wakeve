@@ -10,3 +10,6 @@ class IOSPlatform: Platform {
 
 actual fun getPlatform(): Platform = IOSPlatform()
 actual fun getCurrentTimeMillis(): Long = (NSDate().timeIntervalSince1970 * 1000).toLong()
+
+actual fun getCalendarService(): CalendarService = DefaultCalendarService() // IOSCalendarService()
+actual fun getNotificationService(): NotificationService = DefaultNotificationService()
