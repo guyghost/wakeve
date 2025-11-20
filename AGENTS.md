@@ -23,13 +23,15 @@ Ce document définit les agents (humains et logiciels) pour l’application mobi
 - Organisateur: crée l’événement, lance le sondage, fixe la date limite, valide la date finale.
 - Participant: vote, propose des créneaux (si autorisé), co-construit les détails.
 - Agent Sondage & Calendrier (logiciel): gère créneaux, votes, calcul du meilleur slot, fuseaux horaires.
+- Agent Suggestions (logiciel): fournit recommandations personnalisées pour dates, lieux, activités basées sur préférences utilisateur.
+- Agent Calendrier (logiciel): intègre calendriers natifs, génère invitations ICS, gère fuseaux horaires.
+- Agent Notifications (logiciel): envoie notifications push pour rappels, mises à jour, confirmations.
+- Agent Transport (logiciel): optimise transports multi-participants, calcule coûts/temps, planifie voyages de groupe.
 - Agent Destination & Logement (logiciel): agrège destinations, hébergements, expériences locales.
-- Agent Transport (logiciel): suggère options en fonction de la localisation des participants.
 - Agent Réunions (logiciel): génère liens Zoom/Meet/FaceTime et invite les validés.
 - Agent Paiement & Tricount (logiciel): cagnotte, suivi des coûts, liens Tricount.
-- Agent Sync & Offline (logiciel): cache local, résolution de conflits, statut réseau.
+- Agent Sync & Offline (logiciel): cache local, résolution de conflits CRDT, statut réseau.
 - Agent Sécurité & Auth (logiciel): OAuth, permissions, conformité RGPD.
-- Agent Notifications (logiciel): rappels de vote, changements d’état, confirmations.
 
 ## Responsabilités détaillées
 
@@ -52,9 +54,25 @@ Ce document définit les agents (humains et logiciels) pour l’application mobi
   * Fournit liste courte de destinations et hébergements via providers mockés puis réels.
   * Score multi-critères: coût, accessibilité, préférences votées, saisonnalité.
 
+- Agent Suggestions
+  * Analyse préférences utilisateur (jours, heures, lieux, activités).
+  * Génère recommandations personnalisées avec scoring.
+  * Supporte A/B testing pour optimisation.
+
+- Agent Calendrier
+  * Génère invitations ICS avec détails complets.
+  * Intègre calendriers natifs (Android/iOS) pour ajout automatique.
+  * Gère fuseaux horaires et mises à jour d'événements.
+
+- Agent Notifications
+  * Envoie notifications push (FCM/APNs) pour événements clés.
+  * Gère tokens d'appareils et permissions.
+  * Supporte rappels programmés et confirmations.
+
 - Agent Transport
-  * Suggestion par participant: vols/trains/covoiturage/voiture selon localisation.
-  * Optimise arrivées proches du créneau retenu; surface coût/durée/escales.
+  * Calcule routes optimisées multi-participants (coût/temps/équilibré).
+  * Intègre providers de transport (vols, trains, etc.).
+  * Planifie points de rencontre pour groupes.
 
 - Agent Réunions
   * Génère liens des réunions virtuelles; place invites pour les validés.
@@ -83,19 +101,25 @@ Ce document définit les agents (humains et logiciels) pour l’application mobi
 1. Organisateur → Agent Sondage: création de sondage, date limite, règles.
 2. Participants → Agent Sondage: votes et propositions; calcul du meilleur slot.
 3. Agent Sondage → Organisateur: recommandation; validation du créneau.
-4. Agent Sondage → Agents Destination/Transport/Réunions: créneau verrouillé.
-5. Agents Destination/Transport → Participants: suggestions classées; co-construction.
-6. Agent Réunions → Participants validés: liens, rappels.
-7. Agent Paiement → Tous: cagnotte, suivi des coûts; Tricount.
-8. Agent Sync & Offline ↔ Tous: persistance, sync, conflits, statut réseau.
-9. Agent Notifications → Tous: événements clés, échéances, confirmations.
+4. Agent Sondage → Agents Suggestions/Calendrier/Transport: créneau verrouillé.
+5. Agent Suggestions → Participants: recommandations personnalisées.
+6. Agent Calendrier → Participants validés: invitations ICS, ajout calendrier.
+7. Agent Notifications → Tous: notifications push pour événements.
+8. Agent Transport → Participants: plans de transport optimisés.
+9. Agents Destination/Transport → Participants: suggestions classées; co-construction.
+10. Agent Réunions → Participants validés: liens, rappels.
+11. Agent Paiement → Tous: cagnotte, suivi des coûts; Tricount.
+12. Agent Sync & Offline ↔ Tous: persistance CRDT, sync, conflits, statut réseau.
 
 ### Interfaces techniques (KMP)
-- Shared domain/services: Kotlin multiplatform (sondages, scoring, timezones, cache).
-- Providers abstraits: Destination/Lodging/Transport/Expérience avec implémentations mock → réelles via backend.
+- Shared domain/services: Kotlin multiplatform (sondages, scoring, timezones, cache, CRDT sync).
+- Services spécialisés: Suggestions, Calendrier, Notifications, Transport avec expect/actual.
+- Providers abstraits: Transport/Destination/Lodging/Expérience avec implémentations mock → réelles via backend.
 - Backend proxy: Ktor server pour clés API et agrégation; client Ktor commun.
 - Stockage: SQLDelight; chiffrement local selon plateforme.
 - UI: Compose (Android), SwiftUI (iOS) interop avec framework KMP.
+- Notifications: FCM (Android), APNs (iOS) via expect/actual.
+- Calendrier: CalendarContract (Android), EventKit (iOS) via expect/actual.
 
 ### Règles d’accès et visibilité
 - Avant validation de la date finale: vue limitée aux infos générales.
@@ -112,8 +136,8 @@ Ce document définit les agents (humains et logiciels) pour l’application mobi
 
 ### Axes d’amélioration
 
-- Passer de last-write-wins à CRDT pour édition collaborative.
-- Recommandations personnalisées basées sur historique et contraintes budget/temps.
-- Intégration calendrier natif (iOS/Android) et invitations ICS.
-- Optimisation multi-participants pour transports synchronisés.
-- Observabilité: métriques, traces, alertes sur échecs de sync et providers.
+- ✅ Passer de last-write-wins à CRDT pour édition collaborative.
+- ✅ Recommandations personnalisées basées sur historique et contraintes budget/temps.
+- ✅ Intégration calendrier natif (iOS/Android) et invitations ICS.
+- ✅ Optimisation multi-participants pour transports synchronisés.
+- ✅ Observabilité: métriques, traces, alertes sur échecs de sync et providers.
