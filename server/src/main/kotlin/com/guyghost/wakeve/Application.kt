@@ -2,22 +2,35 @@ package com.guyghost.wakeve
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.guyghost.wakeve.auth.*
+import com.guyghost.wakeve.auth.AppleOAuth2Service
+import com.guyghost.wakeve.auth.AuthenticationService
+import com.guyghost.wakeve.auth.GoogleOAuth2Service
 import com.guyghost.wakeve.database.WakevDb
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.plugins.ratelimit.*
-import io.ktor.serialization.kotlinx.json.*
-import kotlin.time.Duration.Companion.minutes
-import kotlinx.serialization.json.Json
+import com.guyghost.wakeve.routes.authRoutes
+import com.guyghost.wakeve.routes.eventRoutes
+import com.guyghost.wakeve.routes.participantRoutes
+import com.guyghost.wakeve.routes.syncRoutes
+import com.guyghost.wakeve.routes.voteRoutes
 import com.guyghost.wakeve.sync.SyncService
-import com.guyghost.wakeve.routes.*
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.jwt.jwt
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.ratelimit.RateLimit
+import io.ktor.server.plugins.ratelimit.RateLimitName
+import io.ktor.server.plugins.ratelimit.rateLimit
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.route
+import io.ktor.server.routing.routing
+import kotlinx.serialization.json.Json
+import kotlin.time.Duration.Companion.minutes
 
 const val SERVER_PORT = 8080
 

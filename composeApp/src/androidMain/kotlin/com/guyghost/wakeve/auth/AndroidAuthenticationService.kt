@@ -1,10 +1,10 @@
 package com.guyghost.wakeve.auth
 
 import android.content.Context
-import com.guyghost.wakeve.security.AndroidSecureTokenStorage
 import com.guyghost.wakeve.models.OAuthLoginRequest
 import com.guyghost.wakeve.models.OAuthLoginResponse
 import com.guyghost.wakeve.models.OAuthProvider
+import com.guyghost.wakeve.security.AndroidSecureTokenStorage
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.post

@@ -10,13 +10,12 @@ import com.guyghost.wakeve.models.OAuthLoginRequest
 import com.guyghost.wakeve.models.OAuthLoginResponse
 import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.User
-import com.guyghost.wakeve.models.UserToken
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import kotlinx.coroutines.runBlocking
 import java.time.Instant
-import java.util.*
+import java.util.Date
 
 /**
  * Main authentication service that handles OAuth2 login flow

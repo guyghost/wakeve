@@ -1,9 +1,9 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.models.CalendarEvent
 import kotlin.test.Test
-import kotlin.test.assertTrue
 import kotlin.test.assertEquals
-import com.guyghost.wakeve.models.*
+import kotlin.test.assertTrue
 
 class CalendarServiceTest {
 

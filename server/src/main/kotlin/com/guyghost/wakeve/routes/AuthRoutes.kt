@@ -4,11 +4,13 @@ import com.guyghost.wakeve.auth.AuthenticationService
 import com.guyghost.wakeve.auth.OAuth2Exception
 import com.guyghost.wakeve.models.OAuthLoginRequest
 import com.guyghost.wakeve.models.TokenRefreshRequest
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 import java.util.UUID
 
 /**

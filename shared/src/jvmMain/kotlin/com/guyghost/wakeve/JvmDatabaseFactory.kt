@@ -2,7 +2,6 @@ package com.guyghost.wakeve
 
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import com.guyghost.wakeve.database.WakevDb
 import java.io.File
 
 /**

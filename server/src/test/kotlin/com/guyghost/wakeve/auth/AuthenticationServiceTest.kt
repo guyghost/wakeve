@@ -2,14 +2,16 @@ package com.guyghost.wakeve.auth
 
 import com.guyghost.wakeve.DatabaseProvider
 import com.guyghost.wakeve.JvmDatabaseFactory
-import com.guyghost.wakeve.UserRepository
 import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.User
-import io.ktor.server.auth.jwt.*
-import io.ktor.server.testing.*
 import kotlinx.coroutines.runBlocking
-import kotlin.test.*
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class AuthenticationServiceTest {
 

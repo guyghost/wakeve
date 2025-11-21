@@ -175,32 +175,48 @@ git push origin change/<change-id>
 
 ### Key Practices
 
-1. **Reference requirements in code**
+1. **Test-Driven Development (TDD)**
+    - Write tests BEFORE implementing code
+    - Tests must cover common code, Android, and iOS platforms
+    - Use platform-specific test frameworks:
+      - **Common**: Kotlin test (kotlin.test)
+      - **Android**: JUnit + Robolectric for unit tests, Espresso for UI tests
+      - **iOS**: XCTest for unit tests, XCUITest for UI tests
+    - Test naming: `REQ_<ID>_<scenario>()` (e.g., `REQ_EVT_001_cannotVoteAfterDeadline()`)
+
+2. **Reference requirements in code**
     ```kotlin
     // REQ-EVT-001: The system SHALL enforce voting deadline
     fun validateVote(eventId: String): Result<Boolean> { ... }
     ```
 
-2. **Write tests per scenario**
+3. **Write tests per scenario**
     ```kotlin
     @Test
     fun REQ_EVT_001_cannotVoteAfterDeadline() { ... }
     ```
 
-3. **Track requirement coverage**
+4. **Track requirement coverage**
     - Ensure each requirement is tested
     - Use REQ-ID in test names
     - Document implementation in PR
 
-4. **Update spec if clarifications needed**
+5. **Update spec if clarifications needed**
     - Only non-breaking clarifications
     - Major changes require new spec proposal
 
-5. **Update GitHub issues regularly**
+6. **Update GitHub issues regularly**
     - Check off completed actions in issue descriptions
     - Close issues when work is fully completed
     - Add comments documenting progress and completion
     - Remember to update issues after each major step
+
+7. **Conventional Commits**
+    - Use conventional commit format for all commits
+    - Format: `<type>[optional scope]: <description>`
+    - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+    - Example: `feat(sync): add CRDT-based conflict resolution`
+    - Commit at the end of each task, not during implementation
 
 ## Reference: OpenSpec Commands
 

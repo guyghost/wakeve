@@ -1,16 +1,17 @@
 package com.guyghost.wakeve.routes
 
-import io.ktor.http.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import com.guyghost.wakeve.models.SyncRequest
+import com.guyghost.wakeve.models.SyncResponse
 import com.guyghost.wakeve.sync.SyncService
-import com.guyghost.wakeve.database.WakevDb
-import com.guyghost.wakeve.models.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 
-fun Route.syncRoutes(syncService: SyncService) {
+fun io.ktor.server.routing.Route.syncRoutes(syncService: SyncService) {
     route("/sync") {
         // POST /api/sync - Process batch sync changes from client
         post {

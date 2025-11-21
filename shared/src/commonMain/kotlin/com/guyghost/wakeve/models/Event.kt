@@ -1,5 +1,8 @@
 package com.guyghost.wakeve.models
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Event(
     val id: String,
     val title: String,
@@ -9,13 +12,17 @@ data class Event(
     val proposedSlots: List<TimeSlot>,
     val deadline: String, // ISO string (UTC)
     val status: EventStatus,
-    val finalDate: String? = null // ISO string (UTC)
+    val finalDate: String? = null, // ISO string (UTC)
+    val createdAt: String, // ISO string (UTC)
+    val updatedAt: String // ISO string (UTC)
 )
 
+@Serializable
 enum class EventStatus {
     DRAFT, POLLING, CONFIRMED
 }
 
+@Serializable
 data class TimeSlot(
     val id: String,
     val start: String, // ISO string

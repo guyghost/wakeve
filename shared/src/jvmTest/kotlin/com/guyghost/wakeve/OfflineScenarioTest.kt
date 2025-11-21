@@ -1,13 +1,15 @@
 package com.guyghost.wakeve
 
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
+import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
+import kotlinx.coroutines.runBlocking
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * Tests for offline scenarios and data recovery.
@@ -18,6 +20,10 @@ import com.guyghost.wakeve.models.Vote
  */
 class OfflineScenarioTest {
 
+    private fun createTestDatabase(): WakevDb {
+        return DatabaseProvider.getDatabase(TestDatabaseFactory())
+    }
+
     @Test
     fun testDataPersistsAcrossSessions() {
         // Session 1: Create event and add participant
@@ -25,6 +31,7 @@ class OfflineScenarioTest {
         var repository = DatabaseEventRepository(db)
 
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
+        val now = "2025-11-20T10:00:00Z"
         val event = Event(
             id = "event-1",
             title = "Team Meeting",
@@ -33,11 +40,15 @@ class OfflineScenarioTest {
             participants = emptyList(),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT
+            status = EventStatus.DRAFT,
+            createdAt = now,
+            updatedAt = now
         )
 
-        repository.createEvent(event)
-        repository.addParticipant("event-1", "participant-1")
+        runBlocking {
+            repository.createEvent(event)
+            repository.addParticipant("event-1", "participant-1")
+        }
 
         // Simulate app shutdown
         DatabaseProvider.resetDatabase()
@@ -61,6 +72,7 @@ class OfflineScenarioTest {
         val syncQueries = db.syncMetadataQueries
 
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
+        val now = "2025-11-20T10:00:00Z"
         val event = Event(
             id = "event-1",
             title = "Team Meeting",
@@ -69,11 +81,15 @@ class OfflineScenarioTest {
             participants = emptyList(),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT
+            status = EventStatus.DRAFT,
+            createdAt = now,
+            updatedAt = now
         )
 
         // Create event (should create sync metadata)
-        repository.createEvent(event)
+        runBlocking {
+            repository.createEvent(event)
+        }
 
         // Check that sync metadata was created
         val pending = syncQueries.selectPending().executeAsList()
@@ -89,6 +105,7 @@ class OfflineScenarioTest {
 
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
         val slot2 = TimeSlot("slot-2", "2025-12-02T14:00:00Z", "2025-12-02T16:00:00Z", "UTC")
+        val now = "2025-11-20T10:00:00Z"
         val event = Event(
             id = "event-1",
             title = "Team Meeting",
@@ -97,16 +114,20 @@ class OfflineScenarioTest {
             participants = listOf("participant-1", "participant-2"),
             proposedSlots = listOf(slot1, slot2),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.POLLING
+            status = EventStatus.POLLING,
+            createdAt = now,
+            updatedAt = now
         )
 
-        repository.createEvent(event)
-        repository.addParticipant("event-1", "participant-1")
-        repository.addParticipant("event-1", "participant-2")
-        
-        // Add votes
-        repository.addVote("event-1", "participant-1", "slot-1", Vote.YES)
-        repository.addVote("event-1", "participant-2", "slot-1", Vote.MAYBE)
+        runBlocking {
+            repository.createEvent(event)
+            repository.addParticipant("event-1", "participant-1")
+            repository.addParticipant("event-1", "participant-2")
+
+            // Add votes
+            repository.addVote("event-1", "participant-1", "slot-1", Vote.YES)
+            repository.addVote("event-1", "participant-2", "slot-1", Vote.MAYBE)
+        }
 
         // Simulate app shutdown and restart
         DatabaseProvider.resetDatabase()
@@ -127,6 +148,7 @@ class OfflineScenarioTest {
         var repository = DatabaseEventRepository(db)
 
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
+        val now = "2025-11-20T10:00:00Z"
         val event = Event(
             id = "event-1",
             title = "Team Meeting",
@@ -135,11 +157,15 @@ class OfflineScenarioTest {
             participants = emptyList(),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT
+            status = EventStatus.DRAFT,
+            createdAt = now,
+            updatedAt = now
         )
 
-        repository.createEvent(event)
-        repository.updateEventStatus("event-1", EventStatus.POLLING)
+        runBlocking {
+            repository.createEvent(event)
+            repository.updateEventStatus("event-1", EventStatus.POLLING, null)
+        }
 
         // Simulate app shutdown
         DatabaseProvider.resetDatabase()
@@ -159,19 +185,24 @@ class OfflineScenarioTest {
         var repository = DatabaseEventRepository(db)
 
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
-        
-        repeat(5) { i ->
-            val event = Event(
-                id = "event-$i",
-                title = "Meeting $i",
-                description = "Description $i",
-                organizerId = "org-1",
-                participants = emptyList(),
-                proposedSlots = listOf(slot1),
-                deadline = "2025-11-20T18:00:00Z",
-                status = EventStatus.DRAFT
-            )
-            repository.createEvent(event)
+        val now = "2025-11-20T10:00:00Z"
+
+        runBlocking {
+            repeat(5) { i ->
+                val event = Event(
+                    id = "event-$i",
+                    title = "Meeting $i",
+                    description = "Description $i",
+                    organizerId = "org-1",
+                    participants = emptyList(),
+                    proposedSlots = listOf(slot1),
+                    deadline = "2025-11-20T18:00:00Z",
+                    status = EventStatus.DRAFT,
+                    createdAt = now,
+                    updatedAt = now
+                )
+                repository.createEvent(event)
+            }
         }
 
         // Simulate app shutdown
@@ -199,6 +230,7 @@ class OfflineScenarioTest {
         var repository = DatabaseEventRepository(db)
 
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
+        val now = "2025-11-20T10:00:00Z"
         val event = Event(
             id = "event-crash",
             title = "Critical Meeting",
@@ -207,12 +239,16 @@ class OfflineScenarioTest {
             participants = listOf("participant-1"),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.POLLING
+            status = EventStatus.POLLING,
+            createdAt = now,
+            updatedAt = now
         )
 
-        repository.createEvent(event)
-        repository.addParticipant("event-crash", "participant-1")
-        repository.addVote("event-crash", "participant-1", "slot-1", Vote.YES)
+        runBlocking {
+            repository.createEvent(event)
+            repository.addParticipant("event-crash", "participant-1")
+            repository.addVote("event-crash", "participant-1", "slot-1", Vote.YES)
+        }
 
         // Simulate app crash (abrupt shutdown)
         DatabaseProvider.resetDatabase()
@@ -240,6 +276,7 @@ class OfflineScenarioTest {
         val syncQueries = db.syncMetadataQueries
 
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
+        val now = "2025-11-20T10:00:00Z"
         val event = Event(
             id = "event-1",
             title = "Team Meeting",
@@ -248,11 +285,15 @@ class OfflineScenarioTest {
             participants = emptyList(),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT
+            status = EventStatus.DRAFT,
+            createdAt = now,
+            updatedAt = now
         )
 
-        repository.createEvent(event)
-        repository.addParticipant("event-1", "participant-1")
+        runBlocking {
+            repository.createEvent(event)
+            repository.addParticipant("event-1", "participant-1")
+        }
 
         // Get pending sync records
         val pending = syncQueries.selectPending().executeAsList()

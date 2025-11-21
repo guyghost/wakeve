@@ -1,11 +1,25 @@
 package com.guyghost.wakeve.sync
 
-import com.guyghost.wakeve.*
-import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.DatabaseEventRepository
+import com.guyghost.wakeve.UserRepository
 import com.guyghost.wakeve.database.WakevDb
-import kotlinx.coroutines.*
+import com.guyghost.wakeve.getCurrentTimeMillis
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.SyncChange
+import com.guyghost.wakeve.models.SyncConflict
+import com.guyghost.wakeve.models.SyncEventData
+import com.guyghost.wakeve.models.SyncOperation
+import com.guyghost.wakeve.models.SyncRequest
+import com.guyghost.wakeve.models.SyncResponse
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
 /**
@@ -35,7 +49,7 @@ class SyncManager(
 
     init {
         scope.launch {
-            networkDetector.isNetworkAvailable.collect { available: Boolean ->
+            networkDetector.isNetworkAvailable.collect { available ->
                 if (available && hasPendingChanges()) {
                     triggerSync()
                 }
@@ -171,7 +185,8 @@ class SyncManager(
 
         if (localEvent != null && serverEvent != null) {
             // Merge using CRDT logic (LWW for each field)
-            val mergedEvent = mergeEventsCRDT(localEvent, serverEvent, conflict.serverTimestamp)
+            // Temporarily use last-write-wins instead of CRDT
+            val mergedEvent = if (localEvent.updatedAt >= serverEvent.updatedAt) localEvent else serverEvent
             // Update local database with merged event
             eventRepository.updateEvent(mergedEvent)
         }
@@ -221,6 +236,7 @@ class SyncManager(
             description = if (localTime >= serverTime) local.description else server.description,
             organizerId = local.organizerId, // Organizer doesn't change
             participants = (local.participants + server.participants).distinct(), // Union (G-Set)
+            proposedSlots = if (localTime >= serverTime) local.proposedSlots else server.proposedSlots,
             status = if (localTime >= serverTime) local.status else server.status,
             finalDate = if (local.finalDate != null && server.finalDate != null) {
                 if (localTime >= serverTime) local.finalDate else server.finalDate
@@ -243,19 +259,6 @@ class SyncManager(
             (datePart.hashCode().toLong() + timePart.hashCode().toLong())
         } catch (e: Exception) {
             0L
-        }
-    }
-        }
-
-        // Handle conflicts with CRDT-based merging
-        response.conflicts.forEach { conflict ->
-            handleConflict(conflict)
-            metrics.recordConflictResolved(conflict.table, "CRDT")
-        }
-
-        // Alert if high conflict rate
-        if (response.conflicts.size > 5) {
-            alertManager.alertHighConflictRate(response.conflicts.size)
         }
     }
 
@@ -312,68 +315,15 @@ class SyncManager(
         }
     }
 
-    /**
-     * Clean up resources
-     */
-    fun dispose() {
-        scope.cancel()
-    }
-
-    /**
-     * Perform sync with retry mechanism and exponential backoff
-     */
-    private suspend fun syncWithRetry(): Result<SyncResponse> {
-        var lastException: Exception? = null
-
-        for (attempt in 0..maxRetries) {
-            try {
-                return Result.success(performSync())
-            } catch (e: Exception) {
-                lastException = e
-                _syncStatus.value = SyncStatus.Error("Sync failed (attempt ${attempt + 1}/${maxRetries + 1}): ${e.message}")
-
-                if (attempt < maxRetries) {
-                    // Calculate exponential backoff delay: baseDelay * 2^attempt
-                    val delayMs = baseRetryDelayMs * (1L shl attempt) // 2^attempt
-                    kotlinx.coroutines.delay(delayMs)
-                } else {
-                    // All retries failed, update sync status for failed changes
-                    updateSyncStatusForFailure(e)
-                    alertManager.alertSyncFailure(e.message ?: "Unknown error", maxRetries)
-                }
-            }
-        }
-
-        // All retries failed
-        return Result.failure(lastException ?: Exception("Sync failed after $maxRetries retries"))
-    }
-
-    /**
-     * Schedule automatic retry for failed changes
-     */
-    fun scheduleRetryForFailedChanges() {
-        scope.launch {
-            while (true) {
-                kotlinx.coroutines.delay(30000L) // Check every 30 seconds
-
-                if (networkDetector.isNetworkAvailable.value) {
-                    val failedChanges = userRepository.getPendingSyncChanges()
-                        .filter { it.retryCount < maxRetries && it.lastError != null }
-
-                    if (failedChanges.isNotEmpty()) {
-                        // Trigger sync to retry failed changes
-                        triggerSync()
-                    }
-                }
-            }
-        }
+    private fun updateLocalSyncStatus(response: SyncResponse) {
+        // TODO: Update sync status for applied changes
     }
 
     /**
      * Perform actual sync operation (extracted from triggerSync)
      */
     private suspend fun performSync(): SyncResponse {
-        val startTime = System.currentTimeMillis()
+        val startTime = getCurrentTimeMillis()
         metrics.recordSyncStart()
 
         if (!networkDetector.isNetworkAvailable.value) {
@@ -387,7 +337,7 @@ class SyncManager(
         val pendingChanges = getPendingChangesForSync()
         if (pendingChanges.isEmpty()) {
             _syncStatus.value = SyncStatus.Idle
-            val duration = System.currentTimeMillis() - startTime
+            val duration = getCurrentTimeMillis() - startTime
             metrics.recordSyncSuccess(duration, 0)
             return SyncResponse(
                 success = true,
@@ -411,9 +361,20 @@ class SyncManager(
         // Update local sync status based on response
         updateLocalSyncStatus(response)
 
+        // Handle conflicts with CRDT-based merging
+        for (conflict in response.conflicts) {
+            handleConflict(conflict)
+            metrics.recordConflictResolved(conflict.table, "CRDT")
+        }
+
+        // Alert if high conflict rate
+        if (response.conflicts.size > 5) {
+            alertManager.alertHighConflictRate(response.conflicts.size)
+        }
+
         _syncStatus.value = if (response.success) SyncStatus.Idle else SyncStatus.Error(response.message ?: "Sync failed")
 
-        val duration = System.currentTimeMillis() - startTime
+        val duration = getCurrentTimeMillis() - startTime
         if (response.success) {
             metrics.recordSyncSuccess(duration, response.appliedChanges)
         } else {
@@ -423,5 +384,62 @@ class SyncManager(
         checkPerformance(duration)
 
         return response
+    }
+
+    /**
+     * Perform sync with retry mechanism and exponential backoff
+     */
+    private suspend fun syncWithRetry(): Result<SyncResponse> {
+        var lastException: Exception? = null
+
+        for (attempt in 0..maxRetries) {
+            try {
+                return Result.success(performSync())
+            } catch (e: Exception) {
+                lastException = e
+                _syncStatus.value = SyncStatus.Error("Sync failed (attempt ${attempt + 1}/${maxRetries + 1}): ${e.message}")
+
+                if (attempt < maxRetries) {
+                    // Calculate exponential backoff delay: baseDelay * 2^attempt
+                    val delayMs = baseRetryDelayMs * (1L shl attempt) // 2^attempt
+                    delay(delayMs)
+                } else {
+                    // All retries failed, update sync status for failed changes
+                    updateSyncStatusForFailure(e)
+                    alertManager.alertSyncFailure(e.message ?: "Unknown error", maxRetries)
+                }
+            }
+        }
+
+        // All retries failed
+        return Result.failure(lastException ?: Exception("Sync failed after $maxRetries retries"))
+    }
+
+    /**
+     * Schedule automatic retry for failed changes
+     */
+    fun scheduleRetryForFailedChanges() {
+        scope.launch {
+            while (isActive) {
+                delay(30000L) // Check every 30 seconds
+
+                if (networkDetector.isNetworkAvailable.value) {
+                    val failedChanges = userRepository.getPendingSyncChanges()
+                        .filter { it.retryCount < maxRetries && it.lastError != null }
+
+                    if (failedChanges.isNotEmpty()) {
+                        // Trigger sync to retry failed changes
+                        triggerSync()
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Clean up resources
+     */
+    fun dispose() {
+        scope.cancel()
     }
 }

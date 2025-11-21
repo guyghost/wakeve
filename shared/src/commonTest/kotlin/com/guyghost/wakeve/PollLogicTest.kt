@@ -1,12 +1,12 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.models.Poll
+import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.models.Vote
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import com.guyghost.wakeve.models.Poll
-import com.guyghost.wakeve.models.TimeSlot
-import com.guyghost.wakeve.models.Vote
 
 class PollLogicTest {
 

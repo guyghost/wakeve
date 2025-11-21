@@ -1,5 +1,7 @@
 package com.guyghost.wakeve.sync
 
+import com.guyghost.wakeve.getCurrentTimeMillis
+
 /**
  * Metrics collector for sync operations
  */
@@ -33,20 +35,20 @@ class InMemorySyncMetrics : SyncMetrics {
     private var currentSyncStartTime = 0L
 
     override fun recordSyncStart() {
-        currentSyncStartTime = System.currentTimeMillis()
+        currentSyncStartTime = getCurrentTimeMillis()
         totalSyncs++
     }
 
     override fun recordSyncSuccess(durationMs: Long, changesApplied: Int) {
         successfulSyncs++
         totalDurationMs += durationMs
-        lastSyncTime = System.currentTimeMillis()
+        lastSyncTime = getCurrentTimeMillis()
     }
 
     override fun recordSyncFailure(durationMs: Long, error: String) {
         failedSyncs++
         totalDurationMs += durationMs
-        lastSyncTime = System.currentTimeMillis()
+        lastSyncTime = getCurrentTimeMillis()
     }
 
     override fun recordConflictResolved(table: String, strategy: String) {
@@ -64,5 +66,4 @@ class InMemorySyncMetrics : SyncMetrics {
             lastSyncTime = lastSyncTime
         )
     }
-}</content>
-<parameter name="filePath">shared/src/commonMain/kotlin/com/guyghost/wakeve/sync/SyncMetrics.kt
+}

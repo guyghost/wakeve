@@ -1,6 +1,12 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.Location
+import com.guyghost.wakeve.models.OptimizationType
+import com.guyghost.wakeve.models.Route
+import com.guyghost.wakeve.models.TransportMode
+import com.guyghost.wakeve.models.TransportOption
+import com.guyghost.wakeve.models.TransportPlan
+import com.guyghost.wakeve.models.TransportService
 
 class DefaultTransportService : TransportService {
 
@@ -149,7 +155,7 @@ class DefaultTransportService : TransportService {
         val dayOffset = (hour + hours) / 24
         val day = time.substring(8, 10).toInt() + dayOffset
         val dayStr = if (day < 10) "0$day" else day.toString()
-        return time.substring(0, 8) + dayStr + "T" + String.format("%02d", newHour) + time.substring(13)
+        return time.substring(0, 8) + dayStr + "T" + (if (newHour < 10) "0$newHour" else newHour.toString()) + time.substring(13)
     }
 
     private fun timeDiffMinutes(time1: String, time2: String): Int {

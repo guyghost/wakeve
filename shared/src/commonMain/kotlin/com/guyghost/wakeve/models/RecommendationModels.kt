@@ -10,7 +10,7 @@ data class UserPreferences(
     val preferredLocations: List<String> = emptyList(), // e.g., ["paris", "beach"]
     val preferredActivities: List<String> = emptyList(), // e.g., ["dinner", "hiking"]
     val budgetRange: BudgetRange? = null,
-    val groupSizePreference: Int? = null, // preferred number of participants
+    val groupSizePreference: Long? = null, // preferred number of participants
     val lastUpdated: String // ISO timestamp
 )
 
@@ -39,5 +39,4 @@ interface SuggestionEngine {
     fun suggestDates(event: Event, preferences: UserPreferences): List<Recommendation>
     fun suggestLocations(event: Event, preferences: UserPreferences): List<Recommendation>
     fun suggestActivities(event: Event, preferences: UserPreferences): List<Recommendation>
-}</content>
-<parameter name="filePath">shared/src/commonMain/kotlin/com/guyghost/wakeve/models/RecommendationModels.kt
+}

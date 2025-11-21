@@ -3,10 +3,11 @@ package com.guyghost.wakeve
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
-import android.net.Uri
 import android.provider.CalendarContract
-import com.guyghost.wakeve.models.*
-import java.util.*
+import com.guyghost.wakeve.models.CalendarEvent
+import com.guyghost.wakeve.models.CalendarInvite
+import java.util.Locale
+import java.util.TimeZone
 
 class AndroidCalendarService(private val context: Context) : CalendarService {
 

@@ -3,10 +3,10 @@ package com.guyghost.wakeve
 import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
-import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Poll
-import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.models.SyncOperation
+import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.sync.SyncManager
 
 /**
@@ -101,7 +101,9 @@ class DatabaseEventRepository(private val db: WakevDb, private val syncManager: 
             proposedSlots = timeSlots.map { TimeSlot(it.id, it.startTime, it.endTime, it.timezone) },
             deadline = eventRow.deadline,
             status = EventStatus.valueOf(eventRow.status),
-            finalDate = null // Will be populated from confirmedDate table if exists
+            finalDate = null, // Will be populated from confirmedDate table if exists
+            createdAt = eventRow.createdAt,
+            updatedAt = eventRow.updatedAt
         )
     }
 

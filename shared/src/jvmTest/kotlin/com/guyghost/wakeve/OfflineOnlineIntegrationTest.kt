@@ -1,15 +1,17 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.models.SyncOperation
 import com.guyghost.wakeve.models.SyncResponse
-import com.guyghost.wakeve.sync.NetworkStatusDetector
-import com.guyghost.wakeve.sync.SyncHttpClient
 import com.guyghost.wakeve.sync.SyncManager
 import com.guyghost.wakeve.sync.SyncStatus
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import com.guyghost.wakeve.sync.TestNetworkStatusDetector
+import com.guyghost.wakeve.sync.TestSyncHttpClient
 import kotlinx.coroutines.runBlocking
-import kotlin.test.*
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * Integration test for offline/online scenarios.
@@ -57,17 +59,20 @@ class OfflineOnlineIntegrationTest {
         networkDetector.setNetworkAvailable(false)
 
         // Create event offline
-        val event = models.Event(
+        val now = "2025-11-20T10:00:00Z"
+        val event = com.guyghost.wakeve.models.Event(
             id = "offline-event-1",
             title = "Offline Created Event",
             description = "Created while offline",
             organizerId = "user-1",
             participants = listOf("user-1"),
             proposedSlots = listOf(
-                models.TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
+                com.guyghost.wakeve.models.TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
             ),
             deadline = "2025-11-25T18:00:00Z",
-            status = models.EventStatus.DRAFT
+            status = com.guyghost.wakeve.models.EventStatus.DRAFT,
+            createdAt = now,
+            updatedAt = now
         )
 
         val createResult = eventRepository.createEvent(event)
@@ -78,7 +83,7 @@ class OfflineOnlineIntegrationTest {
         assertTrue(addParticipantResult.isSuccess)
 
         // Add vote offline
-        val addVoteResult = eventRepository.addVote("offline-event-1", "user-2", "slot-1", models.Vote.YES)
+        val addVoteResult = eventRepository.addVote("offline-event-1", "user-2", "slot-1", com.guyghost.wakeve.models.Vote.YES)
         assertTrue(addVoteResult.isSuccess)
 
         // Verify data is persisted locally
@@ -89,7 +94,7 @@ class OfflineOnlineIntegrationTest {
 
         val poll = eventRepository.getPoll("offline-event-1")
         assertNotNull(poll)
-        assertEquals(models.Vote.YES, poll.votes["user-2"]?.get("slot-1"))
+        assertEquals(com.guyghost.wakeve.models.Vote.YES, poll.votes["user-2"]?.get("slot-1"))
 
         // Verify sync manager has pending changes
         assertTrue(syncManager.hasPendingChanges())
@@ -121,17 +126,20 @@ class OfflineOnlineIntegrationTest {
         networkDetector.setNetworkAvailable(true)
 
         // Create event online
-        val event = models.Event(
+        val now = "2025-11-20T10:00:00Z"
+        val event = com.guyghost.wakeve.models.Event(
             id = "recovery-event-1",
             title = "Recovery Test Event",
             description = "Test sync recovery",
             organizerId = "user-1",
             participants = listOf("user-1"),
             proposedSlots = listOf(
-                models.TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
+                com.guyghost.wakeve.models.TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
             ),
             deadline = "2025-11-25T18:00:00Z",
-            status = models.EventStatus.DRAFT
+            status = com.guyghost.wakeve.models.EventStatus.DRAFT,
+            createdAt = now,
+            updatedAt = now
         )
 
         val createResult = eventRepository.createEvent(event)
@@ -198,17 +206,20 @@ class OfflineOnlineIntegrationTest {
         )
 
         // Create event with original instance
-        val event = models.Event(
+        val now = "2025-11-20T10:00:00Z"
+        val event = com.guyghost.wakeve.models.Event(
             id = "persistence-event-1",
             title = "Persistence Test Event",
             description = "Test data persistence",
             organizerId = "user-1",
             participants = listOf("user-1"),
             proposedSlots = listOf(
-                models.TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
+                com.guyghost.wakeve.models.TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
             ),
             deadline = "2025-11-25T18:00:00Z",
-            status = models.EventStatus.DRAFT
+            status = com.guyghost.wakeve.models.EventStatus.DRAFT,
+            createdAt = now,
+            updatedAt = now
         )
 
         val createResult = eventRepository.createEvent(event)

@@ -1,9 +1,10 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.models.NotificationMessage
+import com.guyghost.wakeve.models.NotificationType
+import com.guyghost.wakeve.models.PushToken
 import kotlin.test.Test
-import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import com.guyghost.wakeve.models.*
 
 class NotificationServiceTest {
 

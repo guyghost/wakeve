@@ -1,9 +1,9 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.models.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import com.guyghost.wakeve.models.*
 
 class SuggestionEngineTest {
 
@@ -20,7 +20,9 @@ class SuggestionEngineTest {
             TimeSlot("slot-2", "2025-12-02T14:00:00Z", "2025-12-02T16:00:00Z", "UTC")
         ),
         deadline = "2025-11-30T23:59:59Z",
-        status = EventStatus.DRAFT
+        status = EventStatus.DRAFT,
+        createdAt = "2025-11-20T10:00:00Z",
+        updatedAt = "2025-11-20T10:00:00Z"
     )
 
     private val userPrefs = UserPreferences(
@@ -95,4 +97,3 @@ class SuggestionEngineTest {
         }
     }
 }</content>
-<parameter name="filePath">shared/src/commonTest/kotlin/com/guyghost/wakeve/SuggestionEngineTest.kt

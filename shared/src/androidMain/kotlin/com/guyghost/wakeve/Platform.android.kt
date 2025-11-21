@@ -1,6 +1,5 @@
 package com.guyghost.wakeve
 
-import android.content.Context
 import android.os.Build
 
 class AndroidPlatform : Platform {
