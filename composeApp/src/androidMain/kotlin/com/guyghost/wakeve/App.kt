@@ -1,6 +1,5 @@
 package com.guyghost.wakeve
 
-import SyncStatusIndicator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -59,7 +58,11 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
     }
 
     override suspend fun updateEvent(event: Event): Result<Event> {
-        TODO("Not yet implemented")
+        return eventRepository.updateEvent(event).also { result ->
+            if (result.isSuccess) {
+                syncManager.triggerSync()
+            }
+        }
     }
 
     override suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean> {

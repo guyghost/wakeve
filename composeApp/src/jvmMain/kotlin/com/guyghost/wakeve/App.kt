@@ -11,6 +11,8 @@ import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.sync.SyncManager
+import com.guyghost.wakeve.sync.KtorSyncHttpClient
+import com.guyghost.wakeve.sync.JvmNetworkStatusDetector
 import kotlinx.coroutines.launch
 
 /**
@@ -47,6 +49,14 @@ class SyncedEventRepository(
 
     override suspend fun addVote(eventId: String, participantId: String, slotId: String, vote: Vote): Result<Boolean> {
         return eventRepository.addVote(eventId, participantId, slotId, vote).also { result ->
+            if (result.isSuccess) {
+                syncManager.triggerSync()
+            }
+        }
+    }
+
+    override suspend fun updateEvent(event: Event): Result<Event> {
+        return eventRepository.updateEvent(event).also { result ->
             if (result.isSuccess) {
                 syncManager.triggerSync()
             }
