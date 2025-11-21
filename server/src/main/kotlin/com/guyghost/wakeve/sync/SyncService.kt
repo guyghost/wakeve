@@ -1,9 +1,16 @@
 package com.guyghost.wakeve.sync
 
-import com.guyghost.wakeve.*
+import com.guyghost.wakeve.DatabaseEventRepository
+import com.guyghost.wakeve.UserRepository
 import com.guyghost.wakeve.database.WakevDb
-import com.guyghost.wakeve.models.*
-import kotlinx.coroutines.runBlocking
+import com.guyghost.wakeve.models.SyncChange
+import com.guyghost.wakeve.models.SyncConflict
+import com.guyghost.wakeve.models.SyncEventData
+import com.guyghost.wakeve.models.SyncOperation
+import com.guyghost.wakeve.models.SyncParticipantData
+import com.guyghost.wakeve.models.SyncRequest
+import com.guyghost.wakeve.models.SyncResponse
+import com.guyghost.wakeve.models.SyncVoteData
 import kotlinx.serialization.json.Json
 
 /**
@@ -96,6 +103,7 @@ class SyncService(private val db: WakevDb) {
                 val existing = eventRepository.getEvent(change.recordId)
                 if (existing == null) {
                     // Create a full Event object from the sync data
+                    val now = java.time.Instant.now().toString()
                     val event = com.guyghost.wakeve.models.Event(
                         id = eventData.id,
                         title = eventData.title,
@@ -104,7 +112,9 @@ class SyncService(private val db: WakevDb) {
                         participants = emptyList<String>(),
                         proposedSlots = emptyList<com.guyghost.wakeve.models.TimeSlot>(), // Will be added separately
                         deadline = eventData.deadline,
-                        status = com.guyghost.wakeve.models.EventStatus.DRAFT
+                        status = com.guyghost.wakeve.models.EventStatus.DRAFT,
+                        createdAt = now,
+                        updatedAt = now
                     )
                     eventRepository.createEvent(event)
                 }

@@ -1,19 +1,25 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.models.Vote
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import com.guyghost.wakeve.models.Event
-import com.guyghost.wakeve.models.EventStatus
-import com.guyghost.wakeve.models.TimeSlot
-import com.guyghost.wakeve.models.Vote
 
 class DatabaseEventRepositoryTest {
 
-    private lateinit var db: com.guyghost.wakeve.database.WakevDb
+    private lateinit var db: WakevDb
     private lateinit var repository: DatabaseEventRepository
+
+    private fun createTestDatabase(): WakevDb {
+        return DatabaseProvider.getDatabase(TestDatabaseFactory())
+    }
 
     fun setup() {
         db = createTestDatabase()
@@ -21,7 +27,7 @@ class DatabaseEventRepositoryTest {
     }
 
     @Test
-    fun testCreateAndRetrieveEvent() {
+    fun testCreateAndRetrieveEvent() = runBlocking {
         setup()
         
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
@@ -33,7 +39,9 @@ class DatabaseEventRepositoryTest {
             participants = emptyList(),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT
+            status = EventStatus.DRAFT,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z"
         )
 
         val result = repository.createEvent(event)
@@ -47,7 +55,7 @@ class DatabaseEventRepositoryTest {
     }
 
     @Test
-    fun testAddParticipant() {
+    fun testAddParticipant() = runBlocking {
         setup()
         
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
@@ -59,7 +67,9 @@ class DatabaseEventRepositoryTest {
             participants = emptyList(),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT
+            status = EventStatus.DRAFT,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z"
         )
         
         repository.createEvent(event)
@@ -73,7 +83,7 @@ class DatabaseEventRepositoryTest {
     }
 
     @Test
-    fun testAddParticipantToNonDraftEventFails() {
+    fun testAddParticipantToNonDraftEventFails() = runBlocking {
         setup()
         
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
@@ -85,7 +95,9 @@ class DatabaseEventRepositoryTest {
             participants = emptyList(),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.POLLING
+            status = EventStatus.POLLING,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z"
         )
         
         repository.createEvent(event)
@@ -95,7 +107,7 @@ class DatabaseEventRepositoryTest {
     }
 
     @Test
-    fun testAddDuplicateParticipantFails() {
+    fun testAddDuplicateParticipantFails() = runBlocking {
         setup()
         
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
@@ -107,7 +119,9 @@ class DatabaseEventRepositoryTest {
             participants = emptyList(),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT
+            status = EventStatus.DRAFT,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z"
         )
         
         repository.createEvent(event)
@@ -118,7 +132,7 @@ class DatabaseEventRepositoryTest {
     }
 
     @Test
-    fun testUpdateEventStatus() {
+    fun testUpdateEventStatus() = runBlocking {
         setup()
         
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
@@ -130,12 +144,14 @@ class DatabaseEventRepositoryTest {
             participants = emptyList(),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT
+            status = EventStatus.DRAFT,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z"
         )
         
         repository.createEvent(event)
 
-        val result = repository.updateEventStatus("event-1", EventStatus.POLLING)
+        val result = repository.updateEventStatus("event-1", EventStatus.POLLING, null)
         assertTrue(result.isSuccess, "Status update should succeed")
 
         val updated = repository.getEvent("event-1")
@@ -143,7 +159,7 @@ class DatabaseEventRepositoryTest {
     }
 
     @Test
-    fun testAddVoteToEvent() {
+    fun testAddVoteToEvent() = runBlocking {
         setup()
         
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
@@ -155,7 +171,9 @@ class DatabaseEventRepositoryTest {
             participants = listOf("participant-1"),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.POLLING
+            status = EventStatus.POLLING,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z"
         )
         
         repository.createEvent(event)
@@ -167,7 +185,7 @@ class DatabaseEventRepositoryTest {
     }
 
     @Test
-    fun testVoteBeforeDeadlineFails() {
+    fun testVoteBeforeDeadlineFails() = runBlocking {
         setup()
         
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
@@ -179,7 +197,9 @@ class DatabaseEventRepositoryTest {
             participants = listOf("participant-1"),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-10T10:00:00Z", // Past deadline
-            status = EventStatus.POLLING
+            status = EventStatus.POLLING,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z"
         )
         
         repository.createEvent(event)
@@ -190,7 +210,7 @@ class DatabaseEventRepositoryTest {
     }
 
     @Test
-    fun testGetPoll() {
+    fun testGetPoll() = runBlocking {
         setup()
         
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
@@ -203,7 +223,9 @@ class DatabaseEventRepositoryTest {
             participants = listOf("participant-1", "participant-2"),
             proposedSlots = listOf(slot1, slot2),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.POLLING
+            status = EventStatus.POLLING,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z"
         )
         
         repository.createEvent(event)
@@ -218,7 +240,7 @@ class DatabaseEventRepositoryTest {
     }
 
     @Test
-    fun testGetAllEvents() {
+    fun testGetAllEvents() = runBlocking {
         setup()
         
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
@@ -232,7 +254,9 @@ class DatabaseEventRepositoryTest {
                 participants = emptyList(),
                 proposedSlots = listOf(slot1),
                 deadline = "2025-11-20T18:00:00Z",
-                status = EventStatus.DRAFT
+                status = EventStatus.DRAFT,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z"
             )
             repository.createEvent(event)
         }
@@ -242,7 +266,7 @@ class DatabaseEventRepositoryTest {
     }
 
     @Test
-    fun testIsOrganizer() {
+    fun testIsOrganizer() = runBlocking {
         setup()
         
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
@@ -254,7 +278,9 @@ class DatabaseEventRepositoryTest {
             participants = emptyList(),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT
+            status = EventStatus.DRAFT,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z"
         )
         
         repository.createEvent(event)
@@ -264,7 +290,7 @@ class DatabaseEventRepositoryTest {
     }
 
     @Test
-    fun testCanModifyEvent() {
+    fun testCanModifyEvent() = runBlocking {
         setup()
         
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
@@ -276,7 +302,9 @@ class DatabaseEventRepositoryTest {
             participants = emptyList(),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT
+            status = EventStatus.DRAFT,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z"
         )
         
         repository.createEvent(event)
@@ -286,7 +314,7 @@ class DatabaseEventRepositoryTest {
     }
 
     @Test
-    fun testEventNotFound() {
+    fun testEventNotFound() = runBlocking {
         setup()
         
         val retrieved = repository.getEvent("nonexistent")
@@ -294,7 +322,7 @@ class DatabaseEventRepositoryTest {
     }
 
     @Test
-    fun testConfirmEventDate() {
+    fun testConfirmEventDate() = runBlocking {
         setup()
         
         val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
@@ -306,7 +334,9 @@ class DatabaseEventRepositoryTest {
             participants = emptyList(),
             proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.POLLING
+            status = EventStatus.POLLING,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z"
         )
         
         repository.createEvent(event)

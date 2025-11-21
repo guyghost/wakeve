@@ -1,21 +1,21 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.models.OAuthLoginRequest
-import com.guyghost.wakeve.models.OAuthLoginResponse
-import com.guyghost.wakeve.models.TokenRefreshRequest
-import com.guyghost.wakeve.models.OAuthProvider
-import com.guyghost.wakeve.models.SyncRequest
 import com.guyghost.wakeve.models.SyncChange
-import com.guyghost.wakeve.models.SyncResponse
-import io.ktor.client.call.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.testing.*
-import kotlin.test.*
+import com.guyghost.wakeve.models.SyncRequest
+import com.guyghost.wakeve.models.TokenRefreshRequest
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
+import kotlin.test.Test
+import kotlin.test.assertEquals
 
 class ApplicationTest {
 

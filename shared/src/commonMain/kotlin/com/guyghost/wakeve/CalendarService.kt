@@ -1,6 +1,14 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.CalendarEvent
+import com.guyghost.wakeve.models.CalendarInvite
+
+interface CalendarService {
+    suspend fun addEventToCalendar(event: CalendarEvent): Result<String>
+    suspend fun generateICSInvite(event: CalendarEvent): CalendarInvite
+    suspend fun updateCalendarEvent(calendarEventId: String, event: CalendarEvent): Result<Unit>
+    suspend fun removeCalendarEvent(calendarEventId: String): Result<Unit>
+}
 
 class DefaultCalendarService : CalendarService {
 

@@ -1,13 +1,21 @@
 package com.guyghost.wakeve.routes
 
-import io.ktor.http.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
 import com.guyghost.wakeve.DatabaseEventRepository
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.CreateEventRequest
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventResponse
+import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.models.TimeSlotResponse
+import com.guyghost.wakeve.models.UpdateEventStatusRequest
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
 
-fun Route.eventRoutes(repository: DatabaseEventRepository) {
+fun io.ktor.server.routing.Route.eventRoutes(repository: DatabaseEventRepository) {
     route("/events") {
         // GET /api/events - Get all events
         get {
@@ -96,6 +104,7 @@ fun Route.eventRoutes(repository: DatabaseEventRepository) {
                     )
                 }
 
+                val now = java.time.Instant.now().toString()
                 val event = Event(
                     id = "event_${System.currentTimeMillis()}_${Math.random()}",
                     title = request.title,
@@ -104,7 +113,9 @@ fun Route.eventRoutes(repository: DatabaseEventRepository) {
                     participants = emptyList(),
                     proposedSlots = timeSlots,
                     deadline = request.deadline,
-                    status = com.guyghost.wakeve.models.EventStatus.DRAFT
+                    status = com.guyghost.wakeve.models.EventStatus.DRAFT,
+                    createdAt = now,
+                    updatedAt = now
                 )
 
                 val result = repository.createEvent(event)

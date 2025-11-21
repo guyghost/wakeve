@@ -1,9 +1,13 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.models.Location
+import com.guyghost.wakeve.models.OptimizationType
+import com.guyghost.wakeve.models.Route
+import com.guyghost.wakeve.models.TransportMode
+import com.guyghost.wakeve.models.TransportOption
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import com.guyghost.wakeve.models.*
 
 class TransportServiceTest {
 

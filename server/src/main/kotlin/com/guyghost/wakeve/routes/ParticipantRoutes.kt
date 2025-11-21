@@ -1,11 +1,14 @@
 package com.guyghost.wakeve.routes
 
-import io.ktor.http.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
 import com.guyghost.wakeve.DatabaseEventRepository
 import com.guyghost.wakeve.models.AddParticipantRequest
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 
 fun Route.participantRoutes(repository: DatabaseEventRepository) {
     route("/events/{id}/participants") {

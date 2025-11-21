@@ -24,5 +24,4 @@ class LoggingSyncAlertManager : SyncAlertManager {
     override fun alertNetworkIssues() {
         println("ALERT: Network connectivity issues detected")
     }
-}</content>
-<parameter name="filePath">shared/src/commonMain/kotlin/com/guyghost/wakeve/sync/SyncAlerts.kt
+}

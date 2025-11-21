@@ -1,7 +1,7 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.database.WakevDb
 import app.cash.sqldelight.db.SqlDriver
+import com.guyghost.wakeve.database.WakevDb
 
 /**
  * Factory for creating and managing the Wakev database instance.

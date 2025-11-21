@@ -27,7 +27,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(libs.sqldelight.runtime)
-            implementation(libs.kotlinx.serialization)
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
             implementation(libs.kotlinx.coroutines)
         }
         androidMain.dependencies {
@@ -47,7 +47,7 @@ kotlin {
             implementation(libs.ktor.clientCore)
             implementation(libs.ktor.clientContentNegotiation)
             implementation(libs.ktor.clientCio)
-            implementation(libs.kotlinx.serialization)
+            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

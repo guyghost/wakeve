@@ -1,6 +1,15 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.NotificationMessage
+import com.guyghost.wakeve.models.PushToken
+
+interface NotificationService {
+    suspend fun sendNotification(message: NotificationMessage): Result<Unit>
+    suspend fun registerPushToken(token: PushToken): Result<Unit>
+    suspend fun unregisterPushToken(userId: String, deviceId: String): Result<Unit>
+    suspend fun getUnreadNotifications(userId: String): List<NotificationMessage>
+    suspend fun markAsRead(notificationId: String): Result<Unit>
+}
 
 class DefaultNotificationService : NotificationService {
 

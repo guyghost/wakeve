@@ -1,18 +1,35 @@
 package com.guyghost.wakeve
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import kotlin.random.Random
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.TimeSlot
+import kotlin.random.Random
 
 data class EventCreationState(
     val title: String = "",
@@ -217,6 +234,7 @@ fun EventCreationScreen(
                         )
                     }
                     else -> {
+                        val now = java.time.Instant.now().toString()
                         val event = Event(
                             id = "event-${Random.nextLong(1000000)}",
                             title = state.title,
@@ -225,7 +243,9 @@ fun EventCreationScreen(
                             participants = emptyList(),
                             proposedSlots = state.slots,
                             deadline = state.deadline,
-                            status = EventStatus.DRAFT
+                            status = EventStatus.DRAFT,
+                            createdAt = now,
+                            updatedAt = now
                         )
                         onEventCreated(event)
                         onNavigateToParticipants(event.id)

@@ -1,6 +1,11 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.Recommendation
+import com.guyghost.wakeve.models.RecommendationType
+import com.guyghost.wakeve.models.SuggestionEngine
+import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.models.UserPreferences
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -135,5 +140,4 @@ class DefaultSuggestionEngine : SuggestionEngine {
             else -> "wednesday"
         }
     }
-}</content>
-<parameter name="filePath">shared/src/commonMain/kotlin/com/guyghost/wakeve/SuggestionEngine.kt
+}

@@ -6,13 +6,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Vote
-import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.sync.SyncManager
-import com.guyghost.wakeve.sync.NetworkStatusDetector
-import com.guyghost.wakeve.sync.SyncHttpClient
 import kotlinx.coroutines.launch
 
 /**

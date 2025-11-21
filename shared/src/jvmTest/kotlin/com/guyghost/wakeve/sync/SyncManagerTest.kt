@@ -1,17 +1,18 @@
 package com.guyghost.wakeve.sync
 
-import com.guyghost.wakeve.DatabaseProvider
 import com.guyghost.wakeve.DatabaseEventRepository
+import com.guyghost.wakeve.DatabaseProvider
 import com.guyghost.wakeve.TestDatabaseFactory
 import com.guyghost.wakeve.UserRepository
 import com.guyghost.wakeve.models.SyncOperation
-import com.guyghost.wakeve.models.SyncRequest
 import com.guyghost.wakeve.models.SyncResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
-import kotlin.test.*
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /**
  * Test network detector that can be controlled
@@ -28,7 +29,7 @@ class TestNetworkStatusDetector : NetworkStatusDetector {
 /**
  * Test HTTP client that returns predefined responses
  */
-class TestSyncHttpClient(private val response: SyncResponse) : SyncHttpClient {
+class TestSyncHttpClient(var response: SyncResponse) : SyncHttpClient {
     override suspend fun sync(requestJson: String, authToken: String): Result<String> {
         // Return the response as JSON
         val jsonResponse = kotlinx.serialization.json.Json.encodeToString(SyncResponse.serializer(), response)

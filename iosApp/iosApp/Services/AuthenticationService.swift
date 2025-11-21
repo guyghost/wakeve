@@ -125,7 +125,7 @@ class AuthenticationService: ClientAuthenticationServiceProtocol {
         try await secureStorage.clearAllTokens()
     }
 
-    func getGoogleAuthorizationUrl(state: String = generateState()) async throws -> String {
+    func getGoogleAuthorizationUrl(state: String = Self.generateState()) async throws -> String {
         let url = URL(string: "\(baseUrl)/auth/google/url?state=\(state)")!
         let (data, response) = try await httpClient.data(from: url)
 
@@ -142,7 +142,7 @@ class AuthenticationService: ClientAuthenticationServiceProtocol {
         return authUrl
     }
 
-    func getAppleAuthorizationUrl(state: String = generateState()) async throws -> String {
+    func getAppleAuthorizationUrl(state: String = Self.generateState()) async throws -> String {
         let url = URL(string: "\(baseUrl)/auth/apple/url?state=\(state)")!
         let (data, response) = try await httpClient.data(from: url)
 
@@ -179,7 +179,7 @@ class AuthenticationService: ClientAuthenticationServiceProtocol {
         return try JSONDecoder().decode(OAuthLoginResponse.self, from: data)
     }
 
-    private func generateState() -> String {
+    private static func generateState() -> String {
         let characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
         return String((0..<32).map { _ in characters.randomElement()! })
     }

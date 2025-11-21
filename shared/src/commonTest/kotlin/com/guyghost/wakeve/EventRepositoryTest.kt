@@ -1,16 +1,15 @@
 package com.guyghost.wakeve
 
-import kotlin.test.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
 import kotlinx.coroutines.runBlocking
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class EventRepositoryTest {
 
@@ -38,7 +37,9 @@ class EventRepositoryTest {
         participants = emptyList(),
         proposedSlots = listOf(slot1, slot2),
         deadline = "2025-11-25T18:00:00Z",
-        status = EventStatus.DRAFT
+        status = EventStatus.DRAFT,
+        createdAt = "2025-11-20T10:00:00Z",
+        updatedAt = "2025-11-20T10:00:00Z"
     )
 
     @Test

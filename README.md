@@ -110,7 +110,6 @@ wakeve/
 
 - **[QUICK_START.md](./QUICK_START.md)** - 5-minute setup guide
 - **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Development guidelines
-- **[PHASE_3_ROADMAP.md](./PHASE_3_ROADMAP.md)** - Future features & timeline
 - **[IMPLEMENTATION_CHECKLIST.md](./IMPLEMENTATION_CHECKLIST.md)** - Phase 2 completion
 - **[openspec/specs/](./openspec/specs/)** - Detailed specifications
 
@@ -291,21 +290,6 @@ We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for:
 - Testing requirements
 - Commit conventions
 - Pull request process
-
-## 📈 Roadmap
-
-### Phase 2 ✅ Complete
-- Core event organization
-- Database persistence
-- REST API server
-- Android Compose UI
-
-### Phase 3 🚀 Planning (Dec 2025 - Jan 2026)
-- Sprint 1: User authentication (OAuth2)
-- Sprint 2: Offline-first synchronization
-- Sprint 3: Notifications & Calendar
-
-See [PHASE_3_ROADMAP.md](./PHASE_3_ROADMAP.md) for detailed timeline.
 
 ## 📞 Support
 

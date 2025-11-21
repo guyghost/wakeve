@@ -25,10 +25,6 @@ wakeve/
     └── specs/                # Capability specifications
 ```
 
-## Current Phase
-**Phase 2 Complete** - Event organization with database persistence and REST API  
-**Phase 3 Planning** - User authentication, offline sync, notifications
-
 ## Development Workflow
 
 ### OpenSpec Process

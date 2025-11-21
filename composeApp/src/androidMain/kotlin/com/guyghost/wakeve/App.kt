@@ -1,29 +1,27 @@
 package com.guyghost.wakeve
 
+import SyncStatusIndicator
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalContext
+import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Vote
-import com.guyghost.wakeve.database.WakevDb
-import com.guyghost.wakeve.sync.SyncManager
-import com.guyghost.wakeve.sync.NetworkStatusDetector
-import com.guyghost.wakeve.sync.SyncHttpClient
-import kotlinx.coroutines.launch
-import androidx.compose.ui.platform.LocalContext
-import com.guyghost.wakeve.AndroidDatabaseFactory
 import com.guyghost.wakeve.sync.AndroidNetworkStatusDetector
 import com.guyghost.wakeve.sync.KtorSyncHttpClient
+import com.guyghost.wakeve.sync.SyncManager
+import kotlinx.coroutines.launch
+import org.jetbrains.compose.ui.tooling.preview.Preview
 
 /**
  * Event repository that uses database persistence and sync capabilities
  */
-class SyncedEventRepository(
+ class SyncedEventRepository(
     private val database: WakevDb,
     private val syncManager: SyncManager
 ) : EventRepositoryInterface {
@@ -58,6 +56,10 @@ class SyncedEventRepository(
                 syncManager.triggerSync()
             }
         }
+    }
+
+    override suspend fun updateEvent(event: Event): Result<Event> {
+        TODO("Not yet implemented")
     }
 
     override suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean> {

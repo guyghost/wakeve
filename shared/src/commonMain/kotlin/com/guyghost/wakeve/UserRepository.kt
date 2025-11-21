@@ -1,12 +1,12 @@
 package com.guyghost.wakeve
 
 import com.guyghost.wakeve.database.WakevDb
-import com.guyghost.wakeve.models.User
-import com.guyghost.wakeve.models.OAuthProvider
-import com.guyghost.wakeve.models.UserToken
 import com.guyghost.wakeve.models.NotificationPreferences
-import com.guyghost.wakeve.models.SyncOperation
+import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.SyncMetadata
+import com.guyghost.wakeve.models.SyncOperation
+import com.guyghost.wakeve.models.User
+import com.guyghost.wakeve.models.UserToken
 
 class UserRepository(private val db: WakevDb) {
 

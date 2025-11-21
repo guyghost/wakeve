@@ -1,8 +1,8 @@
 package com.guyghost.wakeve
 
-import platform.UIKit.UIDevice
 import platform.Foundation.NSDate
 import platform.Foundation.timeIntervalSince1970
+import platform.UIKit.UIDevice
 
 class IOSPlatform: Platform {
     override val name: String = UIDevice.currentDevice.systemName() + " " + UIDevice.currentDevice.systemVersion
