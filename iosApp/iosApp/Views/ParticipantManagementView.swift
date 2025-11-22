@@ -62,7 +62,11 @@ struct ParticipantManagementView: View {
                                             .keyboardType(.emailAddress)
                                             .autocapitalization(.none)
                                         
-                                        Button(action: addParticipant) {
+                                        Button {
+                                            Task {
+                                                await addParticipant()
+                                            }
+                                        } label: {
                                             ZStack {
                                                 if isLoading {
                                                     ProgressView()
@@ -145,7 +149,11 @@ struct ParticipantManagementView: View {
                         
                         // Start Poll Button (only for organizer in draft status)
                         if event.status == EventStatus.draft && !participants.isEmpty {
-                            Button(action: startPoll) {
+                            Button {
+                                Task {
+                                    await startPoll()
+                                }
+                            } label: {
                                 ZStack {
                                     if isLoading {
                                         ProgressView()
@@ -200,7 +208,7 @@ struct ParticipantManagementView: View {
         participants = repository.getParticipants(eventId: event.id) ?? []
     }
     
-    private func addParticipant() {
+    private func addParticipant() async {
         guard !newParticipantEmail.isEmpty else { return }
         
         // Basic email validation
@@ -215,36 +223,48 @@ struct ParticipantManagementView: View {
         
         isLoading = true
         
-        let result = repository.addParticipant(eventId: event.id, participantId: newParticipantEmail)
-        
-        if let success = result as? Bool, success {
+        do {
+            let result = try await repository.addParticipant(eventId: event.id, participantId: newParticipantEmail)
+            
+            if let success = result as? Bool, success {
+                isLoading = false
+                newParticipantEmail = ""
+                loadParticipants()
+                onParticipantsUpdated()
+            } else {
+                isLoading = false
+                errorMessage = "Failed to add participant"
+                showError = true
+            }
+        } catch {
             isLoading = false
-            newParticipantEmail = ""
-            loadParticipants()
-            onParticipantsUpdated()
-        } else {
-            isLoading = false
-            errorMessage = "Failed to add participant"
+            errorMessage = error.localizedDescription
             showError = true
         }
     }
     
-    private func startPoll() {
+    private func startPoll() async {
         isLoading = true
         
-        let result = repository.updateEventStatus(
-            id: event.id,
-            status: EventStatus.polling,
-            finalDate: nil
-        )
-        
-        if let success = result as? Bool, success {
+        do {
+            let result = try await repository.updateEventStatus(
+                id: event.id,
+                status: EventStatus.polling,
+                finalDate: nil
+            )
+            
+            if let success = result as? Bool, success {
+                isLoading = false
+                showSuccess = true
+                onParticipantsUpdated()
+            } else {
+                isLoading = false
+                errorMessage = "Failed to start poll"
+                showError = true
+            }
+        } catch {
             isLoading = false
-            showSuccess = true
-            onParticipantsUpdated()
-        } else {
-            isLoading = false
-            errorMessage = "Failed to start poll"
+            errorMessage = error.localizedDescription
             showError = true
         }
     }
@@ -283,6 +303,7 @@ struct ParticipantRow: View {
 
 struct ParticipantManagementView_Previews: PreviewProvider {
     static var previews: some View {
+        let now = ISO8601DateFormatter().string(from: Date())
         let sampleEvent = Event(
             id: "sample-event",
             title: "Team Retreat 2025",
@@ -292,7 +313,9 @@ struct ParticipantManagementView_Previews: PreviewProvider {
             proposedSlots: [],
             deadline: ISO8601DateFormatter().string(from: Date().addingTimeInterval(7 * 24 * 60 * 60)),
             status: EventStatus.draft,
-            finalDate: nil
+            finalDate: nil,
+            createdAt: now,
+            updatedAt: now
         )
         
         ParticipantManagementView(

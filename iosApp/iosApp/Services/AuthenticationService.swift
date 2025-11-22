@@ -27,7 +27,8 @@ class AuthenticationService: ClientAuthenticationServiceProtocol {
     func loginWithGoogle(authorizationCode: String) async throws -> OAuthLoginResponse {
         let request = OAuthLoginRequest(
             provider: "google",
-            authorizationCode: authorizationCode
+            authorizationCode: authorizationCode,
+            accessToken: nil
         )
 
         let response = try await performLoginRequest(request)
@@ -125,8 +126,9 @@ class AuthenticationService: ClientAuthenticationServiceProtocol {
         try await secureStorage.clearAllTokens()
     }
 
-    func getGoogleAuthorizationUrl(state: String = Self.generateState()) async throws -> String {
-        let url = URL(string: "\(baseUrl)/auth/google/url?state=\(state)")!
+    func getGoogleAuthorizationUrl(state: String? = nil) async throws -> String {
+        let stateValue = state ?? Self.generateState()
+        let url = URL(string: "\(baseUrl)/auth/google/url?state=\(stateValue)")!
         let (data, response) = try await httpClient.data(from: url)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -142,8 +144,9 @@ class AuthenticationService: ClientAuthenticationServiceProtocol {
         return authUrl
     }
 
-    func getAppleAuthorizationUrl(state: String = Self.generateState()) async throws -> String {
-        let url = URL(string: "\(baseUrl)/auth/apple/url?state=\(state)")!
+    func getAppleAuthorizationUrl(state: String? = nil) async throws -> String {
+        let stateValue = state ?? Self.generateState()
+        let url = URL(string: "\(baseUrl)/auth/apple/url?state=\(stateValue)")!
         let (data, response) = try await httpClient.data(from: url)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -195,8 +198,8 @@ protocol ClientAuthenticationServiceProtocol {
     func getCurrentUserId() async -> String?
     func isAuthenticated() async -> Bool
     func logout() async throws
-    func getGoogleAuthorizationUrl(state: String) async throws -> String
-    func getAppleAuthorizationUrl(state: String) async throws -> String
+    func getGoogleAuthorizationUrl(state: String?) async throws -> String
+    func getAppleAuthorizationUrl(state: String?) async throws -> String
 }
 
 enum AuthenticationError: Error {

@@ -145,6 +145,13 @@ class AuthenticationService(
         return userRepository.cleanupExpiredTokens()
     }
 
+    /**
+     * Get authorization URL for OAuth provider
+     */
+    fun getAuthorizationUrl(provider: OAuthProvider, state: String): String {
+        return getOAuthService(provider).getAuthorizationUrl(state)
+    }
+
     private fun getOAuthService(provider: OAuthProvider): OAuth2Service {
         return when (provider) {
             OAuthProvider.GOOGLE -> googleOAuth2 ?: throw OAuth2Exception("Google OAuth2 not configured")

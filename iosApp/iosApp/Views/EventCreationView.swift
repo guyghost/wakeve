@@ -15,65 +15,67 @@ struct EventCreationView: View {
     
     var body: some View {
         ZStack {
-            // Background gradient
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.blue.opacity(0.1),
-                    Color.purple.opacity(0.1),
-                    Color.pink.opacity(0.1)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Premium dark background
+            Color.black
+                .ignoresSafeArea()
             
             ScrollView {
                 VStack(spacing: 24) {
-                    // Header
-                    VStack(spacing: 8) {
-                        Text("Create New Event")
-                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                    // Header - Large Typography
+                    VStack(spacing: 4) {
+                        Text("CREATE EVENT")
+                            .font(.system(size: 13, weight: .medium, design: .rounded))
+                            .foregroundColor(.white.opacity(0.5))
+                            .textCase(.uppercase)
+                            .tracking(1.2)
+                        
+                        Text("New Event")
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
                         
                         Text("Plan your collaborative event")
-                            .font(.system(size: 16, weight: .medium, design: .rounded))
-                            .foregroundColor(.white.opacity(0.8))
+                            .font(.system(size: 15, design: .rounded))
+                            .foregroundColor(.white.opacity(0.6))
                     }
-                    .padding(.top, 40)
+                    .padding(.top, 60)
                     
-                    // Event Details Card
-                    VStack(spacing: 20) {
+                    // Event Details Card - Premium Design
+                    VStack(spacing: 24) {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Event Title")
-                                .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                .foregroundColor(.white)
+                            Text("EVENT TITLE")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.white.opacity(0.5))
+                                .tracking(0.5)
                             
                             TextField("Enter event title", text: $eventTitle)
-                                .padding()
-                                .background(Color.white.opacity(0.1))
+                                .padding(16)
+                                .background(Color.white.opacity(0.05))
                                 .cornerRadius(12)
                                 .foregroundColor(.white)
-                                .font(.system(size: 16, design: .rounded))
+                                .font(.system(size: 17, design: .rounded))
                         }
                         
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Description")
-                                .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                .foregroundColor(.white)
+                            Text("DESCRIPTION")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.white.opacity(0.5))
+                                .tracking(0.5)
                             
                             TextEditor(text: $eventDescription)
                                 .frame(height: 100)
                                 .padding(12)
-                                .background(Color.white.opacity(0.1))
+                                .background(Color.white.opacity(0.05))
                                 .cornerRadius(12)
                                 .foregroundColor(.white)
                                 .font(.system(size: 16, design: .rounded))
+                                .scrollContentBackground(.hidden)
                         }
                         
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Voting Deadline")
-                                .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                .foregroundColor(.white)
+                            Text("VOTING DEADLINE")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(.white.opacity(0.5))
+                                .tracking(0.5)
                             
                             DatePicker(
                                 "Select deadline",
@@ -82,89 +84,109 @@ struct EventCreationView: View {
                                 displayedComponents: [.date, .hourAndMinute]
                             )
                             .datePickerStyle(.compact)
-                            .padding()
-                            .background(Color.white.opacity(0.1))
+                            .labelsHidden()
+                            .padding(16)
+                            .background(Color.white.opacity(0.05))
                             .cornerRadius(12)
                             .foregroundColor(.white)
                         }
                     }
-                    .padding(24)
-                    .liquidGlass(cornerRadius: 24, opacity: 0.9)
+                    .padding(28)
+                    .liquidGlass(cornerRadius: 28, opacity: 0.95)
                     
-                    // Time Slots Card
-                    VStack(spacing: 20) {
-                        HStack {
-                            Text("Time Slots")
-                                .font(.system(size: 20, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
+                    // Time Slots Card - Premium Design
+                    VStack(spacing: 24) {
+                        HStack(alignment: .center) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("TIME SLOTS")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.5))
+                                    .tracking(0.5)
+                                
+                                Text("Proposed Times")
+                                    .font(.system(size: 24, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                            }
                             
                             Spacer()
                             
                             Button(action: addTimeSlot) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.blue)
+                                HStack(spacing: 6) {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 14, weight: .semibold))
+                                    Text("Add")
+                                        .font(.system(size: 15, weight: .semibold, design: .rounded))
+                                }
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(Color.red)
+                                .cornerRadius(20)
                             }
                         }
                         
                         if timeSlots.isEmpty {
-                            VStack(spacing: 16) {
-                                Image(systemName: "calendar.badge.plus")
-                                    .font(.system(size: 48))
-                                    .foregroundColor(.white.opacity(0.6))
+                            VStack(spacing: 20) {
+                                Image(systemName: "calendar.badge.clock")
+                                    .font(.system(size: 56, weight: .thin))
+                                    .foregroundColor(.white.opacity(0.2))
+                                    .padding(.top, 20)
                                 
-                                Text("Add your first time slot")
-                                    .font(.system(size: 16, weight: .medium, design: .rounded))
-                                    .foregroundColor(.white.opacity(0.8))
-                                
-                                Text("Participants will vote on these options")
-                                    .font(.system(size: 14, design: .rounded))
-                                    .foregroundColor(.white.opacity(0.6))
-                                    .multilineTextAlignment(.center)
+                                VStack(spacing: 8) {
+                                    Text("No time slots yet")
+                                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                        .foregroundColor(.white.opacity(0.9))
+                                    
+                                    Text("Add time options for participants to vote on")
+                                        .font(.system(size: 15, design: .rounded))
+                                        .foregroundColor(.white.opacity(0.5))
+                                        .multilineTextAlignment(.center)
+                                }
                             }
+                            .frame(maxWidth: .infinity)
                             .padding(.vertical, 40)
                         } else {
-                            ForEach(timeSlots.indices, id: \.self) { index in
-                                TimeSlotRow(
-                                    timeSlot: $timeSlots[index],
-                                    onDelete: { removeTimeSlot(at: index) }
-                                )
+                            VStack(spacing: 12) {
+                                ForEach(timeSlots.indices, id: \.self) { index in
+                                    TimeSlotRow(
+                                        timeSlot: $timeSlots[index],
+                                        onDelete: { removeTimeSlot(at: index) }
+                                    )
+                                }
                             }
                         }
                     }
-                    .padding(24)
-                    .liquidGlass(cornerRadius: 24, opacity: 0.9)
+                    .padding(28)
+                    .liquidGlass(cornerRadius: 28, opacity: 0.95)
                     
-                    // Create Button
-                    Button(action: createEvent) {
-                        ZStack {
+                    // Create Button - Premium Red
+                    Button {
+                        Task {
+                            await createEvent()
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
                             if isLoading {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
                                 Text("Create Event")
-                                    .font(.system(size: 18, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
+                                    .font(.system(size: 17, weight: .semibold, design: .rounded))
+                                
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 16, weight: .semibold))
                             }
                         }
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 56)
-                        .background(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color.blue.opacity(0.8),
-                                    Color.purple.opacity(0.8)
-                                ]),
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .cornerRadius(28)
-                        .shadow(color: Color.blue.opacity(0.3), radius: 10, x: 0, y: 5)
+                        .background(Color.red)
+                        .cornerRadius(16)
+                        .shadow(color: Color.red.opacity(0.3), radius: 20, x: 0, y: 10)
                     }
                     .disabled(eventTitle.isEmpty || timeSlots.isEmpty || isLoading)
-                    .opacity(eventTitle.isEmpty || timeSlots.isEmpty || isLoading ? 0.6 : 1.0)
-                    .padding(.horizontal, 24)
+                    .opacity(eventTitle.isEmpty || timeSlots.isEmpty || isLoading ? 0.4 : 1.0)
+                    .padding(.horizontal, 20)
                     .padding(.bottom, 40)
                 }
                 .padding(.horizontal, 20)
@@ -191,12 +213,13 @@ struct EventCreationView: View {
         timeSlots.remove(at: index)
     }
     
-    private func createEvent() {
+    private func createEvent() async {
         guard !eventTitle.isEmpty, !timeSlots.isEmpty else { return }
         
         isLoading = true
         
         do {
+            let now = ISO8601DateFormatter().string(from: Date())
             let event = Event(
                 id: UUID().uuidString,
                 title: eventTitle,
@@ -206,10 +229,12 @@ struct EventCreationView: View {
                 proposedSlots: timeSlots,
                 deadline: ISO8601DateFormatter().string(from: deadline),
                 status: EventStatus.draft,
-                finalDate: nil
+                finalDate: nil,
+                createdAt: now,
+                updatedAt: now
             )
             
-            let result = repository.createEvent(event: event)
+            let result = try await repository.createEvent(event: event)
             
             if let createdEvent = result as? Event {
                 isLoading = false
@@ -236,25 +261,45 @@ struct TimeSlotRow: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 8) {
-                DatePicker("Start", selection: $startDate, displayedComponents: [.date, .hourAndMinute])
-                    .datePickerStyle(.compact)
-                    .labelsHidden()
+            VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("START TIME")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.white.opacity(0.5))
+                        .tracking(0.3)
+                    
+                    DatePicker("Start", selection: $startDate, displayedComponents: [.date, .hourAndMinute])
+                        .datePickerStyle(.compact)
+                        .labelsHidden()
+                }
                 
-                DatePicker("End", selection: $endDate, displayedComponents: [.date, .hourAndMinute])
-                    .datePickerStyle(.compact)
-                    .labelsHidden()
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("END TIME")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.white.opacity(0.5))
+                        .tracking(0.3)
+                    
+                    DatePicker("End", selection: $endDate, displayedComponents: [.date, .hourAndMinute])
+                        .datePickerStyle(.compact)
+                        .labelsHidden()
+                }
             }
             
+            Spacer()
+            
             Button(action: onDelete) {
-                Image(systemName: "trash.circle.fill")
+                Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 24))
-                    .foregroundColor(.red.opacity(0.8))
+                    .foregroundColor(.white.opacity(0.3))
             }
         }
         .padding(16)
-        .background(Color.white.opacity(0.1))
+        .background(Color.white.opacity(0.03))
         .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+        )
         .onAppear {
             // Initialize dates from timeSlot if available
             if let start = ISO8601DateFormatter().date(from: timeSlot.start) {
@@ -265,20 +310,24 @@ struct TimeSlotRow: View {
             }
         }
         .onChange(of: startDate) { newValue in
-            timeSlot = TimeSlot(
-                id: timeSlot.id,
-                start: ISO8601DateFormatter().string(from: newValue),
-                end: timeSlot.end,
-                timezone: timeSlot.timezone
-            )
+            Task { @MainActor in
+                timeSlot = TimeSlot(
+                    id: timeSlot.id,
+                    start: ISO8601DateFormatter().string(from: newValue),
+                    end: timeSlot.end,
+                    timezone: timeSlot.timezone
+                )
+            }
         }
         .onChange(of: endDate) { newValue in
-            timeSlot = TimeSlot(
-                id: timeSlot.id,
-                start: timeSlot.start,
-                end: ISO8601DateFormatter().string(from: newValue),
-                timezone: timeSlot.timezone
-            )
+            Task { @MainActor in
+                timeSlot = TimeSlot(
+                    id: timeSlot.id,
+                    start: timeSlot.start,
+                    end: ISO8601DateFormatter().string(from: newValue),
+                    timezone: timeSlot.timezone
+                )
+            }
         }
     }
 }
