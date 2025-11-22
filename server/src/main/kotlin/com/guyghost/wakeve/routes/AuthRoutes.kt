@@ -70,9 +70,8 @@ fun Route.authRoutes(authService: AuthenticationService) {
         get("/google/url") {
             try {
                 val state = call.request.queryParameters["state"] ?: UUID.randomUUID().toString()
-                val service = authService // We'll need to expose the OAuth service
-                // TODO: Implement getAuthorizationUrl in AuthenticationService
-                call.respond(HttpStatusCode.OK, mapOf("url" to "https://accounts.google.com/oauth/authorize?state=$state"))
+                val url = authService.getAuthorizationUrl(com.guyghost.wakeve.models.OAuthProvider.GOOGLE, state)
+                call.respond(HttpStatusCode.OK, mapOf("url" to url))
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Failed to generate auth URL"))
             }
@@ -81,8 +80,8 @@ fun Route.authRoutes(authService: AuthenticationService) {
         get("/apple/url") {
             try {
                 val state = call.request.queryParameters["state"] ?: UUID.randomUUID().toString()
-                // TODO: Implement getAuthorizationUrl in AuthenticationService
-                call.respond(HttpStatusCode.OK, mapOf("url" to "https://appleid.apple.com/auth/authorize?state=$state"))
+                val url = authService.getAuthorizationUrl(com.guyghost.wakeve.models.OAuthProvider.APPLE, state)
+                call.respond(HttpStatusCode.OK, mapOf("url" to url))
             } catch (e: Exception) {
                 call.respond(HttpStatusCode.InternalServerError, mapOf("error" to "Failed to generate auth URL"))
             }

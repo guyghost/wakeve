@@ -16,29 +16,27 @@ struct PollVotingView: View {
     
     var body: some View {
         ZStack {
-            // Background gradient
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.orange.opacity(0.1),
-                    Color.red.opacity(0.1),
-                    Color.pink.opacity(0.1)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Premium dark background
+            Color.black
+                .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 8) {
+                // Header - Large Typography
+                VStack(spacing: 4) {
+                    Text("CAST YOUR VOTE")
+                        .font(.system(size: 13, weight: .medium, design: .rounded))
+                        .foregroundColor(.white.opacity(0.5))
+                        .textCase(.uppercase)
+                        .tracking(1.2)
+                    
                     Text(event.title)
-                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                         .multilineTextAlignment(.center)
                     
-                    Text("Vote for your preferred time slots")
-                        .font(.system(size: 16, weight: .medium, design: .rounded))
-                        .foregroundColor(.white.opacity(0.8))
+                    Text("Choose your availability")
+                        .font(.system(size: 15, design: .rounded))
+                        .foregroundColor(.white.opacity(0.6))
                 }
                 .padding(.top, 60)
                 .padding(.horizontal, 20)
@@ -124,7 +122,11 @@ struct PollVotingView: View {
                         
                         // Submit Votes Button
                         if !hasVoted {
-                            Button(action: submitVotes) {
+                            Button(action: {
+                                Task {
+                                    await submitVotes()
+                                }
+                            }) {
                                 ZStack {
                                     if isLoading {
                                         ProgressView()
@@ -208,7 +210,7 @@ struct PollVotingView: View {
         }
     }
     
-    private func submitVotes() {
+    private func submitVotes() async {
         guard votes.count == event.proposedSlots.count else { return }
         
         isLoading = true
@@ -218,17 +220,19 @@ struct PollVotingView: View {
         var lastError: Error?
         
         for (slotId, vote) in votes {
-            let result = repository.addVote(
-                eventId: event.id,
-                participantId: participantId,
-                slotId: slotId,
-                vote: vote
-            )
-            
-            if let success = result as? Bool, success {
-                successCount += 1
-            } else {
-                lastError = NSError(domain: "VoteError", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to submit vote"])
+            do {
+                let result = try await repository.addVote(
+                    eventId: event.id,
+                    participantId: participantId,
+                    slotId: slotId,
+                    vote: vote
+                )
+                
+                if let success = result as? Bool, success {
+                    successCount += 1
+                }
+            } catch {
+                lastError = error
             }
         }
         
@@ -455,6 +459,7 @@ struct PollVotingView_Previews: PreviewProvider {
             )
         ]
         
+        let now = ISO8601DateFormatter().string(from: Date())
         let sampleEvent = Event(
             id: "sample-event",
             title: "Team Meeting",
@@ -464,7 +469,9 @@ struct PollVotingView_Previews: PreviewProvider {
             proposedSlots: sampleSlots,
             deadline: ISO8601DateFormatter().string(from: Date().addingTimeInterval(7 * 24 * 60 * 60)),
             status: EventStatus.polling,
-            finalDate: nil
+            finalDate: nil,
+            createdAt: now,
+            updatedAt: now
         )
         
         PollVotingView(

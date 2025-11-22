@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.sync
 
+import android.app.Application
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.bearerAuth
@@ -33,4 +34,13 @@ class KtorSyncHttpClient(
 }
 
 actual fun createSyncHttpClient(baseUrl: String): SyncHttpClient = KtorSyncHttpClient(baseUrl)
-actual fun createNetworkStatusDetector(): NetworkStatusDetector = TODO("Implement Android network detector")
+actual fun createNetworkStatusDetector(): NetworkStatusDetector {
+    val context = try {
+        val activityThread = Class.forName("android.app.ActivityThread")
+        val currentApplication = activityThread.getDeclaredMethod("currentApplication")
+        currentApplication.invoke(null) as android.app.Application
+    } catch (e: Exception) {
+        throw IllegalStateException("Unable to obtain Android Application context", e)
+    }
+    return AndroidNetworkStatusDetector(context)
+}
