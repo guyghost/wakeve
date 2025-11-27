@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.models
 
+import com.guyghost.wakeve.auth.UserRole
 import kotlinx.serialization.Serializable
 
 /**
@@ -12,6 +13,7 @@ data class User(
     val name: String,
     val avatarUrl: String? = null,
     val provider: OAuthProvider,
+    val role: UserRole = UserRole.USER,
     val createdAt: String,  // ISO 8601 UTC
     val updatedAt: String   // ISO 8601 UTC
 )
@@ -84,6 +86,7 @@ data class UserResponse(
     val name: String,
     val avatarUrl: String? = null,
     val provider: String,  // "google" or "apple"
+    val role: String = "USER",  // User role as string for serialization
     val createdAt: String
 )
 

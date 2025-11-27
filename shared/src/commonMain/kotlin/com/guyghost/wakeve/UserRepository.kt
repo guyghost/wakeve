@@ -1,5 +1,6 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.auth.UserRole
 import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.models.NotificationPreferences
 import com.guyghost.wakeve.models.OAuthProvider
@@ -30,6 +31,7 @@ class UserRepository(private val db: WakevDb) {
             name = name,
             avatar_url = avatarUrl,
             provider = provider.name.lowercase(),
+            role = UserRole.default().name,  // Default role for new users
             created_at = now,
             updated_at = now
         )
@@ -46,6 +48,7 @@ class UserRepository(private val db: WakevDb) {
                 name = row.name,
                 avatarUrl = row.avatar_url,
                 provider = OAuthProvider.valueOf(row.provider.uppercase()),
+                role = UserRole.fromString(row.role) ?: UserRole.USER,
                 createdAt = row.created_at,
                 updatedAt = row.updated_at
             )
@@ -61,6 +64,7 @@ class UserRepository(private val db: WakevDb) {
                 name = row.name,
                 avatarUrl = row.avatar_url,
                 provider = OAuthProvider.valueOf(row.provider.uppercase()),
+                role = UserRole.fromString(row.role) ?: UserRole.USER,
                 createdAt = row.created_at,
                 updatedAt = row.updated_at
             )
@@ -76,6 +80,7 @@ class UserRepository(private val db: WakevDb) {
                 name = row.name,
                 avatarUrl = row.avatar_url,
                 provider = OAuthProvider.valueOf(row.provider.uppercase()),
+                role = UserRole.fromString(row.role) ?: UserRole.USER,
                 createdAt = row.created_at,
                 updatedAt = row.updated_at
             )
@@ -91,6 +96,7 @@ class UserRepository(private val db: WakevDb) {
                 name = row.name,
                 avatarUrl = row.avatar_url,
                 provider = OAuthProvider.valueOf(row.provider.uppercase()),
+                role = UserRole.fromString(row.role) ?: UserRole.USER,
                 createdAt = row.created_at,
                 updatedAt = row.updated_at
             )

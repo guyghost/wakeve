@@ -4,6 +4,7 @@ import Shared
 struct PollResultsView: View {
     let event: Event
     let repository: EventRepository
+    let userId: String
     let onDateConfirmed: (String) -> Void
     
     @State private var poll: Poll?
@@ -385,9 +386,16 @@ struct PollResultsView: View {
     
     private func confirmDate() async {
         guard let bestSlot = bestSlot else { return }
-        
+
+        // Check if user is organizer
+        guard repository.isOrganizer(eventId: event.id, userId: userId) else {
+            errorMessage = "Only the organizer can confirm the date"
+            showError = true
+            return
+        }
+
         isLoading = true
-        
+
         do {
             let result = try await repository.updateEventStatus(
                 id: event.id,
@@ -588,6 +596,7 @@ struct PollResultsView_Previews: PreviewProvider {
         PollResultsView(
             event: sampleEvent,
             repository: EventRepository(),
+            userId: "preview-user",
             onDateConfirmed: { _ in }
         )
     }

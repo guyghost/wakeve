@@ -199,6 +199,11 @@ class AuthenticationService(
         val now = Instant.now()
         val expiresAt = now.plusSeconds(3600) // 1 hour expiry
 
+        // Get permissions for user's role
+        val permissions = com.guyghost.wakeve.auth.RolePermissions
+            .getPermissions(user.role)
+            .map { it.name }
+
         return JWT.create()
             .withIssuer(jwtIssuer)
             .withAudience(jwtAudience)
@@ -206,6 +211,8 @@ class AuthenticationService(
             .withClaim("userId", user.id)
             .withClaim("email", user.email)
             .withClaim("provider", user.provider.name)
+            .withClaim("role", user.role.name)  // Add role claim
+            .withArrayClaim("permissions", permissions.toTypedArray())  // Add permissions claim
             .withIssuedAt(Date.from(now))
             .withExpiresAt(Date.from(expiresAt))
             .sign(jwtAlgorithm)

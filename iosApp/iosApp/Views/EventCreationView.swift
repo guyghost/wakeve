@@ -9,7 +9,8 @@ struct EventCreationView: View {
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showError = false
-    
+
+    let userId: String
     let repository: EventRepository
     let onEventCreated: (String) -> Void
     
@@ -224,7 +225,7 @@ struct EventCreationView: View {
                 id: UUID().uuidString,
                 title: eventTitle,
                 description: eventDescription,
-                organizerId: "organizer-1", // TODO: Get from auth
+                organizerId: userId,  // Authenticated user ID
                 participants: [],
                 proposedSlots: timeSlots,
                 deadline: ISO8601DateFormatter().string(from: deadline),

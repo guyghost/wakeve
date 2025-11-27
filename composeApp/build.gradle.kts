@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.buildconfig)
 }
 
 kotlin {
@@ -26,6 +27,7 @@ kotlin {
             implementation(libs.google.auth)
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.security.crypto)
+            implementation(libs.androidx.workmanager)
             // Ktor client for HTTP requests
             implementation(libs.ktor.clientCore)
             implementation(libs.ktor.clientCio)
@@ -53,6 +55,9 @@ kotlin {
             implementation(libs.ktor.clientCore)
             implementation(libs.ktor.clientCio)
             implementation(libs.ktor.clientContentNegotiation)
+            // Ktor server for OAuth callback listener
+            implementation(libs.ktor.serverCore)
+            implementation(libs.ktor.serverNetty)
         }
     }
 }
@@ -98,4 +103,15 @@ compose.desktop {
             packageVersion = "1.0.0"
         }
     }
+}
+
+buildConfig {
+    packageName("com.guyghost.wakeve")
+
+    // Feature flag for progressive OAuth rollout
+    // Set to false initially for safe migration
+    buildConfigField("Boolean", "ENABLE_OAUTH", "false")
+
+    // Server URL for OAuth endpoints
+    buildConfigField("String", "SERVER_URL", "\"http://10.0.2.2:8080\"")
 }

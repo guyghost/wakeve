@@ -41,6 +41,7 @@ import kotlinx.coroutines.launch
 fun PollResultsScreen(
     event: Event,
     repository: EventRepositoryInterface,
+    userId: String,
     onDateConfirmed: (String) -> Unit
 ) {
     val poll = repository.getPoll(event.id)
@@ -192,7 +193,7 @@ fun PollResultsScreen(
                 val selectedSlot = event.proposedSlots.find { it.id == selectedSlotId }
                 if (selectedSlot != null) {
                     // Check if user is organizer
-                    if (repository.isOrganizer(event.id, "organizer-1")) { // TODO: Get from auth
+                    if (repository.isOrganizer(event.id, userId)) {
                         scope.launch {
                             repository.updateEventStatus(
                                 event.id,

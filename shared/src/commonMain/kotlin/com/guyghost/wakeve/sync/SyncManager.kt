@@ -32,6 +32,7 @@ class SyncManager(
     private val networkDetector: NetworkStatusDetector,
     private val httpClient: SyncHttpClient,
     private val authTokenProvider: () -> String?,
+    private val authTokenRefreshProvider: (suspend () -> String?)? = null,
     private val maxRetries: Int = 3,
     private val baseRetryDelayMs: Long = 1000L, // 1 second
     private val metrics: SyncMetrics = InMemorySyncMetrics(),
@@ -320,6 +321,34 @@ class SyncManager(
     }
 
     /**
+     * Perform sync with automatic token refresh on 401 errors
+     */
+    private suspend fun performSyncWithTokenRefresh(): SyncResponse {
+        try {
+            return performSync()
+        } catch (e: UnauthorizedException) {
+            // Token expired or invalid, try to refresh it
+            if (authTokenRefreshProvider != null) {
+                println("AUTH: Token expired (401), attempting to refresh...")
+                val newToken = authTokenRefreshProvider.invoke()
+
+                if (newToken != null) {
+                    println("AUTH: Token refreshed successfully, retrying sync...")
+                    // Retry sync with new token
+                    return performSync()
+                } else {
+                    println("AUTH: Token refresh failed, no new token available")
+                    throw UnauthorizedException("Token refresh failed")
+                }
+            } else {
+                // No token refresh provider, cannot recover from 401
+                println("AUTH: No token refresh provider configured")
+                throw e
+            }
+        }
+    }
+
+    /**
      * Perform actual sync operation (extracted from triggerSync)
      */
     private suspend fun performSync(): SyncResponse {
@@ -394,7 +423,7 @@ class SyncManager(
 
         for (attempt in 0..maxRetries) {
             try {
-                return Result.success(performSync())
+                return Result.success(performSyncWithTokenRefresh())
             } catch (e: Exception) {
                 lastException = e
                 _syncStatus.value = SyncStatus.Error("Sync failed (attempt ${attempt + 1}/${maxRetries + 1}): ${e.message}")
