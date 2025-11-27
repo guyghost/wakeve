@@ -1,0 +1,188 @@
+-- Sessions table: tracks active user sessions across multiple devices
+CREATE TABLE session (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    device_id TEXT NOT NULL,
+    device_name TEXT NOT NULL,
+    jwt_token_hash TEXT NOT NULL,  -- SHA-256 hash of JWT token for validation
+    refresh_token_hash TEXT NOT NULL,  -- SHA-256 hash of refresh token
+    ip_address TEXT,
+    user_agent TEXT,
+    created_at TEXT NOT NULL,  -- ISO 8601 UTC timestamp
+    last_accessed TEXT NOT NULL,  -- ISO 8601 UTC timestamp
+    expires_at TEXT NOT NULL,  -- ISO 8601 UTC timestamp
+    status TEXT NOT NULL DEFAULT 'active'  -- 'active', 'revoked', 'expired'
+);
+
+-- Index for faster lookups
+CREATE INDEX idx_session_user_id ON session(user_id);
+CREATE INDEX idx_session_status ON session(status);
+CREATE INDEX idx_session_device_id ON session(device_id);
+
+-- JWT blacklist table: revoked tokens that should not be accepted
+CREATE TABLE jwt_blacklist (
+    token_hash TEXT PRIMARY KEY NOT NULL,  -- SHA-256 hash of JWT token
+    user_id TEXT NOT NULL,
+    revoked_at TEXT NOT NULL,  -- ISO 8601 UTC timestamp
+    reason TEXT,  -- 'logout', 'security', 'expired', 'device_revoked'
+    expires_at TEXT NOT NULL  -- When to cleanup this entry (original token expiry)
+);
+
+-- Index for faster blacklist checks
+CREATE INDEX idx_jwt_blacklist_expires_at ON jwt_blacklist(expires_at);
+
+-- Device fingerprint table: tracks known devices for security
+CREATE TABLE device_fingerprint (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    device_id TEXT UNIQUE NOT NULL,
+    device_name TEXT NOT NULL,
+    device_type TEXT,  -- 'android', 'ios', 'web', 'desktop'
+    fingerprint_hash TEXT NOT NULL,  -- Device fingerprint for recognition
+    first_seen TEXT NOT NULL,  -- ISO 8601 UTC timestamp
+    last_seen TEXT NOT NULL,  -- ISO 8601 UTC timestamp
+    trusted INTEGER NOT NULL DEFAULT 0,  -- 0 = false, 1 = true
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Index for device lookups
+CREATE INDEX idx_device_user_id ON device_fingerprint(user_id);
+CREATE INDEX idx_device_fingerprint_hash ON device_fingerprint(fingerprint_hash);
+
+-- =====================================================
+-- Session Queries
+-- =====================================================
+
+-- Get all active sessions for a user
+selectActiveSessionsByUserId:
+SELECT * FROM session
+WHERE user_id = ? AND status = 'active' AND expires_at > ?
+ORDER BY last_accessed DESC;
+
+-- Get session by ID
+selectSessionById:
+SELECT * FROM session WHERE id = ?;
+
+-- Get session by token hash
+selectSessionByTokenHash:
+SELECT * FROM session WHERE jwt_token_hash = ? AND status = 'active';
+
+-- Get session by device ID
+selectSessionByDeviceId:
+SELECT * FROM session WHERE device_id = ? AND status = 'active' ORDER BY created_at DESC LIMIT 1;
+
+-- Insert new session
+insertSession:
+INSERT INTO session(id, user_id, device_id, device_name, jwt_token_hash, refresh_token_hash, ip_address, user_agent, created_at, last_accessed, expires_at, status)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Update session last accessed time
+updateSessionLastAccessed:
+UPDATE session
+SET last_accessed = ?
+WHERE id = ?;
+
+-- Update session token hashes (after token refresh)
+updateSessionTokens:
+UPDATE session
+SET jwt_token_hash = ?, refresh_token_hash = ?, expires_at = ?, last_accessed = ?
+WHERE id = ?;
+
+-- Revoke session (logout)
+revokeSession:
+UPDATE session
+SET status = 'revoked'
+WHERE id = ?;
+
+-- Revoke all sessions for a user (logout all devices)
+revokeAllUserSessions:
+UPDATE session
+SET status = 'revoked'
+WHERE user_id = ?;
+
+-- Revoke all sessions except current one
+revokeAllOtherSessions:
+UPDATE session
+SET status = 'revoked'
+WHERE user_id = ? AND id != ?;
+
+-- Mark expired sessions
+markExpiredSessions:
+UPDATE session
+SET status = 'expired'
+WHERE expires_at < ? AND status = 'active';
+
+-- Delete old sessions (cleanup)
+deleteOldSessions:
+DELETE FROM session WHERE status != 'active' AND created_at < ?;
+
+-- Count active sessions for a user
+countActiveSessionsByUserId:
+SELECT COUNT(*) FROM session WHERE user_id = ? AND status = 'active' AND expires_at > ?;
+
+-- =====================================================
+-- JWT Blacklist Queries
+-- =====================================================
+
+-- Check if token is blacklisted
+isTokenBlacklisted:
+SELECT EXISTS(SELECT 1 FROM jwt_blacklist WHERE token_hash = ?);
+
+-- Add token to blacklist
+insertBlacklistedToken:
+INSERT INTO jwt_blacklist(token_hash, user_id, revoked_at, reason, expires_at)
+VALUES (?, ?, ?, ?, ?);
+
+-- Cleanup expired blacklist entries
+cleanupExpiredBlacklist:
+DELETE FROM jwt_blacklist WHERE expires_at < ?;
+
+-- Get blacklisted tokens for a user
+selectBlacklistedTokensByUserId:
+SELECT * FROM jwt_blacklist WHERE user_id = ? ORDER BY revoked_at DESC;
+
+-- =====================================================
+-- Device Fingerprint Queries
+-- =====================================================
+
+-- Get device by ID
+selectDeviceById:
+SELECT * FROM device_fingerprint WHERE id = ?;
+
+-- Get device by fingerprint
+selectDeviceByFingerprint:
+SELECT * FROM device_fingerprint WHERE fingerprint_hash = ?;
+
+-- Get all devices for a user
+selectDevicesByUserId:
+SELECT * FROM device_fingerprint WHERE user_id = ? ORDER BY last_seen DESC;
+
+-- Get trusted devices for a user
+selectTrustedDevicesByUserId:
+SELECT * FROM device_fingerprint WHERE user_id = ? AND trusted = 1 ORDER BY last_seen DESC;
+
+-- Insert new device
+insertDevice:
+INSERT INTO device_fingerprint(id, user_id, device_id, device_name, device_type, fingerprint_hash, first_seen, last_seen, trusted, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Update device last seen
+updateDeviceLastSeen:
+UPDATE device_fingerprint
+SET last_seen = ?, updated_at = ?
+WHERE id = ?;
+
+-- Update device trust status
+updateDeviceTrust:
+UPDATE device_fingerprint
+SET trusted = ?, updated_at = ?
+WHERE id = ?;
+
+-- Delete device
+deleteDevice:
+DELETE FROM device_fingerprint WHERE id = ?;
+
+-- Delete all devices for a user
+deleteAllUserDevices:
+DELETE FROM device_fingerprint WHERE user_id = ?;
