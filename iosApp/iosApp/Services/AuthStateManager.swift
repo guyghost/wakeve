@@ -184,6 +184,31 @@ class AuthStateManager: ObservableObject {
         }
     }
 
+    #if DEBUG
+    /**
+     * Set authentication state for development mode.
+     * Bypasses normal OAuth flow.
+     */
+    func setAuthStateForDevelopment(userId: String, accessToken: String) {
+        currentUserId = userId
+        currentAccessToken = accessToken
+
+        // Create mock user
+        let mockUser = UserResponse(
+            id: userId,
+            email: "dev@wakeve.local",
+            name: "Dev User",
+            avatarUrl: nil,
+            provider: "development",
+            createdAt: ISO8601DateFormatter().string(from: Date())
+        )
+
+        authState = .authenticated(userId: userId, user: mockUser)
+
+        print("✅ Development mode: Authenticated as \(userId)")
+    }
+    #endif
+
     /**
      * Clean up resources.
      */

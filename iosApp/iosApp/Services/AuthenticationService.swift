@@ -6,11 +6,12 @@
 //
 
 import Foundation
+import Combine
 
 /**
  * iOS-specific authentication service
  */
-class AuthenticationService: ClientAuthenticationServiceProtocol {
+class AuthenticationService: ClientAuthenticationServiceProtocol, ObservableObject {
     private let secureStorage: SecureTokenStorageProtocol
     private let baseUrl: String
     private let httpClient: URLSession
@@ -202,13 +203,7 @@ protocol ClientAuthenticationServiceProtocol {
     func getAppleAuthorizationUrl(state: String?) async throws -> String
 }
 
-enum AuthenticationError: Error {
-    case noRefreshToken
-    case refreshFailed
-    case loginFailed
-    case urlGenerationFailed
-    case invalidResponse
-}
+
 
 // MARK: - Data Models (matching Kotlin models)
 

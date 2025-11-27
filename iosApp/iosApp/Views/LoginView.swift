@@ -21,88 +21,116 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            // Background gradient
+            // Clean background gradient
             LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(red: 0.4, green: 0.5, blue: 0.92),
-                    Color(red: 0.46, green: 0.29, blue: 0.64)
-                ]),
+                colors: [Color.blue, Color.purple],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
             .ignoresSafeArea()
 
-            VStack(spacing: 32) {
+            // Pattern overlay
+            GeometryReader { geometry in
+                Image(systemName: "calendar")
+                    .font(.system(size: 300))
+                    .foregroundColor(.white.opacity(0.05))
+                    .offset(x: geometry.size.width * 0.3, y: geometry.size.height * 0.2)
+                    .rotationEffect(.degrees(-15))
+            }
+
+            VStack(spacing: 0) {
                 Spacer()
 
                 // App Branding
                 AppBrandingView()
+                    .padding(.bottom, 32)
 
                 // Welcome Text
-                VStack(spacing: 8) {
-                    Text("Welcome to Wakeve")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
+                VStack(spacing: 12) {
+                    Text("Sign In")
+                        .font(.system(size: 42, weight: .bold))
                         .foregroundColor(.white)
 
-                    Text("Collaborative event planning made easy")
-                        .font(.body)
+                    Text("Continue with your Apple ID to get started")
+                        .font(.system(size: 17))
                         .foregroundColor(.white.opacity(0.9))
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 32)
+                        .padding(.horizontal, 40)
                 }
+                .padding(.bottom, 60)
 
                 Spacer()
 
                 // Sign-in Button
                 if isLoading {
-                    VStack(spacing: 16) {
+                    VStack(spacing: 20) {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             .scaleEffect(1.5)
 
                         Text("Signing in...")
-                            .font(.headline)
+                            .font(.system(size: 17, weight: .medium))
                             .foregroundColor(.white.opacity(0.9))
                     }
+                    .padding(.bottom, 80)
                 } else {
-                    // Native Apple Sign-In Button
-                    SignInWithAppleButton(.signIn) { request in
-                        request.requestedScopes = [.fullName, .email]
-                    } onCompletion: { result in
-                        handleAppleSignInResult(result)
-                    }
-                    .signInWithAppleButtonStyle(.white)
-                    .frame(height: 56)
-                    .cornerRadius(12)
-                    .padding(.horizontal, 32)
-                }
-
-                // Privacy & Terms
-                VStack(spacing: 4) {
-                    Text("By signing in, you agree to our")
-                        .font(.caption)
-                        .foregroundColor(.white.opacity(0.7))
-
-                    HStack(spacing: 4) {
-                        Button("Privacy Policy") {
-                            // TODO: Open privacy policy
+                    VStack(spacing: 20) {
+                        // Native Apple Sign-In Button
+                        SignInWithAppleButton(.signIn) { request in
+                            request.requestedScopes = [.fullName, .email]
+                        } onCompletion: { result in
+                            handleAppleSignInResult(result)
                         }
-                        .font(.caption)
-                        .foregroundColor(.white)
+                        .signInWithAppleButtonStyle(.white)
+                        .frame(height: 56)
+                        .cornerRadius(16)
+                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
 
-                        Text("and")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
-
-                        Button("Terms of Service") {
-                            // TODO: Open terms
+                        #if DEBUG
+                        // Development Mode - Skip Authentication
+                        Button(action: skipAuthForDevelopment) {
+                            Text("Skip (Development)")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 56)
+                                .background(Color.white.opacity(0.2))
+                                .cornerRadius(16)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(Color.white.opacity(0.5), lineWidth: 2)
+                                )
                         }
-                        .font(.caption)
-                        .foregroundColor(.white)
+                        #endif
+
+                        // Privacy & Terms
+                        VStack(spacing: 6) {
+                            Text("By signing in, you agree to our")
+                                .font(.system(size: 13))
+                                .foregroundColor(.white.opacity(0.7))
+
+                            HStack(spacing: 6) {
+                                Button("Privacy Policy") {
+                                    // TODO: Open privacy policy
+                                }
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white)
+
+                                Text("and")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(.white.opacity(0.7))
+
+                                Button("Terms of Service") {
+                                    // TODO: Open terms
+                                }
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white)
+                            }
+                        }
                     }
+                    .padding(.horizontal, 40)
+                    .padding(.bottom, 60)
                 }
-                .padding(.bottom, 32)
             }
         }
         .alert("Sign-in Failed", isPresented: $showError) {
@@ -122,13 +150,13 @@ struct LoginView: View {
     private func AppBrandingView() -> some View {
         ZStack {
             Circle()
-                .fill(Color.white)
+                .fill(Color.white.opacity(0.2))
                 .frame(width: 120, height: 120)
-                .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 5)
+                .backdrop(radius: 60, opaque: false)
 
-            Text("W")
-                .font(.system(size: 60, weight: .bold))
-                .foregroundColor(Color(red: 0.4, green: 0.5, blue: 0.92))
+            Image(systemName: "calendar.badge.plus")
+                .font(.system(size: 52, weight: .light))
+                .foregroundColor(.white)
         }
     }
 
@@ -205,6 +233,33 @@ struct LoginView: View {
             isLoading = false
         }
     }
+
+    #if DEBUG
+    /**
+     * Skip authentication for development.
+     * Creates a mock authenticated session.
+     */
+    private func skipAuthForDevelopment() {
+        isLoading = true
+
+        Task {
+            // Simulate network delay
+            try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+
+            // Create mock authentication state
+            let devUserId = "dev-user-\(UUID().uuidString.prefix(8))"
+            let mockToken = "dev-token-mock"
+
+            // Manually set auth state for development
+            await authStateManager.setAuthStateForDevelopment(
+                userId: devUserId,
+                accessToken: mockToken
+            )
+
+            isLoading = false
+        }
+    }
+    #endif
 }
 
 // MARK: - Authentication Error
@@ -213,6 +268,11 @@ enum AuthenticationError: LocalizedError {
     case invalidCredentials
     case networkError
     case serverError(String)
+    case noRefreshToken
+    case refreshFailed
+    case loginFailed
+    case urlGenerationFailed
+    case invalidResponse
 
     var errorDescription: String? {
         switch self {
@@ -222,6 +282,16 @@ enum AuthenticationError: LocalizedError {
             return "Network error. Please check your connection and try again"
         case .serverError(let message):
             return "Server error: \(message)"
+        case .noRefreshToken:
+            return "No refresh token available"
+        case .refreshFailed:
+            return "Failed to refresh authentication token"
+        case .loginFailed:
+            return "Login failed. Please try again"
+        case .urlGenerationFailed:
+            return "Failed to generate authorization URL"
+        case .invalidResponse:
+            return "Invalid response from server"
         }
     }
 }

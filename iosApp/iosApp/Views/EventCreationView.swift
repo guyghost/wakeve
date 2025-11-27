@@ -336,6 +336,7 @@ struct TimeSlotRow: View {
 struct EventCreationView_Previews: PreviewProvider {
     static var previews: some View {
         EventCreationView(
+            userId: "preview-user-id",
             repository: EventRepository(),
             onEventCreated: { _ in }
         )

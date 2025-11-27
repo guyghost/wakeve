@@ -1,6 +1,5 @@
 import Foundation
 import BackgroundTasks
-import shared
 
 /**
  * Background token refresh manager for iOS.
@@ -98,21 +97,12 @@ class BackgroundTokenRefreshManager {
                 return
             }
 
-            do {
-                // Attempt token refresh
-                let result = try await authManager.refreshTokenIfNeeded()
-
-                if result.isSuccess() {
-                    print("✅ Background token refresh successful")
-                    task.setTaskCompleted(success: true)
-                } else {
-                    print("❌ Background token refresh failed")
-                    task.setTaskCompleted(success: false)
-                }
-            } catch {
-                print("❌ Background token refresh error: \\(error)")
-                task.setTaskCompleted(success: false)
-            }
+            // Attempt token refresh
+            await authManager.refreshTokenIfNeeded()
+            
+            // Refresh completed (errors handled internally by AuthStateManager)
+            print("✅ Background token refresh completed")
+            task.setTaskCompleted(success: true)
         }
     }
 }
@@ -134,16 +124,8 @@ extension BackgroundTokenRefreshManager {
                 return
             }
 
-            do {
-                let result = try await authManager.refreshTokenIfNeeded()
-                if result.isSuccess() {
-                    print("✅ Simulated refresh successful")
-                } else {
-                    print("❌ Simulated refresh failed")
-                }
-            } catch {
-                print("❌ Simulated refresh error: \\(error)")
-            }
+            await authManager.refreshTokenIfNeeded()
+            print("✅ Simulated refresh completed")
         }
     }
 }

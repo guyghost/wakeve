@@ -4,13 +4,23 @@ import Shared
 struct ContentView: View {
     @EnvironmentObject var authStateManager: AuthStateManager
     @EnvironmentObject var authService: AuthenticationService
+    @State private var hasSeenGetStarted = false
 
     var body: some View {
         switch authStateManager.authState {
         case .loading:
             LoadingView()
         case .unauthenticated:
-            LoginView()
+            if hasSeenGetStarted {
+                LoginView()
+            } else {
+                ModernGetStartedView(onGetStarted: {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        hasSeenGetStarted = true
+                    }
+                })
+                .transition(.opacity)
+            }
         case .authenticated(let userId, _):
             AuthenticatedView(userId: userId)
         case .error(let message):
@@ -125,7 +135,8 @@ struct AuthenticatedView: View {
             
             switch currentView {
             case .eventList:
-                EventListView(
+                ModernHomeView(
+                    userId: userId,
                     repository: repository,
                     onEventSelected: { event in
                         selectedEvent = event
@@ -137,7 +148,7 @@ struct AuthenticatedView: View {
                 )
                 
             case .eventCreation:
-                EventCreationView(
+                ModernEventCreationView(
                     userId: userId,
                     repository: repository,
                     onEventCreated: { eventId in
@@ -145,126 +156,73 @@ struct AuthenticatedView: View {
                             selectedEvent = event
                             currentView = .participantManagement
                         }
+                    },
+                    onBack: {
+                        currentView = .eventList
                     }
                 )
                 
             case .eventDetail:
                 if let event = selectedEvent {
-                    EventDetailView(
+                    ModernEventDetailView(
                         event: event,
+                        userId: userId,
                         repository: repository,
-                        onManageParticipants: {
-                            currentView = .participantManagement
+                        onBack: {
+                            currentView = .eventList
                         },
                         onVote: {
                             currentView = .pollVoting
                         },
-                        onViewResults: {
-                            currentView = .pollResults
-                        },
-                        onBack: {
-                            currentView = .eventList
+                        onManageParticipants: {
+                            currentView = .participantManagement
                         }
                     )
                 }
                 
             case .participantManagement:
                 if let event = selectedEvent {
-                    ParticipantManagementView(
+                    ModernParticipantManagementView(
                         event: event,
                         repository: repository,
                         onParticipantsUpdated: {
-                            // Stay on the same view, just refresh
-                        }
-                    )
-                    .overlay(
-                        VStack {
-                            HStack {
-                                Button(action: {
-                                    currentView = .eventDetail
-                                }) {
-                                    Image(systemName: "chevron.left")
-                                        .font(.system(size: 20, weight: .semibold))
-                                        .foregroundColor(.white)
-                                        .padding(12)
-                                        .background(Color.white.opacity(0.1))
-                                        .clipShape(Circle())
-                                }
-                                
-                                Spacer()
+                            // Refresh the event data
+                            if let updatedEvent = repository.getEvent(id: event.id) {
+                                selectedEvent = updatedEvent
                             }
-                            .padding(.top, 60)
-                            .padding(.horizontal, 20)
-                            
-                            Spacer()
+                        },
+                        onBack: {
+                            currentView = .eventDetail
                         }
                     )
                 }
                 
             case .pollVoting:
                 if let event = selectedEvent {
-                    PollVotingView(
+                    ModernPollVotingView(
                         event: event,
                         repository: repository,
-                        participantId: userId,  // Authenticated user ID
+                        participantId: userId,
                         onVoteSubmitted: {
                             currentView = .eventDetail
-                        }
-                    )
-                    .overlay(
-                        VStack {
-                            HStack {
-                                Button(action: {
-                                    currentView = .eventDetail
-                                }) {
-                                    Image(systemName: "chevron.left")
-                                        .font(.system(size: 20, weight: .semibold))
-                                        .foregroundColor(.white)
-                                        .padding(12)
-                                        .background(Color.white.opacity(0.1))
-                                        .clipShape(Circle())
-                                }
-                                
-                                Spacer()
-                            }
-                            .padding(.top, 60)
-                            .padding(.horizontal, 20)
-                            
-                            Spacer()
+                        },
+                        onBack: {
+                            currentView = .eventDetail
                         }
                     )
                 }
                 
             case .pollResults:
                 if let event = selectedEvent {
-                    PollResultsView(
+                    ModernPollResultsView(
                         event: event,
                         repository: repository,
                         userId: userId,
                         onDateConfirmed: { _ in
                             currentView = .eventDetail
-                        }
-                    )
-                    .overlay(
-                        VStack {
-                            HStack {
-                                Button(action: {
-                                    currentView = .eventDetail
-                                }) {
-                                    Image(systemName: "chevron.left")
-                                        .font(.system(size: 20, weight: .semibold))
-                                        .foregroundColor(.white)
-                                        .padding(12)
-                                        .background(Color.white.opacity(0.1))
-                                        .clipShape(Circle())
-                                }
-                                
-                                Spacer()
-                            }
-                            .padding(.top, 60)
-                            .padding(.horizontal, 20)
-                            
-                            Spacer()
+                        },
+                        onBack: {
+                            currentView = .eventDetail
                         }
                     )
                 }
