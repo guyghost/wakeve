@@ -2,10 +2,113 @@ import SwiftUI
 import Shared
 
 struct ContentView: View {
+    @EnvironmentObject var authStateManager: AuthStateManager
+    @EnvironmentObject var authService: AuthenticationService
+
+    var body: some View {
+        switch authStateManager.authState {
+        case .loading:
+            LoadingView()
+        case .unauthenticated:
+            LoginView()
+        case .authenticated(let userId, _):
+            AuthenticatedView(userId: userId)
+        case .error(let message):
+            ErrorView(message: message, onRetry: {
+                Task {
+                    await authStateManager.initialize()
+                }
+            })
+        }
+    }
+}
+
+// MARK: - Loading View
+
+struct LoadingView: View {
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.blue.opacity(0.1),
+                    Color.purple.opacity(0.1),
+                    Color.pink.opacity(0.1)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 24) {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    .scaleEffect(1.5)
+
+                Text("Loading...")
+                    .font(.headline)
+                    .foregroundColor(.white.opacity(0.9))
+            }
+        }
+    }
+}
+
+// MARK: - Error View
+
+struct ErrorView: View {
+    let message: String
+    let onRetry: () -> Void
+
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.blue.opacity(0.1),
+                    Color.purple.opacity(0.1),
+                    Color.pink.opacity(0.1)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 24) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 60))
+                    .foregroundColor(.red.opacity(0.8))
+
+                Text("Something went wrong")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+
+                Text(message)
+                    .font(.body)
+                    .foregroundColor(.white.opacity(0.8))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+
+                Button(action: onRetry) {
+                    Text("Try Again")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 32)
+                        .padding(.vertical, 16)
+                        .background(Color.blue)
+                        .cornerRadius(12)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Authenticated View
+
+struct AuthenticatedView: View {
+    let userId: String
     @State private var currentView: AppView = .eventList
     @State private var selectedEvent: Event?
     @State private var repository = EventRepository()
-    
+
     var body: some View {
         ZStack {
             // Background gradient
@@ -35,6 +138,7 @@ struct ContentView: View {
                 
             case .eventCreation:
                 EventCreationView(
+                    userId: userId,
                     repository: repository,
                     onEventCreated: { eventId in
                         if let event = repository.getEvent(id: eventId) {
@@ -102,7 +206,7 @@ struct ContentView: View {
                     PollVotingView(
                         event: event,
                         repository: repository,
-                        participantId: "participant-1", // TODO: Get from auth
+                        participantId: userId,  // Authenticated user ID
                         onVoteSubmitted: {
                             currentView = .eventDetail
                         }
@@ -136,6 +240,7 @@ struct ContentView: View {
                     PollResultsView(
                         event: event,
                         repository: repository,
+                        userId: userId,
                         onDateConfirmed: { _ in
                             currentView = .eventDetail
                         }

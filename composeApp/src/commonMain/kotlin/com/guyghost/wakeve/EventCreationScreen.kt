@@ -44,6 +44,7 @@ data class EventCreationState(
 
 @Composable
 fun EventCreationScreen(
+    userId: String,
     onEventCreated: (Event) -> Unit,
     onNavigateToParticipants: (String) -> Unit = {}
 ) {
@@ -239,7 +240,7 @@ fun EventCreationScreen(
                             id = "event-${Random.nextLong(1000000)}",
                             title = state.title,
                             description = state.description,
-                            organizerId = "organizer-1", // TODO: Get from auth
+                            organizerId = userId,  // Authenticated user ID
                             participants = emptyList(),
                             proposedSlots = state.slots,
                             deadline = state.deadline,

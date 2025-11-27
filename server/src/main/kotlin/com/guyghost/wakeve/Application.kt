@@ -6,33 +6,160 @@ import com.guyghost.wakeve.auth.AppleOAuth2Service
 import com.guyghost.wakeve.auth.AuthenticationService
 import com.guyghost.wakeve.auth.GoogleOAuth2Service
 import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.metrics.AuthMetricsCollector
 import com.guyghost.wakeve.routes.authRoutes
 import com.guyghost.wakeve.routes.eventRoutes
 import com.guyghost.wakeve.routes.participantRoutes
+import com.guyghost.wakeve.routes.sessionRoutes
 import com.guyghost.wakeve.routes.syncRoutes
 import com.guyghost.wakeve.routes.voteRoutes
 import com.guyghost.wakeve.sync.SyncService
+import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
+import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
+import io.micrometer.core.instrument.binder.system.ProcessorMetrics
+import io.micrometer.prometheusmetrics.PrometheusConfig
+import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.application.createRouteScopedPlugin
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
+import io.ktor.server.auth.principal
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
+import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.minutes
 
 const val SERVER_PORT = 8080
+
+/**
+ * Configuration for JWT Blacklist checking plugin.
+ */
+class JWTBlacklistConfig {
+    var sessionRepository: SessionRepository? = null
+}
+
+/**
+ * Plugin to check JWT tokens against blacklist.
+ *
+ * This plugin intercepts authenticated requests and checks if the JWT token
+ * has been revoked/blacklisted. If the token is blacklisted, it responds
+ * with 401 Unauthorized.
+ */
+val JWTBlacklistPlugin = createRouteScopedPlugin(
+    name = "JWTBlacklistPlugin",
+    createConfiguration = ::JWTBlacklistConfig
+) {
+    val sessionRepository = pluginConfig.sessionRepository
+        ?: error("SessionRepository must be configured for JWTBlacklistPlugin")
+
+    onCall { call ->
+        // Get JWT principal (set by JWT authentication)
+        val principal = call.principal<JWTPrincipal>() ?: return@onCall
+
+        // Extract the raw JWT token from the Authorization header
+        val authHeader = call.request.headers["Authorization"]
+        val token = authHeader?.removePrefix("Bearer ")?.trim()
+
+        if (token != null) {
+            // Check if token is blacklisted (blocking call - see TODO below)
+            // TODO: Consider using a cache layer to reduce database lookups
+            val isBlacklisted = runBlocking {
+                sessionRepository.isTokenBlacklisted(token)
+                    .getOrElse { false } // On error, allow through (fail open)
+            }
+
+            if (isBlacklisted) {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf(
+                        "error" to "token_revoked",
+                        "message" to "This token has been revoked. Please login again."
+                    )
+                )
+                // Return early to prevent further processing
+                return@onCall
+            }
+        }
+    }
+}
+
+/**
+ * Configuration for Permission checking plugin.
+ */
+class PermissionCheckConfig {
+    var requiredPermissions: Set<com.guyghost.wakeve.auth.Permission> = emptySet()
+}
+
+/**
+ * Plugin to check if the authenticated user has required permissions.
+ *
+ * This plugin verifies that the JWT token contains the necessary permissions
+ * for accessing protected routes. Permissions are extracted from the JWT claims.
+ */
+val PermissionCheckPlugin = createRouteScopedPlugin(
+    name = "PermissionCheckPlugin",
+    createConfiguration = ::PermissionCheckConfig
+) {
+    val requiredPerms = pluginConfig.requiredPermissions
+
+    // Skip if no permissions required
+    if (requiredPerms.isEmpty()) {
+        return@createRouteScopedPlugin
+    }
+
+    onCall { call ->
+        // Get JWT principal (set by JWT authentication)
+        val principal = call.principal<JWTPrincipal>() ?: run {
+            call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf(
+                    "error" to "unauthorized",
+                    "message" to "Authentication required"
+                )
+            )
+            return@onCall
+        }
+
+        // Extract permissions from JWT claims
+        val userPermissions = principal.payload.getClaim("permissions")
+            ?.asList(String::class.java)
+            ?.mapNotNull { com.guyghost.wakeve.auth.Permission.fromString(it) }
+            ?.toSet()
+            ?: emptySet()
+
+        // Check if user has all required permissions
+        val missingPermissions = requiredPerms - userPermissions
+
+        if (missingPermissions.isNotEmpty()) {
+            call.respond(
+                HttpStatusCode.Forbidden,
+                mapOf(
+                    "error" to "insufficient_permissions",
+                    "message" to "Missing permissions: ${missingPermissions.joinToString(", ") { it.name }}",
+                    "required" to requiredPerms.map { it.name },
+                    "missing" to missingPermissions.map { it.name }
+                )
+            )
+            return@onCall
+        }
+    }
+}
 
 fun main() {
     // Initialize database
@@ -48,6 +175,16 @@ fun Application.module(
     database: WakevDb,
     eventRepository: DatabaseEventRepository = DatabaseEventRepository(database)
 ) {
+    // Initialize metrics
+    val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+    val authMetrics = AuthMetricsCollector()
+
+    // Bind metrics collectors to registry
+    authMetrics.bindTo(meterRegistry)
+    JvmMemoryMetrics().bindTo(meterRegistry)
+    JvmThreadMetrics().bindTo(meterRegistry)
+    ProcessorMetrics().bindTo(meterRegistry)
+
     // Initialize authentication services
     val jwtSecret = System.getenv("JWT_SECRET") ?: "default-secret-key-change-in-production"
     val jwtIssuer = System.getenv("JWT_ISSUER") ?: "wakev-api"
@@ -89,6 +226,8 @@ fun Application.module(
         appleService = appleOAuth2
     )
 
+    val sessionRepository = SessionRepository(database)
+    val sessionManager = SessionManager(database)
     val syncService = SyncService(database)
 
     // Install plugins
@@ -117,7 +256,11 @@ fun Application.module(
                     .build()
             )
             validate { credential ->
-                if (credential.payload.getClaim("userId")?.asString() != null) {
+                val userId = credential.payload.getClaim("userId")?.asString()
+                if (userId != null) {
+                    // Extract JWT token from Authorization header
+                    // Note: This is a simplified check. In production, use a proper interceptor
+                    // to avoid blocking the validation flow
                     JWTPrincipal(credential.payload)
                 } else {
                     null
@@ -133,18 +276,29 @@ fun Application.module(
             call.respondText("OK")
         }
 
+        // Metrics endpoint (Prometheus format)
+        get("/metrics") {
+            call.respondText(meterRegistry.scrape(), io.ktor.http.ContentType.parse("text/plain; version=0.0.4"))
+        }
+
         // Authentication endpoints (public but rate limited)
         rateLimit(RateLimitName("auth")) {
             authRoutes(authService)
         }
 
-        // API endpoints (protected by JWT authentication)
+        // API endpoints (protected by JWT authentication + blacklist check)
         authenticate("auth-jwt") {
             route("/api") {
+                // Install JWT blacklist checking for all API routes
+                install(JWTBlacklistPlugin) {
+                    this.sessionRepository = sessionRepository
+                }
+
                 eventRoutes(eventRepository)
                 participantRoutes(eventRepository)
                 voteRoutes(eventRepository)
                 syncRoutes(syncService)
+                sessionRoutes(sessionManager)
             }
         }
 

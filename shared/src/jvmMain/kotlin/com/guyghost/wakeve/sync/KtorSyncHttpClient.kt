@@ -26,10 +26,11 @@ class KtorSyncHttpClient(
             setBody(requestJson)
         }
 
-        if (response.status.isSuccess()) {
-            response.body<String>()
-        } else {
-            throw Exception("Sync failed with status: ${response.status}")
+        when {
+            response.status.isSuccess() -> response.body<String>()
+            response.status.value == 401 -> throw UnauthorizedException("Authentication failed: token may be expired")
+            response.status.value == 403 -> throw ForbiddenException("Access forbidden: insufficient permissions")
+            else -> throw HttpException(response.status.value, "Sync failed with status: ${response.status}")
         }
     }
 }

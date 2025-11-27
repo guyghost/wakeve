@@ -7,7 +7,11 @@
       "Bash(./gradlew build:*)",
       "Bash(./gradlew compileKotlin:*)",
       "Bash(./gradlew compileDebugKotlinAndroid)",
-      "Bash(./gradlew compileTestKotlinJvm)"
+      "Bash(./gradlew compileTestKotlinJvm)",
+      "Bash(./gradlew composeApp:compileKotlinJvm:*)",
+      "Bash(./gradlew shared:compileKotlinJvm:*)",
+      "Bash(./gradlew shared:compileDebugKotlinAndroid:*)",
+      "Bash(./gradlew:*)"
     ],
     "deny": [],
     "ask": []

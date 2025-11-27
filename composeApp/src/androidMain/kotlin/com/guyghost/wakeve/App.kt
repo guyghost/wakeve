@@ -1,5 +1,7 @@
 package com.guyghost.wakeve
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -7,9 +9,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.guyghost.wakeve.auth.AndroidAuthenticationService
+import com.guyghost.wakeve.auth.AuthState
+import com.guyghost.wakeve.auth.AuthStateManager
+import com.guyghost.wakeve.auth.GoogleSignInHelper
 import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.sync.AndroidNetworkStatusDetector
 import com.guyghost.wakeve.sync.KtorSyncHttpClient
@@ -98,7 +105,7 @@ enum class Screen {
 data class AppState(
     val currentScreen: Screen = Screen.EVENT_CREATION,
     val currentEventId: String? = null,
-    val currentUserId: String = "organizer-1" // TODO: Get from auth
+    val currentUserId: String? = null  // Provided by auth state
 )
 
 @Composable
@@ -106,110 +113,205 @@ data class AppState(
 fun App() {
     MaterialTheme {
         val context = LocalContext.current
-        // Initialize dependencies
-        val database = remember { DatabaseProvider.getDatabase(AndroidDatabaseFactory(context)) }
-        val networkDetector = remember { AndroidNetworkStatusDetector(context) }
-        val httpClient = remember { KtorSyncHttpClient() }
-        val userRepository = remember { UserRepository(database) }
-
-        val syncManager = remember {
-            SyncManager(
-                database = database,
-                eventRepository = DatabaseEventRepository(database),
-                userRepository = userRepository,
-                networkDetector = networkDetector,
-                httpClient = httpClient,
-                authTokenProvider = { "demo-token" } // TODO: Get from auth
-            )
-        }
-
-        val repository = remember {
-            SyncedEventRepository(database, syncManager)
-        }
-
-        var appState by remember { mutableStateOf(AppState()) }
         val scope = rememberCoroutineScope()
 
-        var hasPendingChanges by remember { mutableStateOf(false) }
-
-        // Update pending changes when sync status changes
-        LaunchedEffect(repository.syncStatus.collectAsState().value) {
-            hasPendingChanges = syncManager.hasPendingChanges()
+        // Initialize authentication dependencies
+        val authService = remember { AndroidAuthenticationService(context) }
+        val authStateManager = remember {
+            AuthStateManager(
+                secureStorage = com.guyghost.wakeve.security.AndroidSecureTokenStorage(context),
+                authService = authService,
+                enableOAuth = BuildConfig.ENABLE_OAUTH
+            )
         }
 
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.background)
-                .fillMaxSize()
-        ) {
-            // Sync status indicator
-            SyncStatusIndicator(
-                syncStatus = repository.syncStatus,
-                isNetworkAvailable = repository.isNetworkAvailable,
-                hasPendingChanges = hasPendingChanges
-            )
+        // Initialize on first composition
+        LaunchedEffect(Unit) {
+            authStateManager.initialize()
+        }
 
-            when (appState.currentScreen) {
-                Screen.EVENT_CREATION -> {
-                    EventCreationScreen(
-                        onEventCreated = { event ->
-                            scope.launch {
-                                repository.createEvent(event).onSuccess {
-                                    appState = appState.copy(
-                                        currentEventId = event.id,
-                                        currentScreen = Screen.PARTICIPANT_MANAGEMENT
-                                    )
-                                }
-                            }
+        // Observe authentication state
+        val authState by authStateManager.authState.collectAsState()
+
+        // Google Sign-In helper
+        val googleSignInHelper = remember {
+            GoogleSignInHelper(
+                context = context,
+                clientId = "YOUR_GOOGLE_CLIENT_ID", // TODO: Move to BuildConfig
+                serverClientId = "YOUR_SERVER_CLIENT_ID" // TODO: Move to BuildConfig
+            )
+        }
+
+        // Activity result launcher for Google Sign-In
+        val googleSignInLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            scope.launch {
+                val signInResult = googleSignInHelper.handleSignInResult(result.data)
+                signInResult.onSuccess { authCode ->
+                    authStateManager.login(authCode, OAuthProvider.GOOGLE)
+                }.onFailure { error ->
+                    // Error handling is done by AuthStateManager
+                    println("Google Sign-In failed: ${error.message}")
+                }
+            }
+        }
+
+        // Render appropriate screen based on auth state
+        when (val state = authState) {
+            is AuthState.Loading -> {
+                LoadingScreen()
+            }
+            is AuthState.Unauthenticated -> {
+                LoginScreen(
+                    onGoogleSignIn = {
+                        val signInIntent = googleSignInHelper.getSignInIntent()
+                        googleSignInLauncher.launch(signInIntent)
+                    },
+                    onAppleSignIn = {
+                        // Apple Sign-In not available on Android
+                    }
+                )
+            }
+            is AuthState.Authenticated -> {
+                // Store current access token for SyncManager
+                var currentAccessToken by remember { mutableStateOf<String?>(null) }
+
+                // Load access token
+                LaunchedEffect(state.userId) {
+                    currentAccessToken = authStateManager.getCurrentAccessToken()
+                }
+
+                // Initialize app dependencies with authenticated user
+                val database = remember { DatabaseProvider.getDatabase(AndroidDatabaseFactory(context)) }
+                val networkDetector = remember { AndroidNetworkStatusDetector(context) }
+                val httpClient = remember { KtorSyncHttpClient() }
+                val userRepository = remember { UserRepository(database) }
+
+                val syncManager = remember {
+                    SyncManager(
+                        database = database,
+                        eventRepository = DatabaseEventRepository(database),
+                        userRepository = userRepository,
+                        networkDetector = networkDetector,
+                        httpClient = httpClient,
+                        authTokenProvider = { currentAccessToken },
+                        authTokenRefreshProvider = {
+                            authStateManager.refreshTokenIfNeeded()
+                            authStateManager.getCurrentAccessToken()
                         }
                     )
                 }
-                Screen.PARTICIPANT_MANAGEMENT -> {
-                    val event = repository.getEvent(appState.currentEventId ?: "")
-                    if (event != null) {
-                        ParticipantManagementScreen(
-                            event = event,
-                            repository = repository,
-                            onParticipantsAdded = { eventId ->
-                                appState = appState.copy(currentEventId = eventId)
-                            },
-                            onNavigateToPoll = { eventId ->
-                                appState = appState.copy(
-                                    currentEventId = eventId,
-                                    currentScreen = Screen.POLL_VOTING
+
+                val repository = remember {
+                    SyncedEventRepository(database, syncManager)
+                }
+
+                var appState by remember {
+                    mutableStateOf(AppState(currentUserId = state.userId))
+                }
+                var hasPendingChanges by remember { mutableStateOf(false) }
+
+                // Update pending changes when sync status changes
+                LaunchedEffect(repository.syncStatus.collectAsState().value) {
+                    hasPendingChanges = syncManager.hasPendingChanges()
+                }
+
+                Column(
+                    modifier = Modifier
+                        .background(MaterialTheme.colorScheme.background)
+                        .fillMaxSize()
+                ) {
+                    // Sync status indicator
+                    SyncStatusIndicator(
+                        syncStatus = repository.syncStatus,
+                        isNetworkAvailable = repository.isNetworkAvailable,
+                        hasPendingChanges = hasPendingChanges
+                    )
+
+                    when (appState.currentScreen) {
+                        Screen.EVENT_CREATION -> {
+                            EventCreationScreen(
+                                userId = state.userId,
+                                onEventCreated = { event ->
+                                    scope.launch {
+                                        repository.createEvent(event).onSuccess {
+                                            appState = appState.copy(
+                                                currentEventId = event.id,
+                                                currentScreen = Screen.PARTICIPANT_MANAGEMENT
+                                            )
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                        Screen.PARTICIPANT_MANAGEMENT -> {
+                            val event = repository.getEvent(appState.currentEventId ?: "")
+                            if (event != null) {
+                                ParticipantManagementScreen(
+                                    event = event,
+                                    repository = repository,
+                                    onParticipantsAdded = { eventId ->
+                                        appState = appState.copy(currentEventId = eventId)
+                                    },
+                                    onNavigateToPoll = { eventId ->
+                                        appState = appState.copy(
+                                            currentEventId = eventId,
+                                            currentScreen = Screen.POLL_VOTING
+                                        )
+                                    }
                                 )
                             }
-                        )
-                    }
-                }
-                Screen.POLL_VOTING -> {
-                    val event = repository.getEvent(appState.currentEventId ?: "")
-                    if (event != null) {
-                        PollVotingScreen(
-                            event = event,
-                            repository = repository,
-                            onVoteSubmitted = { eventId ->
-                                appState = appState.copy(
-                                    currentEventId = eventId,
-                                    currentScreen = Screen.POLL_RESULTS
+                        }
+                        Screen.POLL_VOTING -> {
+                            val event = repository.getEvent(appState.currentEventId ?: "")
+                            if (event != null) {
+                                PollVotingScreen(
+                                    event = event,
+                                    repository = repository,
+                                    participantId = state.userId,
+                                    onVoteSubmitted = { eventId ->
+                                        appState = appState.copy(
+                                            currentEventId = eventId,
+                                            currentScreen = Screen.POLL_RESULTS
+                                        )
+                                    }
                                 )
                             }
-                        )
-                    }
-                }
-                Screen.POLL_RESULTS -> {
-                    val event = repository.getEvent(appState.currentEventId ?: "")
-                    if (event != null) {
-                        PollResultsScreen(
-                            event = event,
-                            repository = repository,
-                            onDateConfirmed = { eventId ->
-                                // Could navigate to event details or home
-                                appState = appState.copy(currentEventId = eventId)
+                        }
+                        Screen.POLL_RESULTS -> {
+                            val event = repository.getEvent(appState.currentEventId ?: "")
+                            if (event != null) {
+                                PollResultsScreen(
+                                    event = event,
+                                    repository = repository,
+                                    userId = state.userId,
+                                    onDateConfirmed = { eventId ->
+                                        // Could navigate to event details or home
+                                        appState = appState.copy(currentEventId = eventId)
+                                    }
+                                )
                             }
-                        )
+                        }
                     }
                 }
+            }
+            is AuthState.Error -> {
+                ErrorScreen(
+                    message = state.message,
+                    onRetry = {
+                        scope.launch {
+                            authStateManager.initialize()
+                        }
+                    }
+                )
+            }
+        }
+
+        // Cleanup on disposal
+        DisposableEffect(Unit) {
+            onDispose {
+                authStateManager.dispose()
             }
         }
     }

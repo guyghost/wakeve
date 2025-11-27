@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 
 data class PollVotingState(
     val eventId: String = "",
-    val participantId: String = "participant-1", // TODO: Get from auth
+    val participantId: String = "",
     val votes: Map<String, Vote> = emptyMap(),
     val hasVoted: Boolean = false,
     val isError: Boolean = false,
@@ -45,10 +45,11 @@ data class PollVotingState(
 fun PollVotingScreen(
     event: Event,
     repository: EventRepositoryInterface,
+    participantId: String,
     onVoteSubmitted: (String) -> Unit
 ) {
     var state by remember {
-        mutableStateOf(PollVotingState(eventId = event.id))
+        mutableStateOf(PollVotingState(eventId = event.id, participantId = participantId))
     }
     val scope = rememberCoroutineScope()
 

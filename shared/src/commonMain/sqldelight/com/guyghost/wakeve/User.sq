@@ -6,6 +6,7 @@ CREATE TABLE user (
     name TEXT NOT NULL,
     avatar_url TEXT,
     provider TEXT NOT NULL,  -- 'google' or 'apple'
+    role TEXT NOT NULL DEFAULT 'USER',  -- User role: 'USER', 'ORGANIZER', 'MODERATOR', 'ADMIN'
     created_at TEXT NOT NULL,  -- ISO 8601 UTC timestamp
     updated_at TEXT NOT NULL   -- ISO 8601 UTC timestamp
 );
@@ -49,12 +50,17 @@ selectUserByEmail:
 SELECT * FROM user WHERE email = ?;
 
 insertUser:
-INSERT INTO user(id, provider_id, email, name, avatar_url, provider, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO user(id, provider_id, email, name, avatar_url, provider, role, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateUser:
 UPDATE user
 SET name = ?, avatar_url = ?, updated_at = ?
+WHERE id = ?;
+
+updateUserRole:
+UPDATE user
+SET role = ?, updated_at = ?
 WHERE id = ?;
 
 deleteUser:
