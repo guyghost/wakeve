@@ -63,7 +63,7 @@ struct ModernGetStartedView: View {
                     Circle()
                         .fill(Color.white.opacity(0.2))
                         .frame(width: 140, height: 140)
-                        .backdrop(radius: 70, opaque: false)
+                        .background(.ultraThinMaterial, in: Circle())
 
                     Image(systemName: "calendar.badge.plus")
                         .font(.system(size: 64, weight: .light))

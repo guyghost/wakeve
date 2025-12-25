@@ -110,7 +110,7 @@ struct ModernPollResultsView: View {
                                         .frame(maxWidth: .infinity)
                                         .frame(height: 50)
                                         .background(Color.blue)
-                                        .cornerRadius(14)
+                                        .continuousCornerRadius(14)
                                     }
                                     .disabled(isLoading)
                                     .padding(.top, 8)
@@ -136,8 +136,7 @@ struct ModernPollResultsView: View {
                                     .padding(.bottom, 40)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .background(Color(.systemBackground))
-                                .cornerRadius(16)
+                                .glassCard(cornerRadius: 20, material: .regularMaterial)
                             }
                         }
 
@@ -248,12 +247,10 @@ struct BestSlotCard: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
-            .background(Color(.secondarySystemGroupedBackground))
-            .cornerRadius(12)
+            .thinGlass(cornerRadius: 12)
         }
         .padding(20)
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+        .glassCard(cornerRadius: 20, material: .regularMaterial)
     }
 
     private func formatDate(_ dateString: String) -> String {
@@ -328,8 +325,7 @@ struct ConfirmedDateCard: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(Color(.secondarySystemGroupedBackground))
-                    .cornerRadius(12)
+                    .thinGlass(cornerRadius: 12)
 
                     Divider()
 
@@ -346,8 +342,7 @@ struct ConfirmedDateCard: View {
             }
         }
         .padding(24)
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+        .glassCard(cornerRadius: 20, material: .regularMaterial)
     }
 
     private func formatDate(_ dateString: String) -> String {
@@ -446,14 +441,13 @@ struct ModernSlotResultCard: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(Color.yellow.opacity(0.15))
-                .cornerRadius(8)
+                .continuousCornerRadius(8)
             }
         }
         .padding(16)
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+        .glassCard(cornerRadius: 20, material: .regularMaterial)
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(isBest ? Color.blue.opacity(0.3) : Color.clear, lineWidth: 2)
         )
     }

@@ -152,7 +152,7 @@ struct LoginView: View {
             Circle()
                 .fill(Color.white.opacity(0.2))
                 .frame(width: 120, height: 120)
-                .backdrop(radius: 60, opaque: false)
+                .background(.ultraThinMaterial, in: Circle())
 
             Image(systemName: "calendar.badge.plus")
                 .font(.system(size: 52, weight: .light))

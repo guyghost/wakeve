@@ -1,0 +1,66 @@
+-- Scenarios table: stores planning scenarios for events
+CREATE TABLE scenario (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    name TEXT NOT NULL,
+    dateOrPeriod TEXT NOT NULL, -- ISO date or period description
+    location TEXT NOT NULL,
+    duration INTEGER NOT NULL, -- in days
+    estimatedParticipants INTEGER NOT NULL,
+    estimatedBudgetPerPerson REAL NOT NULL,
+    description TEXT NOT NULL,
+    status TEXT NOT NULL, -- PROPOSED, SELECTED, REJECTED
+    createdAt TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    updatedAt TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+-- Indexes for performance
+CREATE INDEX scenario_eventId ON scenario(eventId);
+CREATE INDEX scenario_status ON scenario(status);
+CREATE INDEX scenario_eventId_status ON scenario(eventId, status);
+
+-- Queries
+selectAll:
+SELECT * FROM scenario;
+
+selectById:
+SELECT * FROM scenario WHERE id = ?;
+
+selectByEventId:
+SELECT * FROM scenario WHERE eventId = ? ORDER BY createdAt DESC;
+
+selectByEventIdAndStatus:
+SELECT * FROM scenario WHERE eventId = ? AND status = ? ORDER BY createdAt DESC;
+
+selectProposedByEventId:
+SELECT * FROM scenario WHERE eventId = ? AND status = 'PROPOSED' ORDER BY createdAt DESC;
+
+selectSelectedByEventId:
+SELECT * FROM scenario WHERE eventId = ? AND status = 'SELECTED' LIMIT 1;
+
+countByEventId:
+SELECT COUNT(*) FROM scenario WHERE eventId = ?;
+
+countByEventIdAndStatus:
+SELECT COUNT(*) FROM scenario WHERE eventId = ? AND status = ?;
+
+insertScenario:
+INSERT INTO scenario(id, eventId, name, dateOrPeriod, location, duration, estimatedParticipants, estimatedBudgetPerPerson, description, status, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateScenario:
+UPDATE scenario
+SET name = ?, dateOrPeriod = ?, location = ?, duration = ?, estimatedParticipants = ?, estimatedBudgetPerPerson = ?, description = ?, updatedAt = ?
+WHERE id = ?;
+
+updateScenarioStatus:
+UPDATE scenario
+SET status = ?, updatedAt = ?
+WHERE id = ?;
+
+deleteScenario:
+DELETE FROM scenario WHERE id = ?;
+
+deleteByEventId:
+DELETE FROM scenario WHERE eventId = ?;

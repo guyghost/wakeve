@@ -10,6 +10,7 @@ import com.guyghost.wakeve.metrics.AuthMetricsCollector
 import com.guyghost.wakeve.routes.authRoutes
 import com.guyghost.wakeve.routes.eventRoutes
 import com.guyghost.wakeve.routes.participantRoutes
+import com.guyghost.wakeve.routes.scenarioRoutes
 import com.guyghost.wakeve.routes.sessionRoutes
 import com.guyghost.wakeve.routes.syncRoutes
 import com.guyghost.wakeve.routes.voteRoutes
@@ -165,15 +166,17 @@ fun main() {
     // Initialize database
     val database = DatabaseProvider.getDatabase(JvmDatabaseFactory("wakev_server.db"))
     val eventRepository = DatabaseEventRepository(database)
+    val scenarioRepository = ScenarioRepository(database)
 
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = {
-        module(database, eventRepository)
+        module(database, eventRepository, scenarioRepository)
     }).start(wait = true)
 }
 
 fun Application.module(
     database: WakevDb,
-    eventRepository: DatabaseEventRepository = DatabaseEventRepository(database)
+    eventRepository: DatabaseEventRepository = DatabaseEventRepository(database),
+    scenarioRepository: ScenarioRepository = ScenarioRepository(database)
 ) {
     // Initialize metrics
     val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -297,6 +300,7 @@ fun Application.module(
                 eventRoutes(eventRepository)
                 participantRoutes(eventRepository)
                 voteRoutes(eventRepository)
+                scenarioRoutes(scenarioRepository)
                 syncRoutes(syncService)
                 sessionRoutes(sessionManager)
             }
