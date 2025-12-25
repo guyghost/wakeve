@@ -1,0 +1,116 @@
+-- Budget items table: stores individual expense items
+CREATE TABLE budgetItem (
+    id TEXT PRIMARY KEY NOT NULL,
+    budgetId TEXT NOT NULL,
+    category TEXT NOT NULL, -- TRANSPORT, ACCOMMODATION, MEALS, ACTIVITIES, EQUIPMENT, OTHER
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    estimatedCost REAL NOT NULL DEFAULT 0.0,
+    actualCost REAL NOT NULL DEFAULT 0.0,
+    isPaid INTEGER NOT NULL DEFAULT 0, -- 0 = false, 1 = true
+    paidBy TEXT, -- Participant ID who paid (null if not paid)
+    sharedBy TEXT NOT NULL, -- Comma-separated list of participant IDs
+    notes TEXT NOT NULL DEFAULT '',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY (budgetId) REFERENCES budget(id) ON DELETE CASCADE
+);
+
+-- Indexes for performance
+CREATE INDEX budgetItem_budgetId ON budgetItem(budgetId);
+CREATE INDEX budgetItem_category ON budgetItem(category);
+CREATE INDEX budgetItem_budgetId_category ON budgetItem(budgetId, category);
+CREATE INDEX budgetItem_isPaid ON budgetItem(isPaid);
+CREATE INDEX budgetItem_paidBy ON budgetItem(paidBy);
+
+-- Queries
+selectAll:
+SELECT * FROM budgetItem;
+
+selectById:
+SELECT * FROM budgetItem WHERE id = ?;
+
+selectByBudgetId:
+SELECT * FROM budgetItem WHERE budgetId = ? ORDER BY createdAt DESC;
+
+selectByBudgetIdAndCategory:
+SELECT * FROM budgetItem WHERE budgetId = ? AND category = ? ORDER BY createdAt DESC;
+
+selectPaidItems:
+SELECT * FROM budgetItem WHERE budgetId = ? AND isPaid = 1 ORDER BY createdAt DESC;
+
+selectUnpaidItems:
+SELECT * FROM budgetItem WHERE budgetId = ? AND isPaid = 0 ORDER BY createdAt DESC;
+
+selectItemsPaidBy:
+SELECT * FROM budgetItem WHERE budgetId = ? AND paidBy = ? ORDER BY createdAt DESC;
+
+selectItemsSharedByParticipant:
+SELECT * FROM budgetItem 
+WHERE budgetId = ? 
+  AND (',' || sharedBy || ',') LIKE ('%,' || ? || ',%')
+ORDER BY createdAt DESC;
+
+countByBudgetId:
+SELECT COUNT(*) FROM budgetItem WHERE budgetId = ?;
+
+countByCategory:
+SELECT COUNT(*) FROM budgetItem WHERE budgetId = ? AND category = ?;
+
+countPaidItems:
+SELECT COUNT(*) FROM budgetItem WHERE budgetId = ? AND isPaid = 1;
+
+sumActualByCategory:
+SELECT COALESCE(SUM(actualCost), 0.0) 
+FROM budgetItem 
+WHERE budgetId = ? AND category = ? AND isPaid = 1;
+
+sumEstimatedByCategory:
+SELECT COALESCE(SUM(estimatedCost), 0.0)
+FROM budgetItem
+WHERE budgetId = ? AND category = ?;
+
+sumTotalActual:
+SELECT COALESCE(SUM(actualCost), 0.0)
+FROM budgetItem
+WHERE budgetId = ? AND isPaid = 1;
+
+sumTotalEstimated:
+SELECT COALESCE(SUM(estimatedCost), 0.0)
+FROM budgetItem
+WHERE budgetId = ?;
+
+insertBudgetItem:
+INSERT INTO budgetItem(
+    id, budgetId, category, name, description,
+    estimatedCost, actualCost, isPaid, paidBy, sharedBy,
+    notes, createdAt, updatedAt
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateBudgetItem:
+UPDATE budgetItem
+SET category = ?,
+    name = ?,
+    description = ?,
+    estimatedCost = ?,
+    actualCost = ?,
+    isPaid = ?,
+    paidBy = ?,
+    sharedBy = ?,
+    notes = ?,
+    updatedAt = ?
+WHERE id = ?;
+
+markAsPaid:
+UPDATE budgetItem
+SET isPaid = 1,
+    actualCost = ?,
+    paidBy = ?,
+    updatedAt = ?
+WHERE id = ?;
+
+deleteBudgetItem:
+DELETE FROM budgetItem WHERE id = ?;
+
+deleteByBudgetId:
+DELETE FROM budgetItem WHERE budgetId = ?;

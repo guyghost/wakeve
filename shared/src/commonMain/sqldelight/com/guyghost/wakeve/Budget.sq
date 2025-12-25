@@ -1,0 +1,84 @@
+-- Budget table: stores the overall budget for an event
+CREATE TABLE budget (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL UNIQUE,
+    totalEstimated REAL NOT NULL DEFAULT 0.0,
+    totalActual REAL NOT NULL DEFAULT 0.0,
+    transportEstimated REAL NOT NULL DEFAULT 0.0,
+    transportActual REAL NOT NULL DEFAULT 0.0,
+    accommodationEstimated REAL NOT NULL DEFAULT 0.0,
+    accommodationActual REAL NOT NULL DEFAULT 0.0,
+    mealsEstimated REAL NOT NULL DEFAULT 0.0,
+    mealsActual REAL NOT NULL DEFAULT 0.0,
+    activitiesEstimated REAL NOT NULL DEFAULT 0.0,
+    activitiesActual REAL NOT NULL DEFAULT 0.0,
+    equipmentEstimated REAL NOT NULL DEFAULT 0.0,
+    equipmentActual REAL NOT NULL DEFAULT 0.0,
+    otherEstimated REAL NOT NULL DEFAULT 0.0,
+    otherActual REAL NOT NULL DEFAULT 0.0,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+-- Index for quick lookup by event
+CREATE INDEX budget_eventId ON budget(eventId);
+
+-- Queries
+selectAll:
+SELECT * FROM budget;
+
+selectById:
+SELECT * FROM budget WHERE id = ?;
+
+selectByEventId:
+SELECT * FROM budget WHERE eventId = ?;
+
+insertBudget:
+INSERT INTO budget(
+    id, eventId, totalEstimated, totalActual,
+    transportEstimated, transportActual,
+    accommodationEstimated, accommodationActual,
+    mealsEstimated, mealsActual,
+    activitiesEstimated, activitiesActual,
+    equipmentEstimated, equipmentActual,
+    otherEstimated, otherActual,
+    createdAt, updatedAt
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateBudget:
+UPDATE budget
+SET totalEstimated = ?,
+    totalActual = ?,
+    transportEstimated = ?,
+    transportActual = ?,
+    accommodationEstimated = ?,
+    accommodationActual = ?,
+    mealsEstimated = ?,
+    mealsActual = ?,
+    activitiesEstimated = ?,
+    activitiesActual = ?,
+    equipmentEstimated = ?,
+    equipmentActual = ?,
+    otherEstimated = ?,
+    otherActual = ?,
+    updatedAt = ?
+WHERE id = ?;
+
+updateCategoryActual:
+UPDATE budget
+SET transportActual = CASE WHEN ? = 'TRANSPORT' THEN ? ELSE transportActual END,
+    accommodationActual = CASE WHEN ? = 'ACCOMMODATION' THEN ? ELSE accommodationActual END,
+    mealsActual = CASE WHEN ? = 'MEALS' THEN ? ELSE mealsActual END,
+    activitiesActual = CASE WHEN ? = 'ACTIVITIES' THEN ? ELSE activitiesActual END,
+    equipmentActual = CASE WHEN ? = 'EQUIPMENT' THEN ? ELSE equipmentActual END,
+    otherActual = CASE WHEN ? = 'OTHER' THEN ? ELSE otherActual END,
+    totalActual = ?,
+    updatedAt = ?
+WHERE id = ?;
+
+deleteBudget:
+DELETE FROM budget WHERE id = ?;
+
+deleteByEventId:
+DELETE FROM budget WHERE eventId = ?;
