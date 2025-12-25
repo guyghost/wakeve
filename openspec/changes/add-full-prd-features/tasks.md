@@ -3,12 +3,12 @@
 ## Change: `add-full-prd-features`
 **Status**: 🟡 En cours  
 **Dernière mise à jour**: 25 décembre 2025  
-**Progress**: 28/62 tasks complétées (45%)
+**Progress**: 34/62 tasks complétées (55%)
 
 ### Résumé par Phase
 - ✅ **Phase 1 - Scénarios**: 17/17 tasks (100% - PHASE COMPLÈTE! 🎉)
 - ✅ **Phase 2 - Budget**: 11/11 tasks (100% - PHASE COMPLÈTE! 🎉)
-- ⏳ **Phase 3 - Logistique**: 0/15 tasks (0%)
+- ⏳ **Phase 3 - Logistique**: 6/15 tasks (40% - Sprint 3.1 COMPLETE! 🎉)
 - ⏳ **Phase 4 - Collaboration**: 0/10 tasks (0%)
 - ⏳ **Phase 5 - Avancé**: 0/9 tasks (0%)
 
@@ -303,17 +303,41 @@
   - **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/accommodation/AccommodationService.kt` (312 lignes)
   - **Tests**: `shared/src/commonTest/kotlin/com/guyghost/wakeve/accommodation/AccommodationServiceTest.kt` (440 lignes, 38 tests)
 
-- [ ] **Task 3.1.4**: Créer `AccommodationScreen.kt` (Android)
-  - [ ] Form d'ajout de logement
-  - [ ] Répartition des chambres (drag & drop)
-  - [ ] Calcul auto du coût par personne
+- [x] **Task 3.1.4**: Créer `AccommodationScreen.kt` (Android)
+  - [x] Liste des hébergements avec cards Material You
+  - [x] Form d'ajout/modification de logement
+  - [x] Type selector avec dropdown (6 types)
+  - [x] Status selector (4 statuts)
+  - [x] Calcul automatique du coût total
+  - [x] Badges de statut (couleurs adaptées)
+  - [x] Actions: Modifier, Supprimer
+  - [x] Dialog de confirmation pour suppression
+  - [x] Empty state avec call-to-action
+  - **Fichier**: `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/accommodation/AccommodationScreen.kt` (657 lignes)
 
-- [ ] **Task 3.1.5**: Créer `AccommodationView.swift` (iOS)
+- [x] **Task 3.1.5**: Créer `AccommodationView.swift` (iOS)
+  - [x] Design Liquid Glass avec .glassCard()
+  - [x] Liste scrollable avec LazyVStack
+  - [x] Sheet native pour add/edit forms
+  - [x] Pickers natifs pour type et statut
+  - [x] Calcul en temps réel du total dans le form
+  - [x] Alert pour confirmation de suppression
+  - [x] Empty state avec SF Symbols
+  - [x] Validation de formulaire
+  - **Fichier**: `iosApp/iosApp/Views/AccommodationView.swift` (493 lignes)
 
-- [ ] **Task 3.1.6**: Endpoints API Logement
-  - [ ] `POST /api/events/{id}/accommodation`
-  - [ ] `GET /api/events/{id}/accommodation`
-  - [ ] `PUT /api/events/{id}/accommodation/{accommodationId}`
+- [x] **Task 3.1.6**: Endpoints API Logement
+  - [x] `GET /api/events/{id}/accommodation` - Liste des hébergements
+  - [x] `POST /api/events/{id}/accommodation` - Créer hébergement (avec validation)
+  - [x] `GET /api/events/{id}/accommodation/{id}` - Détails hébergement
+  - [x] `PUT /api/events/{id}/accommodation/{id}` - Modifier hébergement
+  - [x] `DELETE /api/events/{id}/accommodation/{id}` - Supprimer (CASCADE aux rooms)
+  - [x] `GET /api/events/{id}/accommodation/{id}/rooms` - Liste des chambres
+  - [x] `POST /api/events/{id}/accommodation/{id}/rooms` - Affecter chambre
+  - [x] `PUT /api/events/{id}/accommodation/{id}/rooms/{roomId}` - Modifier chambre
+  - [x] `DELETE /api/events/{id}/accommodation/{id}/rooms/{roomId}` - Supprimer chambre
+  - [x] `GET /api/events/{id}/accommodation/statistics` - Statistiques
+  - **Fichier**: `server/src/main/kotlin/com/guyghost/wakeve/routes/AccommodationRoutes.kt` (394 lignes, 10 endpoints)
 
 ### Sprint 3.2 - Transport & Repas
 
