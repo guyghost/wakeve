@@ -270,22 +270,38 @@
 
 ---
 
-## Phase 3 - Logistique (Sprint 5-7)
+## Phase 3 - Logistique (Sprint 5-7) 🚀 DÉMARRÉ
 
-### Sprint 3.1 - Logement
+### Sprint 3.1 - Logement ⏳ EN COURS
 
-- [ ] **Task 3.1.1**: Créer `Accommodation.kt`
-  - [ ] Modèle avec tous les champs
-  - [ ] `AccommodationType` enum
-  - [ ] `BookingStatus` enum
+- [x] **Task 3.1.1**: Créer `Accommodation.kt`
+  - [x] Modèle avec tous les champs
+  - [x] `AccommodationType` enum (HOTEL, AIRBNB, CAMPING, HOSTEL, VACATION_RENTAL, OTHER)
+  - [x] `BookingStatus` enum (SEARCHING, RESERVED, CONFIRMED, CANCELLED)
+  - [x] Helper models: AccommodationWithRooms, ParticipantAccommodation
+  - [x] Request models: AccommodationRequest, RoomAssignmentRequest
+  - **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/models/AccommodationModels.kt` (181 lignes)
 
-- [ ] **Task 3.1.2**: Créer `Accommodation.sq` et `RoomAssignment.sq`
+- [x] **Task 3.1.2**: Créer `Accommodation.sq` et `RoomAssignment.sq`
+  - [x] Accommodation table avec indexes (event_id, booking_status)
+  - [x] RoomAssignment table avec CASCADE DELETE et UNIQUE constraint
+  - [x] Queries CRUD complètes (23 queries au total)
+  - [x] Queries d'agrégation (cost, capacity, statistics)
+  - **Fichiers**:
+    - `shared/src/commonMain/sqldelight/com/guyghost/wakeve/Accommodation.sq` (104 lignes, 12 queries)
+    - `shared/src/commonMain/sqldelight/com/guyghost/wakeve/RoomAssignment.sq` (100 lignes, 11 queries)
 
-- [ ] **Task 3.1.3**: Implémenter `AccommodationService.kt`
-  - [ ] `assignRooms()` - Algorithme de répartition
-  - [ ] `calculateCostPerPerson()`
-  - [ ] `validateCapacity()`
-  - [ ] Tests: AccommodationServiceTest (≥6 tests)
+- [x] **Task 3.1.3**: Implémenter `AccommodationService.kt`
+  - [x] `calculateTotalCost()`, `calculateCostPerPerson()`, `calculateRoomPriceShare()`
+  - [x] `validateAccommodation()`, `validateRoomAssignment()`, `validateTotalCost()`
+  - [x] `hasRemainingCapacity()`, `calculateRemainingCapacity()`
+  - [x] `autoAssignRooms()` - Algorithme de répartition efficace (remplit les grandes chambres d'abord)
+  - [x] `optimizeRoomAssignments()` - Algorithme d'optimisation (équilibre l'occupation)
+  - [x] `findUnassignedParticipants()`, `isParticipantAssigned()`, `getRoomForParticipant()`
+  - [x] `calculateAccommodationStats()` - Statistiques complètes avec coût moyen
+  - [x] Tests: AccommodationServiceTest (38/38 tests ✅)
+  - **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/accommodation/AccommodationService.kt` (312 lignes)
+  - **Tests**: `shared/src/commonTest/kotlin/com/guyghost/wakeve/accommodation/AccommodationServiceTest.kt` (440 lignes, 38 tests)
 
 - [ ] **Task 3.1.4**: Créer `AccommodationScreen.kt` (Android)
   - [ ] Form d'ajout de logement
