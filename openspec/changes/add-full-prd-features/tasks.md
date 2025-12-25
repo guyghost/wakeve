@@ -3,11 +3,11 @@
 ## Change: `add-full-prd-features`
 **Status**: 🟡 En cours  
 **Dernière mise à jour**: 25 décembre 2025  
-**Progress**: 21/62 tasks complétées (34%)
+**Progress**: 23/62 tasks complétées (37%)
 
 ### Résumé par Phase
 - ✅ **Phase 1 - Scénarios**: 15/17 tasks (88% - Documentation en cours)
-- ⏳ **Phase 2 - Budget**: 6/11 tasks (55% - Sprint 2.1 & 2.2 complétés, UI Android en cours)
+- ⏳ **Phase 2 - Budget**: 8/11 tasks (73% - Sprint 2.1, 2.2 & 2.3 complétés, iOS UI à faire)
 - ⏳ **Phase 3 - Transport**: 0/15 tasks (0%)
 - ⏳ **Phase 4 - Logement**: 0/10 tasks (0%)
 - ⏳ **Phase 5 - Destination**: 0/9 tasks (0%)
@@ -202,19 +202,23 @@
   - [ ] Mise à jour en temps réel
   - [ ] Tests: BudgetRepositoryTest (≥8 tests)
 
-### Sprint 2.3 - UI Android
+### Sprint 2.3 - UI Android ✅
 
-- [ ] **Task 2.3.1**: Créer `BudgetOverviewScreen.kt`
-  - [ ] Graphiques circulaires par catégorie
-  - [ ] Budget total et par personne
-  - [ ] Comparaison estimé vs réel
-  - [ ] Navigation vers détails par catégorie
+- [x] **Task 2.3.1**: Créer `BudgetOverviewScreen.kt`
+  - [x] Graphiques circulaires par catégorie
+  - [x] Budget total et par personne
+  - [x] Comparaison estimé vs réel
+  - [x] Navigation vers détails par catégorie
+  - **Fichier**: `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/budget/BudgetOverviewScreen.kt` (424 lignes)
 
-- [ ] **Task 2.3.2**: Créer `BudgetDetailScreen.kt`
-  - [ ] Liste des items de budget
-  - [ ] Ajout/modification d'items
-  - [ ] Filtrage par catégorie
-  - [ ] Export CSV (future)
+- [x] **Task 2.3.2**: Créer `BudgetDetailScreen.kt`
+  - [x] Liste des items de budget avec cartes
+  - [x] Ajout/modification d'items via dialog
+  - [x] Filtrage par catégorie (chips) et statut payé/non-payé
+  - [x] Actions: Modifier, Supprimer, Marquer comme payé
+  - [x] Confirmation dialog pour suppression
+  - [x] FAB pour ajout rapide
+  - **Fichier**: `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/budget/BudgetDetailScreen.kt` (603 lignes)
 
 ### Sprint 2.4 - UI iOS
 
@@ -414,8 +418,16 @@
 - **Tests**: 17/17 passing (100%)
 
 ### Phase 2 - Budget
-- [ ] 0/5 sprints complétés
-- [ ] 0/10 tasks complétées
+- [x] 3/5 sprints complétés (Sprints 2.1, 2.2, 2.3)
+- [x] 8/11 tasks complétées (73%)
+- **Détails**:
+  - ✅ Modèles & Base de données (2/2)
+  - ✅ Logique métier (2/2)
+  - ✅ UI Android (2/2)
+  - ⏳ UI iOS (0/2)
+  - ⏳ API & Documentation (0/2)
+- **Code**: ~2,800 lignes (Backend: 1,389 | Android: 1,027 | Tests: 1,223)
+- **Tests**: 61/61 passing (100%)
 
 ### Phase 3 - Logistique
 - [ ] 0/3 sprints complétés
