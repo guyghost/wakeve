@@ -1,0 +1,105 @@
+-- Accommodation table
+-- Represents a place where participants stay during an event
+
+CREATE TABLE IF NOT EXISTS accommodation (
+    id TEXT PRIMARY KEY NOT NULL,
+    event_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL, -- HOTEL, AIRBNB, CAMPING, HOSTEL, VACATION_RENTAL, OTHER
+    address TEXT NOT NULL,
+    capacity INTEGER NOT NULL,
+    price_per_night INTEGER NOT NULL, -- In cents
+    total_nights INTEGER NOT NULL,
+    total_cost INTEGER NOT NULL, -- In cents (price_per_night * total_nights)
+    booking_status TEXT NOT NULL, -- SEARCHING, RESERVED, CONFIRMED, CANCELLED
+    booking_url TEXT,
+    check_in_date TEXT NOT NULL, -- ISO 8601 date
+    check_out_date TEXT NOT NULL, -- ISO 8601 date
+    notes TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Index for fast lookups by event
+CREATE INDEX IF NOT EXISTS idx_accommodation_event_id ON accommodation(event_id);
+
+-- Index for filtering by booking status
+CREATE INDEX IF NOT EXISTS idx_accommodation_booking_status ON accommodation(booking_status);
+
+-- Insert a new accommodation
+insertAccommodation:
+INSERT INTO accommodation (
+    id, event_id, name, type, address, capacity,
+    price_per_night, total_nights, total_cost, booking_status,
+    booking_url, check_in_date, check_out_date, notes,
+    created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Get accommodation by ID
+getAccommodationById:
+SELECT * FROM accommodation WHERE id = ?;
+
+-- Get all accommodations for an event
+getAccommodationsByEventId:
+SELECT * FROM accommodation WHERE event_id = ? ORDER BY check_in_date ASC;
+
+-- Get accommodations by booking status for an event
+getAccommodationsByStatus:
+SELECT * FROM accommodation 
+WHERE event_id = ? AND booking_status = ?
+ORDER BY check_in_date ASC;
+
+-- Get confirmed accommodations for an event
+getConfirmedAccommodations:
+SELECT * FROM accommodation 
+WHERE event_id = ? AND booking_status = 'CONFIRMED'
+ORDER BY check_in_date ASC;
+
+-- Update accommodation
+updateAccommodation:
+UPDATE accommodation SET
+    name = ?,
+    type = ?,
+    address = ?,
+    capacity = ?,
+    price_per_night = ?,
+    total_nights = ?,
+    total_cost = ?,
+    booking_status = ?,
+    booking_url = ?,
+    check_in_date = ?,
+    check_out_date = ?,
+    notes = ?,
+    updated_at = ?
+WHERE id = ?;
+
+-- Update only booking status (for quick status changes)
+updateBookingStatus:
+UPDATE accommodation SET
+    booking_status = ?,
+    updated_at = ?
+WHERE id = ?;
+
+-- Delete accommodation
+deleteAccommodation:
+DELETE FROM accommodation WHERE id = ?;
+
+-- Delete all accommodations for an event (cascade when event is deleted)
+deleteAccommodationsByEventId:
+DELETE FROM accommodation WHERE event_id = ?;
+
+-- Get total accommodation cost for an event
+getTotalAccommodationCost:
+SELECT SUM(total_cost) FROM accommodation 
+WHERE event_id = ? AND booking_status IN ('RESERVED', 'CONFIRMED');
+
+-- Get total capacity for confirmed accommodations
+getTotalConfirmedCapacity:
+SELECT SUM(capacity) FROM accommodation
+WHERE event_id = ? AND booking_status = 'CONFIRMED';
+
+-- Count accommodations by status for an event
+countByStatus:
+SELECT booking_status, COUNT(*) FROM accommodation
+WHERE event_id = ?
+GROUP BY booking_status;
