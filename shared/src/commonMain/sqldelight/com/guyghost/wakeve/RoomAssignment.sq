@@ -1,0 +1,99 @@
+-- RoomAssignment table
+-- Assigns participants to specific rooms within an accommodation
+
+CREATE TABLE IF NOT EXISTS room_assignment (
+    id TEXT PRIMARY KEY NOT NULL,
+    accommodation_id TEXT NOT NULL,
+    room_number TEXT NOT NULL,
+    capacity INTEGER NOT NULL,
+    assigned_participants TEXT NOT NULL, -- Comma-separated list of participant IDs
+    price_share INTEGER NOT NULL, -- Cost per person in cents
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (accommodation_id) REFERENCES accommodation(id) ON DELETE CASCADE
+);
+
+-- Index for fast lookups by accommodation
+CREATE INDEX IF NOT EXISTS idx_room_assignment_accommodation_id ON room_assignment(accommodation_id);
+
+-- Unique constraint: one assignment per room per accommodation
+CREATE UNIQUE INDEX IF NOT EXISTS idx_room_unique ON room_assignment(accommodation_id, room_number);
+
+-- Insert a new room assignment
+insertRoomAssignment:
+INSERT INTO room_assignment (
+    id, accommodation_id, room_number, capacity,
+    assigned_participants, price_share,
+    created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Get room assignment by ID
+getRoomAssignmentById:
+SELECT * FROM room_assignment WHERE id = ?;
+
+-- Get all room assignments for an accommodation
+getRoomAssignmentsByAccommodationId:
+SELECT * FROM room_assignment WHERE accommodation_id = ? ORDER BY room_number ASC;
+
+-- Get room assignment for a specific room number
+getRoomAssignmentByRoomNumber:
+SELECT * FROM room_assignment WHERE accommodation_id = ? AND room_number = ?;
+
+-- Get room assignments where a participant is assigned
+getRoomAssignmentsByParticipant:
+SELECT * FROM room_assignment 
+WHERE assigned_participants LIKE '%' || ? || '%';
+
+-- Update room assignment
+updateRoomAssignment:
+UPDATE room_assignment SET
+    room_number = ?,
+    capacity = ?,
+    assigned_participants = ?,
+    price_share = ?,
+    updated_at = ?
+WHERE id = ?;
+
+-- Update only assigned participants (for quick participant changes)
+updateAssignedParticipants:
+UPDATE room_assignment SET
+    assigned_participants = ?,
+    updated_at = ?
+WHERE id = ?;
+
+-- Delete room assignment
+deleteRoomAssignment:
+DELETE FROM room_assignment WHERE id = ?;
+
+-- Delete all room assignments for an accommodation (cascade)
+deleteRoomAssignmentsByAccommodationId:
+DELETE FROM room_assignment WHERE accommodation_id = ?;
+
+-- Count total assigned participants for an accommodation
+-- Note: participant counting done in repository layer by parsing assigned_participants CSV
+countAssignedParticipants:
+SELECT accommodation_id, COUNT(*) 
+FROM room_assignment
+WHERE accommodation_id = ?
+GROUP BY accommodation_id;
+
+-- Get room occupancy statistics for an accommodation
+-- Note: detailed statistics calculated in repository layer
+getRoomOccupancyStats:
+SELECT 
+    accommodation_id,
+    COUNT(*),
+    SUM(capacity)
+FROM room_assignment
+WHERE accommodation_id = ?
+GROUP BY accommodation_id;
+
+-- Find available rooms (not at full capacity)
+-- Note: Availability check done in repository layer by counting assigned participants
+getAvailableRooms:
+SELECT * FROM room_assignment
+WHERE accommodation_id = ?
+ORDER BY room_number ASC;
+
+-- Find unassigned participants (participants not in any room for this accommodation)
+-- This would need to be done in application code as it requires event participant list
