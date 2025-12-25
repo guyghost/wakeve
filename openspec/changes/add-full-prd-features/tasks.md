@@ -3,11 +3,11 @@
 ## Change: `add-full-prd-features`
 **Status**: 🟡 En cours  
 **Dernière mise à jour**: 25 décembre 2025  
-**Progress**: 19/62 tasks complétées (31%)
+**Progress**: 21/62 tasks complétées (34%)
 
 ### Résumé par Phase
 - ✅ **Phase 1 - Scénarios**: 15/17 tasks (88% - Documentation en cours)
-- ⏳ **Phase 2 - Budget**: 4/11 tasks (36% - Sprint 2.1 & 2.2.1 complétés)
+- ⏳ **Phase 2 - Budget**: 6/11 tasks (55% - Sprint 2.1 & 2.2 complétés, UI Android en cours)
 - ⏳ **Phase 3 - Transport**: 0/15 tasks (0%)
 - ⏳ **Phase 4 - Logement**: 0/10 tasks (0%)
 - ⏳ **Phase 5 - Destination**: 0/9 tasks (0%)
@@ -172,7 +172,7 @@
     - `shared/src/commonMain/sqldelight/com/guyghost/wakeve/Budget.sq` (86 lignes)
     - `shared/src/commonMain/sqldelight/com/guyghost/wakeve/BudgetItem.sq` (112 lignes)
 
-### Sprint 2.2 - Logique Métier ⏳
+### Sprint 2.2 - Logique Métier ✅
 
 - [x] **Task 2.2.1**: Implémenter `BudgetCalculator.kt`
   - [x] `calculateTotalBudget()`
@@ -187,7 +187,16 @@
   - **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/budget/BudgetCalculator.kt` (472 lignes)
   - **Tests**: `shared/src/commonTest/kotlin/com/guyghost/wakeve/budget/BudgetCalculatorTest.kt` (30/30 tests ✅)
 
-- [ ] **Task 2.2.2**: Implémenter `BudgetRepository.kt`
+- [x] **Task 2.2.2**: Implémenter `BudgetRepository.kt`
+  - [x] CRUD operations (Budget + BudgetItem)
+  - [x] Auto-recalculation on item changes
+  - [x] Agrégation par catégorie
+  - [x] Queries filtrées (category, paid, participant)
+  - [x] Balance calculations per participant
+  - [x] Settlement suggestions
+  - [x] Statistics (count, sum)
+  - **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/budget/BudgetRepository.kt` (488 lignes)
+  - **Tests**: `shared/src/jvmTest/kotlin/com/guyghost/wakeve/budget/BudgetRepositoryTest.kt` (31/31 tests ✅)
   - [ ] CRUD operations
   - [ ] Agrégation par catégorie
   - [ ] Mise à jour en temps réel
