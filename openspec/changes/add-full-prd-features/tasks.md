@@ -3,11 +3,11 @@
 ## Change: `add-full-prd-features`
 **Status**: 🟡 En cours  
 **Dernière mise à jour**: 25 décembre 2025  
-**Progress**: 23/62 tasks complétées (37%)
+**Progress**: 25/62 tasks complétées (40%)
 
 ### Résumé par Phase
 - ✅ **Phase 1 - Scénarios**: 15/17 tasks (88% - Documentation en cours)
-- ⏳ **Phase 2 - Budget**: 8/11 tasks (73% - Sprint 2.1, 2.2 & 2.3 complétés, iOS UI à faire)
+- ⏳ **Phase 2 - Budget**: 10/11 tasks (91% - Sprints 2.1-2.4 complétés, API & Docs à faire)
 - ⏳ **Phase 3 - Transport**: 0/15 tasks (0%)
 - ⏳ **Phase 4 - Logement**: 0/10 tasks (0%)
 - ⏳ **Phase 5 - Destination**: 0/9 tasks (0%)
@@ -220,10 +220,26 @@
   - [x] FAB pour ajout rapide
   - **Fichier**: `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/budget/BudgetDetailScreen.kt` (603 lignes)
 
-### Sprint 2.4 - UI iOS
+### Sprint 2.4 - UI iOS ✅
 
-- [ ] **Task 2.4.1**: Créer `BudgetOverviewView.swift`
-- [ ] **Task 2.4.2**: Créer `BudgetDetailView.swift`
+- [x] **Task 2.4.1**: Créer `BudgetOverviewView.swift`
+  - [x] Summary card avec total estimated vs actual
+  - [x] Per-person cost breakdown
+  - [x] Status indicator (within/over budget)
+  - [x] Category breakdown avec icônes
+  - [x] Liquid Glass design (.glassCard(), .continuousCornerRadius())
+  - [x] Auto-create budget si inexistant
+  - **Fichier**: `iosApp/iosApp/Views/BudgetOverviewView.swift` (674 lignes)
+
+- [x] **Task 2.4.2**: Créer `BudgetDetailView.swift`
+  - [x] Liste des items avec BudgetItemCard
+  - [x] Filtres par catégorie et statut payé/non-payé (FilterChip)
+  - [x] FAB pour ajout rapide
+  - [x] Sheets pour Add/Edit item avec Form
+  - [x] Actions: Edit, Delete, Mark as Paid (Menu)
+  - [x] Confirmation dialog pour suppression
+  - [x] Liquid Glass design system complet
+  - **Fichier**: `iosApp/iosApp/Views/BudgetDetailView.swift` (699 lignes)
 
 ### Sprint 2.5 - API & Documentation
 
@@ -418,15 +434,15 @@
 - **Tests**: 17/17 passing (100%)
 
 ### Phase 2 - Budget
-- [x] 3/5 sprints complétés (Sprints 2.1, 2.2, 2.3)
-- [x] 8/11 tasks complétées (73%)
+- [x] 4/5 sprints complétés (Sprints 2.1, 2.2, 2.3, 2.4)
+- [x] 10/11 tasks complétées (91%)
 - **Détails**:
   - ✅ Modèles & Base de données (2/2)
   - ✅ Logique métier (2/2)
   - ✅ UI Android (2/2)
-  - ⏳ UI iOS (0/2)
+  - ✅ UI iOS (2/2)
   - ⏳ API & Documentation (0/2)
-- **Code**: ~2,800 lignes (Backend: 1,389 | Android: 1,027 | Tests: 1,223)
+- **Code**: ~4,173 lignes (Backend: 1,389 | Android: 1,027 | iOS: 1,373 | Tests: 1,223)
 - **Tests**: 61/61 passing (100%)
 
 ### Phase 3 - Logistique
