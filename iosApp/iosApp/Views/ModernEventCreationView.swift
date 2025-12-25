@@ -2,7 +2,7 @@ import SwiftUI
 import Shared
 
 /// Modern event creation view inspired by Apple Invites
-/// Features: Clean white design, card-based layout, minimal inputs
+/// Features: Immersive background, glassmorphism cards, and intuitive inputs
 struct ModernEventCreationView: View {
     @State private var eventTitle = ""
     @State private var eventDescription = ""
@@ -11,7 +11,11 @@ struct ModernEventCreationView: View {
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showError = false
-
+    @State private var hasCustomBackground = false
+    
+    // For demo purposes, we'll toggle between gradient and a placeholder image state
+    // In a real app, this would hold the selected image data
+    
     let userId: String
     let repository: EventRepository
     let onEventCreated: (String) -> Void
@@ -19,166 +23,217 @@ struct ModernEventCreationView: View {
 
     var body: some View {
         ZStack {
-            // Clean background
-            Color(.systemGroupedBackground)
+            // 1. Background Layer
+            backgroundLayer
                 .ignoresSafeArea()
-
-            ScrollView {
-                VStack(spacing: 0) {
-                    // Header Section
-                    VStack(spacing: 16) {
-                        HStack {
-                            Button(action: onBack) {
-                                Image(systemName: "xmark")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(.secondary)
-                                    .frame(width: 36, height: 36)
-                                    .background(Color(.tertiarySystemFill))
-                                    .clipShape(Circle())
-                            }
-
-                            Spacer()
-
-                            Button {
-                                Task {
-                                    await createEvent()
-                                }
-                            } label: {
-                                if isLoading {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle())
-                                } else {
-                                    Text("Create")
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundColor(canCreate ? .blue : .secondary)
-                                }
-                            }
-                            .disabled(!canCreate || isLoading)
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 60)
-
-                        VStack(spacing: 4) {
-                            Text("New Event")
-                                .font(.system(size: 34, weight: .bold))
-                                .foregroundColor(.primary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 8)
+            
+            // 2. Main Content
+            VStack(spacing: 0) {
+                // Top Bar
+                HStack {
+                    Button(action: onBack) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 32, height: 32)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
                     }
-
-                    // Form Cards
-                    VStack(spacing: 16) {
-                        // Basic Info Card
-                        VStack(spacing: 20) {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Title")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
-
-                                TextField("Event name", text: $eventTitle)
-                                    .font(.system(size: 17))
-                                    .textFieldStyle(.plain)
-                                    .padding(16)
-                                    .background(Color(.tertiarySystemFill))
-                                    .cornerRadius(12)
-                            }
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Description")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
-
-                                TextEditor(text: $eventDescription)
-                                    .frame(height: 100)
-                                    .font(.system(size: 17))
-                                    .padding(12)
-                                    .background(Color(.tertiarySystemFill))
-                                    .cornerRadius(12)
-                                    .scrollContentBackground(.hidden)
-                            }
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Voting Deadline")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(.secondary)
-                                    .textCase(.uppercase)
-
-                                DatePicker(
-                                    "Select deadline",
-                                    selection: $deadline,
-                                    in: Date()...,
-                                    displayedComponents: [.date, .hourAndMinute]
-                                )
-                                .datePickerStyle(.compact)
-                                .labelsHidden()
-                                .padding(12)
-                                .background(Color(.tertiarySystemFill))
-                                .cornerRadius(12)
-                            }
+                    
+                    Spacer()
+                    
+                    Button {
+                        // Preview action (placeholder)
+                    } label: {
+                        Text("Preview")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Capsule())
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 60) // Adjust for safe area
+                
+                Spacer()
+                
+                // "Edit Background" Button
+                Button {
+                    withAnimation {
+                        hasCustomBackground.toggle()
+                    }
+                } label: {
+                    Text(hasCustomBackground ? "Edit Background" : "Add Background")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color(red: 0.6, green: 0.4, blue: 0.0).opacity(0.8)) // Gold/Brownish color from screenshot
+                        .clipShape(Capsule())
+                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                }
+                .padding(.bottom, 40)
+                
+                // Bottom Card
+                VStack(spacing: 24) {
+                    // Event Title
+                    TextField("Event Title", text: $eventTitle)
+                        .font(.system(size: 34, weight: .bold))
+                        .foregroundColor(.white)
+                        .multilineTextAlignment(.center)
+                        .placeholder(when: eventTitle.isEmpty, alignment: .center) {
+                            Text("Event Title")
+                                .font(.system(size: 34, weight: .bold))
+                                .foregroundColor(.white.opacity(0.5))
+                                .multilineTextAlignment(.center)
                         }
-                        .padding(20)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(16)
-
-                        // Time Slots Card
-                        VStack(spacing: 16) {
-                            HStack {
-                                Text("Time Options")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(.primary)
-
-                                Spacer()
-
-                                Button(action: addTimeSlot) {
-                                    Image(systemName: "plus.circle.fill")
-                                        .font(.system(size: 28))
-                                        .foregroundColor(.blue)
-                                }
-                            }
-
-                            if timeSlots.isEmpty {
-                                VStack(spacing: 16) {
-                                    Image(systemName: "calendar.badge.clock")
-                                        .font(.system(size: 48))
-                                        .foregroundColor(.secondary.opacity(0.5))
-                                        .padding(.top, 20)
-
-                                    Text("No time slots yet")
+                        .padding(.top, 8)
+                    
+                    // Details List
+                    VStack(spacing: 0) {
+                        // Date and Time
+                        Button {
+                            showDatePicker = true
+                        } label: {
+                            HStack(spacing: 16) {
+                                Image(systemName: "calendar.badge.plus")
+                                    .font(.system(size: 20))
+                                    .frame(width: 24)
+                                    .foregroundColor(.white.opacity(0.9))
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Date and Time")
                                         .font(.system(size: 17, weight: .medium))
-                                        .foregroundColor(.secondary)
-
-                                    Text("Add time options for participants to vote on")
-                                        .font(.system(size: 15))
-                                        .foregroundColor(.secondary)
-                                        .multilineTextAlignment(.center)
-                                        .padding(.horizontal, 40)
-                                        .padding(.bottom, 20)
-                                }
-                            } else {
-                                VStack(spacing: 12) {
-                                    ForEach(timeSlots.indices, id: \.self) { index in
-                                        ModernTimeSlotRow(
-                                            timeSlot: $timeSlots[index],
-                                            onDelete: { removeTimeSlot(at: index) }
-                                        )
+                                        .foregroundColor(.white)
+                                    
+                                    if !timeSlots.isEmpty {
+                                        Text(timeSlots[0].start)
+                                            .font(.system(size: 15))
+                                            .foregroundColor(.white.opacity(0.7))
                                     }
                                 }
+                                
+                                Spacer()
                             }
+                            .padding(.vertical, 16)
                         }
-                        .padding(20)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(16)
-
-                        Spacer()
-                            .frame(height: 40)
+                        
+                        Divider().background(Color.white.opacity(0.2))
+                        
+                        // Location
+                        Button {
+                            // Open location picker
+                        } label: {
+                            HStack(spacing: 16) {
+                                Image(systemName: "mappin.and.ellipse")
+                                    .font(.system(size: 20))
+                                    .frame(width: 24)
+                                    .foregroundColor(.white.opacity(0.9))
+                                
+                                Text("Location")
+                                    .font(.system(size: 17, weight: .medium))
+                                    .foregroundColor(.white)
+                                
+                                Spacer()
+                            }
+                            .padding(.vertical, 16)
+                        }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 4)
+                    
+                    // Host Info
+                    HStack(spacing: 12) {
+                        // Avatar Placeholder
+                        Circle()
+                            .fill(Color.white.opacity(0.2))
+                            .frame(width: 44, height: 44)
+                            .overlay(
+                                Image(systemName: "person.fill")
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 20))
+                            )
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Hosted by You")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.white)
+                            
+                            TextField("Add a description.", text: $eventDescription)
+                                .font(.system(size: 15))
+                                .foregroundColor(.white.opacity(0.9))
+                                .placeholder(when: eventDescription.isEmpty) {
+                                    Text("Add a description.")
+                                        .font(.system(size: 15))
+                                        .foregroundColor(.white.opacity(0.5))
+                                }
+                        }
+                    }
+                    .padding(16)
+                    .background(Color.black.opacity(0.2))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
+                .padding(24)
+                .background(
+                    // Gradient Card Background matching the screenshot (Green -> Blue)
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.0, green: 0.5, blue: 0.2).opacity(0.9), // Green
+                            Color(red: 0.0, green: 0.2, blue: 0.6).opacity(0.9)  // Blue
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
+                
+                // Bottom Action Bar
+                HStack {
+                    Button {
+                        // Shared Album action
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: "photo.on.rectangle")
+                                .font(.system(size: 20))
+                            Text("Shared Album")
+                                .font(.system(size: 10))
+                        }
+                        .foregroundColor(.white.opacity(0.8))
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: onBack) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
+                }
+                .padding(.horizontal, 32)
+                .padding(.top, 16)
+                .padding(.bottom, 8)
             }
+        }
+        .sheet(isPresented: $showDatePicker) {
+            VStack {
+                DatePicker("Select Date", selection: $selectedDate)
+                    .datePickerStyle(.graphical)
+                    .padding()
+                
+                Button("Done") {
+                    showDatePicker = false
+                    // Update timeSlots with single slot for now
+                    let start = ISO8601DateFormatter().string(from: selectedDate)
+                    let end = ISO8601DateFormatter().string(from: selectedDate.addingTimeInterval(3600))
+                    timeSlots = [TimeSlot(id: UUID().uuidString, start: start, end: end, timezone: TimeZone.current.identifier)]
+                }
+                .padding()
+                .buttonStyle(.borderedProminent)
+            }
+            .presentationDetents([.medium])
         }
         .alert("Error", isPresented: $showError) {
             Button("OK", role: .cancel) {}
@@ -186,24 +241,47 @@ struct ModernEventCreationView: View {
             Text(errorMessage)
         }
     }
-
+    
+    // MARK: - Subviews
+    
+    private var backgroundLayer: some View {
+        Group {
+            if hasCustomBackground {
+                // Placeholder for image background
+                GeometryReader { proxy in
+                    Image(systemName: "party.popper.fill") // Placeholder
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .overlay(Color.black.opacity(0.2)) // Dim for text readability
+                        .background(Color.orange) // Fallback
+                }
+            } else {
+                // Default Gradient - More vibrant Apple-like colors
+                LinearGradient(
+                    colors: [
+                        Color(red: 1.0, green: 0.3, blue: 0.2), // Bright Red/Orange
+                        Color(red: 0.8, green: 0.1, blue: 0.5), // Magenta
+                        Color(red: 0.4, green: 0.0, blue: 0.8), // Purple
+                        Color(red: 0.1, green: 0.1, blue: 0.6)  // Deep Blue
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        }
+    }
+    
     private var canCreate: Bool {
-        !eventTitle.isEmpty && !timeSlots.isEmpty
+        !eventTitle.isEmpty
     }
+    
+    @State private var showDatePicker = false
+    @State private var selectedDate = Date()
+    
 
-    private func addTimeSlot() {
-        let newSlot = TimeSlot(
-            id: UUID().uuidString,
-            start: ISO8601DateFormatter().string(from: Date()),
-            end: ISO8601DateFormatter().string(from: Date().addingTimeInterval(2 * 60 * 60)),
-            timezone: TimeZone.current.identifier
-        )
-        timeSlots.append(newSlot)
-    }
+    
 
-    private func removeTimeSlot(at index: Int) {
-        timeSlots.remove(at: index)
-    }
 
     private func createEvent() async {
         guard canCreate else { return }
@@ -211,6 +289,13 @@ struct ModernEventCreationView: View {
         isLoading = true
 
         do {
+            // Ensure we have at least one slot if none defined (use current time if needed)
+            if timeSlots.isEmpty {
+                let start = ISO8601DateFormatter().string(from: selectedDate)
+                let end = ISO8601DateFormatter().string(from: selectedDate.addingTimeInterval(3600))
+                timeSlots = [TimeSlot(id: UUID().uuidString, start: start, end: end, timezone: TimeZone.current.identifier)]
+            }
+
             let now = ISO8601DateFormatter().string(from: Date())
             let event = Event(
                 id: UUID().uuidString,
@@ -244,79 +329,5 @@ struct ModernEventCreationView: View {
     }
 }
 
-// MARK: - Modern Time Slot Row
 
-struct ModernTimeSlotRow: View {
-    @Binding var timeSlot: TimeSlot
-    let onDelete: () -> Void
 
-    @State private var startDate = Date()
-    @State private var endDate = Date().addingTimeInterval(2 * 60 * 60)
-
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                VStack(alignment: .leading, spacing: 12) {
-                    // Start Time
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Start")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
-
-                        DatePicker("Start", selection: $startDate, displayedComponents: [.date, .hourAndMinute])
-                            .datePickerStyle(.compact)
-                            .labelsHidden()
-                    }
-
-                    // End Time
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("End")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
-
-                        DatePicker("End", selection: $endDate, displayedComponents: [.date, .hourAndMinute])
-                            .datePickerStyle(.compact)
-                            .labelsHidden()
-                    }
-                }
-
-                Spacer()
-
-                Button(action: onDelete) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.secondary.opacity(0.5))
-                }
-            }
-        }
-        .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-        .onAppear {
-            if let start = ISO8601DateFormatter().date(from: timeSlot.start) {
-                startDate = start
-            }
-            if let end = ISO8601DateFormatter().date(from: timeSlot.end) {
-                endDate = end
-            }
-        }
-        .onChange(of: startDate) { _, newValue in
-            timeSlot = TimeSlot(
-                id: timeSlot.id,
-                start: ISO8601DateFormatter().string(from: newValue),
-                end: timeSlot.end,
-                timezone: timeSlot.timezone
-            )
-        }
-        .onChange(of: endDate) { _, newValue in
-            timeSlot = TimeSlot(
-                id: timeSlot.id,
-                start: timeSlot.start,
-                end: ISO8601DateFormatter().string(from: newValue),
-                timezone: timeSlot.timezone
-            )
-        }
-    }
-}

@@ -10,6 +10,8 @@ import com.guyghost.wakeve.database.WakevDb
 class TestDatabaseFactory : DatabaseFactory {
     override fun createDriver(): SqlDriver {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
+        // Enable foreign key constraints
+        driver.execute(null, "PRAGMA foreign_keys = ON", 0)
         WakevDb.Schema.create(driver)
         return driver
     }

@@ -148,8 +148,7 @@ struct ModernPollVotingView: View {
                                 }
                             }
                             .padding(20)
-                            .background(Color(.systemBackground))
-                            .cornerRadius(16)
+                            .glassCard(cornerRadius: 20, material: .regularMaterial)
 
                             // Progress Indicator
                             HStack {
@@ -359,8 +358,7 @@ struct ModernTimeSlotVoteCard: View {
             }
         }
         .padding(20)
-        .background(Color(.systemBackground))
-        .cornerRadius(16)
+        .glassCard(cornerRadius: 20, material: .regularMaterial)
     }
 
     private func formatDate(_ dateString: String) -> String {

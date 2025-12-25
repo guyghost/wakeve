@@ -14,31 +14,48 @@ struct ModernHomeView: View {
 
     var body: some View {
         ZStack {
-            // Clean background
-            Color(.systemGroupedBackground)
-                .ignoresSafeArea()
+            // Dark background with subtle gradient (like Apple Invites)
+            LinearGradient(
+                colors: [
+                    Color(red: 0.11, green: 0.11, blue: 0.12),
+                    Color(red: 0.09, green: 0.09, blue: 0.10)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: 0) {
-                    // Header Section
-                    if events.isEmpty && !isLoading {
-                        WelcomeSection(onCreateEvent: onCreateEvent)
-                    } else {
-                        CompactHeader(eventCount: events.count)
-                    }
+            VStack(spacing: 0) {
+                // Header
+                AppleInvitesHeader(
+                    userId: userId,
+                    onCreateEvent: onCreateEvent
+                )
 
-                    // Events Grid/List
-                    if isLoading {
-                        LoadingEventsView()
-                    } else if events.isEmpty {
-                        // Welcome section already shown above
-                        EmptyView()
-                    } else {
-                        EventsSection(
-                            events: events,
-                            onEventSelected: onEventSelected,
-                            onCreateEvent: onCreateEvent
-                        )
+                // Content
+                if isLoading {
+                    LoadingEventsView()
+                } else if events.isEmpty {
+                    AppleInvitesEmptyState(onCreateEvent: onCreateEvent)
+                } else {
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            // Event Cards
+                            ForEach(events, id: \.id) { event in
+                                ModernEventCard(
+                                    event: event,
+                                    onTap: { onEventSelected(event) }
+                                )
+                            }
+
+                            // Add Event Card
+                            AddEventCard(onTap: onCreateEvent)
+
+                            Spacer()
+                                .frame(height: 40)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
                     }
                 }
             }
@@ -56,155 +73,114 @@ struct ModernHomeView: View {
     }
 }
 
-// MARK: - Welcome Section
+// MARK: - Apple Invites Header
 
-struct WelcomeSection: View {
+struct AppleInvitesHeader: View {
+    let userId: String
     let onCreateEvent: () -> Void
 
+    private var userInitial: String {
+        String(userId.prefix(1).uppercased())
+    }
+
     var body: some View {
-        VStack(spacing: 32) {
-            Spacer()
-                .frame(height: 60)
-
-            // Logo or Icon
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.blue, Color.purple],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 120, height: 120)
-                    .shadow(color: Color.blue.opacity(0.3), radius: 30, x: 0, y: 15)
-
-                Image(systemName: "calendar.badge.plus")
-                    .font(.system(size: 50, weight: .light))
+        HStack(alignment: .center, spacing: 12) {
+            // "Upcoming" with dropdown
+            HStack(spacing: 4) {
+                Text("Upcoming")
+                    .font(.system(size: 34, weight: .bold))
                     .foregroundColor(.white)
-            }
-            .padding(.bottom, 8)
 
-            // Welcome Text
-            VStack(spacing: 12) {
-                Text("Welcome to")
-                    .font(.system(size: 17, weight: .regular))
-                    .foregroundColor(.secondary)
-
-                Text("Wakeve")
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-
-                Text("Create beautiful invitations for all your events.\nAnyone can receive invitations. Sending\nincluded with iCloud+.")
-                    .font(.system(size: 17, weight: .regular))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-                    .padding(.top, 4)
-            }
-            .padding(.horizontal, 32)
-
-            Spacer()
-                .frame(height: 40)
-
-            // Create Event Button
-            Button(action: onCreateEvent) {
-                Text("Create an Event")
+                Image(systemName: "chevron.down")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.black)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(Color.white)
-                    .cornerRadius(14)
-                    .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
+                    .foregroundColor(.white.opacity(0.6))
             }
-            .padding(.horizontal, 20)
 
             Spacer()
+
+            // Add button
+            Button(action: onCreateEvent) {
+                Image(systemName: "plus")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 36, height: 36)
+                    .background(Color.white.opacity(0.15))
+                    .clipShape(Circle())
+            }
+
+            // Profile avatar
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [Color.blue, Color.purple],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: 36, height: 36)
+                .overlay(
+                    Text(userInitial)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                )
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 60)
+        .padding(.bottom, 16)
     }
 }
 
-// MARK: - Compact Header
+// MARK: - Apple Invites Empty State
 
-struct CompactHeader: View {
-    let eventCount: Int
+struct AppleInvitesEmptyState: View {
+    let onCreateEvent: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Upcoming")
-                        .font(.system(size: 34, weight: .bold))
-                        .foregroundColor(.primary)
+            Spacer()
+
+            VStack(spacing: 24) {
+                // Calendar icon
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color.white.opacity(0.15))
+                        .frame(width: 80, height: 80)
+
+                    Image(systemName: "calendar")
+                        .font(.system(size: 40, weight: .regular))
+                        .foregroundColor(.white.opacity(0.5))
                 }
 
-                Spacer()
+                // Text content
+                VStack(spacing: 12) {
+                    Text("No Upcoming Events")
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundColor(.white)
 
-                // Add button
-                Button(action: {}) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .frame(width: 36, height: 36)
+                    Text("Upcoming events, whether you're a host\nor a guest, will appear here.")
+                        .font(.system(size: 17))
+                        .foregroundColor(.white.opacity(0.6))
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(4)
                 }
 
-                // Profile button
-                Button(action: {}) {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.blue, Color.purple],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 36, height: 36)
-                        .overlay(
-                            Text("U")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                        )
+                // Create Event button
+                Button(action: onCreateEvent) {
+                    Text("Create Event")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.black)
+                        .frame(width: 280)
+                        .frame(height: 50)
+                        .background(Color.white)
+                        .continuousCornerRadius(25)
                 }
+                .padding(.top, 16)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 60)
-            .padding(.bottom, 16)
-        }
-        .background(Color(.systemGroupedBackground))
-    }
-}
-
-// MARK: - Events Section
-
-struct EventsSection: View {
-    let events: [Event]
-    let onEventSelected: (Event) -> Void
-    let onCreateEvent: () -> Void
-
-    @Namespace private var namespace
-
-    var body: some View {
-        VStack(spacing: 16) {
-            // Event Cards
-            ForEach(events, id: \.id) { event in
-                ModernEventCard(
-                    event: event,
-                    onTap: { onEventSelected(event) }
-                )
-                .matchedGeometryEffect(id: event.id, in: namespace)
-            }
-
-            // Add Event Card
-            AddEventCard(onTap: onCreateEvent)
 
             Spacer()
-                .frame(height: 40)
         }
-        .padding(.horizontal, 20)
     }
 }
-
 // MARK: - Modern Event Card
 
 struct ModernEventCard: View {
@@ -299,8 +275,8 @@ struct ModernEventCard: View {
                 }
             }
             .frame(height: 380)
-            .cornerRadius(20)
-            .shadow(color: Color.black.opacity(0.15), radius: 15, x: 0, y: 8)
+            .continuousCornerRadius(20)
+            .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 6)
         }
         .buttonStyle(ScaleButtonStyle())
     }
@@ -347,19 +323,19 @@ struct AddEventCard: View {
             VStack(spacing: 16) {
                 Image(systemName: "plus.circle.fill")
                     .font(.system(size: 50))
-                    .foregroundColor(.blue)
+                    .foregroundColor(.white.opacity(0.7))
 
                 Text("Create New Event")
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(.white)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 180)
-            .background(Color(.systemBackground))
-            .cornerRadius(20)
+            .background(Color.white.opacity(0.1))
+            .continuousCornerRadius(20)
             .overlay(
-                RoundedRectangle(cornerRadius: 20)
-                    .stroke(Color(.separator), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
             )
         }
         .buttonStyle(ScaleButtonStyle())
@@ -382,9 +358,8 @@ struct StatusBadge: View {
         .foregroundColor(.white)
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(Color.white.opacity(0.25))
-        .backdrop(radius: 10, opaque: false)
-        .cornerRadius(20)
+        .background(.ultraThinMaterial)
+        .continuousCornerRadius(20)
     }
 
     private var statusText: String {
@@ -444,7 +419,7 @@ struct AdditionalParticipantsCount: View {
         Circle()
             .fill(Color.white.opacity(0.3))
             .frame(width: 40, height: 40)
-            .backdrop(radius: 10, opaque: false)
+            .background(.ultraThinMaterial, in: Circle())
             .overlay(
                 Text("+\(count)")
                     .font(.system(size: 14, weight: .semibold))
@@ -463,15 +438,14 @@ struct LoadingEventsView: View {
     var body: some View {
         VStack(spacing: 20) {
             ProgressView()
-                .progressViewStyle(CircularProgressViewStyle())
+                .progressViewStyle(CircularProgressViewStyle(tint: .white))
                 .scaleEffect(1.2)
 
             Text("Loading events...")
                 .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.6))
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 100)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
@@ -485,13 +459,3 @@ struct ScaleButtonStyle: ButtonStyle {
     }
 }
 
-// MARK: - View Extension for Backdrop
-
-extension View {
-    func backdrop(radius: CGFloat, opaque: Bool = true) -> some View {
-        self.background(
-            .ultraThinMaterial,
-            in: RoundedRectangle(cornerRadius: radius, style: .continuous)
-        )
-    }
-}

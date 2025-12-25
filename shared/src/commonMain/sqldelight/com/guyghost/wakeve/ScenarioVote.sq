@@ -1,0 +1,70 @@
+-- Scenario votes table: stores participant votes on scenarios
+CREATE TABLE scenario_vote (
+    id TEXT PRIMARY KEY NOT NULL,
+    scenarioId TEXT NOT NULL,
+    participantId TEXT NOT NULL,
+    vote TEXT NOT NULL, -- PREFER, NEUTRAL, AGAINST
+    createdAt TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    FOREIGN KEY (scenarioId) REFERENCES scenario(id) ON DELETE CASCADE,
+    UNIQUE(scenarioId, participantId) -- One vote per participant per scenario
+);
+
+-- Indexes for performance
+CREATE INDEX scenario_vote_scenarioId ON scenario_vote(scenarioId);
+CREATE INDEX scenario_vote_participantId ON scenario_vote(participantId);
+CREATE INDEX scenario_vote_scenarioId_participantId ON scenario_vote(scenarioId, participantId);
+
+-- Queries
+selectAll:
+SELECT * FROM scenario_vote;
+
+selectById:
+SELECT * FROM scenario_vote WHERE id = ?;
+
+selectByScenarioId:
+SELECT * FROM scenario_vote WHERE scenarioId = ?;
+
+selectByParticipantId:
+SELECT * FROM scenario_vote WHERE participantId = ?;
+
+selectByScenarioIdAndParticipantId:
+SELECT * FROM scenario_vote WHERE scenarioId = ? AND participantId = ? LIMIT 1;
+
+countByScenarioId:
+SELECT COUNT(*) FROM scenario_vote WHERE scenarioId = ?;
+
+countByScenarioIdAndVote:
+SELECT COUNT(*) FROM scenario_vote WHERE scenarioId = ? AND vote = ?;
+
+-- Aggregated voting results for a scenario
+selectVotingResultByScenarioId:
+SELECT 
+    scenarioId,
+    SUM(CASE WHEN vote = 'PREFER' THEN 1 ELSE 0 END) AS preferCount,
+    SUM(CASE WHEN vote = 'NEUTRAL' THEN 1 ELSE 0 END) AS neutralCount,
+    SUM(CASE WHEN vote = 'AGAINST' THEN 1 ELSE 0 END) AS againstCount,
+    COUNT(*) AS totalVotes
+FROM scenario_vote
+WHERE scenarioId = ?
+GROUP BY scenarioId;
+
+insertScenarioVote:
+INSERT INTO scenario_vote(id, scenarioId, participantId, vote, createdAt)
+VALUES (?, ?, ?, ?, ?);
+
+updateScenarioVote:
+UPDATE scenario_vote
+SET vote = ?
+WHERE scenarioId = ? AND participantId = ?;
+
+deleteScenarioVote:
+DELETE FROM scenario_vote WHERE id = ?;
+
+deleteByScenarioId:
+DELETE FROM scenario_vote WHERE scenarioId = ?;
+
+deleteByParticipantId:
+DELETE FROM scenario_vote WHERE participantId = ?;
+
+deleteByScenarioIdAndParticipantId:
+DELETE FROM scenario_vote WHERE scenarioId = ? AND participantId = ?;

@@ -92,7 +92,7 @@ struct ModernParticipantManagementView: View {
                                         .textFieldStyle(.plain)
                                         .padding(14)
                                         .background(Color(.tertiarySystemFill))
-                                        .cornerRadius(12)
+                                        .continuousCornerRadius(12)
                                         .keyboardType(.emailAddress)
                                         .autocapitalization(.none)
                                         .textContentType(.emailAddress)
@@ -116,8 +116,7 @@ struct ModernParticipantManagementView: View {
                                 }
                             }
                             .padding(20)
-                            .background(Color(.systemBackground))
-                            .cornerRadius(16)
+                            .glassCard(cornerRadius: 20, material: .regularMaterial)
                         }
 
                         // Status Banner
@@ -164,8 +163,7 @@ struct ModernParticipantManagementView: View {
                                 .padding(.bottom, 40)
                             }
                             .frame(maxWidth: .infinity)
-                            .background(Color(.systemBackground))
-                            .cornerRadius(16)
+                            .glassCard(cornerRadius: 20, material: .regularMaterial)
                         } else {
                             VStack(spacing: 0) {
                                 ForEach(Array(participants.enumerated()), id: \.element) { index, participant in
@@ -177,8 +175,7 @@ struct ModernParticipantManagementView: View {
                                     }
                                 }
                             }
-                            .background(Color(.systemBackground))
-                            .cornerRadius(16)
+                            .glassCard(cornerRadius: 20, material: .regularMaterial)
                         }
 
                         Spacer()

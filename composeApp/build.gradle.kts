@@ -22,6 +22,7 @@ kotlin {
     sourceSets {
         androidMain.dependencies {
             implementation(compose.preview)
+            implementation(compose.materialIconsExtended)
             implementation(libs.androidx.activity.compose)
             // OAuth2 dependencies
             implementation(libs.google.auth)

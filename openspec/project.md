@@ -1,7 +1,14 @@
 # Project Context
 
 ## Purpose
-Wakeve is a Kotlin Multiplatform mobile application designed for collaborative event planning. It streamlines the process from polling for availability to finalizing details like destination, lodging, and transport, with a strong emphasis on providing a seamless offline-first user experience.
+Wakeve is a Kotlin Multiplatform mobile application designed for collaborative event planning between friends and small groups.
+It supports a wide range of events (trips, dinners, birthdays, surprise events, weddings) and streamlines the entire process from early ideation and date polling to full logistical organization, including transport, lodging, food, equipment, and shared budgets.
+
+The product strongly emphasizes:
+- collective decision-making,
+- budget transparency,
+- task responsibility sharing,
+- and a seamless offline-first user experience.
 
 ## Tech Stack
 - Kotlin Multiplatform (for shared domain and application logic)
@@ -34,6 +41,8 @@ Our code style prioritizes clarity, consistency, and automation across all langu
 - **Local-First Sync:** The application uses SQLDelight for a local source of truth. Data is synchronized incrementally with the backend.
 - **Conflict Resolution:** The current conflict resolution strategy is "last-write-wins" based on timestamps, with plans to evolve to a CRDT-based model.
 - **UI:** The UI is built natively on each platform, with Jetpack Compose on Android and SwiftUI on iOS, interoperating with the shared KMP framework.
+- **Scenario-based Planning:** Before confirmation, multiple scenarios (date + location + estimated cost) can coexist and be compared.
+- **Local-First Sync:** SQLDelight remains the source of truth, including polls, scenarios, logistics, and budget estimations.
 
 ### Testing Strategy
 The project follows a Test-Driven Development (TDD) approach. New features and bug fixes should begin with writing failing tests that describe the desired functionality or behavior, followed by the implementation that makes the tests pass. All code should be thoroughly unit-tested, and integration tests are used to verify interactions between different agents and components.
@@ -42,28 +51,104 @@ The project follows a Test-Driven Development (TDD) approach. New features and b
 We use a Trunk-Based Development model. All developers commit directly to a single branch, `main`. To keep the main branch stable and always releasable, development of significant features is managed through feature flags. Code is expected to be integrated frequently in small, incremental commits.
 
 ## Domain Context
-The application revolves around "Agents" (both human and software) that collaborate to plan an event.
+The application revolves around Events as the core domain object. Events evolve through clearly defined phases and are coordinated by both human and software agents.
 
-- **Human Agents:**
-  - **Organizer:** Creates events, sets up polls for dates, defines deadlines, and validates the final chosen date.
-  - **Participant:** Votes on proposed slots, can suggest new slots if permitted, and contributes to event details after a date is confirmed.
+### **Event Lifecycle**
 
-- **Software Agents:** The system is composed of several specialized agents:
-  - **Poll & Calendar Agent:** Manages time slots, votes, timezones, and calculates the best slot.
-  - **Destination & Lodging Agent:** Suggests destinations and accommodations.
-  - **Transport Agent:** Recommends travel options based on participant locations.
-  - **Meetings Agent:** Generates links for virtual meetings (Zoom, Meet).
-  - **Payment & Tricount Agent:** Manages shared costs and integrates with Tricount.
-  - **Sync & Offline Agent:** Handles local caching, conflict resolution, and network status.
-  - **Security & Auth Agent:** Manages authentication and permissions.
-  - **Notifications Agent:** Sends reminders and status updates.
+**1. Idea / Draft**
+- Event created
+- Participants invited
 
-The general workflow is:
-1. An Organizer creates a poll.
-2. Participants vote on time slots.
-3. The Poll Agent recommends the best slot, which the Organizer confirms.
-4. Once a date is locked, other agents are notified to help plan the rest of the event details (destination, transport, etc.).
-5. Access to detailed information is restricted to participants who have confirmed their attendance for the final date.
+**2. Polling**
+- Multiple dates or periods proposed
+- Participants vote (Yes / Maybe / No)
+
+**3. Scenario Comparison**
+- Optional shortlist of scenarios
+- Each scenario includes:
+  - date or period
+  - destination
+  - duration
+  - estimated number of participants
+  - approximate budget per person
+
+**4. Confirmed**
+- A single date (and optionally scenario) is locked by the organizer
+
+**5. Organization**
+- Detailed planning of logistics:
+  - transport
+  - lodging
+  - food
+  - equipment & activities
+  - shared costs
+
+**6. Finalized**
+- All critical information confirmed
+- Event ready for execution
+
+### **Human Agents:**
+- **Organizer**
+  - Creates and configures the event
+  - Proposes dates and scenarios
+  - Sets deadlines
+  - Confirms the final date
+  - Oversees logistics and budget
+
+- **Participant**
+  - Votes on dates and scenarios
+  - Confirms attendance
+  - Provides departure location
+  - Contributes to logistics, food, and equipment once the date is confirmed
+
+
+### **Software Agents**
+
+- **Poll & Calendar Agent**
+  - Manages time slots, votes, deadlines, and timezones
+  - Computes the best possible date or period
+
+- **Scenario & Budget Agent**
+  - Manages scenario shortlists
+  - Aggregates estimated costs (transport, lodging, food)
+  - Computes per-person budget approximations
+
+- **Destination & Lodging Agent**
+  - Suggests destinations and accommodations based on scenarios
+
+- **Transport Agent**
+  - Recommends travel options based on participant locations and confirmed dates
+
+- **Food & Equipment Agent**
+  - Manages meal planning, dietary constraints
+
+- **Handles collaborative equipment checklists**
+
+- **Payment & Tricount Agent**
+  - Tracks shared expenses
+  - Integrates with Tricount for settlement
+
+- **Sync & Offline Agent**
+  - Handles offline-first storage
+  - Queues actions and resolves conflicts (last-write-wins for now)
+
+- **Security & Auth Agent**
+  - Manages authentication, permissions, and access control
+  - 
+- **Notifications Agent**
+  - Sends poll reminders, confirmations, and organizational updates
+
+
+### General Workflow
+
+1. Organizer creates an event
+2. Dates or periods are proposed
+3. Participants vote
+4. Optional scenarios are created and compared
+5. Poll Agent recommends the optimal date
+6. Organizer confirms the date
+7. Logistics and budget planning are unlocked
+8. Only confirmed participants can access detailed organization data
 
 ## Important Constraints
 - **Timezone Consistency:** The system must handle timezones correctly for all users across polling and deadlines.

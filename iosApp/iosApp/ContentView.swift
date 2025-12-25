@@ -120,19 +120,7 @@ struct AuthenticatedView: View {
     @State private var repository = EventRepository()
 
     var body: some View {
-        ZStack {
-            // Background gradient
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.blue.opacity(0.1),
-                    Color.purple.opacity(0.1),
-                    Color.pink.opacity(0.1)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
+        Group {
             switch currentView {
             case .eventList:
                 ModernHomeView(
@@ -148,7 +136,7 @@ struct AuthenticatedView: View {
                 )
                 
             case .eventCreation:
-                ModernEventCreationView(
+                AppleInvitesEventCreationView(
                     userId: userId,
                     repository: repository,
                     onEventCreated: { eventId in

@@ -19,7 +19,23 @@ data class Event(
 
 @Serializable
 enum class EventStatus {
-    DRAFT, POLLING, CONFIRMED
+    /** Event is being drafted, not yet shared with participants */
+    DRAFT,
+    
+    /** Date polling is active, participants are voting on time slots */
+    POLLING,
+    
+    /** Multiple planning scenarios are being compared */
+    COMPARING,
+    
+    /** Date and scenario are confirmed, ready for detailed planning */
+    CONFIRMED,
+    
+    /** Detailed logistics (transport, accommodation, meals, etc.) are being organized */
+    ORGANIZING,
+    
+    /** All details are finalized and confirmed */
+    FINALIZED
 }
 
 @Serializable

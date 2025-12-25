@@ -129,9 +129,7 @@ struct ModernEventDetailView: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
                             .frame(width: 36, height: 36)
-                            .background(Color.black.opacity(0.3))
-                            .backdrop(radius: 18, opaque: false)
-                            .clipShape(Circle())
+                            .background(.ultraThinMaterial, in: Circle())
                     }
                     .padding(.leading, 20)
                     .padding(.top, 60)
@@ -144,9 +142,7 @@ struct ModernEventDetailView: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
                             .frame(width: 36, height: 36)
-                            .background(Color.black.opacity(0.3))
-                            .backdrop(radius: 18, opaque: false)
-                            .clipShape(Circle())
+                            .background(.ultraThinMaterial, in: Circle())
                     }
                     .padding(.trailing, 20)
                     .padding(.top, 60)
@@ -241,9 +237,8 @@ struct StatusBadgeLarge: View {
         .foregroundColor(.white)
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
-        .background(Color.white.opacity(0.25))
-        .backdrop(radius: 20, opaque: false)
-        .cornerRadius(22)
+        .background(.ultraThinMaterial)
+        .continuousCornerRadius(22)
     }
 
     private var statusText: String {
@@ -399,8 +394,7 @@ struct HostActionButton: View {
                     .foregroundColor(.secondary)
             }
             .padding(16)
-            .background(Color(.secondarySystemGroupedBackground))
-            .cornerRadius(12)
+            .thinGlass(cornerRadius: 12)
         }
     }
 }
@@ -530,24 +524,3 @@ struct ModernParticipantRow: View {
     }
 }
 
-// MARK: - Corner Radius Extension
-
-extension View {
-    func cornerRadius(_ radius: CGFloat, corners: UIRectCorner) -> some View {
-        clipShape(RoundedCorner(radius: radius, corners: corners))
-    }
-}
-
-struct RoundedCorner: Shape {
-    var radius: CGFloat = .infinity
-    var corners: UIRectCorner = .allCorners
-
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(
-            roundedRect: rect,
-            byRoundingCorners: corners,
-            cornerRadii: CGSize(width: radius, height: radius)
-        )
-        return Path(path.cgPath)
-    }
-}

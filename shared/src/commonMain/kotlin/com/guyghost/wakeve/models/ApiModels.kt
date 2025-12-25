@@ -84,3 +84,80 @@ data class ApiResponse<T>(
     val data: T? = null,
     val error: ErrorResponse? = null
 )
+
+// Scenario API Models
+
+@Serializable
+data class CreateScenarioRequest(
+    val eventId: String,
+    val name: String,
+    val dateOrPeriod: String,
+    val location: String,
+    val duration: Int,
+    val estimatedParticipants: Int,
+    val estimatedBudgetPerPerson: Double,
+    val description: String
+)
+
+@Serializable
+data class UpdateScenarioRequest(
+    val name: String? = null,
+    val dateOrPeriod: String? = null,
+    val location: String? = null,
+    val duration: Int? = null,
+    val estimatedParticipants: Int? = null,
+    val estimatedBudgetPerPerson: Double? = null,
+    val description: String? = null,
+    val status: String? = null  // PROPOSED, SELECTED, REJECTED
+)
+
+@Serializable
+data class ScenarioResponse(
+    val id: String,
+    val eventId: String,
+    val name: String,
+    val dateOrPeriod: String,
+    val location: String,
+    val duration: Int,
+    val estimatedParticipants: Int,
+    val estimatedBudgetPerPerson: Double,
+    val description: String,
+    val status: String,
+    val createdAt: String,
+    val updatedAt: String
+)
+
+@Serializable
+data class ScenarioVoteRequest(
+    val participantId: String,
+    val vote: String  // PREFER, NEUTRAL, AGAINST
+)
+
+@Serializable
+data class ScenarioVoteResponse(
+    val id: String,
+    val scenarioId: String,
+    val participantId: String,
+    val vote: String,
+    val createdAt: String
+)
+
+@Serializable
+data class ScenarioVotingResultResponse(
+    val scenarioId: String,
+    val preferCount: Int,
+    val neutralCount: Int,
+    val againstCount: Int,
+    val totalVotes: Int,
+    val score: Int,
+    val preferPercentage: Double,
+    val neutralPercentage: Double,
+    val againstPercentage: Double
+)
+
+@Serializable
+data class ScenarioWithVotesResponse(
+    val scenario: ScenarioResponse,
+    val votes: List<ScenarioVoteResponse>,
+    val result: ScenarioVotingResultResponse
+)
