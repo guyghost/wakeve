@@ -1,0 +1,133 @@
+-- Activity Table
+-- Stores activities for events with participant registration
+
+CREATE TABLE IF NOT EXISTS activity (
+    id TEXT PRIMARY KEY NOT NULL,
+    event_id TEXT NOT NULL,
+    scenario_id TEXT, -- Optional link to scenario
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    date TEXT, -- ISO 8601 date (optional)
+    time TEXT, -- HH:MM format (optional)
+    duration INTEGER NOT NULL, -- Duration in minutes
+    location TEXT,
+    cost INTEGER, -- Cost per participant in cents
+    max_participants INTEGER, -- NULL for unlimited
+    organizer_id TEXT NOT NULL,
+    notes TEXT,
+    created_at TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    updated_at TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    FOREIGN KEY(event_id) REFERENCES event(id) ON DELETE CASCADE
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_activity_event_id ON activity(event_id);
+CREATE INDEX IF NOT EXISTS idx_activity_scenario_id ON activity(scenario_id);
+CREATE INDEX IF NOT EXISTS idx_activity_date ON activity(date);
+CREATE INDEX IF NOT EXISTS idx_activity_organizer_id ON activity(organizer_id);
+
+-- ==================== QUERIES ====================
+
+-- Create
+insertActivity:
+INSERT INTO activity (
+    id, event_id, scenario_id, name, description, date, time,
+    duration, location, cost, max_participants, organizer_id, 
+    notes, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Read
+selectActivityById:
+SELECT * FROM activity WHERE id = ?;
+
+selectActivitiesByEvent:
+SELECT * FROM activity 
+WHERE event_id = ? 
+ORDER BY date, time, name;
+
+selectActivitiesByEventAndDate:
+SELECT * FROM activity 
+WHERE event_id = ? AND date = ?
+ORDER BY time, name;
+
+selectActivitiesByScenario:
+SELECT * FROM activity 
+WHERE event_id = ? AND scenario_id = ?
+ORDER BY date, time, name;
+
+selectActivitiesByOrganizer:
+SELECT * FROM activity 
+WHERE event_id = ? AND organizer_id = ?
+ORDER BY date, time, name;
+
+selectActivitiesWithoutDate:
+SELECT * FROM activity 
+WHERE event_id = ? AND date IS NULL
+ORDER BY name;
+
+-- Update
+updateActivity:
+UPDATE activity 
+SET scenario_id = ?, name = ?, description = ?, date = ?, time = ?,
+    duration = ?, location = ?, cost = ?, max_participants = ?, 
+    organizer_id = ?, notes = ?, updated_at = ?
+WHERE id = ?;
+
+updateActivityDate:
+UPDATE activity 
+SET date = ?, time = ?, updated_at = ?
+WHERE id = ?;
+
+updateActivityCapacity:
+UPDATE activity 
+SET max_participants = ?, updated_at = ?
+WHERE id = ?;
+
+-- Delete
+deleteActivity:
+DELETE FROM activity WHERE id = ?;
+
+deleteActivitiesByEvent:
+DELETE FROM activity WHERE event_id = ?;
+
+deleteActivitiesByScenario:
+DELETE FROM activity WHERE scenario_id = ?;
+
+-- ==================== AGGREGATIONS ====================
+
+countActivitiesByEvent:
+SELECT COUNT(*) AS activityCount 
+FROM activity 
+WHERE event_id = ?;
+
+countActivitiesByEventAndDate:
+SELECT COUNT(*) AS activityCount 
+FROM activity 
+WHERE event_id = ? AND date = ?;
+
+sumActivityCostByEvent:
+SELECT COALESCE(SUM(cost), 0) AS totalCost 
+FROM activity 
+WHERE event_id = ?;
+
+sumActivityCostByDate:
+SELECT COALESCE(SUM(cost), 0) AS totalCost 
+FROM activity 
+WHERE event_id = ? AND date = ?;
+
+-- Activities by date with statistics
+selectActivitiesByDateGrouped:
+SELECT 
+    date,
+    COUNT(*) AS activityCount,
+    COALESCE(SUM(cost), 0) AS totalCost
+FROM activity 
+WHERE event_id = ? AND date IS NOT NULL
+GROUP BY date
+ORDER BY date;
+
+-- Check if activity exists
+activityExists:
+SELECT COUNT(*) > 0 AS activityExists 
+FROM activity 
+WHERE id = ?;

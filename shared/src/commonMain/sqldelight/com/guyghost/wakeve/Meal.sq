@@ -1,0 +1,137 @@
+-- Meal table
+-- Represents a planned meal for an event
+
+CREATE TABLE IF NOT EXISTS meal (
+    id TEXT PRIMARY KEY NOT NULL,
+    event_id TEXT NOT NULL,
+    type TEXT NOT NULL, -- BREAKFAST, LUNCH, DINNER, SNACK, APERITIF
+    name TEXT NOT NULL,
+    date TEXT NOT NULL, -- ISO 8601 date
+    time TEXT NOT NULL, -- HH:MM format
+    location TEXT,
+    responsible_participant_ids TEXT NOT NULL, -- Comma-separated list
+    estimated_cost INTEGER NOT NULL, -- In cents
+    actual_cost INTEGER, -- In cents (nullable)
+    servings INTEGER NOT NULL,
+    status TEXT NOT NULL, -- PLANNED, ASSIGNED, IN_PROGRESS, COMPLETED, CANCELLED
+    notes TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- Index for fast lookups by event
+CREATE INDEX IF NOT EXISTS idx_meal_event_id ON meal(event_id);
+
+-- Index for filtering by date and time
+CREATE INDEX IF NOT EXISTS idx_meal_date_time ON meal(date, time);
+
+-- Index for filtering by status
+CREATE INDEX IF NOT EXISTS idx_meal_status ON meal(status);
+
+-- Index for filtering by type
+CREATE INDEX IF NOT EXISTS idx_meal_type ON meal(type);
+
+-- Insert a new meal
+insertMeal:
+INSERT INTO meal (
+    id, event_id, type, name, date, time, location,
+    responsible_participant_ids, estimated_cost, actual_cost,
+    servings, status, notes, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Get meal by ID
+getMealById:
+SELECT * FROM meal WHERE id = ?;
+
+-- Get all meals for an event
+getMealsByEventId:
+SELECT * FROM meal WHERE event_id = ? ORDER BY date ASC, time ASC;
+
+-- Get meals by date
+getMealsByDate:
+SELECT * FROM meal WHERE event_id = ? AND date = ? ORDER BY time ASC;
+
+-- Get meals by date range
+getMealsByDateRange:
+SELECT * FROM meal 
+WHERE event_id = ? AND date >= ? AND date <= ?
+ORDER BY date ASC, time ASC;
+
+-- Get meals by type
+getMealsByType:
+SELECT * FROM meal WHERE event_id = ? AND type = ? ORDER BY date ASC, time ASC;
+
+-- Get meals by status
+getMealsByStatus:
+SELECT * FROM meal WHERE event_id = ? AND status = ? ORDER BY date ASC, time ASC;
+
+-- Get meals assigned to a participant
+getMealsForParticipant:
+SELECT * FROM meal 
+WHERE event_id = ? AND responsible_participant_ids LIKE '%' || ? || '%'
+ORDER BY date ASC, time ASC;
+
+-- Update meal
+updateMeal:
+UPDATE meal SET
+    type = ?,
+    name = ?,
+    date = ?,
+    time = ?,
+    location = ?,
+    responsible_participant_ids = ?,
+    estimated_cost = ?,
+    actual_cost = ?,
+    servings = ?,
+    status = ?,
+    notes = ?,
+    updated_at = ?
+WHERE id = ?;
+
+-- Update meal status
+updateMealStatus:
+UPDATE meal SET
+    status = ?,
+    updated_at = ?
+WHERE id = ?;
+
+-- Update meal actual cost
+updateMealActualCost:
+UPDATE meal SET
+    actual_cost = ?,
+    updated_at = ?
+WHERE id = ?;
+
+-- Delete meal
+deleteMeal:
+DELETE FROM meal WHERE id = ?;
+
+-- Delete all meals for an event
+deleteMealsByEventId:
+DELETE FROM meal WHERE event_id = ?;
+
+-- Get total estimated cost
+getTotalEstimatedCost:
+SELECT SUM(estimated_cost) FROM meal WHERE event_id = ?;
+
+-- Get total actual cost
+getTotalActualCost:
+SELECT SUM(actual_cost) FROM meal WHERE event_id = ? AND actual_cost IS NOT NULL;
+
+-- Count meals by status
+countMealsByStatus:
+SELECT status, COUNT(*) FROM meal WHERE event_id = ? GROUP BY status;
+
+-- Count meals by type
+countMealsByType:
+SELECT type, COUNT(*) FROM meal WHERE event_id = ? GROUP BY type;
+
+-- Get completed meals count
+countCompletedMeals:
+SELECT COUNT(*) FROM meal WHERE event_id = ? AND status = 'COMPLETED';
+
+-- Get upcoming meals (not completed or cancelled)
+getUpcomingMeals:
+SELECT * FROM meal 
+WHERE event_id = ? AND status NOT IN ('COMPLETED', 'CANCELLED')
+ORDER BY date ASC, time ASC;

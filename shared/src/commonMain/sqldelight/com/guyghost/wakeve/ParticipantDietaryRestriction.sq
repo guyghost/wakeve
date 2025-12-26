@@ -1,0 +1,100 @@
+-- ParticipantDietaryRestriction table
+-- Maps dietary restrictions to participants
+
+CREATE TABLE IF NOT EXISTS participant_dietary_restriction (
+    id TEXT PRIMARY KEY NOT NULL,
+    participant_id TEXT NOT NULL,
+    event_id TEXT NOT NULL,
+    restriction TEXT NOT NULL, -- VEGETARIAN, VEGAN, GLUTEN_FREE, etc.
+    notes TEXT,
+    created_at TEXT NOT NULL
+);
+
+-- Index for fast lookups by participant
+CREATE INDEX IF NOT EXISTS idx_pdr_participant_id ON participant_dietary_restriction(participant_id);
+
+-- Index for fast lookups by event
+CREATE INDEX IF NOT EXISTS idx_pdr_event_id ON participant_dietary_restriction(event_id);
+
+-- Index for filtering by restriction type
+CREATE INDEX IF NOT EXISTS idx_pdr_restriction ON participant_dietary_restriction(restriction);
+
+-- Unique constraint: one entry per participant per restriction per event
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pdr_unique 
+ON participant_dietary_restriction(participant_id, event_id, restriction);
+
+-- Insert a dietary restriction
+insertDietaryRestriction:
+INSERT INTO participant_dietary_restriction (
+    id, participant_id, event_id, restriction, notes, created_at
+) VALUES (?, ?, ?, ?, ?, ?);
+
+-- Get restriction by ID
+getDietaryRestrictionById:
+SELECT * FROM participant_dietary_restriction WHERE id = ?;
+
+-- Get all restrictions for a participant in an event
+getRestrictionsForParticipant:
+SELECT * FROM participant_dietary_restriction 
+WHERE participant_id = ? AND event_id = ?
+ORDER BY restriction ASC;
+
+-- Get all restrictions for an event
+getRestrictionsForEvent:
+SELECT * FROM participant_dietary_restriction 
+WHERE event_id = ?
+ORDER BY participant_id ASC, restriction ASC;
+
+-- Get restrictions by type for an event
+getRestrictionsByType:
+SELECT * FROM participant_dietary_restriction 
+WHERE event_id = ? AND restriction = ?
+ORDER BY participant_id ASC;
+
+-- Get all participants with a specific restriction
+getParticipantsWithRestriction:
+SELECT DISTINCT participant_id FROM participant_dietary_restriction
+WHERE event_id = ? AND restriction = ?;
+
+-- Count restrictions by type for an event
+countRestrictionsByType:
+SELECT restriction, COUNT(*) FROM participant_dietary_restriction
+WHERE event_id = ?
+GROUP BY restriction;
+
+-- Count total restrictions for an event
+countTotalRestrictions:
+SELECT COUNT(*) FROM participant_dietary_restriction WHERE event_id = ?;
+
+-- Check if participant has a specific restriction
+hasRestriction:
+SELECT COUNT(*) > 0 FROM participant_dietary_restriction
+WHERE participant_id = ? AND event_id = ? AND restriction = ?;
+
+-- Update restriction notes
+updateRestrictionNotes:
+UPDATE participant_dietary_restriction SET
+    notes = ?
+WHERE id = ?;
+
+-- Delete a dietary restriction
+deleteDietaryRestriction:
+DELETE FROM participant_dietary_restriction WHERE id = ?;
+
+-- Delete all restrictions for a participant in an event
+deleteRestrictionsForParticipant:
+DELETE FROM participant_dietary_restriction 
+WHERE participant_id = ? AND event_id = ?;
+
+-- Delete all restrictions for an event
+deleteRestrictionsForEvent:
+DELETE FROM participant_dietary_restriction WHERE event_id = ?;
+
+-- Get participants with multiple restrictions
+getParticipantsWithMultipleRestrictions:
+SELECT participant_id, COUNT(*) AS restriction_count
+FROM participant_dietary_restriction
+WHERE event_id = ?
+GROUP BY participant_id
+HAVING COUNT(*) > 1
+ORDER BY COUNT(*) DESC;

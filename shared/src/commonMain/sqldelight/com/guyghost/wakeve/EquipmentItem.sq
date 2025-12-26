@@ -1,0 +1,168 @@
+-- Equipment Item Table
+-- Stores equipment needed for events with assignment tracking
+
+CREATE TABLE IF NOT EXISTS equipment_item (
+    id TEXT PRIMARY KEY NOT NULL,
+    event_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL, -- CAMPING, SPORTS, COOKING, ELECTRONICS, OTHER
+    quantity INTEGER NOT NULL DEFAULT 1,
+    assigned_to TEXT, -- participant_id, NULL if unassigned
+    status TEXT NOT NULL, -- NEEDED, ASSIGNED, CONFIRMED, PACKED
+    shared_cost INTEGER, -- In cents, NULL if no cost
+    notes TEXT,
+    created_at TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    updated_at TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    FOREIGN KEY(event_id) REFERENCES event(id) ON DELETE CASCADE
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_equipment_item_event_id ON equipment_item(event_id);
+CREATE INDEX IF NOT EXISTS idx_equipment_item_category ON equipment_item(category);
+CREATE INDEX IF NOT EXISTS idx_equipment_item_status ON equipment_item(status);
+CREATE INDEX IF NOT EXISTS idx_equipment_item_assigned_to ON equipment_item(assigned_to);
+
+-- ==================== QUERIES ====================
+
+-- Create
+insertEquipmentItem:
+INSERT INTO equipment_item (
+    id, event_id, name, category, quantity, assigned_to, 
+    status, shared_cost, notes, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Read
+selectEquipmentItemById:
+SELECT * FROM equipment_item WHERE id = ?;
+
+selectEquipmentItemsByEvent:
+SELECT * FROM equipment_item 
+WHERE event_id = ? 
+ORDER BY category, name;
+
+selectEquipmentItemsByEventAndCategory:
+SELECT * FROM equipment_item 
+WHERE event_id = ? AND category = ?
+ORDER BY name;
+
+selectEquipmentItemsByEventAndStatus:
+SELECT * FROM equipment_item 
+WHERE event_id = ? AND status = ?
+ORDER BY category, name;
+
+selectEquipmentItemsByAssignee:
+SELECT * FROM equipment_item 
+WHERE event_id = ? AND assigned_to = ?
+ORDER BY category, name;
+
+selectUnassignedItems:
+SELECT * FROM equipment_item 
+WHERE event_id = ? AND assigned_to IS NULL
+ORDER BY category, name;
+
+-- Update
+updateEquipmentItem:
+UPDATE equipment_item 
+SET name = ?, category = ?, quantity = ?, assigned_to = ?, 
+    status = ?, shared_cost = ?, notes = ?, updated_at = ?
+WHERE id = ?;
+
+updateEquipmentItemStatus:
+UPDATE equipment_item 
+SET status = ?, updated_at = ?
+WHERE id = ?;
+
+updateEquipmentItemAssignment:
+UPDATE equipment_item 
+SET assigned_to = ?, status = ?, updated_at = ?
+WHERE id = ?;
+
+-- Delete
+deleteEquipmentItem:
+DELETE FROM equipment_item WHERE id = ?;
+
+deleteEquipmentItemsByEvent:
+DELETE FROM equipment_item WHERE event_id = ?;
+
+-- ==================== AGGREGATIONS ====================
+
+countEquipmentItemsByEvent:
+SELECT COUNT(*) AS itemCount 
+FROM equipment_item 
+WHERE event_id = ?;
+
+countEquipmentItemsByEventAndStatus:
+SELECT COUNT(*) AS itemCount 
+FROM equipment_item 
+WHERE event_id = ? AND status = ?;
+
+countEquipmentItemsByEventAndCategory:
+SELECT COUNT(*) AS itemCount 
+FROM equipment_item 
+WHERE event_id = ? AND category = ?;
+
+sumEquipmentCostByEvent:
+SELECT COALESCE(SUM(shared_cost), 0) AS totalCost 
+FROM equipment_item 
+WHERE event_id = ?;
+
+sumEquipmentCostByEventAndCategory:
+SELECT COALESCE(SUM(shared_cost), 0) AS totalCost 
+FROM equipment_item 
+WHERE event_id = ? AND category = ?;
+
+sumEquipmentCostByAssignee:
+SELECT COALESCE(SUM(shared_cost), 0) AS totalCost 
+FROM equipment_item 
+WHERE event_id = ? AND assigned_to = ?;
+
+-- Statistics by category
+selectEquipmentStatsByCategory:
+SELECT 
+    category,
+    COUNT(*) AS itemCount,
+    COUNT(CASE WHEN assigned_to IS NOT NULL THEN 1 END) AS assignedCount,
+    COUNT(CASE WHEN status = 'CONFIRMED' THEN 1 END) AS confirmedCount,
+    COUNT(CASE WHEN status = 'PACKED' THEN 1 END) AS packedCount,
+    COALESCE(SUM(shared_cost), 0) AS totalCost
+FROM equipment_item 
+WHERE event_id = ?
+GROUP BY category
+ORDER BY category;
+
+-- Statistics by assignee
+selectEquipmentStatsByAssignee:
+SELECT 
+    assigned_to,
+    COUNT(*) AS itemCount,
+    COUNT(CASE WHEN status = 'CONFIRMED' THEN 1 END) AS confirmedCount,
+    COUNT(CASE WHEN status = 'PACKED' THEN 1 END) AS packedCount,
+    COALESCE(SUM(shared_cost), 0) AS totalValue
+FROM equipment_item 
+WHERE event_id = ? AND assigned_to IS NOT NULL
+GROUP BY assigned_to
+ORDER BY assigned_to;
+
+-- Overall statistics
+selectEquipmentOverallStats:
+SELECT 
+    COUNT(*) AS totalItems,
+    COUNT(CASE WHEN assigned_to IS NOT NULL THEN 1 END) AS assignedItems,
+    COUNT(CASE WHEN status = 'CONFIRMED' THEN 1 END) AS confirmedItems,
+    COUNT(CASE WHEN status = 'PACKED' THEN 1 END) AS packedItems,
+    COALESCE(SUM(shared_cost), 0) AS totalCost
+FROM equipment_item 
+WHERE event_id = ?;
+
+-- Check if item exists
+equipmentItemExists:
+SELECT COUNT(*) > 0 AS itemExists 
+FROM equipment_item 
+WHERE id = ?;
+
+-- Get item names by assignee
+selectItemNamesByAssignee:
+SELECT name 
+FROM equipment_item 
+WHERE event_id = ? AND assigned_to = ?
+ORDER BY name;

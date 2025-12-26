@@ -1,0 +1,81 @@
+-- Activity Participant Table
+-- Many-to-many relationship between activities and participants
+
+CREATE TABLE IF NOT EXISTS activity_participant (
+    id TEXT PRIMARY KEY NOT NULL,
+    activity_id TEXT NOT NULL,
+    participant_id TEXT NOT NULL,
+    registered_at TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    notes TEXT,
+    FOREIGN KEY(activity_id) REFERENCES activity(id) ON DELETE CASCADE,
+    UNIQUE(activity_id, participant_id) -- A participant can only register once per activity
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_activity_participant_activity_id ON activity_participant(activity_id);
+CREATE INDEX IF NOT EXISTS idx_activity_participant_participant_id ON activity_participant(participant_id);
+
+-- ==================== QUERIES ====================
+
+-- Create
+insertActivityParticipant:
+INSERT INTO activity_participant (
+    id, activity_id, participant_id, registered_at, notes
+) VALUES (?, ?, ?, ?, ?);
+
+-- Read
+selectActivityParticipantById:
+SELECT * FROM activity_participant WHERE id = ?;
+
+selectParticipantsByActivity:
+SELECT * FROM activity_participant 
+WHERE activity_id = ?
+ORDER BY registered_at;
+
+selectActivitiesByParticipant:
+SELECT * FROM activity_participant 
+WHERE participant_id = ?
+ORDER BY registered_at DESC;
+
+-- Check if participant is registered
+isParticipantRegistered:
+SELECT COUNT(*) > 0 AS isRegistered 
+FROM activity_participant 
+WHERE activity_id = ? AND participant_id = ?;
+
+-- Delete (unregister)
+deleteActivityParticipant:
+DELETE FROM activity_participant WHERE id = ?;
+
+deleteActivityParticipantByActivityAndParticipant:
+DELETE FROM activity_participant 
+WHERE activity_id = ? AND participant_id = ?;
+
+deleteParticipantsByActivity:
+DELETE FROM activity_participant WHERE activity_id = ?;
+
+-- ==================== AGGREGATIONS ====================
+
+countParticipantsByActivity:
+SELECT COUNT(*) AS participantCount 
+FROM activity_participant 
+WHERE activity_id = ?;
+
+countActivitiesByParticipant:
+SELECT COUNT(*) AS activityCount 
+FROM activity_participant 
+WHERE participant_id = ?;
+
+-- Get participant IDs for an activity
+selectParticipantIdsByActivity:
+SELECT participant_id 
+FROM activity_participant 
+WHERE activity_id = ?
+ORDER BY registered_at;
+
+-- Get activity IDs for a participant
+selectActivityIdsByParticipant:
+SELECT activity_id 
+FROM activity_participant 
+WHERE participant_id = ?
+ORDER BY registered_at DESC;

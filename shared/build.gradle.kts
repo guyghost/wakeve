@@ -29,6 +29,7 @@ kotlin {
             implementation(libs.sqldelight.runtime)
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
             implementation(libs.kotlinx.coroutines)
+            implementation(libs.kotlinx.datetime)
         }
         androidMain.dependencies {
             implementation(libs.sqldelight.androidDriver)
