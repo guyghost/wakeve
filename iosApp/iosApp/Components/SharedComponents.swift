@@ -86,7 +86,7 @@ struct FilterChip: View {
 
 /// Vote button for poll voting (Yes/Maybe/No)
 struct VoteButton: View {
-    let vote: Vote
+    let vote: PollVote
     let isSelected: Bool
     let action: () -> Void
     
@@ -114,36 +114,33 @@ struct VoteButton: View {
         }
     }
     
-    private func voteColor(for vote: Vote) -> Color {
+    private func voteColor(for vote: PollVote) -> Color {
         switch vote {
         case .yes: return .green
         case .maybe: return .orange
         case .no: return .red
-        default: return .gray
         }
     }
     
-    private func voteSymbol(for vote: Vote) -> String {
+    private func voteSymbol(for vote: PollVote) -> String {
         switch vote {
         case .yes: return "✓"
         case .maybe: return "~"
         case .no: return "✗"
-        default: return "?"
         }
     }
     
-    private func voteLabel(for vote: Vote) -> String {
+    private func voteLabel(for vote: PollVote) -> String {
         switch vote {
         case .yes: return "Yes"
         case .maybe: return "Maybe"
         case .no: return "No"
-        default: return "Unknown"
         }
     }
 }
 
 /// Vote enum for poll responses
-enum Vote: String, Codable {
+enum PollVote: String, Codable {
     case yes = "YES"
     case maybe = "MAYBE"
     case no = "NO"

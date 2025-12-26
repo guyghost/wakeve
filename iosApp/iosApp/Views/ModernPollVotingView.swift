@@ -10,7 +10,7 @@ struct ModernPollVotingView: View {
     let onVoteSubmitted: () -> Void
     let onBack: () -> Void
 
-    @State private var votes: [String: Vote] = [:]
+    @State private var votes: [String: PollVote] = [:]
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showError = false
@@ -210,7 +210,7 @@ struct ModernPollVotingView: View {
 
     private func checkExistingVotes() {
         if let poll = repository.getPoll(eventId: event.id) {
-            if let participantVoteMap = poll.votes[participantId] as? [String: Vote] {
+            if let participantVoteMap = poll.votes[participantId] as? [String: PollVote] {
                 hasVoted = !participantVoteMap.isEmpty
 
                 if hasVoted {
@@ -228,13 +228,22 @@ struct ModernPollVotingView: View {
         var successCount = 0
         var lastError: Error?
 
-        for (slotId, vote) in votes {
+        for (slotId, pollVote) in votes {
             do {
+                // Convert PollVote to Shared.Vote
+                let sharedVote: Shared.Vote = {
+                    switch pollVote {
+                    case .yes: return .yes
+                    case .maybe: return .maybe
+                    case .no: return .no
+                    }
+                }()
+                
                 let result = try await repository.addVote(
                     eventId: event.id,
                     participantId: participantId,
                     slotId: slotId,
-                    vote: vote
+                    vote: sharedVote
                 )
 
                 if let success = result as? Bool, success {
@@ -305,8 +314,8 @@ struct VoteGuideRow: View {
 
 struct ModernTimeSlotVoteCard: View {
     let timeSlot: TimeSlot
-    let selectedVote: Vote?
-    let onVoteSelected: (Vote) -> Void
+    let selectedVote: PollVote?
+    let onVoteSelected: (PollVote) -> Void
 
     var body: some View {
         VStack(spacing: 16) {
@@ -383,7 +392,7 @@ struct ModernTimeSlotVoteCard: View {
 // MARK: - Modern Vote Button
 
 struct ModernVoteButton: View {
-    let vote: Vote
+    let vote: PollVote
     let icon: String
     let label: String
     let color: Color

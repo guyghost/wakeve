@@ -168,7 +168,7 @@ struct ScenarioComparisonView: View {
             
             ComparisonRow(
                 label: "Status",
-                values: scenarios.map { statusText($0.scenario.status) }
+                values: scenarios.map { statusText(ScenarioStatus(rawValue: $0.scenario.status.name) ?? .proposed) }
             )
             
             Divider()
@@ -176,7 +176,7 @@ struct ScenarioComparisonView: View {
             // Voting results
             VotingResultsRow(
                 label: "Prefer",
-                values: scenarios.map { $0.votingResult.preferCount },
+                values: scenarios.map { Int($0.votingResult.preferCount) },
                 color: .green
             )
             
@@ -184,7 +184,7 @@ struct ScenarioComparisonView: View {
             
             VotingResultsRow(
                 label: "Neutral",
-                values: scenarios.map { $0.votingResult.neutralCount },
+                values: scenarios.map { Int($0.votingResult.neutralCount) },
                 color: .orange
             )
             
@@ -192,7 +192,7 @@ struct ScenarioComparisonView: View {
             
             VotingResultsRow(
                 label: "Against",
-                values: scenarios.map { $0.votingResult.againstCount },
+                values: scenarios.map { Int($0.votingResult.againstCount) },
                 color: .red
             )
             
@@ -200,7 +200,7 @@ struct ScenarioComparisonView: View {
             
             VotingResultsRow(
                 label: "Total Votes",
-                values: scenarios.map { $0.votingResult.totalVotes },
+                values: scenarios.map { Int($0.votingResult.totalVotes) },
                 color: .blue
             )
             
@@ -208,7 +208,15 @@ struct ScenarioComparisonView: View {
             
             VotingResultsRow(
                 label: "Score",
-                values: scenarios.map { $0.votingResult.score },
+                values: scenarios.map { Int($0.votingResult.score) },
+                color: .purple
+            )
+            
+            Divider()
+            
+            VotingResultsRow(
+                label: "Score",
+                values: scenarios.map { Int($0.votingResult.score) },
                 color: .primary,
                 bold: true
             )
