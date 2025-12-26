@@ -23,7 +23,7 @@ struct iOSApp: App {
                 .environmentObject(authStateManager)
                 .environmentObject(authService)
                 .task {
-                    await authStateManager.initialize()
+                    authStateManager.checkAuthStatus()
                 }
         }
     }

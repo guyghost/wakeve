@@ -188,7 +188,7 @@ struct ScenarioDetailView: View {
             // Details sections
             DetailSection(title: "When", icon: "calendar") {
                 DetailItem(label: "Date/Period", value: scenario.dateOrPeriod)
-                DetailItem(label: "Duration", value: "\(scenario.duration) days")
+                DetailItem(label: "Duration", value: "\(Int(scenario.duration)) days")
             }
             
             DetailSection(title: "Where", icon: "mappin.circle") {
@@ -302,7 +302,7 @@ struct ScenarioDetailView: View {
                     self.editName = loadedScenario.name
                     self.editLocation = loadedScenario.location
                     self.editDateOrPeriod = loadedScenario.dateOrPeriod
-                    self.editDuration = "\(loadedScenario.duration)"
+                    self.editDuration = "\(Int(loadedScenario.duration))"
                     self.editParticipants = "\(loadedScenario.estimatedParticipants)"
                     self.editBudget = "\(loadedScenario.estimatedBudgetPerPerson)"
                     self.editDescription = loadedScenario.description_

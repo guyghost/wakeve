@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.ui.activity.ParticipantInfo
 import kotlinx.datetime.Clock
 
 /**
@@ -22,27 +23,26 @@ import kotlinx.datetime.Clock
 @Composable
 fun AddEditItemDialog(
     item: EquipmentItem?,
-    participants: List<Participant>,
+    participants: List<ParticipantInfo>,
     onDismiss: () -> Unit,
     onConfirm: (EquipmentItem) -> Unit
 ) {
     var name by remember { mutableStateOf(item?.name ?: "") }
-    var description by remember { mutableStateOf(item?.description ?: "") }
+    var notes by remember { mutableStateOf(item?.notes ?: "") }
     var quantity by remember { mutableStateOf(item?.quantity?.toString() ?: "1") }
     var category by remember { mutableStateOf(item?.category ?: EquipmentCategory.OTHER) }
-    var estimatedCost by remember { mutableStateOf((item?.estimatedCost?.div(100))?.toString() ?: "") }
+    var sharedCost by remember { mutableStateOf((item?.sharedCost?.div(100))?.toString() ?: "") }
     var assignedTo by remember { mutableStateOf(item?.assignedTo) }
     var status by remember { mutableStateOf(item?.status ?: ItemStatus.NEEDED) }
-    var sharedItem by remember { mutableStateOf(item?.sharedItem ?: false) }
-    
+
     var showCategoryMenu by remember { mutableStateOf(false) }
     var showStatusMenu by remember { mutableStateOf(false) }
     var showParticipantMenu by remember { mutableStateOf(false) }
-    
-    val isValid = name.isNotBlank() && 
-                  quantity.toIntOrNull() != null && 
+
+    val isValid = name.isNotBlank() &&
+                  quantity.toIntOrNull() != null &&
                   quantity.toInt() > 0
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (item == null) "Ajouter un équipement" else "Modifier l'équipement") },
@@ -60,17 +60,17 @@ fun AddEditItemDialog(
                         singleLine = true
                     )
                 }
-                
+
                 item {
                     OutlinedTextField(
-                        value = description,
-                        onValueChange = { description = it },
-                        label = { Text("Description") },
+                        value = notes,
+                        onValueChange = { notes = it },
+                        label = { Text("Notes") },
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 3
                     )
                 }
-                
+
                 item {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -84,10 +84,10 @@ fun AddEditItemDialog(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
                         )
-                        
+
                         OutlinedTextField(
-                            value = estimatedCost,
-                            onValueChange = { estimatedCost = it },
+                            value = sharedCost,
+                            onValueChange = { sharedCost = it },
                             label = { Text("Coût (€)") },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -96,7 +96,7 @@ fun AddEditItemDialog(
                         )
                     }
                 }
-                
+
                 item {
                     // Category Dropdown
                     ExposedDropdownMenuBox(
@@ -113,7 +113,7 @@ fun AddEditItemDialog(
                                 .fillMaxWidth()
                                 .menuAnchor()
                         )
-                        
+
                         ExposedDropdownMenu(
                             expanded = showCategoryMenu,
                             onDismissRequest = { showCategoryMenu = false }
@@ -130,7 +130,7 @@ fun AddEditItemDialog(
                         }
                     }
                 }
-                
+
                 item {
                     // Status Dropdown
                     ExposedDropdownMenuBox(
@@ -138,7 +138,7 @@ fun AddEditItemDialog(
                         onExpandedChange = { showStatusMenu = it }
                     ) {
                         OutlinedTextField(
-                            value = status.name,
+                            value = getStatusLabel(status),
                             onValueChange = {},
                             readOnly = true,
                             label = { Text("Statut") },
@@ -147,14 +147,14 @@ fun AddEditItemDialog(
                                 .fillMaxWidth()
                                 .menuAnchor()
                         )
-                        
+
                         ExposedDropdownMenu(
                             expanded = showStatusMenu,
                             onDismissRequest = { showStatusMenu = false }
                         ) {
                             ItemStatus.entries.forEach { st ->
                                 DropdownMenuItem(
-                                    text = { Text(st.name) },
+                                    text = { Text(getStatusLabel(st)) },
                                     onClick = {
                                         status = st
                                         showStatusMenu = false
@@ -164,7 +164,7 @@ fun AddEditItemDialog(
                         }
                     }
                 }
-                
+
                 item {
                     // Assigned Participant Dropdown
                     ExposedDropdownMenuBox(
@@ -183,7 +183,7 @@ fun AddEditItemDialog(
                                 .fillMaxWidth()
                                 .menuAnchor()
                         )
-                        
+
                         ExposedDropdownMenu(
                             expanded = showParticipantMenu,
                             onDismissRequest = { showParticipantMenu = false }
@@ -195,7 +195,7 @@ fun AddEditItemDialog(
                                     showParticipantMenu = false
                                 }
                             )
-                            
+
                             participants.forEach { participant ->
                                 DropdownMenuItem(
                                     text = { Text(participant.name) },
@@ -208,39 +208,25 @@ fun AddEditItemDialog(
                         }
                     }
                 }
-                
-                item {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Checkbox(
-                            checked = sharedItem,
-                            onCheckedChange = { sharedItem = it }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Équipement partagé par le groupe")
-                    }
-                }
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    val costInCents = estimatedCost.toDoubleOrNull()?.times(100)?.toLong() ?: 0L
+                    val costInCents = sharedCost.toDoubleOrNull()?.times(100)?.toLong()
+                    val now = Clock.System.now().toString()
                     val updatedItem = EquipmentItem(
-                        id = item?.id ?: "",
+                        id = item?.id ?: java.util.UUID.randomUUID().toString(),
                         eventId = item?.eventId ?: "",
                         name = name.trim(),
-                        description = description.trim(),
                         category = category,
                         quantity = quantity.toInt(),
                         assignedTo = assignedTo,
                         status = status,
-                        estimatedCost = costInCents,
-                        sharedItem = sharedItem,
-                        createdAt = item?.createdAt ?: Clock.System.now().toString(),
-                        updatedAt = Clock.System.now().toString()
+                        sharedCost = costInCents,
+                        notes = notes.trim().takeIf { it.isNotBlank() },
+                        createdAt = item?.createdAt ?: now,
+                        updatedAt = now
                     )
                     onConfirm(updatedItem)
                 },
@@ -263,12 +249,12 @@ fun AddEditItemDialog(
 @Composable
 fun AssignItemDialog(
     item: EquipmentItem,
-    participants: List<Participant>,
+    participants: List<ParticipantInfo>,
     onDismiss: () -> Unit,
     onConfirm: (String?) -> Unit
 ) {
     var selectedParticipant by remember { mutableStateOf(item.assignedTo) }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Assigner « ${item.name} »") },
@@ -286,8 +272,9 @@ fun AssignItemDialog(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-                
-                items(participants) { participant ->
+
+                items(participants.size) { index ->
+                    val participant = participants[index]
                     ListItem(
                         headlineContent = { Text(participant.name) },
                         leadingContent = {
@@ -328,18 +315,16 @@ fun AutoGenerateDialog(
     onConfirm: (String) -> Unit
 ) {
     var selectedType by remember { mutableStateOf("camping") }
-    
+
     val eventTypes = listOf(
-        "camping" to "Camping 🏕️",
-        "beach" to "Plage 🏖️",
-        "ski" to "Ski / Montagne ⛷️",
-        "hiking" to "Randonnée 🥾",
-        "city" to "Ville / Urbain 🏙️",
-        "bbq" to "BBQ / Pique-nique 🍖",
-        "road_trip" to "Road Trip 🚗",
-        "festival" to "Festival 🎪"
+        "camping" to "Camping",
+        "beach" to "Plage",
+        "ski" to "Ski / Montagne",
+        "hiking" to "Randonnée",
+        "picnic" to "Pique-nique",
+        "indoor" to "Intérieur"
     )
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Générer une liste d'équipement") },
@@ -351,7 +336,7 @@ fun AutoGenerateDialog(
                     text = "Sélectionnez le type d'événement pour générer une liste d'équipement adaptée :",
                     style = MaterialTheme.typography.bodyMedium
                 )
-                
+
                 LazyColumn {
                     items(eventTypes) { (type, label) ->
                         ListItem(
@@ -384,14 +369,20 @@ fun AutoGenerateDialog(
 private fun getCategoryLabel(category: EquipmentCategory): String {
     return when (category) {
         EquipmentCategory.CAMPING -> "Camping"
+        EquipmentCategory.SPORTS -> "Sport"
         EquipmentCategory.COOKING -> "Cuisine"
-        EquipmentCategory.CLOTHING -> "Vêtements"
-        EquipmentCategory.SPORT -> "Sport"
-        EquipmentCategory.ENTERTAINMENT -> "Divertissement"
-        EquipmentCategory.HYGIENE -> "Hygiène"
-        EquipmentCategory.MEDICAL -> "Médical"
-        EquipmentCategory.SAFETY -> "Sécurité"
         EquipmentCategory.ELECTRONICS -> "Électronique"
+        EquipmentCategory.SAFETY -> "Sécurité"
         EquipmentCategory.OTHER -> "Autre"
+    }
+}
+
+private fun getStatusLabel(status: ItemStatus): String {
+    return when (status) {
+        ItemStatus.NEEDED -> "Requis"
+        ItemStatus.ASSIGNED -> "Assigné"
+        ItemStatus.CONFIRMED -> "Confirmé"
+        ItemStatus.PACKED -> "Emballé"
+        ItemStatus.CANCELLED -> "Annulé"
     }
 }

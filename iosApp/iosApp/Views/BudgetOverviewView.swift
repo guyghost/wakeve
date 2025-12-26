@@ -1,6 +1,13 @@
 import SwiftUI
 import Shared
 
+// Helper struct for category breakdown
+struct BudgetCategoryDetails {
+    let category: BudgetCategory
+    let estimatedCost: Double
+    let actualCost: Double
+}
+
 /// Budget Overview View - iOS
 ///
 /// Displays budget summary with category breakdown and per-person costs.
@@ -11,8 +18,8 @@ struct BudgetOverviewView: View {
     let onBack: () -> Void
     let onViewDetails: () -> Void
     
-    @State private var budget: Budget?
-    @State private var items: [BudgetItem] = []
+    @State private var budget: Budget_?
+    @State private var items: [BudgetItem_] = []
     @State private var categoryBreakdown: [BudgetCategory: BudgetCategoryDetails] = [:]
     @State private var isLoading = true
     @State private var errorMessage = ""
@@ -20,6 +27,11 @@ struct BudgetOverviewView: View {
     
     // Hardcoded participant count (TODO: get from event)
     private let participantCount: Int32 = 3
+    
+    // All budget categories
+    private let allCategories: [BudgetCategory] = [
+        .transport, .accommodation, .meals, .activities, .equipment, .other
+    ]
     
     var body: some View {
         ZStack {
@@ -128,7 +140,7 @@ struct BudgetOverviewView: View {
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
                         
-                        Text("$\(formatCost(budget.totalEstimatedCost))")
+                        Text("$\(formatCost(budget.totalEstimated))")
                             .font(.system(size: 28, weight: .bold))
                             .foregroundColor(.blue)
                     }
@@ -138,7 +150,7 @@ struct BudgetOverviewView: View {
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
                         
-                        Text("$\(formatCost(budget.totalActualCost))")
+                        Text("$\(formatCost(budget.totalActual))")
                             .font(.system(size: 28, weight: .bold))
                             .foregroundColor(actualCostColor)
                     }
@@ -147,7 +159,7 @@ struct BudgetOverviewView: View {
                 }
                 
                 // Progress Bar
-                if budget.totalEstimatedCost > 0 {
+                if budget.totalEstimated > 0 {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text("Usage")
@@ -207,7 +219,7 @@ struct BudgetOverviewView: View {
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
                         
-                        Text("$\(formatCost(budget.totalEstimatedCost / Double(participantCount)))")
+                        Text("$\(formatCost(budget.totalEstimated / Double(participantCount)))")
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(.blue)
                     }
@@ -217,7 +229,7 @@ struct BudgetOverviewView: View {
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
                         
-                        Text("$\(formatCost(budget.totalActualCost / Double(participantCount)))")
+                        Text("$\(formatCost(budget.totalActual / Double(participantCount)))")
                             .font(.system(size: 24, weight: .bold))
                             .foregroundColor(actualCostColor)
                     }
@@ -294,10 +306,10 @@ struct BudgetOverviewView: View {
         if usagePercentage <= 100 {
             return "You're on track with your budget"
         } else if usagePercentage <= 120 {
-            let diff = (budget?.totalActualCost ?? 0) - (budget?.totalEstimatedCost ?? 0)
+            let diff = (budget?.totalActual ?? 0) - (budget?.totalEstimated ?? 0)
             return "$\(formatCost(diff)) over estimated budget"
         } else {
-            let diff = (budget?.totalActualCost ?? 0) - (budget?.totalEstimatedCost ?? 0)
+            let diff = (budget?.totalActual ?? 0) - (budget?.totalEstimated ?? 0)
             return "$\(formatCost(diff)) significantly over budget"
         }
     }
@@ -317,7 +329,7 @@ struct BudgetOverviewView: View {
             }
             
             VStack(spacing: 12) {
-                ForEach(BudgetCategory.allCases, id: \.self) { category in
+                ForEach(allCategories, id: \.self) { category in
                     if let details = categoryBreakdown[category],
                        details.actualCost > 0 || details.estimatedCost > 0 {
                         CategoryRow(category: category, details: details)
@@ -402,8 +414,8 @@ struct BudgetOverviewView: View {
     // MARK: - Helper Properties
     
     private var usagePercentage: Double {
-        guard let budget = budget, budget.totalEstimatedCost > 0 else { return 0 }
-        return (budget.totalActualCost / budget.totalEstimatedCost) * 100
+        guard let budget = budget, budget.totalEstimated > 0 else { return 0 }
+        return (budget.totalActual / budget.totalEstimated) * 100
     }
     
     private var actualCostColor: Color {
@@ -443,10 +455,10 @@ struct BudgetOverviewView: View {
                 
                 if let budget = budget {
                     // Get all items
-                    items = try await repository.getItemsByBudgetId(budgetId: budget.id)
+                    items = try await repository.getBudgetItems(budgetId: budget.id)
                     
                     // Calculate category breakdown
-                    for category in BudgetCategory.allCases {
+                    for category in allCategories {
                         let categoryItems = items.filter { $0.category == category }
                         let estimated = categoryItems.reduce(0.0) { $0 + $1.estimatedCost }
                         let actual = categoryItems.reduce(0.0) { $0 + $1.actualCost }
@@ -470,28 +482,7 @@ struct BudgetOverviewView: View {
     
     private func createBudget() async {
         do {
-            let newBudget = Budget(
-                id: UUID().uuidString,
-                eventId: event.id,
-                totalEstimatedCost: 0.0,
-                totalActualCost: 0.0,
-                estimatedTransportCost: 0.0,
-                actualTransportCost: 0.0,
-                estimatedAccommodationCost: 0.0,
-                actualAccommodationCost: 0.0,
-                estimatedMealsCost: 0.0,
-                actualMealsCost: 0.0,
-                estimatedActivitiesCost: 0.0,
-                actualActivitiesCost: 0.0,
-                estimatedEquipmentCost: 0.0,
-                actualEquipmentCost: 0.0,
-                estimatedOtherCost: 0.0,
-                actualOtherCost: 0.0,
-                createdAt: getCurrentIsoTimestamp(),
-                updatedAt: getCurrentIsoTimestamp()
-            )
-            
-            try await repository.createBudget(budget: newBudget)
+            try await repository.createBudget(eventId: event.id)
             loadBudget()
         } catch {
             errorMessage = "Failed to create budget: \(error.localizedDescription)"
@@ -550,6 +541,7 @@ private struct CategoryRow: View {
         case .activities: return "figure.walk"
         case .equipment: return "bag.fill"
         case .other: return "ellipsis.circle.fill"
+        default: return "ellipsis.circle.fill"
         }
     }
     
@@ -561,6 +553,7 @@ private struct CategoryRow: View {
         case .activities: return .green
         case .equipment: return .pink
         case .other: return .gray
+        default: return .gray
         }
     }
     
@@ -572,6 +565,7 @@ private struct CategoryRow: View {
         case .activities: return "Activities"
         case .equipment: return "Equipment"
         case .other: return "Other"
+        default: return "Other"
         }
     }
     
@@ -590,12 +584,15 @@ struct BudgetOverviewView_Previews: PreviewProvider {
                 title: "Team Retreat",
                 description: "Annual team building",
                 organizerId: "user-1",
-                status: .organizing,
+                participants: [],
+                proposedSlots: [],
                 deadline: "2025-12-31T23:59:59Z",
+                status: .organizing,
+                finalDate: nil,
                 createdAt: "2025-12-01T00:00:00Z",
                 updatedAt: "2025-12-01T00:00:00Z"
             ),
-            repository: BudgetRepository(database: DatabaseFactory().createDatabase()),
+            repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
             onBack: {},
             onViewDetails: {}
         )

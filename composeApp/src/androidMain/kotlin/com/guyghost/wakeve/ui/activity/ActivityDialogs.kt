@@ -5,7 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,8 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.activity.ActivityRepository
 import com.guyghost.wakeve.models.*
 import kotlinx.datetime.Clock
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.toLocalDate
+import java.util.UUID
 
 /**
  * Dialog for adding or editing an activity
@@ -25,24 +24,25 @@ import kotlinx.datetime.toLocalDate
 @Composable
 fun AddEditActivityDialog(
     activity: Activity?,
-    participants: List<Participant>,
+    organizerId: String,
     onDismiss: () -> Unit,
     onConfirm: (Activity) -> Unit
 ) {
     var name by remember { mutableStateOf(activity?.name ?: "") }
     var description by remember { mutableStateOf(activity?.description ?: "") }
-    var date by remember { mutableStateOf(activity?.date?.toString() ?: "") }
+    var date by remember { mutableStateOf(activity?.date ?: "") }
     var time by remember { mutableStateOf(activity?.time ?: "") }
-    var durationMinutes by remember { mutableStateOf(activity?.durationMinutes?.toString() ?: "60") }
+    var duration by remember { mutableStateOf(activity?.duration?.toString() ?: "60") }
     var location by remember { mutableStateOf(activity?.location ?: "") }
-    var costPerPerson by remember { mutableStateOf((activity?.costPerPerson?.div(100))?.toString() ?: "") }
+    var cost by remember { mutableStateOf(activity?.cost?.div(100)?.toString() ?: "") }
     var maxParticipants by remember { mutableStateOf(activity?.maxParticipants?.toString() ?: "") }
-    
+
+    val isValidDate = date.isBlank() || date.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))
     val isValid = name.isNotBlank() &&
-                  date.isNotBlank() &&
-                  runCatching { date.toLocalDate() }.isSuccess &&
-                  durationMinutes.toIntOrNull() != null &&
-                  durationMinutes.toInt() > 0 &&
+                  description.isNotBlank() &&
+                  isValidDate &&
+                  duration.toIntOrNull() != null &&
+                  duration.toInt() > 0 &&
                   (time.isBlank() || time.matches(Regex("\\d{2}:\\d{2}")))
     
     AlertDialog(
@@ -104,14 +104,14 @@ fun AddEditActivityDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         OutlinedTextField(
-                            value = durationMinutes,
-                            onValueChange = { durationMinutes = it },
+                            value = duration,
+                            onValueChange = { duration = it },
                             label = { Text("Durée (min) *") },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
                         )
-                        
+
                         OutlinedTextField(
                             value = maxParticipants,
                             onValueChange = { maxParticipants = it },
@@ -123,7 +123,7 @@ fun AddEditActivityDialog(
                         )
                     }
                 }
-                
+
                 item {
                     OutlinedTextField(
                         value = location,
@@ -133,11 +133,11 @@ fun AddEditActivityDialog(
                         singleLine = true
                     )
                 }
-                
+
                 item {
                     OutlinedTextField(
-                        value = costPerPerson,
-                        onValueChange = { costPerPerson = it },
+                        value = cost,
+                        onValueChange = { cost = it },
                         label = { Text("Coût par personne (€)") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -150,22 +150,25 @@ fun AddEditActivityDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    val costInCents = costPerPerson.toDoubleOrNull()?.times(100)?.toLong() ?: 0L
+                    val costInCents = cost.toDoubleOrNull()?.times(100)?.toLong()
+                    val now = Clock.System.now().toString()
                     val updatedActivity = Activity(
-                        id = activity?.id ?: "",
+                        id = activity?.id ?: UUID.randomUUID().toString(),
                         eventId = activity?.eventId ?: "",
                         scenarioId = activity?.scenarioId,
                         name = name.trim(),
                         description = description.trim(),
-                        date = date.toLocalDate(),
+                        date = date.takeIf { it.isNotBlank() },
                         time = time.takeIf { it.isNotBlank() },
-                        durationMinutes = durationMinutes.toInt(),
-                        location = location.trim(),
-                        costPerPerson = costInCents,
+                        duration = duration.toInt(),
+                        location = location.trim().takeIf { it.isNotBlank() },
+                        cost = costInCents,
                         maxParticipants = maxParticipants.toIntOrNull(),
-                        organizerId = activity?.organizerId,
-                        createdAt = activity?.createdAt ?: Clock.System.now().toString(),
-                        updatedAt = Clock.System.now().toString()
+                        registeredParticipantIds = activity?.registeredParticipantIds ?: emptyList(),
+                        organizerId = activity?.organizerId ?: organizerId,
+                        notes = activity?.notes,
+                        createdAt = activity?.createdAt ?: now,
+                        updatedAt = now
                     )
                     onConfirm(updatedActivity)
                 },
@@ -183,44 +186,58 @@ fun AddEditActivityDialog(
 }
 
 /**
+ * Participant info for UI display
+ */
+data class ParticipantInfo(
+    val id: String,
+    val name: String
+)
+
+/**
  * Dialog for managing participants in an activity
  */
 @Composable
 fun ManageParticipantsDialog(
     activity: ActivityWithStats,
-    allParticipants: List<Participant>,
+    allParticipants: List<ParticipantInfo>,
     activityRepository: ActivityRepository,
     onDismiss: () -> Unit,
     onReload: () -> Unit
 ) {
     var registeredParticipants by remember {
         mutableStateOf(
-            activityRepository.getActivityParticipants(activity.activity.id)
+            activityRepository.getParticipantsByActivity(activity.activity.id)
         )
     }
-    
+
     val registeredIds = registeredParticipants.map { it.participantId }.toSet()
-    
+
     fun toggleParticipant(participantId: String) {
         if (registeredIds.contains(participantId)) {
             // Unregister
-            activityRepository.unregisterFromActivity(activity.activity.id, participantId)
+            activityRepository.unregisterParticipant(activity.activity.id, participantId)
         } else {
             // Register (if not full)
             if (!activity.isFull) {
-                activityRepository.registerForActivity(
-                    activityId = activity.activity.id,
-                    participantId = participantId
+                val now = Clock.System.now().toString()
+                activityRepository.registerParticipant(
+                    ActivityParticipant(
+                        id = UUID.randomUUID().toString(),
+                        activityId = activity.activity.id,
+                        participantId = participantId,
+                        registeredAt = now,
+                        notes = null
+                    )
                 )
             }
         }
-        registeredParticipants = activityRepository.getActivityParticipants(activity.activity.id)
+        registeredParticipants = activityRepository.getParticipantsByActivity(activity.activity.id)
         onReload()
     }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Column {
                 Text("Participants - ${activity.activity.name}")
                 if (activity.activity.maxParticipants != null) {
@@ -234,10 +251,11 @@ fun ManageParticipantsDialog(
         },
         text = {
             LazyColumn {
-                items(allParticipants) { participant ->
+                items(allParticipants.size) { index ->
+                    val participant = allParticipants[index]
                     val isRegistered = registeredIds.contains(participant.id)
                     val canRegister = !activity.isFull || isRegistered
-                    
+
                     ListItem(
                         headlineContent = { Text(participant.name) },
                         leadingContent = {
@@ -253,13 +271,13 @@ fun ManageParticipantsDialog(
                         },
                         trailingContent = {
                             if (isRegistered) {
-                                Icon(Icons.Default.Check, contentDescription = null)
+                                Icon(Icons.Filled.Check, contentDescription = null)
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-                
+
                 if (activity.isFull) {
                     item {
                         Card(
@@ -275,7 +293,7 @@ fun ManageParticipantsDialog(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
-                                    Icons.Default.Info,
+                                    Icons.Filled.Info,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onErrorContainer
                                 )

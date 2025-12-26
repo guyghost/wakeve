@@ -108,9 +108,24 @@ class AuthStateManager(
     suspend fun initialize() {
         _authState.value = AuthState.Loading
 
-        // If OAuth is disabled, skip auth check
+        // If OAuth is disabled, create a demo user and skip auth
         if (!enableOAuth) {
-            _authState.value = AuthState.Unauthenticated
+            // Create a demo user for development/testing
+            val demoUser = UserResponse(
+                id = "demo-user-${(1000..9999).random()}",
+                email = "demo@wakeve.local",
+                name = "Demo User",
+                provider = "DEMO",
+                avatarUrl = null,
+                role = "USER",
+                createdAt = getCurrentTimestamp()
+            )
+            
+            _authState.value = AuthState.Authenticated(
+                userId = demoUser.id,
+                user = demoUser,
+                sessionId = generateSessionId()
+            )
             return
         }
 

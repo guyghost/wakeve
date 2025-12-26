@@ -260,13 +260,13 @@ struct ScenarioCard: View {
             
             // Key details
             VStack(spacing: 12) {
-                InfoRow(icon: "calendar", text: scenario.dateOrPeriod, color: .blue)
-                InfoRow(icon: "mappin.circle", text: scenario.location, color: .green)
-                InfoRow(icon: "clock", text: "\(scenario.duration) days", color: .orange)
+                InfoRow(label: "Date", value: scenario.dateOrPeriod, icon: "calendar")
+                InfoRow(label: "Location", value: scenario.location, icon: "mappin.circle")
+                InfoRow(label: "Duration", value: "\(scenario.duration) days", icon: "clock")
                 InfoRow(
-                    icon: "dollarsign.circle",
-                    text: String(format: "$%.0f per person", scenario.estimatedBudgetPerPerson),
-                    color: .purple
+                    label: "Budget",
+                    value: String(format: "$%.0f per person", scenario.estimatedBudgetPerPerson),
+                    icon: "dollarsign.circle"
                 )
             }
             
