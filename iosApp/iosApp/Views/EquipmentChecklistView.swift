@@ -404,6 +404,8 @@ struct AutoGenerateEquipmentSheet: View {
  */
 struct EquipmentChecklistView: View {
     let eventId: String
+    let currentUserId: String
+    let currentUserName: String
     @Environment(\.dismiss) private var dismiss
     
     @State private var equipmentItems: [EquipmentItemModel] = []
@@ -423,6 +425,10 @@ struct EquipmentChecklistView: View {
     // Alerts
     @State private var showDeleteAlert = false
     @State private var itemToDelete: EquipmentItemModel?
+    
+    // Comments state
+    @State private var commentCount = 0
+    @State private var showComments = false
     
     var filteredItems: [EquipmentItemModel] {
         if selectedStatusFilter == .all {
@@ -465,28 +471,34 @@ struct EquipmentChecklistView: View {
                     Button("Fermer") { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button {
-                            selectedItem = nil
-                            showAddItemSheet = true
-                        } label: {
-                            Label("Ajouter un équipement", systemImage: "plus.circle")
+                    HStack(spacing: 12) {
+                        CommentButton(commentCount: commentCount) {
+                            showComments = true
                         }
                         
-                        Button {
-                            showAutoGenerateSheet = true
+                        Menu {
+                            Button {
+                                selectedItem = nil
+                                showAddItemSheet = true
+                            } label: {
+                                Label("Ajouter un équipement", systemImage: "plus.circle")
+                            }
+                            
+                            Button {
+                                showAutoGenerateSheet = true
+                            } label: {
+                                Label("Générer automatiquement", systemImage: "wand.and.stars")
+                            }
+                            
+                            Button {
+                                balanceAssignments()
+                            } label: {
+                                Label("Rééquilibrer", systemImage: "scale.3d")
+                            }
                         } label: {
-                            Label("Générer automatiquement", systemImage: "wand.and.stars")
+                            Image(systemName: "ellipsis.circle.fill")
+                                .font(.title2)
                         }
-                        
-                        Button {
-                            balanceAssignments()
-                        } label: {
-                            Label("Rééquilibrer", systemImage: "scale.3d")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle.fill")
-                            .font(.title2)
                     }
                 }
             }
@@ -531,6 +543,28 @@ struct EquipmentChecklistView: View {
                     }
                 )
             }
+            .sheet(isPresented: $showComments) {
+                NavigationView {
+                    CommentsView(
+                        eventId: eventId,
+                        section: .EQUIPMENT,
+                        sectionItemId: nil,
+                        currentUserId: currentUserId,
+                        currentUserName: currentUserName,
+                        onBack: {
+                            showComments = false
+                        }
+                    )
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Fermer") {
+                                showComments = false
+                            }
+                        }
+                    }
+                }
+            }
             .alert("Supprimer l'équipement", isPresented: $showDeleteAlert, presenting: itemToDelete) { item in
                 Button("Supprimer", role: .destructive) {
                     equipmentItems.removeAll { $0.id == item.id }
@@ -544,6 +578,7 @@ struct EquipmentChecklistView: View {
             }
             .onAppear {
                 loadData()
+                loadCommentCount()
             }
         }
     }
@@ -871,6 +906,14 @@ struct EquipmentChecklistView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             isLoading = false
         }
+    }
+    
+    // MARK: - Comments
+    
+    private func loadCommentCount() {
+        // TODO: Integrate with CommentRepository
+        // For now, placeholder - should fetch count for section .EQUIPMENT and sectionItemId = nil
+        commentCount = 0
     }
     
     private func togglePacked(item: EquipmentItemModel) {

@@ -7,7 +7,10 @@ import Shared
 /// Uses Liquid Glass design system with Material backgrounds.
 struct BudgetDetailView: View {
     let budget: Budget_
+    let eventId: String
     let repository: BudgetRepository
+    let currentUserId: String
+    let currentUserName: String
     let onBack: () -> Void
     
     @State private var items: [BudgetItem_] = []
@@ -18,6 +21,10 @@ struct BudgetDetailView: View {
     @State private var isLoading = true
     @State private var errorMessage = ""
     @State private var showError = false
+    
+    // Comments state
+    @State private var commentCount = 0
+    @State private var showComments = false
     
     // All budget categories
     private let allCategories: [BudgetCategory] = [
@@ -43,96 +50,121 @@ struct BudgetDetailView: View {
     @State private var itemCategory: BudgetCategory = .other
     
     var body: some View {
-        ZStack {
-            Color(.systemGroupedBackground)
-                .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Header
-                headerView
+        NavigationView {
+            ZStack {
+                Color(.systemGroupedBackground)
+                    .ignoresSafeArea()
                 
-                // Budget Summary Header
-                summaryHeader
-                
-                // Filters
-                filtersSection
-                
-                if isLoading {
-                    loadingView
-                } else {
-                    // Items List
-                    itemsList
-                }
-            }
-            
-            // FAB - Add Button
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    Button(action: { showAddDialog = true }) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 56, height: 56)
-                            .background(Color.blue)
-                            .clipShape(Circle())
-                            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+                VStack(spacing: 0) {
+                    // Header
+                    headerView
+                    
+                    // Budget Summary Header
+                    summaryHeader
+                    
+                    // Filters
+                    filtersSection
+                    
+                    if isLoading {
+                        loadingView
+                    } else {
+                        // Items List
+                        itemsList
                     }
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 20)
+                }
+                
+                // FAB - Add Button
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: { showAddDialog = true }) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 20, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 56, height: 56)
+                                .background(Color.blue)
+                                .clipShape(Circle())
+                                .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+                        }
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 20)
+                    }
                 }
             }
-        }
-        .onAppear {
-            loadItems()
-        }
-        .sheet(isPresented: $showAddDialog) {
-            addItemSheet
-        }
-        .sheet(isPresented: $showEditDialog) {
-            editItemSheet
-        }
-        .alert("Delete Item", isPresented: $showDeleteConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
-                if let item = itemToDelete {
-                    Task { await deleteItem(item) }
+            .navigationTitle("Budget Details")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: onBack) {
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .frame(width: 36, height: 36)
+                            .background(Color(.tertiarySystemFill))
+                            .clipShape(Circle())
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    CommentButton(commentCount: commentCount) {
+                        showComments = true
+                    }
                 }
             }
-        } message: {
-            Text("Are you sure you want to delete this item?")
-        }
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
+            .onAppear {
+                loadItems()
+                loadCommentCount()
+            }
+            .sheet(isPresented: $showAddDialog) {
+                addItemSheet
+            }
+            .sheet(isPresented: $showEditDialog) {
+                editItemSheet
+            }
+            .sheet(isPresented: $showComments) {
+                NavigationView {
+                    CommentsView(
+                        eventId: eventId,
+                        section: .BUDGET,
+                        sectionItemId: nil,
+                        currentUserId: currentUserId,
+                        currentUserName: currentUserName,
+                        onBack: {
+                            showComments = false
+                        }
+                    )
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Fermer") {
+                                showComments = false
+                            }
+                        }
+                    }
+                }
+            }
+            .alert("Delete Item", isPresented: $showDeleteConfirmation) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    if let item = itemToDelete {
+                        Task { await deleteItem(item) }
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to delete this item?")
+            }
+            .alert("Error", isPresented: $showError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
     
-    // MARK: - Header View
+    // MARK: - Header View (removed - now in toolbar)
     
-    private var headerView: some View {
-        HStack {
-            Button(action: onBack) {
-                Image(systemName: "arrow.left")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.secondary)
-                    .frame(width: 36, height: 36)
-                    .background(Color(.tertiarySystemFill))
-                    .clipShape(Circle())
-            }
-            
-            Text("Budget Details")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(.primary)
-            
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(Color(.systemGroupedBackground))
-    }
+    // MARK: - Summary Header
     
     // MARK: - Summary Header
     
@@ -599,6 +631,14 @@ struct BudgetDetailView: View {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter.string(from: Date())
+    }
+    
+    // MARK: - Comments
+    
+    private func loadCommentCount() {
+        // TODO: Integrate with CommentRepository
+        // For now, placeholder - should fetch count for section .BUDGET and sectionItemId = nil
+        commentCount = 0
     }
 }
 

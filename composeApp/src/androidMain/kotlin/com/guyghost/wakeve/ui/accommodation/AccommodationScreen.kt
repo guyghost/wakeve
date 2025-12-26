@@ -1,11 +1,14 @@
 package com.guyghost.wakeve.ui.accommodation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Comment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +17,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.comment.CommentRepository
+import com.guyghost.wakeve.models.CommentSection
 import java.util.UUID
 
 /**
@@ -30,16 +35,23 @@ import java.util.UUID
 @Composable
 fun AccommodationScreen(
     eventId: String,
-    onNavigateBack: () -> Unit
+    commentRepository: CommentRepository,
+    onNavigateBack: () -> Unit,
+    onNavigateToComments: (eventId: String, section: CommentSection, sectionItemId: String?) -> Unit
 ) {
     var accommodations by remember { mutableStateOf<List<Accommodation>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var showAddDialog by remember { mutableStateOf(false) }
     var selectedAccommodation by remember { mutableStateOf<Accommodation?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var commentCount by remember { mutableIntStateOf(0) }
     
     // TODO: Load from repository
     // LaunchedEffect(eventId) { accommodations = repository.getAccommodationsByEventId(eventId) }
+    
+    LaunchedEffect(eventId) {
+        commentCount = commentRepository.countCommentsBySection(eventId, CommentSection.ACCOMMODATION).toInt()
+    }
     
     Scaffold(
         topBar = {
@@ -48,6 +60,38 @@ fun AccommodationScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, "Retour")
+                    }
+                },
+                actions = {
+                    // Comments icon with badge
+                    IconButton(onClick = {
+                        onNavigateToComments(eventId, CommentSection.ACCOMMODATION, null)
+                    }) {
+                        Box {
+                            Icon(
+                                Icons.Outlined.Comment,
+                                contentDescription = if (commentCount == 0) "Aucun commentaire" else "$commentCount commentaires"
+                            )
+                            if (commentCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.error,
+                                            shape = CircleShape
+                                        )
+                                        .align(Alignment.TopEnd),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = commentCount.toString(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onError,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             )

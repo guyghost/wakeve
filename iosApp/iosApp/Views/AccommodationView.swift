@@ -13,6 +13,8 @@ import Shared
  */
 struct AccommodationView: View {
     let eventId: String
+    let currentUserId: String
+    let currentUserName: String
     @Environment(\.dismiss) private var dismiss
     
     @State private var accommodations: [AccommodationModel] = []
@@ -21,6 +23,10 @@ struct AccommodationView: View {
     @State private var selectedAccommodation: AccommodationModel?
     @State private var showDeleteAlert = false
     @State private var accommodationToDelete: AccommodationModel?
+    
+    // Comments state
+    @State private var commentCount = 0
+    @State private var showComments = false
     
     var body: some View {
         NavigationView {
@@ -48,12 +54,18 @@ struct AccommodationView: View {
                     Button("Fermer") { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        selectedAccommodation = nil
-                        showAddSheet = true
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
+                    HStack(spacing: 12) {
+                        CommentButton(commentCount: commentCount) {
+                            showComments = true
+                        }
+                        
+                        Button {
+                            selectedAccommodation = nil
+                            showAddSheet = true
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                        }
                     }
                 }
             }
@@ -72,6 +84,28 @@ struct AccommodationView: View {
                     }
                 )
             }
+            .sheet(isPresented: $showComments) {
+                NavigationView {
+                    CommentsView(
+                        eventId: eventId,
+                        section: .ACCOMMODATION,
+                        sectionItemId: nil,
+                        currentUserId: currentUserId,
+                        currentUserName: currentUserName,
+                        onBack: {
+                            showComments = false
+                        }
+                    )
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Fermer") {
+                                showComments = false
+                            }
+                        }
+                    }
+                }
+            }
             .alert("Supprimer l'hébergement ?", isPresented: $showDeleteAlert, presenting: accommodationToDelete) { accommodation in
                 Button("Annuler", role: .cancel) {
                     accommodationToDelete = nil
@@ -86,6 +120,7 @@ struct AccommodationView: View {
         }
         .onAppear {
             loadAccommodations()
+            loadCommentCount()
         }
     }
     
@@ -141,6 +176,14 @@ struct AccommodationView: View {
     private func loadAccommodations() {
         // TODO: Load from repository
         isLoading = false
+    }
+    
+    // MARK: - Comments
+    
+    private func loadCommentCount() {
+        // TODO: Integrate with CommentRepository
+        // For now, placeholder - should fetch count for section .ACCOMMODATION and sectionItemId = nil
+        commentCount = 0
     }
 }
 

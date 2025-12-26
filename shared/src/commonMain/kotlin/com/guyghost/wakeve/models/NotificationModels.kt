@@ -9,7 +9,9 @@ enum class NotificationType {
     VOTE_CLOSE_REMINDER,
     EVENT_CONFIRMED,
     PARTICIPANT_JOINED,
-    VOTE_SUBMITTED
+    VOTE_SUBMITTED,
+    COMMENT_POSTED,        // Nouveau commentaire sur une section
+    COMMENT_REPLY           // Réponse à un commentaire
 }
 
 @Serializable
@@ -40,3 +42,18 @@ interface NotificationService {
     suspend fun getUnreadNotifications(userId: String): List<NotificationMessage>
     suspend fun markAsRead(notificationId: String): Result<Unit>
 }
+
+@Serializable
+data class NotificationRequest(
+    val userId: String,
+    val type: NotificationType,
+    val title: String,
+    val body: String,
+    val eventId: String? = null,
+    val data: Map<String, String> = emptyMap(),
+    // Champs spécifiques pour les commentaires
+    val commentId: String? = null,              // ID du commentaire concerné
+    val parentCommentId: String? = null,        // Pour les réponses
+    val section: String? = null,                // Section concernée (GENERAL, SCENARIO, etc.)
+    val sectionItemId: String? = null           // Item ID dans la section
+)
