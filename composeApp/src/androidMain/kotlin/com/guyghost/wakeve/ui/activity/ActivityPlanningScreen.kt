@@ -11,17 +11,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.activity.ActivityManager
 import com.guyghost.wakeve.activity.ActivityRepository
 import com.guyghost.wakeve.models.*
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.toLocalDate
 
 /**
  * Activity Planning Screen
- * 
+ *
  * Features:
  * - List activities grouped by date
  * - Create/Edit/Delete activities
@@ -33,37 +31,38 @@ import kotlinx.datetime.toLocalDate
 @Composable
 fun ActivityPlanningScreen(
     eventId: String,
-    participants: List<Participant>,
+    organizerId: String,
+    participants: List<ParticipantInfo>,
     activityRepository: ActivityRepository,
     onNavigateBack: () -> Unit
 ) {
     var activitiesByDate by remember { mutableStateOf<List<ActivitiesByDate>>(emptyList()) }
-    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+    var selectedDate by remember { mutableStateOf<String?>(null) }
     var showAddActivityDialog by remember { mutableStateOf(false) }
     var activityToEdit by remember { mutableStateOf<Activity?>(null) }
     var activityToDelete by remember { mutableStateOf<Activity?>(null) }
     var showParticipantsDialog by remember { mutableStateOf<ActivityWithStats?>(null) }
     var totalCost by remember { mutableStateOf(0L) }
-    
+
     // Load data
     fun loadData() {
-        activitiesByDate = activityRepository.getActivitiesByDate(eventId)
-        totalCost = activityRepository.getTotalActivityCost(eventId)
+        activitiesByDate = activityRepository.getActivitiesByDateGrouped(eventId)
+        totalCost = activityRepository.sumActivityCostByEvent(eventId)
     }
-    
+
     LaunchedEffect(eventId) {
         loadData()
     }
-    
+
     // Filter activities by selected date
     val displayedActivities = if (selectedDate != null) {
         activitiesByDate.filter { it.date == selectedDate }
     } else {
         activitiesByDate
     }
-    
+
     val allActivities = displayedActivities.flatMap { it.activities }
-    
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -94,7 +93,7 @@ fun ActivityPlanningScreen(
                 totalCost = totalCost,
                 modifier = Modifier.padding(16.dp)
             )
-            
+
             // Date Filter
             if (activitiesByDate.isNotEmpty()) {
                 DateFilterRow(
@@ -105,16 +104,16 @@ fun ActivityPlanningScreen(
                     },
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
             }
-            
+
             // Activities List
             if (allActivities.isEmpty()) {
                 EmptyStateCard(
-                    message = if (activitiesByDate.isEmpty()) 
-                        "Aucune activité planifiée" 
-                    else 
+                    message = if (activitiesByDate.isEmpty())
+                        "Aucune activité planifiée"
+                    else
                         "Aucune activité à cette date",
                     modifier = Modifier
                         .fillMaxWidth()
@@ -129,7 +128,9 @@ fun ActivityPlanningScreen(
                         item {
                             DateSection(
                                 date = dayActivities.date,
-                                activities = dayActivities.activities,
+                                activities = dayActivities.activities.map {
+                                    ActivityManager.calculateActivityStats(it)
+                                },
                                 participants = participants,
                                 activityRepository = activityRepository,
                                 onActivityClick = { activity -> activityToEdit = activity },
@@ -145,12 +146,12 @@ fun ActivityPlanningScreen(
             }
         }
     }
-    
+
     // Dialogs
     if (showAddActivityDialog) {
         AddEditActivityDialog(
             activity = null,
-            participants = participants,
+            organizerId = organizerId,
             onDismiss = { showAddActivityDialog = false },
             onConfirm = { activity ->
                 activityRepository.createActivity(activity.copy(eventId = eventId))
@@ -159,11 +160,11 @@ fun ActivityPlanningScreen(
             }
         )
     }
-    
+
     activityToEdit?.let { activity ->
         AddEditActivityDialog(
             activity = activity,
-            participants = participants,
+            organizerId = organizerId,
             onDismiss = { activityToEdit = null },
             onConfirm = { updated ->
                 activityRepository.updateActivity(updated)
@@ -172,7 +173,7 @@ fun ActivityPlanningScreen(
             }
         )
     }
-    
+
     showParticipantsDialog?.let { activityWithStats ->
         ManageParticipantsDialog(
             activity = activityWithStats,
@@ -182,7 +183,7 @@ fun ActivityPlanningScreen(
             onReload = { loadData() }
         )
     }
-    
+
     activityToDelete?.let { activity ->
         AlertDialog(
             onDismissRequest = { activityToDelete = null },
@@ -234,9 +235,9 @@ private fun ActivitySummaryCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             VerticalDivider(modifier = Modifier.height(48.dp))
-            
+
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = "${totalCost / 100}€",
@@ -256,9 +257,9 @@ private fun ActivitySummaryCard(
 
 @Composable
 private fun DateFilterRow(
-    dates: List<LocalDate>,
-    selectedDate: LocalDate?,
-    onDateSelected: (LocalDate) -> Unit,
+    dates: List<String>,
+    selectedDate: String?,
+    onDateSelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyRow(
@@ -268,17 +269,17 @@ private fun DateFilterRow(
         item {
             FilterChip(
                 selected = selectedDate == null,
-                onClick = { onDateSelected(LocalDate(1970, 1, 1)) },
+                onClick = { onDateSelected("") },
                 label = { Text("Toutes") }
             )
         }
-        
-        items(dates.sortedBy { it }) { date ->
+
+        items(dates.sorted()) { date ->
             FilterChip(
                 selected = selectedDate == date,
                 onClick = { onDateSelected(date) },
-                label = { 
-                    Text(formatDate(date))
+                label = {
+                    Text(formatDateString(date))
                 }
             )
         }
@@ -287,9 +288,9 @@ private fun DateFilterRow(
 
 @Composable
 private fun DateSection(
-    date: LocalDate,
+    date: String,
     activities: List<ActivityWithStats>,
-    participants: List<Participant>,
+    participants: List<ParticipantInfo>,
     activityRepository: ActivityRepository,
     onActivityClick: (Activity) -> Unit,
     onDeleteClick: (Activity) -> Unit,
@@ -307,18 +308,18 @@ private fun DateSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = formatDate(date),
+                    text = formatDateString(date),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                
+
                 Badge {
                     Text(activities.size.toString())
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(12.dp))
-            
+
             activities.forEach { activityWithStats ->
                 ActivityItemRow(
                     activity = activityWithStats,
@@ -327,9 +328,9 @@ private fun DateSection(
                     onDeleteClick = { onDeleteClick(activityWithStats.activity) },
                     onParticipantsClick = { onParticipantsClick(activityWithStats) }
                 )
-                
+
                 if (activityWithStats != activities.last()) {
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 }
             }
         }
@@ -339,13 +340,13 @@ private fun DateSection(
 @Composable
 private fun ActivityItemRow(
     activity: ActivityWithStats,
-    participants: List<Participant>,
+    participants: List<ParticipantInfo>,
     onClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onParticipantsClick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
-    
+
     Column {
         Row(
             modifier = Modifier
@@ -360,7 +361,7 @@ private fun ActivityItemRow(
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
-                
+
                 if (activity.activity.description.isNotBlank()) {
                     Text(
                         text = activity.activity.description,
@@ -368,7 +369,7 @@ private fun ActivityItemRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -384,41 +385,45 @@ private fun ActivityItemRow(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "${activity.activity.time} (${activity.activity.durationMinutes}min)",
+                                text = "${activity.activity.time} (${activity.activity.duration}min)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-                    
+
                     // Location
-                    if (activity.activity.location.isNotBlank()) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.LocationOn,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = activity.activity.location,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                    activity.activity.location?.let { location ->
+                        if (location.isNotBlank()) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = location,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
-                    
+
                     // Cost per person
-                    if (activity.activity.costPerPerson > 0) {
-                        Text(
-                            text = "${activity.activity.costPerPerson / 100}€/pers",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                    activity.activity.cost?.let { cost ->
+                        if (cost > 0) {
+                            Text(
+                                text = "${cost / 100}€/pers",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
-                
+
                 // Participants and capacity
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -444,7 +449,7 @@ private fun ActivityItemRow(
                             )
                         }
                     )
-                    
+
                     // Full indicator
                     if (activity.isFull) {
                         SuggestionChip(
@@ -459,7 +464,7 @@ private fun ActivityItemRow(
                 }
             }
         }
-        
+
         // Expanded Actions
         if (expanded) {
             Row(
@@ -475,7 +480,7 @@ private fun ActivityItemRow(
                         Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp))
                     }
                 )
-                
+
                 AssistChip(
                     onClick = onParticipantsClick,
                     label = { Text("Participants") },
@@ -483,7 +488,7 @@ private fun ActivityItemRow(
                         Icon(Icons.Default.People, null, modifier = Modifier.size(16.dp))
                     }
                 )
-                
+
                 AssistChip(
                     onClick = onDeleteClick,
                     label = { Text("Supprimer") },
@@ -521,7 +526,7 @@ private fun EmptyStateCard(
                 modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyLarge,
@@ -531,10 +536,25 @@ private fun EmptyStateCard(
     }
 }
 
-private fun formatDate(date: LocalDate): String {
+/**
+ * Format ISO date string (YYYY-MM-DD) to display format
+ */
+private fun formatDateString(dateStr: String): String {
     val months = listOf(
         "Jan", "Fév", "Mar", "Avr", "Mai", "Juin",
         "Juil", "Août", "Sep", "Oct", "Nov", "Déc"
     )
-    return "${date.dayOfMonth} ${months[date.monthNumber - 1]}"
+
+    return try {
+        val parts = dateStr.split("-")
+        if (parts.size == 3) {
+            val day = parts[2].toInt()
+            val month = parts[1].toInt()
+            "$day ${months[month - 1]}"
+        } else {
+            dateStr
+        }
+    } catch (e: Exception) {
+        dateStr
+    }
 }

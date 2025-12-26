@@ -11,8 +11,8 @@ struct MealFormSheet: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var name: String = ""
-    @State private var selectedType: String = "BREAKFAST"
-    @State private var selectedStatus: String = "PLANNED"
+    @State private var selectedType: MealType = .breakfast
+    @State private var selectedStatus: MealStatus = .planned
     @State private var date: Date = Date()
     @State private var time: Date = Date()
     @State private var location: String = ""
@@ -35,21 +35,17 @@ struct MealFormSheet: View {
                 Section("Informations") {
                     TextField("Nom du repas", text: $name)
                     
-                    Picker("Type", selection: $selectedType) {
-                        Text("Petit-déjeuner").tag("BREAKFAST")
-                        Text("Déjeuner").tag("LUNCH")
-                        Text("Dîner").tag("DINNER")
-                        Text("Goûter").tag("SNACK")
-                        Text("Apéritif").tag("APERITIF")
-                    }
+                     Picker("Type", selection: $selectedType) {
+                         ForEach(MealType.allCases, id: \.self) { type in
+                             Text(displayName(for: type)).tag(type)
+                         }
+                     }
                     
-                    Picker("Statut", selection: $selectedStatus) {
-                        Text("Planifié").tag("PLANNED")
-                        Text("Assigné").tag("ASSIGNED")
-                        Text("En cours").tag("IN_PROGRESS")
-                        Text("Terminé").tag("COMPLETED")
-                        Text("Annulé").tag("CANCELLED")
-                    }
+                     Picker("Statut", selection: $selectedStatus) {
+                         ForEach(MealStatus.allCases, id: \.self) { status in
+                             Text(displayName(for: status)).tag(status)
+                         }
+                     }
                 }
                 
                 // Date and time section
@@ -219,6 +215,26 @@ struct MealFormSheet: View {
         
         onSave(newMeal)
     }
+    
+    private func displayName(for type: MealType) -> String {
+        switch type {
+        case .breakfast: return "Petit-déjeuner"
+        case .lunch: return "Déjeuner"
+        case .dinner: return "Dîner"
+        case .snack: return "Goûter"
+        case .aperitif: return "Apéritif"
+        }
+    }
+    
+    private func displayName(for status: MealStatus) -> String {
+        switch status {
+        case .planned: return "Planifié"
+        case .assigned: return "Assigné"
+        case .inProgress: return "En cours"
+        case .completed: return "Terminé"
+        case .cancelled: return "Annulé"
+        }
+    }
 }
 
 // MARK: - Auto Generate Meals Sheet
@@ -233,17 +249,17 @@ struct AutoGenerateMealsSheet: View {
     @State private var startDate: Date = Date()
     @State private var endDate: Date = Date().addingTimeInterval(86400 * 3) // 3 days
     @State private var estimatedCostPerMeal: String = "10.00"
-    @State private var selectedMealTypes: Set<String> = ["BREAKFAST", "LUNCH", "DINNER"]
+    @State private var selectedMealTypes: Set<MealType> = [.breakfast, .lunch, .dinner]
     
     @State private var showValidationError = false
     @State private var validationMessage = ""
     
     private let mealTypes = [
-        ("BREAKFAST", "Petit-déjeuner", "cup.and.saucer.fill"),
-        ("LUNCH", "Déjeuner", "fork.knife"),
-        ("DINNER", "Dîner", "moon.stars.fill"),
-        ("SNACK", "Goûter", "birthday.cake.fill"),
-        ("APERITIF", "Apéritif", "wineglass.fill")
+        (MealType.breakfast, "Petit-déjeuner", "cup.and.saucer.fill"),
+        (MealType.lunch, "Déjeuner", "fork.knife"),
+        (MealType.dinner, "Dîner", "moon.stars.fill"),
+        (MealType.snack, "Goûter", "birthday.cake.fill"),
+        (MealType.aperitif, "Apéritif", "wineglass.fill")
     ]
     
     var body: some View {
@@ -255,27 +271,27 @@ struct AutoGenerateMealsSheet: View {
                 }
                 
                 Section("Types de repas") {
-                    ForEach(mealTypes, id: \.0) { type in
-                        Button {
-                            toggleMealType(type.0)
-                        } label: {
-                            HStack {
-                                Image(systemName: type.2)
-                                    .foregroundColor(.blue)
-                                Text(type.1)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if selectedMealTypes.contains(type.0) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .foregroundColor(.blue)
-                                } else {
-                                    Image(systemName: "circle")
-                                        .foregroundColor(.gray)
-                                }
-                            }
-                        }
-                    }
-                }
+                     ForEach(mealTypes, id: \.0) { type in
+                         Button {
+                             toggleMealType(type.0)
+                         } label: {
+                             HStack {
+                                 Image(systemName: type.2)
+                                     .foregroundColor(.blue)
+                                 Text(type.1)
+                                     .foregroundColor(.primary)
+                                 Spacer()
+                                 if selectedMealTypes.contains(type.0) {
+                                     Image(systemName: "checkmark.circle.fill")
+                                         .foregroundColor(.blue)
+                                 } else {
+                                     Image(systemName: "circle")
+                                         .foregroundColor(.gray)
+                                 }
+                             }
+                         }
+                     }
+                 }
                 
                 Section("Budget") {
                     HStack {
@@ -322,7 +338,7 @@ struct AutoGenerateMealsSheet: View {
         return (days + 1) * selectedMealTypes.count
     }
     
-    private func toggleMealType(_ type: String) {
+    private func toggleMealType(_ type: MealType) {
         if selectedMealTypes.contains(type) {
             selectedMealTypes.remove(type)
         } else {
@@ -362,28 +378,28 @@ struct AutoGenerateMealsSheet: View {
             let dateString = dateFormatter.string(from: currentDate)
             
             for mealType in selectedMealTypes {
-                let time = defaultTime(for: mealType)
-                let name = defaultName(for: mealType, date: currentDate)
-                let timestamp = ISO8601DateFormatter().string(from: Date())
-                let costInCents = Int64(costPerMeal * Double(participantCount) * 100)
-                
-                let meal = MealModel(
-                    id: UUID().uuidString,
-                    eventId: eventId,
-                    type: mealType,
-                    name: name,
-                    date: dateString,
-                    time: time,
-                    location: nil,
-                    responsibleParticipantIds: [],
-                    estimatedCost: costInCents,
-                    actualCost: nil,
-                    servings: participantCount,
-                    status: "PLANNED",
-                    notes: nil,
-                    createdAt: timestamp,
-                    updatedAt: timestamp
-                )
+                 let time = defaultTime(for: mealType)
+                 let name = defaultName(for: mealType, date: currentDate)
+                 let timestamp = ISO8601DateFormatter().string(from: Date())
+                 let costInCents = Int64(costPerMeal * Double(participantCount) * 100)
+                 
+                 let meal = MealModel(
+                     id: UUID().uuidString,
+                     eventId: eventId,
+                     type: mealType,
+                     name: name,
+                     date: dateString,
+                     time: time,
+                     location: nil,
+                     responsibleParticipantIds: [],
+                     estimatedCost: costInCents,
+                     actualCost: nil,
+                     servings: participantCount,
+                     status: .planned,
+                     notes: nil,
+                     createdAt: timestamp,
+                     updatedAt: timestamp
+                 )
                 
                 meals.append(meal)
             }
@@ -397,30 +413,28 @@ struct AutoGenerateMealsSheet: View {
         onGenerate(meals)
     }
     
-    private func defaultTime(for type: String) -> String {
+    private func defaultTime(for type: MealType) -> String {
         switch type {
-        case "BREAKFAST": return "08:00"
-        case "LUNCH": return "12:30"
-        case "DINNER": return "19:30"
-        case "SNACK": return "16:00"
-        case "APERITIF": return "18:30"
-        default: return "12:00"
+        case .breakfast: return "08:00"
+        case .lunch: return "12:30"
+        case .dinner: return "19:30"
+        case .snack: return "16:00"
+        case .aperitif: return "18:30"
         }
     }
     
-    private func defaultName(for type: String, date: Date) -> String {
+    private func defaultName(for type: MealType, date: Date) -> String {
         let dayFormatter = DateFormatter()
         dayFormatter.dateFormat = "EEEE"
         dayFormatter.locale = Locale(identifier: "fr_FR")
         let dayOfWeek = dayFormatter.string(from: date).capitalized
         
         switch type {
-        case "BREAKFAST": return "Petit-déjeuner"
-        case "LUNCH": return "Déjeuner"
-        case "DINNER": return "Dîner du \(dayOfWeek)"
-        case "SNACK": return "Goûter"
-        case "APERITIF": return "Apéritif"
-        default: return "Repas"
+        case .breakfast: return "Petit-déjeuner"
+        case .lunch: return "Déjeuner"
+        case .dinner: return "Dîner du \(dayOfWeek)"
+        case .snack: return "Goûter"
+        case .aperitif: return "Apéritif"
         }
     }
 }
@@ -559,25 +573,24 @@ struct DietaryRestrictionsSheet: View {
         .padding()
     }
     
-    private var groupedRestrictions: [(restriction: String, items: [DietaryRestrictionModel])] {
+    private var groupedRestrictions: [(restriction: DietaryRestriction, items: [DietaryRestrictionModel])] {
         let grouped = Dictionary(grouping: restrictions) { $0.restriction }
         return grouped.map { (restriction: $0.key, items: $0.value) }
-            .sorted { $0.restriction < $1.restriction }
+            .sorted { $0.restriction.rawValue < $1.restriction.rawValue }
     }
     
-    private func formatRestriction(_ restriction: String) -> String {
+    private func formatRestriction(_ restriction: DietaryRestriction) -> String {
         switch restriction {
-        case "VEGETARIAN": return "Végétarien"
-        case "VEGAN": return "Végétalien"
-        case "GLUTEN_FREE": return "Sans gluten"
-        case "LACTOSE_INTOLERANT": return "Intolérant au lactose"
-        case "NUT_ALLERGY": return "Allergie aux noix"
-        case "SHELLFISH_ALLERGY": return "Allergie aux fruits de mer"
-        case "KOSHER": return "Casher"
-        case "HALAL": return "Halal"
-        case "DIABETIC": return "Diabétique"
-        case "OTHER": return "Autre"
-        default: return restriction
+        case .vegetarian: return "Végétarien"
+        case .vegan: return "Végétalien"
+        case .glutenFree: return "Sans gluten"
+        case .lactoseIntolerant: return "Intolérant au lactose"
+        case .nutAllergy: return "Allergie aux noix"
+        case .shellfishAllergy: return "Allergie aux fruits de mer"
+        case .kosher: return "Casher"
+        case .halal: return "Halal"
+        case .diabetic: return "Diabétique"
+        case .other: return "Autre"
         }
     }
 }
@@ -592,20 +605,20 @@ struct AddDietaryRestrictionSheet: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var selectedParticipantId: String = ""
-    @State private var selectedRestriction: String = "VEGETARIAN"
+    @State private var selectedRestriction: DietaryRestriction = .vegetarian
     @State private var notes: String = ""
     
     private let restrictions = [
-        ("VEGETARIAN", "Végétarien"),
-        ("VEGAN", "Végétalien"),
-        ("GLUTEN_FREE", "Sans gluten"),
-        ("LACTOSE_INTOLERANT", "Intolérant au lactose"),
-        ("NUT_ALLERGY", "Allergie aux noix"),
-        ("SHELLFISH_ALLERGY", "Allergie aux fruits de mer"),
-        ("KOSHER", "Casher"),
-        ("HALAL", "Halal"),
-        ("DIABETIC", "Diabétique"),
-        ("OTHER", "Autre")
+        (DietaryRestriction.vegetarian, "Végétarien"),
+        (DietaryRestriction.vegan, "Végétalien"),
+        (DietaryRestriction.glutenFree, "Sans gluten"),
+        (DietaryRestriction.lactoseIntolerant, "Intolérant au lactose"),
+        (DietaryRestriction.nutAllergy, "Allergie aux noix"),
+        (DietaryRestriction.shellfishAllergy, "Allergie aux fruits de mer"),
+        (DietaryRestriction.kosher, "Casher"),
+        (DietaryRestriction.halal, "Halal"),
+        (DietaryRestriction.diabetic, "Diabétique"),
+        (DietaryRestriction.other, "Autre")
     ]
     
     var body: some View {

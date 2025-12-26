@@ -1,4 +1,5 @@
 import SwiftUI
+import Shared
 
 /**
  * Accommodation Management View (iOS)
@@ -176,27 +177,27 @@ struct AccommodationCard: View {
             // Details
             VStack(spacing: 12) {
                 InfoRow(
-                    icon: "location.fill",
-                    text: accommodation.address,
-                    color: .blue
+                    label: "Adresse",
+                    value: accommodation.address,
+                    icon: "location.fill"
                 )
                 
                 InfoRow(
-                    icon: "calendar",
-                    text: "\(accommodation.checkInDate) → \(accommodation.checkOutDate) (\(accommodation.totalNights) nuits)",
-                    color: .blue
+                    label: "Période",
+                    value: "\(accommodation.checkInDate) → \(accommodation.checkOutDate) (\(accommodation.totalNights) nuits)",
+                    icon: "calendar"
                 )
                 
                 InfoRow(
-                    icon: "person.2.fill",
-                    text: "Capacité: \(accommodation.capacity) personnes",
-                    color: .blue
+                    label: "Capacité",
+                    value: "Capacité: \(accommodation.capacity) personnes",
+                    icon: "person.2.fill"
                 )
                 
                 InfoRow(
-                    icon: "eurosign.circle.fill",
-                    text: formatPrice(accommodation.totalCost) + " (\(formatPrice(accommodation.pricePerNight))/nuit)",
-                    color: .green
+                    label: "Prix",
+                    value: formatPrice(accommodation.totalCost) + " (\(formatPrice(accommodation.pricePerNight))/nuit)",
+                    icon: "eurosign.circle.fill"
                 )
             }
             

@@ -189,7 +189,7 @@ struct LoginView: View {
                     }
 
                     // Login with backend via AuthStateManager
-                    await authStateManager.login(
+                    await authStateManager.signIn(
                         provider: "apple",
                         authCode: authCode,
                         userInfo: idToken

@@ -23,6 +23,12 @@ import com.guyghost.wakeve.sync.KtorSyncHttpClient
 import com.guyghost.wakeve.sync.SyncManager
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
+// Repository and database imports from shared module
+import com.guyghost.wakeve.DatabaseEventRepository
+import com.guyghost.wakeve.UserRepository
+import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.DatabaseProvider
+import com.guyghost.wakeve.AndroidDatabaseFactory
 
 /**
  * Event repository that uses database persistence and sync capabilities
@@ -111,23 +117,49 @@ data class AppState(
 @Composable
 @Preview
 fun App() {
-    MaterialTheme {
+    android.util.Log.d("WakevApp", "App() composable called")
+    
+    // Use explicit light color scheme to ensure visibility
+    val colorScheme = androidx.compose.material3.lightColorScheme()
+
+    MaterialTheme(colorScheme = colorScheme) {
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
+
+        // Track initialization errors
+        var initError by remember { mutableStateOf<String?>(null) }
 
         // Initialize authentication dependencies
         val authService = remember { AndroidAuthenticationService(context) }
         val authStateManager = remember {
-            AuthStateManager(
-                secureStorage = com.guyghost.wakeve.security.AndroidSecureTokenStorage(context),
-                authService = authService,
-                enableOAuth = BuildConfig.ENABLE_OAUTH
+            try {
+                AuthStateManager(
+                    secureStorage = com.guyghost.wakeve.security.AndroidSecureTokenStorage(context),
+                    authService = authService,
+                    enableOAuth = BuildConfig.ENABLE_OAUTH
+                )
+            } catch (e: Exception) {
+                initError = "Failed to initialize auth: ${e.message}"
+                null
+            }
+        }
+
+        // Show error if initialization failed
+        if (initError != null || authStateManager == null) {
+            ErrorScreen(
+                message = initError ?: "Failed to initialize app",
+                onRetry = { /* Restart app */ }
             )
+            return@MaterialTheme
         }
 
         // Initialize on first composition
         LaunchedEffect(Unit) {
-            authStateManager.initialize()
+            try {
+                authStateManager.initialize()
+            } catch (e: Exception) {
+                initError = "Failed to initialize: ${e.message}"
+            }
         }
 
         // Observe authentication state

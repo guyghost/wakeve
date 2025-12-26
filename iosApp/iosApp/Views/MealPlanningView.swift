@@ -213,7 +213,7 @@ struct MealPlanningView: View {
     }
     
     private var completedCount: Int {
-        meals.filter { $0.status == "COMPLETED" }.count
+        meals.filter { $0.status.rawValue == "COMPLETED" }.count
     }
     
     // MARK: - Filters
@@ -242,11 +242,12 @@ struct MealPlanningView: View {
                             }
                         }
                     } label: {
-                        FilterChip(
-                            text: selectedTypeFilter.rawValue,
-                            icon: "fork.knife",
-                            isSelected: selectedTypeFilter != .all
-                        )
+                         FilterChip(
+                             title: selectedTypeFilter.rawValue,
+                             icon: "fork.knife",
+                             isSelected: selectedTypeFilter != .all,
+                             action: {}
+                         )
                     }
                     
                     // Status filter
@@ -264,11 +265,12 @@ struct MealPlanningView: View {
                             }
                         }
                     } label: {
-                        FilterChip(
-                            text: selectedStatusFilter.rawValue,
-                            icon: "flag",
-                            isSelected: selectedStatusFilter != .all
-                        )
+                         FilterChip(
+                             title: selectedStatusFilter.rawValue,
+                             icon: "flag",
+                             isSelected: selectedStatusFilter != .all,
+                             action: {}
+                         )
                     }
                 }
             }
@@ -360,8 +362,8 @@ struct MealPlanningView: View {
     
     private var filteredMeals: [MealModel] {
         meals.filter { meal in
-            let typeMatch = selectedTypeFilter == .all || meal.type == selectedTypeFilter.rawValue
-            let statusMatch = selectedStatusFilter == .all || meal.status == selectedStatusFilter.rawValue
+            let typeMatch = selectedTypeFilter == .all || meal.type.rawValue == selectedTypeFilter.rawValue
+            let statusMatch = selectedStatusFilter == .all || meal.status.rawValue == selectedStatusFilter.rawValue
             return typeMatch && statusMatch
         }
     }
@@ -417,9 +419,9 @@ struct MealCard: View {
         VStack(alignment: .leading, spacing: 12) {
             // Header with type icon and time
             HStack {
-                Image(systemName: mealTypeIcon(meal.type))
+                Image(systemName: mealTypeIcon(meal.type.rawValue))
                     .font(.title3)
-                    .foregroundColor(mealTypeColor(meal.type))
+                    .foregroundColor(mealTypeColor(meal.type.rawValue))
                 
                 Text(meal.name)
                     .font(.headline)
@@ -433,7 +435,7 @@ struct MealCard: View {
             
             // Status badge
             HStack {
-                StatusBadge(status: meal.status)
+                StatusBadge(status: meal.status.rawValue)
                 Spacer()
             }
             
@@ -552,35 +554,6 @@ enum MealStatusFilter: String, CaseIterable {
     case inProgress = "IN_PROGRESS"
     case completed = "COMPLETED"
     case cancelled = "CANCELLED"
-}
-
-// MARK: - Models
-
-struct MealModel {
-    let id: String
-    let eventId: String
-    let type: String
-    let name: String
-    let date: String
-    let time: String
-    let location: String?
-    let responsibleParticipantIds: [String]
-    let estimatedCost: Int64
-    let actualCost: Int64?
-    let servings: Int
-    let status: String
-    let notes: String?
-    let createdAt: String
-    let updatedAt: String
-}
-
-struct DietaryRestrictionModel {
-    let id: String
-    let participantId: String
-    let eventId: String
-    let restriction: String
-    let notes: String?
-    let createdAt: String
 }
 
 // MARK: - Preview

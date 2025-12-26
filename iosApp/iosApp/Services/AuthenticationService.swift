@@ -6,233 +6,73 @@
 //
 
 import Foundation
-import Combine
+import SwiftUI
 
 /**
- * iOS-specific authentication service
+ * Stub authentication service for Phase 3 development
+ *
+ * This is a placeholder implementation that will be replaced with real OAuth
+ * authentication in Phase 3. Currently returns mock data for development.
  */
-class AuthenticationService: ClientAuthenticationServiceProtocol, ObservableObject {
-    private let secureStorage: SecureTokenStorageProtocol
-    private let baseUrl: String
-    private let httpClient: URLSession
-
-    init(
-        secureStorage: SecureTokenStorageProtocol = SecureTokenStorage(),
-        baseUrl: String = "http://localhost:8080"
-    ) {
-        self.secureStorage = secureStorage
-        self.baseUrl = baseUrl
-        self.httpClient = URLSession.shared
-    }
-
-    func loginWithGoogle(authorizationCode: String) async throws -> OAuthLoginResponse {
-        let request = OAuthLoginRequest(
-            provider: "google",
-            authorizationCode: authorizationCode,
-            accessToken: nil
+@MainActor
+public class AuthenticationService: ObservableObject {
+    
+    /// Authenticate user (stub implementation)
+    /// - Returns: Mock authentication token
+    func authenticate() async throws -> AuthToken {
+        // Simulate network delay
+        try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+        
+        // Return mock token
+        return AuthToken(
+            accessToken: "mock_access_token_\(UUID().uuidString)",
+            refreshToken: "mock_refresh_token_\(UUID().uuidString)",
+            expiresIn: 3600,
+            tokenType: "Bearer"
         )
-
-        let response = try await performLoginRequest(request)
-
-        // Store tokens securely
-        try await secureStorage.storeAccessToken(response.accessToken)
-        if let refreshToken = response.refreshToken {
-            try await secureStorage.storeRefreshToken(refreshToken)
-        }
-        try await secureStorage.storeUserId(response.user.id)
-
-        // Calculate and store expiry
-        let expiryTimestamp = Int64(Date().timeIntervalSince1970 * 1000) + Int64(response.expiresIn * 1000)
-        try await secureStorage.storeTokenExpiry(expiryTimestamp)
-
-        return response
     }
-
-    func loginWithApple(authorizationCode: String, userInfo: String? = nil) async throws -> OAuthLoginResponse {
-        let request = OAuthLoginRequest(
-            provider: "apple",
-            authorizationCode: authorizationCode,
-            accessToken: userInfo
+    
+    /// Refresh authentication token (stub implementation)
+    /// - Returns: New mock authentication token
+    func refreshToken() async throws {
+        // Simulate network delay
+        try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        
+        // In stub implementation, do nothing - token refresh not needed
+    }
+    
+    /// Check if user is authenticated (stub implementation)
+    /// - Returns: Always true for development
+    func isAuthenticated() -> Bool {
+        // In stub mode, always return true for development
+        return true
+    }
+    
+    /// Get current user (stub implementation)
+    /// - Returns: Mock user data
+    func getCurrentUser() -> User? {
+        return User(
+            id: "user_123",
+            name: "John Doe",
+            email: "john.doe@example.com",
+            avatarUrl: nil
         )
-
-        let response = try await performLoginRequest(request)
-
-        // Store tokens securely
-        try await secureStorage.storeAccessToken(response.accessToken)
-        if let refreshToken = response.refreshToken {
-            try await secureStorage.storeRefreshToken(refreshToken)
-        }
-        try await secureStorage.storeUserId(response.user.id)
-
-        // Calculate and store expiry
-        let expiryTimestamp = Int64(Date().timeIntervalSince1970 * 1000) + Int64(response.expiresIn * 1000)
-        try await secureStorage.storeTokenExpiry(expiryTimestamp)
-
-        return response
-    }
-
-    func refreshToken() async throws -> OAuthLoginResponse {
-        guard let refreshToken = await secureStorage.getRefreshToken() else {
-            throw AuthenticationError.noRefreshToken
-        }
-
-        let url = URL(string: "\(baseUrl)/auth/refresh")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let body = ["refresh_token": refreshToken]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, response) = try await httpClient.data(for: request)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw AuthenticationError.refreshFailed
-        }
-
-        let newResponse = try JSONDecoder().decode(OAuthLoginResponse.self, from: data)
-
-        // Update stored tokens
-        try await secureStorage.storeAccessToken(newResponse.accessToken)
-        if let refreshToken = newResponse.refreshToken {
-            try await secureStorage.storeRefreshToken(refreshToken)
-        }
-
-        // Calculate and store new expiry
-        let expiryTimestamp = Int64(Date().timeIntervalSince1970 * 1000) + Int64(newResponse.expiresIn * 1000)
-        try await secureStorage.storeTokenExpiry(expiryTimestamp)
-
-        return newResponse
-    }
-
-    func getAccessToken() async -> String? {
-        if await secureStorage.hasValidToken() {
-            return await secureStorage.getAccessToken()
-        } else {
-            // Try to refresh token
-            return try? await refreshToken().accessToken
-        }
-    }
-
-    func getCurrentUserId() async -> String? {
-        return await secureStorage.getUserId()
-    }
-
-    func isAuthenticated() async -> Bool {
-        return await secureStorage.hasValidToken()
-    }
-
-    func logout() async throws {
-        try await secureStorage.clearAllTokens()
-    }
-
-    func getGoogleAuthorizationUrl(state: String? = nil) async throws -> String {
-        let stateValue = state ?? Self.generateState()
-        let url = URL(string: "\(baseUrl)/auth/google/url?state=\(stateValue)")!
-        let (data, response) = try await httpClient.data(from: url)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw AuthenticationError.urlGenerationFailed
-        }
-
-        let urlResponse = try JSONDecoder().decode([String: String].self, from: data)
-        guard let authUrl = urlResponse["url"] else {
-            throw AuthenticationError.invalidResponse
-        }
-
-        return authUrl
-    }
-
-    func getAppleAuthorizationUrl(state: String? = nil) async throws -> String {
-        let stateValue = state ?? Self.generateState()
-        let url = URL(string: "\(baseUrl)/auth/apple/url?state=\(stateValue)")!
-        let (data, response) = try await httpClient.data(from: url)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw AuthenticationError.urlGenerationFailed
-        }
-
-        let urlResponse = try JSONDecoder().decode([String: String].self, from: data)
-        guard let authUrl = urlResponse["url"] else {
-            throw AuthenticationError.invalidResponse
-        }
-
-        return authUrl
-    }
-
-    private func performLoginRequest(_ request: OAuthLoginRequest) async throws -> OAuthLoginResponse {
-        let endpoint = request.provider == "google" ? "/auth/google" : "/auth/apple"
-        let url = URL(string: "\(baseUrl)\(endpoint)")!
-
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        urlRequest.httpBody = try JSONEncoder().encode(request)
-
-        let (data, response) = try await httpClient.data(for: urlRequest)
-
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw AuthenticationError.loginFailed
-        }
-
-        return try JSONDecoder().decode(OAuthLoginResponse.self, from: data)
-    }
-
-    private static func generateState() -> String {
-        let characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return String((0..<32).map { _ in characters.randomElement()! })
     }
 }
 
 // MARK: - Supporting Types
 
-protocol ClientAuthenticationServiceProtocol {
-    func loginWithGoogle(authorizationCode: String) async throws -> OAuthLoginResponse
-    func loginWithApple(authorizationCode: String, userInfo: String?) async throws -> OAuthLoginResponse
-    func refreshToken() async throws -> OAuthLoginResponse
-    func getAccessToken() async -> String?
-    func getCurrentUserId() async -> String?
-    func isAuthenticated() async -> Bool
-    func logout() async throws
-    func getGoogleAuthorizationUrl(state: String?) async throws -> String
-    func getAppleAuthorizationUrl(state: String?) async throws -> String
-}
-
-
-
-// MARK: - Data Models (matching Kotlin models)
-
-struct OAuthLoginRequest: Codable {
-    let provider: String
-    let authorizationCode: String?
-    let accessToken: String?
-
-    enum CodingKeys: String, CodingKey {
-        case provider
-        case authorizationCode = "authorizationCode"
-        case accessToken = "accessToken"
-    }
-}
-
-struct OAuthLoginResponse: Codable {
-    let user: UserResponse
+/// Authentication token structure
+public struct AuthToken: Codable {
     let accessToken: String
-    let refreshToken: String?
+    let refreshToken: String
+    let expiresIn: Int
     let tokenType: String
-    let expiresIn: Int64
-    let scope: String?
 }
 
-struct UserResponse: Codable {
-    let id: String
-    let email: String
-    let name: String
-    let avatarUrl: String?
-    let provider: String
-    let createdAt: String
+/// Authentication errors
+public enum AuthError: Error {
+    case authenticationFailed
+    case tokenExpired
+    case networkError
 }

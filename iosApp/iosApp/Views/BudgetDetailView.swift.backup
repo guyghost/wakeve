@@ -10,8 +10,8 @@ struct BudgetDetailView: View {
     let repository: BudgetRepository
     let onBack: () -> Void
     
-    @State private var items: [BudgetItem_] = []
-    @State private var filteredItems: [BudgetItem_] = []
+    @State private var items: [BudgetItem] = []
+    @State private var filteredItems: [BudgetItem] = []
     @State private var selectedCategory: BudgetCategory? = nil
     @State private var showPaidOnly = false
     @State private var showUnpaidOnly = false
@@ -21,20 +21,15 @@ struct BudgetDetailView: View {
     
     // All budget categories
     private let allCategories: [BudgetCategory] = [
-        BudgetCategory.transport, 
-        BudgetCategory.accommodation, 
-        BudgetCategory.meals, 
-        BudgetCategory.activities, 
-        BudgetCategory.equipment, 
-        BudgetCategory.other
+        .transport, .accommodation, .meals, .activities, .equipment, .other
     ]
     
     // Dialog states
     @State private var showAddDialog = false
     @State private var showEditDialog = false
     @State private var showDeleteConfirmation = false
-    @State private var itemToEdit: BudgetItem_?
-    @State private var itemToDelete: BudgetItem_?
+    @State private var itemToEdit: BudgetItem?
+    @State private var itemToDelete: BudgetItem?
     
     // Form fields
     @State private var itemName = ""
@@ -256,7 +251,7 @@ struct BudgetDetailView: View {
                             onEdit: {
                                 itemToEdit = item
                                 itemName = item.name
-                                 itemDescription = item.description
+                                itemDescription = item.description_
                                 itemEstimatedCost = String(format: "%.2f", item.estimatedCost)
                                 itemCategory = item.category
                                 showEditDialog = true
@@ -435,7 +430,7 @@ struct BudgetDetailView: View {
         case .activities: return "Activities"
         case .equipment: return "Equipment"
         case .other: return "Other"
-        default: return "Other"
+        @unknown default: return "Other"
         }
     }
     
@@ -447,7 +442,7 @@ struct BudgetDetailView: View {
         case .activities: return "figure.walk"
         case .equipment: return "bag.fill"
         case .other: return "ellipsis.circle.fill"
-        default: return "ellipsis.circle.fill"
+        @unknown default: return "ellipsis.circle.fill"
         }
     }
     
@@ -488,31 +483,22 @@ struct BudgetDetailView: View {
         guard let estimatedCost = Double(itemEstimatedCost) else { return }
         
         do {
-            let newItem = BudgetItem_(
+            let newItem = BudgetItem(
                 id: UUID().uuidString,
                 budgetId: budget.id,
                 name: itemName,
-                description: itemDescription,
+                description_: itemDescription,
                 category: itemCategory,
                 estimatedCost: estimatedCost,
                 actualCost: 0.0,
                 isPaid: false,
                 paidBy: nil,
                 sharedBy: ["user-1"], // TODO: Get from event participants
-                notes: "",
                 createdAt: getCurrentIsoTimestamp(),
                 updatedAt: getCurrentIsoTimestamp()
             )
             
-            try await repository.createBudgetItem(
-                budgetId: budget.id,
-                category: itemCategory,
-                name: itemName,
-                description: itemDescription,
-                estimatedCost: estimatedCost,
-                sharedBy: ["user-1"],
-                notes: ""
-            )
+            try await repository.addBudgetItem(item: newItem)
             resetForm()
             loadItems()
         } catch {
@@ -526,18 +512,17 @@ struct BudgetDetailView: View {
               let estimatedCost = Double(itemEstimatedCost) else { return }
         
         do {
-            let updatedItem = BudgetItem_(
+            let updatedItem = BudgetItem(
                 id: item.id,
                 budgetId: item.budgetId,
                 name: itemName,
-                description: itemDescription,
+                description_: itemDescription,
                 category: itemCategory,
                 estimatedCost: estimatedCost,
                 actualCost: item.actualCost,
                 isPaid: item.isPaid,
                 paidBy: item.paidBy,
                 sharedBy: item.sharedBy,
-                notes: item.notes,
                 createdAt: item.createdAt,
                 updatedAt: getCurrentIsoTimestamp()
             )
@@ -551,7 +536,7 @@ struct BudgetDetailView: View {
         }
     }
     
-    private func deleteItem(_ item: BudgetItem_) async {
+    private func deleteItem(_ item: BudgetItem) async {
         do {
             try await repository.deleteBudgetItem(itemId: item.id)
             loadItems()
@@ -561,20 +546,19 @@ struct BudgetDetailView: View {
         }
     }
     
-    private func markItemAsPaid(_ item: BudgetItem_) async {
+    private func markItemAsPaid(_ item: BudgetItem) async {
         do {
-            let updatedItem = BudgetItem_(
+            let updatedItem = BudgetItem(
                 id: item.id,
                 budgetId: item.budgetId,
                 name: item.name,
-                description: item.description,
+                description_: item.description_,
                 category: item.category,
                 estimatedCost: item.estimatedCost,
                 actualCost: item.estimatedCost, // Use estimated as actual
                 isPaid: true,
                 paidBy: "user-1", // TODO: Get current user
                 sharedBy: item.sharedBy,
-                notes: item.notes,
                 createdAt: item.createdAt,
                 updatedAt: getCurrentIsoTimestamp()
             )
@@ -605,7 +589,7 @@ struct BudgetDetailView: View {
 // MARK: - Budget Item Card
 
 private struct BudgetItemCard: View {
-    let item: BudgetItem_
+    let item: BudgetItem
     let onEdit: () -> Void
     let onDelete: () -> Void
     let onMarkPaid: () -> Void
@@ -636,8 +620,8 @@ private struct BudgetItemCard: View {
                         }
                     }
                     
-                    if !item.description.isEmpty {
-                        Text(item.description)
+                    if !item.description_.isEmpty {
+                        Text(item.description_)
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
                             .lineLimit(2)
@@ -763,7 +747,7 @@ struct BudgetDetailView_Previews: PreviewProvider {
                 createdAt: "2025-12-01T00:00:00Z",
                 updatedAt: "2025-12-01T00:00:00Z"
             ),
-            repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
+            repository: BudgetRepository(db: nil), // Placeholder
             onBack: {}
         )
     }

@@ -2,24 +2,31 @@ import SwiftUI
 
 // MARK: - Shared Reusable Components for Wakeve iOS
 
-/// Info row with icon, text and color
+/// Info row with label and value, optional icon
 struct InfoRow: View {
-    let icon: String
-    let text: String
-    let color: Color
+    let label: String
+    let value: String
+    let icon: String?
     
     var body: some View {
         HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.body)
-                .foregroundColor(color)
-                .frame(width: 20)
+            if let icon = icon {
+                Image(systemName: icon)
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .frame(width: 20)
+            }
             
-            Text(text)
+            Text(label)
                 .font(.subheadline)
-                .foregroundColor(.primary)
+                .foregroundColor(.secondary)
             
             Spacer()
+            
+            Text(value)
+                .font(.subheadline)
+                .foregroundColor(.primary)
+                .fontWeight(.medium)
         }
     }
 }
@@ -36,7 +43,7 @@ struct StatusBadge: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(statusColor.opacity(0.15))
-            .continuousCornerRadius(12)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
     
     private var statusText: String {
@@ -62,25 +69,43 @@ struct StatusBadge: View {
     }
 }
 
-/// Filter chip with icon and selection state
+/// Filter chip with selection state and action
 struct FilterChip: View {
     let text: String
-    let icon: String
     let isSelected: Bool
+    let action: () -> Void
+    
+    init(text: String, isSelected: Bool, action: @escaping () -> Void) {
+        self.text = text
+        self.isSelected = isSelected
+        self.action = action
+    }
+    
+    init(title: String, isSelected: Bool, action: @escaping () -> Void) {
+        self.text = title
+        self.isSelected = isSelected
+        self.action = action
+    }
+    
+    init(title: String, icon: String, isSelected: Bool, action: @escaping () -> Void) {
+        self.text = title
+        self.isSelected = isSelected
+        self.action = action
+        // Icon not used in current implementation
+    }
     
     var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.caption)
+        Button(action: action) {
             Text(text)
                 .font(.subheadline)
                 .fontWeight(.medium)
+                .foregroundColor(isSelected ? .white : .primary)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(isSelected ? Color.blue : Color.gray.opacity(0.2))
+                .clipShape(Capsule())
         }
-        .foregroundColor(isSelected ? .white : .primary)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(isSelected ? Color.blue : Color(uiColor: .systemGray5))
-        .continuousCornerRadius(20)
+        .buttonStyle(.plain)
     }
 }
 
@@ -146,18 +171,16 @@ enum PollVote: String, Codable {
     case no = "NO"
 }
 
-// MARK: - Preview Support
-
 struct SharedComponents_Previews: PreviewProvider {
     static var previews: some View {
         VStack(spacing: 20) {
-            InfoRow(icon: "calendar", text: "Date: 25 Dec", color: .blue)
+            InfoRow(label: "Date", value: "25 Dec", icon: "calendar")
             
             StatusBadge(status: "PLANNED")
             StatusBadge(status: "COMPLETED")
             
-            FilterChip(text: "Tous", icon: "square.grid.2x2", isSelected: true)
-            FilterChip(text: "Actifs", icon: "circle", isSelected: false)
+            FilterChip(text: "Tous", isSelected: true, action: {})
+            FilterChip(text: "Actifs", isSelected: false, action: {})
             
             HStack(spacing: 20) {
                 VoteButton(vote: .yes, isSelected: true, action: {})
@@ -166,6 +189,6 @@ struct SharedComponents_Previews: PreviewProvider {
             }
         }
         .padding()
-        .background(Color(uiColor: .systemBackground))
+        .background(Color.white)
     }
 }

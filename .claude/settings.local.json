@@ -12,7 +12,9 @@
       "Bash(./gradlew shared:compileKotlinJvm:*)",
       "Bash(./gradlew shared:compileDebugKotlinAndroid:*)",
       "Bash(./gradlew:*)",
-      "Bash(xcodebuild:*)"
+      "Bash(xcodebuild:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(adb logcat:*)"
     ],
     "deny": [],
     "ask": []

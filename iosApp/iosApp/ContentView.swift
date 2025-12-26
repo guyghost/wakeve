@@ -7,10 +7,17 @@ struct ContentView: View {
     @State private var hasSeenGetStarted = false
 
     var body: some View {
-        switch authStateManager.authState {
-        case .loading:
-            LoadingView()
-        case .unauthenticated:
+        if authStateManager.isAuthenticated {
+            if let user = authStateManager.currentUser {
+                AuthenticatedView(userId: user.id)
+            } else {
+                ErrorView(message: "Authentication error: no user data", onRetry: {
+                    Task {
+                        authStateManager.checkAuthStatus()
+                    }
+                })
+            }
+        } else {
             if hasSeenGetStarted {
                 LoginView()
             } else {
@@ -21,14 +28,6 @@ struct ContentView: View {
                 })
                 .transition(.opacity)
             }
-        case .authenticated(let userId, _):
-            AuthenticatedView(userId: userId)
-        case .error(let message):
-            ErrorView(message: message, onRetry: {
-                Task {
-                    await authStateManager.initialize()
-                }
-            })
         }
     }
 }
