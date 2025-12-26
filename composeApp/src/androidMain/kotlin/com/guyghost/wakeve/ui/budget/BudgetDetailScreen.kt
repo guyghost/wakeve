@@ -1,10 +1,13 @@
 package com.guyghost.wakeve.ui.budget
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Comment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,6 +16,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.budget.BudgetRepository
 import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.comment.CommentRepository
+import com.guyghost.wakeve.models.CommentSection
 
 /**
  * Budget Detail Screen - Detailed list of budget items.
@@ -31,7 +36,9 @@ import com.guyghost.wakeve.models.*
 fun BudgetDetailScreen(
     budgetId: String,
     budgetRepository: BudgetRepository,
-    onNavigateBack: () -> Unit
+    commentRepository: CommentRepository,
+    onNavigateBack: () -> Unit,
+    onNavigateToComments: (eventId: String, section: CommentSection, sectionItemId: String?) -> Unit
 ) {
     var items by remember { mutableStateOf<List<BudgetItem>>(emptyList()) }
     var budget by remember { mutableStateOf<Budget?>(null) }
@@ -41,11 +48,15 @@ fun BudgetDetailScreen(
     var showAddItemDialog by remember { mutableStateOf(false) }
     var itemToEdit by remember { mutableStateOf<BudgetItem?>(null) }
     var itemToDelete by remember { mutableStateOf<BudgetItem?>(null) }
+    var commentCount by remember { mutableIntStateOf(0) }
     
     // Load data
     fun loadData() {
         budget = budgetRepository.getBudgetById(budgetId)
         items = budgetRepository.getBudgetItems(budgetId)
+        budget?.let {
+            commentCount = commentRepository.countCommentsBySection(it.eventId, CommentSection.BUDGET).toInt()
+        }
     }
     
     LaunchedEffect(budgetId) {
@@ -70,6 +81,40 @@ fun BudgetDetailScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, "Retour")
+                    }
+                },
+                actions = {
+                    // Comments icon with badge
+                    if (budget != null) {
+                        IconButton(onClick = {
+                            onNavigateToComments(budget!!.eventId, CommentSection.BUDGET, null)
+                        }) {
+                            Box {
+                                Icon(
+                                    Icons.Outlined.Comment,
+                                    contentDescription = if (commentCount == 0) "Aucun commentaire" else "$commentCount commentaires"
+                                )
+                                if (commentCount > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .background(
+                                                color = MaterialTheme.colorScheme.error,
+                                                shape = CircleShape
+                                            )
+                                            .align(Alignment.TopEnd),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = commentCount.toString(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onError,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             )

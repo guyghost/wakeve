@@ -7,8 +7,11 @@ import Shared
 /// Organizers can edit and delete scenarios.
 struct ScenarioDetailView: View {
     let scenarioId: String
+    let eventId: String
     let repository: ScenarioRepository
     let isOrganizer: Bool
+    let currentUserId: String
+    let currentUserName: String
     let onBack: () -> Void
     let onDeleted: () -> Void
     
@@ -20,6 +23,10 @@ struct ScenarioDetailView: View {
     @State private var errorMessage = ""
     @State private var showError = false
     
+    // Comments state
+    @State private var commentCount = 0
+    @State private var showComments = false
+    
     // Edit fields
     @State private var editName = ""
     @State private var editLocation = ""
@@ -30,134 +37,161 @@ struct ScenarioDetailView: View {
     @State private var editDescription = ""
     
     var body: some View {
-        ZStack {
-            Color(.systemGroupedBackground)
-                .ignoresSafeArea()
-            
-            VStack(spacing: 0) {
-                // Header
-                headerView
+        NavigationView {
+            ZStack {
+                Color(.systemGroupedBackground)
+                    .ignoresSafeArea()
                 
-                if isLoading {
-                    loadingView
-                } else if let scenario = scenario {
-                    ScrollView {
-                        VStack(spacing: 16) {
+                VStack(spacing: 0) {
+                    // Header
+                    headerView
+                    
+                    if isLoading {
+                        loadingView
+                    } else if let scenario = scenario {
+                        ScrollView {
+                            VStack(spacing: 16) {
+                                if isEditing {
+                                    editFormView
+                                } else {
+                                    detailView(scenario: scenario)
+                                }
+                                
+                                Spacer()
+                                    .frame(height: 40)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
+                        }
+                    } else {
+                        errorStateView
+                    }
+                }
+            }
+            .navigationTitle(scenario?.name ?? "Scenario Details")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        if isEditing {
+                            isEditing = false
+                        } else {
+                            onBack()
+                        }
+                    }) {
+                        Image(systemName: "arrow.left")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .frame(width: 36, height: 36)
+                            .background(Color(.tertiarySystemFill))
+                            .clipShape(Circle())
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    HStack(spacing: 12) {
+                        CommentButton(commentCount: commentCount) {
+                            showComments = true
+                        }
+                        
+                        if isOrganizer {
                             if isEditing {
-                                editFormView
+                                Button {
+                                    Task {
+                                        await saveChanges()
+                                    }
+                                } label: {
+                                    if isSaving {
+                                        ProgressView()
+                                            .progressViewStyle(CircularProgressViewStyle())
+                                    } else {
+                                        Text("Save")
+                                            .font(.system(size: 17, weight: .semibold))
+                                            .foregroundColor(.blue)
+                                    }
+                                }
+                                .disabled(isSaving)
                             } else {
-                                detailView(scenario: scenario)
-                            }
-                            
-                            Spacer()
-                                .frame(height: 40)
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 16)
-                    }
-                } else {
-                    errorStateView
-                }
-            }
-        }
-        .onAppear {
-            loadScenario()
-        }
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
-        }
-        .alert("Delete Scenario", isPresented: $showDeleteConfirm) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
-                Task {
-                    await deleteScenario()
-                }
-            }
-        } message: {
-            Text("Are you sure you want to delete this scenario? This action cannot be undone.")
+                                Menu {
+                                    Button {
+                                        isEditing = true
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
+                                    }
+                                    
+                                    Button(role: .destructive) {
+                                        showDeleteConfirm = true
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                } label: {
+                                    Image(systemName: "ellipsis")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(.secondary)
+                                        .frame(width: 36, height: 36)
+                                        .background(Color(.tertiarySystemFill))
+                                        .clipShape(Circle())
         }
     }
     
-    // MARK: - Header View
+    // MARK: - Comments
     
-    private var headerView: some View {
-        VStack(spacing: 16) {
-            HStack {
-                Button(action: {
-                    if isEditing {
-                        isEditing = false
-                    } else {
-                        onBack()
-                    }
-                }) {
-                    Image(systemName: "arrow.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .frame(width: 36, height: 36)
-                        .background(Color(.tertiarySystemFill))
-                        .clipShape(Circle())
-                }
-                
-                Spacer()
-                
-                if isOrganizer {
-                    if isEditing {
-                        Button {
-                            Task {
-                                await saveChanges()
-                            }
-                        } label: {
-                            if isSaving {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle())
-                            } else {
-                                Text("Save")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.blue)
-                            }
-                        }
-                        .disabled(isSaving)
-                    } else {
-                        Menu {
-                            Button {
-                                isEditing = true
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
-                            }
-                            
-                            Button(role: .destructive) {
-                                showDeleteConfirm = true
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.secondary)
-                                .frame(width: 36, height: 36)
-                                .background(Color(.tertiarySystemFill))
-                                .clipShape(Circle())
-                        }
+    private func loadCommentCount() {
+        // TODO: Integrate with CommentRepository
+        // For now, placeholder - should fetch count for section .SCENARIO and sectionItemId = scenario.id
+        commentCount = 0
+    }
+}
                     }
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 60)
-            
-            if !isEditing {
-                VStack(spacing: 8) {
-                    Text("Scenario Details")
-                        .font(.system(size: 34, weight: .bold))
-                        .foregroundColor(.primary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            .onAppear {
+                loadScenario()
+                loadCommentCount()
+            }
+            .alert("Error", isPresented: $showError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(errorMessage)
+            }
+            .alert("Delete Scenario", isPresented: $showDeleteConfirm) {
+                Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) {
+                    Task {
+                        await deleteScenario()
+                    }
                 }
-                .padding(.horizontal, 20)
+            } message: {
+                Text("Are you sure you want to delete this scenario? This action cannot be undone.")
+            }
+            .sheet(isPresented: $showComments) {
+                NavigationView {
+                    CommentsView(
+                        eventId: eventId,
+                        section: .SCENARIO,
+                        sectionItemId: scenario?.id,
+                        currentUserId: currentUserId,
+                        currentUserName: currentUserName,
+                        onBack: {
+                            showComments = false
+                        }
+                    )
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Fermer") {
+                                showComments = false
+                            }
+                        }
+                    }
+                }
             }
         }
-        .background(Color(.systemGroupedBackground))
     }
+    
+    // MARK: - Header View (removed - now in toolbar)
+    
+    // MARK: - Detail View
     
     // MARK: - Detail View
     

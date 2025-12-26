@@ -9,6 +9,7 @@ import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.metrics.AuthMetricsCollector
 import com.guyghost.wakeve.routes.authRoutes
 import com.guyghost.wakeve.routes.budgetRoutes
+import com.guyghost.wakeve.routes.commentRoutes
 import com.guyghost.wakeve.routes.eventRoutes
 import com.guyghost.wakeve.routes.mealRoutes
 import com.guyghost.wakeve.routes.participantRoutes
@@ -171,9 +172,10 @@ fun main() {
     val scenarioRepository = ScenarioRepository(database)
     val budgetRepository = com.guyghost.wakeve.budget.BudgetRepository(database)
     val mealRepository = com.guyghost.wakeve.meal.MealRepository(database)
+    val commentRepository = com.guyghost.wakeve.comment.CommentRepository(database)
 
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = {
-        module(database, eventRepository, scenarioRepository, budgetRepository, mealRepository)
+        module(database, eventRepository, scenarioRepository, budgetRepository, mealRepository, commentRepository)
     }).start(wait = true)
 }
 
@@ -182,7 +184,8 @@ fun Application.module(
     eventRepository: DatabaseEventRepository = DatabaseEventRepository(database),
     scenarioRepository: ScenarioRepository = ScenarioRepository(database),
     budgetRepository: com.guyghost.wakeve.budget.BudgetRepository = com.guyghost.wakeve.budget.BudgetRepository(database),
-    mealRepository: com.guyghost.wakeve.meal.MealRepository = com.guyghost.wakeve.meal.MealRepository(database)
+    mealRepository: com.guyghost.wakeve.meal.MealRepository = com.guyghost.wakeve.meal.MealRepository(database),
+    commentRepository: com.guyghost.wakeve.comment.CommentRepository = com.guyghost.wakeve.comment.CommentRepository(database)
 ) {
     // Initialize metrics
     val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -309,6 +312,7 @@ fun Application.module(
                 scenarioRoutes(scenarioRepository)
                 budgetRoutes(budgetRepository)
                 mealRoutes(mealRepository)
+                commentRoutes(commentRepository)
                 syncRoutes(syncService)
                 sessionRoutes(sessionManager)
             }

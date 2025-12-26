@@ -250,6 +250,8 @@ struct ManageParticipantsSheet: View {
  */
 struct ActivityPlanningView: View {
     let eventId: String
+    let currentUserId: String
+    let currentUserName: String
     @Environment(\.dismiss) private var dismiss
     
     @State private var activities: [ActivityModel] = []
@@ -268,6 +270,10 @@ struct ActivityPlanningView: View {
     // Alerts
     @State private var showDeleteAlert = false
     @State private var activityToDelete: ActivityModel?
+    
+    // Comments state
+    @State private var commentCount = 0
+    @State private var showComments = false
     
     var filteredActivities: [ActivityModel] {
         if let date = selectedDate {
@@ -318,12 +324,18 @@ struct ActivityPlanningView: View {
                     Button("Fermer") { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        selectedActivity = nil
-                        showAddActivitySheet = true
-                    } label: {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.title2)
+                    HStack(spacing: 12) {
+                        CommentButton(commentCount: commentCount) {
+                            showComments = true
+                        }
+                        
+                        Button {
+                            selectedActivity = nil
+                            showAddActivitySheet = true
+                        } label: {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2)
+                        }
                     }
                 }
             }
@@ -356,6 +368,28 @@ struct ActivityPlanningView: View {
                     }
                 )
             }
+            .sheet(isPresented: $showComments) {
+                NavigationView {
+                    CommentsView(
+                        eventId: eventId,
+                        section: .ACTIVITY,
+                        sectionItemId: nil,
+                        currentUserId: currentUserId,
+                        currentUserName: currentUserName,
+                        onBack: {
+                            showComments = false
+                        }
+                    )
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Fermer") {
+                                showComments = false
+                            }
+                        }
+                    }
+                }
+            }
             .alert("Supprimer l'activité", isPresented: $showDeleteAlert, presenting: activityToDelete) { activity in
                 Button("Supprimer", role: .destructive) {
                     activities.removeAll { $0.id == activity.id }
@@ -369,6 +403,7 @@ struct ActivityPlanningView: View {
             }
             .onAppear {
                 loadData()
+                loadCommentCount()
             }
         }
     }
@@ -651,6 +686,14 @@ struct ActivityPlanningView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             isLoading = false
         }
+    }
+    
+    // MARK: - Comments
+    
+    private func loadCommentCount() {
+        // TODO: Integrate with CommentRepository
+        // For now, placeholder - should fetch count for section .ACTIVITY and sectionItemId = nil
+        commentCount = 0
     }
     
     private func sortActivities() {

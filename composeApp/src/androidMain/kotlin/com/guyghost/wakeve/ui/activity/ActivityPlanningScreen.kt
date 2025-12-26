@@ -1,12 +1,15 @@
 package com.guyghost.wakeve.ui.activity
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Comment
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.activity.ActivityManager
 import com.guyghost.wakeve.activity.ActivityRepository
 import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.comment.CommentRepository
+import com.guyghost.wakeve.models.CommentSection
 
 /**
  * Activity Planning Screen
@@ -34,7 +39,9 @@ fun ActivityPlanningScreen(
     organizerId: String,
     participants: List<ParticipantInfo>,
     activityRepository: ActivityRepository,
-    onNavigateBack: () -> Unit
+    commentRepository: CommentRepository,
+    onNavigateBack: () -> Unit,
+    onNavigateToComments: (eventId: String, section: CommentSection, sectionItemId: String?) -> Unit
 ) {
     var activitiesByDate by remember { mutableStateOf<List<ActivitiesByDate>>(emptyList()) }
     var selectedDate by remember { mutableStateOf<String?>(null) }
@@ -43,11 +50,13 @@ fun ActivityPlanningScreen(
     var activityToDelete by remember { mutableStateOf<Activity?>(null) }
     var showParticipantsDialog by remember { mutableStateOf<ActivityWithStats?>(null) }
     var totalCost by remember { mutableStateOf(0L) }
+    var commentCount by remember { mutableIntStateOf(0) }
 
     // Load data
     fun loadData() {
         activitiesByDate = activityRepository.getActivitiesByDateGrouped(eventId)
         totalCost = activityRepository.sumActivityCostByEvent(eventId)
+        commentCount = commentRepository.countCommentsBySection(eventId, CommentSection.ACTIVITY).toInt()
     }
 
     LaunchedEffect(eventId) {
@@ -70,6 +79,38 @@ fun ActivityPlanningScreen(
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, "Retour")
+                    }
+                },
+                actions = {
+                    // Comments icon with badge
+                    IconButton(onClick = {
+                        onNavigateToComments(eventId, CommentSection.ACTIVITY, null)
+                    }) {
+                        Box {
+                            Icon(
+                                Icons.Outlined.Comment,
+                                contentDescription = if (commentCount == 0) "Aucun commentaire" else "$commentCount commentaires"
+                            )
+                            if (commentCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .background(
+                                            color = MaterialTheme.colorScheme.error,
+                                            shape = CircleShape
+                                        )
+                                        .align(Alignment.TopEnd),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = commentCount.toString(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onError,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             )

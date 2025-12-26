@@ -6,11 +6,13 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -20,7 +22,10 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.outlined.Comment
 import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -39,6 +44,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -50,6 +56,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioStatus
+import com.guyghost.wakeve.comment.CommentRepository
+import com.guyghost.wakeve.models.CommentSection
 import kotlinx.coroutines.launch
 
 /**
@@ -85,12 +93,15 @@ data class ScenarioDetailState(
 fun ScenarioDetailScreen(
     scenarioId: String,
     repository: ScenarioRepository,
+    commentRepository: CommentRepository,
     isOrganizer: Boolean,
     onBack: () -> Unit,
-    onDeleted: () -> Unit
+    onDeleted: () -> Unit,
+    onNavigateToComments: (eventId: String, section: CommentSection, sectionItemId: String?) -> Unit
 ) {
     var state by remember { mutableStateOf(ScenarioDetailState()) }
     val scope = rememberCoroutineScope()
+    var commentCount by remember { mutableIntStateOf(0) }
 
     // Load scenario on mount
     LaunchedEffect(scenarioId) {
@@ -109,6 +120,8 @@ fun ScenarioDetailScreen(
                     editBudget = scenario.estimatedBudgetPerPerson.toString(),
                     editDescription = scenario.description
                 )
+                // Load comment count for this scenario
+                commentCount = commentRepository.countCommentsBySection(scenario.eventId, CommentSection.SCENARIO, scenarioId).toInt()
             } else {
                 state = state.copy(
                     isLoading = false,
@@ -191,6 +204,38 @@ fun ScenarioDetailScreen(
                             }
                             IconButton(onClick = { state = state.copy(showDeleteDialog = true) }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete")
+                            }
+                        }
+                    }
+                    // Comments icon with badge
+                    if (state.scenario != null) {
+                        IconButton(onClick = {
+                            onNavigateToComments(state.scenario!!.eventId, CommentSection.SCENARIO, scenarioId)
+                        }) {
+                            Box {
+                                Icon(
+                                    Icons.Outlined.Comment,
+                                    contentDescription = if (commentCount == 0) "Aucun commentaire" else "$commentCount commentaires"
+                                )
+                                if (commentCount > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(16.dp)
+                                            .background(
+                                                color = MaterialTheme.colorScheme.error,
+                                                shape = CircleShape
+                                            )
+                                            .align(Alignment.TopEnd),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = commentCount.toString(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onError,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

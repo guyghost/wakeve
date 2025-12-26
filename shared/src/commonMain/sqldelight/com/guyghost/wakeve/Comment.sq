@@ -1,0 +1,194 @@
+-- Comment Table
+-- Stores comments and discussion threads for event sections
+
+CREATE TABLE IF NOT EXISTS comment (
+    id TEXT PRIMARY KEY NOT NULL,
+    event_id TEXT NOT NULL,
+    section TEXT NOT NULL, -- GENERAL, SCENARIO, POLL, TRANSPORT, ACCOMMODATION, MEAL, EQUIPMENT, ACTIVITY, BUDGET
+    section_item_id TEXT, -- Optional ID of specific item within section
+    author_id TEXT NOT NULL,
+    author_name TEXT NOT NULL,
+    content TEXT NOT NULL,
+    parent_comment_id TEXT, -- NULL for top-level comments, comment_id for replies
+    created_at TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    updated_at TEXT, -- ISO 8601 UTC timestamp, NULL if never edited
+    is_edited INTEGER NOT NULL DEFAULT 0, -- 0 = false, 1 = true
+    reply_count INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY(event_id) REFERENCES event(id) ON DELETE CASCADE,
+    FOREIGN KEY(parent_comment_id) REFERENCES comment(id) ON DELETE CASCADE
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_comment_event_id ON comment(event_id);
+CREATE INDEX IF NOT EXISTS idx_comment_section ON comment(section);
+CREATE INDEX IF NOT EXISTS idx_comment_section_item ON comment(section_item_id);
+CREATE INDEX IF NOT EXISTS idx_comment_author ON comment(author_id);
+CREATE INDEX IF NOT EXISTS idx_comment_parent ON comment(parent_comment_id);
+CREATE INDEX IF NOT EXISTS idx_comment_created_at ON comment(created_at);
+
+-- ==================== QUERIES ====================
+
+-- Create
+insertComment:
+INSERT INTO comment (
+    id, event_id, section, section_item_id, author_id, author_name,
+    content, parent_comment_id, created_at, updated_at, is_edited, reply_count
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Read
+selectCommentById:
+SELECT * FROM comment WHERE id = ?;
+
+selectCommentsByEvent:
+SELECT * FROM comment 
+WHERE event_id = ? 
+ORDER BY created_at DESC;
+
+selectCommentsByEventAndSection:
+SELECT * FROM comment 
+WHERE event_id = ? AND section = ?
+ORDER BY created_at DESC;
+
+selectCommentsByEventSectionAndItem:
+SELECT * FROM comment 
+WHERE event_id = ? AND section = ? AND section_item_id = ?
+ORDER BY created_at DESC;
+
+selectTopLevelCommentsByEvent:
+SELECT * FROM comment 
+WHERE event_id = ? AND parent_comment_id IS NULL
+ORDER BY created_at DESC;
+
+selectTopLevelCommentsBySection:
+SELECT * FROM comment 
+WHERE event_id = ? AND section = ? AND parent_comment_id IS NULL
+ORDER BY created_at DESC;
+
+selectTopLevelCommentsBySectionAndItem:
+SELECT * FROM comment 
+WHERE event_id = ? AND section = ? AND section_item_id = ? AND parent_comment_id IS NULL
+ORDER BY created_at DESC;
+
+selectRepliesByParentComment:
+SELECT * FROM comment 
+WHERE parent_comment_id = ?
+ORDER BY created_at ASC;
+
+selectCommentsByAuthor:
+SELECT * FROM comment 
+WHERE event_id = ? AND author_id = ?
+ORDER BY created_at DESC;
+
+selectRecentComments:
+SELECT * FROM comment 
+WHERE event_id = ? AND created_at > ?
+ORDER BY created_at DESC
+LIMIT ?;
+
+-- Update
+updateComment:
+UPDATE comment 
+SET content = ?, updated_at = ?, is_edited = 1
+WHERE id = ?;
+
+updateReplyCount:
+UPDATE comment 
+SET reply_count = ?
+WHERE id = ?;
+
+incrementReplyCount:
+UPDATE comment 
+SET reply_count = reply_count + 1
+WHERE id = ?;
+
+decrementReplyCount:
+UPDATE comment 
+SET reply_count = reply_count - 1
+WHERE id = ? AND reply_count > 0;
+
+-- Delete
+deleteComment:
+DELETE FROM comment WHERE id = ?;
+
+deleteCommentsByEvent:
+DELETE FROM comment WHERE event_id = ?;
+
+deleteCommentsBySection:
+DELETE FROM comment WHERE event_id = ? AND section = ?;
+
+deleteCommentsBySectionItem:
+DELETE FROM comment WHERE event_id = ? AND section = ? AND section_item_id = ?;
+
+-- ==================== AGGREGATIONS ====================
+
+countCommentsByEvent:
+SELECT COUNT(*) AS commentCount 
+FROM comment 
+WHERE event_id = ?;
+
+countCommentsBySection:
+SELECT COUNT(*) AS commentCount 
+FROM comment 
+WHERE event_id = ? AND section = ?;
+
+countCommentsBySectionItem:
+SELECT COUNT(*) AS commentCount 
+FROM comment 
+WHERE event_id = ? AND section = ? AND section_item_id = ?;
+
+countCommentsByAuthor:
+SELECT COUNT(*) AS commentCount 
+FROM comment 
+WHERE event_id = ? AND author_id = ?;
+
+countRepliesByParent:
+SELECT COUNT(*) AS replyCount 
+FROM comment 
+WHERE parent_comment_id = ?;
+
+-- Comments by section statistics
+selectCommentStatsBySection:
+SELECT 
+    section,
+    COUNT(*) AS commentCount,
+    COUNT(DISTINCT author_id) AS uniqueAuthors
+FROM comment 
+WHERE event_id = ?
+GROUP BY section
+ORDER BY commentCount DESC;
+
+-- Top contributors
+selectTopContributors:
+SELECT 
+    author_id,
+    author_name,
+    COUNT(*) AS commentCount
+FROM comment 
+WHERE event_id = ?
+GROUP BY author_id, author_name
+ORDER BY commentCount DESC
+LIMIT ?;
+
+-- Recent activity (last 24 hours)
+countRecentActivity:
+SELECT COUNT(*) AS recentCount 
+FROM comment 
+WHERE event_id = ? AND created_at > ?;
+
+-- Participant activity
+selectParticipantActivity:
+SELECT 
+    author_id,
+    author_name,
+    COUNT(*) AS totalComments,
+    COUNT(CASE WHEN parent_comment_id IS NOT NULL THEN 1 END) AS replyCount,
+    MAX(created_at) AS lastCommentAt
+FROM comment 
+WHERE event_id = ? AND author_id = ?
+GROUP BY author_id, author_name;
+
+-- Check if comment exists
+commentExists:
+SELECT COUNT(*) AS count
+FROM comment 
+WHERE id = ?;

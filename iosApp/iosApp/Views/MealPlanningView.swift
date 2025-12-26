@@ -13,6 +13,8 @@ import SwiftUI
  */
 struct MealPlanningView: View {
     let eventId: String
+    let currentUserId: String
+    let currentUserName: String
     @Environment(\.dismiss) private var dismiss
     
     @State private var meals: [MealModel] = []
@@ -33,6 +35,10 @@ struct MealPlanningView: View {
     // Alerts
     @State private var showDeleteAlert = false
     @State private var mealToDelete: MealModel?
+    
+    // Comments state
+    @State private var commentCount = 0
+    @State private var showComments = false
     
     var body: some View {
         NavigationView {
@@ -58,28 +64,34 @@ struct MealPlanningView: View {
                     Button("Fermer") { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button {
-                            selectedMeal = nil
-                            showAddMealSheet = true
-                        } label: {
-                            Label("Ajouter un repas", systemImage: "plus.circle")
+                    HStack(spacing: 12) {
+                        CommentButton(commentCount: commentCount) {
+                            showComments = true
                         }
                         
-                        Button {
-                            showAutoGenerateSheet = true
+                        Menu {
+                            Button {
+                                selectedMeal = nil
+                                showAddMealSheet = true
+                            } label: {
+                                Label("Ajouter un repas", systemImage: "plus.circle")
+                            }
+                            
+                            Button {
+                                showAutoGenerateSheet = true
+                            } label: {
+                                Label("Générer automatiquement", systemImage: "wand.and.stars")
+                            }
+                            
+                            Button {
+                                showRestrictionsSheet = true
+                            } label: {
+                                Label("Contraintes alimentaires", systemImage: "leaf.circle")
+                            }
                         } label: {
-                            Label("Générer automatiquement", systemImage: "wand.and.stars")
+                            Image(systemName: "ellipsis.circle.fill")
+                                .font(.title2)
                         }
-                        
-                        Button {
-                            showRestrictionsSheet = true
-                        } label: {
-                            Label("Contraintes alimentaires", systemImage: "leaf.circle")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle.fill")
-                            .font(.title2)
                     }
                 }
             }
@@ -118,6 +130,28 @@ struct MealPlanningView: View {
                     restrictions: $dietaryRestrictions
                 )
             }
+            .sheet(isPresented: $showComments) {
+                NavigationView {
+                    CommentsView(
+                        eventId: eventId,
+                        section: .MEAL,
+                        sectionItemId: nil,
+                        currentUserId: currentUserId,
+                        currentUserName: currentUserName,
+                        onBack: {
+                            showComments = false
+                        }
+                    )
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Fermer") {
+                                showComments = false
+                            }
+                        }
+                    }
+                }
+            }
             .alert("Supprimer ce repas ?", isPresented: $showDeleteAlert, presenting: mealToDelete) { meal in
                 Button("Annuler", role: .cancel) {
                     mealToDelete = nil
@@ -132,6 +166,7 @@ struct MealPlanningView: View {
         }
         .onAppear {
             loadData()
+            loadCommentCount()
         }
     }
     
@@ -404,6 +439,14 @@ struct MealPlanningView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             isLoading = false
         }
+    }
+    
+    // MARK: - Comments
+    
+    private func loadCommentCount() {
+        // TODO: Integrate with CommentRepository
+        // For now, placeholder - should fetch count for section .MEAL and sectionItemId = nil
+        commentCount = 0
     }
 }
 
