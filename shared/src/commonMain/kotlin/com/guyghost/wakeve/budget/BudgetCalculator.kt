@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.budget
 
 import com.guyghost.wakeve.models.*
+import kotlin.math.roundToInt
 
 /**
  * Budget Calculator - Business logic for budget calculations.
@@ -13,6 +14,25 @@ import com.guyghost.wakeve.models.*
  */
 object BudgetCalculator {
     
+    /**
+     * Format a Double to string with 2 decimal places
+     */
+    private fun Double.format2(): String {
+        val rounded = ((this * 100).roundToInt()) / 100.0
+        val intPart = rounded.toInt()
+        val decPart = ((rounded - intPart) * 100).roundToInt()
+        return "$intPart.${decPart.toString().padStart(2, '0')}"
+    }
+    
+    /**
+     * Format a Double to string with 1 decimal place
+     */
+    private fun Double.format1(): String {
+        val rounded = ((this * 10).roundToInt()) / 10.0
+        val intPart = rounded.toInt()
+        val decPart = ((rounded - intPart) * 10).roundToInt()
+        return "$intPart.$decPart"
+    }
     /**
      * Calculate total budget from a list of budget items.
      * 
@@ -438,27 +458,27 @@ object BudgetCalculator {
         
         return buildString {
             appendLine("=== Budget Summary ===")
-            appendLine("Total Estimated: €${String.format("%.2f", budget.totalEstimated)}")
-            appendLine("Total Actual: €${String.format("%.2f", budget.totalActual)}")
-            appendLine("Per Person Estimated: €${String.format("%.2f", estimatedPP)}")
-            appendLine("Per Person Actual: €${String.format("%.2f", actualPP)}")
+            appendLine("Total Estimated: €${budget.totalEstimated.format2()}")
+            appendLine("Total Actual: €${budget.totalActual.format2()}")
+            appendLine("Per Person Estimated: €${estimatedPP.format2()}")
+            appendLine("Per Person Actual: €${actualPP.format2()}")
             val budgetUsagePercentage = if (budget.totalEstimated > 0.0) {
                 (budget.totalActual / budget.totalEstimated) * 100.0
             } else {
                 0.0
             }
             val isOverBudget = budget.totalActual > budget.totalEstimated
-            appendLine("Budget Usage: ${String.format("%.1f", budgetUsagePercentage)}%")
+            appendLine("Budget Usage: ${budgetUsagePercentage.format1()}%")
             appendLine("Status: ${if (isOverBudget) "OVER BUDGET ⚠️" else "Within Budget ✓"}")
             appendLine()
             appendLine("=== By Category ===")
             categoryBreakdown.forEach { detail ->
                 appendLine("${detail.category.name}:")
-                appendLine("  Estimated: €${String.format("%.2f", detail.estimated)} (${String.format("%.1f", detail.percentage)}%)")
-                appendLine("  Actual: €${String.format("%.2f", detail.actual)}")
+                appendLine("  Estimated: €${detail.estimated.format2()} (${detail.percentage.format1()}%)")
+                appendLine("  Actual: €${detail.actual.format2()}")
                 appendLine("  Items: ${detail.paidItemCount}/${detail.itemCount} paid")
                 if (detail.isOverBudget) {
-                    appendLine("  ⚠️ OVER BUDGET by €${String.format("%.2f", detail.actual - detail.estimated)}")
+                    appendLine("  ⚠️ OVER BUDGET by €${(detail.actual - detail.estimated).format2()}")
                 }
             }
             

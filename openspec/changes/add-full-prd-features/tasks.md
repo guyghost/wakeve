@@ -2,13 +2,13 @@
 
 ## Change: `add-full-prd-features`
 **Status**: 🟡 En cours  
-**Dernière mise à jour**: 25 décembre 2025  
-**Progress**: 34/62 tasks complétées (55%)
+**Dernière mise à jour**: 26 décembre 2025  
+**Progress**: 42/62 tasks complétées (68%)
 
 ### Résumé par Phase
 - ✅ **Phase 1 - Scénarios**: 17/17 tasks (100% - PHASE COMPLÈTE! 🎉)
 - ✅ **Phase 2 - Budget**: 11/11 tasks (100% - PHASE COMPLÈTE! 🎉)
-- ⏳ **Phase 3 - Logistique**: 6/15 tasks (40% - Sprint 3.1 COMPLETE! 🎉)
+- ⏳ **Phase 3 - Logistique**: 14/15 tasks (93% - Sprint 3.1 ✅ | Sprint 3.2 COMPLETE! 🎉)
 - ⏳ **Phase 4 - Collaboration**: 0/10 tasks (0%)
 - ⏳ **Phase 5 - Avancé**: 0/9 tasks (0%)
 
@@ -339,7 +339,7 @@
   - [x] `GET /api/events/{id}/accommodation/statistics` - Statistiques
   - **Fichier**: `server/src/main/kotlin/com/guyghost/wakeve/routes/AccommodationRoutes.kt` (394 lignes, 10 endpoints)
 
-### Sprint 3.2 - Transport & Repas
+### Sprint 3.2 - Transport & Repas ✅ (7/7 tasks done - SPRINT COMPLETE! 🎉)
 
 - [ ] **Task 3.2.1**: Améliorer `TransportPlanningScreen.kt`
   - [ ] Ajout lieu de départ par participant
@@ -347,30 +347,88 @@
   - [ ] Saisie horaires et coûts
   - [ ] Intégration budget
 
-- [ ] **Task 3.2.2**: Créer `Meal.kt` et `DietaryRestriction.kt`
-  - [ ] Modèles complets
-  - [ ] `MealType` enum
-  - [ ] `MealStatus` enum
+- [x] **Task 3.2.2**: Créer `MealModels.kt`
+  - [x] 3 enums: `MealType` (5 types), `MealStatus` (5 statuts), `DietaryRestriction` (10 types)
+  - [x] 8 data classes: `Meal`, `ParticipantDietaryRestriction`, `MealWithRestrictions`, `DailyMealSchedule`, `MealPlanningSummary`, + request models
+  - [x] `AutoMealPlanRequest` pour auto-génération
+  - **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/models/MealModels.kt` (221 lignes)
 
-- [ ] **Task 3.2.3**: Créer `Meal.sq` et `DietaryRestrictionMapping.sq`
+- [x] **Task 3.2.3**: Créer `Meal.sq` et `ParticipantDietaryRestriction.sq`
+  - [x] Table `meal` avec indexes (event_id, date, time, status, type)
+  - [x] Table `participant_dietary_restriction` avec UNIQUE constraint
+  - [x] 36 queries au total (21 Meal + 15 Restrictions)
+  - [x] Agrégations: coûts, counts par type/statut, upcoming meals
+  - **Fichiers**:
+    - `shared/src/commonMain/sqldelight/com/guyghost/wakeve/Meal.sq` (132 lignes, 21 queries)
+    - `shared/src/commonMain/sqldelight/com/guyghost/wakeve/ParticipantDietaryRestriction.sq` (98 lignes, 15 queries)
 
-- [ ] **Task 3.2.4**: Implémenter `MealPlanner.kt`
-  - [ ] `planMeals()` - Génération automatique
-  - [ ] `assignMealResponsibilities()`
-  - [ ] `validateDietaryRestrictions()`
-  - [ ] Tests: MealPlannerTest (≥5 tests)
+- [x] **Task 3.2.4**: Implémenter `MealPlanner.kt`
+  - [x] `autoGenerateMeals()` - Génération complète depuis date range
+  - [x] `calculateTotalMealCost()`, `calculateCostPerPerson()`
+  - [x] `validateMeal()`, `validateDietaryRestriction()`
+  - [x] `suggestMealAssignments()` - Équilibrage workload
+  - [x] `analyzeRestrictionCoverage()`, `findMealConflicts()`
+  - [x] `groupMealsByDate()`, `generateMealSummary()`
+  - [x] `getUpcomingMeals()`, `getCompletedMeals()`, `getMealsNeedingAssignment()`
+  - [x] `calculateMealStats()`, `countMealsByParticipant()`
+  - [x] Tests: MealPlannerTest (32/32 tests ✅)
+  - **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/meal/MealPlanner.kt` (399 lignes, 23 functions)
+  - **Tests**: `shared/src/commonTest/kotlin/com/guyghost/wakeve/meal/MealPlannerTest.kt` (537 lignes, 32 tests)
 
-- [ ] **Task 3.2.5**: Créer `MealPlanningScreen.kt` (Android)
-  - [ ] Calendrier des repas
-  - [ ] Assignment des responsables
-  - [ ] Saisie contraintes alimentaires
+- [x] **Task 3.2.5**: Créer `MealPlanningScreen.kt` (Android)
+  - [x] Liste repas groupés par date (`DailyMealSchedule`)
+  - [x] Form add/edit avec type, status, time pickers
+  - [x] Gestion des contraintes alimentaires (manager dialog + liste)
+  - [x] Bouton "Auto-generate meals" avec dialog configuration
+  - [x] Assignment responsables (multi-select avec checkboxes)
+  - [x] Coût estimé et réel
+  - [x] Validation de formulaire avec `MealPlanner.validateMeal()`
+  - [x] Summary card (total meals, cost, completed)
+  - [x] Filter chips (type + status)
+  - [x] Empty state avec call-to-action
+  - **Fichiers**:
+    - `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealPlanningScreen.kt` (704 lignes)
+    - `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meal/MealDialogs.kt` (600 lignes)
 
-- [ ] **Task 3.2.6**: Créer `MealPlanningView.swift` (iOS)
+- [x] **Task 3.2.6**: Créer `MealPlanningView.swift` (iOS)
+  - [x] Design Liquid Glass (.glassCard(), .continuousCornerRadius())
+  - [x] Liste avec sections par date (groupedMealsByDate)
+  - [x] Sheets natifs pour forms (MealFormSheet, AutoGenerateMealsSheet, DietaryRestrictionsSheet)
+  - [x] Pickers pour type, status (native iOS Picker)
+  - [x] DatePicker et time selection (native components: .date, .hourAndMinute)
+  - [x] Gestion restrictions alimentaires (sheet dédié avec add/delete)
+  - [x] Summary card avec statistiques (meals count, cost, completed)
+  - [x] Filter chips interactifs (type + status filters)
+  - [x] Empty state avec call-to-action
+  - [x] Status badges avec couleurs adaptées
+  - [x] Meal cards avec toutes les infos (type icon, time, location, cost, servings, responsible)
+  - [x] Actions: Edit, Delete avec alertes natives
+  - [x] Multi-select participants (checkbox-style)
+  - [x] Auto-generate avec configuration complète (date range, meal types, cost)
+  - [x] Form validation avec messages d'erreur
+  - **Fichiers**:
+    - `iosApp/iosApp/Views/MealPlanningView.swift` (650 lignes)
+    - `iosApp/iosApp/Views/MealPlanningSheets.swift` (750 lignes)
 
-- [ ] **Task 3.2.7**: Endpoints API Repas
-  - [ ] `POST /api/events/{id}/meals`
-  - [ ] `GET /api/events/{id}/meals`
-  - [ ] `PUT /api/events/{id}/meals/{mealId}`
+- [x] **Task 3.2.7**: Endpoints API Repas & Repository
+  - [x] **Repository**: `MealRepository.kt` avec 20+ méthodes CRUD
+  - [x] `GET /api/events/{id}/meals` - Tous les repas (avec filtres optionnels)
+  - [x] `POST /api/events/{id}/meals` - Créer repas (avec validation)
+  - [x] `GET /api/events/{id}/meals/{mealId}` - Détail repas
+  - [x] `PUT /api/events/{id}/meals/{mealId}` - Modifier repas
+  - [x] `DELETE /api/events/{id}/meals/{mealId}` - Supprimer repas
+  - [x] `GET /api/events/{id}/meals/schedule` - Daily schedule
+  - [x] `GET /api/events/{id}/meals/summary` - Statistiques
+  - [x] `GET /api/events/{id}/meals/upcoming` - Repas à venir
+  - [x] `POST /api/events/{id}/meals/auto-generate` - Génération automatique
+  - [x] `GET /api/events/{id}/dietary-restrictions` - Contraintes alimentaires
+  - [x] `POST /api/events/{id}/dietary-restrictions` - Ajouter contrainte
+  - [x] `GET /api/events/{id}/dietary-restrictions/participant/{id}` - Contraintes d'un participant
+  - [x] `GET /api/events/{id}/dietary-restrictions/counts` - Comptes des contraintes
+  - [x] `DELETE /api/events/{id}/dietary-restrictions/{id}` - Supprimer contrainte
+  - **Fichiers**:
+    - `server/src/main/kotlin/com/guyghost/wakeve/routes/MealRoutes.kt` (430 lignes, 14 endpoints)
+    - `shared/src/commonMain/kotlin/com/guyghost/wakeve/meal/MealRepository.kt` (360 lignes)
 
 ### Sprint 3.3 - Équipements & Activités
 

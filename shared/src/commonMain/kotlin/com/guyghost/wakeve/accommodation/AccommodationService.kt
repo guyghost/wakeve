@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.accommodation
 
 import com.guyghost.wakeve.models.*
-import java.time.Instant
+import kotlinx.datetime.*
 
 /**
  * Service for managing accommodations and room assignments.
@@ -298,7 +298,7 @@ object AccommodationService {
      * Get current UTC timestamp in ISO 8601 format
      */
     fun getCurrentUtcIsoString(): String {
-        return Instant.now().toString()
+        return Clock.System.now().toString()
     }
 
     /**

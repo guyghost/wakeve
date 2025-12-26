@@ -10,6 +10,7 @@ import com.guyghost.wakeve.metrics.AuthMetricsCollector
 import com.guyghost.wakeve.routes.authRoutes
 import com.guyghost.wakeve.routes.budgetRoutes
 import com.guyghost.wakeve.routes.eventRoutes
+import com.guyghost.wakeve.routes.mealRoutes
 import com.guyghost.wakeve.routes.participantRoutes
 import com.guyghost.wakeve.routes.scenarioRoutes
 import com.guyghost.wakeve.routes.sessionRoutes
@@ -169,9 +170,10 @@ fun main() {
     val eventRepository = DatabaseEventRepository(database)
     val scenarioRepository = ScenarioRepository(database)
     val budgetRepository = com.guyghost.wakeve.budget.BudgetRepository(database)
+    val mealRepository = com.guyghost.wakeve.meal.MealRepository(database)
 
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = {
-        module(database, eventRepository, scenarioRepository, budgetRepository)
+        module(database, eventRepository, scenarioRepository, budgetRepository, mealRepository)
     }).start(wait = true)
 }
 
@@ -179,7 +181,8 @@ fun Application.module(
     database: WakevDb,
     eventRepository: DatabaseEventRepository = DatabaseEventRepository(database),
     scenarioRepository: ScenarioRepository = ScenarioRepository(database),
-    budgetRepository: com.guyghost.wakeve.budget.BudgetRepository = com.guyghost.wakeve.budget.BudgetRepository(database)
+    budgetRepository: com.guyghost.wakeve.budget.BudgetRepository = com.guyghost.wakeve.budget.BudgetRepository(database),
+    mealRepository: com.guyghost.wakeve.meal.MealRepository = com.guyghost.wakeve.meal.MealRepository(database)
 ) {
     // Initialize metrics
     val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -305,6 +308,7 @@ fun Application.module(
                 voteRoutes(eventRepository)
                 scenarioRoutes(scenarioRepository)
                 budgetRoutes(budgetRepository)
+                mealRoutes(mealRepository)
                 syncRoutes(syncService)
                 sessionRoutes(sessionManager)
             }

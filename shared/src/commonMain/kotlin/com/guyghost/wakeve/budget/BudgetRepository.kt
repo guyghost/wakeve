@@ -4,6 +4,7 @@ import com.guyghost.wakeve.models.*
 import com.guyghost.wakeve.Budget as SqlBudget
 import com.guyghost.wakeve.BudgetItem as SqlBudgetItem
 import com.guyghost.wakeve.database.WakevDb
+import kotlinx.datetime.*
 
 /**
  * Budget Repository - Manages budget and budget items persistence.
@@ -422,10 +423,11 @@ class BudgetRepository(private val db: WakevDb) {
     // ==================== Utility ====================
     
     /**
-     * Generate unique ID (simple UUID-like for now).
+     * Generate unique ID for budget/item.
      */
     private fun generateId(): String {
-        return "budget-${System.currentTimeMillis()}-${(0..9999).random()}"
+        val timestamp = Clock.System.now().toEpochMilliseconds()
+        return "budget-${timestamp}-${(0..9999).random()}"
     }
     
     /**
