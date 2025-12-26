@@ -11,7 +11,7 @@ Ce document définit le design system unifié pour toutes les plateformes de l'a
 
 ### 2. Design Natif
 - **Android** : Material You avec Jetpack Compose
-- **iOS** : Liquid Glass avec SwiftUI (iOS 15+)
+- **iOS** : Liquid Glass avec SwiftUI (iOS 26+)
 - **Web** : TailwindCSS (layout à définir ultérieurement)
 
 ### 3. Accessibilité First

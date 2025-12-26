@@ -11,6 +11,7 @@ enum class EquipmentCategory {
     SPORTS,       // Sports equipment, outdoor gear
     COOKING,      // Kitchen equipment, utensils
     ELECTRONICS,  // Cameras, speakers, chargers
+    SAFETY,       // First aid, flashlights, tools
     OTHER         // Miscellaneous items
 }
 
@@ -22,7 +23,8 @@ enum class ItemStatus {
     NEEDED,      // Item is needed but not assigned
     ASSIGNED,    // Someone is assigned to bring it
     CONFIRMED,   // Assignment confirmed by assignee
-    PACKED       // Item is packed and ready
+    PACKED,      // Item is packed and ready
+    CANCELLED    // No longer needed
 }
 
 /**
@@ -55,7 +57,15 @@ data class EquipmentItem(
     val notes: String? = null,
     val createdAt: String,  // ISO 8601 UTC timestamp
     val updatedAt: String   // ISO 8601 UTC timestamp
-)
+) {
+    init {
+        require(name.isNotBlank()) { "Equipment name cannot be blank" }
+        require(quantity > 0) { "Quantity must be positive" }
+        if (sharedCost != null) {
+            require(sharedCost >= 0) { "Shared cost cannot be negative" }
+        }
+    }
+}
 
 /**
  * Equipment checklist with statistics

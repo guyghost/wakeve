@@ -42,7 +42,24 @@ data class Activity(
     val notes: String? = null,
     val createdAt: String,  // ISO 8601 UTC timestamp
     val updatedAt: String   // ISO 8601 UTC timestamp
-)
+) {
+    init {
+        require(name.isNotBlank()) { "Activity name cannot be blank" }
+        require(description.isNotBlank()) { "Activity description cannot be blank" }
+        require(duration > 0) { "Duration must be positive" }
+        if (cost != null) {
+            require(cost >= 0) { "Cost cannot be negative" }
+        }
+        if (maxParticipants != null) {
+            require(maxParticipants > 0) { "Max participants must be positive" }
+        }
+        if (time != null) {
+            require(time.matches(Regex("^([01]?[0-9]|2[0-3]):[0-5][0-9]$"))) { 
+                "Time must be in HH:MM format" 
+            }
+        }
+    }
+}
 
 /**
  * Activity with additional metadata

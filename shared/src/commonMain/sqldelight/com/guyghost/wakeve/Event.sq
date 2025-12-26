@@ -4,7 +4,7 @@ CREATE TABLE event (
     organizerId TEXT NOT NULL,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
-    status TEXT NOT NULL, -- DRAFT, POLLING, CONFIRMED
+    status TEXT NOT NULL, -- DRAFT, POLLING, COMPARING, CONFIRMED, ORGANIZING, FINALIZED
     deadline TEXT NOT NULL, -- ISO 8601 UTC timestamp
     createdAt TEXT NOT NULL, -- ISO 8601 UTC timestamp
     updatedAt TEXT NOT NULL, -- ISO 8601 UTC timestamp, for sync

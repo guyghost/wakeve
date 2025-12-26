@@ -12,7 +12,7 @@ struct ScenarioDetailView: View {
     let onBack: () -> Void
     let onDeleted: () -> Void
     
-    @State private var scenario: Scenario?
+    @State private var scenario: Scenario_?
     @State private var isLoading = true
     @State private var isEditing = false
     @State private var isSaving = false
@@ -161,7 +161,7 @@ struct ScenarioDetailView: View {
     
     // MARK: - Detail View
     
-    private func detailView(scenario: Scenario) -> some View {
+    private func detailView(scenario: Scenario_) -> some View {
         VStack(spacing: 16) {
             // Header card
             VStack(alignment: .leading, spacing: 12) {
@@ -172,7 +172,7 @@ struct ScenarioDetailView: View {
                     
                     Spacer()
                     
-                    StatusBadge(status: scenario.status)
+                    ScenarioStatusBadge(status: ScenarioStatus(rawValue: scenario.status.name) ?? .proposed)
                 }
                 
                 if !scenario.description.isEmpty {
@@ -294,10 +294,10 @@ struct ScenarioDetailView: View {
     
     private func loadScenario() {
         Task {
-            do {
-                let loadedScenario = try await repository.getScenarioById(scenarioId: scenarioId)
-                
-                await MainActor.run {
+            let loadedScenario = repository.getScenarioById(id: scenarioId)
+            
+            await MainActor.run {
+                if let loadedScenario = loadedScenario {
                     self.scenario = loadedScenario
                     self.editName = loadedScenario.name
                     self.editLocation = loadedScenario.location
@@ -305,15 +305,9 @@ struct ScenarioDetailView: View {
                     self.editDuration = "\(loadedScenario.duration)"
                     self.editParticipants = "\(loadedScenario.estimatedParticipants)"
                     self.editBudget = "\(loadedScenario.estimatedBudgetPerPerson)"
-                    self.editDescription = loadedScenario.description
-                    self.isLoading = false
+                    self.editDescription = loadedScenario.description_
                 }
-            } catch {
-                await MainActor.run {
-                    self.errorMessage = error.localizedDescription
-                    self.showError = true
-                    self.isLoading = false
-                }
+                self.isLoading = false
             }
         }
     }
@@ -335,7 +329,7 @@ struct ScenarioDetailView: View {
         }
         
         do {
-            let updatedScenario = Scenario(
+            let updatedScenario = Scenario_(
                 id: scenario.id,
                 eventId: scenario.eventId,
                 name: editName,
@@ -350,7 +344,7 @@ struct ScenarioDetailView: View {
                 updatedAt: scenario.updatedAt
             )
             
-            try await repository.updateScenario(scenario: updatedScenario)
+            _ = try await repository.updateScenario(scenario: updatedScenario)
             
             await MainActor.run {
                 self.scenario = updatedScenario
@@ -368,7 +362,7 @@ struct ScenarioDetailView: View {
     
     private func deleteScenario() async {
         do {
-            try await repository.deleteScenario(scenarioId: scenarioId)
+            _ = try await repository.deleteScenario(scenarioId: scenarioId)
             
             await MainActor.run {
                 onDeleted()

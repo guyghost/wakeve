@@ -534,68 +534,6 @@ struct MealCard: View {
     }
 }
 
-// MARK: - Status Badge
-
-struct StatusBadge: View {
-    let status: String
-    
-    var body: some View {
-        Text(statusText)
-            .font(.caption)
-            .fontWeight(.medium)
-            .foregroundColor(statusColor)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(statusColor.opacity(0.15))
-            .continuousCornerRadius(12)
-    }
-    
-    private var statusText: String {
-        switch status {
-        case "PLANNED": return "Planifié"
-        case "ASSIGNED": return "Assigné"
-        case "IN_PROGRESS": return "En cours"
-        case "COMPLETED": return "Terminé"
-        case "CANCELLED": return "Annulé"
-        default: return status
-        }
-    }
-    
-    private var statusColor: Color {
-        switch status {
-        case "PLANNED": return .blue
-        case "ASSIGNED": return .purple
-        case "IN_PROGRESS": return .orange
-        case "COMPLETED": return .green
-        case "CANCELLED": return .red
-        default: return .gray
-        }
-    }
-}
-
-// MARK: - Filter Chip
-
-struct FilterChip: View {
-    let text: String
-    let icon: String
-    let isSelected: Bool
-    
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.caption)
-            Text(text)
-                .font(.subheadline)
-                .fontWeight(.medium)
-        }
-        .foregroundColor(isSelected ? .white : .primary)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
-        .background(isSelected ? Color.blue : Color(.systemGray5))
-        .continuousCornerRadius(20)
-    }
-}
-
 // MARK: - Filter Enums
 
 enum MealTypeFilter: String, CaseIterable {
@@ -634,12 +572,6 @@ struct MealModel {
     let notes: String?
     let createdAt: String
     let updatedAt: String
-}
-
-struct ParticipantModel {
-    let id: String
-    let name: String
-    let email: String
 }
 
 struct DietaryRestrictionModel {

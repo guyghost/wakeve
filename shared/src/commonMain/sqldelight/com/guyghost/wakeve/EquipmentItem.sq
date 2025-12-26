@@ -5,10 +5,10 @@ CREATE TABLE IF NOT EXISTS equipment_item (
     id TEXT PRIMARY KEY NOT NULL,
     event_id TEXT NOT NULL,
     name TEXT NOT NULL,
-    category TEXT NOT NULL, -- CAMPING, SPORTS, COOKING, ELECTRONICS, OTHER
+    category TEXT NOT NULL, -- CAMPING, SPORTS, COOKING, ELECTRONICS, SAFETY, OTHER
     quantity INTEGER NOT NULL DEFAULT 1,
     assigned_to TEXT, -- participant_id, NULL if unassigned
-    status TEXT NOT NULL, -- NEEDED, ASSIGNED, CONFIRMED, PACKED
+    status TEXT NOT NULL, -- NEEDED, ASSIGNED, CONFIRMED, PACKED, CANCELLED
     shared_cost INTEGER, -- In cents, NULL if no cost
     notes TEXT,
     created_at TEXT NOT NULL, -- ISO 8601 UTC timestamp
