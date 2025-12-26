@@ -385,63 +385,6 @@ struct TimeSlotVoteCard: View {
     }
 }
 
-struct VoteButton: View {
-    let vote: Vote
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(isSelected ? voteColor(for: vote) : Color.white.opacity(0.2))
-                        .frame(width: 50, height: 50)
-                        .overlay(
-                            Circle()
-                                .stroke(isSelected ? voteColor(for: vote) : Color.white.opacity(0.3), lineWidth: 2)
-                        )
-                    
-                    Text(voteSymbol(for: vote))
-                        .font(.system(size: 20, weight: .bold, design: .rounded))
-                        .foregroundColor(isSelected ? .white : .white.opacity(0.8))
-                }
-                
-                Text(voteLabel(for: vote))
-                    .font(.system(size: 12, weight: .medium, design: .rounded))
-                    .foregroundColor(isSelected ? voteColor(for: vote) : .white.opacity(0.8))
-            }
-        }
-    }
-    
-    private func voteColor(for vote: Vote) -> Color {
-        switch vote {
-        case .yes: return .green
-        case .maybe: return .orange
-        case .no: return .red
-        default: return .gray
-        }
-    }
-    
-    private func voteSymbol(for vote: Vote) -> String {
-        switch vote {
-        case .yes: return "✓"
-        case .maybe: return "~"
-        case .no: return "✗"
-        default: return "?"
-        }
-    }
-    
-    private func voteLabel(for vote: Vote) -> String {
-        switch vote {
-        case .yes: return "Yes"
-        case .maybe: return "Maybe"
-        case .no: return "No"
-        default: return "Unknown"
-        }
-    }
-}
-
 struct PollVotingView_Previews: PreviewProvider {
     static var previews: some View {
         let sampleSlots = [

@@ -1,6 +1,14 @@
 import SwiftUI
 import Shared
 
+// MARK: - Local Models
+
+enum ScenarioStatus: String {
+    case proposed = "PROPOSED"
+    case selected = "SELECTED"
+    case rejected = "REJECTED"
+}
+
 /// Scenario List View - iOS
 ///
 /// Displays all scenarios for an event with voting interface.
@@ -9,7 +17,7 @@ struct ScenarioListView: View {
     let event: Event
     let repository: ScenarioRepository
     let participantId: String
-    let onScenarioTap: (Scenario) -> Void
+    let onScenarioTap: (Scenario_) -> Void
     let onCompareTap: () -> Void
     let onBack: () -> Void
     
@@ -181,39 +189,34 @@ struct ScenarioListView: View {
     
     private func loadScenarios() {
         Task {
-            do {
-                let scenariosWithVotes = try await repository.getScenariosWithVotes(eventId: event.id)
-                
-                // Extract user's votes
-                var votes: [String: ScenarioVote] = [:]
-                for swv in scenariosWithVotes {
-                    if let userVote = swv.votes.first(where: { $0.participantId == participantId }) {
-                        votes[swv.scenario.id] = userVote
-                    }
+            let scenariosWithVotes = repository.getScenariosWithVotes(eventId: event.id)
+            
+            // Extract user's votes
+            var votes: [String: ScenarioVote] = [:]
+            for swv in scenariosWithVotes {
+                if let userVote = swv.votes.first(where: { $0.participantId == participantId }) {
+                    votes[swv.scenario.id] = userVote
                 }
-                
-                await MainActor.run {
-                    self.scenarios = scenariosWithVotes
-                    self.userVotes = votes
-                    self.isLoading = false
-                }
-            } catch {
-                await MainActor.run {
-                    self.errorMessage = error.localizedDescription
-                    self.showError = true
-                    self.isLoading = false
-                }
+            }
+            
+            await MainActor.run {
+                self.scenarios = scenariosWithVotes
+                self.userVotes = votes
+                self.isLoading = false
             }
         }
     }
     
     private func submitVote(scenarioId: String, voteType: ScenarioVoteType) async {
         do {
-            try await repository.submitVote(
+            let vote = ScenarioVote(
+                id: UUID().uuidString,
                 scenarioId: scenarioId,
                 participantId: participantId,
-                vote: voteType
+                vote: voteType,
+                createdAt: ISO8601DateFormatter().string(from: Date())
             )
+            _ = try await repository.addVote(vote: vote)
             
             // Reload scenarios to refresh
             loadScenarios()
@@ -234,7 +237,7 @@ struct ScenarioCard: View {
     let onVote: (ScenarioVoteType) -> Void
     let onTap: () -> Void
     
-    private var scenario: Scenario {
+    private var scenario: Scenario_ {
         scenarioWithVotes.scenario
     }
     
@@ -252,17 +255,18 @@ struct ScenarioCard: View {
                 
                 Spacer()
                 
-                StatusBadge(status: scenario.status)
+                ScenarioStatusBadge(status: ScenarioStatus(rawValue: scenario.status.name) ?? .proposed)
             }
             
             // Key details
             VStack(spacing: 12) {
-                InfoRow(icon: "calendar", text: scenario.dateOrPeriod)
-                InfoRow(icon: "mappin.circle", text: scenario.location)
-                InfoRow(icon: "clock", text: "\(scenario.duration) days")
+                InfoRow(icon: "calendar", text: scenario.dateOrPeriod, color: .blue)
+                InfoRow(icon: "mappin.circle", text: scenario.location, color: .green)
+                InfoRow(icon: "clock", text: "\(scenario.duration) days", color: .orange)
                 InfoRow(
                     icon: "dollarsign.circle",
-                    text: String(format: "$%.0f per person", scenario.estimatedBudgetPerPerson)
+                    text: String(format: "$%.0f per person", scenario.estimatedBudgetPerPerson),
+                    color: .purple
                 )
             }
             
@@ -299,7 +303,7 @@ struct ScenarioCard: View {
 
 // MARK: - Status Badge
 
-struct StatusBadge: View {
+struct ScenarioStatusBadge: View {
     let status: ScenarioStatus
     
     private var color: Color {
@@ -329,26 +333,6 @@ struct StatusBadge: View {
     }
 }
 
-// MARK: - Info Row
-
-struct InfoRow: View {
-    let icon: String
-    let text: String
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 16))
-                .foregroundColor(.blue)
-                .frame(width: 20)
-            
-            Text(text)
-                .font(.system(size: 15))
-                .foregroundColor(.secondary)
-        }
-    }
-}
-
 // MARK: - Voting Results Section
 
 struct VotingResultsSection: View {
@@ -370,19 +354,19 @@ struct VotingResultsSection: View {
             
             HStack(spacing: 12) {
                 VoteCount(
-                    count: result.preferCount,
+                    count: Int(result.preferCount),
                     color: .green,
                     label: "Prefer"
                 )
                 
                 VoteCount(
-                    count: result.neutralCount,
+                    count: Int(result.neutralCount),
                     color: .orange,
                     label: "Neutral"
                 )
                 
                 VoteCount(
-                    count: result.againstCount,
+                    count: Int(result.againstCount),
                     color: .red,
                     label: "Against"
                 )
@@ -423,19 +407,19 @@ struct VotingButtons: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            VoteButton(
+            ScenarioVoteButton(
                 type: .prefer,
                 isSelected: currentVote == .prefer,
                 onTap: { onVote(.prefer) }
             )
             
-            VoteButton(
+            ScenarioVoteButton(
                 type: .neutral,
                 isSelected: currentVote == .neutral,
                 onTap: { onVote(.neutral) }
             )
             
-            VoteButton(
+            ScenarioVoteButton(
                 type: .against,
                 isSelected: currentVote == .against,
                 onTap: { onVote(.against) }
@@ -444,9 +428,9 @@ struct VotingButtons: View {
     }
 }
 
-// MARK: - Vote Button
+// MARK: - Scenario Vote Button
 
-struct VoteButton: View {
+struct ScenarioVoteButton: View {
     let type: ScenarioVoteType
     let isSelected: Bool
     let onTap: () -> Void
@@ -456,6 +440,7 @@ struct VoteButton: View {
         case .prefer: return .green
         case .neutral: return .orange
         case .against: return .red
+        default: return .gray
         }
     }
     
@@ -464,6 +449,7 @@ struct VoteButton: View {
         case .prefer: return "hand.thumbsup.fill"
         case .neutral: return "minus.circle.fill"
         case .against: return "hand.thumbsdown.fill"
+        default: return "questionmark.circle.fill"
         }
     }
     
@@ -472,6 +458,7 @@ struct VoteButton: View {
         case .prefer: return "Prefer"
         case .neutral: return "Neutral"
         case .against: return "Against"
+        default: return "Unknown"
         }
     }
     

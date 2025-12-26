@@ -168,10 +168,11 @@ object EquipmentManager {
      */
     private fun isValidStatusTransition(from: ItemStatus, to: ItemStatus): Boolean {
         return when (from) {
-            ItemStatus.NEEDED -> to in listOf(ItemStatus.ASSIGNED, ItemStatus.CONFIRMED, ItemStatus.PACKED)
-            ItemStatus.ASSIGNED -> to in listOf(ItemStatus.CONFIRMED, ItemStatus.PACKED, ItemStatus.NEEDED)
-            ItemStatus.CONFIRMED -> to in listOf(ItemStatus.PACKED, ItemStatus.ASSIGNED)
+            ItemStatus.NEEDED -> to in listOf(ItemStatus.ASSIGNED, ItemStatus.CONFIRMED, ItemStatus.PACKED, ItemStatus.CANCELLED)
+            ItemStatus.ASSIGNED -> to in listOf(ItemStatus.CONFIRMED, ItemStatus.PACKED, ItemStatus.NEEDED, ItemStatus.CANCELLED)
+            ItemStatus.CONFIRMED -> to in listOf(ItemStatus.PACKED, ItemStatus.ASSIGNED, ItemStatus.CANCELLED)
             ItemStatus.PACKED -> to in listOf(ItemStatus.CONFIRMED, ItemStatus.ASSIGNED, ItemStatus.NEEDED)
+            ItemStatus.CANCELLED -> false // Cannot transition from cancelled
         }
     }
     

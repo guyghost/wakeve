@@ -213,7 +213,7 @@ struct ModernEventCard: View {
                 VStack {
                     // Top Bar with status badge
                     HStack {
-                        StatusBadge(status: event.status)
+                        EventStatusBadge(status: event.status)
 
                         Spacer()
                     }
@@ -342,9 +342,9 @@ struct AddEventCard: View {
     }
 }
 
-// MARK: - Status Badge
+// MARK: - Event Status Badge
 
-struct StatusBadge: View {
+struct EventStatusBadge: View {
     let status: EventStatus
 
     var body: some View {

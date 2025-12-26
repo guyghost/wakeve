@@ -712,32 +712,6 @@ private struct BudgetItemCard: View {
 
 // MARK: - Filter Chip
 
-private struct FilterChip: View {
-    let title: String
-    var icon: String? = nil
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                if let icon = icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 12))
-                }
-                
-                Text(title)
-                    .font(.system(size: 13, weight: .medium))
-            }
-            .foregroundColor(isSelected ? .white : .primary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(isSelected ? Color.blue : Color(.tertiarySystemFill))
-            .continuousCornerRadius(16)
-        }
-    }
-}
-
 // MARK: - Preview
 
 struct BudgetDetailView_Previews: PreviewProvider {

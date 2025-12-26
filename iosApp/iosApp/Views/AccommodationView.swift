@@ -230,27 +230,6 @@ struct AccommodationCard: View {
     }
 }
 
-struct InfoRow: View {
-    let icon: String
-    let text: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.body)
-                .foregroundColor(color)
-                .frame(width: 20)
-            
-            Text(text)
-                .font(.subheadline)
-                .foregroundColor(.primary)
-            
-            Spacer()
-        }
-    }
-}
-
 struct BookingStatusBadge: View {
     let status: String
     
