@@ -43,9 +43,6 @@ struct ScenarioDetailView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Header
-                    headerView
-                    
                     if isLoading {
                         loadingView
                     } else if let scenario = scenario {
@@ -136,18 +133,13 @@ struct ScenarioDetailView: View {
     
     // MARK: - Comments
     
-    private func loadCommentCount() {
-        // TODO: Integrate with CommentRepository
-        // For now, placeholder - should fetch count for section .SCENARIO and sectionItemId = scenario.id
-        commentCount = 0
-    }
 }
                     }
                 }
             }
             .onAppear {
                 loadScenario()
-                loadCommentCount()
+                
             }
             .alert("Error", isPresented: $showError) {
                 Button("OK", role: .cancel) {}
@@ -171,10 +163,7 @@ struct ScenarioDetailView: View {
                         section: .SCENARIO,
                         sectionItemId: scenario?.id,
                         currentUserId: currentUserId,
-                        currentUserName: currentUserName,
-                        onBack: {
-                            showComments = false
-                        }
+                        currentUserName: currentUserName
                     )
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {

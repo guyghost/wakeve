@@ -39,6 +39,7 @@ struct MealPlanningView: View {
     // Comments state
     @State private var commentCount = 0
     @State private var showComments = false
+    @State private var selectedMealForComments: MealModel?
     
     var body: some View {
         NavigationView {
@@ -132,21 +133,20 @@ struct MealPlanningView: View {
             }
             .sheet(isPresented: $showComments) {
                 NavigationView {
-                    CommentsView(
-                        eventId: eventId,
-                        section: .MEAL,
-                        sectionItemId: nil,
-                        currentUserId: currentUserId,
-                        currentUserName: currentUserName,
-                        onBack: {
-                            showComments = false
-                        }
-                    )
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button("Fermer") {
-                                showComments = false
+                    if let meal = selectedMealForComments {
+                        CommentsView(
+                            eventId: eventId,
+                            section: .MEAL,
+                            sectionItemId: meal.id,
+                            currentUserId: currentUserId,
+                            currentUserName: currentUserName
+                        )
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                Button("Fermer") {
+                                    showComments = false
+                                }
                             }
                         }
                     }
@@ -602,5 +602,9 @@ enum MealStatusFilter: String, CaseIterable {
 // MARK: - Preview
 
 #Preview {
-    MealPlanningView(eventId: "event-1")
+    MealPlanningView(
+        eventId: "event-1",
+        currentUserId: "user-1",
+        currentUserName: "Test User"
+    )
 }

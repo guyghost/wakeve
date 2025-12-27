@@ -1,0 +1,268 @@
+import XCTest
+import Foundation
+@testable import iosApp
+
+/// Tests unitaires pour la persistance de l'état d'onboarding
+///
+/// Ces tests valident que :
+/// - L'état initial d'onboarding est false
+/// - L'onboarding peut être marqué comme complété
+/// - L'état persiste entre les lectures
+/// - Le state est correctement stocké en UserDefaults
+final class OnboardingPersistenceTests: XCTestCase {
+    
+    // MARK: - Setup & Teardown
+    
+    override func setUp() {
+        super.setUp()
+        // Nettoyer UserDefaults avant chaque test
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.hasCompletedOnboarding)
+        // Forcer la synchronisation pour assurer la consistence
+        UserDefaults.standard.synchronize()
+    }
+    
+    override func tearDown() {
+        // Nettoyer après chaque test
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.hasCompletedOnboarding)
+        UserDefaults.standard.synchronize()
+        super.tearDown()
+    }
+    
+    // MARK: - Tests d'État Initial
+    
+    /// Test 1 : hasCompletedOnboarding() retourne false lors du premier lancement
+    ///
+    /// **GIVEN** : UserDefaults vierges, aucun onboarding complété
+    /// **WHEN** : hasCompletedOnboarding() est appelé
+    /// **THEN** : La fonction retourne false
+    func testHasCompletedOnboardingReturnsFalseForFirstLaunch() {
+        // GIVEN
+        // UserDefaults est vide (configuré dans setUp)
+        
+        // WHEN
+        let result = hasCompletedOnboarding()
+        
+        // THEN
+        XCTAssertFalse(
+            result,
+            "hasCompletedOnboarding() devrait retourner false lors du premier lancement"
+        )
+    }
+    
+    /// Test 2 : markOnboardingComplete() sauvegarde l'état en UserDefaults
+    ///
+    /// **GIVEN** : UserDefaults vierges
+    /// **WHEN** : markOnboardingComplete() est appelé
+    /// **THEN** : hasCompletedOnboarding() retourne true
+    func testMarkOnboardingCompleteSavesState() {
+        // GIVEN
+        // UserDefaults est vide (configuré dans setUp)
+        XCTAssertFalse(
+            hasCompletedOnboarding(),
+            "État initial devrait être false"
+        )
+        
+        // WHEN
+        markOnboardingComplete()
+        
+        // THEN
+        XCTAssertTrue(
+            hasCompletedOnboarding(),
+            "hasCompletedOnboarding() devrait retourner true après markOnboardingComplete()"
+        )
+    }
+    
+    /// Test 3 : L'état d'onboarding persiste entre les lectures
+    ///
+    /// **GIVEN** : markOnboardingComplete() a été appelé
+    /// **WHEN** : hasCompletedOnboarding() est appelé plusieurs fois
+    /// **THEN** : Tous les appels retournent true
+    func testOnboardingStatePersistsBetweenReads() {
+        // GIVEN
+        markOnboardingComplete()
+        
+        // WHEN & THEN
+        // Vérifier la persistance sur plusieurs lectures
+        for attempt in 1...5 {
+            let result = hasCompletedOnboarding()
+            XCTAssertTrue(
+                result,
+                "Lecture #\(attempt) : hasCompletedOnboarding() devrait retourner true"
+            )
+        }
+    }
+    
+    // MARK: - Tests de Persistance en UserDefaults
+    
+    /// Test 4 : L'état est correctement stocké en UserDefaults
+    ///
+    /// **GIVEN** : markOnboardingComplete() a été appelé
+    /// **WHEN** : On accède directement à UserDefaults avec la clé
+    /// **THEN** : La valeur stockée est true
+    func testOnboardingStateIsStoredInUserDefaults() {
+        // GIVEN
+        markOnboardingComplete()
+        
+        // WHEN
+        let storedValue = UserDefaults.standard.bool(
+            forKey: UserDefaultsKeys.hasCompletedOnboarding
+        )
+        
+        // THEN
+        XCTAssertTrue(
+            storedValue,
+            "La valeur en UserDefaults devrait être true après markOnboardingComplete()"
+        )
+    }
+    
+    /// Test 5 : La clé de UserDefaults est correctement définie
+    ///
+    /// **GIVEN** : UserDefaultsKeys.hasCompletedOnboarding est défini
+    /// **WHEN** : On accède à la clé
+    /// **THEN** : La clé n'est pas vide et est conforme
+    func testUserDefaultsKeyIsValid() {
+        // GIVEN
+        let expectedKey = "hasCompletedOnboarding"
+        
+        // WHEN
+        let actualKey = UserDefaultsKeys.hasCompletedOnboarding
+        
+        // THEN
+        XCTAssertEqual(
+            actualKey, expectedKey,
+            "La clé UserDefaults devrait être '\(expectedKey)'"
+        )
+        XCTAssertFalse(
+            actualKey.isEmpty,
+            "La clé UserDefaults ne devrait pas être vide"
+        )
+    }
+    
+    // MARK: - Tests de Scénarios Edge Cases
+    
+    /// Test 6 : markOnboardingComplete() peut être appelé plusieurs fois sans effet de bord
+    ///
+    /// **GIVEN** : markOnboardingComplete() est appelé une première fois
+    /// **WHEN** : markOnboardingComplete() est appelé à nouveau
+    /// **THEN** : L'état reste true, pas d'effet de bord
+    func testMarkOnboardingCompleteIsIdempotent() {
+        // GIVEN
+        markOnboardingComplete()
+        XCTAssertTrue(hasCompletedOnboarding(), "État initial devrait être true")
+        
+        // WHEN
+        markOnboardingComplete()
+        
+        // THEN
+        XCTAssertTrue(
+            hasCompletedOnboarding(),
+            "L'état devrait rester true après appels multiples"
+        )
+    }
+    
+    /// Test 7 : hasCompletedOnboarding() retourne false après reset
+    ///
+    /// **GIVEN** : markOnboardingComplete() a été appelé
+    /// **WHEN** : UserDefaults est reset
+    /// **THEN** : hasCompletedOnboarding() retourne false
+    func testOnboardingStateCanBeReset() {
+        // GIVEN
+        markOnboardingComplete()
+        XCTAssertTrue(hasCompletedOnboarding(), "État initial devrait être true")
+        
+        // WHEN
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.hasCompletedOnboarding)
+        UserDefaults.standard.synchronize()
+        
+        // THEN
+        XCTAssertFalse(
+            hasCompletedOnboarding(),
+            "hasCompletedOnboarding() devrait retourner false après reset"
+        )
+    }
+    
+    // MARK: - Tests de Synchronisation
+    
+    /// Test 8 : L'état persiste après synchronisation forcée
+    ///
+    /// **GIVEN** : markOnboardingComplete() a été appelé
+    /// **WHEN** : UserDefaults.synchronize() est appelé
+    /// **THEN** : hasCompletedOnboarding() retourne toujours true
+    func testOnboardingStatePersistsAfterSynchronization() {
+        // GIVEN
+        markOnboardingComplete()
+        
+        // WHEN
+        UserDefaults.standard.synchronize()
+        
+        // THEN
+        XCTAssertTrue(
+            hasCompletedOnboarding(),
+            "L'état devrait persister après synchronisation"
+        )
+    }
+    
+    // MARK: - Tests de Performance
+    
+    /// Test 9 : Les opérations d'onboarding sont performantes
+    ///
+    /// **GIVEN** : UserDefaults est vierge
+    /// **WHEN** : hasCompletedOnboarding() et markOnboardingComplete() sont appelés
+    /// **THEN** : Les opérations complètent rapidement
+    func testOnboardingOperationsArePerformant() {
+        // Reset
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.hasCompletedOnboarding)
+        
+        measure {
+            // Test la performance de hasCompletedOnboarding (100 appels)
+            for _ in 1...100 {
+                _ = hasCompletedOnboarding()
+            }
+            
+            // Test la performance de markOnboardingComplete
+            markOnboardingComplete()
+            
+            // Test la performance de hasCompletedOnboarding après mark
+            for _ in 1...100 {
+                _ = hasCompletedOnboarding()
+            }
+        }
+    }
+    
+    // MARK: - Tests d'Intégration
+    
+    /// Test 10 : Cycle complet : vierge → complété → reset → complété
+    ///
+    /// **GIVEN** : Cycle complet d'onboarding
+    /// **WHEN** : L'utilisateur lance → complète → reset → relance
+    /// **THEN** : L'état change correctement à chaque étape
+    func testCompleteOnboardingCycle() {
+        // Étape 1 : État initial (vierge)
+        XCTAssertFalse(
+            hasCompletedOnboarding(),
+            "Étape 1 : État initial devrait être false"
+        )
+        
+        // Étape 2 : Marquer comme complété
+        markOnboardingComplete()
+        XCTAssertTrue(
+            hasCompletedOnboarding(),
+            "Étape 2 : État devrait être true après markOnboardingComplete()"
+        )
+        
+        // Étape 3 : Reset
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.hasCompletedOnboarding)
+        UserDefaults.standard.synchronize()
+        XCTAssertFalse(
+            hasCompletedOnboarding(),
+            "Étape 3 : État devrait être false après reset"
+        )
+        
+        // Étape 4 : Marquer à nouveau comme complété
+        markOnboardingComplete()
+        XCTAssertTrue(
+            hasCompletedOnboarding(),
+            "Étape 4 : État devrait être true après second markOnboardingComplete()"
+        )
+    }
+}

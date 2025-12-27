@@ -115,7 +115,7 @@ struct ModernEventDetailView: View {
                     }
                     .padding(20)
                     .background(Color(.systemBackground))
-                    .cornerRadius(30, corners: [.topLeft, .topRight])
+                    .clipShape(RoundedRectangle(cornerRadius: 30))
                     .offset(y: -30)
                 }
             }

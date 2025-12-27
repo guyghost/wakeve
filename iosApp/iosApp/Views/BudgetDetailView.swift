@@ -25,6 +25,7 @@ struct BudgetDetailView: View {
     // Comments state
     @State private var commentCount = 0
     @State private var showComments = false
+    @State private var selectedItemForComments: BudgetItem_?
     
     // All budget categories
     private let allCategories: [BudgetCategory] = [
@@ -56,9 +57,6 @@ struct BudgetDetailView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Header
-                    headerView
-                    
                     // Budget Summary Header
                     summaryHeader
                     
@@ -124,22 +122,21 @@ struct BudgetDetailView: View {
             }
             .sheet(isPresented: $showComments) {
                 NavigationView {
-                    CommentsView(
-                        eventId: eventId,
-                        section: .BUDGET,
-                        sectionItemId: nil,
-                        currentUserId: currentUserId,
-                        currentUserName: currentUserName,
-                        onBack: {
+                    if let item = selectedItemForComments {
+                        CommentsView(
+                            eventId: eventId,
+                            section: .BUDGET,
+                            sectionItemId: item.id,
+                            currentUserId: currentUserId,
+                            currentUserName: currentUserName
+                        )
+                    }
+                }
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Fermer") {
                             showComments = false
-                        }
-                    )
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button("Fermer") {
-                                showComments = false
-                            }
                         }
                     }
                 }
@@ -523,9 +520,9 @@ struct BudgetDetailView: View {
             let newItem = BudgetItem_(
                 id: UUID().uuidString,
                 budgetId: budget.id,
+                category: itemCategory,
                 name: itemName,
                 description: itemDescription,
-                category: itemCategory,
                 estimatedCost: estimatedCost,
                 actualCost: 0.0,
                 isPaid: false,
@@ -561,9 +558,9 @@ struct BudgetDetailView: View {
             let updatedItem = BudgetItem_(
                 id: item.id,
                 budgetId: item.budgetId,
+                category: itemCategory,
                 name: itemName,
                 description: itemDescription,
-                category: itemCategory,
                 estimatedCost: estimatedCost,
                 actualCost: item.actualCost,
                 isPaid: item.isPaid,
@@ -598,9 +595,9 @@ struct BudgetDetailView: View {
             let updatedItem = BudgetItem_(
                 id: item.id,
                 budgetId: item.budgetId,
+                category: item.category,
                 name: item.name,
                 description: item.description,
-                category: item.category,
                 estimatedCost: item.estimatedCost,
                 actualCost: item.estimatedCost, // Use estimated as actual
                 isPaid: true,
@@ -754,7 +751,7 @@ private struct BudgetItemCard: View {
         case .activities: return "figure.walk"
         case .equipment: return "bag.fill"
         case .other: return "ellipsis.circle.fill"
-        @unknown default: return "ellipsis.circle.fill"
+        default: return "ellipsis.circle.fill"
         }
     }
     
@@ -766,7 +763,7 @@ private struct BudgetItemCard: View {
         case .activities: return .green
         case .equipment: return .pink
         case .other: return .gray
-        @unknown default: return .gray
+        default: return .gray
         }
     }
     
@@ -803,7 +800,10 @@ struct BudgetDetailView_Previews: PreviewProvider {
                 createdAt: "2025-12-01T00:00:00Z",
                 updatedAt: "2025-12-01T00:00:00Z"
             ),
+            eventId: "event-1",
             repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
+            currentUserId: "user-1",
+            currentUserName: "Test User",
             onBack: {}
         )
     }
