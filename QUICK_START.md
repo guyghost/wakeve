@@ -5,7 +5,7 @@ Welcome to Wakeve! This guide will get you up and running in minutes.
 ## What is Wakeve?
 Wakeve is a collaborative event planning application that makes scheduling across timezones easy. Features include:
 - **Availability Polling**: Create events and let participants vote on their preferred times
-- **Smart Scheduling**: Automatic calculation of the best meeting time based on weighted voting
+- **Smart Scheduling**: Automatic calculation of best meeting time based on weighted voting
 - **Offline-First**: Work without internet and sync changes when back online
 - **Multiplatform**: Android, iOS, and web support
 
@@ -64,26 +64,128 @@ git status
 ## What's Included
 
 ### Phase 1: Core Features (Implemented)
-✅ Event creation with time slots  
-✅ Participant management  
-✅ Availability polling (YES/MAYBE/NO)  
-✅ Automatic best time calculation  
-✅ Role-based access control  
-✅ 4 Android Compose screens  
+✅ Event creation with time slots
+✅ Participant management
+✅ Availability polling (YES/MAYBE/NO)
+✅ Automatic best time calculation
+✅ Role-based access control
+✅ 4 Android Compose screens
 
 ### Phase 2: Database & API (Implemented)
-✅ SQLDelight multiplatform database  
-✅ 6 database tables with constraints  
-✅ Platform-specific drivers (Android/iOS/JVM)  
-✅ Ktor REST server  
-✅ 8 API endpoints  
-✅ Offline data recovery  
+✅ SQLDelight multiplatform database
+✅ 6 database tables with constraints
+✅ Platform-specific drivers (Android/iOS/JVM)
+✅ Ktor REST server
+✅ 8 API endpoints
+✅ Offline data recovery
+
+### Phase 2.5: iOS Tab Interface (Implemented)
+✅ 3 functional tabs (Events, Explore, Profile)
+✅ Events tab with filtering and pull-to-refresh
+✅ Explore tab with suggestions and event ideas
+✅ Profile tab with preferences and dark mode
+✅ Liquid Glass design system applied
+✅ 27 reusable UI components
+✅ 75/89 tasks completed (84%)
+
+## iOS Interface - Tab Navigation
+
+The iOS application features a tab-based navigation with 3 main tabs:
+
+### 📅 Events Tab
+**Purpose**: View and manage your events
+
+**Features:**
+- **Event Filtering**: Filter events by status (upcoming, in progress, past)
+- **Event List**: Display all events in a scrollable list with status badges
+- **Pull-to-Refresh**: Pull down to refresh the event list
+- **Empty State**: CTA to create new event when no events exist
+- **Event Details**: Tap on any event to view details and participate
+
+**UI Components:**
+- `EventsTabView.swift` - Main view with NavigationStack
+- `EventFilter` enum - Filter options (upcoming, inProgress, past)
+- `EventRowView` - Reusable event card component
+- `EventStatusBadge` - Color-coded status indicator
+- `EmptyEventsView` - Empty state with "Create Event" CTA
+
+### 🔍 Explore Tab
+**Purpose**: Discover new events and features
+
+**Features:**
+- **Daily Suggestions**: Featured event idea of the day
+- **Event Ideas**: Browse event categories (weekend, team building, birthday, party)
+- **New Features**: Discover latest app features (Liquid Glass, Navigation, Collaboration)
+- **Interactive Cards**: Tap on any card to create an event
+
+**UI Components:**
+- `ExploreTabView.swift` - Main view with ScrollView
+- `DailySuggestionSection` - Featured card with gradient background
+- `EventIdeasSection` - Grid of event idea cards
+- `NewFeaturesSection` - Feature announcement cards
+- `EventIdeaCard` - Reusable idea card component
+- `FeatureCard` - Feature announcement component
+
+### 👤 Profile Tab
+**Purpose**: Manage your account and preferences
+
+**Features:**
+- **Profile Header**: Display avatar, name, and email
+- **Notifications Toggle**: Enable/disable push and email notifications
+- **Dark Mode Toggle**: Switch between light and dark themes
+- **Liquid Glass Option**: Toggle Liquid Glass material (iOS 26+)
+- **About Section**: App version, documentation links, GitHub repo
+- **Sign Out**: Sign out button connected to AuthStateManager
+
+**UI Components:**
+- `ProfileTabView.swift` - Main view with ScrollView
+- `ProfileHeaderSection` - Avatar and user info
+- `PreferencesSection` - Toggle switches for notifications
+- `AppearanceSection` - Theme and dark mode controls
+- `AboutSection` - Version info and links
+- `PreferenceToggleRow` - Reusable toggle row component
+- `AboutRow` - Info row component
+- `AboutLinkRow` - Link row component
+
+### Design System Applied
+
+**Liquid Glass (iOS 26+)**
+- Materials: `.regularMaterial`, `.thinMaterial`, `.thickMaterial`
+- Corners: `.continuous` style for all rounded corners
+- Shadows: Subtle shadows (opacity 0.05-0.08)
+- Vibrancy: Automatic text/icon adaptation to background
+
+**Wakev Colors**
+- Primary: #2563EB (blue) - Main actions, active states
+- Accent: #7C3AED (purple) - Secondary highlights
+- Success: #059669 (green) - Confirmed status
+- Warning: #D97706 (orange) - In-progress state
+- Error: #DC2626 (red) - Sign out button, errors
+
+**Typography**
+- Title3: Large headings
+- Headline: Section titles
+- Subheadline: Card titles
+- Body: Main content text
+- Caption: Small helper text
+
+### State Management
+
+- **@State**: Local component state
+- **@AppStorage**: Persisted preferences (darkMode, notificationsEnabled)
+- **@EnvironmentObject**: Shared state (AuthStateManager)
+
+### Navigation
+
+- **NavigationStack**: Each tab has its own navigation stack
+- **Tab Bar**: Bottom tab bar with 4 tabs (Events, Explore, Profile, +)
+- **Routes**: Navigation between views within each tab
 
 ### Phase 3: Enterprise Features (Planning)
-⏳ OAuth2 authentication  
-⏳ Offline-first synchronization  
-⏳ Push notifications  
-⏳ Native calendar integration  
+⏳ OAuth2 authentication
+⏳ Offline-first synchronization
+⏳ Push notifications
+⏳ Native calendar integration
 
 ## Development Workflow
 
@@ -107,7 +209,7 @@ git push origin change/your-feature-name
 
 ### 2. Run the Server
 ```bash
-# Start the Ktor server (listens on http://localhost:8080)
+# Start Ktor server (listens on http://localhost:8080)
 ./gradlew server:run
 
 # Test an endpoint
@@ -145,18 +247,30 @@ curl http://localhost:8080/api/events
 ./gradlew composeApp:installDebug
 ```
 
+### 5. Build iOS App
+```bash
+# Open in Xcode
+open iosApp/iosApp.xcodeproj
+
+# Build in Xcode (Cmd+B)
+# Run in Simulator (Cmd+R)
+```
+
 ## Key Files to Know
 
 ### Specifications
 - `openspec/specs/event-organization/spec.md` - Full requirements
-- `openspec/changes/add-event-organization/IMPLEMENTATION_SUMMARY.md` - What was built
+- `openspec/changes/implement-tabs-content/tasks.md` - iOS tabs implementation tasks
 
-### Implementation
+### Implementation - Shared
 - `shared/src/commonMain/kotlin/com/guyghost/wakeve/models/` - Domain models
 - `shared/src/commonMain/kotlin/com/guyghost/wakeve/EventRepository.kt` - Business logic
-- `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/` - Android UI screens
-- `server/src/main/kotlin/com/guyghost/wakeve/routes/` - REST API endpoints
 - `shared/src/commonMain/sqldelight/` - Database schema
+
+### Implementation - iOS
+- `iosApp/iosApp/Views/` - SwiftUI views (EventsTabView, ExploreTabView, ProfileTabView)
+- `iosApp/iosApp/Components/` - Reusable components (WakevTabBar, SharedComponents)
+- `iosApp/iosApp/Theme/` - Design system (WakevColors, LiquidGlassModifier)
 
 ### Testing
 - `shared/src/commonTest/kotlin/com/guyghost/wakeve/EventRepositoryTest.kt` - Domain tests
@@ -166,8 +280,7 @@ curl http://localhost:8080/api/events
 ### Configuration
 - `gradle/libs.versions.toml` - Dependency versions
 - `shared/build.gradle.kts` - Shared module config
-- `server/build.gradle.kts` - Server config
-- `composeApp/build.gradle.kts` - Android app config
+- `iosApp/iosApp.xcodeproj/project.pbxproj` - Xcode project config
 
 ## Understanding the Architecture
 
@@ -195,12 +308,19 @@ REST endpoints:
 - `ParticipantRoutes` - Participant management
 - `VoteRoutes` - Vote submission and results
 
-### Layer 5: UI
+### Layer 5: UI - Android
 User interfaces:
 - `EventCreationScreen` - Create events
 - `ParticipantManagementScreen` - Invite participants
 - `PollVotingScreen` - Cast votes
 - `PollResultsScreen` - View results and confirm
+
+### Layer 5: UI - iOS
+User interfaces:
+- `EventsTabView` - View and filter events
+- `ExploreTabView` - Discover new features and ideas
+- `ProfileTabView` - Manage preferences and account
+- `ContentView` - Main app with tab navigation
 
 ## API Examples
 
@@ -256,6 +376,11 @@ curl http://localhost:8080/api/events/event-1/poll
 3. Run: `./gradlew composeApp:installDebug`
 4. App appears in launcher as "Wakeve"
 
+### Run on iOS Simulator
+1. Open project: `open iosApp/iosApp.xcodeproj`
+2. Select simulator (e.g., iPhone 15)
+3. Press Cmd+R to run
+
 ### Debug Tests
 ```bash
 # Run with debug output
@@ -285,7 +410,7 @@ open build/reports/tests/test/index.html
 ./gradlew build
 
 # Check Java version
-java -version  # Should be 11 or higher
+java -version # Should be 11 or higher
 ```
 
 ### Tests Failing
@@ -325,6 +450,20 @@ rm wakev_server.db
 ./gradlew clean build
 ```
 
+### iOS Build Errors
+```bash
+# Clean Xcode build
+cd iosApp
+xcodebuild clean
+
+# Rebuild Kotlin Shared framework
+cd ..
+./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
+
+# Reopen Xcode
+open iosApp/iosApp.xcodeproj
+```
+
 ## Next Steps
 
 ### For Developers
@@ -350,8 +489,9 @@ rm wakev_server.db
 
 ### Architecture
 - `shared/src/commonMain/kotlin/` - Domain models and business logic
+- `iosApp/iosApp/Views/` - SwiftUI view implementations
+- `composeApp/src/commonMain/kotlin/` - Android UI implementation
 - `server/src/main/kotlin/` - API implementation
-- `composeApp/src/commonMain/` - UI implementation
 
 ### Testing Examples
 - `EventRepositoryTest.kt` - Unit testing patterns
@@ -360,23 +500,26 @@ rm wakev_server.db
 
 ### Documentation
 - `openspec/specs/event-organization/spec.md` - Requirements
-- `PHASE_3_ROADMAP.md` - Future planning
-- `CONTRIBUTING.md` - Detailed guidelines
+- `openspec/changes/implement-tabs-content/IMPLEMENTATION_SUMMARY.md` - iOS tabs summary
+- `iosApp/LIQUID_GLASS_GUIDELINES.md` - Liquid Glass design guidelines
+- `CONTRIBUTING.md` - Development guidelines
 
 ## Getting Help
 
-**Documentation**: See README.md and docs/ folder  
-**Issues**: Create GitHub Issue with detailed description  
-**Discussions**: Use GitHub Discussions for questions  
-**Code Review**: Submit PR for feedback from maintainers  
+**Documentation**: See README.md and docs/ folder
+**Issues**: Create GitHub Issue with detailed description
+**Discussions**: Use GitHub Discussions for questions
+**Code Review**: Submit PR for feedback from maintainers
 
 ## Key Statistics
 
 | Metric | Value |
 |--------|-------|
 | Total Tests | 36 passing ✅ |
+| iOS Tabs | 3 implemented ✅ |
+| iOS Components | 27 reusable ✅ |
 | Code Files | 30+ |
-| Lines of Code | ~3500 |
+| Lines of Code | ~4500 |
 | Database Tables | 6 |
 | API Endpoints | 8 |
 | Supported Platforms | Android, iOS, JVM |
@@ -390,6 +533,10 @@ git checkout -b change/your-feature      # Create feature branch
 ./gradlew build                          # Full build
 ./gradlew shared:test                    # Run tests
 ./gradlew server:run                     # Run server
+
+# iOS
+open iosApp/iosApp.xcodeproj            # Open in Xcode
+xcodebuild -project iosApp.xcodeproj -scheme iosApp build  # Build from CLI
 
 # Testing
 ./gradlew shared:test --tests "TestName" # Run specific test
