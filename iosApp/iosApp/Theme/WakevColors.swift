@@ -37,6 +37,20 @@ extension Color {
     static let wakevTextPrimaryDark = Color(hex: "F1F5F9")
     static let wakevTextSecondaryLight = Color(hex: "475569")
     static let wakevTextSecondaryDark = Color(hex: "94A3B8")
+    
+    // iOS System Colors (for native-style UI)
+    static let iOSSystemBlue = Color(hex: "007AFF")
+    static let iOSSystemGreen = Color(hex: "34C759")
+    static let iOSSystemRed = Color(hex: "FF3B30")
+    static let iOSSystemOrange = Color(hex: "FF9500")
+    
+    // iOS Dark Mode Form Colors
+    static let iOSDarkBackground = Color(hex: "000000")
+    static let iOSDarkSurface = Color(hex: "1C1C1E")
+    static let iOSDarkSurfaceSecondary = Color(hex: "2C2C2E")
+    static let iOSDarkSeparator = Color(hex: "38383A")
+    static let iOSSecondaryLabel = Color(hex: "8E8E93")
+    static let iOSTertiaryLabel = Color(hex: "48484A")
 }
 
 extension Color {
