@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.meeting
 
 import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.models.MeetingPlatform
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.serialization.json.Json
@@ -15,7 +16,7 @@ class MeetingRepository(private val database: WakevDb) {
     
     suspend fun createMeeting(meeting: Meeting): Result<Unit> {
         return try {
-            val invitedParticipantsJson = Json.encodeToString<List<String>>(meeting.invitedParticipants)
+            val invitedParticipantsJson = Json.encodeToString(value = meeting.invitedParticipants)
             
             meetingQueries.insertMeeting(
                 id = meeting.id,

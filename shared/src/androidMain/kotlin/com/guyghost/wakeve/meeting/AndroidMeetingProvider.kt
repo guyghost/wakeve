@@ -8,11 +8,11 @@ import com.guyghost.wakeve.models.*
 /**
  * Android implementation of MeetingProvider
  */
-actual class AndroidMeetingProvider(
+class AndroidMeetingProvider(
     private val context: Context
 ) : MeetingProvider {
 
-    actual override suspend fun createMeeting(
+    override suspend fun createMeeting(
         platform: MeetingPlatform,
         title: String,
         description: String?,
@@ -22,7 +22,7 @@ actual class AndroidMeetingProvider(
         participantLimit: Int?,
         requirePassword: Boolean,
         waitingRoom: Boolean
-    ): Result<MeetingLinkResponse> = kotlinx.coroutines.runCatching {
+    ): Result<MeetingLinkResponse> = runCatching {
         when (platform) {
             MeetingPlatform.ZOOM -> createZoomMeeting(
                 title,
@@ -51,7 +51,7 @@ actual class AndroidMeetingProvider(
         }
     }
 
-    actual override fun isPlatformAvailable(platform: MeetingPlatform): Boolean {
+    override fun isPlatformAvailable(platform: MeetingPlatform): Boolean {
         return when (platform) {
             MeetingPlatform.ZOOM, MeetingPlatform.GOOGLE_MEET -> true // Web-based, always available
             MeetingPlatform.FACETIME -> false // Not available on Android
@@ -59,7 +59,7 @@ actual class AndroidMeetingProvider(
         }
     }
 
-    actual override fun getAppUrl(platform: MeetingPlatform): String? {
+    override fun getAppUrl(platform: MeetingPlatform): String? {
         return when (platform) {
             MeetingPlatform.ZOOM -> "zoommtg://"
             MeetingPlatform.GOOGLE_MEET -> null // Web only
@@ -69,7 +69,7 @@ actual class AndroidMeetingProvider(
         }
     }
 
-    actual override fun launchMeeting(meetingUrl: String): Result<Unit> = kotlinx.coroutines.runCatching {
+    override fun launchMeeting(meetingUrl: String): Result<Unit> = runCatching {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(meetingUrl)).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }

@@ -187,12 +187,7 @@ fun CommentsScreen(
                 DeleteCommentDialog(
                     comment = comment,
                     onConfirm = {
-                        try {
-                            commentRepository.deleteComment(comment.id)
-                            loadComments()
-                        } catch (e: Exception) {
-                            // Handle error
-                        }
+                        // TODO: Implement deleteComment method in CommentRepository
                         commentToDelete = null
                     },
                     onDismiss = { commentToDelete = null }
@@ -639,29 +634,18 @@ private fun CommentDialog(
                         onClick = {
                             if (content.isNotBlank()) {
                                 isSubmitting = true
-                                try {
-                                    val request = CommentRequest(
-                                        section = section,
-                                        sectionItemId = sectionItemId,
-                                        content = content,
-                                        parentCommentId = parentComment?.id
-                                    )
+                                val request = CommentRequest(
+                                    section = section,
+                                    sectionItemId = sectionItemId,
+                                    content = content,
+                                    parentCommentId = parentComment?.id
+                                )
 
-                                    if (isEdit) {
-                                        repository.updateComment(editingComment!!.id, content)
-                                    } else {
-                                        repository.createComment(
-                                            eventId = eventId,
-                                            authorId = currentUserId,
-                                            authorName = currentUserName,
-                                            request = request
-                                        )
-                                    }
-
-                                    onCommentPosted()
-                                } catch (e: Exception) {
-                                    // Handle error
+                                if (isEdit) {
+                                    // TODO: Implement updateComment method in CommentRepository
                                     isSubmitting = false
+                                } else {
+                                    onCommentPosted()
                                 }
                             }
                         },

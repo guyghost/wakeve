@@ -1,33 +1,60 @@
 import SwiftUI
 import Shared
 
+// MARK: - UserDefaults Helpers
+
+struct UserDefaultsKeys {
+    static let hasCompletedOnboarding = "hasCompletedOnboarding"
+}
+
+func hasCompletedOnboarding() -> Bool {
+    return UserDefaults.standard.bool(forKey: UserDefaultsKeys.hasCompletedOnboarding)
+}
+
+func markOnboardingComplete() {
+    UserDefaults.standard.set(true, forKey: UserDefaultsKeys.hasCompletedOnboarding)
+}
+
 struct ContentView: View {
     @EnvironmentObject var authStateManager: AuthStateManager
     @EnvironmentObject var authService: AuthenticationService
     @State private var hasSeenGetStarted = false
+    @State private var hasOnboarded = false
 
     var body: some View {
-        if authStateManager.isAuthenticated {
-            if let user = authStateManager.currentUser {
-                AuthenticatedView(userId: user.id)
-            } else {
-                ErrorView(message: "Authentication error: no user data", onRetry: {
-                    Task {
-                        authStateManager.checkAuthStatus()
+        ZStack {
+            if authStateManager.isAuthenticated {
+                if let user = authStateManager.currentUser {
+                    if hasOnboarded {
+                        AuthenticatedView(userId: user.id)
+                    } else {
+                        OnboardingView(onOnboardingComplete: {
+                            markOnboardingComplete()
+                            hasOnboarded = true
+                        })
                     }
-                })
-            }
-        } else {
-            if hasSeenGetStarted {
-                LoginView()
+                } else {
+                    ErrorView(message: "Authentication error: no user data", onRetry: {
+                        Task {
+                            authStateManager.checkAuthStatus()
+                        }
+                    })
+                }
             } else {
-                ModernGetStartedView(onGetStarted: {
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        hasSeenGetStarted = true
-                    }
-                })
-                .transition(.opacity)
+                if hasSeenGetStarted {
+                    LoginView()
+                } else {
+                    ModernGetStartedView(onGetStarted: {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            hasSeenGetStarted = true
+                        }
+                    })
+                    .transition(.opacity)
+                }
             }
+        }
+        .onAppear {
+            hasOnboarded = hasCompletedOnboarding()
         }
     }
 }

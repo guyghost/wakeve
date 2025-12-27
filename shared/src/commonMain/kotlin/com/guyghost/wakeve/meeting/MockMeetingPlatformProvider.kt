@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.meeting
 
+import com.guyghost.wakeve.models.MeetingPlatform
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
@@ -20,6 +21,8 @@ class MockMeetingPlatformProvider : MeetingPlatformProvider {
             MeetingPlatform.ZOOM -> "https://zoom.us/j/${generateMeetingId()}"
             MeetingPlatform.GOOGLE_MEET -> "https://meet.google.com/${generateMeetingId()}"
             MeetingPlatform.FACETIME -> "facetime://${generateMeetingId()}"
+            MeetingPlatform.TEAMS -> "https://teams.microsoft.com/l/meetup-join/${generateMeetingId()}"
+            MeetingPlatform.WEBEX -> "https://webex.com/j/${generateMeetingId()}"
         }
     }
     

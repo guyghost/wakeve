@@ -16,3 +16,13 @@ class MeetingNotFoundException(meetingId: String) : Exception("Meeting not found
  * Exception levée lorsqu'un événement a un statut invalide pour l'opération
  */
 class InvalidEventStatusException(status: EventStatus) : Exception("Invalid event status: $status")
+
+/**
+ * Exceptions liées aux réunions
+ */
+sealed class MeetingException(message: String) : Exception(message) {
+    class EventNotFound(eventId: String) : MeetingException("Event not found: $eventId")
+    class MeetingNotFound(meetingId: String) : MeetingException("Meeting not found: $meetingId")
+    class InvalidEventStatus(status: EventStatus) : MeetingException("Invalid event status: $status")
+    class UnauthorizedAccess : MeetingException("Unauthorized access to meeting")
+}
