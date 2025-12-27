@@ -6,9 +6,9 @@ import kotlinx.coroutines.runBlocking
 /**
  * iOS implementation of MeetingProvider
  */
-actual class IosMeetingProvider : MeetingProvider {
+class IosMeetingProvider : MeetingProvider {
 
-    actual override suspend fun createMeeting(
+    override suspend fun createMeeting(
         platform: MeetingPlatform,
         title: String,
         description: String?,
@@ -47,7 +47,7 @@ actual class IosMeetingProvider : MeetingProvider {
         }
     }
 
-    actual override fun isPlatformAvailable(platform: MeetingPlatform): Boolean {
+    override fun isPlatformAvailable(platform: MeetingPlatform): Boolean {
         return when (platform) {
             MeetingPlatform.ZOOM, MeetingPlatform.GOOGLE_MEET -> true // Web-based
             MeetingPlatform.FACETIME -> true // Available on iOS
@@ -55,7 +55,7 @@ actual class IosMeetingProvider : MeetingProvider {
         }
     }
 
-    actual override fun getAppUrl(platform: MeetingPlatform): String? {
+    override fun getAppUrl(platform: MeetingPlatform): String? {
         return when (platform) {
             MeetingPlatform.ZOOM -> "zoomus://"
             MeetingPlatform.GOOGLE_MEET -> null // Web only
@@ -65,7 +65,7 @@ actual class IosMeetingProvider : MeetingProvider {
         }
     }
 
-    actual override fun launchMeeting(meetingUrl: String): Result<Unit> = runBlocking {
+    override fun launchMeeting(meetingUrl: String): Result<Unit> = runBlocking {
         // This will be implemented in Swift
         Result.success(Unit)
     }

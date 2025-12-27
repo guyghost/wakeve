@@ -2,6 +2,7 @@ package com.guyghost.wakeve.meeting
 
 import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.MeetingPlatform
 import com.guyghost.wakeve.models.ParticipantStatus
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -39,23 +40,25 @@ class MeetingService(
             val event = eventQueries.selectById(eventId).executeAsOne()
                 ?: return Result.failure(MeetingException.EventNotFound(eventId))
 
-            if (event.status != EventStatus.CONFIRMED && event.status != EventStatus.ORGANIZING) {
-                return Result.failure(MeetingException.InvalidEventStatus(event.status))
+            val eventStatus = EventStatus.valueOf(event.status)
+            if (eventStatus != EventStatus.CONFIRMED && eventStatus != EventStatus.ORGANIZING) {
+                return Result.failure(MeetingException.InvalidEventStatus(eventStatus))
             }
 
             // Obtenir les participants validés
             val invitedParticipants = participantQueries
                 .selectByEventId(eventId)
                 .executeAsList()
-                .filter { it.status == ParticipantStatus.ACCEPTED }
+                .filter { it.hasValidatedDate == 1L }
                 .map { it.userId }
 
             // Générer les détails de réunion via le provider
-            val meetingDetails = meetingPlatformProvider.createMeeting(
+            val meetingLink = meetingPlatformProvider.generateMeetingLink(
+                platform = platform,
                 title = title,
+                description = description,
                 startTime = startTime,
-                duration = duration,
-                organizerId = organizerId
+                duration = duration
             )
 
             // Créer l'objet Meeting
@@ -68,8 +71,8 @@ class MeetingService(
                 startTime = startTime,
                 duration = duration,
                 platform = platform,
-                meetingLink = meetingDetails.link,
-                hostMeetingId = meetingDetails.hostMeetingId,
+                meetingLink = meetingLink,
+                hostMeetingId = meetingPlatformProvider.getHostMeetingId(meetingLink),
                 password = generateMeetingPassword(),
                 invitedParticipants = invitedParticipants,
                 status = MeetingStatus.SCHEDULED,
@@ -90,7 +93,7 @@ class MeetingService(
      */
     suspend fun cancelMeeting(meetingId: String, organizerId: String): Result<Unit> {
         return try {
-            val meeting = meetingRepository.getMeeting(meetingId)
+            val meeting = meetingRepository.getMeetingById(meetingId)
                 ?: return Result.failure(MeetingException.MeetingNotFound(meetingId))
 
             if (meeting.organizerId != organizerId) {
@@ -98,7 +101,7 @@ class MeetingService(
             }
 
             // Annuler sur la plateforme
-            meetingPlatformProvider.cancelMeeting(meeting.hostMeetingId)
+            meetingPlatformProvider.cancelMeeting(meeting.platform, meeting.hostMeetingId)
 
             // Mettre à jour le statut
             meetingRepository.updateMeetingStatus(meetingId, MeetingStatus.CANCELLED)
@@ -123,20 +126,20 @@ class MeetingService(
      * Génère un ID unique pour la réunion
      */
     private fun generateMeetingId(): String {
-        return "meeting_${System.currentTimeMillis()}_${Random.nextInt(1000, 9999)}"
+        return "meeting_${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000, 9999)}"
     }
 
     /**
      * Obtient une réunion par ID
      */
     suspend fun getMeeting(meetingId: String): Meeting? {
-        return meetingRepository.getMeeting(meetingId)
+        return meetingRepository.getMeetingById(meetingId)
     }
 
     /**
      * Liste les réunions pour un événement
      */
     suspend fun getMeetingsForEvent(eventId: String): List<Meeting> {
-        return meetingRepository.getMeetingsForEvent(eventId)
+        return meetingRepository.getMeetingsByEventId(eventId)
     }
 }

@@ -6,10 +6,10 @@ import com.guyghost.wakeve.models.*
  * Platform-specific meeting provider interface
  * Implemented for Android and iOS separately
  */
-expect class MeetingProvider {
+interface MeetingProvider {
 
     /**
-     * Create a meeting on the specified platform
+     * Create a meeting on specified platform
      */
     suspend fun createMeeting(
         platform: MeetingPlatform,
@@ -29,7 +29,7 @@ expect class MeetingProvider {
     fun isPlatformAvailable(platform: MeetingPlatform): Boolean
 
     /**
-     * Get the app URL for a platform (e.g., zoommtg://)
+     * Get app URL for a platform (e.g., zoommtg://)
      */
     fun getAppUrl(platform: MeetingPlatform): String?
 
@@ -42,7 +42,7 @@ expect class MeetingProvider {
 /**
  * Meeting provider exception
  */
-class MeetingProviderException(message: String, cause: Throwable? = null) : Exception(message, cause)
+open class MeetingProviderException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
 class PlatformNotSupportedException(platform: MeetingPlatform) :
     MeetingProviderException("Platform not supported: $platform")

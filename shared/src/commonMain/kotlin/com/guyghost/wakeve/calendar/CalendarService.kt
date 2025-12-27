@@ -273,7 +273,7 @@ private data class ParticipantWithUser(
 /**
  * Interface pour le service calendrier plateforme-spécifique
  */
-expect class PlatformCalendarService {
+interface PlatformCalendarService {
     fun addEvent(event: EnhancedCalendarEvent): Result<Unit>
     fun updateEvent(event: EnhancedCalendarEvent): Result<Unit>
     fun deleteEvent(eventId: String): Result<Unit>

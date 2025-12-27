@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.meeting
 
+import com.guyghost.wakeve.models.MeetingPlatform
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
 

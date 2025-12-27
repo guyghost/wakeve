@@ -10,9 +10,9 @@ import android.provider.CalendarContract.Attendees
 import androidx.core.content.ContextCompat
 import com.guyghost.wakeve.models.EnhancedCalendarEvent
 
-actual class PlatformCalendarService(private val context: Context) {
+class PlatformCalendarServiceImpl(private val context: Context) : PlatformCalendarService {
 
-    actual fun addEvent(event: EnhancedCalendarEvent): Result<Unit> = runCatching {
+    override fun addEvent(event: EnhancedCalendarEvent): Result<Unit> = runCatching {
         // Vérifier les permissions
         if (ContextCompat.checkSelfPermission(context,
                 Manifest.permission.WRITE_CALENDAR) !=
@@ -52,7 +52,7 @@ actual class PlatformCalendarService(private val context: Context) {
         Result.success(Unit)
     }
 
-    actual fun updateEvent(event: EnhancedCalendarEvent): Result<Unit> = runCatching {
+    override fun updateEvent(event: EnhancedCalendarEvent): Result<Unit> = runCatching {
         val values = ContentValues().apply {
             put(CalendarContract.Events.TITLE, event.title)
             put(CalendarContract.Events.DESCRIPTION, event.description)
@@ -79,7 +79,7 @@ actual class PlatformCalendarService(private val context: Context) {
         Result.success(Unit)
     }
 
-    actual fun deleteEvent(eventId: String): Result<Unit> = runCatching {
+    override fun deleteEvent(eventId: String): Result<Unit> = runCatching {
         val uri = ContentUris.withAppendedId(
             CalendarContract.Events.CONTENT_URI,
             eventId.toLong()
