@@ -141,106 +141,267 @@ struct ErrorView: View {
 
 struct AuthenticatedView: View {
     let userId: String
+    @State private var selectedTab: WakevTab = .home
     @State private var currentView: AppView = .eventList
     @State private var selectedEvent: Event?
     @State private var repository = EventRepository()
 
     var body: some View {
-        Group {
-            switch currentView {
-            case .eventList:
-                ModernHomeView(
+        // Using native iOS TabView which automatically adopts Liquid Glass on iOS 26+
+        WakevTabBarContainer(
+            selectedTab: $selectedTab,
+            home: { homeTabContent },
+            events: { eventsTabContent },
+            explore: { exploreTabContent },
+            profile: { profileTabContent }
+        )
+    }
+    
+    // MARK: - Home Tab
+    
+    @ViewBuilder
+    private var homeTabContent: some View {
+        switch currentView {
+        case .eventList:
+            ModernHomeView(
+                userId: userId,
+                repository: repository,
+                onEventSelected: { event in
+                    selectedEvent = event
+                    currentView = .eventDetail
+                },
+                onCreateEvent: {
+                    currentView = .eventCreation
+                }
+            )
+            
+        case .eventCreation:
+            AppleInvitesEventCreationView(
+                userId: userId,
+                repository: repository,
+                onEventCreated: { eventId in
+                    if let event = repository.getEvent(id: eventId) {
+                        selectedEvent = event
+                        currentView = .participantManagement
+                    }
+                },
+                onBack: {
+                    currentView = .eventList
+                }
+            )
+            
+        case .eventDetail:
+            if let event = selectedEvent {
+                ModernEventDetailView(
+                    event: event,
                     userId: userId,
                     repository: repository,
-                    onEventSelected: { event in
-                        selectedEvent = event
-                        currentView = .eventDetail
+                    onBack: {
+                        currentView = .eventList
                     },
-                    onCreateEvent: {
-                        currentView = .eventCreation
+                    onVote: {
+                        currentView = .pollVoting
+                    },
+                    onManageParticipants: {
+                        currentView = .participantManagement
                     }
                 )
-                
-            case .eventCreation:
-                AppleInvitesEventCreationView(
-                    userId: userId,
+            }
+            
+        case .participantManagement:
+            if let event = selectedEvent {
+                ModernParticipantManagementView(
+                    event: event,
                     repository: repository,
-                    onEventCreated: { eventId in
-                        if let event = repository.getEvent(id: eventId) {
-                            selectedEvent = event
-                            currentView = .participantManagement
+                    onParticipantsUpdated: {
+                        // Refresh the event data
+                        if let updatedEvent = repository.getEvent(id: event.id) {
+                            selectedEvent = updatedEvent
                         }
                     },
                     onBack: {
-                        currentView = .eventList
+                        currentView = .eventDetail
                     }
                 )
+            }
+            
+        case .pollVoting:
+            if let event = selectedEvent {
+                ModernPollVotingView(
+                    event: event,
+                    repository: repository,
+                    participantId: userId,
+                    onVoteSubmitted: {
+                        currentView = .eventDetail
+                    },
+                    onBack: {
+                        currentView = .eventDetail
+                    }
+                )
+            }
+            
+        case .pollResults:
+            if let event = selectedEvent {
+                ModernPollResultsView(
+                    event: event,
+                    repository: repository,
+                    userId: userId,
+                    onDateConfirmed: { _ in
+                        currentView = .eventDetail
+                    },
+                    onBack: {
+                        currentView = .eventDetail
+                    }
+                )
+            }
+        }
+    }
+    
+    // MARK: - Events Tab
+    
+    @ViewBuilder
+    private var eventsTabContent: some View {
+        EventsTabView(userId: userId, repository: repository)
+    }
+    
+    // MARK: - Explore Tab
+    
+    @ViewBuilder
+    private var exploreTabContent: some View {
+        ExploreTabView()
+    }
+    
+    // MARK: - Profile Tab
+    
+    @ViewBuilder
+    private var profileTabContent: some View {
+        ProfileTabView(userId: userId)
+    }
+}
+
+// MARK: - Events Tab View (Placeholder)
+
+struct EventsTabView: View {
+    let userId: String
+    let repository: EventRepository
+    
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.blue.opacity(0.1),
+                    Color.purple.opacity(0.1)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 24) {
+                Image(systemName: "calendar.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundColor(.wakevPrimary)
                 
-            case .eventDetail:
-                if let event = selectedEvent {
-                    ModernEventDetailView(
-                        event: event,
-                        userId: userId,
-                        repository: repository,
-                        onBack: {
-                            currentView = .eventList
-                        },
-                        onVote: {
-                            currentView = .pollVoting
-                        },
-                        onManageParticipants: {
-                            currentView = .participantManagement
-                        }
-                    )
-                }
+                Text("My Events")
+                    .font(.title)
+                    .fontWeight(.bold)
                 
-            case .participantManagement:
-                if let event = selectedEvent {
-                    ModernParticipantManagementView(
-                        event: event,
-                        repository: repository,
-                        onParticipantsUpdated: {
-                            // Refresh the event data
-                            if let updatedEvent = repository.getEvent(id: event.id) {
-                                selectedEvent = updatedEvent
-                            }
-                        },
-                        onBack: {
-                            currentView = .eventDetail
-                        }
-                    )
-                }
+                Text("View and manage all your events")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding()
+        }
+    }
+}
+
+// MARK: - Explore Tab View (Placeholder)
+
+struct ExploreTabView: View {
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.purple.opacity(0.1),
+                    Color.pink.opacity(0.1)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 24) {
+                Image(systemName: "sparkles.rectangle.stack.fill")
+                    .font(.system(size: 64))
+                    .foregroundColor(.wakevAccent)
                 
-            case .pollVoting:
-                if let event = selectedEvent {
-                    ModernPollVotingView(
-                        event: event,
-                        repository: repository,
-                        participantId: userId,
-                        onVoteSubmitted: {
-                            currentView = .eventDetail
-                        },
-                        onBack: {
-                            currentView = .eventDetail
-                        }
-                    )
-                }
+                Text("Explore")
+                    .font(.title)
+                    .fontWeight(.bold)
                 
-            case .pollResults:
-                if let event = selectedEvent {
-                    ModernPollResultsView(
-                        event: event,
-                        repository: repository,
-                        userId: userId,
-                        onDateConfirmed: { _ in
-                            currentView = .eventDetail
-                        },
-                        onBack: {
-                            currentView = .eventDetail
-                        }
-                    )
+                Text("Discover destinations, activities, and more")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .padding()
+        }
+    }
+}
+
+// MARK: - Profile Tab View (Placeholder)
+
+struct ProfileTabView: View {
+    let userId: String
+    @EnvironmentObject var authStateManager: AuthStateManager
+    
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.green.opacity(0.1),
+                    Color.blue.opacity(0.1)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+            
+            VStack(spacing: 24) {
+                Image(systemName: "person.crop.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundColor(.wakevSuccess)
+                
+                Text("Profile")
+                    .font(.title)
+                    .fontWeight(.bold)
+                
+                Text("Manage your account settings")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                
+                Spacer()
+                    .frame(height: 40)
+                
+                // Sign Out Button
+                Button(action: {
+                    authStateManager.signOut()
+                }) {
+                    HStack {
+                        Image(systemName: "rectangle.portrait.and.arrow.right")
+                        Text("Sign Out")
+                    }
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 16)
+                    .background(Color.wakevError)
+                    .continuousCornerRadius(12)
                 }
             }
+            .padding()
         }
     }
 }
