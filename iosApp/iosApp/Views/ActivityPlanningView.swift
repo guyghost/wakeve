@@ -375,19 +375,8 @@ struct ActivityPlanningView: View {
                         section: .ACTIVITY,
                         sectionItemId: nil,
                         currentUserId: currentUserId,
-                        currentUserName: currentUserName,
-                        onBack: {
-                            showComments = false
-                        }
+                        currentUserName: currentUserName
                     )
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button("Fermer") {
-                                showComments = false
-                            }
-                        }
-                    }
                 }
             }
             .alert("Supprimer l'activité", isPresented: $showDeleteAlert, presenting: activityToDelete) { activity in
@@ -724,6 +713,10 @@ struct ActivityPlanningView: View {
 
 struct ActivityPlanningView_Previews: PreviewProvider {
     static var previews: some View {
-        ActivityPlanningView(eventId: "event-1")
+        ActivityPlanningView(
+            eventId: "event-1",
+            currentUserId: "user-1",
+            currentUserName: "Test User"
+        )
     }
 }

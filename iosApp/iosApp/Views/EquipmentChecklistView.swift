@@ -550,19 +550,8 @@ struct EquipmentChecklistView: View {
                         section: .EQUIPMENT,
                         sectionItemId: nil,
                         currentUserId: currentUserId,
-                        currentUserName: currentUserName,
-                        onBack: {
-                            showComments = false
-                        }
+                        currentUserName: currentUserName
                     )
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button("Fermer") {
-                                showComments = false
-                            }
-                        }
-                    }
                 }
             }
             .alert("Supprimer l'équipement", isPresented: $showDeleteAlert, presenting: itemToDelete) { item in
@@ -959,6 +948,10 @@ struct EquipmentChecklistView: View {
 
 struct EquipmentChecklistView_Previews: PreviewProvider {
     static var previews: some View {
-        EquipmentChecklistView(eventId: "event-1")
+        EquipmentChecklistView(
+            eventId: "event-1",
+            currentUserId: "user-1",
+            currentUserName: "Test User"
+        )
     }
 }

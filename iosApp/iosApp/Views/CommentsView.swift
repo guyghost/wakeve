@@ -275,7 +275,7 @@ struct CommentsView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 // All Sections
-                FilterChip(
+                CommentFilterChip(
                     title: "All",
                     isSelected: selectedSection == nil,
                     action: {
@@ -286,7 +286,7 @@ struct CommentsView: View {
 
                 // Section Chips
                 ForEach(CommentSection.allCases, id: \.self) { section in
-                    FilterChip(
+                    CommentFilterChip(
                         title: sectionShortName(section),
                         icon: sectionIcon(section),
                         isSelected: selectedSection == section,
@@ -942,7 +942,7 @@ private struct ReplyCommentCell: View {
 
 // MARK: - Filter Chip
 
-private struct FilterChip: View {
+private struct CommentFilterChip: View {
     let title: String
     let icon: String?
     let isSelected: Bool

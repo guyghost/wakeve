@@ -4,7 +4,10 @@ import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.models.MeetingPlatform
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlin.time.Duration
 
 /**
@@ -16,7 +19,7 @@ class MeetingRepository(private val database: WakevDb) {
     
     suspend fun createMeeting(meeting: Meeting): Result<Unit> {
         return try {
-            val invitedParticipantsJson = Json.encodeToString(value = meeting.invitedParticipants)
+            val invitedParticipantsJson = Json.encodeToString(ListSerializer(String.serializer()), meeting.invitedParticipants)
             
             meetingQueries.insertMeeting(
                 id = meeting.id,
@@ -54,7 +57,7 @@ class MeetingRepository(private val database: WakevDb) {
                 meetingLink = row.meetingLink,
                 hostMeetingId = row.hostMeetingId,
                 password = row.password,
-                invitedParticipants = Json.decodeFromString(row.invitedParticipants),
+                invitedParticipants = Json.decodeFromString(ListSerializer(String.serializer()), row.invitedParticipants),
                 status = MeetingStatus.valueOf(row.status),
                 createdAt = row.createdAt
             )
@@ -113,7 +116,7 @@ class MeetingRepository(private val database: WakevDb) {
                 meetingLink = row.meetingLink,
                 hostMeetingId = row.hostMeetingId,
                 password = row.password,
-                invitedParticipants = Json.decodeFromString(row.invitedParticipants),
+                invitedParticipants = Json.decodeFromString(ListSerializer(String.serializer()), row.invitedParticipants),
                 status = MeetingStatus.valueOf(row.status),
                 createdAt = row.createdAt
             )

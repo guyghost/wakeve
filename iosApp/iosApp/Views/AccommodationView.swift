@@ -91,17 +91,14 @@ struct AccommodationView: View {
                         section: .ACCOMMODATION,
                         sectionItemId: nil,
                         currentUserId: currentUserId,
-                        currentUserName: currentUserName,
-                        onBack: {
-                            showComments = false
-                        }
+                        currentUserName: currentUserName
                     )
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button("Fermer") {
-                                showComments = false
-                            }
+                }
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button("Fermer") {
+                            showComments = false
                         }
                     }
                 }
@@ -519,5 +516,9 @@ private func formatPrice(_ cents: Int) -> String {
 // MARK: - Preview
 
 #Preview {
-    AccommodationView(eventId: "event-1")
+    AccommodationView(
+        eventId: "event-1",
+        currentUserId: "user-1",
+        currentUserName: "Test User"
+    )
 }
