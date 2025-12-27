@@ -1,16 +1,16 @@
 # Tasks - Implémentation Complète du PRD
 
 ## Change: `add-full-prd-features`
-**Status**: ✅ PHASE COMPLÈTE! 🎉🎉🎉
-**Dernière mise à jour**: 27 décembre 2025
-**Progress**: 70/70 tasks complétées (100%)
+**Status**: 🟢 PHASE 4 COMPLÈTE! 🎉
+**Dernière mise à jour**: 26 décembre 2025
+**Progress**: 62/70 tasks complétées (89%)
 
 ### Résumé par Phase
 - ✅ **Phase 1 - Scénarios**: 17/17 tasks (100% - PHASE COMPLÈTE! 🎉)
 - ✅ **Phase 2 - Budget**: 11/11 tasks (100% - PHASE COMPLÈTE! 🎉)
 - ✅ **Phase 3 - Logistique**: 24/24 tasks (100% - PHASE COMPLÈTE! 🎉)
-- ✅ **Phase 4 - Collaboration**: 10/10 tasks (100% - PHASE ARCHIVÉE! 📦)
-- 🟡 **Phase 5 - Avancé**: 2/9 tasks (22% - EN PROGRÈS)
+- ✅ **Phase 4 - Collaboration**: 10/10 tasks (100% - PHASE COMPLÈTE! 🎉)
+- ⏳ **Phase 5 - Avancé**: 0/9 tasks (0%)
 
 ---
 
@@ -720,7 +720,7 @@
 ### Phase 1 - Scénarios ✅ PHASE COMPLÈTE!
 - [x] 6/6 sprints complétés (100% 🎉)
 - [x] 17/17 tasks complétées (100%)
-**Détails**:
+- **Détails**:
   - ✅ Modèles & Base de données (4/4)
   - ✅ Logique métier (2/2)
   - ✅ UI Android (3/4 - création reportée)
@@ -735,7 +735,7 @@
 ### Phase 2 - Budget ✅ PHASE COMPLÈTE!
 - [x] 5/5 sprints complétés
 - [x] 11/11 tasks complétées (100% 🎉)
-**Détails**:
+- **Détails**:
   - ✅ Modèles & Base de données (2/2)
   - ✅ Logique métier (2/2)
   - ✅ UI Android (2/2)
@@ -749,7 +749,7 @@
 ### Phase 3 - Logistique ✅ PHASE COMPLÈTE!
 - [x] 3/3 sprints complétés (100% 🎉)
 - [x] 24/24 tasks complétées (100%)
-**Détails**:
+- **Détails**:
   - ✅ Sprint 3.1 - Logement (6/6)
   - ✅ Sprint 3.2 - Transport & Repas (7/7)
   - ✅ Sprint 3.3 - Équipements & Activités (10/10)
@@ -758,13 +758,10 @@
 - **API Endpoints**: 21 (Equipment: 10 | Activity: 11)
 - **Documentation**: À créer dans Phase 4
 
-### Phase 4 - Collaboration ✅ ARCHIVÉE! 📦
+### Phase 4 - Collaboration ✅ PHASE COMPLÈTE! 🎉
 - [x] 2/2 sprints complétés (100%)
-- [x] 10/10 tasks complétées (100% - ARCHIVÉE! 📦)
-- **Archivé le**: 26 décembre 2025
-- **Archive**: `openspec/archive/2025-12-26-phase4-collaboration/`
-- **Spec fusionnée**: `openspec/specs/collaboration-management/`
-**Détails**:
+- [x] 10/10 tasks complétées (100% - TOUTES LES TÂCHES! 🎉)
+- **Détails**:
   - ✅ Sprint 4.1 - Commentaires (7/7 tasks - COMPLÉT! 🎉)
     - ✅ Modèles & DB (2/2)
     - ✅ Repository (1/1)
@@ -777,43 +774,12 @@
     - ✅ Tests d'intégration complets (1/1)
     - ✅ Performance optimization (1/1)
     - ✅ Documentation finale (1/1)
-- **Code**: ~6,335 lignes (Backend: 299 | Android: ~1,100 | iOS: ~900 | Shared: ~1,235 | Tests: ~2,200 | Docs: ~800)
-- **Tests**: 51/51 passing (100%) - Commentaires + Collaboration + Logistique + Performance
+- **Code**: ~5,800 lignes (Backend: 299 | Android: ~1,100 | iOS: ~900 | Repository: 785 | Cache: 100 | NotificationService: 150 | Tests: 2,000+ | Docs: 800+)
+- **Tests**: 48/48 passing (100%) - Commentaires + Collaboration + Logistique
 - **API Endpoints**: 9
 - **Documentation**: Spécification technique + Guide utilisateur + README
 
-### Phase 5 - Avancé ✅ PHASE COMPLÈTE! 🎉
-- [x] 4/4 sprints complétés (100%)
-- [x] 18/18 tasks complétées (100% 🎉)
-**Détails**:
-  - ✅ Sprint 5.1 - Agent Suggestions (5/5)
-    - [x] Implémenter RecommendationEngine.kt (~450 lignes)
-    - [x] Implémenter SuggestionService.kt (~350 lignes)
-    - [x] Créer SuggestionModels.kt (~180 lignes)
-    - [x] Créer UserPreferencesRepository.kt (~150 lignes)
-    - [x] Tests RecommendationEngine (28 tests)
-    - [x] OpenSpec: `openspec/specs/suggestion-management/spec.md` (~540 lignes)
-
-  - ✅ Sprint 5.2 - Agents Restants (5/5)
-    - [x] CalendarService + OpenSpec: `openspec/specs/calendar-management/spec.md` (~500 lignes)
-    - [x] TransportService + OpenSpec: `openspec/specs/transport-optimization/spec.md` (~650 lignes)
-    - [x] DestinationService + OpenSpec: `openspec/specs/destination-planning/spec.md` (~650 lignes)
-    - [x] MeetingService + OpenSpec: `openspec/specs/meeting-service/spec.md` (~650 lignes)
-    - [x] PaymentService + OpenSpec: `openspec/specs/payment-management/spec.md` (~400 lignes)
-
-  - ✅ Sprint 5.3 - Tests E2E (1/1)
-    - [x] Tests E2E PRD complets: `shared/src/jvmTest/kotlin/com/guyghost/wakeve/e2e/PrdWorkflowE2ETest.kt` (~600 lignes)
-
-  - ✅ Sprint 5.4 - Documentation Finale (3/3)
-    - [x] Guide utilisateur: `docs/USER_GUIDE.md` (~800 lignes)
-    - [x] Documentation architecture: `docs/ARCHITECTURE.md` (~800 lignes)
-    - [x] Documentation API: `docs/API.md` (~800 lignes)
-
-- **Code Phase 5**: ~5,700 lignes (Services: ~2,000 | Tests: ~600 | Specs: ~2,900 | Docs: ~2,400)
-- **Tests Phase 5**: 28+10 = 38 tests (Suggestions + E2E)
-- **Documentation**: 7 specs complètes + 3 docs finaux
-
-### **Total Progression**: 70/70 tasks (100% - PHASE 5 COMPLÈTE! 🎉🎉🎉)
+### **Total Progression**: 62/70 tasks (89% - Phase 4 COMPLÈTE! 🎉)
 
 ---
 
@@ -829,108 +795,3 @@
 
 **Dernière mise à jour**: 26 décembre 2025
 **Prochaine revue**: Sprint 4.1 (Commentaires) → Intégration dans chaque section UI
-
-### Phase 5 - Avancé (Sprint 9-10) ✅ PHASE COMPLÈTE! 🎉
-
-### Sprint 5.1 - Agent Suggestions ✅ TERMINÉ
-  - [x] Scoring multi-critères (coût, accessibilité, popularité, saisonnalité, personnalisation)
-  - [x] ScoringWeights configurable
-  - [x] Calcul de similarité entre utilisateurs (cosine similarity)
-  - [x] Méthodes de recommandation (collaborative, content-based, hybride)
-  - **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/suggestions/RecommendationEngine.kt` (~450 lignes)
-
-- [x] **Task 5.1.2**: Implémenter SuggestionService.kt ✅ TERMINÉ
-  - [x] Génération de suggestions pour événements
-  - [x] Intégration avec RecommendationEngine
-  - [x] Suggestions par type (scénarios, activités, restaurants)
-  - [x] Tracking des interactions pour A/B testing
-  - [x] Raisons explicables pour les recommandations
-  - **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/suggestions/SuggestionService.kt` (~350 lignes)
-
-- [x] **Task 5.1.3**: Créer SuggestionModels.kt ✅ TERMINÉ
-  - [x] UserPreferences (budget, durée, saisons, activités, localisation)
-  - [x] BudgetRange, LocationPreferences
-  - [x] SuggestionABTest pour A/B testing
-  - [x] RecommendationResult, RecommendationItem
-  - **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/models/SuggestionModels.kt` (~180 lignes)
-
-- [x] **Task 5.1.4**: Créer UserPreferencesRepository.kt ✅ TERMINÉ
-  - [x] CRUD pour préférences utilisateur
-  - [x] Update pour budget, activités, saisons
-  - [x] Tracking des interactions avec suggestions
-  - [x] Fallback vers préférences par défaut
-  - **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/suggestions/UserPreferencesRepository.kt` (~150 lignes)
-
-- [x] **Task 5.1.5**: Tests RecommendationEngine ✅ TERMINÉ
-  - [x] testCalculateScenarioScore - Scoring multi-critères
-  - [x] testCalculateCostScore - Score de coût
-  - [x] testCalculatePersonalizationScore - Personnalisation
-  - [x] testCalculateUserSimilarity - Similarité cosinus
-  - [x] testRecommendCollaborative - Collaborative filtering
-  - [x] testRecommendContentBased - Content-based filtering
-  - [x] testRecommendHybrid - Recommandations hybrides
-  - **Fichier**: `shared/src/jvmTest/kotlin/com/guyghost/wakeve/suggestions/RecommendationEngineTest.kt` (~400 lignes)
-  - **Résultat**: 28/28 tests passing (100%)
-
-### Sprint 5.2 - Agents Restants (À FAIRE)
-
-- [x] **Task 5.2.1**: Implémenter CalendarService ✅ TERMINÉ
-  - [x] Génération d'invitations ICS avec détails complets
-  - [x] Intégration native (CalendarContract Android, EventKit iOS)
-  - [x] Gestion des fuseaux horaires et mises à jour
-  - [x] OpenSpec: `openspec/specs/calendar-management/spec.md` ✅
-
-- [x] **Task 5.2.2**: Implémenter TransportService ✅ TERMINÉ
-  - [x] Calcul de routes multi-participants
-  - [x] Optimisation (coût/temps/équilibré)
-  - [x] Intégration providers (vols, trains)
-  - [x] Tests TransportServiceTest.kt (8 tests)
-  - [x] OpenSpec: `openspec/specs/transport-optimization/spec.md` ✅
-  - **Fichiers**:
-    - `shared/src/commonMain/kotlin/com/guyghost/wakeve/transport/TransportService.kt` (~360 lignes)
-    - `shared/src/commonMain/kotlin/com/guyghost/wakeve/transport/TransportProvider.kt` (~77 lignes)
-    - `shared/src/commonTest/kotlin/com/guyghost/wakeve/transport/TransportServiceTest.kt` (~207 lignes)
-
-- [x] **Task 5.2.3**: Implémenter DestinationService ✅ TERMINÉ
-  - [x] Suggestions de destinations
-  - [x] Suggestions d'hébergements
-  - [x] Scoring multi-critères (coût, accessibilité, popularité, saisonnalité, taille de groupe)
-  - [x] OpenSpec: `openspec/specs/destination-planning/spec.md` ✅
-
-- [x] **Task 5.2.4**: Implémenter MeetingService ✅ TERMINÉ (OpenSpec)
-  - [x] OpenSpec: `openspec/specs/meeting-service/spec.md` ✅
-  - [ ] Génération de liens (Zoom/Meet/FaceTime) - Service non implémenté
-  - [ ] Invitations pour participants validés
-  - [ ] Rappels avec fuseaux horaires
-
-- [x] **Task 5.2.5**: Implémenter PaymentService ✅ TERMINÉ (OpenSpec)
-  - [x] OpenSpec: `openspec/specs/payment-management/spec.md` ✅
-  - [ ] Création de cagnottes via providers - Service non implémenté
-  - [ ] Intégration Tricount
-  - [ ] Répartition des coûts et suivi
-
-### Sprint 5.2.5 - Documentation OpenSpec ✅ TERMINÉ
-
-- [x] **Task 5.2.6**: Créer OpenSpecs pour tous les agents avancés ✅
-  - [x] `openspec/specs/transport-optimization/spec.md` (~650 lignes)
-  - [x] `openspec/specs/destination-planning/spec.md` (~650 lignes)
-  - [x] `openspec/specs/meeting-service/spec.md` (~650 lignes)
-  - [x] `openspec/specs/payment-management/spec.md` (~400 lignes)
-
-### Sprint 5.3 - Tests E2E & Documentation (À FAIRE)
-
-- [ ] **Task 5.3.1**: Tests E2E complets
-  - [ ] Workflow complet PRD
-  - [ ] Tests multi-utilisateurs
-  - [ ] Tests de performance
-
-- [ ] **Task 5.3.2**: Documentation finale
-  - [ ] Guide utilisateur complet
-  - [ ] Documentation architecture
-  - [ ] API documentation complète
-
----
-
-**Code Phase 5.1**: ~1,480 lignes (Shared: 1,130 | Tests: 350)
-**Tests Phase 5.1**: 28/28 passing (100%)
-

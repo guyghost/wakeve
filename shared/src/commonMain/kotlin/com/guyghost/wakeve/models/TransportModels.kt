@@ -3,7 +3,7 @@ package com.guyghost.wakeve.models
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class Location(
+data class TransportLocation(
     val name: String,
     val address: String? = null,
     val latitude: Double? = null,
@@ -21,14 +21,14 @@ data class TransportOption(
     val id: String,
     val mode: TransportMode,
     val provider: String, // e.g., "Air France", "SNCF", "Uber"
-    val departure: Location,
-    val arrival: Location,
+    val departure: TransportLocation,
+    val arrival: TransportLocation,
     val departureTime: String, // ISO 8601
     val arrivalTime: String, // ISO 8601
     val durationMinutes: Int,
     val cost: Double, // in EUR
     val currency: String = "EUR",
-    val stops: List<Location> = emptyList(),
+    val stops: List<TransportLocation> = emptyList(),
     val bookingUrl: String? = null
 )
 
@@ -59,15 +59,15 @@ enum class OptimizationType {
 
 interface TransportService {
     suspend fun getTransportOptions(
-        from: Location,
-        to: Location,
+        from: TransportLocation,
+        to: TransportLocation,
         departureTime: String,
         mode: TransportMode? = null
     ): List<TransportOption>
 
     suspend fun optimizeRoutes(
-        participants: Map<String, Location>, // participantId -> home location
-        destination: Location,
+        participants: Map<String, TransportLocation>, // participantId -> home location
+        destination: TransportLocation,
         eventTime: String, // ISO 8601
         optimizationType: OptimizationType = OptimizationType.BALANCED
     ): TransportPlan

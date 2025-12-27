@@ -26,6 +26,12 @@ CREATE INDEX IF NOT EXISTS idx_comment_author ON comment(author_id);
 CREATE INDEX IF NOT EXISTS idx_comment_parent ON comment(parent_comment_id);
 CREATE INDEX IF NOT EXISTS idx_comment_created_at ON comment(created_at);
 
+-- Optimized composite indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_comment_event_section ON comment(event_id, section, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_comment_event_section_item ON comment(event_id, section, section_item_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_comment_section_item_replies ON comment(section_item_id, parent_comment_id, created_at ASC);
+CREATE INDEX IF NOT EXISTS idx_comment_event_created_paging ON comment(event_id, created_at DESC);
+
 -- ==================== QUERIES ====================
 
 -- Create
@@ -84,6 +90,26 @@ SELECT * FROM comment
 WHERE event_id = ? AND created_at > ?
 ORDER BY created_at DESC
 LIMIT ?;
+
+-- ==================== PAGINATED QUERIES ====================
+
+selectTopLevelCommentsByEventPaginated:
+SELECT * FROM comment 
+WHERE event_id = ? AND parent_comment_id IS NULL
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?;
+
+selectTopLevelCommentsBySectionPaginated:
+SELECT * FROM comment 
+WHERE event_id = ? AND section = ? AND parent_comment_id IS NULL
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?;
+
+selectTopLevelCommentsBySectionAndItemPaginated:
+SELECT * FROM comment 
+WHERE event_id = ? AND section = ? AND section_item_id = ? AND parent_comment_id IS NULL
+ORDER BY created_at DESC
+LIMIT ? OFFSET ?;
 
 -- Update
 updateComment:
@@ -192,3 +218,22 @@ commentExists:
 SELECT COUNT(*) AS count
 FROM comment 
 WHERE id = ?;
+
+-- ==================== PRE-CALCULATED VIEWS ====================
+
+-- Pre-calculated comment statistics by section for performance
+CREATE VIEW IF NOT EXISTS comment_section_stats AS
+SELECT 
+    event_id,
+    section,
+    COUNT(*) AS comment_count,
+    COUNT(DISTINCT author_id) AS unique_authors,
+    MAX(created_at) AS last_comment_at
+FROM comment
+GROUP BY event_id, section;
+
+-- Query for section statistics
+selectCommentSectionStats:
+SELECT * FROM comment_section_stats
+WHERE event_id = ?
+ORDER BY comment_count DESC;

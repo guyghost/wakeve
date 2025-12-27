@@ -1,0 +1,20 @@
+import kotlin.Long;
+
+CREATE TABLE transport_route (
+    id TEXT PRIMARY KEY NOT NULL,
+    event_id TEXT NOT NULL,
+    participant_id TEXT NOT NULL,
+    segments TEXT NOT NULL, -- JSON array of TransportOption
+    total_duration_minutes INTEGER NOT NULL,
+    total_cost REAL NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'EUR',
+    score REAL NOT NULL,
+    optimization_type TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(event_id) REFERENCES event(id) ON DELETE CASCADE,
+    FOREIGN KEY(participant_id) REFERENCES participant(id) ON DELETE CASCADE
+);
+
+CREATE INDEX transport_route_event_participant_idx ON transport_route(event_id, participant_id);
+CREATE INDEX transport_route_event_idx ON transport_route(event_id);

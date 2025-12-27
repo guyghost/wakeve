@@ -1,0 +1,16 @@
+import kotlin.Long;
+
+CREATE TABLE participant_location (
+    id TEXT PRIMARY KEY NOT NULL,
+    participant_id TEXT NOT NULL,
+    event_id TEXT NOT NULL,
+    location_name TEXT NOT NULL,
+    address TEXT,
+    latitude REAL,
+    longitude REAL,
+    iata_code TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(participant_id) REFERENCES participant(id) ON DELETE CASCADE,
+    FOREIGN KEY(event_id) REFERENCES event(id) ON DELETE CASCADE
+);

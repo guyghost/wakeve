@@ -1,0 +1,60 @@
+-- Pot table: stores payment pots (cagnottes) for events
+CREATE TABLE pot (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    organizerId TEXT NOT NULL,
+    goalAmount REAL NOT NULL,
+    currentAmount REAL NOT NULL DEFAULT 0.0,
+    currency TEXT NOT NULL DEFAULT 'EUR',
+    title TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'ACTIVE',
+    paymentProvider TEXT NOT NULL DEFAULT 'TRICOUNT',
+    tricountGroupId TEXT,
+    tricountGroupUrl TEXT,
+    createdAt TEXT NOT NULL,
+    closedAt TEXT,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+-- Index for quick lookup by event
+CREATE INDEX pot_eventId ON pot(eventId);
+
+-- Index for active pots
+CREATE INDEX pot_active ON pot(eventId, status) WHERE status = 'ACTIVE';
+
+-- Queries
+selectAll:
+SELECT * FROM pot;
+
+selectById:
+SELECT * FROM pot WHERE id = ?;
+
+selectByEvent:
+SELECT * FROM pot WHERE eventId = ?;
+
+selectActiveByEvent:
+SELECT * FROM pot WHERE eventId = ? AND status = 'ACTIVE' LIMIT 1;
+
+insertPot:
+INSERT INTO pot(
+    id, eventId, organizerId, goalAmount, currentAmount, currency, title,
+    status, paymentProvider, tricountGroupId, tricountGroupUrl, createdAt, closedAt
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updatePot:
+UPDATE pot
+SET goalAmount = ?, currentAmount = ?, currency = ?, title = ?,
+    status = ?, tricountGroupId = ?, tricountGroupUrl = ?, closedAt = ?
+WHERE id = ?;
+
+updatePotAmount:
+UPDATE pot SET currentAmount = ? WHERE id = ?;
+
+updatePotStatus:
+UPDATE pot SET status = ?, closedAt = ? WHERE id = ?;
+
+deletePot:
+DELETE FROM pot WHERE id = ?;
+
+deleteByEventId:
+DELETE FROM pot WHERE eventId = ?;

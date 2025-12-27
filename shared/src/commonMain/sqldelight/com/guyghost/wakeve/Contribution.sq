@@ -1,0 +1,42 @@
+-- Contribution table: stores contributions to payment pots
+CREATE TABLE contribution (
+    id TEXT PRIMARY KEY NOT NULL,
+    potId TEXT NOT NULL,
+    participantId TEXT NOT NULL,
+    amount REAL NOT NULL,
+    description TEXT NOT NULL,
+    paidBy TEXT NOT NULL,
+    sharedBy TEXT NOT NULL, -- JSON array of participant IDs
+    paidAt TEXT NOT NULL,
+    FOREIGN KEY (potId) REFERENCES pot(id) ON DELETE CASCADE
+);
+
+-- Index for quick lookup by pot
+CREATE INDEX contribution_potId ON contribution(potId);
+
+-- Index for contributions by participant
+CREATE INDEX contribution_participantId ON contribution(participantId);
+
+-- Queries
+selectAll:
+SELECT * FROM contribution;
+
+selectById:
+SELECT * FROM contribution WHERE id = ?;
+
+selectByPot:
+SELECT * FROM contribution WHERE potId = ?;
+
+selectByParticipant:
+SELECT * FROM contribution WHERE participantId = ?;
+
+insertContribution:
+INSERT INTO contribution(
+    id, potId, participantId, amount, description, paidBy, sharedBy, paidAt
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteContribution:
+DELETE FROM contribution WHERE id = ?;
+
+deleteByPotId:
+DELETE FROM contribution WHERE potId = ?;
