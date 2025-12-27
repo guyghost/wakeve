@@ -261,7 +261,7 @@ struct AuthenticatedView: View {
     
     @ViewBuilder
     private var eventsTabContent: some View {
-        EventsTabView(userId: userId, repository: repository)
+        EventsTabView(userId: userId)
     }
     
     // MARK: - Explore Tab
@@ -279,132 +279,11 @@ struct AuthenticatedView: View {
     }
 }
 
-// MARK: - Events Tab View (Placeholder)
 
-struct EventsTabView: View {
-    let userId: String
-    let repository: EventRepository
-    
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.blue.opacity(0.1),
-                    Color.purple.opacity(0.1)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            VStack(spacing: 24) {
-                Image(systemName: "calendar.circle.fill")
-                    .font(.system(size: 64))
-                    .foregroundColor(.wakevPrimary)
-                
-                Text("My Events")
-                    .font(.title)
-                    .fontWeight(.bold)
-                
-                Text("View and manage all your events")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding()
-        }
-    }
-}
 
-// MARK: - Explore Tab View (Placeholder)
+// MARK: - Explore Tab View
 
-struct ExploreTabView: View {
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.purple.opacity(0.1),
-                    Color.pink.opacity(0.1)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            VStack(spacing: 24) {
-                Image(systemName: "sparkles.rectangle.stack.fill")
-                    .font(.system(size: 64))
-                    .foregroundColor(.wakevAccent)
-                
-                Text("Explore")
-                    .font(.title)
-                    .fontWeight(.bold)
-                
-                Text("Discover destinations, activities, and more")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .padding()
-        }
-    }
-}
-
-// MARK: - Profile Tab View (Placeholder)
-
-struct ProfileTabView: View {
-    let userId: String
-    @EnvironmentObject var authStateManager: AuthStateManager
-    
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.green.opacity(0.1),
-                    Color.blue.opacity(0.1)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-            
-            VStack(spacing: 24) {
-                Image(systemName: "person.crop.circle.fill")
-                    .font(.system(size: 64))
-                    .foregroundColor(.wakevSuccess)
-                
-                Text("Profile")
-                    .font(.title)
-                    .fontWeight(.bold)
-                
-                Text("Manage your account settings")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                
-                Spacer()
-                    .frame(height: 40)
-                
-                // Sign Out Button
-                Button(action: {
-                    authStateManager.signOut()
-                }) {
-                    HStack {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                        Text("Sign Out")
-                    }
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 16)
-                    .background(Color.wakevError)
-                    .continuousCornerRadius(12)
-                }
-            }
-            .padding()
-        }
-    }
-}
+// ProfileTabView is now in its own file: Views/ProfileTabView.swift
 
 enum AppView {
     case eventList
@@ -693,7 +572,7 @@ struct EventDetailView: View {
                     
                     // Action Buttons
                     VStack(spacing: 16) {
-                        if event.status == EventStatus.draft {
+                        if event.status.name == "DRAFT" {
                             ActionButton(
                                 title: "Manage Participants",
                                 subtitle: "Add or remove participants",
@@ -709,7 +588,7 @@ struct EventDetailView: View {
                                 color: .blue,
                                 action: onManageParticipants // This will trigger poll start
                             )
-                        } else if event.status == EventStatus.polling {
+                        } else if event.status.name == "POLLING" {
                             ActionButton(
                                 title: "Vote on Time Slots",
                                 subtitle: "Cast your vote for available times",
@@ -725,7 +604,7 @@ struct EventDetailView: View {
                                 color: .purple,
                                 action: onViewResults
                             )
-                        } else if event.status == EventStatus.confirmed {
+                        } else if event.status.name == "CONFIRMED" {
                             ActionButton(
                                 title: "View Final Results",
                                 subtitle: "See confirmed event details",

@@ -188,6 +188,17 @@ Lors de la migration d'une vue vers Liquid Glass :
 - `ModernPollResultsView` - Toutes cartes modernisées avec matériaux vitreux
 - `ModernParticipantManagementView` - Liste `.glassCard()`, inputs modernes
 
+### Vues des Tabs iOS (Nouveau - 27 Dec 2025)
+- `EventsTabView` - Liste d'événements avec filtres, `.thinGlass()` pour cartes, corners continus
+- `ExploreTabView` - Découverte avec suggestions, cartes `.glassCard()`, corners continus
+- `ProfileTabView` - Préférences utilisateur, `.glassCard()`, `.thinGlass()` pour sections
+- Composants réutilisables: EventRowView, EventStatusBadge, EventIdeaCard, FeatureCard, PreferenceToggleRow, AboutRow
+
+### Composants UI Réutilisables
+- `WakevTabBar` - Barre de navigation avec 4 tabs
+- `SharedComponents` - Boutons et cartes partagées
+- Tous les composants utilisent `.continuous` pour les coins arrondis
+
 ## Notes Importantes
 
 1. **Gradients colorés** : Les cartes avec des gradients colorés (comme les cartes d'événements) peuvent garder leur design actuel car c'est un choix délibéré pour créer une hiérarchie visuelle forte.
