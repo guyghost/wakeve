@@ -7,6 +7,15 @@ import kotlinx.datetime.*
 import kotlin.random.Random
 
 /**
+ * Data class for paginated results with metadata
+ */
+data class PagingData<T>(
+    val items: List<T>,
+    val hasMore: Boolean,
+    val nextOffset: Int? = null
+)
+
+/**
  * Comment Repository - Manages comments and discussion threads persistence.
  * 
  * Responsibilities:
@@ -20,7 +29,8 @@ import kotlin.random.Random
 class CommentRepository(
     private val db: WakevDb,
     private val commentNotificationService: CommentNotificationService? = null,
-    private val eventRepository: EventRepositoryInterface? = null
+    private val eventRepository: EventRepositoryInterface? = null,
+    private val cache: CommentCache = CommentCache()
 ) {
     
     private val commentQueries = db.commentQueries
@@ -113,6 +123,9 @@ class CommentRepository(
                 }
             }
         }
+        
+        // Invalidate cache for the event
+        invalidateEventCache(eventId)
         
         return comment
     }
@@ -261,86 +274,286 @@ class CommentRepository(
             .map { it.toModel() }
     }
     
+    // ==================== PAGINATION METHODS ====================
+    
     /**
-     * Update an existing comment.
+     * Get paginated top-level comments for an event.
      * 
-     * Only content can be updated. Sets is_edited flag and updated_at timestamp.
-     * 
-     * @param commentId Comment ID
-     * @param content New content
-     * @return Updated Comment
+     * @param eventId Event ID
+     * @param limit Maximum number of comments per page
+     * @param offset Pagination offset
+     * @return Paginated result
      */
-    fun updateComment(commentId: String, content: String): Comment {
-        require(content.isNotBlank()) { "Comment content cannot be blank" }
-        require(content.length <= 2000) { "Comment content cannot exceed 2000 characters" }
+    fun getTopLevelCommentsByEventPaginated(
+        eventId: String,
+        limit: Int = 20,
+        offset: Int = 0
+    ): PagingData<Comment> {
+        val comments = commentQueries.selectTopLevelCommentsByEventPaginated(
+            eventId,
+            limit.toLong(),
+            offset.toLong()
+        ).executeAsList().map { it.toModel() }
         
-        val existing = getCommentById(commentId)
-            ?: throw IllegalArgumentException("Comment not found: $commentId")
+        // Check if there are more results
+        val totalCount = countCommentsByEvent(eventId).toInt()
+        val hasMore = offset + limit < totalCount
         
-        val now = getCurrentUtcIsoString()
-        
-        commentQueries.updateComment(
-            content = content,
-            updated_at = now,
-            id = commentId
-        )
-        
-        return existing.copy(
-            content = content,
-            updatedAt = now,
-            isEdited = true
+        return PagingData(
+            items = comments,
+            hasMore = hasMore,
+            nextOffset = if (hasMore) offset + limit else null
         )
     }
     
     /**
-     * Delete a comment.
+     * Get paginated top-level comments for a section.
      * 
-     * CASCADE deletes all replies due to foreign key constraint.
-     * Decrements parent's reply count if this is a reply.
-     * 
-     * @param commentId Comment ID
+     * @param eventId Event ID
+     * @param section Section to filter by
+     * @param limit Maximum number of comments per page
+     * @param offset Pagination offset
+     * @return Paginated result
      */
-    fun deleteComment(commentId: String) {
-        val comment = getCommentById(commentId)
+    fun getTopLevelCommentsBySectionPaginated(
+        eventId: String,
+        section: CommentSection,
+        limit: Int = 20,
+        offset: Int = 0
+    ): PagingData<Comment> {
+        val comments = commentQueries.selectTopLevelCommentsBySectionPaginated(
+            eventId,
+            section.name,
+            limit.toLong(),
+            offset.toLong()
+        ).executeAsList().map { it.toModel() }
         
-        // Decrement parent's reply count if this is a reply
-        if (comment?.parentCommentId != null) {
-            commentQueries.decrementReplyCount(comment.parentCommentId)
+        // Check if there are more results
+        val totalCount = countCommentsBySection(eventId, section).toInt()
+        val hasMore = offset + limit < totalCount
+        
+        return PagingData(
+            items = comments,
+            hasMore = hasMore,
+            nextOffset = if (hasMore) offset + limit else null
+        )
+    }
+    
+    /**
+     * Get paginated top-level comments for a section and item.
+     * 
+     * @param eventId Event ID
+     * @param section Section to filter by
+     * @param sectionItemId Item ID within section
+     * @param limit Maximum number of comments per page
+     * @param offset Pagination offset
+     * @return Paginated result
+     */
+    fun getTopLevelCommentsBySectionAndItemPaginated(
+        eventId: String,
+        section: CommentSection,
+        sectionItemId: String,
+        limit: Int = 20,
+        offset: Int = 0
+    ): PagingData<Comment> {
+        val comments = commentQueries.selectTopLevelCommentsBySectionAndItemPaginated(
+            eventId,
+            section.name,
+            sectionItemId,
+            limit.toLong(),
+            offset.toLong()
+        ).executeAsList().map { it.toModel() }
+        
+        // Check if there are more results
+        val totalCount = countCommentsBySection(eventId, section, sectionItemId).toInt()
+        val hasMore = offset + limit < totalCount
+        
+        return PagingData(
+            items = comments,
+            hasMore = hasMore,
+            nextOffset = if (hasMore) offset + limit else null
+        )
+    }
+    
+    // ==================== CACHE-AWARE METHODS ====================
+    
+    /**
+     * Get comments by event with optional caching.
+     * 
+     * @param eventId Event ID
+     * @param useCache Whether to use cache (default: true)
+     * @return List of comments
+     */
+    fun getCommentsByEventCached(eventId: String, useCache: Boolean = true): List<Comment> {
+        val cacheKey = "event:$eventId:comments"
+        
+        if (useCache) {
+            cache.get(cacheKey)?.let { return it.comments }
         }
         
-        // Delete comment (CASCADE will delete all replies)
-        commentQueries.deleteComment(commentId)
+        val comments = commentQueries.selectCommentsByEvent(eventId)
+            .executeAsList()
+            .map { it.toModel() }
+        val totalCount = countCommentsByEvent(eventId).toInt()
+        
+        cache.put(cacheKey, CommentCache.CommentListResult(comments, totalCount))
+        return comments
     }
     
     /**
-     * Delete all comments for an event.
+     * Get comments by section with optional caching.
      * 
      * @param eventId Event ID
+     * @param section Section to filter by
+     * @param sectionItemId Optional item ID within section
+     * @param useCache Whether to use cache (default: true)
+     * @return List of comments
      */
-    fun deleteCommentsByEvent(eventId: String) {
-        commentQueries.deleteCommentsByEvent(eventId)
+    fun getCommentsBySectionCached(
+        eventId: String,
+        section: CommentSection,
+        sectionItemId: String? = null,
+        useCache: Boolean = true
+    ): List<Comment> {
+        val cacheKey = "event:$eventId:section:${section.name}:${sectionItemId ?: "all"}"
+        
+        if (useCache) {
+            cache.get(cacheKey)?.let { return it.comments }
+        }
+        
+        val comments = getCommentsBySection(eventId, section, sectionItemId)
+        val totalCount = countCommentsBySection(eventId, section, sectionItemId).toInt()
+        
+        cache.put(cacheKey, CommentCache.CommentListResult(comments, totalCount))
+        return comments
+    }
+    
+    // ==================== LAZY LOADING METHODS ====================
+    
+    /**
+     * Get comments with lazy-loaded threads.
+     * 
+     * @param eventId Event ID
+     * @param section Section to filter by
+     * @param sectionItemId Optional item ID within section
+     * @param loadReplies Whether to load replies immediately (default: true for backward compatibility)
+     * @param useCache Whether to use cache (default: true)
+     * @return CommentsBySection with potentially lazy-loaded replies
+     */
+    fun getCommentsWithThreadsLazy(
+        eventId: String,
+        section: CommentSection,
+        sectionItemId: String? = null,
+        loadReplies: Boolean = true,
+        useCache: Boolean = true
+    ): CommentsBySection {
+        val topLevelComments = getTopLevelComments(eventId, section, sectionItemId)
+        
+        val threads = topLevelComments.map { comment ->
+            CommentThread(
+                comment = comment,
+                replies = if (loadReplies) {
+                    getReplies(comment.id)
+                } else {
+                    emptyList()
+                },
+                hasMoreReplies = if (!loadReplies && comment.replyCount > 0) {
+                    true // Indicate there are replies to load
+                } else {
+                    false
+                }
+            )
+        }
+        
+        val totalComments = countCommentsBySection(eventId, section, sectionItemId).toInt()
+        
+        return CommentsBySection(
+            section = section,
+            sectionItemId = sectionItemId,
+            comments = threads,
+            totalComments = totalComments
+        )
     }
     
     /**
-     * Delete all comments for a section.
+     * Load replies for a specific comment thread.
+     * 
+     * Useful for lazy loading replies in UI.
+     * 
+     * @param commentId Comment ID to load replies for
+     * @return List of reply comments
+     */
+    fun loadRepliesForComment(commentId: String): List<Comment> {
+        return getReplies(commentId)
+    }
+    
+    // ==================== CACHE MANAGEMENT ====================
+    
+    /**
+     * Invalidate cache for an event.
+     * 
+     * Call this after creating, updating, or deleting comments.
      * 
      * @param eventId Event ID
-     * @param section Section to delete comments from
      */
-    fun deleteCommentsBySection(eventId: String, section: CommentSection) {
-        commentQueries.deleteCommentsBySection(eventId, section.name)
+    fun invalidateEventCache(eventId: String) {
+        cache.invalidate(eventId)
     }
     
     /**
-     * Delete all comments for a specific section item.
+     * Invalidate cache for a specific comment.
+     * 
+     * @param commentId Comment ID
+     */
+    fun invalidateCommentCache(commentId: String) {
+        cache.invalidateComment(commentId)
+    }
+    
+    /**
+     * Clear all cache.
+     */
+    fun clearCache() {
+        cache.clear()
+    }
+    
+    /**
+     * Get cache statistics for monitoring.
+     */
+    fun getCacheStats(): CommentCache.CacheStats {
+        return cache.getStats()
+    }
+    
+    // ==================== PRE-CALCULATED STATISTICS ====================
+    
+    /**
+     * Get comment section statistics from pre-calculated view.
+     * 
+     * Much faster than calculating on-the-fly for large datasets.
      * 
      * @param eventId Event ID
-     * @param section Section
-     * @param sectionItemId Item ID within section
+     * @return Map of section to statistics
      */
-    fun deleteCommentsBySectionItem(eventId: String, section: CommentSection, sectionItemId: String) {
-        commentQueries.deleteCommentsBySectionItem(eventId, section.name, sectionItemId)
+    fun getCommentSectionStats(eventId: String): Map<CommentSection, CommentSectionStats> {
+        return commentQueries.selectCommentSectionStats(eventId)
+            .executeAsList()
+            .associate { 
+                val section = CommentSection.valueOf(it.section)
+                section to CommentSectionStats(
+                    commentCount = it.comment_count.toInt(),
+                    uniqueAuthors = it.unique_authors.toInt(),
+                    lastCommentAt = it.last_comment_at
+                )
+            }
     }
+    
+    /**
+     * Data class for section statistics
+     */
+    data class CommentSectionStats(
+        val commentCount: Int,
+        val uniqueAuthors: Int,
+        val lastCommentAt: String?
+    )
     
     // ==================== Thread Building ====================
     

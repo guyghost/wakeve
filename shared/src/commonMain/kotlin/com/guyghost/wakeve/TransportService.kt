@@ -1,6 +1,6 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.models.Location
+import com.guyghost.wakeve.models.TransportLocation
 import com.guyghost.wakeve.models.OptimizationType
 import com.guyghost.wakeve.models.Route
 import com.guyghost.wakeve.models.TransportMode
@@ -11,8 +11,8 @@ import com.guyghost.wakeve.models.TransportService
 class DefaultTransportService : TransportService {
 
     override suspend fun getTransportOptions(
-        from: Location,
-        to: Location,
+        from: TransportLocation,
+        to: TransportLocation,
         departureTime: String,
         mode: TransportMode?
     ): List<TransportOption> {
@@ -72,8 +72,8 @@ class DefaultTransportService : TransportService {
     }
 
     override suspend fun optimizeRoutes(
-        participants: Map<String, Location>,
-        destination: Location,
+        participants: Map<String, TransportLocation>,
+        destination: TransportLocation,
         eventTime: String,
         optimizationType: OptimizationType
     ): TransportPlan {

@@ -1,0 +1,48 @@
+-- Meetings table: stores virtual meeting details
+CREATE TABLE meeting (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    organizerId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT,
+    startTime TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    duration TEXT NOT NULL, -- Duration string (e.g., "1h", "30m")
+    platform TEXT NOT NULL, -- ZOOM, GOOGLE_MEET, FACETIME
+    meetingLink TEXT NOT NULL,
+    hostMeetingId TEXT NOT NULL,
+    password TEXT NOT NULL,
+    invitedParticipants TEXT NOT NULL, -- JSON array of participant IDs
+    status TEXT NOT NULL DEFAULT 'SCHEDULED', -- SCHEDULED, STARTED, ENDED, CANCELLED
+    createdAt TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+-- Queries
+selectAll:
+SELECT * FROM meeting;
+
+selectById:
+SELECT * FROM meeting WHERE id = ?;
+
+selectByEventId:
+SELECT * FROM meeting WHERE eventId = ? ORDER BY createdAt DESC;
+
+selectByOrganizerId:
+SELECT * FROM meeting WHERE organizerId = ? ORDER BY createdAt DESC;
+
+insertMeeting:
+INSERT INTO meeting(id, eventId, organizerId, title, description, startTime, duration, platform, meetingLink, hostMeetingId, password, invitedParticipants, status, createdAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateMeeting:
+UPDATE meeting
+SET title = ?, description = ?, startTime = ?, duration = ?, platform = ?, meetingLink = ?, status = ?
+WHERE id = ?;
+
+updateMeetingStatus:
+UPDATE meeting
+SET status = ?
+WHERE id = ?;
+
+deleteMeeting:
+DELETE FROM meeting WHERE id = ?;
