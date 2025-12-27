@@ -145,6 +145,7 @@ struct AuthenticatedView: View {
     @State private var currentView: AppView = .eventList
     @State private var selectedEvent: Event?
     @State private var repository = EventRepository()
+    @State private var showEventCreationSheet = false
 
     var body: some View {
         // Using native iOS TabView which automatically adopts Liquid Glass on iOS 26+
@@ -155,6 +156,19 @@ struct AuthenticatedView: View {
             explore: { exploreTabContent },
             profile: { profileTabContent }
         )
+        .sheet(isPresented: $showEventCreationSheet) {
+            EventCreationSheet(
+                userId: userId,
+                repository: repository,
+                onEventCreated: { eventId in
+                    // Navigate to participant management after creation
+                    if let event = repository.getEvent(id: eventId) {
+                        selectedEvent = event
+                        currentView = .participantManagement
+                    }
+                }
+            )
+        }
     }
     
     // MARK: - Home Tab
@@ -171,11 +185,13 @@ struct AuthenticatedView: View {
                     currentView = .eventDetail
                 },
                 onCreateEvent: {
-                    currentView = .eventCreation
+                    // Show bottom sheet instead of navigating
+                    showEventCreationSheet = true
                 }
             )
             
         case .eventCreation:
+            // Legacy full-screen creation (keep for backwards compatibility)
             AppleInvitesEventCreationView(
                 userId: userId,
                 repository: repository,

@@ -1,4 +1,5 @@
 import SwiftUI
+import Shared
 
 // MARK: - Event Filter Enum
 enum EventFilter: String, CaseIterable {
@@ -24,41 +25,59 @@ enum MockEventStatus {
 // MARK: - Events Tab View
 struct EventsTabView: View {
     let userId: String
-    // Using a placeholder instead of EventRepository due to import issues
+    
+    // State
     @State private var events: [MockEvent] = []
     @State private var selectedFilter: EventFilter = .upcoming
     @State private var isLoading = false
+    @State private var showEventCreationSheet = false
+    
+    // Repository for event creation
+    @State private var repository = EventRepository()
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Filter Segmented Control
-                Picker("Filtres", selection: $selectedFilter) {
-                    ForEach(EventFilter.allCases, id: \.self) { filter in
-                        Text(filter.title)
-                            .tag(filter)
+            ZStack {
+                VStack(spacing: 0) {
+                    // Filter Segmented Control
+                    Picker("Filtres", selection: $selectedFilter) {
+                        ForEach(EventFilter.allCases, id: \.self) { filter in
+                            Text(filter.title)
+                                .tag(filter)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+                    .padding(.top, 20)
+                    
+                    // Events List
+                    ScrollView {
+                        LazyVStack(spacing: 16) {
+                            ForEach(filteredAndSortedEvents, id: \.id) { event in
+                                EventRowView(event: event)
+                            }
+                            
+                            // Empty State
+                            if filteredAndSortedEvents.isEmpty && !isLoading {
+                                EmptyStateView(onCreateEvent: {
+                                    showEventCreationSheet = true
+                                })
+                            }
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 16)
                     }
                 }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.top, 20)
                 
-                // Events List
-                ScrollView {
-                    LazyVStack(spacing: 16) {
-                        ForEach(filteredAndSortedEvents, id: \.id) { event in
-                            EventRowView(event: event)
-                        }
-                        
-                        // Empty State
-                        if filteredAndSortedEvents.isEmpty && !isLoading {
-                            EmptyStateView(onCreateEvent: {
-                                // Action to create event would go here
-                            })
-                        }
+                // Floating Action Button
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        floatingActionButton
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 16)
+                    .padding(.trailing, 20)
+                    .padding(.bottom, 20)
                 }
             }
             .background(
@@ -79,7 +98,43 @@ struct EventsTabView: View {
             .onAppear {
                 loadEvents()
             }
+            .sheet(isPresented: $showEventCreationSheet) {
+                EventCreationSheet(
+                    userId: userId,
+                    repository: repository,
+                    onEventCreated: { eventId in
+                        // Refresh events after creation
+                        loadEvents()
+                    }
+                )
+            }
         }
+    }
+    
+    // MARK: - Floating Action Button
+    
+    private var floatingActionButton: some View {
+        Button {
+            showEventCreationSheet = true
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundColor(.white)
+                .frame(width: 56, height: 56)
+                .background(
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.blue, Color.purple],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: .blue.opacity(0.4), radius: 8, x: 0, y: 4)
+                )
+        }
+        .accessibilityLabel("Créer un événement")
+        .accessibilityHint("Ouvre la fenêtre de création d'événement")
     }
     
     // MARK: - Computed Properties
