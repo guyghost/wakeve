@@ -424,30 +424,30 @@ struct ActivityPlanningView: View {
     
     @ViewBuilder
     private var summaryCard: some View {
-        HStack(spacing: 40) {
-            VStack {
-                Text("\(activities.count)")
-                    .font(.system(size: 32, weight: .bold))
-                Text("Activités")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+        LiquidGlassCard(cornerRadius: 16, padding: 16) {
+            HStack(spacing: 40) {
+                VStack {
+                    Text("\(activities.count)")
+                        .font(.system(size: 32, weight: .bold))
+                    Text("Activités")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Divider()
+                    .frame(height: 48)
+                
+                VStack {
+                    Text("\(totalCost / 100)€")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(.blue)
+                    Text("Coût total")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
-            
-            Divider()
-                .frame(height: 48)
-            
-            VStack {
-                Text("\(totalCost / 100)€")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.blue)
-                Text("Coût total")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .glassCard()
     }
     
     @ViewBuilder
@@ -499,32 +499,32 @@ struct ActivityPlanningView: View {
     
     @ViewBuilder
     private func dateSection(date: Date, activities: [ActivityModel]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(formatDate(date))
-                    .font(.headline)
+        LiquidGlassCard(cornerRadius: 16, padding: 16) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text(formatDate(date))
+                        .font(.headline)
+                    
+                    Spacer()
+                    
+                    Text("\(activities.count)")
+                        .font(.caption)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.blue.opacity(0.2))
+                        .foregroundColor(.blue)
+                        .continuousCornerRadius(8)
+                }
                 
-                Spacer()
-                
-                Text("\(activities.count)")
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.blue.opacity(0.2))
-                    .foregroundColor(.blue)
-                    .continuousCornerRadius(8)
-            }
-            
-            ForEach(activities) { activity in
-                activityRow(activity: activity)
-                
-                if activity.id != activities.last?.id {
-                    Divider()
+                ForEach(activities) { activity in
+                    activityRow(activity: activity)
+                    
+                    if activity.id != activities.last?.id {
+                        Divider()
+                    }
                 }
             }
         }
-        .padding()
-        .glassCard()
     }
     
     @ViewBuilder
@@ -652,18 +652,18 @@ struct ActivityPlanningView: View {
     
     @ViewBuilder
     private var emptyStateCard: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "calendar.badge.plus")
-                .font(.system(size: 64))
-                .foregroundColor(.secondary)
-            
-            Text(activities.isEmpty ? "Aucune activité planifiée" : "Aucune activité à cette date")
-                .font(.body)
-                .foregroundColor(.secondary)
+        LiquidGlassCard(cornerRadius: 16, padding: 32) {
+            VStack(spacing: 16) {
+                Image(systemName: "calendar.badge.plus")
+                    .font(.system(size: 64))
+                    .foregroundColor(.secondary)
+                
+                Text(activities.isEmpty ? "Aucune activité planifiée" : "Aucune activité à cette date")
+                    .font(.body)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
-        .padding(32)
-        .glassCard()
     }
     
     // MARK: - Helper Methods
