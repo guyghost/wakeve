@@ -10,62 +10,70 @@ struct ModernEventDetailView: View {
     let onBack: () -> Void
     let onVote: () -> Void
     let onManageParticipants: () -> Void
-
+    
+    // PRD feature navigation callbacks
+    var onScenarioPlanning: (() -> Void)?
+    var onBudgetOverview: (() -> Void)?
+    var onAccommodation: (() -> Void)?
+    var onMealPlanning: (() -> Void)?
+    var onEquipmentChecklist: (() -> Void)?
+    var onActivityPlanning: (() -> Void)?
+    
     @State private var userResponse: RSVPResponse = .maybe
     @State private var showingHostOptions = false
-
+    
     var body: some View {
         ZStack {
             ScrollView {
                 VStack(spacing: 0) {
                     // Hero Image Section
                     HeroImageSection(event: event)
-
+                    
                     // Event Details Card
                     VStack(alignment: .leading, spacing: 24) {
                         // Title and Date
                         VStack(alignment: .leading, spacing: 8) {
                             Text(event.title)
-                                .font(.system(size: 32, weight: .bold))
+                                .font(.title.weight(.bold))
                                 .foregroundColor(.primary)
-
+                            
                             if let finalDate = event.finalDate {
                                 HStack(spacing: 8) {
                                     Image(systemName: "calendar")
-                                        .font(.system(size: 16))
+                                        .font(.system(size: 16, weight: .medium))
                                         .foregroundColor(.secondary)
-
+                                    
                                     Text(formatEventDate(finalDate))
-                                        .font(.system(size: 17, weight: .medium))
+                                        .font(.subheadline.weight(.medium))
                                         .foregroundColor(.primary)
                                 }
                             } else {
                                 HStack(spacing: 8) {
                                     Image(systemName: "clock")
-                                        .font(.system(size: 16))
+                                        .font(.system(size: 16, weight: .medium))
                                         .foregroundColor(.secondary)
-
+                                    
                                     Text("Vote by \(formatDeadline(event.deadline))")
-                                        .font(.system(size: 17, weight: .medium))
+                                        .font(.subheadline.weight(.medium))
                                         .foregroundColor(.secondary)
                                 }
                             }
-
+                            
                             // Location (if available)
                             if !event.description.isEmpty {
                                 HStack(spacing: 8) {
                                     Image(systemName: "mappin.circle")
-                                        .font(.system(size: 16))
+                                        .font(.system(size: 16, weight: .medium))
                                         .foregroundColor(.secondary)
-
+                                    
                                     Text(event.description)
-                                        .font(.system(size: 17))
+                                        .font(.body)
                                         .foregroundColor(.primary)
                                 }
                                 .padding(.top, 4)
                             }
                         }
-
+                        
                         // RSVP Buttons (if not host and polling)
                         if event.status == .polling && event.organizerId != userId {
                             RSVPButtonsSection(
@@ -73,7 +81,7 @@ struct ModernEventDetailView: View {
                                 onVote: onVote
                             )
                         }
-
+                        
                         // Host Options
                         if event.organizerId == userId {
                             HostActionsSection(
@@ -82,20 +90,31 @@ struct ModernEventDetailView: View {
                                 onViewResults: onVote
                             )
                         }
-
+                        
+                        // PRD Feature Buttons based on event status
+                        PRDFeatureButtonsSection(
+                            event: event,
+                            onScenarioPlanning: onScenarioPlanning,
+                            onBudgetOverview: onBudgetOverview,
+                            onAccommodation: onAccommodation,
+                            onMealPlanning: onMealPlanning,
+                            onEquipmentChecklist: onEquipmentChecklist,
+                            onActivityPlanning: onActivityPlanning
+                        )
+                        
                         // Hosted by Section
                         HostedBySection(hostId: event.organizerId)
-
+                        
                         Divider()
                             .padding(.vertical, 8)
-
+                        
                         // Description Section
                         if !event.description.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("About")
                                     .font(.system(size: 20, weight: .semibold))
                                     .foregroundColor(.primary)
-
+                                
                                 Text(event.description)
                                     .font(.system(size: 17))
                                     .foregroundColor(.secondary)
@@ -103,57 +122,61 @@ struct ModernEventDetailView: View {
                             }
                             .padding(.vertical, 8)
                         }
-
+                        
                         // Participants Section
                         ParticipantsSection(
                             participants: event.participants,
                             goingCount: event.participants.count
                         )
-
+                        
                         Spacer()
                             .frame(height: 40)
                     }
                     .padding(20)
-                    .background(Color(.systemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 30))
+                    .background(.regularMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
                     .offset(y: -30)
                 }
             }
             .ignoresSafeArea(edges: .top)
-
+            
             // Back Button Overlay
             VStack {
-                HStack {
+                HStack(spacing: 12) {
                     Button(action: onBack) {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .frame(width: 36, height: 36)
-                            .background(.ultraThinMaterial, in: Circle())
+                            .background(.thinMaterial)
+                            .clipShape(Circle())
                     }
-                    .padding(.leading, 20)
-                    .padding(.top, 60)
-
+                    .accessibilityLabel("Fermer")
+                    .padding(.leading, 16)
+                    .padding(.top, 12)
+                    
                     Spacer()
-
+                    
                     // More options button
                     Button(action: { showingHostOptions.toggle() }) {
                         Image(systemName: "ellipsis")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                             .frame(width: 36, height: 36)
-                            .background(.ultraThinMaterial, in: Circle())
+                            .background(.thinMaterial)
+                            .clipShape(Circle())
                     }
-                    .padding(.trailing, 20)
-                    .padding(.top, 60)
+                    .accessibilityLabel("Plus d'options")
+                    .padding(.trailing, 16)
+                    .padding(.top, 12)
                 }
-
+                
                 Spacer()
             }
         }
         .background(Color(.systemGroupedBackground))
     }
-
+    
     private func formatEventDate(_ dateString: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
@@ -162,7 +185,7 @@ struct ModernEventDetailView: View {
         }
         return dateString
     }
-
+    
     private func formatDeadline(_ deadlineString: String) -> String {
         if let date = ISO8601DateFormatter().date(from: deadlineString) {
             let formatter = DateFormatter()
@@ -177,7 +200,7 @@ struct ModernEventDetailView: View {
 
 struct HeroImageSection: View {
     let event: Event
-
+    
     var body: some View {
         ZStack(alignment: .bottomLeading) {
             // Background Gradient
@@ -187,7 +210,7 @@ struct HeroImageSection: View {
                 endPoint: .bottomTrailing
             )
             .frame(height: 350)
-
+            
             // Pattern Overlay
             GeometryReader { geometry in
                 Image(systemName: "calendar")
@@ -195,20 +218,20 @@ struct HeroImageSection: View {
                     .foregroundColor(.white.opacity(0.1))
                     .offset(x: geometry.size.width * 0.5, y: 50)
             }
-
+            
             // Status Badge
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     StatusBadgeLarge(status: event.status)
                 }
                 .padding(20)
-
+                
                 Spacer()
             }
         }
         .frame(height: 350)
     }
-
+    
     private var gradientColors: [Color] {
         switch event.status {
         case .draft:
@@ -225,12 +248,12 @@ struct HeroImageSection: View {
 
 struct StatusBadgeLarge: View {
     let status: EventStatus
-
+    
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: statusIcon)
                 .font(.system(size: 14, weight: .semibold))
-
+            
             Text(statusText)
                 .font(.system(size: 15, weight: .semibold))
         }
@@ -240,7 +263,7 @@ struct StatusBadgeLarge: View {
         .background(.ultraThinMaterial)
         .continuousCornerRadius(22)
     }
-
+    
     private var statusText: String {
         switch status {
         case .draft: return "Hosting"
@@ -249,7 +272,7 @@ struct StatusBadgeLarge: View {
         default: return ""
         }
     }
-
+    
     private var statusIcon: String {
         switch status {
         case .draft: return "crown.fill"
@@ -271,7 +294,7 @@ enum RSVPResponse {
 struct RSVPButtonsSection: View {
     @Binding var userResponse: RSVPResponse
     let onVote: () -> Void
-
+    
     var body: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
@@ -285,7 +308,7 @@ struct RSVPButtonsSection: View {
                         onVote()
                     }
                 )
-
+                
                 RSVPButton(
                     title: "Not Going",
                     icon: "xmark",
@@ -295,7 +318,7 @@ struct RSVPButtonsSection: View {
                         userResponse = .notGoing
                     }
                 )
-
+                
                 RSVPButton(
                     title: "Maybe",
                     icon: "questionmark",
@@ -317,7 +340,7 @@ struct RSVPButton: View {
     let isSelected: Bool
     let color: Color
     let action: () -> Void
-
+    
     var body: some View {
         Button(action: action) {
             VStack(spacing: 8) {
@@ -325,12 +348,12 @@ struct RSVPButton: View {
                     Circle()
                         .fill(isSelected ? color : Color(.tertiarySystemFill))
                         .frame(width: 48, height: 48)
-
+                    
                     Image(systemName: icon)
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(isSelected ? .white : .secondary)
                 }
-
+                
                 Text(title)
                     .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
                     .foregroundColor(isSelected ? color : .secondary)
@@ -346,7 +369,7 @@ struct HostActionsSection: View {
     let event: Event
     let onManageParticipants: () -> Void
     let onViewResults: () -> Void
-
+    
     var body: some View {
         VStack(spacing: 12) {
             HostActionButton(
@@ -355,7 +378,7 @@ struct HostActionsSection: View {
                 color: .blue,
                 action: onManageParticipants
             )
-
+            
             if event.status == .polling {
                 HostActionButton(
                     title: "View Results",
@@ -374,7 +397,7 @@ struct HostActionButton: View {
     let icon: String
     let color: Color
     let action: () -> Void
-
+    
     var body: some View {
         Button(action: action) {
             HStack {
@@ -382,13 +405,13 @@ struct HostActionButton: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(color)
                     .frame(width: 28)
-
+                
                 Text(title)
                     .font(.system(size: 17, weight: .medium))
                     .foregroundColor(.primary)
-
+                
                 Spacer()
-
+                
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.secondary)
@@ -399,15 +422,95 @@ struct HostActionButton: View {
     }
 }
 
+// MARK: - PRD Feature Buttons Section
+
+struct PRDFeatureButtonsSection: View {
+    let event: Event
+    var onScenarioPlanning: (() -> Void)?
+    var onBudgetOverview: (() -> Void)?
+    var onAccommodation: (() -> Void)?
+    var onMealPlanning: (() -> Void)?
+    var onEquipmentChecklist: (() -> Void)?
+    var onActivityPlanning: (() -> Void)?
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            // Scenario Planning - Available in COMPARING and CONFIRMED states
+            if event.status == .comparing || event.status == .confirmed {
+                HostActionButton(
+                    title: "Scenario Planning",
+                    icon: "list.bullet.rectangle.portrait",
+                    color: .blue,
+                    action: {
+                        onScenarioPlanning?()
+                    }
+                )
+            }
+            
+            // Budget Overview - Available in CONFIRMED and ORGANIZING states
+            if event.status == .confirmed || event.status == .organizing {
+                HostActionButton(
+                    title: "Budget Overview",
+                    icon: "dollarsign.circle",
+                    color: .green,
+                    action: {
+                        onBudgetOverview?()
+                    }
+                )
+            }
+            
+            // Accommodation - Available in ORGANIZING state
+            if event.status == .organizing {
+                HostActionButton(
+                    title: "Accommodation",
+                    icon: "house.fill",
+                    color: .purple,
+                    action: {
+                        onAccommodation?()
+                    }
+                )
+                
+                HostActionButton(
+                    title: "Meal Planning",
+                    icon: "fork.knife",
+                    color: .orange,
+                    action: {
+                        onMealPlanning?()
+                    }
+                )
+                
+                HostActionButton(
+                    title: "Equipment Checklist",
+                    icon: "bag.fill",
+                    color: .pink,
+                    action: {
+                        onEquipmentChecklist?()
+                    }
+                )
+                
+                HostActionButton(
+                    title: "Activity Planning",
+                    icon: "figure.walk",
+                    color: .red,
+                    action: {
+                        onActivityPlanning?()
+                    }
+                )
+            }
+        }
+        .padding(.vertical, 8)
+    }
+}
+
 // MARK: - Hosted By Section
 
 struct HostedBySection: View {
     let hostId: String
-
+    
     private var hostInitial: String {
         String(hostId.prefix(1).uppercased())
     }
-
+    
     var body: some View {
         HStack(spacing: 12) {
             Circle()
@@ -424,17 +527,17 @@ struct HostedBySection: View {
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(.white)
                 )
-
+            
             VStack(alignment: .leading, spacing: 2) {
                 Text("Hosted by \(hostId)")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.primary)
-
+                
                 Text("Organizer")
                     .font(.system(size: 15))
                     .foregroundColor(.secondary)
             }
-
+            
             Spacer()
         }
         .padding(.vertical, 8)
@@ -446,13 +549,13 @@ struct HostedBySection: View {
 struct ParticipantsSection: View {
     let participants: [String]
     let goingCount: Int
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("\(goingCount) Going")
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(.primary)
-
+            
             if participants.isEmpty {
                 Text("No participants yet")
                     .font(.system(size: 17))
@@ -463,15 +566,15 @@ struct ParticipantsSection: View {
                     ForEach(participants.prefix(10), id: \.self) { participant in
                         ModernParticipantRow(participantId: participant)
                     }
-
+                    
                     if participants.count > 10 {
                         HStack {
                             Text("+ \(participants.count - 10) more")
                                 .font(.system(size: 17, weight: .medium))
                                 .foregroundColor(.blue)
-
+                            
                             Spacer()
-
+                            
                             Image(systemName: "chevron.right")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(.secondary)
@@ -487,17 +590,17 @@ struct ParticipantsSection: View {
 
 struct ModernParticipantRow: View {
     let participantId: String
-
+    
     private var participantInitial: String {
         String(participantId.prefix(1).uppercased())
     }
-
+    
     private var avatarColor: Color {
         let colors: [Color] = [.red, .orange, .yellow, .green, .blue, .purple, .pink]
         let hash = abs(participantId.hashValue)
         return colors[hash % colors.count]
     }
-
+    
     var body: some View {
         HStack(spacing: 12) {
             Circle()
@@ -508,19 +611,18 @@ struct ModernParticipantRow: View {
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(.white)
                 )
-
+            
             VStack(alignment: .leading, spacing: 2) {
                 Text(participantId)
                     .font(.system(size: 17, weight: .medium))
                     .foregroundColor(.primary)
-
+                
                 Text("Going")
                     .font(.system(size: 15))
                     .foregroundColor(.secondary)
             }
-
+            
             Spacer()
         }
     }
 }
-
