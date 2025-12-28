@@ -1,15 +1,14 @@
 import SwiftUI
 import Shared
 
-// MARK: - Event Creation Sheet (iOS Calendar Style)
+// MARK: - Event Creation Sheet (iOS Calendar Style with Liquid Glass)
 
-/// Bottom sheet modal for creating new events
+/// Bottom sheet modal for creating new events with Liquid Glass design
 /// Redesigned to match iOS Calendar app style with:
-/// - Dark background (#000000)
-/// - Grouped cards with #1C1C1E surface
-/// - 12pt continuous corner radius
-/// - 44pt row heights
-/// - iOS system colors (blue #007AFF, green #34C759)
+/// - Liquid Glass materials for cards (.regularMaterial)
+/// - Continuous corner radius (12pt/16pt)
+/// - 44pt minimum row heights
+/// - iOS system colors (blue, green, orange)
 struct EventCreationSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -38,11 +37,7 @@ struct EventCreationSheet: View {
     // MARK: - Colors
     
     private var backgroundColor: Color {
-        colorScheme == .dark ? .iOSDarkBackground : Color(uiColor: .systemGroupedBackground)
-    }
-    
-    private var cardBackground: Color {
-        colorScheme == .dark ? .iOSDarkSurface : Color(uiColor: .secondarySystemGroupedBackground)
+        colorScheme == .dark ? Color(uiColor: .systemGroupedBackground) : Color(uiColor: .systemGroupedBackground)
     }
     
     private var separatorColor: Color {
@@ -416,22 +411,17 @@ extension View {
 }
 
 struct FormCardModifier: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-    
-    private var cardBackground: Color {
-        colorScheme == .dark ? .iOSDarkSurface : Color(uiColor: .secondarySystemGroupedBackground)
-    }
-    
     func body(content: Content) -> some View {
         content
-            .background(cardBackground)
+            .background(.regularMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
     }
 }
 
 // MARK: - Date Time Buttons
 
-/// Date and time buttons styled like iOS Calendar
+/// Date and time buttons styled like iOS Calendar with Liquid Glass
 struct DateTimeButtons: View {
     @Binding var date: Date
     @Binding var showDatePicker: Bool
@@ -450,10 +440,17 @@ struct DateTimeButtons: View {
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(
-                        RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .fill(showDatePicker ? .iOSSystemBlue.opacity(0.15) : Color(uiColor: .tertiarySystemFill))
+                        showDatePicker 
+                            ? Color.blue.opacity(0.15) 
+                            : .ultraThinMaterial
                     )
-                    .foregroundStyle(Color.iOSSystemBlue)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .stroke(Color.blue.opacity(showDatePicker ? 0.5 : 0), lineWidth: 1)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .foregroundStyle(Color.blue)
+                    .shadow(color: .black.opacity(showDatePicker ? 0.08 : 0.03), radius: showDatePicker ? 4 : 2, x: 0, y: 2)
             }
             
             // Time Button (if not all day)
@@ -468,17 +465,24 @@ struct DateTimeButtons: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(showDatePicker ? .iOSSystemBlue.opacity(0.15) : Color(uiColor: .tertiarySystemFill))
+                            showDatePicker 
+                                ? Color.blue.opacity(0.15) 
+                                : .ultraThinMaterial
                         )
-                        .foregroundStyle(Color.iOSSystemBlue)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .stroke(Color.blue.opacity(showDatePicker ? 0.5 : 0), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .foregroundStyle(Color.blue)
+                        .shadow(color: .black.opacity(showDatePicker ? 0.08 : 0.03), radius: showDatePicker ? 4 : 2, x: 0, y: 2)
                 }
             }
         }
     }
 }
 
-// MARK: - Quick Event Creation Sheet (Simplified)
+// MARK: - Quick Event Creation Sheet (Simplified with Liquid Glass)
 
 /// A simpler version for quick event creation from any context
 struct QuickEventCreationSheet: View {
@@ -491,11 +495,7 @@ struct QuickEventCreationSheet: View {
     let onCreateTapped: (String) -> Void
     
     private var backgroundColor: Color {
-        colorScheme == .dark ? .iOSDarkBackground : Color(uiColor: .systemGroupedBackground)
-    }
-    
-    private var cardBackground: Color {
-        colorScheme == .dark ? .iOSDarkSurface : Color(uiColor: .secondarySystemGroupedBackground)
+        colorScheme == .dark ? Color(uiColor: .systemGroupedBackground) : Color(uiColor: .systemGroupedBackground)
     }
     
     var body: some View {
@@ -518,7 +518,8 @@ struct QuickEventCreationSheet: View {
                     .padding()
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(cardBackground)
+                            .fill(.regularMaterial)
+                            .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 3)
                     )
                     .padding(.horizontal, 32)
                     .submitLabel(.done)
