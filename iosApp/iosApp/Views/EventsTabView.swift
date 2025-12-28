@@ -47,8 +47,9 @@ struct EventsTabView: View {
                         }
                     }
                     .pickerStyle(.segmented)
-                    .padding(.horizontal)
-                    .padding(.top, 20)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 16)
+                    .background(Color(.systemBackground))
                     
                     // Events List
                     ScrollView {
@@ -80,18 +81,9 @@ struct EventsTabView: View {
                     .padding(.bottom, 20)
                 }
             }
-            .background(
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.blue.opacity(0.1),
-                        Color.purple.opacity(0.1)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-            )
+            .background(Color(.systemBackground).ignoresSafeArea())
             .navigationTitle("Mes Événements")
+            .navigationBarTitleDisplayMode(.inline)
             .refreshable {
                 refreshEvents()
             }
@@ -118,19 +110,24 @@ struct EventsTabView: View {
             showEventCreationSheet = true
         } label: {
             Image(systemName: "plus")
-                .font(.system(size: 24, weight: .semibold))
+                .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(.white)
                 .frame(width: 56, height: 56)
                 .background(
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color.blue, Color.purple],
+                                colors: [Color.wakevPrimary, Color.wakevAccent],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .shadow(color: .blue.opacity(0.4), radius: 8, x: 0, y: 4)
+                )
+                .shadow(
+                    color: Color.wakevPrimary.opacity(0.3),
+                    radius: 12,
+                    x: 0,
+                    y: 6
                 )
         }
         .accessibilityLabel("Créer un événement")
@@ -195,61 +192,57 @@ struct EventRowView: View {
     let event: MockEvent
     
     var body: some View {
-        // Using a simple card style since we can't access LiquidGlassCard
-        ZStack {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color.white)
-                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
-            
-            VStack(alignment: .leading, spacing: 12) {
-                // Event Header
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(event.title)
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.primary)
-                        
-                        if !event.description.isEmpty {
-                            Text(event.description)
-                                .font(.system(size: 14))
-                                .foregroundColor(.secondary)
-                                .lineLimit(2)
-                        }
+        VStack(alignment: .leading, spacing: 12) {
+            // Event Header
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(event.title)
+                        .font(.headline)
+                        .foregroundColor(.primary)
+                    
+                    if !event.description.isEmpty {
+                        Text(event.description)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
                     }
-                    
-                    Spacer()
-                    
-                    // Status Badge
-                    statusBadge
                 }
                 
-                // Participants and Date
-                HStack(spacing: 16) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "person.2")
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                        
-                        Text("\(event.participantCount) participants")
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                    }
+                Spacer()
+                
+                // Status Badge
+                statusBadge
+            }
+            
+            // Participants and Date
+            HStack(spacing: 16) {
+                HStack(spacing: 4) {
+                    Image(systemName: "person.2")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.secondary)
                     
-                    Spacer()
+                    Text("\(event.participantCount) participants")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "calendar")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.secondary)
                     
-                    HStack(spacing: 4) {
-                        Image(systemName: "calendar")
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                        
-                        Text(formattedDate)
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
-                    }
+                    Text(formattedDate)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
             }
-            .padding()
         }
+        .padding(16)
+        .glassCard(cornerRadius: 16, material: .regularMaterial)
+        .accessibilityLabel("\(event.title)")
+        .accessibilityHint("\(event.participantCount) participants, \(formattedDate)")
     }
     
     private var statusBadge: some View {
@@ -259,13 +252,12 @@ struct EventRowView: View {
                 .frame(width: 8, height: 8)
             
             Text(statusText)
-                .font(.system(size: 12, weight: .medium))
+                .font(.caption2.weight(.medium))
                 .foregroundColor(statusColor)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(statusColor.opacity(0.1))
-        .cornerRadius(12)
+        .ultraThinGlass(cornerRadius: 12)
     }
     
     private var statusText: String {
@@ -301,27 +293,58 @@ struct EventRowView: View {
 struct EmptyStateView: View {
     let onCreateEvent: () -> Void
     
+    @State private var isAnimating = false
+    
     var body: some View {
         VStack(spacing: 24) {
             Image(systemName: "calendar.badge.exclamationmark")
-                .font(.system(size: 64))
-                .foregroundColor(.secondary)
+                .font(.system(size: 54, weight: .light))
+                .foregroundColor(.wakevPrimary)
+                .scaleEffect(isAnimating ? 1.05 : 1.0)
+                .animation(
+                    Animation.spring(response: 1.5, dampingFraction: 0.6)
+                        .repeatForever(autoreverses: true),
+                    value: isAnimating
+                )
+                .onAppear { isAnimating = true }
             
             VStack(spacing: 8) {
                 Text("Aucun événement")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                    .font(.title2.weight(.semibold))
+                    .foregroundColor(.primary)
                 
-                Text("Vous n'avez aucun événement correspondant à ce filtre")
+                Text("Créez votre premier événement\npour commencer")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+                    .lineLimit(2)
             }
             
-            Button("Créer un événement") {
+            Button {
                 onCreateEvent()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Créer un événement")
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 44)
+                .background(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.wakevPrimary,
+                            Color.wakevAccent
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .continuousCornerRadius(12)
             }
-            .buttonStyle(.borderedProminent)
+            .padding(.horizontal)
+            .padding(.top, 8)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 60)

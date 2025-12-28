@@ -14,16 +14,9 @@ struct ModernHomeView: View {
 
     var body: some View {
         ZStack {
-            // Dark background with subtle gradient (like Apple Invites)
-            LinearGradient(
-                colors: [
-                    Color(red: 0.11, green: 0.11, blue: 0.12),
-                    Color(red: 0.09, green: 0.09, blue: 0.10)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            // System background adapts to light/dark mode
+            Color(.systemBackground)
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Header
@@ -54,8 +47,8 @@ struct ModernHomeView: View {
                             Spacer()
                                 .frame(height: 40)
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 8)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
                     }
                 }
             }
@@ -88,12 +81,13 @@ struct AppleInvitesHeader: View {
             // "Upcoming" with dropdown
             HStack(spacing: 4) {
                 Text("Upcoming")
-                    .font(.system(size: 34, weight: .bold))
-                    .foregroundColor(.white)
+                    .font(.largeTitle.weight(.bold))
+                    .foregroundColor(.primary)
 
                 Image(systemName: "chevron.down")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(.secondary)
+                    .opacity(0.6)
             }
 
             Spacer()
@@ -104,15 +98,18 @@ struct AppleInvitesHeader: View {
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
                     .frame(width: 36, height: 36)
-                    .background(Color.white.opacity(0.15))
-                    .clipShape(Circle())
+                    .background(
+                        Circle()
+                            .fill(Color.wakevPrimary.opacity(0.8))
+                    )
             }
+            .accessibilityLabel("Créer un événement")
 
             // Profile avatar
             Circle()
                 .fill(
                     LinearGradient(
-                        colors: [Color.blue, Color.purple],
+                        colors: [Color.wakevPrimary, Color.wakevAccent],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -123,9 +120,10 @@ struct AppleInvitesHeader: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                 )
+                .accessibilityLabel("Profile: \(userInitial)")
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 60)
+        .padding(.horizontal, 16)
+        .padding(.top, 12)
         .padding(.bottom, 16)
     }
 }
@@ -134,48 +132,71 @@ struct AppleInvitesHeader: View {
 
 struct AppleInvitesEmptyState: View {
     let onCreateEvent: () -> Void
+    
+    @State private var isAnimating = false
 
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
 
             VStack(spacing: 24) {
-                // Calendar icon
+                // Calendar icon with animation
                 ZStack {
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color.white.opacity(0.15))
+                    Circle()
+                        .fill(Color.wakevPrimary.opacity(0.15))
                         .frame(width: 80, height: 80)
 
                     Image(systemName: "calendar")
-                        .font(.system(size: 40, weight: .regular))
-                        .foregroundColor(.white.opacity(0.5))
+                        .font(.system(size: 40, weight: .light))
+                        .foregroundColor(.wakevPrimary)
+                        .scaleEffect(isAnimating ? 1.05 : 1.0)
+                        .animation(
+                            Animation.spring(response: 1.5, dampingFraction: 0.6)
+                                .repeatForever(autoreverses: true),
+                            value: isAnimating
+                        )
                 }
+                .onAppear { isAnimating = true }
 
                 // Text content
                 VStack(spacing: 12) {
-                    Text("No Upcoming Events")
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.white)
+                    Text("Aucun événement prévu")
+                        .font(.title2.weight(.bold))
+                        .foregroundColor(.primary)
 
-                    Text("Upcoming events, whether you're a host\nor a guest, will appear here.")
-                        .font(.system(size: 17))
-                        .foregroundColor(.white.opacity(0.6))
+                    Text("Les événements à venir apparaîtront ici")
+                        .font(.body)
+                        .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
-                        .lineSpacing(4)
+                        .lineSpacing(2)
                 }
 
                 // Create Event button
                 Button(action: onCreateEvent) {
-                    Text("Create Event")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.black)
-                        .frame(width: 280)
-                        .frame(height: 50)
-                        .background(Color.white)
-                        .continuousCornerRadius(25)
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus.circle.fill")
+                        Text("Créer un événement")
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.wakevPrimary,
+                                Color.wakevAccent
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .continuousCornerRadius(12)
                 }
-                .padding(.top, 16)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
             }
+            .padding(.horizontal, 24)
 
             Spacer()
         }
@@ -240,23 +261,23 @@ struct ModernEventCard: View {
                         // Event Info
                         VStack(alignment: .leading, spacing: 4) {
                             Text(event.title)
-                                .font(.system(size: 28, weight: .bold))
+                                .font(.title.weight(.bold))
                                 .foregroundColor(.white)
                                 .lineLimit(2)
 
                             if let finalDate = event.finalDate {
                                 Text(formatEventDate(finalDate))
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.subheadline.weight(.medium))
                                     .foregroundColor(.white.opacity(0.9))
                             } else {
                                 Text(formatDeadline(event.deadline))
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.subheadline.weight(.medium))
                                     .foregroundColor(.white.opacity(0.9))
                             }
 
                             if !event.description.isEmpty {
                                 Text(event.description)
-                                    .font(.system(size: 15))
+                                    .font(.caption)
                                     .foregroundColor(.white.opacity(0.8))
                                     .lineLimit(2)
                                     .padding(.top, 2)
@@ -320,25 +341,21 @@ struct AddEventCard: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 50))
-                    .foregroundColor(.white.opacity(0.7))
+                    .font(.system(size: 44, weight: .light))
+                    .foregroundColor(.wakevPrimary)
 
-                Text("Create New Event")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white)
+                Text("Créer un événement")
+                    .font(.headline.weight(.semibold))
+                    .foregroundColor(.primary)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 180)
-            .background(Color.white.opacity(0.1))
-            .continuousCornerRadius(20)
-            .overlay(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
-            )
+            .frame(height: 160)
+            .glassCard(cornerRadius: 20, material: .regularMaterial)
         }
         .buttonStyle(ScaleButtonStyle())
+        .accessibilityLabel("Créer un nouvel événement")
     }
 }
 
@@ -353,13 +370,12 @@ struct EventStatusBadge: View {
                 .font(.system(size: 12, weight: .semibold))
 
             Text(statusText)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.caption.weight(.semibold))
         }
         .foregroundColor(.white)
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(.ultraThinMaterial)
-        .continuousCornerRadius(20)
+        .ultraThinGlass(cornerRadius: 12)
     }
 
     private var statusText: String {
@@ -391,7 +407,14 @@ struct ParticipantAvatar: View {
     }
 
     private var avatarColor: Color {
-        let colors: [Color] = [.red, .orange, .yellow, .green, .blue, .purple, .pink]
+        let colors: [Color] = [
+            .wakevError,
+            .wakevWarning,
+            .wakevSuccess,
+            .wakevPrimary,
+            .wakevAccent,
+            .wakevSuccessDark
+        ]
         let hash = abs(participantId.hashValue)
         return colors[hash % colors.count]
     }
@@ -416,19 +439,19 @@ struct AdditionalParticipantsCount: View {
     let count: Int
 
     var body: some View {
-        Circle()
-            .fill(Color.white.opacity(0.3))
-            .frame(width: 40, height: 40)
-            .background(.ultraThinMaterial, in: Circle())
-            .overlay(
-                Text("+\(count)")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-            )
-            .overlay(
-                Circle()
-                    .stroke(Color.white, lineWidth: 2)
-            )
+        ZStack {
+            Circle()
+                .fill(.ultraThinMaterial)
+                
+            Text("+\(count)")
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.white)
+        }
+        .frame(width: 40, height: 40)
+        .overlay(
+            Circle()
+                .stroke(Color.white, lineWidth: 2)
+        )
     }
 }
 
@@ -438,12 +461,12 @@ struct LoadingEventsView: View {
     var body: some View {
         VStack(spacing: 20) {
             ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                .scaleEffect(1.2)
+                .progressViewStyle(CircularProgressViewStyle(tint: .wakevPrimary))
+                .scaleEffect(1.3)
 
-            Text("Loading events...")
-                .font(.system(size: 16, weight: .medium))
-                .foregroundColor(.white.opacity(0.6))
+            Text("Chargement des événements...")
+                .font(.body.weight(.medium))
+                .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
