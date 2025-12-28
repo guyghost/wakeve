@@ -1,13 +1,28 @@
 import SwiftUI
 
-// TODO: Replace with WakevColors.swift when available
-// Using temporary color constants for now
+// Color scheme for onboarding using Wakev design system
 struct OnboardingColors {
-    static let primary = Color.blue
-    static let primaryLight = Color.blue.opacity(0.1)
-    static let success = Color.green
+    // Primary colors aligned with design system
+    static let primary = Color(hex: "2563EB")      // wakevPrimary
+    static let primaryLight = Color(hex: "2563EB").opacity(0.15)
+    static let success = Color(hex: "059669")      // wakevSuccess
     static let primaryText = Color.primary
     static let secondaryText = Color.secondary
+}
+
+// Helper extension to create Color from hex
+extension Color {
+    init(hex: String) {
+        let scanner = Scanner(string: hex)
+        var rgbValue: UInt64 = 0
+        scanner.scanHexInt64(&rgbValue)
+        
+        let r = Double((rgbValue & 0xFF0000) >> 16) / 255.0
+        let g = Double((rgbValue & 0x00FF00) >> 8) / 255.0
+        let b = Double(rgbValue & 0x0000FF) / 255.0
+        
+        self.init(red: r, green: g, blue: b)
+    }
 }
 
 struct OnboardingStep {
@@ -20,11 +35,13 @@ struct OnboardingStep {
 struct OnboardingStepView: View {
     let step: OnboardingStep
     
+    @State private var isAnimating = false
+    
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
             
-            // Icon
+            // Icon with spring animation
             ZStack {
                 Circle()
                     .fill(OnboardingColors.primaryLight)
@@ -35,42 +52,54 @@ struct OnboardingStepView: View {
                     .scaledToFit()
                     .frame(width: 60, height: 60)
                     .foregroundColor(OnboardingColors.primary)
+                    .scaleEffect(isAnimating ? 1.1 : 1.0)
+                    .animation(
+                        Animation.spring(response: 1.0, dampingFraction: 0.7)
+                            .repeatForever(autoreverses: true),
+                        value: isAnimating
+                    )
             }
             .clipShape(Circle())
+            .onAppear { isAnimating = true }
             
             // Title
             Text(step.title)
-                .font(.largeTitle)
-                .fontWeight(.bold)
+                .font(.largeTitle.weight(.bold))
                 .multilineTextAlignment(.center)
-                .foregroundColor(Color.primary)
+                .foregroundColor(.primary)
             
             // Description
             Text(step.description)
                 .font(.body)
                 .multilineTextAlignment(.center)
-                .foregroundColor(Color.secondary)
+                .foregroundColor(.secondary)
                 .padding(.horizontal)
+                .lineSpacing(1.5)
             
             // Features
             VStack(spacing: 12) {
                 ForEach(step.features, id: \.self) { feature in
-                    HStack {
+                    HStack(spacing: 12) {
                         Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(OnboardingColors.success)
+                        
                         Text(feature)
                             .font(.body)
-                            .foregroundColor(Color.secondary)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .padding(.horizontal)
             
             Spacer()
         }
+        .padding(24)
+        .background(.regularMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .padding()
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -135,15 +164,16 @@ struct OnboardingView: View {
             // Bottom buttons
             VStack {
                 Spacer()
-                HStack {
+                HStack(spacing: 12) {
                     Button(action: onOnboardingComplete) {
                         Text("Passer")
-                            .font(.body)
+                            .font(.subheadline.weight(.semibold))
                             .foregroundColor(OnboardingColors.primary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .background(OnboardingColors.primary.opacity(0.1))
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
-                    .padding()
-                    
-                    Spacer()
                     
                     Button(action: {
                         if currentPage < onboardingSteps.count - 1 {
@@ -152,17 +182,25 @@ struct OnboardingView: View {
                             onOnboardingComplete()
                         }
                     }) {
-                        Text(currentPage < onboardingSteps.count - 1 ? "Suivant" : "Commencer")
-                            .font(.body)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 12)
-                            .background(OnboardingColors.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        HStack(spacing: 8) {
+                            Text(currentPage < onboardingSteps.count - 1 ? "Suivant" : "Commencer")
+                                .font(.subheadline.weight(.semibold))
+                            
+                            if currentPage < onboardingSteps.count - 1 {
+                                Image(systemName: "arrow.right")
+                                    .font(.system(size: 14, weight: .semibold))
+                            }
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .background(OnboardingColors.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
-                    .padding()
                 }
-                .background(.ultraThinMaterial)
+                .padding(.horizontal)
+                .padding(.vertical, 16)
+                .background(.regularMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                 .padding(.horizontal)
                 .padding(.bottom, 40)
