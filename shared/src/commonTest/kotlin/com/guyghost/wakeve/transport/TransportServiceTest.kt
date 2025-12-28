@@ -5,13 +5,14 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.test.assertNotNull
+import kotlinx.coroutines.runBlocking
 
 class TransportServiceTest {
 
     private val transportService = TransportService()
 
     @Test
-    fun `getTransportOptions returns options for flight mode`() {
+    fun `getTransportOptions returns options for flight mode`() = runBlocking {
         // Given
         val from = TransportLocation("Paris", "Paris CDG Airport", 49.0, 2.5, "CDG")
         val to = TransportLocation("London", "London Heathrow", 51.5, -0.5, "LHR")
@@ -32,7 +33,7 @@ class TransportServiceTest {
     }
 
     @Test
-    fun `getTransportOptions returns multiple modes when no mode specified`() {
+    fun `getTransportOptions returns multiple modes when no mode specified`() = runBlocking {
         // Given
         val from = TransportLocation("Paris", null, null, null, null)
         val to = TransportLocation("London", null, null, null, null)
@@ -48,7 +49,7 @@ class TransportServiceTest {
     }
 
     @Test
-    fun `optimizeRoutes returns plan with cost minimization`() {
+    fun `optimizeRoutes returns plan with cost minimization`() = runBlocking {
         // Given
         val participants = mapOf(
             "user1" to TransportLocation("Paris", null, null, null, null),
@@ -73,7 +74,7 @@ class TransportServiceTest {
     }
 
     @Test
-    fun `optimizeRoutes returns plan with time minimization`() {
+    fun `optimizeRoutes returns plan with time minimization`() = runBlocking {
         // Given
         val participants = mapOf(
             "user1" to TransportLocation("Paris", null, null, null, null)
@@ -95,7 +96,7 @@ class TransportServiceTest {
     }
 
     @Test
-    fun `optimizeRoutes returns plan with balanced optimization`() {
+    fun `optimizeRoutes returns plan with balanced optimization`() = runBlocking {
         // Given
         val participants = mapOf(
             "user1" to TransportLocation("Paris", null, null, null, null)
@@ -117,7 +118,7 @@ class TransportServiceTest {
     }
 
     @Test
-    fun `findGroupMeetingPoints groups close arrival times`() {
+    fun `findGroupMeetingPoints groups close arrival times`() = runBlocking {
         // Given
         val route1 = Route(
             id = "route1",
@@ -173,7 +174,7 @@ class TransportServiceTest {
     }
 
     @Test
-    fun `findGroupMeetingPoints separates far arrival times`() {
+    fun `findGroupMeetingPoints separates far arrival times`() = runBlocking {
         // Given
         val route1 = Route(
             id = "route1",
@@ -227,7 +228,7 @@ class TransportServiceTest {
     }
 
     @Test
-    fun `walking options only generated for same location`() {
+    fun `walking options only generated for same location`() = runBlocking {
         // Given
         val sameLocation = TransportLocation("Barcelona", "City Center", 41.4, 2.2, null)
         val departureTime = "2025-12-25T10:00:00Z"
@@ -242,7 +243,7 @@ class TransportServiceTest {
     }
 
     @Test
-    fun `options are sorted by cost ascending`() {
+    fun `options are sorted by cost ascending`() = runBlocking {
         // Given
         val from = TransportLocation("Paris", null, null, null, null)
         val to = TransportLocation("London", null, null, null, null)
