@@ -33,6 +33,8 @@ fun ModernEventDetailView(
     onNavigateToActivityPlanning: () -> Unit,
     onNavigateToComments: () -> Unit,
     onNavigateToHome: () -> Unit,
+    onAddToCalendar: () -> Unit = {},
+    onShareInvite: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -92,7 +94,9 @@ fun ModernEventDetailView(
                         onNavigateToAccommodation = onNavigateToAccommodation,
                         onNavigateToMealPlanning = onNavigateToMealPlanning,
                         onNavigateToEquipmentChecklist = onNavigateToEquipmentChecklist,
-                        onNavigateToActivityPlanning = onNavigateToActivityPlanning
+                        onNavigateToActivityPlanning = onNavigateToActivityPlanning,
+                        onAddToCalendar = onAddToCalendar,
+                        onShareInvite = onShareInvite
                     )
                 }
                 EventStatus.ORGANIZING -> {
@@ -112,7 +116,9 @@ fun ModernEventDetailView(
                         onNavigateToAccommodation = onNavigateToAccommodation,
                         onNavigateToMealPlanning = onNavigateToMealPlanning,
                         onNavigateToEquipmentChecklist = onNavigateToEquipmentChecklist,
-                        onNavigateToActivityPlanning = onNavigateToActivityPlanning
+                        onNavigateToActivityPlanning = onNavigateToActivityPlanning,
+                        onAddToCalendar = onAddToCalendar,
+                        onShareInvite = onShareInvite
                     )
                 }
             }
@@ -295,7 +301,9 @@ private fun ConfirmedModeActions(
     onNavigateToAccommodation: () -> Unit,
     onNavigateToMealPlanning: () -> Unit,
     onNavigateToEquipmentChecklist: () -> Unit,
-    onNavigateToActivityPlanning: () -> Unit
+    onNavigateToActivityPlanning: () -> Unit,
+    onAddToCalendar: () -> Unit,
+    onShareInvite: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -306,6 +314,30 @@ private fun ConfirmedModeActions(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
+
+        Button(
+            onClick = onAddToCalendar,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary
+            )
+        ) {
+            Icon(Icons.Default.CalendarMonth, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Ajouter au calendrier")
+        }
+
+        Button(
+            onClick = onShareInvite,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary
+            )
+        ) {
+            Icon(Icons.Default.Share, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Partager l'invitation")
+        }
         
         Button(
             onClick = onNavigateToScenarioList,
@@ -445,7 +477,9 @@ private fun FinalizedModeActions(
     onNavigateToAccommodation: () -> Unit,
     onNavigateToMealPlanning: () -> Unit,
     onNavigateToEquipmentChecklist: () -> Unit,
-    onNavigateToActivityPlanning: () -> Unit
+    onNavigateToActivityPlanning: () -> Unit,
+    onAddToCalendar: () -> Unit,
+    onShareInvite: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -456,6 +490,30 @@ private fun FinalizedModeActions(
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
+
+        Button(
+            onClick = onAddToCalendar,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary
+            )
+        ) {
+            Icon(Icons.Default.CalendarMonth, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Ajouter au calendrier")
+        }
+
+        Button(
+            onClick = onShareInvite,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.secondary
+            )
+        ) {
+            Icon(Icons.Default.Share, contentDescription = null)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Partager l'invitation")
+        }
         
         Button(
             onClick = onNavigateToScenarioList,
