@@ -29,8 +29,12 @@ struct OnboardingStepView: View {
             // Icon with spring animation
             ZStack {
                 Circle()
-                    .fill(OnboardingColors.primaryLight)
+                    .fill(.ultraThinMaterial)
                     .frame(width: 120, height: 120)
+                    .overlay(
+                        Circle()
+                            .fill(OnboardingColors.primary.opacity(0.1))
+                    )
                 
                 Image(systemName: step.icon)
                     .resizable()
@@ -45,6 +49,7 @@ struct OnboardingStepView: View {
                     )
             }
             .clipShape(Circle())
+            .shadow(color: OnboardingColors.primary.opacity(0.2), radius: 20, x: 0, y: 8)
             .onAppear { isAnimating = true }
             
             // Title
@@ -84,6 +89,7 @@ struct OnboardingStepView: View {
         .padding(24)
         .background(.regularMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
         .padding()
     }
 }
@@ -158,8 +164,13 @@ struct OnboardingView: View {
                             .foregroundColor(OnboardingColors.primary)
                             .frame(maxWidth: .infinity)
                             .frame(height: 44)
-                            .background(OnboardingColors.primary.opacity(0.1))
+                            .background(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(OnboardingColors.primary.opacity(0.3), lineWidth: 1)
+                            )
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
                     }
                     
                     Button(action: {
@@ -183,6 +194,7 @@ struct OnboardingView: View {
                         .frame(height: 44)
                         .background(OnboardingColors.primary)
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .shadow(color: OnboardingColors.primary.opacity(0.4), radius: 12, x: 0, y: 6)
                     }
                 }
                 .padding(.horizontal)
