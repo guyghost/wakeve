@@ -146,6 +146,15 @@ struct AuthenticatedView: View {
     @State private var selectedEvent: Event?
     @State private var repository = EventRepository()
     @State private var showEventCreationSheet = false
+    
+    // New state variables for PRD features
+    @State private var showScenarioList = false
+    @State private var showBudgetDetail = false
+    @State private var showAccommodation = false
+    @State private var showMealPlanning = false
+    @State private var showEquipmentChecklist = false
+    @State private var showActivityPlanning = false
+    @State private var selectedScenario: Scenario_?
 
     var body: some View {
         // Using native iOS TabView which automatically adopts Liquid Glass on iOS 26+
@@ -270,6 +279,103 @@ struct AuthenticatedView: View {
                     }
                 )
             }
+            
+        // MARK: - New PRD Features Navigation Cases
+            
+        case .scenarioList:
+            if let event = selectedEvent {
+                ScenarioListView(
+                    event: event,
+                    repository: ScenarioRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
+                    participantId: userId,
+                    onScenarioTap: { scenario in
+                        selectedScenario = scenario
+                        // TODO: Navigate to scenario detail
+                    },
+                    onCompareTap: {
+                        // TODO: Navigate to scenario comparison
+                    },
+                    onBack: {
+                        currentView = .eventDetail
+                    }
+                )
+            }
+            
+        case .scenarioComparison:
+            if let event = selectedEvent {
+                ScenarioComparisonView(
+                    event: event,
+                    repository: ScenarioRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
+                    onBack: {
+                        currentView = .scenarioList
+                    }
+                )
+            }
+            
+        case .budgetOverview:
+            if let event = selectedEvent {
+                BudgetOverviewView(
+                    event: event,
+                    repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
+                    onBack: {
+                        currentView = .eventDetail
+                    },
+                    onViewDetails: {
+                        // TODO: Navigate to budget detail
+                    }
+                )
+            }
+            
+        case .accommodation:
+            if let event = selectedEvent {
+                AccommodationView(
+                    eventId: event.id,
+                    currentUserId: userId,
+                    currentUserName: "Current User" // TODO: Get actual user name
+                )
+                .navigationBarTitleDisplayMode(.inline)
+            }
+            
+        case .mealPlanning:
+            if let event = selectedEvent {
+                MealPlanningView(
+                    eventId: event.id,
+                    currentUserId: userId,
+                    currentUserName: "Current User" // TODO: Get actual user name
+                )
+            }
+            
+        case .equipmentChecklist:
+            if let event = selectedEvent {
+                EquipmentChecklistView(
+                    eventId: event.id,
+                    currentUserId: userId,
+                    currentUserName: "Current User" // TODO: Get actual user name
+                )
+            }
+            
+        case .activityPlanning:
+            if let event = selectedEvent {
+                ActivityPlanningView(
+                    eventId: event.id,
+                    currentUserId: userId,
+                    currentUserName: "Current User" // TODO: Get actual user name
+                )
+            }
+            
+        default:
+            // Fallback to event list
+            ModernHomeView(
+                userId: userId,
+                repository: repository,
+                onEventSelected: { event in
+                    selectedEvent = event
+                    currentView = .eventDetail
+                },
+                onCreateEvent: {
+                    showEventCreationSheet = true
+                }
+            )
         }
     }
     
@@ -308,6 +414,16 @@ enum AppView {
     case participantManagement
     case pollVoting
     case pollResults
+    // New PRD features
+    case scenarioList
+    case scenarioDetail
+    case scenarioComparison
+    case budgetOverview
+    case budgetDetail
+    case accommodation
+    case mealPlanning
+    case equipmentChecklist
+    case activityPlanning
 }
 
 struct EventListView: View {

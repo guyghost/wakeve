@@ -2,27 +2,12 @@ import SwiftUI
 
 // Color scheme for onboarding using Wakev design system
 struct OnboardingColors {
-    // Primary colors aligned with design system
-    static let primary = Color(hex: "2563EB")      // wakevPrimary
-    static let primaryLight = Color(hex: "2563EB").opacity(0.15)
-    static let success = Color(hex: "059669")      // wakevSuccess
+    // Using hex values from WakevColors design system
+    static let primary = Color(red: 0x25/255.0, green: 0x63/255.0, blue: 0xEB/255.0)      // #2563EB (wakevPrimary)
+    static let primaryLight = Color(red: 0x25/255.0, green: 0x63/255.0, blue: 0xEB/255.0).opacity(0.15)
+    static let success = Color(red: 0x05/255.0, green: 0x96/255.0, blue: 0x69/255.0)      // #059669 (wakevSuccess)
     static let primaryText = Color.primary
     static let secondaryText = Color.secondary
-}
-
-// Helper extension to create Color from hex
-extension Color {
-    init(hex: String) {
-        let scanner = Scanner(string: hex)
-        var rgbValue: UInt64 = 0
-        scanner.scanHexInt64(&rgbValue)
-        
-        let r = Double((rgbValue & 0xFF0000) >> 16) / 255.0
-        let g = Double((rgbValue & 0x00FF00) >> 8) / 255.0
-        let b = Double(rgbValue & 0x0000FF) / 255.0
-        
-        self.init(red: r, green: g, blue: b)
-    }
 }
 
 struct OnboardingStep {
@@ -158,7 +143,9 @@ struct OnboardingView: View {
                         .tag(index)
                 }
             }
+            #if os(iOS)
             .tabViewStyle(.page(indexDisplayMode: .automatic))
+            #endif
             .background(.ultraThinMaterial)
             
             // Bottom buttons

@@ -341,18 +341,19 @@ struct AddEventCard: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 12) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 44, weight: .light))
-                    .foregroundColor(.wakevPrimary)
+            LiquidGlassCard(cornerRadius: 20, padding: 0) {
+                VStack(spacing: 12) {
+                    Image(systemName: "plus.circle.fill")
+                        .font(.system(size: 44, weight: .light))
+                        .foregroundColor(.wakevPrimary)
 
-                Text("Créer un événement")
-                    .font(.headline.weight(.semibold))
-                    .foregroundColor(.primary)
+                    Text("Créer un événement")
+                        .font(.headline.weight(.semibold))
+                        .foregroundColor(.primary)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 160)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 160)
-            .glassCard(cornerRadius: 20, material: .regularMaterial)
         }
         .buttonStyle(ScaleButtonStyle())
         .accessibilityLabel("Créer un nouvel événement")

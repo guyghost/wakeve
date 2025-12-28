@@ -30,7 +30,8 @@ struct ModernEventDetailView: View {
                     HeroImageSection(event: event)
                     
                     // Event Details Card
-                    VStack(alignment: .leading, spacing: 24) {
+                    LiquidGlassCard(cornerRadius: 30, padding: 20) {
+                        VStack(alignment: .leading, spacing: 24) {
                         // Title and Date
                         VStack(alignment: .leading, spacing: 8) {
                             Text(event.title)
@@ -131,10 +132,8 @@ struct ModernEventDetailView: View {
                         
                         Spacer()
                             .frame(height: 40)
+                        }
                     }
-                    .padding(20)
-                    .background(.regularMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: 30, style: .continuous))
                     .offset(y: -30)
                 }
             }
@@ -417,9 +416,35 @@ struct HostActionButton: View {
                     .foregroundColor(.secondary)
             }
             .padding(16)
-            .thinGlass(cornerRadius: 12)
         }
     }
+
+// MARK: - Modified HostActionButton with LiquidGlassCard.thin
+extension HostActionButton {
+    var liquidBody: some View {
+        Button(action: action) {
+            LiquidGlassCard.thin(cornerRadius: 12, padding: 0) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(color)
+                        .frame(width: 28)
+                    
+                    Text(title)
+                        .font(.system(size: 17, weight: .medium))
+                        .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
+                .padding(16)
+            }
+        }
+    }
+}
 }
 
 // MARK: - PRD Feature Buttons Section
