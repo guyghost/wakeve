@@ -35,9 +35,10 @@ struct ModernEventCreationView: View {
                         Image(systemName: "xmark")
                             .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(.white)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 44, height: 44)
                             .background(.ultraThinMaterial)
                             .clipShape(Circle())
+                            .accessibilityLabel("Close event creation")
                     }
                     
                     Spacer()
@@ -53,15 +54,17 @@ struct ModernEventCreationView: View {
                             .background(.ultraThinMaterial)
                             .clipShape(Capsule())
                     }
+                    .accessibilityLabel("Preview event")
+                    .accessibilityHint("Show a preview of your event")
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 60) // Adjust for safe area
+                .padding(.horizontal, 24)
+                .padding(.top, 64)
                 
                 Spacer()
                 
                 // "Edit Background" Button
                 Button {
-                    withAnimation {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         hasCustomBackground.toggle()
                     }
                 } label: {
@@ -72,115 +75,121 @@ struct ModernEventCreationView: View {
                         .padding(.vertical, 12)
                         .background(Color(red: 0.6, green: 0.4, blue: 0.0).opacity(0.8)) // Gold/Brownish color from screenshot
                         .clipShape(Capsule())
-                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
                 }
                 .padding(.bottom, 40)
                 
-                // Bottom Card
-                VStack(spacing: 24) {
-                    // Event Title
-                    TextField("Event Title", text: $eventTitle)
-                        .font(.system(size: 34, weight: .bold))
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
-                        .placeholder(when: eventTitle.isEmpty, alignment: .center) {
-                            Text("Event Title")
-                                .font(.system(size: 34, weight: .bold))
-                                .foregroundColor(.white.opacity(0.5))
-                                .multilineTextAlignment(.center)
-                        }
-                        .padding(.top, 8)
-                    
-                    // Details List
-                    VStack(spacing: 0) {
-                        // Date and Time
-                        Button {
-                            showDatePicker = true
-                        } label: {
-                            HStack(spacing: 16) {
-                                Image(systemName: "calendar.badge.plus")
-                                    .font(.system(size: 20))
-                                    .frame(width: 24)
-                                    .foregroundColor(.white.opacity(0.9))
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Date and Time")
+                // Bottom Card - Liquid Glass Migration
+                LiquidGlassCard(style: .thick, cornerRadius: 32, padding: 24) {
+                    VStack(spacing: 24) {
+                        // Event Title
+                        TextField("Event Title", text: $eventTitle)
+                            .font(.system(size: 34, weight: .bold))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                            .placeholder(when: eventTitle.isEmpty, alignment: .center) {
+                                Text("Event Title")
+                                    .font(.system(size: 34, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.7))
+                                    .multilineTextAlignment(.center)
+                            }
+                            .padding(.top, 8)
+                        
+                        // Details List
+                        VStack(spacing: 0) {
+                            // Date and Time
+                            Button {
+                                showDatePicker = true
+                            } label: {
+                                HStack(spacing: 16) {
+                                    Image(systemName: "calendar.badge.plus")
+                                        .font(.system(size: 20))
+                                        .frame(width: 24)
+                                        .foregroundColor(.white.opacity(0.9))
+                                    
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Date and Time")
+                                            .font(.system(size: 17, weight: .medium))
+                                            .foregroundColor(.white)
+                                        
+                                        if !timeSlots.isEmpty {
+                                            Text(timeSlots[0].start)
+                                                .font(.system(size: 15))
+                                                .foregroundColor(.white.opacity(0.7))
+                                        }
+                                    }
+                                    
+                                    Spacer()
+                                }
+                                .padding(.vertical, 16)
+                                .frame(minHeight: 44)
+                            }
+                            .accessibilityLabel("Select date and time")
+                            .accessibilityValue(timeSlots.isEmpty ? "No date selected" : timeSlots[0].start)
+                            
+                            Divider().background(Color.white.opacity(0.2))
+                            
+                            // Location
+                            Button {
+                                // Open location picker
+                            } label: {
+                                HStack(spacing: 16) {
+                                    Image(systemName: "mappin.and.ellipse")
+                                        .font(.system(size: 20))
+                                        .frame(width: 24)
+                                        .foregroundColor(.white.opacity(0.9))
+                                    
+                                    Text("Location")
                                         .font(.system(size: 17, weight: .medium))
                                         .foregroundColor(.white)
                                     
-                                    if !timeSlots.isEmpty {
-                                        Text(timeSlots[0].start)
+                                    Spacer()
+                                }
+                                .padding(.vertical, 16)
+                                .frame(minHeight: 44)
+                            }
+                            .accessibilityLabel("Select location")
+                            .accessibilityHint("Add a location for your event")
+                        }
+                        .padding(.horizontal, 4)
+                        
+                        // Host Info - Liquid Glass Upgrade
+                        HStack(spacing: 12) {
+                            // Avatar Placeholder
+                            Circle()
+                                .fill(Color.white.opacity(0.2))
+                                .frame(width: 44, height: 44)
+                                .overlay(
+                                    Image(systemName: "person.fill")
+                                        .foregroundColor(.white)
+                                        .font(.system(size: 20))
+                                )
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Hosted by You")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(.white)
+                                
+                                TextField("Add a description.", text: $eventDescription)
+                                    .font(.system(size: 15))
+                                    .foregroundColor(.white.opacity(0.9))
+                                    .placeholder(when: eventDescription.isEmpty) {
+                                        Text("Add a description.")
                                             .font(.system(size: 15))
                                             .foregroundColor(.white.opacity(0.7))
                                     }
-                                }
-                                
-                                Spacer()
                             }
-                            .padding(.vertical, 16)
                         }
-                        
-                        Divider().background(Color.white.opacity(0.2))
-                        
-                        // Location
-                        Button {
-                            // Open location picker
-                        } label: {
-                            HStack(spacing: 16) {
-                                Image(systemName: "mappin.and.ellipse")
-                                    .font(.system(size: 20))
-                                    .frame(width: 24)
-                                    .foregroundColor(.white.opacity(0.9))
-                                
-                                Text("Location")
-                                    .font(.system(size: 17, weight: .medium))
-                                    .foregroundColor(.white)
-                                
-                                Spacer()
-                            }
-                            .padding(.vertical, 16)
-                        }
+                        .padding(16)
+                        .glassCard(cornerRadius: 16, material: .regularMaterial)
                     }
-                    .padding(.horizontal, 4)
-                    
-                    // Host Info
-                    HStack(spacing: 12) {
-                        // Avatar Placeholder
-                        Circle()
-                            .fill(Color.white.opacity(0.2))
-                            .frame(width: 44, height: 44)
-                            .overlay(
-                                Image(systemName: "person.fill")
-                                    .foregroundColor(.white)
-                                    .font(.system(size: 20))
-                            )
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Hosted by You")
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.white)
-                            
-                            TextField("Add a description.", text: $eventDescription)
-                                .font(.system(size: 15))
-                                .foregroundColor(.white.opacity(0.9))
-                                .placeholder(when: eventDescription.isEmpty) {
-                                    Text("Add a description.")
-                                        .font(.system(size: 15))
-                                        .foregroundColor(.white.opacity(0.5))
-                                }
-                        }
-                    }
-                    .padding(16)
-                    .background(Color.black.opacity(0.2))
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
-                .padding(24)
-                .background(
-                    // Gradient Card Background matching the screenshot (Green -> Blue)
+                .overlay(
+                    // Gradient overlay for visual cohesion (Option B)
                     LinearGradient(
                         colors: [
-                            Color(red: 0.0, green: 0.5, blue: 0.2).opacity(0.9), // Green
-                            Color(red: 0.0, green: 0.2, blue: 0.6).opacity(0.9)  // Blue
+                            Color(red: 0.0, green: 0.5, blue: 0.2).opacity(0.15),
+                            Color(red: 0.0, green: 0.2, blue: 0.6).opacity(0.15)
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -202,6 +211,7 @@ struct ModernEventCreationView: View {
                                 .font(.system(size: 10))
                         }
                         .foregroundColor(.white.opacity(0.8))
+                        .frame(minWidth: 44, minHeight: 44)
                     }
                     
                     Spacer()
@@ -210,6 +220,7 @@ struct ModernEventCreationView: View {
                         Image(systemName: "xmark")
                             .font(.system(size: 17, weight: .medium))
                             .foregroundColor(.white.opacity(0.8))
+                            .frame(minWidth: 44, minHeight: 44)
                     }
                 }
                 .padding(.horizontal, 32)
@@ -278,10 +289,6 @@ struct ModernEventCreationView: View {
     
     @State private var showDatePicker = false
     @State private var selectedDate = Date()
-    
-
-    
-
 
     private func createEvent() async {
         guard canCreate else { return }
@@ -328,6 +335,3 @@ struct ModernEventCreationView: View {
         }
     }
 }
-
-
-
