@@ -41,40 +41,55 @@ VStack { ... }
 - [ ] Interactions (tap sur cartes)
 - [ ] VoiceOver sur iOS 16/17/18
 
+### 2. ModernHomeView.swift (COMPLÉTÉE)
+**Statut**: ✅ Modernisée - Prête pour test
+**Changements appliqués**:
+- ✅ Background: Remplacé `LinearGradient` personnalisé par `Color(.systemBackground)`
+- ✅ AppleInvitesHeader: Typography `.largeTitle.weight(.bold)` et couleurs système
+- ✅ AppleInvitesHeader: Button primary avec `Color.wakevPrimary.opacity(0.8)`
+- ✅ AppleInvitesEmptyState: Icône animée avec spring effect + gradient button
+- ✅ ModernEventCard: Typography sémantique (`.title`, `.subheadline`, `.caption`)
+- ✅ AddEventCard: Remplacé fond blanc opaque par `.glassCard(cornerRadius: 20)`
+- ✅ EventStatusBadge: Utilise `.ultraThinGlass(cornerRadius: 12)` au lieu de `.ultraThinMaterial`
+- ✅ ParticipantAvatar: Utilise palette Wakev colors au lieu de couleurs système
+- ✅ AdditionalParticipantsCount: Redesign avec `.ultraThinMaterial` et typography `.caption`
+- ✅ LoadingEventsView: Utilise `Color.wakevPrimary` pour ProgressView
+- ✅ Padding standardisé (16pt pour margins, 12pt pour spacing)
+- ✅ Accessibility labels ajoutés aux boutons d'action
+
+### 3. OnboardingView.swift (COMPLÉTÉE)
+**Statut**: ✅ Modernisée - Prête pour test
+**Changements appliqués**:
+- ✅ OnboardingColors: Utilise Wakev design system colors (primary: #2563EB, success: #059669)
+- ✅ Color helper: Ajouté `Color(hex:)` initializer pour creation de couleurs depuis hex
+- ✅ OnboardingStepView: Icon animation avec spring effect (.response: 1.0, .dampingFraction: 0.7)
+- ✅ Icon container: Utilise `.clipShape(Circle())` au lieu de `.cornerRadius()`
+- ✅ Typography: Utilise `.largeTitle.weight(.bold)` et `.body` sémantiques
+- ✅ Features list: Amélioration de l'espacement et des icônes (checkmark.circle.fill)
+- ✅ Card container: Utilise `.regularMaterial` au lieu de `.ultraThinMaterial`
+- ✅ Bottom buttons: Redesign en deux boutons (Skip + Next/Start)
+- ✅ Skip button: Transparent avec background opacity pour contexte
+- ✅ Primary button: Gradient Wakev + arrow icon pour "Suivant"
+- ✅ Button sizing: 44pt height pour proper touch targets
+- ✅ Accessibility labels implicites via icon usage
+
+### 4. ModernEventDetailView.swift (COMPLÉTÉE)
+**Statut**: ✅ Modernisée - Prête pour test
+**Changements appliqués**:
+- ✅ Event title: `.title.weight(.bold)` au lieu de `.system(size: 32)`
+- ✅ Event date/location: Typography sémantique (`.subheadline`, `.body`)
+- ✅ Icons: Consistent `.system(size: 16, weight: .medium)`
+- ✅ Content container: Remplacé `Color(.systemBackground)` par `.regularMaterial`
+- ✅ Content container corners: `.clipShape(RoundedRectangle(..., style: .continuous))`
+- ✅ Back button: `.thinMaterial` + `.primary` color pour system adaptation
+- ✅ More options button: Same styling as back button pour consistency
+- ✅ Button corners: `.continuous` style pour modern appearance
+- ✅ Accessibility labels: "Fermer" et "Plus d'options" ajoutés
+- ✅ Padding consistency: 16-20pt pour alignment avec iOS HIG
+
 ---
 
-## 🔄 Vues En Cours
-
-### 2. ModernHomeView.swift (À COMMENCER)
-**Priorité**: HAUTE
-**Composants à moderniser**:
-- AppleInvitesHeader: Moderniser typographie et interactions
-- ModernEventCard: Remplacer par `.glassCard()` ou `.thickGlass()`
-- AddEventCard: Remplacer par `.glassCard()`
-- LoadingEventsView: Améliorer skeleton loading
-- AppleInvitesEmptyState: Améliorer animations
-
-**Fichier**: `iosApp/iosApp/Views/ModernHomeView.swift` (~200 lignes)
-
-### 3. ModernEventDetailView.swift (À COMMENCER)
-**Priorité**: HAUTE
-**Composants à moderniser**:
-- HeroImageSection: Améliorer shadows et transitions
-- Event Details Card: Remplacer par `.glassCard()`
-- Participants Section: `.thinGlass()` pour les listes
-- Budget Card: `.regularMaterial` avec animations
-- Comments Section: `.ultraThinMaterial` pour subtilité
-
-**Fichier**: `iosApp/iosApp/Views/ModernEventDetailView.swift` (~300+ lignes)
-
-### 4. OnboardingView.swift (À COMMENCER)
-**Priorité**: HAUTE
-**Composants à moderniser**:
-- OnboardingStepView: Remplacer `.ultraThinMaterial` par `.thickGlass()`
-- Boutons du carousel: Style moderne avec gradients
-- Progress indicators: Améliorer visibilité
-
-**Fichier**: `iosApp/iosApp/Views/OnboardingView.swift` (~100+ lignes)
+## 🔄 Vues à Commencer (Priorité Normale)
 
 ---
 
@@ -203,12 +218,18 @@ Color.white
 | Métrique | Valeur |
 |----------|--------|
 | Total des vues | 29 |
-| Vues modernisées | 1 |
-| Vues en cours | 4 |
-| Vues restantes | 24 |
-| % Complétude | 3.4% |
+| Vues modernisées | 4 |
+| Vues en cours | 0 |
+| Vues restantes | 25 |
+| % Complétude | 13.8% |
 
-**Estimation**: ~3-4 jours pour la complétude à 100%
+**Progression**: 4 vues prioritaires complétées en 1 session
+**Estimation restante**: ~2-3 jours pour la complétude à 100%
+
+### Commits effectués
+1. `refactor(ios): modernize EventsTabView and ModernHomeView with HIG guidelines`
+2. `refactor(ios): modernize OnboardingView with HIG guidelines and animations`
+3. `refactor(ios): modernize ModernEventDetailView with HIG typography and materials`
 
 ---
 
