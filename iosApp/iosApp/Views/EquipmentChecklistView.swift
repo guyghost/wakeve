@@ -675,54 +675,59 @@ struct EquipmentChecklistView: View {
         .glassCard()
     }
     
-    @ViewBuilder
-    private var filterChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(ItemStatusFilter.allCases, id: \.self) { filter in
-                    Button {
-                        selectedStatusFilter = filter
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: filter.icon)
-                                .font(.caption)
-                            Text(filter.label)
-                                .font(.caption)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
-                            selectedStatusFilter == filter
-                                ? Color.blue.opacity(0.2)
-                                : Color(uiColor: .systemGray5)
-                        )
-                        .foregroundColor(
-                            selectedStatusFilter == filter ? .blue : .primary
-                        )
-                        .continuousCornerRadius(12)
-                    }
-                }
-            }
-        }
-    }
+     @ViewBuilder
+     private var filterChips: some View {
+         ScrollView(.horizontal, showsIndicators: false) {
+             HStack(spacing: 8) {
+                 ForEach(ItemStatusFilter.allCases, id: \.self) { filter in
+                     Button {
+                         selectedStatusFilter = filter
+                     } label: {
+                         HStack(spacing: 4) {
+                             Image(systemName: filter.icon)
+                                 .font(.caption)
+                             Text(filter.label)
+                                 .font(.caption)
+                         }
+                         .padding(.horizontal, 12)
+                         .padding(.vertical, 6)
+                         .background(
+                             selectedStatusFilter == filter
+                                 ? Color.blue.opacity(0.15)
+                                 : .ultraThinMaterial
+                         )
+                         .foregroundColor(
+                             selectedStatusFilter == filter ? .blue : .primary
+                         )
+                         .continuousCornerRadius(12)
+                         .shadow(
+                             color: .black.opacity(selectedStatusFilter == filter ? 0.08 : 0.03),
+                             radius: selectedStatusFilter == filter ? 4 : 2,
+                             x: 0,
+                             y: 2
+                         )
+                     }
+                 }
+             }
+         }
+     }
     
-    @ViewBuilder
-    private func categorySection(category: EquipmentCategory, items: [EquipmentItemModel]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(category.label)
-                    .font(.headline)
-                
-                Spacer()
-                
-                Text("\(items.count)")
-                    .font(.caption)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.blue.opacity(0.2))
-                    .foregroundColor(.blue)
-                    .continuousCornerRadius(8)
-            }
+     @ViewBuilder
+     private func categorySection(category: EquipmentCategory, items: [EquipmentItemModel]) -> some View {
+         VStack(alignment: .leading, spacing: 12) {
+             HStack {
+                 Text(category.label)
+                     .font(.headline)
+                 
+                 Spacer()
+                 
+                 GlassBadge(
+                     text: "\(items.count)",
+                     icon: nil,
+                     color: .blue,
+                     style: .filled
+                 )
+             }
             
             ForEach(items) { item in
                 itemRow(item: item)
@@ -767,51 +772,40 @@ struct EquipmentChecklistView: View {
                         .foregroundColor(.secondary)
                 }
                 
-                HStack(spacing: 8) {
-                    // Status Badge
-                    Text(item.status.label)
-                        .font(.caption2)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(item.status.color.opacity(0.2))
-                        .foregroundColor(item.status.color)
-                        .continuousCornerRadius(8)
-                    
-                    // Assigned Person
-                    if let assignedId = item.assignedTo,
-                       let participant = participants.first(where: { $0.id == assignedId }) {
-                        Button {
-                            itemToAssign = item
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "person.fill")
-                                    .font(.caption2)
-                                Text(participant.name)
-                                    .font(.caption2)
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color.blue.opacity(0.2))
-                            .foregroundColor(.blue)
-                            .continuousCornerRadius(8)
-                        }
-                    } else {
-                        Button {
-                            itemToAssign = item
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "person.badge.plus")
-                                    .font(.caption2)
-                                Text("Assigner")
-                                    .font(.caption2)
-                            }
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(Color(uiColor: .systemGray5))
-                            .foregroundColor(.primary)
-                            .continuousCornerRadius(8)
-                        }
-                    }
+                 HStack(spacing: 8) {
+                     // Status Badge
+                     GlassBadge(
+                         text: item.status.label,
+                         icon: nil,
+                         color: item.status.color,
+                         style: .filled
+                     )
+                     
+                     // Assigned Person
+                     if let assignedId = item.assignedTo,
+                        let participant = participants.first(where: { $0.id == assignedId }) {
+                         Button {
+                             itemToAssign = item
+                         } label: {
+                             GlassBadge(
+                                 text: participant.name,
+                                 icon: "person.fill",
+                                 color: .blue,
+                                 style: .filled
+                             )
+                         }
+                     } else {
+                         Button {
+                             itemToAssign = item
+                         } label: {
+                             GlassBadge(
+                                 text: "Assigner",
+                                 icon: "person.badge.plus",
+                                 color: .secondary,
+                                 style: .glass
+                             )
+                         }
+                     }
                     
                     // Cost
                     if item.estimatedCost > 0 {
@@ -821,42 +815,32 @@ struct EquipmentChecklistView: View {
                     }
                 }
                 
-                // Edit and Delete buttons
-                HStack(spacing: 8) {
-                    Button {
-                        selectedItem = item
-                        showAddItemSheet = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "pencil")
-                                .font(.caption2)
-                            Text("Modifier")
-                                .font(.caption2)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color(uiColor: .systemGray5))
-                        .foregroundColor(.primary)
-                        .continuousCornerRadius(8)
-                    }
-                    
-                    Button {
-                        itemToDelete = item
-                        showDeleteAlert = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "trash")
-                                .font(.caption2)
-                            Text("Supprimer")
-                                .font(.caption2)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.red.opacity(0.1))
-                        .foregroundColor(.red)
-                        .continuousCornerRadius(8)
-                    }
-                }
+                 // Edit and Delete buttons
+                 HStack(spacing: 8) {
+                     Button {
+                         selectedItem = item
+                         showAddItemSheet = true
+                     } label: {
+                         GlassBadge(
+                             text: "Modifier",
+                             icon: "pencil",
+                             color: .blue,
+                             style: .glass
+                         )
+                     }
+                     
+                     Button {
+                         itemToDelete = item
+                         showDeleteAlert = true
+                     } label: {
+                         GlassBadge(
+                             text: "Supprimer",
+                             icon: "trash",
+                             color: .red,
+                             style: .filled
+                         )
+                     }
+                 }
             }
             
             Spacer()
