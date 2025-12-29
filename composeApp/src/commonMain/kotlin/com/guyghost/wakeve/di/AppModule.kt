@@ -1,0 +1,118 @@
+package com.guyghost.wakeve.di
+
+import androidx.lifecycle.ViewModel
+import com.guyghost.wakeve.presentation.state.EventManagementContract
+import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
+import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
+import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
+import com.guyghost.wakeve.viewmodel.EventManagementViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import org.koin.core.module.Module
+import org.koin.dsl.module
+
+/**
+ * Koin module for dependency injection in the Compose application.
+ *
+ * This module provides:
+ * - ViewModels for Compose screens
+ * - State machines for business logic
+ * - Use cases and repositories
+ *
+ * ## Setup
+ *
+ * In your Android Activity or Application:
+ *
+ * ```kotlin
+ * startKoin {
+ *     modules(appModule)
+ * }
+ * ```
+ */
+val appModule: Module = module {
+    // ========================================================================
+    // State Machines
+    // ========================================================================
+
+    /**
+     * Provide EventManagementStateMachine singleton.
+     *
+     * The state machine is scoped to the application lifecycle using a
+     * CoroutineScope with SupervisorJob to ensure it survives across screens.
+     */
+    single {
+        val loadEventsUseCase = get<LoadEventsUseCase>()
+        val createEventUseCase = get<CreateEventUseCase>()
+
+        // Create a CoroutineScope for the state machine that survives configuration changes
+        val scope = kotlinx.coroutines.CoroutineScope(
+            Dispatchers.Main.immediate + SupervisorJob()
+        )
+
+        EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = null, // Optional: inject if needed
+            scope = scope
+        )
+    }
+
+    // ========================================================================
+    // ViewModels
+    // ========================================================================
+
+    /**
+     * Provide EventManagementViewModel for Compose screens.
+     *
+     * This is a factory that creates a new ViewModel for each screen that
+     * requests it. The ViewModel will be cached by the Compose navigation
+     * framework.
+     *
+     * Usage in Compose:
+     * ```kotlin
+     * @Composable
+     * fun MyScreen(
+     *     viewModel: EventManagementViewModel = koinViewModel()
+     * ) {
+     *     // ...
+     * }
+     * ```
+     */
+    factory {
+        val stateMachine = get<EventManagementStateMachine>()
+        EventManagementViewModel(stateMachine = stateMachine)
+    }
+}
+
+/**
+ * Initialize Koin for the Compose application.
+ *
+ * This should be called once in your Android Activity or Application class:
+ *
+ * ```kotlin
+ * class MainActivity : ComponentActivity() {
+ *     override fun onCreate(savedInstanceState: Bundle?) {
+ *         super.onCreate(savedInstanceState)
+ *         initializeKoin()
+ *         // ... rest of onCreate
+ *     }
+ * }
+ * ```
+ *
+ * Or in your Application class:
+ *
+ * ```kotlin
+ * class MyApplication : Application() {
+ *     override fun onCreate() {
+ *         super.onCreate()
+ *         initializeKoin()
+ *     }
+ * }
+ * ```
+ */
+fun initializeKoin() {
+    val koinApplication = org.koin.core.context.startKoin {
+        // You can add other modules here
+        modules(appModule)
+    }
+}
