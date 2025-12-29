@@ -10,6 +10,7 @@ import com.guyghost.wakeve.viewmodel.EventManagementViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.module.Module
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 /**
@@ -42,7 +43,7 @@ val appModule: Module = module {
      * handles it optionally. In production, this would be injected
      * from a proper implementation (e.g., DatabaseEventRepository).
      */
-    single<EventRepositoryInterface>(named("eventRepository")) { null }
+    single<EventRepositoryInterface?>(named("eventRepository")) { null }
 
     // ========================================================================
     // Use Cases
@@ -52,11 +53,33 @@ val appModule: Module = module {
      * Provide LoadEventsUseCase as a factory.
      *
      * Each time a use case is requested, Koin creates a new instance
+     * with a nullable repository dependency injected.
+     */
+    factory {
+        val repository = getOrNull<EventRepositoryInterface>(named("eventRepository"))
+        LoadEventsUseCase(eventRepository = repository)
+    }
+
+    /**
+     * Provide CreateEventUseCase as a factory.
+     *
+     * Each time a use case is requested, Koin creates a new instance
+     * with a nullable repository dependency injected.
+     */
+    factory {
+        val repository = getOrNull<EventRepositoryInterface>(named("eventRepository"))
+        CreateEventUseCase(eventRepository = repository)
+    }
+
+    /**
+     * Provide CreateEventUseCase as a factory.
+     *
+     * Each time a use case is requested, Koin creates a new instance
      * with the repository dependency injected.
      */
     factory {
         val repository = get<EventRepositoryInterface>(named("eventRepository"))
-        LoadEventsUseCase(eventRepository = repository)
+        CreateEventUseCase(eventRepository = repository)
     }
 
     /**
@@ -92,7 +115,7 @@ val appModule: Module = module {
         EventManagementStateMachine(
             loadEventsUseCase = loadEventsUseCase,
             createEventUseCase = createEventUseCase,
-            eventRepository = getOrNull(named("eventRepository")),
+            eventRepository = getOrNull<EventRepositoryInterface>(named("eventRepository")),
             scope = scope
         )
     }

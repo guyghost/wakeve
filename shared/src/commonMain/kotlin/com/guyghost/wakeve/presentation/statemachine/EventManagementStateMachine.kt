@@ -49,10 +49,11 @@ import kotlinx.coroutines.CoroutineScope
  *         }
  *     }
  *
- *     EventListContent(state = state) { intent ->
- *         viewModel.dispatch(intent)
+ *     EventListContent(
+ *         state = state) { intent ->
+ *             viewModel.dispatch(intent)
+ *         }
  *     }
- * }
  * ```
  *
  * ## Usage Example (iOS)
@@ -76,13 +77,13 @@ import kotlinx.coroutines.CoroutineScope
  *
  * @property loadEventsUseCase Use case for loading events
  * @property createEventUseCase Use case for creating events
- * @property eventRepository Direct access to repository for additional operations
+ * @property eventRepository Direct access to repository for additional operations (nullable)
  * @property scope CoroutineScope for launching async work
  */
 class EventManagementStateMachine(
     private val loadEventsUseCase: LoadEventsUseCase,
     private val createEventUseCase: CreateEventUseCase,
-    private val eventRepository: EventRepositoryInterface? = null,
+    private val eventRepository: com.guyghost.wakeve.EventRepositoryInterface?,
     scope: CoroutineScope
 ) : StateMachine<EventManagementContract.State, EventManagementContract.Intent, EventManagementContract.SideEffect>(
     initialState = EventManagementContract.State(),
