@@ -28,10 +28,9 @@ class OfflineOnlineIntegrationTest {
 
     @BeforeTest
     fun setup() {
-        DatabaseProvider.resetDatabase()
-        database = DatabaseProvider.getDatabase(TestDatabaseFactory())
+        // Create a fresh database for each test to ensure isolation
+        database = createFreshTestDatabase()
         userRepository = UserRepository(database)
-        eventRepository = DatabaseEventRepository(database)
         networkDetector = TestNetworkStatusDetector()
         httpClient = TestSyncHttpClient(
             SyncResponse(
@@ -43,14 +42,19 @@ class OfflineOnlineIntegrationTest {
             )
         )
 
+        // Create SyncManager first with a temporary eventRepository
+        val tempEventRepository = DatabaseEventRepository(database)
         syncManager = SyncManager(
             database = database,
-            eventRepository = eventRepository,
+            eventRepository = tempEventRepository,
             userRepository = userRepository,
             networkDetector = networkDetector,
             httpClient = httpClient,
             authTokenProvider = { "test-token" }
         )
+
+        // Create eventRepository with syncManager for automatic change tracking
+        eventRepository = DatabaseEventRepository(database, syncManager)
     }
 
     @Test
@@ -82,7 +86,11 @@ class OfflineOnlineIntegrationTest {
         val addParticipantResult = eventRepository.addParticipant("offline-event-1", "user-2")
         assertTrue(addParticipantResult.isSuccess)
 
-        // Add vote offline
+        // Change status to POLLING before adding vote (voting requires POLLING status)
+        val updateStatusResult = eventRepository.updateEventStatus("offline-event-1", com.guyghost.wakeve.models.EventStatus.POLLING, null)
+        assertTrue(updateStatusResult.isSuccess)
+
+        // Add vote offline (now that event is in POLLING status)
         val addVoteResult = eventRepository.addVote("offline-event-1", "user-2", "slot-1", com.guyghost.wakeve.models.Vote.YES)
         assertTrue(addVoteResult.isSuccess)
 
@@ -103,7 +111,7 @@ class OfflineOnlineIntegrationTest {
         networkDetector.setNetworkAvailable(true)
 
         // Update HTTP client to expect the changes
-        httpClient.response = httpClient.response.copy(appliedChanges = 3) // create + add participant + vote
+        httpClient.response = httpClient.response.copy(appliedChanges = 4) // create + add participant + status change + vote
 
         // Trigger sync
         val syncResult = syncManager.triggerSync()
@@ -111,7 +119,7 @@ class OfflineOnlineIntegrationTest {
 
         val syncResponse = syncResult.getOrThrow()
         assertTrue(syncResponse.success)
-        assertEquals(3, syncResponse.appliedChanges)
+        assertEquals(4, syncResponse.appliedChanges)
 
         // Verify no more pending changes
         assertFalse(syncManager.hasPendingChanges())
@@ -180,31 +188,9 @@ class OfflineOnlineIntegrationTest {
 
     @Test
     fun testDataPersistenceAcrossAppRestarts() = runBlocking {
-        // Simulate app restart by creating new instances
-        DatabaseProvider.resetDatabase()
-        val freshDatabase = DatabaseProvider.getDatabase(TestDatabaseFactory())
-        val freshEventRepository = DatabaseEventRepository(freshDatabase)
-        val freshUserRepository = UserRepository(freshDatabase)
-        val freshNetworkDetector = TestNetworkStatusDetector().apply { setNetworkAvailable(true) }
-        val freshHttpClient = TestSyncHttpClient(
-            SyncResponse(
-                success = true,
-                appliedChanges = 1,
-                conflicts = emptyList(),
-                serverTimestamp = "2025-11-19T12:00:00Z",
-                message = "Sync successful"
-            )
-        )
-
-        val freshSyncManager = SyncManager(
-            database = freshDatabase,
-            eventRepository = freshEventRepository,
-            userRepository = freshUserRepository,
-            networkDetector = freshNetworkDetector,
-            httpClient = freshHttpClient,
-            authTokenProvider = { "test-token" }
-        )
-
+        // This test verifies that data persists when we create new repository instances
+        // pointing to the same database (simulating app restart without killing the DB)
+        
         // Create event with original instance
         val now = "2025-11-20T10:00:00Z"
         val event = com.guyghost.wakeve.models.Event(
@@ -225,16 +211,44 @@ class OfflineOnlineIntegrationTest {
         val createResult = eventRepository.createEvent(event)
         assertTrue(createResult.isSuccess)
 
+        // Ensure network is available for sync
+        networkDetector.setNetworkAvailable(true)
+        httpClient.response = httpClient.response.copy(appliedChanges = 1)
+
         // Sync with original instance
         val syncResult = syncManager.triggerSync()
         assertTrue(syncResult.isSuccess)
 
-        // Verify data is accessible with fresh instance (simulating app restart)
+        // Simulate "app restart" by creating NEW repository instances pointing to the SAME database
+        // This tests that data persists in the database and is accessible from new instances
+        val freshEventRepository = DatabaseEventRepository(database)
+        val freshUserRepository = UserRepository(database)
+        val freshNetworkDetector = TestNetworkStatusDetector().apply { setNetworkAvailable(true) }
+        val freshHttpClient = TestSyncHttpClient(
+            SyncResponse(
+                success = true,
+                appliedChanges = 0,
+                conflicts = emptyList(),
+                serverTimestamp = "2025-11-19T12:00:00Z",
+                message = "No changes to sync"
+            )
+        )
+
+        val freshSyncManager = SyncManager(
+            database = database, // Same database
+            eventRepository = freshEventRepository,
+            userRepository = freshUserRepository,
+            networkDetector = freshNetworkDetector,
+            httpClient = freshHttpClient,
+            authTokenProvider = { "test-token" }
+        )
+
+        // Verify data is accessible with fresh repository instances
         val retrievedEvent = freshEventRepository.getEvent("persistence-event-1")
         assertNotNull(retrievedEvent)
         assertEquals("Persistence Test Event", retrievedEvent.title)
 
-        // Fresh sync manager should not have pending changes (already synced)
+        // Fresh sync manager should not have pending changes (already synced via original instance)
         assertFalse(freshSyncManager.hasPendingChanges())
     }
 }

@@ -47,10 +47,13 @@ kotlin {
             implementation(projects.shared)
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
             implementation(libs.kotlinx.datetime)
+            // Koin for dependency injection (common)
+            implementation(libs.koin.core)
         }
         androidMain.dependencies {
             // Koin for dependency injection (Android-specific)
             implementation(libs.koin.core)
+            implementation(libs.koin.android)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

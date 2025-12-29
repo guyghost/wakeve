@@ -316,8 +316,19 @@ class SyncManager(
         }
     }
 
-    private fun updateLocalSyncStatus(response: SyncResponse) {
-        // TODO: Update sync status for applied changes
+    private suspend fun updateLocalSyncStatus(response: SyncResponse) {
+        // Mark all pending changes as synced if the sync was successful
+        if (response.success) {
+            val pendingChanges = userRepository.getPendingSyncChanges()
+            pendingChanges.forEach { change ->
+                userRepository.updateSyncStatus(
+                    syncId = change.id,
+                    synced = true,
+                    retryCount = 0,
+                    error = null
+                )
+            }
+        }
     }
 
     /**

@@ -76,6 +76,7 @@ enum class ScenarioVoteType {
 /**
  * Aggregated voting results for a scenario.
  */
+@Serializable
 data class ScenarioVotingResult(
     val scenarioId: String,
     val preferCount: Int,
@@ -97,6 +98,7 @@ data class ScenarioVotingResult(
 /**
  * Scenario with its associated votes.
  */
+@Serializable
 data class ScenarioWithVotes(
     val scenario: Scenario,
     val votes: List<ScenarioVote>,
