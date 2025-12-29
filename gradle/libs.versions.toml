@@ -23,6 +23,7 @@ kotlin = "2.2.20"
 kotlinx-coroutines = "1.9.0"
 kotlinx-datetime = "0.6.1"
 kotlinx-serialization = "1.7.3"
+koin = "3.5.0"
 ktor = "3.3.1"
 logback = "1.5.20"
 sqldelight = "2.0.2"
@@ -68,6 +69,7 @@ java-jwt = { module = "com.auth0:java-jwt", version.ref = "jwt" }
 ktor-serverRateLimit = { module = "io.ktor:ktor-server-rate-limit-jvm", version.ref = "ktor" }
 micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

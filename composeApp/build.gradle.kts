@@ -48,6 +48,10 @@ kotlin {
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
             implementation(libs.kotlinx.datetime)
         }
+        androidMain.dependencies {
+            // Koin for dependency injection (Android-specific)
+            implementation(libs.koin.core)
+        }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }

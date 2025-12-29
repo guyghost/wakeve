@@ -17,20 +17,69 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.presentation.state.EventManagementContract
+import com.guyghost.wakeve.viewmodel.EventManagementViewModel
 import kotlinx.datetime.*
 
+/**
+ * Home screen displaying a list of user's events.
+ *
+ * This screen uses the EventManagementViewModel with StateFlow to manage the event list state.
+ * It automatically loads events when the screen appears and handles navigation via side effects.
+ *
+ * ## Architecture
+ *
+ * - State: Observed via `state.collectAsState()` from the ViewModel
+ * - Intents: Dispatched via `viewModel.dispatch(intent)` for user actions
+ * - Side Effects: Collected in LaunchedEffect for navigation and toasts
+ *
+ * ## Features
+ *
+ * - Tab-based filtering (All, Upcoming, Past)
+ * - Event list with status indicators
+ * - Empty state with CTA
+ * - User menu for logout
+ * - FAB for creating new events
+ *
+ * @param viewModel The EventManagementViewModel providing state and intent handling
+ * @param onNavigateTo Callback for navigation to other screens
+ * @param onShowToast Callback for showing toast messages
+ * @param modifier Modifier for customizing the layout
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    events: List<Event>,
-    userId: String,
-    onCreateEvent: () -> Unit,
-    onEventClick: (Event) -> Unit,
-    onSignOut: () -> Unit,
+    viewModel: EventManagementViewModel,
+    onNavigateTo: (String) -> Unit = {},
+    onShowToast: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    // State from ViewModel
+    val state by viewModel.state.collectAsState()
     var showMenu by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(HomeTab.All) }
+
+    // Load events when screen appears
+    LaunchedEffect(Unit) {
+        viewModel.dispatch(EventManagementContract.Intent.LoadEvents)
+    }
+
+    // Handle side effects (navigation, toasts)
+    LaunchedEffect(Unit) {
+        viewModel.sideEffect.collect { effect ->
+            when (effect) {
+                is EventManagementContract.SideEffect.NavigateTo -> {
+                    onNavigateTo(effect.route)
+                }
+                is EventManagementContract.SideEffect.ShowToast -> {
+                    onShowToast(effect.message)
+                }
+                is EventManagementContract.SideEffect.NavigateBack -> {
+                    // HomeScreen doesn't typically navigate back, but keep for completeness
+                }
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -45,7 +94,7 @@ fun HomeScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = onCreateEvent,
+                onClick = { onNavigateTo("create_event") },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Créer un événement")
@@ -71,29 +120,53 @@ fun HomeScreen(
                 }
             }
 
-            // Events list
-            val filteredEvents = when (selectedTab) {
-                HomeTab.All -> events
-                HomeTab.Upcoming -> events.filter { it.status == EventStatus.CONFIRMED || it.status == EventStatus.ORGANIZING }
-                HomeTab.Past -> events.filter { it.status == EventStatus.FINALIZED }
-            }
-
-            if (filteredEvents.isEmpty()) {
-                EmptyState(
-                    tab = selectedTab,
-                    onCreateEvent = onCreateEvent
-                )
-            } else {
-                LazyColumn(
+            // Loading indicator
+            if (state.isLoading && state.events.isEmpty()) {
+                Box(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    contentAlignment = Alignment.Center
                 ) {
-                    items(filteredEvents) { event ->
-                        EventCard(
-                            event = event,
-                            onClick = { onEventClick(event) }
-                        )
+                    CircularProgressIndicator()
+                }
+            } else {
+                // Events list
+                val filteredEvents = when (selectedTab) {
+                    HomeTab.All -> state.events
+                    HomeTab.Upcoming -> state.events.filter { it.status == EventStatus.CONFIRMED || it.status == EventStatus.ORGANIZING }
+                    HomeTab.Past -> state.events.filter { it.status == EventStatus.FINALIZED }
+                }
+
+                // Error handling
+                if (state.hasError && filteredEvents.isEmpty()) {
+                    ErrorState(
+                        error = state.error ?: "Une erreur s'est produite",
+                        onRetry = {
+                            viewModel.dispatch(EventManagementContract.Intent.LoadEvents)
+                            viewModel.clearError()
+                        },
+                        onDismiss = { viewModel.clearError() }
+                    )
+                } else if (filteredEvents.isEmpty()) {
+                    EmptyState(
+                        tab = selectedTab,
+                        onCreateEvent = { onNavigateTo("create_event") }
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(filteredEvents) { event ->
+                            EventCard(
+                                event = event,
+                                onClick = {
+                                    viewModel.dispatch(
+                                        EventManagementContract.Intent.SelectEvent(event.id)
+                                    )
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -103,7 +176,7 @@ fun HomeScreen(
     if (showMenu) {
         UserMenu(
             onDismiss = { showMenu = false },
-            onSignOut = onSignOut
+            onSignOut = { /* Sign out logic */ }
         )
     }
 }
@@ -175,6 +248,60 @@ fun StatusChip(
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
+    }
+}
+
+@Composable
+fun ErrorState(
+    error: String,
+    onRetry: () -> Unit,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Error,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.error
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Une erreur s'est produite",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = error,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(0.7f),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Fermer")
+            }
+            Button(
+                onClick = onRetry,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Réessayer")
+            }
+        }
     }
 }
 
