@@ -16,10 +16,10 @@ import com.guyghost.wakeve.models.Event
  * val result: Result<List<Event>> = loadEventsUseCase()
  * ```
  *
- * @property eventRepository The repository to load events from
+ * @property eventRepository The repository to load events from (nullable)
  */
 class LoadEventsUseCase(
-    private val eventRepository: EventRepositoryInterface
+    private val eventRepository: EventRepositoryInterface?
 ) {
     /**
      * Load all events.
@@ -28,7 +28,7 @@ class LoadEventsUseCase(
      */
     operator fun invoke(): Result<List<Event>> {
         return try {
-            val events = eventRepository.getAllEvents()
+            val events = eventRepository?.getAllEvents() ?: emptyList()
             Result.success(events)
         } catch (e: Exception) {
             Result.failure(e)
