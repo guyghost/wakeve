@@ -3,7 +3,7 @@ package com.guyghost.wakeve.di
 import com.guyghost.wakeve.DatabaseEventRepository
 import com.guyghost.wakeve.EventRepositoryInterface
 import com.guyghost.wakeve.database.WakevDb
-import com.guyghost.wakeve.presentation.ViewModelWrapper
+import com.guyghost.wakeve.presentation.ObservableStateMachine
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
 import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
@@ -90,12 +90,12 @@ object IosFactory {
      *
      * @param database The WakevDb instance (must be provided by iOS app)
      * @return An ObservableStateMachine wrapper for Event Management
-     */
-    fun createEventStateMachine(database: WakevDb): ViewModelWrapper<
-            EventManagementContract.State,
-            EventManagementContract.Intent,
-            EventManagementContract.SideEffect
-    > {
+      */
+     fun createEventStateMachine(database: WakevDb): ObservableStateMachine<
+             EventManagementContract.State,
+             EventManagementContract.Intent,
+             EventManagementContract.SideEffect
+     > {
         // Create scope with Main dispatcher for iOS
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
@@ -112,7 +112,7 @@ object IosFactory {
             scope = scope
         )
 
-        // Wrap for SwiftUI
-        return ViewModelWrapper(stateMachine)
+         // Wrap for SwiftUI
+         return ObservableStateMachine(stateMachine)
     }
 }
