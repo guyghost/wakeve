@@ -198,6 +198,10 @@ class DatabaseEventRepository(private val db: WakevDb, private val syncManager: 
             return Result.failure(IllegalArgumentException("Participant not in event"))
         }
 
+        // Get the actual participant record ID (not userId)
+        val participantRecord = participantQueries.selectByEventIdAndUserId(eventId, participantId).executeAsOneOrNull()
+            ?: return Result.failure(IllegalArgumentException("Participant record not found"))
+
         return try {
             val now = getCurrentUtcIsoString()
             val voteId = "vote_${slotId}_${participantId}"
@@ -205,7 +209,7 @@ class DatabaseEventRepository(private val db: WakevDb, private val syncManager: 
                 id = voteId,
                 eventId = eventId,
                 timeslotId = slotId,
-                participantId = participantId,
+                participantId = participantRecord.id,  // Use the actual participant record ID
                 vote = vote.name,
                 createdAt = now,
                 updatedAt = now
@@ -289,12 +293,14 @@ class DatabaseEventRepository(private val db: WakevDb, private val syncManager: 
                 )
             }
 
+            // Use unique timestamp by appending status to avoid conflicts
+            val uniqueTimestamp = "${now}_${status.name}"
             syncMetadataQueries.insertSyncMetadata(
-                id = "sync_status_${id}",
+                id = "sync_status_${id}_${status.name}",
                 entityType = "event",
                 entityId = id,
                 operation = "UPDATE",
-                timestamp = now,
+                timestamp = uniqueTimestamp,
                 synced = 0
             )
 
