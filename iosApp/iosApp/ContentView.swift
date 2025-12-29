@@ -144,7 +144,8 @@ struct AuthenticatedView: View {
     @State private var selectedTab: WakevTab = .home
     @State private var currentView: AppView = .eventList
     @State private var selectedEvent: Event?
-    @State private var repository = EventRepository()
+    // Use persistent database-backed repository instead of in-memory mock
+    private let repository: EventRepositoryInterface = RepositoryProvider.shared.repository
     @State private var showEventCreationSheet = false
     
     // New state variables for PRD features

@@ -680,37 +680,43 @@ struct EquipmentChecklistView: View {
          ScrollView(.horizontal, showsIndicators: false) {
              HStack(spacing: 8) {
                  ForEach(ItemStatusFilter.allCases, id: \.self) { filter in
-                     Button {
-                         selectedStatusFilter = filter
-                     } label: {
-                         HStack(spacing: 4) {
-                             Image(systemName: filter.icon)
-                                 .font(.caption)
-                             Text(filter.label)
-                                 .font(.caption)
-                         }
-                         .padding(.horizontal, 12)
-                         .padding(.vertical, 6)
-                         .background(
-                             selectedStatusFilter == filter
-                                 ? Color.blue.opacity(0.15)
-                                 : .ultraThinMaterial
-                         )
-                         .foregroundColor(
-                             selectedStatusFilter == filter ? .blue : .primary
-                         )
-                         .continuousCornerRadius(12)
-                         .shadow(
-                             color: .black.opacity(selectedStatusFilter == filter ? 0.08 : 0.03),
-                             radius: selectedStatusFilter == filter ? 4 : 2,
-                             x: 0,
-                             y: 2
-                         )
-                     }
+                     filterChipButton(for: filter)
                  }
              }
          }
      }
+    
+    @ViewBuilder
+    private func filterChipButton(for filter: ItemStatusFilter) -> some View {
+        let isSelected = selectedStatusFilter == filter
+        let backgroundColor = isSelected ? Color.blue.opacity(0.15) : Color.clear
+        let foregroundColor = isSelected ? Color.blue : Color.primary
+        let shadowOpacity = isSelected ? 0.08 : 0.03
+        let shadowRadius: CGFloat = isSelected ? 4 : 2
+        
+        Button {
+            selectedStatusFilter = filter
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: filter.icon)
+                    .font(.caption)
+                Text(filter.label)
+                    .font(.caption)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(backgroundColor)
+            .background(.ultraThinMaterial)
+            .foregroundColor(foregroundColor)
+            .continuousCornerRadius(12)
+            .shadow(
+                color: .black.opacity(shadowOpacity),
+                radius: shadowRadius,
+                x: 0,
+                y: 2
+            )
+        }
+    }
     
      @ViewBuilder
      private func categorySection(category: EquipmentCategory, items: [EquipmentItemModel]) -> some View {

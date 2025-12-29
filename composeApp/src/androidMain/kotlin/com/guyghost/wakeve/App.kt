@@ -14,6 +14,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.content.FileProvider
 import com.guyghost.wakeve.DatabaseEventRepository
 import com.guyghost.wakeve.DatabaseProvider
 import com.guyghost.wakeve.SplashScreen
@@ -24,6 +26,8 @@ import com.guyghost.wakeve.auth.AndroidAuthenticationService
 import com.guyghost.wakeve.auth.AuthState
 import com.guyghost.wakeve.auth.AuthStateManager
 import com.guyghost.wakeve.auth.GoogleSignInHelper
+import com.guyghost.wakeve.calendar.CalendarService
+import com.guyghost.wakeve.calendar.PlatformCalendarServiceImpl
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Vote
@@ -34,7 +38,10 @@ import com.guyghost.wakeve.sync.KtorSyncHttpClient
 import com.guyghost.wakeve.sync.SyncManager
 import com.guyghost.wakeve.ui.event.ModernEventDetailView
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import java.io.File
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 
 private const val PREFS_NAME = "wakeve_prefs"
 private const val HAS_COMPLETED_ONBOARDING = "has_completed_onboarding"
@@ -184,6 +191,37 @@ fun App() {
             }
             AppRoute.EVENT_DETAIL -> {
                 selectedEvent?.let { event ->
+                    val database = remember { DatabaseProvider.getDatabase(com.guyghost.wakeve.AndroidDatabaseFactory(context)) }
+                    val calendarService = remember { 
+                        CalendarService(
+                            database = database,
+                            platformCalendarService = PlatformCalendarServiceImpl(context)
+                        )
+                    }
+
+                    // Permission launcher for calendar access
+                    val calendarPermissionLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.RequestMultiplePermissions()
+                    ) { permissions ->
+                        val granted = permissions[android.Manifest.permission.WRITE_CALENDAR] == true &&
+                                     permissions[android.Manifest.permission.READ_CALENDAR] == true
+                        if (granted) {
+                            scope.launch {
+                                try {
+                                    calendarService.addToNativeCalendar(
+                                        eventId = event.id,
+                                        participantId = userId ?: ""
+                                    )
+                                    Toast.makeText(context, "Événement ajouté au calendrier", Toast.LENGTH_SHORT).show()
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Erreur lors de l'ajout: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        } else {
+                            Toast.makeText(context, "Permission refusée", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+
                     ModernEventDetailView(
                         event = event,
                         userId = userId ?: "",
@@ -194,7 +232,47 @@ fun App() {
                         onNavigateToEquipmentChecklist = { currentRoute = AppRoute.EQUIPMENT_CHECKLIST },
                         onNavigateToActivityPlanning = { currentRoute = AppRoute.ACTIVITY_PLANNING },
                         onNavigateToComments = { currentRoute = AppRoute.COMMENTS },
-                        onNavigateToHome = { currentRoute = AppRoute.HOME }
+                        onNavigateToHome = { currentRoute = AppRoute.HOME },
+                        onAddToCalendar = {
+                            calendarPermissionLauncher.launch(
+                                arrayOf(
+                                    android.Manifest.permission.WRITE_CALENDAR,
+                                    android.Manifest.permission.READ_CALENDAR
+                                )
+                            )
+                        },
+                        onShareInvite = {
+                            scope.launch {
+                                try {
+                                    val icsDocument = calendarService.generateICSInvitation(
+                                        eventId = event.id,
+                                        invitees = emptyList() // TODO: Add real invitees
+                                    )
+                                    
+                                    // Save ICS to temporary file
+                                    val cacheDir = context.cacheDir
+                                    val file = File(cacheDir, icsDocument.filename)
+                                    file.writeText(icsDocument.content)
+                                    
+                                    // Share file
+                                    val uri = FileProvider.getUriForFile(
+                                        context,
+                                        "${context.packageName}.fileprovider",
+                                        file
+                                    )
+                                    
+                                    val intent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/calendar"
+                                        putExtra(Intent.EXTRA_STREAM, uri)
+                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    
+                                    context.startActivity(Intent.createChooser(intent, "Partager l'invitation"))
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Erreur lors du partage: ${e.message}", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
                     )
                 } ?: run {
                     // Fallback if no event is selected

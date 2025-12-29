@@ -8,6 +8,4 @@ class JsPlatform: Platform {
 
 actual fun getPlatform(): Platform = JsPlatform()
 actual fun getCurrentTimeMillis(): Long = Date.now().toLong()
-
-actual fun getCalendarService(): CalendarService = DefaultCalendarService()
 actual fun getNotificationService(): NotificationService = DefaultNotificationService()

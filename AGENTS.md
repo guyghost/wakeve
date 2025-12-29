@@ -309,20 +309,35 @@ Orchestrateur:
 - ← Agent Sondage : Créneau verrouillé
 - → Participants : Recommandations personnalisées
 
-#### Agent Calendrier (Phase 3 - Planifié)
+#### Agent Calendrier (Phase 6 - Implémenté)
 **Responsabilités:**
-- Génère invitations ICS avec détails complets
-- Intègre calendriers natifs (Android: CalendarContract, iOS: EventKit)
-- Gère fuseaux horaires et mises à jour d'événements
+- Génère invitations ICS conformes à RFC 5545 (TZ-aware DTSTART/DTEND, VALARM reminders)
+- Ajoute, met à jour et supprime des événements dans les calendriers natifs (Android CalendarContract, iOS EventKit)
+- Gère les fuseaux horaires, UID d'événements, et listes d'invités (attendees)
+- Propose des rappels via ICS VALARM and integrates with NotificationService for native reminders (planned enhancements)
 
-**Implémentation prévue:**
-- `shared/src/commonMain/kotlin/services/CalendarService.kt`
-- `shared/src/androidMain/kotlin/platform/AndroidCalendarService.kt`
-- `shared/src/iosMain/kotlin/platform/IosCalendarService.kt`
+**Implémentation (fichiers clés):**
+- `shared/src/commonMain/kotlin/com/guyghost/wakeve/calendar/CalendarService.kt` — logique centrale, génération ICS, méthodes add/update/delete
+- `shared/src/commonMain/kotlin/com/guyghost/wakeve/calendar/Models.kt` — CalendarEvent, ICSDocument, MeetingReminderTiming
+- `shared/src/androidMain/kotlin/com/guyghost/wakeve/calendar/PlatformCalendarService.android.kt` — Android actual implementation (CalendarContract, runtime permission checks)
+- `shared/src/iosMain/kotlin/com/guyghost/wakeve/calendar/PlatformCalendarService.ios.kt` — iOS actual implementation bridging to EventKit
+- `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationCard.kt` — Compose UI card exposing `onAddToCalendar` and `onShareInvite`
+- `iosApp/iosApp/Views/CalendarIntegrationCard.swift` — SwiftUI card calling the shared CalendarService via Kotlin/Native interop
+- `server/src/main/kotlin/com/guyghost/wakeve/routes/CalendarRoutes.kt` — server endpoints for ICS generation and download
+
+**Tests:**
+- Shared unit tests: `shared/src/commonTest/kotlin/com/guyghost/wakeve/calendar/CalendarServiceTest.kt` (ICS content, timezone, platform result handling)
+- Android instrumented tests: `composeApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationInstrumentedTest.kt` (runtime permission and add/update/delete flows)
+- iOS XCTest: `iosApp/iosApp/Tests/CalendarIntegrationTests.swift` (permission prompts and UI wiring)
 
 **Interactions:**
 - ← Agent Sondage : Créneau confirmé
-- → Participants validés : Invitations ICS
+- → Agent Notifications : reminders (via NotificationService integration in future)
+- → Participants validés : Invitations ICS / Native calendar entries
+
+**Status:**
+- ✅ Implemented on Android (Phase 4) and iOS (Phase 5)
+- Tests added for Phase 4.6 (Android) and Phase 5.6 (iOS)
 
 #### Agent Notifications (Phase 3 - Planifié)
 **Responsabilités:**

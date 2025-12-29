@@ -28,7 +28,7 @@ enum TitleFontStyle: String, CaseIterable, Hashable {
 /// Features: Gradient background, image picker, modern form design
 struct AppleInvitesEventCreationView: View {
     let userId: String
-    let repository: EventRepository
+    let repository: EventRepositoryInterface
     let onEventCreated: (String) -> Void
     let onBack: () -> Void
 

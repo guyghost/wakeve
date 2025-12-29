@@ -5,10 +5,13 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.guyghost.wakeve.auth.AppleOAuth2Service
 import com.guyghost.wakeve.auth.AuthenticationService
 import com.guyghost.wakeve.auth.GoogleOAuth2Service
+import com.guyghost.wakeve.calendar.CalendarService
+import com.guyghost.wakeve.calendar.PlatformCalendarServiceImpl
 import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.metrics.AuthMetricsCollector
 import com.guyghost.wakeve.routes.authRoutes
 import com.guyghost.wakeve.routes.budgetRoutes
+import com.guyghost.wakeve.routes.calendarRoutes
 import com.guyghost.wakeve.routes.commentRoutes
 import com.guyghost.wakeve.routes.eventRoutes
 import com.guyghost.wakeve.routes.mealRoutes
@@ -173,9 +176,21 @@ fun main() {
     val budgetRepository = com.guyghost.wakeve.budget.BudgetRepository(database)
     val mealRepository = com.guyghost.wakeve.meal.MealRepository(database)
     val commentRepository = com.guyghost.wakeve.comment.CommentRepository(database)
+    
+    // Initialize Calendar Service
+    val platformCalendarService = PlatformCalendarServiceImpl()
+    val calendarService = CalendarService(database, platformCalendarService)
 
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = {
-        module(database, eventRepository, scenarioRepository, budgetRepository, mealRepository, commentRepository)
+        module(
+            database, 
+            eventRepository, 
+            scenarioRepository, 
+            budgetRepository, 
+            mealRepository, 
+            commentRepository,
+            calendarService
+        )
     }).start(wait = true)
 }
 
@@ -185,7 +200,8 @@ fun Application.module(
     scenarioRepository: ScenarioRepository = ScenarioRepository(database),
     budgetRepository: com.guyghost.wakeve.budget.BudgetRepository = com.guyghost.wakeve.budget.BudgetRepository(database),
     mealRepository: com.guyghost.wakeve.meal.MealRepository = com.guyghost.wakeve.meal.MealRepository(database),
-    commentRepository: com.guyghost.wakeve.comment.CommentRepository = com.guyghost.wakeve.comment.CommentRepository(database)
+    commentRepository: com.guyghost.wakeve.comment.CommentRepository = com.guyghost.wakeve.comment.CommentRepository(database),
+    calendarService: CalendarService = CalendarService(database, PlatformCalendarServiceImpl())
 ) {
     // Initialize metrics
     val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -315,6 +331,7 @@ fun Application.module(
                 commentRoutes(commentRepository)
                 syncRoutes(syncService)
                 sessionRoutes(sessionManager)
+                calendarRoutes(calendarService)
             }
         }
 

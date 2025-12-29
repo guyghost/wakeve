@@ -17,7 +17,7 @@ struct ModernEventCreationView: View {
     // In a real app, this would hold the selected image data
     
     let userId: String
-    let repository: EventRepository
+    let repository: EventRepositoryInterface
     let onEventCreated: (String) -> Void
     let onBack: () -> Void
 

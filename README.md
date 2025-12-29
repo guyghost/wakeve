@@ -34,7 +34,7 @@ Wakeve is a modern, collaborative event planning application that solves the sch
 ⏳ **User Authentication** - OAuth2 with Google/Apple  
 ⏳ **Offline Sync** - Automatic change synchronization  
 ⏳ **Push Notifications** - Deadline reminders and updates  
-⏳ **Calendar Integration** - Native calendar app support  
+✅ **Calendar Integration** - Native calendar app support (Android & iOS), ICS export and share  
 
 ## 🚀 Quick Start
 

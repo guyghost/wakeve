@@ -3,7 +3,7 @@ import Shared
 
 struct PollResultsView: View {
     let event: Event
-    let repository: EventRepository
+    let repository: EventRepositoryInterface
     let userId: String
     let onDateConfirmed: (String) -> Void
     

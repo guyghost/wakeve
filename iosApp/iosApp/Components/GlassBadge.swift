@@ -34,15 +34,13 @@ struct GlassBadge: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background(
-            Group {
-                if style == .filled {
-                    color.opacity(0.15)
-                } else {
-                    .ultraThinMaterial
-                }
+        .background {
+            if style == .filled {
+                color.opacity(0.15)
+            } else {
+                Color.clear.background(.ultraThinMaterial)
             }
-        )
+        }
         .foregroundColor(style == .filled ? color : .primary)
         .continuousCornerRadius(8)
         .shadow(

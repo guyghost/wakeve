@@ -6,7 +6,7 @@ import Shared
 struct ModernEventDetailView: View {
     let event: Event
     let userId: String
-    let repository: EventRepository
+    let repository: EventRepositoryInterface
     let onBack: () -> Void
     let onVote: () -> Void
     let onManageParticipants: () -> Void
@@ -101,6 +101,18 @@ struct ModernEventDetailView: View {
                             onMealPlanning: onMealPlanning,
                             onEquipmentChecklist: onEquipmentChecklist,
                             onActivityPlanning: onActivityPlanning
+                        )
+                        
+                        // Calendar Integration Card
+                        CalendarIntegrationCard(
+                            event: event,
+                            userId: userId,
+                            onAddToCalendar: {
+                                // Handle add to calendar
+                            },
+                            onShareInvitation: {
+                                // Handle share invitation
+                            }
                         )
                         
                         // Hosted by Section
@@ -398,26 +410,9 @@ struct HostActionButton: View {
     let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
-            HStack {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(color)
-                    .frame(width: 28)
-                
-                Text(title)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundColor(.primary)
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.secondary)
-            }
-            .padding(16)
-        }
+        liquidBody
     }
+}
 
 // MARK: - Modified HostActionButton with LiquidGlassCard.thin
 extension HostActionButton {
@@ -444,7 +439,6 @@ extension HostActionButton {
             }
         }
     }
-}
 }
 
 // MARK: - PRD Feature Buttons Section

@@ -58,6 +58,8 @@ kotlin {
             implementation(libs.kotlin.test)
             // Add androidx.test:core directly for ApplicationProvider
             implementation("androidx.test:core:1.5.0")
+            // Compose UI testing
+            implementation("androidx.compose.ui:ui-test-junit4:1.6.0")
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)

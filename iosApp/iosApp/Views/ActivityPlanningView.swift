@@ -1,5 +1,12 @@
 import SwiftUI
 
+// MARK: - Mock Models (pour compilation - à remplacer par Shared module)
+
+struct ActivityParticipant: Identifiable {
+    let id: String
+    let name: String
+}
+
 // MARK: - Models
 
 struct ActivityModel: Identifiable {
@@ -26,7 +33,7 @@ struct ActivityModel: Identifiable {
 struct ActivityFormSheet: View {
     let eventId: String
     let activity: ActivityModel?
-    let participants: [ParticipantModel]
+    let participants: [ActivityParticipant]
     let onSave: (ActivityModel) -> Void
     
     @Environment(\.dismiss) private var dismiss
@@ -40,7 +47,7 @@ struct ActivityFormSheet: View {
     @State private var costPerPerson: String
     @State private var maxParticipants: String
     
-    init(eventId: String, activity: ActivityModel?, participants: [ParticipantModel], onSave: @escaping (ActivityModel) -> Void) {
+    init(eventId: String, activity: ActivityModel?, participants: [ActivityParticipant], onSave: @escaping (ActivityModel) -> Void) {
         self.eventId = eventId
         self.activity = activity
         self.participants = participants
@@ -103,8 +110,11 @@ struct ActivityFormSheet: View {
                 }
             }
             .navigationTitle(activity == nil ? "Ajouter" : "Modifier")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Annuler") { dismiss() }
                 }
@@ -115,6 +125,7 @@ struct ActivityFormSheet: View {
                     .disabled(!isValid)
                     .fontWeight(.semibold)
                 }
+                #endif
             }
         }
     }
@@ -148,13 +159,13 @@ struct ActivityFormSheet: View {
 
 struct ManageParticipantsSheet: View {
     let activity: ActivityModel
-    let allParticipants: [ParticipantModel]
+    let allParticipants: [ActivityParticipant]
     let onUpdate: (ActivityModel) -> Void
     
     @Environment(\.dismiss) private var dismiss
     @State private var registeredIds: Set<String> = []
     
-    init(activity: ActivityModel, allParticipants: [ParticipantModel], onUpdate: @escaping (ActivityModel) -> Void) {
+    init(activity: ActivityModel, allParticipants: [ActivityParticipant], onUpdate: @escaping (ActivityModel) -> Void) {
         self.activity = activity
         self.allParticipants = allParticipants
         self.onUpdate = onUpdate
@@ -183,7 +194,7 @@ struct ManageParticipantsSheet: View {
                                 .padding(.vertical, 4)
                                 .background(Color.red.opacity(0.2))
                                 .foregroundColor(.red)
-                                .cornerRadius(8)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         }
                     }
                     .padding()
@@ -210,8 +221,11 @@ struct ManageParticipantsSheet: View {
                 }
             }
             .navigationTitle("Participants")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
+            #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Fermer") {
                         var updatedActivity = activity
@@ -222,6 +236,7 @@ struct ManageParticipantsSheet: View {
                     }
                     .fontWeight(.semibold)
                 }
+                #endif
             }
         }
     }
@@ -239,7 +254,7 @@ struct ManageParticipantsSheet: View {
 
 /**
  * Activity Planning View (iOS)
- * 
+ *
  * Features:
  * - List activities grouped by date
  * - Create/Edit/Delete activities
@@ -255,7 +270,7 @@ struct ActivityPlanningView: View {
     @Environment(\.dismiss) private var dismiss
     
     @State private var activities: [ActivityModel] = []
-    @State private var participants: [ParticipantModel] = []
+    @State private var participants: [ActivityParticipant] = []
     @State private var isLoading = false
     
     // Filters
@@ -303,12 +318,8 @@ struct ActivityPlanningView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background gradient
-                LinearGradient(
-                    colors: [Color(uiColor: .systemBackground), Color(uiColor: .systemGray6)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+            // Background
+            Color.primary.opacity(0.05)
                 .ignoresSafeArea()
                 
                 if isLoading {
@@ -318,8 +329,11 @@ struct ActivityPlanningView: View {
                 }
             }
             .navigationTitle("Activités")
+            #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
+            #endif
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Fermer") { dismiss() }
                 }
@@ -338,6 +352,7 @@ struct ActivityPlanningView: View {
                         }
                     }
                 }
+                #endif
             }
             .sheet(isPresented: $showAddActivitySheet) {
                 ActivityFormSheet(
@@ -465,12 +480,12 @@ struct ActivityPlanningView: View {
                         .background(
                             selectedDate == nil
                                 ? Color.blue.opacity(0.2)
-                                : Color(uiColor: .systemGray5)
+                                : Color.gray.opacity(0.2)
                         )
                         .foregroundColor(
                             selectedDate == nil ? .blue : .primary
                         )
-                        .continuousCornerRadius(12)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 
                 ForEach(uniqueDates, id: \.self) { date in
@@ -484,13 +499,13 @@ struct ActivityPlanningView: View {
                             .background(
                                 Calendar.current.isDate(date, inSameDayAs: selectedDate ?? Date.distantPast)
                                     ? Color.blue.opacity(0.2)
-                                    : Color(uiColor: .systemGray5)
+                                    : Color.gray.opacity(0.15)
                             )
                             .foregroundColor(
                                 Calendar.current.isDate(date, inSameDayAs: selectedDate ?? Date.distantPast)
                                     ? .blue : .primary
                             )
-                            .continuousCornerRadius(12)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                 }
             }
@@ -513,7 +528,7 @@ struct ActivityPlanningView: View {
                         .padding(.vertical, 4)
                         .background(Color.blue.opacity(0.2))
                         .foregroundColor(.blue)
-                        .continuousCornerRadius(8)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 
                 ForEach(activities) { activity in
@@ -593,7 +608,7 @@ struct ActivityPlanningView: View {
                 .padding(.vertical, 4)
                 .background(Color.blue.opacity(0.2))
                 .foregroundColor(.blue)
-                .continuousCornerRadius(8)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             
             // Full indicator
@@ -608,7 +623,7 @@ struct ActivityPlanningView: View {
                 .padding(.vertical, 4)
                 .background(Color.red.opacity(0.2))
                 .foregroundColor(.red)
-                .continuousCornerRadius(8)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
             
             // Action Buttons
@@ -625,9 +640,9 @@ struct ActivityPlanningView: View {
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(Color(uiColor: .systemGray5))
+                    .background(Color.gray.opacity(0.15))
                     .foregroundColor(.primary)
-                    .continuousCornerRadius(8)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 
                 Button {
@@ -644,7 +659,7 @@ struct ActivityPlanningView: View {
                     .padding(.vertical, 4)
                     .background(Color.red.opacity(0.1))
                     .foregroundColor(.red)
-                    .continuousCornerRadius(8)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
             }
         }

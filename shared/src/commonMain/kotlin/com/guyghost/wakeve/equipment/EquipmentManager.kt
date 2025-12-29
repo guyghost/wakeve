@@ -75,7 +75,7 @@ object EquipmentManager {
      * @param eventType Type of event
      * @return List of generated equipment items
      */
-    fun createChecklist(eventId: String, eventType: String): List<EquipmentItem> {
+    fun autoGenerateChecklist(eventId: String, eventType: String, participantCount: Int): List<EquipmentItem> {
         val items = mutableListOf<EquipmentItem>()
         val now = Clock.System.now().toString()
         
@@ -90,13 +90,20 @@ object EquipmentManager {
         }
         
         for ((name, category) in templates) {
+            // Adjust quantity based on participants if needed (simple logic for now)
+            val quantity = if (category == EquipmentCategory.COOKING || category == EquipmentCategory.OTHER) {
+               1 // Shared items
+            } else {
+               1 // Could be participantCount for some items, but keeping simple for now
+            }
+
             items.add(
                 EquipmentItem(
                     id = generateUuid(),
                     eventId = eventId,
                     name = name,
                     category = category,
-                    quantity = 1,
+                    quantity = quantity,
                     assignedTo = null,
                     status = ItemStatus.NEEDED,
                     sharedCost = null,
@@ -109,6 +116,34 @@ object EquipmentManager {
         
         return items
     }
+
+    /**
+     * Calculate equipment statistics for a list of items
+     */
+    fun calculateEquipmentStats(items: List<EquipmentItem>): EquipmentChecklist {
+        if (items.isEmpty()) {
+            return EquipmentChecklist(
+                eventId = "",
+                items = emptyList(),
+                totalItems = 0,
+                assignedItems = 0,
+                confirmedItems = 0,
+                packedItems = 0,
+                totalCost = 0
+            )
+        }
+        
+        val eventId = items.first().eventId
+        return calculateChecklistStats(eventId, items)
+    }
+
+    /**
+     * Legacy method for backward compatibility
+     */
+    fun createChecklist(eventId: String, eventType: String): List<EquipmentItem> {
+        return autoGenerateChecklist(eventId, eventType, 1)
+    }
+
     
     /**
      * Assign equipment item to a participant
@@ -166,7 +201,7 @@ object EquipmentManager {
     /**
      * Validate status transition
      */
-    private fun isValidStatusTransition(from: ItemStatus, to: ItemStatus): Boolean {
+    fun isValidStatusTransition(from: ItemStatus, to: ItemStatus): Boolean {
         return when (from) {
             ItemStatus.NEEDED -> to in listOf(ItemStatus.ASSIGNED, ItemStatus.CONFIRMED, ItemStatus.PACKED, ItemStatus.CANCELLED)
             ItemStatus.ASSIGNED -> to in listOf(ItemStatus.CONFIRMED, ItemStatus.PACKED, ItemStatus.NEEDED, ItemStatus.CANCELLED)

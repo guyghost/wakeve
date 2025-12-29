@@ -3,7 +3,7 @@ import Shared
 
 struct ParticipantManagementView: View {
     let event: Event
-    let repository: EventRepository
+    let repository: EventRepositoryInterface
     let onParticipantsUpdated: () -> Void
     
     @State private var newParticipantEmail = ""

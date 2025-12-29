@@ -180,39 +180,6 @@ extension View {
     }
 }
 
-// MARK: - Liquid Glass Card (iOS 26+ Native)
-
-/// A card component using native Liquid Glass on iOS 26+
-/// Falls back to material-based styling on earlier versions
-struct LiquidGlassCard<Content: View>: View {
-    let content: Content
-    let cornerRadius: CGFloat
-    
-    init(
-        cornerRadius: CGFloat = 20,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.cornerRadius = cornerRadius
-        self.content = content()
-    }
-    
-    var body: some View {
-        if #available(iOS 26.0, *) {
-            content
-                .padding()
-                .glassEffect()
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        } else {
-            // Fallback for iOS < 26
-            content
-                .padding()
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
-        }
-    }
-}
-
 // MARK: - Liquid Glass Button (iOS 26+ Native)
 
 /// A button using native Liquid Glass on iOS 26+
