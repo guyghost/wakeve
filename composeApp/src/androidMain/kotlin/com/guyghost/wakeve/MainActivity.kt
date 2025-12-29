@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import com.guyghost.wakeve.di.initializeKoin
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -18,6 +19,14 @@ class MainActivity : ComponentActivity() {
             Log.d("MainActivity", "enableEdgeToEdge completed")
         } catch (e: Exception) {
             Log.e("MainActivity", "enableEdgeToEdge failed", e)
+        }
+
+        // Initialize Koin BEFORE setContent
+        try {
+            initializeKoin()
+            Log.d("MainActivity", "Koin initialized successfully")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Koin initialization failed", e)
         }
 
         setContent {
