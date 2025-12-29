@@ -35,7 +35,7 @@ import com.guyghost.wakeve.models.Event
  * val result: Result<Event> = createEventUseCase(event)
  * ```
  *
- * @property eventRepository The repository to save events to (nullable)
+ * @property eventRepository The repository to save the event to (nullable)
  */
 class CreateEventUseCase(
     private val eventRepository: EventRepositoryInterface?
@@ -44,7 +44,7 @@ class CreateEventUseCase(
      * Create and save a new event.
      *
      * @param event The event to create
-     * @return Result containing of created event, or failure if validation or save failed
+     * @return Result containing the created event, or failure if validation or save failed
      */
     suspend operator fun invoke(event: Event): Result<Event> {
         // Validation
@@ -57,10 +57,6 @@ class CreateEventUseCase(
         return eventRepository?.createEvent(event) ?: Result.failure(
             IllegalStateException("EventRepository is not available")
         )
-    }
-
-        // Create in repository
-        return eventRepository.createEvent(event)
     }
 
     /**
