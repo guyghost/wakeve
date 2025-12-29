@@ -37,11 +37,14 @@ import com.guyghost.wakeve.sync.AndroidNetworkStatusDetector
 import com.guyghost.wakeve.sync.KtorSyncHttpClient
 import com.guyghost.wakeve.sync.SyncManager
 import com.guyghost.wakeve.ui.event.ModernEventDetailView
+import com.guyghost.wakeve.viewmodel.EventManagementViewModel
+import com.guyghost.wakeve.presentation.state.EventManagementContract
 import kotlinx.coroutines.launch
 import java.io.File
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import org.koin.core.context.GlobalContext
 
 private const val PREFS_NAME = "wakeve_prefs"
 private const val HAS_COMPLETED_ONBOARDING = "has_completed_onboarding"
@@ -78,6 +81,84 @@ enum class AppRoute {
     EQUIPMENT_CHECKLIST,
     ACTIVITY_PLANNING,
     COMMENTS
+}
+
+/**
+ * Adapter function for HomeScreen using State Machine-based ViewModel.
+ *
+ * This function bridges the old HomeScreen signature with the new ViewModel-based
+ * architecture, handling the transition and mapping of callbacks.
+ *
+ * @param userId The current user ID
+ * @param onCreateEvent Callback when user wants to create an event
+ * @param onEventClick Callback when user clicks on an event
+ * @param onSignOut Callback when user signs out
+ */
+@Composable
+private fun HomeScreenAdapter(
+    userId: String,
+    onCreateEvent: () -> Unit,
+    onEventClick: (Event) -> Unit,
+    onSignOut: () -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // Get ViewModel from Koin
+    val viewModel = remember {
+        GlobalContext.get().get<EventManagementViewModel>()
+    }
+
+    // Load events when screen appears
+    LaunchedEffect(Unit) {
+        viewModel.dispatch(EventManagementContract.Intent.LoadEvents)
+    }
+
+    // Handle side effects from ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.sideEffect.collect { effect ->
+            when (effect) {
+                is EventManagementContract.SideEffect.NavigateTo -> {
+                    // Parse route and navigate accordingly
+                    val route = effect.route
+                    when {
+                        route.startsWith("create_event") -> {
+                            onCreateEvent()
+                        }
+                        route.startsWith("detail/") -> {
+                            val eventId = route.removePrefix("detail/")
+                            val event = viewModel.state.value.events.find { it.id == eventId }
+                            event?.let { onEventClick(it) }
+                        }
+                    }
+                }
+                is EventManagementContract.SideEffect.ShowToast -> {
+                    Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+                }
+                is EventManagementContract.SideEffect.NavigateBack -> {
+                    // Navigate back (handled by app's navigation state)
+                }
+            }
+        }
+    }
+
+    // Display HomeScreen with ViewModel
+    HomeScreen(
+        viewModel = viewModel,
+        onNavigateTo = { route ->
+            when {
+                route == "create_event" -> onCreateEvent()
+                route.startsWith("detail/") -> {
+                    val eventId = route.removePrefix("detail/")
+                    val event = viewModel.state.value.events.find { it.id == eventId }
+                    event?.let { onEventClick(it) }
+                }
+            }
+        },
+        onShowToast = { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    )
 }
 
 @Composable
@@ -163,16 +244,11 @@ fun App() {
                 )
             }
             AppRoute.HOME -> {
-                val database = remember { DatabaseProvider.getDatabase(com.guyghost.wakeve.AndroidDatabaseFactory(context)) }
-                val eventRepository = remember { com.guyghost.wakeve.DatabaseEventRepository(database, null) }
-                val events = remember { eventRepository.getAllEvents() }
-                
-                HomeScreen(
-                    events = events,
+                HomeScreenAdapter(
                     userId = userId ?: "",
                     onCreateEvent = { currentRoute = AppRoute.EVENT_CREATION },
-                    onEventClick = { 
-                        selectedEvent = it
+                    onEventClick = { event ->
+                        selectedEvent = event
                         currentRoute = AppRoute.EVENT_DETAIL
                     },
                     onSignOut = {
