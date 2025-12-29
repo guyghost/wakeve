@@ -2,12 +2,20 @@ package com.guyghost.wakeve.di
 
 import com.guyghost.wakeve.DatabaseEventRepository
 import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.ScenarioRepository
 import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.presentation.ObservableStateMachine
 import com.guyghost.wakeve.presentation.state.EventManagementContract
+import com.guyghost.wakeve.presentation.state.ScenarioManagementContract
 import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
+import com.guyghost.wakeve.presentation.statemachine.ScenarioManagementStateMachine
 import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
 import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
+import com.guyghost.wakeve.presentation.usecase.CreateScenarioUseCase
+import com.guyghost.wakeve.presentation.usecase.DeleteScenarioUseCase
+import com.guyghost.wakeve.presentation.usecase.LoadScenariosUseCase
+import com.guyghost.wakeve.presentation.usecase.UpdateScenarioUseCase
+import com.guyghost.wakeve.presentation.usecase.VoteScenarioUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -113,6 +121,56 @@ object IosFactory {
         )
 
          // Wrap for SwiftUI
-         return ObservableStateMachine(stateMachine)
+          return ObservableStateMachine(stateMachine)
+     }
+
+    /**
+     * Create an observable Scenario Management state machine.
+     *
+     * Flow:
+     * 1. Create a CoroutineScope with Main dispatcher
+     * 2. Create dependencies manually (ScenarioRepository, UseCases)
+     * 3. Create the state machine with the scope
+     * 4. Wrap it in ObservableStateMachine for SwiftUI
+     * 5. Return the wrapper
+     *
+     * The returned wrapper exposes:
+     * - `currentState`: The initial state
+     * - `onStateChange`: Callback called when state updates
+     * - `onSideEffect`: Callback called when side effects emit
+     * - `dispatch(intent:)`: Method to dispatch intents
+     * - `dispose()`: Method to clean up resources
+     *
+     * @param database The WakevDb instance (must be provided by iOS app)
+     * @return An ObservableStateMachine wrapper for Scenario Management
+     */
+    fun createScenarioStateMachine(database: WakevDb): ObservableStateMachine<
+        ScenarioManagementContract.State,
+        ScenarioManagementContract.Intent,
+        ScenarioManagementContract.SideEffect
+    > {
+        // Create scope with Main dispatcher for iOS
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+        // Create dependencies
+        val scenarioRepository = ScenarioRepository(database)
+        val loadScenariosUseCase = LoadScenariosUseCase(scenarioRepository)
+        val createScenarioUseCase = CreateScenarioUseCase(scenarioRepository)
+        val updateScenarioUseCase = UpdateScenarioUseCase(scenarioRepository)
+        val deleteScenarioUseCase = DeleteScenarioUseCase(scenarioRepository)
+        val voteScenarioUseCase = VoteScenarioUseCase(scenarioRepository)
+
+        // Create state machine
+        val stateMachine = ScenarioManagementStateMachine(
+            loadScenariosUseCase = loadScenariosUseCase,
+            createScenarioUseCase = createScenarioUseCase,
+            updateScenarioUseCase = updateScenarioUseCase,
+            deleteScenarioUseCase = deleteScenarioUseCase,
+            voteScenarioUseCase = voteScenarioUseCase,
+            scope = scope
+        )
+
+        // Wrap for SwiftUI
+        return ObservableStateMachine(stateMachine)
     }
-}
+ }
