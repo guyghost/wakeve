@@ -1,4 +1,3 @@
-package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.activity.ActivityRepository
 import com.guyghost.wakeve.models.*
@@ -6,7 +5,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.*
-import kotlinx.datetime.toLocalDate
+import java.time.LocalDate
 
 /**
  * Activity API Routes
@@ -47,7 +46,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     mapOf("error" to "Event ID required")
                 )
 
-                val schedule = repository.getActivitiesByDate(eventId)
+                val schedule = repository.getActivitiesByDateGrouped(eventId)
                 call.respond(HttpStatusCode.OK, schedule)
             } catch (e: Exception) {
                 call.respond(
@@ -70,8 +69,9 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     mapOf("error" to "Date required")
                 )
                 
-                val date = try {
-                    dateStr.toLocalDate()
+                // Validate date format
+                try {
+                    LocalDate.parse(dateStr)
                 } catch (e: Exception) {
                     return@get call.respond(
                         HttpStatusCode.BadRequest,
@@ -79,8 +79,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     )
                 }
 
-                val activities = repository.getActivitiesByEventId(eventId)
-                    .filter { it.activity.date == date }
+                val activities = repository.getActivitiesByEventAndDate(eventId, dateStr)
                 call.respond(HttpStatusCode.OK, activities)
             } catch (e: Exception) {
                 call.respond(
@@ -98,14 +97,21 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     mapOf("error" to "Event ID required")
                 )
 
-                val totalCost = repository.getTotalActivityCost(eventId)
+                val totalCost = repository.sumActivityCostByEvent(eventId)
+                val totalActivities = repository.countActivitiesByEvent(eventId)
+                
+                // For deeper stats we need to fetch activities
                 val activities = repository.getActivitiesByEventId(eventId)
+                val totalRegistrations = activities.sumOf { it.registeredParticipantIds.size }
                 
                 val stats = mapOf(
-                    "totalActivities" to activities.size,
+                    "totalActivities" to totalActivities,
                     "totalCost" to totalCost,
-                    "totalRegistrations" to activities.sumOf { it.registeredCount },
-                    "fullActivities" to activities.count { it.isFull }
+                    "totalRegistrations" to totalRegistrations,
+                    "fullActivities" to activities.count { 
+                         val max = it.maxParticipants
+                         max != null && it.registeredParticipantIds.size >= max
+                    }
                 )
                 
                 call.respond(HttpStatusCode.OK, stats)
@@ -138,6 +144,13 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     )
                 }
                 
+                if (activity.eventId != eventId) {
+                     return@get call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Activity not found in this event")
+                    )
+                }
+                
                 call.respond(HttpStatusCode.OK, activity)
             } catch (e: Exception) {
                 call.respond(
@@ -160,7 +173,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     mapOf("error" to "Activity ID required")
                 )
 
-                val participants = repository.getActivityParticipants(activityId)
+                val participants = repository.getParticipantsByActivity(activityId)
                 call.respond(HttpStatusCode.OK, participants)
             } catch (e: Exception) {
                 call.respond(
@@ -235,8 +248,8 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                 val request = call.receive<RegisterActivityRequest>()
                 
                 // Check if activity exists
-                val activityWithStats = repository.getActivityById(activityId)
-                if (activityWithStats == null) {
+                val activity = repository.getActivityById(activityId)
+                if (activity == null) {
                     return@post call.respond(
                         HttpStatusCode.NotFound,
                         mapOf("error" to "Activity not found")
@@ -244,7 +257,8 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                 }
                 
                 // Check if activity is full
-                if (activityWithStats.isFull) {
+                val maxParticipants = activity.maxParticipants
+                if (maxParticipants != null && activity.registeredParticipantIds.size >= maxParticipants) {
                     return@post call.respond(
                         HttpStatusCode.Conflict,
                         mapOf("error" to "Activity is full")
@@ -252,15 +266,22 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                 }
                 
                 // Check if already registered
-                val participants = repository.getActivityParticipants(activityId)
-                if (participants.any { it.participantId == request.participantId }) {
+                if (repository.isParticipantRegistered(activityId, request.participantId)) {
                     return@post call.respond(
                         HttpStatusCode.Conflict,
                         mapOf("error" to "Participant already registered")
                     )
                 }
+                
+                val registration = ActivityParticipant(
+                     id = java.util.UUID.randomUUID().toString(),
+                     activityId = activityId,
+                     participantId = request.participantId,
+                     registeredAt = java.time.Instant.now().toString(),
+                     notes = null
+                )
 
-                repository.registerForActivity(activityId, request.participantId)
+                repository.registerParticipant(registration)
                 call.respond(HttpStatusCode.Created, mapOf("success" to true))
             } catch (e: Exception) {
                 call.respond(
@@ -284,6 +305,11 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                 )
 
                 val request = call.receive<UpdateActivityRequest>()
+                
+                val existingActivity = repository.getActivityById(activityId)
+                if (existingActivity == null) {
+                    return@put call.respond(HttpStatusCode.NotFound, mapOf("error" to "Activity not found"))
+                }
                 
                 // Validate request
                 if (request.name != null && request.name.isBlank()) {
@@ -313,8 +339,22 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                         mapOf("error" to "Max participants must be greater than 0")
                     )
                 }
+                
+                // Apply updates to existing activity - preserving ID, eventID and registered participants
+                val updatedActivityData = existingActivity.copy(
+                    name = request.name ?: existingActivity.name,
+                    description = request.description ?: existingActivity.description,
+                    date = request.date ?: existingActivity.date,
+                    time = request.time ?: existingActivity.time,
+                    duration = request.durationMinutes ?: existingActivity.duration,
+                    location = request.location ?: existingActivity.location,
+                    maxParticipants = request.maxParticipants ?: existingActivity.maxParticipants,
+                    cost = request.costPerPerson ?: existingActivity.cost,
+                    organizerId = request.organizerId ?: existingActivity.organizerId,
+                    updatedAt = java.time.Instant.now().toString()
+                )
 
-                val updatedActivity = repository.updateActivity(request.applyTo(activityId, eventId))
+                val updatedActivity = repository.updateActivity(updatedActivityData)
                 call.respond(HttpStatusCode.OK, updatedActivity)
             } catch (e: Exception) {
                 call.respond(
@@ -365,7 +405,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                     mapOf("error" to "Participant ID required")
                 )
 
-                repository.unregisterFromActivity(activityId, participantId)
+                repository.unregisterParticipant(activityId, participantId)
                 call.respond(HttpStatusCode.NoContent)
             } catch (e: Exception) {
                 call.respond(

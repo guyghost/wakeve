@@ -166,7 +166,11 @@ fun io.ktor.server.routing.Route.commentRoutes(repository: CommentRepository) {
                 }
 
                 val updatedComment = repository.updateComment(commentId, request.content)
-                call.respond(HttpStatusCode.OK, updatedComment)
+                if (updatedComment != null) {
+                    call.respond(HttpStatusCode.OK, updatedComment)
+                } else {
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Comment not found"))
+                }
             } catch (e: IllegalArgumentException) {
                 call.respond(
                     HttpStatusCode.BadRequest,

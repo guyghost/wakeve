@@ -31,7 +31,7 @@ struct EventCreationSheet: View {
     
     // Dependencies
     let userId: String
-    let repository: EventRepository
+    let repository: EventRepositoryInterface
     let onEventCreated: (String) -> Void
     
     // MARK: - Colors
@@ -439,11 +439,13 @@ struct DateTimeButtons: View {
                     .font(.body)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
-                    .background(
-                        showDatePicker 
-                            ? Color.blue.opacity(0.15) 
-                            : .ultraThinMaterial
-                    )
+                    .background {
+                        if showDatePicker {
+                            Color.blue.opacity(0.15)
+                        } else {
+                            Color.clear.background(.ultraThinMaterial)
+                        }
+                    }
                     .overlay(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .stroke(Color.blue.opacity(showDatePicker ? 0.5 : 0), lineWidth: 1)
@@ -464,11 +466,13 @@ struct DateTimeButtons: View {
                         .font(.body)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
-                        .background(
-                            showDatePicker 
-                                ? Color.blue.opacity(0.15) 
-                                : .ultraThinMaterial
-                        )
+                        .background {
+                            if showDatePicker {
+                                Color.blue.opacity(0.15)
+                            } else {
+                                Color.clear.background(.ultraThinMaterial)
+                            }
+                        }
                         .overlay(
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
                                 .stroke(Color.blue.opacity(showDatePicker ? 0.5 : 0), lineWidth: 1)
@@ -591,7 +595,7 @@ struct EventCreationSheet_Previews: PreviewProvider {
             .sheet(isPresented: .constant(true)) {
                 EventCreationSheet(
                     userId: "user123",
-                    repository: EventRepository(),
+                    repository: RepositoryProvider.shared.repository,
                     onEventCreated: { _ in }
                 )
             }
@@ -605,7 +609,7 @@ struct EventCreationSheet_Previews: PreviewProvider {
             .sheet(isPresented: .constant(true)) {
                 EventCreationSheet(
                     userId: "user123",
-                    repository: EventRepository(),
+                    repository: RepositoryProvider.shared.repository,
                     onEventCreated: { _ in }
                 )
             }

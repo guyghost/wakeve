@@ -5,7 +5,7 @@ import Shared
 /// Features: Clean list design, easy participant management, clear status indicators
 struct ModernParticipantManagementView: View {
     let event: Event
-    let repository: EventRepository
+    let repository: EventRepositoryInterface
     let onParticipantsUpdated: () -> Void
     let onBack: () -> Void
 

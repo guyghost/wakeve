@@ -391,8 +391,8 @@ calendarService.sendMeetingReminders(
 - Graceful degradation if not granted
 
 **iOS**:
-- EventKit doesn't require permissions for user calendars
-- Privacy prompt for other calendars
+- EventKit prompts the user for calendar access when needed
+- Use EKEventStore.requestAccess when creating events programmatically
 
 ### Error Handling
 
@@ -404,6 +404,40 @@ sealed class AddEventResult {
     data class Failure(val error: CalendarServiceException) : AddEventResult()
 }
 ```
+
+### Files Created / Implementation References
+
+The calendar integration has been implemented across the shared module and platform drivers. Key files created or updated as part of Phase 4 (Android) and Phase 5 (iOS) are:
+
+- shared (Kotlin Multiplatform):
+  - `shared/src/commonMain/kotlin/com/guyghost/wakeve/calendar/CalendarService.kt` — core CalendarService with ICS generation and native calendar actions
+  - `shared/src/commonMain/kotlin/com/guyghost/wakeve/calendar/Models.kt` — CalendarEvent, ICSDocument and reminder models
+  - `shared/src/commonTest/kotlin/com/guyghost/wakeve/calendar/CalendarServiceTest.kt` — unit tests for ICS generation, timezone handling and platform results
+
+- Android (Phase 4):
+  - `shared/src/androidMain/kotlin/com/guyghost/wakeve/calendar/PlatformCalendarService.android.kt` — Android implementation using CalendarContract with runtime permission checks
+  - `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationCard.kt` — UI card placed in Event Details exposing `onAddToCalendar` and `onShareInvite` callbacks
+  - `composeApp/src/androidMain/AndroidManifest.xml` — added `android.permission.WRITE_CALENDAR` entry and notes for runtime request
+  - `composeApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationInstrumentedTest.kt` — instrumented tests for the Android flow
+
+- iOS (Phase 5):
+  - `shared/src/iosMain/kotlin/com/guyghost/wakeve/calendar/PlatformCalendarService.ios.kt` — iOS implementation bridging to EventKit
+  - `iosApp/iosApp/Views/CalendarIntegrationCard.swift` — SwiftUI card in Event Details that calls shared CalendarService via Kotlin/Native interop
+  - `iosApp/iosApp/Services/CalendarPermissionsHelper.swift` — helper for requesting EventKit access when needed
+  - `iosApp/iosApp/Tests/CalendarIntegrationTests.swift` — XCTest cases for iOS integration wiring
+
+- Server/API:
+  - `server/src/main/kotlin/com/guyghost/wakeve/routes/CalendarRoutes.kt` — endpoints to generate and download ICS files
+
+### Status
+
+- ✅ Implemented on Android (Phase 4) and iOS (Phase 5)
+- Tests added: Phase 4.6 (Android tests) and Phase 5.6 (iOS tests)
+
+### Notes
+
+- The integration uses expect/actual pattern for platform drivers and keeps the calendar logic in the shared module so business rules (ICS content, timezone handling, attendee list) remain single-source-of-truth.
+- Reminders scheduling is implemented via ICS VALARM entries for downloads and via NotificationService integration for native reminders (server-side or push-based reminders are planned enhancements).
 
 ## Testing
 

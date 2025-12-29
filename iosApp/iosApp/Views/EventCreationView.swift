@@ -11,7 +11,7 @@ struct EventCreationView: View {
     @State private var showError = false
 
     let userId: String
-    let repository: EventRepository
+    let repository: EventRepositoryInterface
     let onEventCreated: (String) -> Void
     
     var body: some View {

@@ -213,10 +213,10 @@ extension AppleSignInHelper: ASAuthorizationControllerDelegate {
                 signInError = .invalidCredentials
             case .notHandled:
                 signInError = .failed("Request not handled")
-            case .unknown:
-                signInError = .unknown
             case .notInteractive:
                 signInError = .failed("Not interactive")
+            case .unknown:
+                signInError = .unknown
             @unknown default:
                 signInError = .unknown
             }

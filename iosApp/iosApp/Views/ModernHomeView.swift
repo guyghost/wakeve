@@ -5,7 +5,7 @@ import Shared
 /// Features: Card-based event display, beautiful imagery, clean typography
 struct ModernHomeView: View {
     let userId: String
-    let repository: EventRepository
+    let repository: EventRepositoryInterface
     let onEventSelected: (Event) -> Void
     let onCreateEvent: () -> Void
 
@@ -210,94 +210,94 @@ struct ModernEventCard: View {
 
     var body: some View {
         Button(action: onTap) {
-            ZStack {
-                // Background Image or Gradient
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(
-                        LinearGradient(
-                            colors: gradientColors,
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+            LiquidGlassCard.thick(cornerRadius: 20, padding: 0) {
+                ZStack {
+                    // Background Image or Gradient
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(
+                            LinearGradient(
+                                colors: gradientColors,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
-                    .overlay(
-                        // Pattern overlay
-                        GeometryReader { geometry in
-                            Image(systemName: "calendar")
-                                .font(.system(size: 200))
-                                .foregroundColor(.white.opacity(0.05))
-                                .offset(x: geometry.size.width * 0.6, y: -50)
-                        }
-                    )
+                        .overlay(
+                            // Pattern overlay
+                            GeometryReader { geometry in
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 200))
+                                    .foregroundColor(.white.opacity(0.05))
+                                    .offset(x: geometry.size.width * 0.6, y: -50)
+                            }
+                        )
 
-                // Content Overlay
-                VStack {
-                    // Top Bar with status badge
-                    HStack {
-                        EventStatusBadge(status: event.status)
+                    // Content Overlay
+                    VStack {
+                        // Top Bar with status badge
+                        HStack {
+                            EventStatusBadge(status: event.status)
+
+                            Spacer()
+                        }
+                        .padding(20)
 
                         Spacer()
-                    }
-                    .padding(20)
 
-                    Spacer()
+                        // Bottom Content
+                        VStack(alignment: .leading, spacing: 12) {
+                            // Participant Avatars
+                            if !event.participants.isEmpty {
+                                HStack(spacing: -8) {
+                                    ForEach(event.participants.prefix(5), id: \.self) { participant in
+                                        ParticipantAvatar(participantId: participant)
+                                    }
 
-                    // Bottom Content
-                    VStack(alignment: .leading, spacing: 12) {
-                        // Participant Avatars
-                        if !event.participants.isEmpty {
-                            HStack(spacing: -8) {
-                                ForEach(event.participants.prefix(5), id: \.self) { participant in
-                                    ParticipantAvatar(participantId: participant)
+                                    if event.participants.count > 5 {
+                                        AdditionalParticipantsCount(count: event.participants.count - 5)
+                                    }
                                 }
-
-                                if event.participants.count > 5 {
-                                    AdditionalParticipantsCount(count: event.participants.count - 5)
-                                }
-                            }
-                            .padding(.bottom, 4)
-                        }
-
-                        // Event Info
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(event.title)
-                                .font(.title.weight(.bold))
-                                .foregroundColor(.white)
-                                .lineLimit(2)
-
-                            if let finalDate = event.finalDate {
-                                Text(formatEventDate(finalDate))
-                                    .font(.subheadline.weight(.medium))
-                                    .foregroundColor(.white.opacity(0.9))
-                            } else {
-                                Text(formatDeadline(event.deadline))
-                                    .font(.subheadline.weight(.medium))
-                                    .foregroundColor(.white.opacity(0.9))
+                                .padding(.bottom, 4)
                             }
 
-                            if !event.description.isEmpty {
-                                Text(event.description)
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.8))
+                            // Event Info
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(event.title)
+                                    .font(.title.weight(.bold))
+                                    .foregroundColor(.white)
                                     .lineLimit(2)
-                                    .padding(.top, 2)
+
+                                if let finalDate = event.finalDate {
+                                    Text(formatEventDate(finalDate))
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundColor(.white.opacity(0.9))
+                                } else {
+                                    Text(formatDeadline(event.deadline))
+                                        .font(.subheadline.weight(.medium))
+                                        .foregroundColor(.white.opacity(0.9))
+                                }
+
+                                if !event.description.isEmpty {
+                                    Text(event.description)
+                                        .font(.caption)
+                                        .foregroundColor(.white.opacity(0.8))
+                                        .lineLimit(2)
+                                        .padding(.top, 2)
+                                }
                             }
                         }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(20)
-                    .background(
-                        LinearGradient(
-                            colors: [Color.black.opacity(0), Color.black.opacity(0.7)],
-                            startPoint: .top,
-                            endPoint: .bottom
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(20)
+                        .background(
+                            LinearGradient(
+                                colors: [Color.black.opacity(0), Color.black.opacity(0.7)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
                         )
-                    )
+                    }
                 }
+                .frame(height: 380)
             }
-            .frame(height: 380)
-            .continuousCornerRadius(20)
-            .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 6)
         }
         .buttonStyle(ScaleButtonStyle())
     }

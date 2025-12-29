@@ -715,6 +715,39 @@ class CommentRepository(
     }
     
     /**
+     * Update a comment.
+     */
+    fun updateComment(commentId: String, content: String): Comment? {
+        val now = getCurrentUtcIsoString()
+        commentQueries.updateComment(content, now, commentId)
+        
+        val updatedComment = getCommentById(commentId)
+        if (updatedComment != null) {
+            invalidateEventCache(updatedComment.eventId)
+            invalidateCommentCache(commentId)
+        }
+        
+        return updatedComment
+    }
+
+    /**
+     * Delete a comment.
+     */
+    fun deleteComment(commentId: String) {
+        val comment = getCommentById(commentId)
+        if (comment != null) {
+            // Update parent reply count if this was a reply
+            if (comment.parentCommentId != null) {
+                commentQueries.decrementReplyCount(comment.parentCommentId)
+            }
+            
+            commentQueries.deleteComment(commentId)
+            invalidateEventCache(comment.eventId)
+            invalidateCommentCache(commentId)
+        }
+    }
+
+    /**
      * Check if a comment exists.
      */
     fun commentExists(commentId: String): Boolean {

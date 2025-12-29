@@ -21,7 +21,7 @@ import io.ktor.server.routing.*
  */
 fun io.ktor.server.routing.Route.equipmentRoutes(
     repository: EquipmentRepository,
-    manager: EquipmentManager = EquipmentManager()
+    manager: EquipmentManager = EquipmentManager
 ) {
     route("/events/{eventId}/equipment") {
         
@@ -33,7 +33,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     mapOf("error" to "Event ID required")
                 )
 
-                val items = repository.getEquipmentByEventId(eventId)
+                val items = repository.getEquipmentItemsByEventId(eventId)
                 call.respond(HttpStatusCode.OK, items)
             } catch (e: Exception) {
                 call.respond(
@@ -65,7 +65,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     )
                 }
 
-                val items = repository.getEquipmentByCategory(eventId, category)
+                val items = repository.getEquipmentItemsByCategory(eventId, category)
                 call.respond(HttpStatusCode.OK, items)
             } catch (e: Exception) {
                 call.respond(
@@ -97,7 +97,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     )
                 }
 
-                val items = repository.getEquipmentByStatus(eventId, status)
+                val items = repository.getEquipmentItemsByStatus(eventId, status)
                 call.respond(HttpStatusCode.OK, items)
             } catch (e: Exception) {
                 call.respond(
@@ -120,7 +120,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     mapOf("error" to "Participant ID required")
                 )
 
-                val items = repository.getEquipmentByAssignedTo(eventId, participantId)
+                val items = repository.getEquipmentItemsByAssignee(eventId, participantId)
                 call.respond(HttpStatusCode.OK, items)
             } catch (e: Exception) {
                 call.respond(
@@ -138,9 +138,10 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     mapOf("error" to "Event ID required")
                 )
 
-                val items = repository.getEquipmentByEventId(eventId)
+                val items = repository.getEquipmentItemsByEventId(eventId)
                 val stats = manager.calculateEquipmentStats(items)
                 call.respond(HttpStatusCode.OK, stats)
+
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -276,7 +277,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
 
                 val request = call.receive<AssignEquipmentItemRequest>()
                 
-                val item = repository.getEquipmentById(itemId)
+                val item = repository.getEquipmentItemById(itemId)
                 if (item == null) {
                     return@put call.respond(
                         HttpStatusCode.NotFound,
@@ -314,7 +315,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
 
                 val request = call.receive<UpdateEquipmentStatusRequest>()
                 
-                val item = repository.getEquipmentById(itemId)
+                val item = repository.getEquipmentItemById(itemId)
                 if (item == null) {
                     return@put call.respond(
                         HttpStatusCode.NotFound,

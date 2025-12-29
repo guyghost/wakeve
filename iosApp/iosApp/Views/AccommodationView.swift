@@ -190,82 +190,7 @@ struct AccommodationCard: View {
     let onDelete: () -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(accommodation.name)
-                        .font(.headline)
-                        .fontWeight(.bold)
-                    
-                    HStack(spacing: 6) {
-                        Image(systemName: accommodation.typeIcon)
-                            .font(.caption)
-                        Text(accommodation.typeLabel)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                Spacer()
-                
-                BookingStatusBadge(status: accommodation.bookingStatus)
-            }
-            
-            Divider()
-            
-            // Details
-            VStack(spacing: 12) {
-                InfoRow(
-                    label: "Adresse",
-                    value: accommodation.address,
-                    icon: "location.fill"
-                )
-                
-                InfoRow(
-                    label: "Période",
-                    value: "\(accommodation.checkInDate) → \(accommodation.checkOutDate) (\(accommodation.totalNights) nuits)",
-                    icon: "calendar"
-                )
-                
-                InfoRow(
-                    label: "Capacité",
-                    value: "Capacité: \(accommodation.capacity) personnes",
-                    icon: "person.2.fill"
-                )
-                
-                InfoRow(
-                    label: "Prix",
-                    value: formatPrice(accommodation.totalCost) + " (\(formatPrice(accommodation.pricePerNight))/nuit)",
-                    icon: "eurosign.circle.fill"
-                )
-            }
-            
-            if let notes = accommodation.notes, !notes.isEmpty {
-                Text(notes)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .padding(.top, 4)
-            }
-            
-            // Actions
-            HStack {
-                Spacer()
-                
-                Button(action: onEdit) {
-                    Label("Modifier", systemImage: "pencil")
-                        .font(.subheadline)
-                }
-                .buttonStyle(.bordered)
-                
-                Button(action: onDelete) {
-                    Label("Supprimer", systemImage: "trash")
-                        .font(.subheadline)
-                }
-                .buttonStyle(.bordered)
-                .tint(.red)
-            }
-        }
+        liquidBody
     }
 }
 
@@ -351,7 +276,6 @@ extension AccommodationCard {
             }
         }
     }
-}
 }
 
 struct BookingStatusBadge: View {

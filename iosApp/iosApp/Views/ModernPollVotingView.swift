@@ -5,7 +5,7 @@ import Shared
 /// Features: Clean design, card-based time slots, clear voting options
 struct ModernPollVotingView: View {
     let event: Event
-    let repository: EventRepository
+    let repository: EventRepositoryInterface
     let participantId: String
     let onVoteSubmitted: () -> Void
     let onBack: () -> Void
@@ -32,8 +32,9 @@ struct ModernPollVotingView: View {
                                 .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.secondary)
                                 .frame(width: 36, height: 36)
-                                .background(Color(.tertiarySystemFill))
+                                .background(.thinMaterial)
                                 .clipShape(Circle())
+                                .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
                         }
 
                         Spacer()
@@ -107,8 +108,8 @@ struct ModernPollVotingView: View {
                                     .padding(.bottom, 40)
                             }
                             .frame(maxWidth: .infinity)
-                            .background(Color(.systemBackground))
-                            .cornerRadius(16)
+                            .padding(20)
+                            .glassCard(cornerRadius: 20, material: .regularMaterial)
                         } else {
                             // Voting Instructions Card
                             VStack(spacing: 16) {
@@ -403,9 +404,18 @@ struct ModernVoteButton: View {
         Button(action: action) {
             VStack(spacing: 8) {
                 ZStack {
-                    Circle()
-                        .fill(isSelected ? color : Color(.tertiarySystemFill))
-                        .frame(width: 44, height: 44)
+                    // Background circle
+                    if isSelected {
+                        Circle()
+                            .fill(color)
+                            .frame(width: 44, height: 44)
+                    } else {
+                        // Non-selected state with ultraThinMaterial
+                        Circle()
+                            .frame(width: 44, height: 44)
+                            .background(.ultraThinMaterial)
+                            .clipShape(Circle())
+                    }
 
                     Image(systemName: icon)
                         .font(.system(size: 18, weight: .semibold))

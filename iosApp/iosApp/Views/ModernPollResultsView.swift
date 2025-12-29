@@ -5,7 +5,7 @@ import Shared
 /// Features: Clean results visualization, progress indicators, clear winner highlighting
 struct ModernPollResultsView: View {
     let event: Event
-    let repository: EventRepository
+    let repository: EventRepositoryInterface
     let userId: String
     let onDateConfirmed: (String) -> Void
     let onBack: () -> Void

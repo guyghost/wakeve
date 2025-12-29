@@ -22,6 +22,7 @@ import com.guyghost.wakeve.activity.ActivityPlanningService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimePeriod
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.test.Test
@@ -536,18 +537,10 @@ class PrdWorkflowE2ETest {
             participantCount = 4
         )
 
-        return equipmentList.map { equipment ->
-            EquipmentItem(
-                id = uuid4().toString(),
-                eventId = eventId,
-                category = equipment.category,
-                name = equipment.name,
-                status = ItemStatus.NEEDED,
-                quantity = equipment.quantity,
-                estimatedCost = equipment.estimatedCost,
-                currency = "EUR"
-            )
-        }
+        // autoGenerateChecklist already returns EquipmentItem with proper fields
+        // Just save them to repository if needed
+        return equipmentList
+    }
     }
 
     private suspend fun createActivities(eventId: String, count: Int): List<Activity> {
@@ -567,10 +560,11 @@ class PrdWorkflowE2ETest {
         maxParticipants: Int,
         costPerParticipant: Double
     ): Activity {
+        val tomorrow = Clock.System.now().plus(DateTimePeriod(days = 1))
         return activityService.createActivity(
             eventId = eventId,
             title = title,
-            date = Clock.System.now().plus(kotlin.time.Duration.ofDays(1)),
+            date = tomorrow.toString(),
             startTime = "10:00",
             duration = 2,
             location = "Activity Location",
@@ -585,11 +579,14 @@ class PrdWorkflowE2ETest {
         authorId: String,
         content: String
     ): Comment {
+        val now = kotlinx.datetime.Clock.System.now().toString()
         return commentRepository.createComment(
             eventId = eventId,
             section = CommentSection.GENERAL,
             authorId = authorId,
-            content = content
+            authorName = "Test User",
+            content = content,
+            createdAt = now
         ).getOrThrow()
     }
 }

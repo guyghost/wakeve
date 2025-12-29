@@ -32,8 +32,8 @@ struct EventsTabView: View {
     @State private var isLoading = false
     @State private var showEventCreationSheet = false
     
-    // Repository for event creation
-    @State private var repository = EventRepository()
+    // Use persistent database-backed repository instead of in-memory mock
+    private let repository: EventRepositoryInterface = RepositoryProvider.shared.repository
     
     var body: some View {
         NavigationStack {

@@ -401,7 +401,8 @@ class CollaborationIntegrationTest {
             
             // Alice can update her own comment
             val updated = commentRepository.updateComment(comment.id, "Alice's updated comment")
-            assertEquals("Alice's updated comment", updated.content)
+            assertNotNull(updated)
+            assertEquals("Alice's updated comment", updated!!.content)
             assertTrue(updated.isEdited)
             
             // Verify deletion works
