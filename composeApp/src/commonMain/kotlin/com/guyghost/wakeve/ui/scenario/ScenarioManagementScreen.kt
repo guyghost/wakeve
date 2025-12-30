@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -49,7 +51,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -62,6 +64,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -115,6 +118,7 @@ fun ScenarioManagementScreen(
 
     // Pull-to-refresh state
     val pullToRefreshState = rememberPullToRefreshState()
+    var isRefreshing by remember { mutableStateOf(false) }
 
     // Dialog state for create/edit
     var showCreateDialog by remember { mutableStateOf(false) }
@@ -139,17 +143,16 @@ fun ScenarioManagementScreen(
     }
 
     // Handle pull-to-refresh
-    LaunchedEffect(pullToRefreshState.isRefreshing) {
-        if (pullToRefreshState.isRefreshing) {
+    LaunchedEffect(isRefreshing) {
+        if (isRefreshing) {
             onDispatch(Intent.LoadScenariosForEvent(eventId, participantId))
-            pullToRefreshState.endRefresh()
+            isRefreshing = false
         }
     }
 
     Scaffold(
         modifier = modifier
-            .fillMaxSize()
-            .nestedScroll(pullToRefreshState.nestedScrollConnection),
+            .fillMaxSize(),
         topBar = {
             ScenarioManagementTopBar(
                 showComparisonMode = showComparisonMode,
@@ -188,13 +191,6 @@ fun ScenarioManagementScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Pull-to-refresh container
-            PullToRefreshContainer(
-                modifier = Modifier.align(Alignment.TopCenter),
-                state = pullToRefreshState,
-                containerColor = MaterialTheme.colorScheme.primary
-            )
-
             when {
                 state.isLoading && state.scenarios.isEmpty() -> {
                     // Loading state
@@ -677,7 +673,7 @@ private fun ScenarioCard(
  */
 @Composable
 private fun DetailBadge(
-    icon: androidx.compose.material.icons.Icons,
+    icon: ImageVector,
     text: String,
     modifier: Modifier = Modifier
 ) {
@@ -1176,6 +1172,7 @@ private fun ErrorBanner(
 /**
  * Padding values for the screen
  */
-private val PaddingValues = androidx.compose.foundation.layout.PaddingValues
-private val Modifier.width: (dp) -> Modifier
-    get() = { w -> this.then(androidx.compose.foundation.layout.width(w)) }
+private object ScenarioScreenDefaults {
+    val HorizontalPadding = 16.dp
+    val VerticalPadding = 12.dp
+}

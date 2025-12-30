@@ -38,11 +38,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -51,70 +48,69 @@ import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioStatus
-import com.guyghost.wakeve.models.ScenarioVote
 import com.guyghost.wakeve.models.ScenarioVoteType
 import com.guyghost.wakeve.models.ScenarioVotingResult
 import com.guyghost.wakeve.models.ScenarioWithVotes
-import kotlinx.coroutines.launch
-
-/**
- * State for the Scenario List Screen
- */
-data class ScenarioListState(
-    val eventId: String = "",
-    val participantId: String = "",
-    val scenarios: List<ScenarioWithVotes> = emptyList(),
-    val isLoading: Boolean = true,
-    val isError: Boolean = false,
-    val errorMessage: String = "",
-    val userVotes: Map<String, ScenarioVoteType> = emptyMap() // scenarioId -> vote
-)
+import com.guyghost.wakeve.presentation.state.ScenarioManagementContract
+import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
 
 /**
  * Scenario List Screen
  * 
  * Displays all scenarios for an event with voting interface.
  * Users can vote PREFER, NEUTRAL, or AGAINST for each scenario.
+ * 
+ * Uses the ScenarioManagementViewModel with StateFlow for state management.
+ * Follows the State Machine (MVI) pattern with side effect handling.
+ * 
+ * ## Architecture
+ * 
+ * - State: Observed via `state.collectAsState()` from the ViewModel
+ * - Intents: Dispatched via `viewModel.voteScenario()`, `viewModel.selectScenario()`, etc.
+ * - Side Effects: Collected in LaunchedEffect for navigation and error handling
+ * 
+ * @param event The event to display scenarios for
+ * @param viewModel The ScenarioManagementViewModel providing state and intent handling
+ * @param onScenarioClick Callback when a scenario is clicked
+ * @param onCreateScenario Callback to create a new scenario
+ * @param onCompareScenarios Callback to compare scenarios
  */
 @Composable
 fun ScenarioListScreen(
     event: Event,
-    repository: ScenarioRepository,
-    participantId: String,
+    viewModel: ScenarioManagementViewModel,
     onScenarioClick: (String) -> Unit,
     onCreateScenario: () -> Unit,
     onCompareScenarios: () -> Unit
 ) {
-    var state by remember {
-        mutableStateOf(ScenarioListState(eventId = event.id, participantId = participantId))
-    }
-    val scope = rememberCoroutineScope()
+    // Collect state from ViewModel
+    val state by viewModel.state.collectAsState()
 
-    // Load scenarios on mount
+    // Initialize on first composition or when event changes
     LaunchedEffect(event.id) {
-        state = state.copy(isLoading = true, isError = false)
-        try {
-            val scenariosWithVotes = repository.getScenariosWithVotes(event.id)
-            
-            // Extract user's votes
-            val userVotesMap = mutableMapOf<String, ScenarioVoteType>()
-            scenariosWithVotes.forEach { swv ->
-                swv.votes.find { it.participantId == participantId }?.let { vote ->
-                    userVotesMap[swv.scenario.id] = vote.vote
+        viewModel.initialize(event.id, "participant_id") // TODO: Get actual participant ID from context
+    }
+
+    // Handle side effects (error messages, navigation)
+    LaunchedEffect(Unit) {
+        viewModel.sideEffect.collect { effect ->
+            when (effect) {
+                is ScenarioManagementContract.SideEffect.ShowError -> {
+                    // TODO: Show error via Snackbar or AlertDialog
+                    println("Error: ${effect.message}")
                 }
+                is ScenarioManagementContract.SideEffect.ShowToast -> {
+                    // TODO: Show toast message
+                    println("Toast: ${effect.message}")
+                }
+                is ScenarioManagementContract.SideEffect.NavigateTo -> {
+                    onScenarioClick(effect.route)
+                }
+                is ScenarioManagementContract.SideEffect.NavigateBack -> {
+                    // Handled by caller or parent navigation
+                }
+                else -> {} // Handle other side effects if needed
             }
-            
-            state = state.copy(
-                scenarios = scenariosWithVotes,
-                userVotes = userVotesMap,
-                isLoading = false
-            )
-        } catch (e: Exception) {
-            state = state.copy(
-                isLoading = false,
-                isError = true,
-                errorMessage = e.message ?: "Failed to load scenarios"
-            )
         }
     }
 
@@ -152,7 +148,10 @@ fun ScenarioListScreen(
             // Compare Button (if multiple scenarios)
             if (state.scenarios.size >= 2) {
                 Button(
-                    onClick = onCompareScenarios,
+                    onClick = {
+                        viewModel.compareScenarios(state.scenarios.map { it.scenario.id })
+                        onCompareScenarios()
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp)
@@ -176,7 +175,7 @@ fun ScenarioListScreen(
             }
 
             // Error State
-            if (state.isError) {
+            state.error?.let { errorMessage ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -192,11 +191,18 @@ fun ScenarioListScreen(
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Text(
-                            state.errorMessage,
+                            errorMessage,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.padding(top = 8.dp)
                         )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = { viewModel.clearError() },
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text("Dismiss")
+                        }
                     }
                 }
             }
@@ -234,38 +240,22 @@ fun ScenarioListScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(state.scenarios, key = { it.scenario.id }) { scenarioWithVotes ->
+                    // Get current user's vote from voting results
+                    val userVote = state.votingResults[scenarioWithVotes.scenario.id]?.let { result ->
+                        // Find user's vote in the voting results
+                        scenarioWithVotes.votes.find { it.participantId == state.participantId }?.vote
+                    }
+
                     ScenarioCard(
                         scenarioWithVotes = scenarioWithVotes,
-                        userVote = state.userVotes[scenarioWithVotes.scenario.id],
+                        userVote = userVote,
                         onVote = { voteType ->
-                            scope.launch {
-                                try {
-                                    val vote = ScenarioVote(
-                                        id = "vote_${System.currentTimeMillis()}_${Math.random()}",
-                                        scenarioId = scenarioWithVotes.scenario.id,
-                                        participantId = participantId,
-                                        vote = voteType,
-                                        createdAt = java.time.Instant.now().toString()
-                                    )
-                                    val result = repository.addVote(vote)
-                                    if (result.isSuccess) {
-                                        // Update local state
-                                        state = state.copy(
-                                            userVotes = state.userVotes + (scenarioWithVotes.scenario.id to voteType)
-                                        )
-                                        // Reload scenarios to get updated results
-                                        val updated = repository.getScenariosWithVotes(event.id)
-                                        state = state.copy(scenarios = updated)
-                                    }
-                                } catch (e: Exception) {
-                                    state = state.copy(
-                                        isError = true,
-                                        errorMessage = "Failed to submit vote: ${e.message}"
-                                    )
-                                }
-                            }
+                            viewModel.voteScenario(scenarioWithVotes.scenario.id, voteType)
                         },
-                        onClick = { onScenarioClick(scenarioWithVotes.scenario.id) }
+                        onClick = {
+                            viewModel.selectScenario(scenarioWithVotes.scenario.id)
+                            onScenarioClick(scenarioWithVotes.scenario.id)
+                        }
                     )
                 }
             }

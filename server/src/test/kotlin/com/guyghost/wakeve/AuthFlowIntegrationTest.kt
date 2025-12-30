@@ -43,7 +43,8 @@ class AuthFlowIntegrationTest {
 
     @After
     fun teardown() {
-        database.close()
+        // Reset the database singleton for the next test
+        DatabaseProvider.resetDatabase()
     }
 
     // ============================================

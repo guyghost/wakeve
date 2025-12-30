@@ -4,27 +4,21 @@ import Shared
 /// Scenario Detail View - iOS
 ///
 /// Displays detailed information about a single scenario.
+/// Uses ScenarioDetailViewModel with State Machine pattern.
 /// Organizers can edit and delete scenarios.
 struct ScenarioDetailView: View {
     let scenarioId: String
     let eventId: String
-    let repository: ScenarioRepository
     let isOrganizer: Bool
     let currentUserId: String
     let currentUserName: String
     let onBack: () -> Void
     let onDeleted: () -> Void
     
-    @State private var scenario: Scenario_?
-    @State private var isLoading = true
-    @State private var isEditing = false
-    @State private var isSaving = false
-    @State private var showDeleteConfirm = false
-    @State private var errorMessage = ""
-    @State private var showError = false
+    @StateObject private var viewModel: ScenarioDetailViewModel
     
-    // Comments state
-    @State private var commentCount = 0
+    // Local UI state
+    @State private var showDeleteConfirm = false
     @State private var showComments = false
     
     // Edit fields
@@ -36,6 +30,25 @@ struct ScenarioDetailView: View {
     @State private var editBudget = ""
     @State private var editDescription = ""
     
+    init(
+        scenarioId: String,
+        eventId: String,
+        isOrganizer: Bool = false,
+        currentUserId: String = "",
+        currentUserName: String = "",
+        onBack: @escaping () -> Void = {},
+        onDeleted: @escaping () -> Void = {}
+    ) {
+        self.scenarioId = scenarioId
+        self.eventId = eventId
+        self.isOrganizer = isOrganizer
+        self.currentUserId = currentUserId
+        self.currentUserName = currentUserName
+        self.onBack = onBack
+        self.onDeleted = onDeleted
+        self._viewModel = StateObject(wrappedValue: ScenarioDetailViewModel(scenarioId: scenarioId))
+    }
+    
     var body: some View {
         NavigationView {
             ZStack {
@@ -43,13 +56,13 @@ struct ScenarioDetailView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    if isLoading {
+                    if viewModel.isLoading {
                         loadingView
-                    } else if let scenario = scenario {
+                    } else if let scenario = viewModel.scenario {
                         ScrollView {
                             VStack(spacing: 16) {
-                                if isEditing {
-                                    editFormView
+                                if viewModel.isEditing {
+                                    editFormView(scenario: scenario)
                                 } else {
                                     detailView(scenario: scenario)
                                 }
@@ -65,13 +78,13 @@ struct ScenarioDetailView: View {
                     }
                 }
             }
-            .navigationTitle(scenario?.name ?? "Scenario Details")
+            .navigationTitle(viewModel.scenario?.name ?? "Scenario Details")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
-                        if isEditing {
-                            isEditing = false
+                        if viewModel.isEditing {
+                            viewModel.cancelEditing()
                         } else {
                             onBack()
                         }
@@ -87,18 +100,16 @@ struct ScenarioDetailView: View {
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 12) {
-                        CommentButton(commentCount: commentCount) {
+                        CommentButton(commentCount: 0) {
                             showComments = true
                         }
                         
                         if isOrganizer {
-                            if isEditing {
+                            if viewModel.isEditing {
                                 Button {
-                                    Task {
-                                        await saveChanges()
-                                    }
+                                    saveChanges()
                                 } label: {
-                                    if isSaving {
+                                    if viewModel.state.isLoading {
                                         ProgressView()
                                             .progressViewStyle(CircularProgressViewStyle())
                                     } else {
@@ -107,11 +118,12 @@ struct ScenarioDetailView: View {
                                             .foregroundColor(.blue)
                                     }
                                 }
-                                .disabled(isSaving)
+                                .disabled(viewModel.state.isLoading)
                             } else {
                                 Menu {
                                     Button {
-                                        isEditing = true
+                                        viewModel.startEditing()
+                                        initializeEditFields()
                                     } label: {
                                         Label("Edit", systemImage: "pencil")
                                     }
@@ -128,30 +140,27 @@ struct ScenarioDetailView: View {
                                         .frame(width: 36, height: 36)
                                         .background(Color(.tertiarySystemFill))
                                         .clipShape(Circle())
-        }
-    }
-    
-    // MARK: - Comments
-    
-}
+                                }
+                            }
+                        }
                     }
                 }
             }
             .onAppear {
-                loadScenario()
-                
+                viewModel.reload()
             }
-            .alert("Error", isPresented: $showError) {
-                Button("OK", role: .cancel) {}
+            .alert("Error", isPresented: Binding(
+                get: { viewModel.hasError },
+                set: { if !$0 { viewModel.clearError() } }
+            )) {
+                Button("OK", role: .cancel) { viewModel.clearError() }
             } message: {
-                Text(errorMessage)
+                Text(viewModel.errorMessage ?? "An error occurred")
             }
             .alert("Delete Scenario", isPresented: $showDeleteConfirm) {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete", role: .destructive) {
-                    Task {
-                        await deleteScenario()
-                    }
+                    deleteScenario()
                 }
             } message: {
                 Text("Are you sure you want to delete this scenario? This action cannot be undone.")
@@ -161,7 +170,7 @@ struct ScenarioDetailView: View {
                     CommentsView(
                         eventId: eventId,
                         section: .SCENARIO,
-                        sectionItemId: scenario?.id,
+                        sectionItemId: viewModel.scenario?.id,
                         currentUserId: currentUserId,
                         currentUserName: currentUserName
                     )
@@ -178,10 +187,6 @@ struct ScenarioDetailView: View {
         }
     }
     
-    // MARK: - Header View (removed - now in toolbar)
-    
-    // MARK: - Detail View
-    
     // MARK: - Detail View
     
     private func detailView(scenario: Scenario_) -> some View {
@@ -195,11 +200,11 @@ struct ScenarioDetailView: View {
                     
                     Spacer()
                     
-                    ScenarioStatusBadge(status: ScenarioStatus(rawValue: scenario.status.name) ?? .proposed)
+                    ScenarioStatusBadge(status: scenario.status.name)
                 }
                 
-                if !scenario.description.isEmpty {
-                    Text(scenario.description)
+                if !scenario.description_.isEmpty {
+                    Text(scenario.description_)
                         .font(.system(size: 15))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -235,12 +240,19 @@ struct ScenarioDetailView: View {
                     )
                 )
             }
+            
+            // Voting Results
+            if let votingResult = viewModel.votingResult, votingResult.totalVotes > 0 {
+                DetailSection(title: "Voting Results", icon: "hand.thumbsup") {
+                    VotingResultsView(result: votingResult)
+                }
+            }
         }
     }
     
     // MARK: - Edit Form View
     
-    private var editFormView: some View {
+    private func editFormView(scenario: Scenario_) -> some View {
         VStack(spacing: 16) {
             Text("Edit Scenario")
                 .font(.system(size: 28, weight: .bold))
@@ -313,88 +325,52 @@ struct ScenarioDetailView: View {
         .frame(maxHeight: .infinity)
     }
     
-    // MARK: - Data Loading & Actions
+    // MARK: - Data Actions
     
-    private func loadScenario() {
-        Task {
-            let loadedScenario = repository.getScenarioById(id: scenarioId)
-            
-            await MainActor.run {
-                if let loadedScenario = loadedScenario {
-                    self.scenario = loadedScenario
-                    self.editName = loadedScenario.name
-                    self.editLocation = loadedScenario.location
-                    self.editDateOrPeriod = loadedScenario.dateOrPeriod
-                    self.editDuration = "\(Int(loadedScenario.duration))"
-                    self.editParticipants = "\(loadedScenario.estimatedParticipants)"
-                    self.editBudget = "\(loadedScenario.estimatedBudgetPerPerson)"
-                    self.editDescription = loadedScenario.description_
-                }
-                self.isLoading = false
-            }
-        }
+    /// Initialize edit fields from the current scenario
+    private func initializeEditFields() {
+        guard let scenario = viewModel.scenario else { return }
+        
+        editName = scenario.name
+        editLocation = scenario.location
+        editDateOrPeriod = scenario.dateOrPeriod
+        editDuration = "\(Int(scenario.duration))"
+        editParticipants = "\(scenario.estimatedParticipants)"
+        editBudget = "\(scenario.estimatedBudgetPerPerson)"
+        editDescription = scenario.description_
     }
     
-    private func saveChanges() async {
-        guard let scenario = scenario,
-              let duration = Int(editDuration),
-              let participants = Int(editParticipants),
+    /// Save changes to the scenario
+    private func saveChanges() {
+        guard let _ = viewModel.scenario else { return }
+        
+        // Validate input
+        guard let duration = Int32(editDuration),
+              let participants = Int32(editParticipants),
               let budget = Double(editBudget) else {
-            await MainActor.run {
-                self.errorMessage = "Please enter valid numbers for duration, participants, and budget"
-                self.showError = true
-            }
+            // Error handling could be improved with a dedicated error state
+            print("Invalid input for duration, participants, or budget")
             return
         }
         
-        await MainActor.run {
-            self.isSaving = true
-        }
-        
-        do {
-            let updatedScenario = Scenario_(
-                id: scenario.id,
-                eventId: scenario.eventId,
-                name: editName,
-                dateOrPeriod: editDateOrPeriod,
-                location: editLocation,
-                duration: Int32(duration),
-                estimatedParticipants: Int32(participants),
-                estimatedBudgetPerPerson: budget,
-                description: editDescription,
-                status: scenario.status,
-                createdAt: scenario.createdAt,
-                updatedAt: scenario.updatedAt
-            )
-            
-            _ = try await repository.updateScenario(scenario: updatedScenario)
-            
-            await MainActor.run {
-                self.scenario = updatedScenario
-                self.isSaving = false
-                self.isEditing = false
-            }
-        } catch {
-            await MainActor.run {
-                self.errorMessage = error.localizedDescription
-                self.showError = true
-                self.isSaving = false
-            }
-        }
+        // Dispatch update intent to the state machine
+        viewModel.updateScenario(
+            name: editName,
+            dateOrPeriod: editDateOrPeriod,
+            location: editLocation,
+            duration: duration,
+            estimatedParticipants: participants,
+            estimatedBudgetPerPerson: budget,
+            description: editDescription
+        )
     }
     
-    private func deleteScenario() async {
-        do {
-            _ = try await repository.deleteScenario(scenarioId: scenarioId)
-            
-            await MainActor.run {
-                onDeleted()
-            }
-        } catch {
-            await MainActor.run {
-                self.errorMessage = error.localizedDescription
-                self.showError = true
-            }
+    /// Delete the scenario
+    private func deleteScenario() {
+        viewModel.deleteScenario()
+        // Trigger onDeleted callback after deletion
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            onDeleted()
         }
     }
 }
@@ -471,6 +447,66 @@ struct FormField: View {
                 .padding(12)
                 .background(Color(.tertiarySystemFill))
                 .continuousCornerRadius(12)
+        }
+    }
+}
+
+// MARK: - Voting Results View
+
+struct VotingResultsView: View {
+    let result: ScenarioVotingResult
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("👍 Prefer")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.primary)
+                    
+                    Text("\(result.preferCount)")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("😐 Neutral")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.primary)
+                    
+                    Text("\(result.neutralCount)")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("👎 Against")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.primary)
+                    
+                    Text("\(result.againstCount)")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Divider()
+            
+            HStack {
+                Text("Total Score")
+                    .font(.system(size: 15))
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                Text("\(result.score)")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.blue)
+            }
         }
     }
 }

@@ -7,7 +7,8 @@ class RepositoryProvider {
     static let shared = RepositoryProvider()
     
     private let databaseFactory: IosDatabaseFactory
-    private let database: WakevDb
+    /// The database instance - exposed for state machine creation
+    let database: WakevDb
     private let _repository: DatabaseEventRepository
     
     private init() {

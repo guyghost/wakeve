@@ -108,10 +108,24 @@ wakeve/
 
 ## 📖 Documentation
 
+### Getting Started
 - **[QUICK_START.md](./QUICK_START.md)** - 5-minute setup guide
 - **[CONTRIBUTING.md](./CONTRIBUTING.md)** - Development guidelines
-- **[IMPLEMENTATION_CHECKLIST.md](./IMPLEMENTATION_CHECKLIST.md)** - Phase 2 completion
+- **[AGENTS.md](./AGENTS.md)** - OpenSpec workflow and AI agents
+
+### Complete Documentation
+For comprehensive documentation, visit **[docs/](./docs/)**:
+- [Architecture](./docs/architecture/README.md) - System architecture and KMP patterns
+- [API Documentation](./docs/API.md) - REST API endpoints
+- [Testing](./docs/testing/README.md) - Testing strategy and reports
+- [Integrations](./docs/integrations/README.md) - Calendar, OAuth, and external services
+- [Migration Guides](./docs/migration/README.md) - Design system migrations
+- [Refactoring Docs](./docs/refactoring/README.md) - Major refactorings
+- [Implementation Status](./docs/implementation/prd-status.md) - PRD feature tracking
+
+### OpenSpec
 - **[openspec/specs/](./openspec/specs/)** - Detailed specifications
+- **[openspec/AGENTS.md](./openspec/AGENTS.md)** - Specification-driven development workflow
 
 ## 🔧 Development
 

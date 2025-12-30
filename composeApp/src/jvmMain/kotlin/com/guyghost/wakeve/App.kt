@@ -3,7 +3,9 @@ package com.guyghost.wakeve
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import com.guyghost.wakeve.auth.AuthState
@@ -93,6 +95,7 @@ class SyncedEventRepository(
 }
 
 enum class Screen {
+    HOME,
     EVENT_CREATION,
     PARTICIPANT_MANAGEMENT,
     POLL_VOTING,
@@ -224,6 +227,15 @@ fun App() {
                     // )
 
                     when (appState.currentScreen) {
+                        Screen.HOME -> {
+                            // Simple home screen - just navigate to event creation
+                            Text("Home - Click to create an event")
+                            Button(onClick = {
+                                appState = appState.copy(currentScreen = Screen.EVENT_CREATION)
+                            }) {
+                                Text("Create Event")
+                            }
+                        }
                         Screen.EVENT_CREATION -> {
                             EventCreationScreen(
                                 userId = state.userId,
@@ -236,6 +248,9 @@ fun App() {
                                             )
                                         }
                                     }
+                                },
+                                onBack = {
+                                    appState = appState.copy(currentScreen = Screen.HOME)
                                 }
                             )
                         }

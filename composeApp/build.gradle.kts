@@ -24,6 +24,8 @@ kotlin {
             implementation(compose.preview)
             implementation(compose.materialIconsExtended)
             implementation(libs.androidx.activity.compose)
+            // Navigation Compose
+            implementation("androidx.navigation:navigation-compose:2.7.7")
             // OAuth2 dependencies
             implementation(libs.google.auth)
             implementation(libs.androidx.credentials)
@@ -54,6 +56,7 @@ kotlin {
             // Koin for dependency injection (Android-specific)
             implementation(libs.koin.core)
             implementation(libs.koin.android)
+            implementation("io.insert-koin:koin-androidx-compose:3.5.3")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

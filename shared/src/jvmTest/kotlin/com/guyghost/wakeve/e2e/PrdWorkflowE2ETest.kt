@@ -1,9 +1,9 @@
 package com.guyghost.wakeve.e2e
 
-import com.benasher44.uuid.uuid4
 import com.guyghost.wakeve.accommodation.AccommodationService
 import com.guyghost.wakeve.budget.BudgetCalculator
 import com.guyghost.wakeve.budget.BudgetRepository
+import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.event.EventRepository
@@ -25,6 +25,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimePeriod
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.uuid.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -32,7 +33,7 @@ import kotlin.test.assertTrue
 
 /**
  * End-to-End tests for complete PRD workflow
- * Tests the full lifecycle: Creation → Scenarios → Budget → Logistics → Collaboration → Suggestions → Calendar → Transport → Meetings → Payment
+ * Tests full lifecycle: Creation → Scenarios → Budget → Logistics → Collaboration → Suggestions → Calendar → Transport → Meetings → Payment
  */
 class PrdWorkflowE2ETest {
 
@@ -52,6 +53,15 @@ class PrdWorkflowE2ETest {
         RecommendationEngine(),
         UserPreferencesRepository(db)
     )
+    private val calendarService = CalendarService(db, null)
+    private val meetingService = MeetingService(db, calendarService, object : com.guyghost.wakeve.notification.NotificationService {
+        override suspend fun sendNotification(message: NotificationMessage): Result<Unit> = Result.success(Unit)
+        override suspend fun registerPushToken(token: PushToken): Result<Unit> = Result.success(Unit)
+        override suspend fun unregisterPushToken(userId: String, deviceId: String): Result<Unit> = Result.success(Unit)
+        override suspend fun getUnreadNotifications(userId: String): List<NotificationMessage> = emptyList()
+        override suspend fun markAsRead(notificationId: String): Result<Unit> = Result.success(Unit)
+    })
+    private val pollService = PollService(eventRepository, participantRepository, scenarioLogic)
 
     @Test
     fun `testCompletePrdWorkflow creates event through payment phase`() = runBlocking {
@@ -168,7 +178,7 @@ class PrdWorkflowE2ETest {
 
         // Create accommodations
         val accommodations = (1..3).map { i ->
-            createAccommodation(event.id, "Accommodation $i", AccommodationType.HOTEL, maxOccupancy = 2)
+            createAccommodation(event.id, "Accommodation $i", AccommodationType.HOTEL, maxCapacity = 2)
         }
 
         // Assign participants to accommodations
@@ -347,8 +357,11 @@ class PrdWorkflowE2ETest {
             createParticipant(event.id, "User $i", isValidated = true)
         }
 
+        // Update event status to confirmed for meeting creation
+        eventRepository.updateEventStatus(event.id, EventStatus.CONFIRMED)
+
         // Create meeting
-        val meetingRequest = CreateMeetingRequest(
+        val meetingResult = meetingService.createMeeting(
             eventId = event.id,
             organizerId = participants[0].id,
             platform = MeetingPlatform.GOOGLE_MEET,
@@ -359,11 +372,10 @@ class PrdWorkflowE2ETest {
             timezone = "Europe/Paris"
         )
 
-        // TODO: Uncomment when meetingProvider is properly initialized
-        // val meeting = meetingService.createMeeting(meetingRequest)
-        // assertTrue(meeting.isSuccess)
-        // val meetingResult = meeting.getOrThrow()
-        // assertEquals(MeetingPlatform.GOOGLE_MEET, meetingResult.platform)
+        assertTrue(meetingResult.isSuccess)
+        val meeting = meetingResult.getOrThrow()
+        assertEquals(MeetingPlatform.GOOGLE_MEET, meeting.platform)
+        assertTrue(meeting.meetingUrl.contains("meet.google.com/"))
     }
 
     @Test
@@ -404,7 +416,7 @@ class PrdWorkflowE2ETest {
         val result = eventRepository.createEvent(
             title = "", // Invalid: empty title
             description = "Test event",
-            organizerId = uuid4().toString()
+            organizerId = UUID.randomUUID().toString()
         )
 
         assertTrue(result.isFailure)
@@ -413,7 +425,7 @@ class PrdWorkflowE2ETest {
         val nonExistentEventId = "non-existent"
         val participantResult = participantRepository.addParticipant(
             nonExistentEventId,
-            uuid4().toString(),
+            UUID.randomUUID().toString(),
             "Test User",
             "test@example.com"
         )
@@ -426,7 +438,7 @@ class PrdWorkflowE2ETest {
         return eventRepository.createEvent(
             title = "Test Event - ${Clock.System.now()}",
             description = "E2E Test Event",
-            organizerId = uuid4().toString(),
+            organizerId = UUID.randomUUID().toString(),
             deadline = Clock.System.now().plus(kotlin.time.Duration.ofDays(7))
         ).getOrThrow()
     }
@@ -438,7 +450,7 @@ class PrdWorkflowE2ETest {
     ): Participant {
         return participantRepository.addParticipant(
             eventId = eventId,
-            userId = uuid4().toString(),
+            userId = UUID.randomUUID().toString(),
             name = name,
             email = "${name.lowercase().replace(" ", ".")}@example.com"
         ).getOrThrow().also {
@@ -540,7 +552,6 @@ class PrdWorkflowE2ETest {
         // autoGenerateChecklist already returns EquipmentItem with proper fields
         // Just save them to repository if needed
         return equipmentList
-    }
     }
 
     private suspend fun createActivities(eventId: String, count: Int): List<Activity> {

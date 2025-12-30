@@ -168,7 +168,7 @@ struct ScenarioComparisonView: View {
             
             ComparisonRow(
                 label: "Status",
-                values: scenarios.map { statusText(ScenarioStatus(rawValue: $0.scenario.status.name) ?? .proposed) }
+                values: scenarios.map { statusText($0.scenario.status.name) }
             )
             
             Divider()
@@ -297,11 +297,12 @@ struct ScenarioComparisonView: View {
     
     // MARK: - Helpers
     
-    private func statusText(_ status: ScenarioStatus) -> String {
-        switch status {
-        case .proposed: return "Proposed"
-        case .selected: return "Selected"
-        case .rejected: return "Rejected"
+    private func statusText(_ status: String) -> String {
+        switch status.uppercased() {
+        case "PROPOSED": return "Proposed"
+        case "SELECTED": return "Selected"
+        case "REJECTED": return "Rejected"
+        default: return status
         }
     }
 }

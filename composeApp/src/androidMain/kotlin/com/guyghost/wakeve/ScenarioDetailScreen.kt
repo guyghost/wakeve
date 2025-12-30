@@ -54,22 +54,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.models.CommentSection
+import com.guyghost.wakeve.presentation.state.ScenarioManagementContract
+import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
 import kotlinx.coroutines.launch
 
 /**
- * State for Scenario Detail Screen
+ * Local UI state for editing
  */
-data class ScenarioDetailState(
-    val scenario: Scenario? = null,
-    val isLoading: Boolean = true,
+data class ScenarioDetailUIState(
     val isEditing: Boolean = false,
     val isSaving: Boolean = false,
-    val isError: Boolean = false,
-    val errorMessage: String = "",
     val showDeleteDialog: Boolean = false,
     
     // Editable fields
@@ -87,54 +86,69 @@ data class ScenarioDetailState(
  * 
  * View and edit details of a specific scenario.
  * Organizers can edit and delete scenarios.
+ * 
+ * Uses ViewModel with StateFlow for state management following MVI/FSM pattern.
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ScenarioDetailScreen(
     scenarioId: String,
-    repository: ScenarioRepository,
+    viewModel: ScenarioManagementViewModel,
     commentRepository: CommentRepository,
     isOrganizer: Boolean,
     onBack: () -> Unit,
     onDeleted: () -> Unit,
     onNavigateToComments: (eventId: String, section: CommentSection, sectionItemId: String?) -> Unit
 ) {
-    var state by remember { mutableStateOf(ScenarioDetailState()) }
+    // Collect state from ViewModel
+    val vmState by viewModel.state.collectAsStateWithLifecycle()
+    
+    // Local UI state for editing (not persisted in ViewModel)
+    var uiState by remember { mutableStateOf(ScenarioDetailUIState()) }
     val scope = rememberCoroutineScope()
     var commentCount by remember { mutableIntStateOf(0) }
 
-    // Load scenario on mount
+    // Load scenario when this screen appears
     LaunchedEffect(scenarioId) {
-        state = state.copy(isLoading = true, isError = false)
-        try {
-            val scenario = repository.getScenarioById(scenarioId)
-            if (scenario != null) {
-                state = state.copy(
-                    scenario = scenario,
-                    isLoading = false,
-                    editName = scenario.name,
-                    editLocation = scenario.location,
-                    editDateOrPeriod = scenario.dateOrPeriod,
-                    editDuration = scenario.duration.toString(),
-                    editParticipants = scenario.estimatedParticipants.toString(),
-                    editBudget = scenario.estimatedBudgetPerPerson.toString(),
-                    editDescription = scenario.description
-                )
-                // Load comment count for this scenario
-                commentCount = commentRepository.countCommentsBySection(scenario.eventId, CommentSection.SCENARIO, scenarioId).toInt()
-            } else {
-                state = state.copy(
-                    isLoading = false,
-                    isError = true,
-                    errorMessage = "Scenario not found"
-                )
+        viewModel.selectScenario(scenarioId)
+    }
+
+    // Handle side effects from ViewModel
+    LaunchedEffect(Unit) {
+        viewModel.sideEffect.collect { effect ->
+            when (effect) {
+                is ScenarioManagementContract.SideEffect.NavigateBack -> {
+                    onBack()
+                }
+                is ScenarioManagementContract.SideEffect.ShowError -> {
+                    // Error is shown in UI from vmState.error
+                }
+                is ScenarioManagementContract.SideEffect.ShowToast -> {
+                    // Toast is shown via snackbar from vmState
+                }
+                else -> {} // Handle other side effects if needed
             }
-        } catch (e: Exception) {
-            state = state.copy(
-                isLoading = false,
-                isError = true,
-                errorMessage = e.message ?: "Failed to load scenario"
+        }
+    }
+
+    // Update UI state when scenario is selected
+    LaunchedEffect(vmState.selectedScenario) {
+        vmState.selectedScenario?.let { scenario ->
+            uiState = uiState.copy(
+                editName = scenario.name,
+                editLocation = scenario.location,
+                editDateOrPeriod = scenario.dateOrPeriod,
+                editDuration = scenario.duration.toString(),
+                editParticipants = scenario.estimatedParticipants.toString(),
+                editBudget = scenario.estimatedBudgetPerPerson.toString(),
+                editDescription = scenario.description
             )
+            // Load comment count for this scenario
+            commentCount = commentRepository.countCommentsBySection(
+                scenario.eventId,
+                CommentSection.SCENARIO,
+                scenarioId
+            ).toInt()
         }
     }
 
@@ -148,49 +162,40 @@ fun ScenarioDetailScreen(
                     }
                 },
                 actions = {
-                    if (isOrganizer && state.scenario != null) {
-                        if (state.isEditing) {
+                    if (isOrganizer && vmState.selectedScenario != null) {
+                        if (uiState.isEditing) {
                             IconButton(
                                 onClick = {
                                     scope.launch {
-                                        state = state.copy(isSaving = true)
+                                        uiState = uiState.copy(isSaving = true)
                                         try {
-                                            val updated = state.scenario!!.copy(
-                                                name = state.editName,
-                                                location = state.editLocation,
-                                                dateOrPeriod = state.editDateOrPeriod,
-                                                duration = state.editDuration.toIntOrNull() ?: state.scenario!!.duration,
-                                                estimatedParticipants = state.editParticipants.toIntOrNull() ?: state.scenario!!.estimatedParticipants,
-                                                estimatedBudgetPerPerson = state.editBudget.toDoubleOrNull() ?: state.scenario!!.estimatedBudgetPerPerson,
-                                                description = state.editDescription,
-                                                updatedAt = java.time.Instant.now().toString()
+                                            val scenario = vmState.selectedScenario ?: return@launch
+                                            val updated = scenario.copy(
+                                                name = uiState.editName,
+                                                location = uiState.editLocation,
+                                                dateOrPeriod = uiState.editDateOrPeriod,
+                                                duration = uiState.editDuration.toIntOrNull() ?: scenario.duration,
+                                                estimatedParticipants = uiState.editParticipants.toIntOrNull() ?: scenario.estimatedParticipants,
+                                                estimatedBudgetPerPerson = uiState.editBudget.toDoubleOrNull() ?: scenario.estimatedBudgetPerPerson,
+                                                description = uiState.editDescription
                                             )
-                                            val result = repository.updateScenario(updated)
-                                            if (result.isSuccess) {
-                                                state = state.copy(
-                                                    scenario = updated,
-                                                    isEditing = false,
-                                                    isSaving = false
-                                                )
-                                            } else {
-                                                state = state.copy(
-                                                    isSaving = false,
-                                                    isError = true,
-                                                    errorMessage = "Failed to save changes"
-                                                )
-                                            }
+                                            // Dispatch update intent to ViewModel
+                                            viewModel.updateScenario(updated)
+                                            // Update UI state after successful update
+                                            uiState = uiState.copy(
+                                                isEditing = false,
+                                                isSaving = false
+                                            )
                                         } catch (e: Exception) {
-                                            state = state.copy(
-                                                isSaving = false,
-                                                isError = true,
-                                                errorMessage = e.message ?: "Failed to save"
+                                            uiState = uiState.copy(
+                                                isSaving = false
                                             )
                                         }
                                     }
                                 },
-                                enabled = !state.isSaving
+                                enabled = !uiState.isSaving
                             ) {
-                                if (state.isSaving) {
+                                if (uiState.isSaving) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.width(24.dp).height(24.dp)
                                     )
@@ -199,23 +204,27 @@ fun ScenarioDetailScreen(
                                 }
                             }
                         } else {
-                            IconButton(onClick = { state = state.copy(isEditing = true) }) {
+                            IconButton(onClick = { uiState = uiState.copy(isEditing = true) }) {
                                 Icon(Icons.Default.Edit, contentDescription = "Edit")
                             }
-                            IconButton(onClick = { state = state.copy(showDeleteDialog = true) }) {
+                            IconButton(onClick = { uiState = uiState.copy(showDeleteDialog = true) }) {
                                 Icon(Icons.Default.Delete, contentDescription = "Delete")
                             }
                         }
                     }
                     // Comments icon with badge
-                    if (state.scenario != null) {
+                    if (vmState.selectedScenario != null) {
                         IconButton(onClick = {
-                            onNavigateToComments(state.scenario!!.eventId, CommentSection.SCENARIO, scenarioId)
+                            onNavigateToComments(
+                                vmState.selectedScenario!!.eventId,
+                                CommentSection.SCENARIO,
+                                scenarioId
+                            )
                         }) {
                             Box {
                                 Icon(
                                     Icons.Outlined.Comment,
-                                    contentDescription = if (commentCount == 0) "Aucun commentaire" else "$commentCount commentaires"
+                                    contentDescription = if (commentCount == 0) "No comments" else "$commentCount comments"
                                 )
                                 if (commentCount > 0) {
                                     Box(
@@ -253,7 +262,7 @@ fun ScenarioDetailScreen(
                 .padding(16.dp)
         ) {
             // Loading State
-            if (state.isLoading) {
+            if (vmState.isLoading) {
                 Column(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Center,
@@ -267,7 +276,7 @@ fun ScenarioDetailScreen(
             }
 
             // Error State
-            if (state.isError) {
+            if (vmState.error != null) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -281,7 +290,7 @@ fun ScenarioDetailScreen(
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Text(
-                            state.errorMessage,
+                            vmState.error ?: "Unknown error",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.padding(top = 8.dp)
@@ -291,7 +300,7 @@ fun ScenarioDetailScreen(
                 return@Scaffold
             }
 
-            val scenario = state.scenario ?: return@Scaffold
+            val scenario = vmState.selectedScenario ?: return@Scaffold
 
             // Header Card
             Card(
@@ -300,10 +309,10 @@ fun ScenarioDetailScreen(
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    if (state.isEditing) {
+                    if (uiState.isEditing) {
                         OutlinedTextField(
-                            value = state.editName,
-                            onValueChange = { state = state.copy(editName = it) },
+                            value = uiState.editName,
+                            onValueChange = { uiState = uiState.copy(editName = it) },
                             label = { Text("Scenario Name") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
@@ -338,12 +347,12 @@ fun ScenarioDetailScreen(
             // Location Section
             DetailSection(
                 title = "Location",
-                isEditing = state.isEditing
+                isEditing = uiState.isEditing
             ) {
-                if (state.isEditing) {
+                if (uiState.isEditing) {
                     OutlinedTextField(
-                        value = state.editLocation,
-                        onValueChange = { state = state.copy(editLocation = it) },
+                        value = uiState.editLocation,
+                        onValueChange = { uiState = uiState.copy(editLocation = it) },
                         label = { Text("Location") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
@@ -361,12 +370,12 @@ fun ScenarioDetailScreen(
             // Date/Period Section
             DetailSection(
                 title = "Date or Period",
-                isEditing = state.isEditing
+                isEditing = uiState.isEditing
             ) {
-                if (state.isEditing) {
+                if (uiState.isEditing) {
                     OutlinedTextField(
-                        value = state.editDateOrPeriod,
-                        onValueChange = { state = state.copy(editDateOrPeriod = it) },
+                        value = uiState.editDateOrPeriod,
+                        onValueChange = { uiState = uiState.copy(editDateOrPeriod = it) },
                         label = { Text("Date/Period (e.g., 2025-12-15/2025-12-17)") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
@@ -384,12 +393,12 @@ fun ScenarioDetailScreen(
             // Duration, Participants, Budget
             DetailSection(
                 title = "Details",
-                isEditing = state.isEditing
+                isEditing = uiState.isEditing
             ) {
-                if (state.isEditing) {
+                if (uiState.isEditing) {
                     OutlinedTextField(
-                        value = state.editDuration,
-                        onValueChange = { state = state.copy(editDuration = it) },
+                        value = uiState.editDuration,
+                        onValueChange = { uiState = uiState.copy(editDuration = it) },
                         label = { Text("Duration (days)") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -397,8 +406,8 @@ fun ScenarioDetailScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
-                        value = state.editParticipants,
-                        onValueChange = { state = state.copy(editParticipants = it) },
+                        value = uiState.editParticipants,
+                        onValueChange = { uiState = uiState.copy(editParticipants = it) },
                         label = { Text("Estimated Participants") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -406,8 +415,8 @@ fun ScenarioDetailScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
-                        value = state.editBudget,
-                        onValueChange = { state = state.copy(editBudget = it) },
+                        value = uiState.editBudget,
+                        onValueChange = { uiState = uiState.copy(editBudget = it) },
                         label = { Text("Budget per Person ($)") },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -430,12 +439,12 @@ fun ScenarioDetailScreen(
             // Description Section
             DetailSection(
                 title = "Description",
-                isEditing = state.isEditing
+                isEditing = uiState.isEditing
             ) {
-                if (state.isEditing) {
+                if (uiState.isEditing) {
                     OutlinedTextField(
-                        value = state.editDescription,
-                        onValueChange = { state = state.copy(editDescription = it) },
+                        value = uiState.editDescription,
+                        onValueChange = { uiState = uiState.copy(editDescription = it) },
                         label = { Text("Description") },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -495,11 +504,11 @@ fun ScenarioDetailScreen(
             }
 
             // Cancel Button (when editing)
-            if (state.isEditing) {
+            if (uiState.isEditing) {
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedButton(
                     onClick = {
-                        state = state.copy(
+                        uiState = uiState.copy(
                             isEditing = false,
                             editName = scenario.name,
                             editLocation = scenario.location,
@@ -519,32 +528,23 @@ fun ScenarioDetailScreen(
     }
 
     // Delete Confirmation Dialog
-    if (state.showDeleteDialog) {
+    if (uiState.showDeleteDialog) {
         AlertDialog(
-            onDismissRequest = { state = state.copy(showDeleteDialog = false) },
+            onDismissRequest = { uiState = uiState.copy(showDeleteDialog = false) },
             title = { Text("Delete Scenario") },
-            text = { Text("Are you sure you want to delete \"${state.scenario?.name}\"? This action cannot be undone.") },
+            text = { Text("Are you sure you want to delete \"${vmState.selectedScenario?.name}\"? This action cannot be undone.") },
             confirmButton = {
                 Button(
                     onClick = {
                         scope.launch {
                             try {
-                                val result = repository.deleteScenario(scenarioId)
-                                if (result.isSuccess) {
-                                    onDeleted()
-                                } else {
-                                    state = state.copy(
-                                        showDeleteDialog = false,
-                                        isError = true,
-                                        errorMessage = "Failed to delete scenario"
-                                    )
-                                }
+                                // Dispatch delete intent to ViewModel
+                                viewModel.deleteScenario(scenarioId)
+                                uiState = uiState.copy(showDeleteDialog = false)
+                                // ViewModel will emit NavigateBack side effect
+                                onDeleted()
                             } catch (e: Exception) {
-                                state = state.copy(
-                                    showDeleteDialog = false,
-                                    isError = true,
-                                    errorMessage = e.message ?: "Failed to delete"
-                                )
+                                uiState = uiState.copy(showDeleteDialog = false)
                             }
                         }
                     },
@@ -556,7 +556,7 @@ fun ScenarioDetailScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { state = state.copy(showDeleteDialog = false) }) {
+                TextButton(onClick = { uiState = uiState.copy(showDeleteDialog = false) }) {
                     Text("Cancel")
                 }
             }

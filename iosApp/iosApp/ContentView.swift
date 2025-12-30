@@ -287,7 +287,6 @@ struct AuthenticatedView: View {
             if let event = selectedEvent {
                 ScenarioListView(
                     event: event,
-                    repository: ScenarioRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
                     participantId: userId,
                     onScenarioTap: { scenario in
                         selectedScenario = scenario

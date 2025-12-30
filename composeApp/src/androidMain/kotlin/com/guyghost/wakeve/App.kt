@@ -2,575 +2,147 @@ package com.guyghost.wakeve
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.content.FileProvider
-import com.guyghost.wakeve.DatabaseEventRepository
-import com.guyghost.wakeve.DatabaseProvider
-import com.guyghost.wakeve.SplashScreen
-import com.guyghost.wakeve.LoginScreen
-import com.guyghost.wakeve.OnboardingScreen
-import com.guyghost.wakeve.ScenarioListScreen
+import androidx.navigation.compose.rememberNavController
 import com.guyghost.wakeve.auth.AndroidAuthenticationService
 import com.guyghost.wakeve.auth.AuthState
 import com.guyghost.wakeve.auth.AuthStateManager
-import com.guyghost.wakeve.auth.GoogleSignInHelper
-import com.guyghost.wakeve.calendar.CalendarService
-import com.guyghost.wakeve.calendar.PlatformCalendarServiceImpl
-import com.guyghost.wakeve.models.Event
-import com.guyghost.wakeve.models.EventStatus
-import com.guyghost.wakeve.models.Vote
-import com.guyghost.wakeve.ScenarioRepository
+import com.guyghost.wakeve.navigation.Screen
+import com.guyghost.wakeve.navigation.WakevBottomBar
+import com.guyghost.wakeve.navigation.WakevNavHost
 import com.guyghost.wakeve.security.AndroidSecureTokenStorage
-import com.guyghost.wakeve.sync.AndroidNetworkStatusDetector
-import com.guyghost.wakeve.sync.KtorSyncHttpClient
-import com.guyghost.wakeve.sync.SyncManager
-import com.guyghost.wakeve.ui.event.ModernEventDetailView
-import com.guyghost.wakeve.viewmodel.EventManagementViewModel
-import com.guyghost.wakeve.presentation.state.EventManagementContract
 import kotlinx.coroutines.launch
-import java.io.File
-import android.content.Intent
-import android.net.Uri
-import android.widget.Toast
-import org.koin.core.context.GlobalContext
 
+// SharedPreferences constants
 private const val PREFS_NAME = "wakeve_prefs"
 private const val HAS_COMPLETED_ONBOARDING = "has_completed_onboarding"
 
+/**
+ * Get SharedPreferences instance.
+ */
 fun getSharedPreferences(context: Context): SharedPreferences {
     return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 }
 
+/**
+ * Check if user has completed onboarding.
+ */
 fun hasCompletedOnboarding(context: Context): Boolean {
     return getSharedPreferences(context).getBoolean(HAS_COMPLETED_ONBOARDING, false)
 }
 
+/**
+ * Mark onboarding as complete.
+ */
 fun markOnboardingComplete(context: Context) {
     getSharedPreferences(context).edit().putBoolean(HAS_COMPLETED_ONBOARDING, true).apply()
 }
 
-enum class AppRoute {
-    SPLASH,
-    ONBOARDING,
-    LOGIN,
-    HOME,
-    EVENT_CREATION,
-    PARTICIPANT_MANAGEMENT,
-    POLL_VOTING,
-    POLL_RESULTS,
-    EVENT_DETAIL,
-    SCENARIO_LIST,
-    SCENARIO_DETAIL,
-    SCENARIO_COMPARISON,
-    BUDGET_OVERVIEW,
-    BUDGET_DETAIL,
-    ACCOMMODATION,
-    MEAL_PLANNING,
-    EQUIPMENT_CHECKLIST,
-    ACTIVITY_PLANNING,
-    COMMENTS
-}
-
 /**
- * Adapter function for HomeScreen using State Machine-based ViewModel.
- *
- * This function bridges the old HomeScreen signature with the new ViewModel-based
- * architecture, handling the transition and mapping of callbacks.
- *
- * @param userId The current user ID
- * @param onCreateEvent Callback when user wants to create an event
- * @param onEventClick Callback when user clicks on an event
- * @param onSignOut Callback when user signs out
+ * Main App composable using Jetpack Compose Navigation.
+ * 
+ * Architecture:
+ * - NavController for navigation management
+ * - Scaffold with Bottom Navigation Bar
+ * - WakevNavHost for all navigation destinations
+ * 
+ * Flow:
+ * 1. Splash → GetStarted → Login → Onboarding → Home (with bottom nav)
+ * 2. Bottom Navigation: Home | Events | Explore | Profile
  */
-@Composable
-private fun HomeScreenAdapter(
-    userId: String,
-    onCreateEvent: () -> Unit,
-    onEventClick: (Event) -> Unit,
-    onSignOut: () -> Unit
-) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
-    // Get ViewModel from Koin
-    val viewModel = remember {
-        GlobalContext.get().get<EventManagementViewModel>()
-    }
-
-    // Load events when screen appears
-    LaunchedEffect(Unit) {
-        viewModel.dispatch(EventManagementContract.Intent.LoadEvents)
-    }
-
-    // Handle side effects from ViewModel
-    LaunchedEffect(Unit) {
-        viewModel.sideEffect.collect { effect ->
-            when (effect) {
-                is EventManagementContract.SideEffect.NavigateTo -> {
-                    // Parse route and navigate accordingly
-                    val route = effect.route
-                    when {
-                        route.startsWith("create_event") -> {
-                            onCreateEvent()
-                        }
-                        route.startsWith("detail/") -> {
-                            val eventId = route.removePrefix("detail/")
-                            val event = viewModel.state.value.events.find { it.id == eventId }
-                            event?.let { onEventClick(it) }
-                        }
-                    }
-                }
-                is EventManagementContract.SideEffect.ShowToast -> {
-                    Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
-                }
-                is EventManagementContract.SideEffect.NavigateBack -> {
-                    // Navigate back (handled by app's navigation state)
-                }
-            }
-        }
-    }
-
-    // Display HomeScreen with ViewModel
-    HomeScreen(
-        viewModel = viewModel,
-        onNavigateTo = { route ->
-            when {
-                route == "create_event" -> onCreateEvent()
-                route.startsWith("detail/") -> {
-                    val eventId = route.removePrefix("detail/")
-                    val event = viewModel.state.value.events.find { it.id == eventId }
-                    event?.let { onEventClick(it) }
-                }
-            }
-        },
-        onShowToast = { message ->
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-        }
-    )
-}
-
 @Composable
 @Preview
 fun App() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     
-    // App navigation state
-    var currentRoute by remember { mutableStateOf(AppRoute.SPLASH) }
-    var isAuthenticated by remember { mutableStateOf(false) }
+    // Authentication state
+    var authState by remember { mutableStateOf<AuthState>(AuthState.Loading) }
     var userId by remember { mutableStateOf<String?>(null) }
     var hasOnboarded by remember { mutableStateOf(false) }
     
-    // Event and scenario navigation state
-    var selectedEvent by remember { mutableStateOf<com.guyghost.wakeve.models.Event?>(null) }
-    var selectedScenarioId by remember { mutableStateOf<String?>(null) }
-    var selectedBudgetItemId by remember { mutableStateOf<String?>(null) }
+    // Navigation controller
+    val navController = rememberNavController()
     
-    // Initialize app dependencies
+    // Initialize authentication and check onboarding status
     LaunchedEffect(Unit) {
+        // Check onboarding status
+        hasOnboarded = hasCompletedOnboarding(context)
+        
         // Initialize authentication
         val authService = AndroidAuthenticationService(context)
         val authStateManager = AuthStateManager(
-            secureStorage = com.guyghost.wakeve.security.AndroidSecureTokenStorage(context),
+            secureStorage = AndroidSecureTokenStorage(context),
             authService = authService,
             enableOAuth = false // TODO: Enable OAuth when configured
         )
         authStateManager.initialize()
         
-        // Check onboarding status
-        hasOnboarded = hasCompletedOnboarding(context)
-        
-        // Check authentication state
+        // Observe authentication state
         authStateManager.authState.collect { state ->
+            authState = state
             when (state) {
                 is AuthState.Authenticated -> {
-                    isAuthenticated = true
                     userId = state.userId
-                    // Do not set currentRoute here, let splash decide
                 }
                 is AuthState.Unauthenticated -> {
-                    isAuthenticated = false
                     userId = null
-                    // Do not set currentRoute here, let splash decide
                 }
                 else -> {
-                    // Loading or Error, stay on current route
+                    // Loading or Error
                 }
             }
         }
     }
     
+    // Determine start destination based on auth and onboarding state
+    val startDestination = remember(authState, hasOnboarded) {
+        when {
+            authState is AuthState.Loading -> Screen.Splash.route
+            authState is AuthState.Unauthenticated -> Screen.GetStarted.route
+            authState is AuthState.Authenticated && !hasOnboarded -> Screen.Onboarding.route
+            authState is AuthState.Authenticated && hasOnboarded -> Screen.Home.route
+            else -> Screen.Splash.route
+        }
+    }
+    
+    // Determine if bottom bar should be visible
+    val currentRoute = navController.currentBackStackEntryFlow.collectAsState(initial = null)
+    val showBottomBar = remember(currentRoute.value?.destination?.route) {
+        currentRoute.value?.destination?.route in listOf(
+            Screen.Home.route,
+            Screen.Events.route,
+            Screen.Explore.route,
+            Screen.Profile.route
+        )
+    }
+    
     MaterialTheme {
-        when (currentRoute) {
-            AppRoute.SPLASH -> {
-                SplashScreen(
-                    onAnimationComplete = {
-                        // Route to appropriate screen based on auth and onboarding state
-                        currentRoute = when {
-                            !isAuthenticated -> AppRoute.LOGIN
-                            isAuthenticated && !hasOnboarded -> AppRoute.ONBOARDING
-                            isAuthenticated && hasOnboarded -> AppRoute.HOME
-                            else -> AppRoute.HOME // fallback
-                        }
-                    }
-                )
-            }
-            AppRoute.ONBOARDING -> {
-                OnboardingScreen(
-                    onOnboardingComplete = {
-                        scope.launch {
-                            markOnboardingComplete(context)
-                            currentRoute = AppRoute.HOME // User is authenticated after onboarding
-                        }
-                    }
-                )
-            }
-            AppRoute.LOGIN -> {
-                LoginScreen(
-                    onGoogleSignIn = { /* TODO: Implement Google Sign-In */ },
-                    onAppleSignIn = { /* Not available on Android */ }
-                )
-            }
-            AppRoute.HOME -> {
-                HomeScreenAdapter(
-                    userId = userId ?: "",
-                    onCreateEvent = { currentRoute = AppRoute.EVENT_CREATION },
-                    onEventClick = { event ->
-                        selectedEvent = event
-                        currentRoute = AppRoute.EVENT_DETAIL
-                    },
-                    onSignOut = {
-                        scope.launch {
-                            val authService = AndroidAuthenticationService(context)
-                            val authStateManager = AuthStateManager(
-                                secureStorage = com.guyghost.wakeve.security.AndroidSecureTokenStorage(context),
-                                authService = authService,
-                                enableOAuth = false
-                            )
-                            authStateManager.logout()
-                            currentRoute = AppRoute.LOGIN
-                        }
-                    }
-                )
-            }
-            AppRoute.EVENT_DETAIL -> {
-                selectedEvent?.let { event ->
-                    val database = remember { DatabaseProvider.getDatabase(com.guyghost.wakeve.AndroidDatabaseFactory(context)) }
-                    val calendarService = remember { 
-                        CalendarService(
-                            database = database,
-                            platformCalendarService = PlatformCalendarServiceImpl(context)
-                        )
-                    }
-
-                    // Permission launcher for calendar access
-                    val calendarPermissionLauncher = rememberLauncherForActivityResult(
-                        contract = ActivityResultContracts.RequestMultiplePermissions()
-                    ) { permissions ->
-                        val granted = permissions[android.Manifest.permission.WRITE_CALENDAR] == true &&
-                                     permissions[android.Manifest.permission.READ_CALENDAR] == true
-                        if (granted) {
-                            scope.launch {
-                                try {
-                                    calendarService.addToNativeCalendar(
-                                        eventId = event.id,
-                                        participantId = userId ?: ""
-                                    )
-                                    Toast.makeText(context, "Événement ajouté au calendrier", Toast.LENGTH_SHORT).show()
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "Erreur lors de l'ajout: ${e.message}", Toast.LENGTH_LONG).show()
-                                }
-                            }
-                        } else {
-                            Toast.makeText(context, "Permission refusée", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-
-                    ModernEventDetailView(
-                        event = event,
-                        userId = userId ?: "",
-                        onNavigateToScenarioList = { currentRoute = AppRoute.SCENARIO_LIST },
-                        onNavigateToBudgetOverview = { currentRoute = AppRoute.BUDGET_OVERVIEW },
-                        onNavigateToAccommodation = { currentRoute = AppRoute.ACCOMMODATION },
-                        onNavigateToMealPlanning = { currentRoute = AppRoute.MEAL_PLANNING },
-                        onNavigateToEquipmentChecklist = { currentRoute = AppRoute.EQUIPMENT_CHECKLIST },
-                        onNavigateToActivityPlanning = { currentRoute = AppRoute.ACTIVITY_PLANNING },
-                        onNavigateToComments = { currentRoute = AppRoute.COMMENTS },
-                        onNavigateToHome = { currentRoute = AppRoute.HOME },
-                        onAddToCalendar = {
-                            calendarPermissionLauncher.launch(
-                                arrayOf(
-                                    android.Manifest.permission.WRITE_CALENDAR,
-                                    android.Manifest.permission.READ_CALENDAR
-                                )
-                            )
-                        },
-                        onShareInvite = {
-                            scope.launch {
-                                try {
-                                    val icsDocument = calendarService.generateICSInvitation(
-                                        eventId = event.id,
-                                        invitees = emptyList() // TODO: Add real invitees
-                                    )
-                                    
-                                    // Save ICS to temporary file
-                                    val cacheDir = context.cacheDir
-                                    val file = File(cacheDir, icsDocument.filename)
-                                    file.writeText(icsDocument.content)
-                                    
-                                    // Share file
-                                    val uri = FileProvider.getUriForFile(
-                                        context,
-                                        "${context.packageName}.fileprovider",
-                                        file
-                                    )
-                                    
-                                    val intent = Intent(Intent.ACTION_SEND).apply {
-                                        type = "text/calendar"
-                                        putExtra(Intent.EXTRA_STREAM, uri)
-                                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                                    }
-                                    
-                                    context.startActivity(Intent.createChooser(intent, "Partager l'invitation"))
-                                } catch (e: Exception) {
-                                    Toast.makeText(context, "Erreur lors du partage: ${e.message}", Toast.LENGTH_LONG).show()
-                                }
-                            }
-                        }
-                    )
-                } ?: run {
-                    // Fallback if no event is selected
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text("Événement non trouvé")
-                        Button(onClick = { currentRoute = AppRoute.HOME }) {
-                            Text("Retour à l'accueil")
-                        }
-                    }
+        Scaffold(
+            bottomBar = {
+                if (showBottomBar) {
+                    WakevBottomBar(navController = navController)
                 }
             }
-            AppRoute.SCENARIO_LIST -> {
-                selectedEvent?.let { event ->
-                    // In a real implementation, we would inject the repository
-                    // For now, we'll create a mock repository instance
-                    val mockRepository = com.guyghost.wakeve.ScenarioRepository(
-                        com.guyghost.wakeve.DatabaseProvider.getDatabase(
-                            com.guyghost.wakeve.AndroidDatabaseFactory(context)
-                        )
-                    )
-                    
-                    ScenarioListScreen(
-                        event = event,
-                        repository = mockRepository,
-                        participantId = userId ?: "",
-                        onScenarioClick = { scenarioId -> 
-                            selectedScenarioId = scenarioId
-                            currentRoute = AppRoute.SCENARIO_DETAIL
-                        },
-                        onCreateScenario = { /* TODO: Implement create scenario */ },
-                        onCompareScenarios = { currentRoute = AppRoute.SCENARIO_COMPARISON }
-                    )
-                } ?: run {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text("Événement non sélectionné")
-                        Button(onClick = { currentRoute = AppRoute.HOME }) {
-                            Text("Retour à l'accueil")
-                        }
-                    }
-                }
-            }
-            AppRoute.SCENARIO_DETAIL -> {
-                // Placeholder - will implement with real scenario detail screen
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Détail du scénario")
-                    Button(onClick = { currentRoute = AppRoute.SCENARIO_LIST }) {
-                        Text("Retour à la liste")
-                    }
-                }
-            }
-            AppRoute.SCENARIO_COMPARISON -> {
-                // Placeholder - will implement with real scenario comparison screen
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Comparaison des scénarios")
-                    Button(onClick = { currentRoute = AppRoute.SCENARIO_LIST }) {
-                        Text("Retour à la liste")
-                    }
-                }
-            }
-            AppRoute.BUDGET_OVERVIEW -> {
-                // Placeholder - will implement with real budget overview screen
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Aperçu du budget")
-                    Button(onClick = { currentRoute = AppRoute.HOME }) {
-                        Text("Retour à l'accueil")
-                    }
-                }
-            }
-            AppRoute.BUDGET_DETAIL -> {
-                // Placeholder - will implement with real budget detail screen
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Détail du budget")
-                    Button(onClick = { currentRoute = AppRoute.BUDGET_OVERVIEW }) {
-                        Text("Retour à l'aperçu")
-                    }
-                }
-            }
-            AppRoute.EVENT_CREATION -> {
-                // Placeholder - will implement with real event creation screen
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Création d'événement")
-                    Button(onClick = { currentRoute = AppRoute.HOME }) {
-                        Text("Retour à l'accueil")
-                    }
-                }
-            }
-            AppRoute.PARTICIPANT_MANAGEMENT -> {
-                // Placeholder - will implement with real participant management screen
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Gestion des participants")
-                    Button(onClick = { currentRoute = AppRoute.HOME }) {
-                        Text("Retour à l'accueil")
-                    }
-                }
-            }
-            AppRoute.POLL_VOTING -> {
-                // Placeholder - will implement with real poll voting screen
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Vote du sondage")
-                    Button(onClick = { currentRoute = AppRoute.HOME }) {
-                        Text("Retour à l'accueil")
-                    }
-                }
-            }
-            AppRoute.POLL_RESULTS -> {
-                // Placeholder - will implement with real poll results screen
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Résultats du sondage")
-                    Button(onClick = { currentRoute = AppRoute.HOME }) {
-                        Text("Retour à l'accueil")
-                    }
-                }
-            }
-            AppRoute.ACCOMMODATION -> {
-                // Placeholder - will implement with real accommodation screen
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Hébergement")
-                    Button(onClick = { currentRoute = AppRoute.HOME }) {
-                        Text("Retour à l'accueil")
-                    }
-                }
-            }
-            AppRoute.MEAL_PLANNING -> {
-                // Placeholder - will implement with real meal planning screen
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Planification des repas")
-                    Button(onClick = { currentRoute = AppRoute.HOME }) {
-                        Text("Retour à l'accueil")
-                    }
-                }
-            }
-            AppRoute.EQUIPMENT_CHECKLIST -> {
-                // Placeholder - will implement with real equipment checklist screen
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Liste d'équipement")
-                    Button(onClick = { currentRoute = AppRoute.HOME }) {
-                        Text("Retour à l'accueil")
-                    }
-                }
-            }
-            AppRoute.ACTIVITY_PLANNING -> {
-                // Placeholder - will implement with real activity planning screen
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Planification des activités")
-                    Button(onClick = { currentRoute = AppRoute.HOME }) {
-                        Text("Retour à l'accueil")
-                    }
-                }
-            }
-            AppRoute.COMMENTS -> {
-                // Placeholder - will implement with real comments screen
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("Commentaires")
-                    Button(onClick = { currentRoute = AppRoute.HOME }) {
-                        Text("Retour à l'accueil")
-                    }
-                }
-            }
+        ) { paddingValues ->
+            WakevNavHost(
+                navController = navController,
+                modifier = androidx.compose.ui.Modifier.padding(paddingValues),
+                startDestination = startDestination,
+                userId = userId ?: ""
+            )
         }
     }
 }
 
+/**
+ * App preview for Android Studio.
+ */
 @Composable
 fun AppPreview() {
     MaterialTheme {

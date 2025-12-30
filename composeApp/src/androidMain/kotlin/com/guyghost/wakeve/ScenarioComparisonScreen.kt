@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,72 +33,62 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.guyghost.wakeve.ScenarioLogic
-import com.guyghost.wakeve.models.Event
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.guyghost.wakeve.models.ScenarioWithVotes
-import kotlin.math.max
-
-/**
- * State for Scenario Comparison Screen
- */
-data class ScenarioComparisonState(
-    val eventId: String = "",
-    val scenarios: List<ScenarioWithVotes> = emptyList(),
-    val isLoading: Boolean = true,
-    val isError: Boolean = false,
-    val errorMessage: String = "",
-    val bestScenarioId: String? = null
-)
+import com.guyghost.wakeve.presentation.state.ScenarioManagementContract
+import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
 
 /**
  * Scenario Comparison Screen
  * 
  * Side-by-side comparison of all scenarios for an event.
  * Shows all key metrics in a table format for easy comparison.
+ * 
+ * Uses the ScenarioManagementViewModel with State Machine pattern (MVI/FSM)
+ * to manage state and side effects.
  */
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ScenarioComparisonScreen(
-    event: Event,
-    repository: ScenarioRepository,
+    scenarioIds: List<String>,
+    eventTitle: String,
+    viewModel: ScenarioManagementViewModel,
     onBack: () -> Unit
 ) {
-    var state by remember { mutableStateOf(ScenarioComparisonState(eventId = event.id)) }
+    // Observe state from ViewModel
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val comparison by viewModel.comparison.collectAsStateWithLifecycle()
 
-    // Load scenarios on mount
-    LaunchedEffect(event.id) {
-        state = state.copy(isLoading = true, isError = false)
-        try {
-            val scenariosWithVotes = repository.getScenariosWithVotes(event.id)
-            
-            // Calculate best scenario
-            val allVotes = scenariosWithVotes.flatMap { it.votes }
-            val rankedScenarios = ScenarioLogic.rankScenariosByScore(
-                scenariosWithVotes.map { it.scenario },
-                allVotes
-            )
-            val bestScenarioId = rankedScenarios.firstOrNull()?.scenario?.id
-            
-            state = state.copy(
-                scenarios = scenariosWithVotes,
-                bestScenarioId = bestScenarioId,
-                isLoading = false
-            )
-        } catch (e: Exception) {
-            state = state.copy(
-                isLoading = false,
-                isError = true,
-                errorMessage = e.message ?: "Failed to load scenarios"
-            )
+    // Load comparison scenarios on first composition
+    LaunchedEffect(scenarioIds) {
+        if (scenarioIds.isNotEmpty()) {
+            viewModel.compareScenarios(scenarioIds)
+        }
+    }
+
+    // Handle side effects from state machine
+    LaunchedEffect(Unit) {
+        viewModel.sideEffect.collect { effect ->
+            when (effect) {
+                is ScenarioManagementContract.SideEffect.NavigateBack -> {
+                    onBack()
+                }
+                is ScenarioManagementContract.SideEffect.ShowError -> {
+                    // Error message is displayed in UI from state
+                }
+                is ScenarioManagementContract.SideEffect.ShowToast -> {
+                    // Toast can be shown if needed
+                }
+                else -> {} // Handle other side effects if needed
+            }
         }
     }
 
@@ -108,6 +99,11 @@ fun ScenarioComparisonScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.clearComparison() }) {
+                        Icon(Icons.Default.Close, contentDescription = "Clear comparison")
                     }
                 }
             )
@@ -121,7 +117,7 @@ fun ScenarioComparisonScreen(
                 .safeContentPadding()
         ) {
             // Loading State
-            if (state.isLoading) {
+            if (isLoading) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -137,7 +133,7 @@ fun ScenarioComparisonScreen(
             }
 
             // Error State
-            if (state.isError) {
+            if (errorMessage != null) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -153,7 +149,7 @@ fun ScenarioComparisonScreen(
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Text(
-                            state.errorMessage,
+                            errorMessage ?: "An error occurred",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.padding(top = 8.dp)
@@ -164,7 +160,7 @@ fun ScenarioComparisonScreen(
             }
 
             // Empty State
-            if (state.scenarios.isEmpty()) {
+            if (comparison == null || comparison!!.scenarios.isEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -181,17 +177,22 @@ fun ScenarioComparisonScreen(
                 return@Scaffold
             }
 
+            val comparisonData = comparison!!
+            
+            // Calculate best scenario ID based on highest score
+            val bestScenarioId = comparisonData.scenarios.maxByOrNull { it.votingResult.score }?.scenario?.id
+
             // Header
             Column(
                 modifier = Modifier.padding(16.dp)
             ) {
                 Text(
-                    "Event: ${event.title}",
+                    "Event: $eventTitle",
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    "${state.scenarios.size} scenarios to compare",
+                    "${comparisonData.scenarios.size} scenarios to compare",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp)
@@ -207,8 +208,8 @@ fun ScenarioComparisonScreen(
                     .padding(horizontal = 16.dp)
             ) {
                 ComparisonTableImpl(
-                    scenarios = state.scenarios,
-                    bestScenarioId = state.bestScenarioId
+                    scenarios = comparisonData.scenarios,
+                    bestScenarioId = bestScenarioId
                 )
             }
         }
