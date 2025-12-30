@@ -424,6 +424,10 @@ enum AppView {
     case mealPlanning
     case equipmentChecklist
     case activityPlanning
+    // Phase 4 - Meetings & Communication
+    case inbox
+    case meetingList
+    case meetingDetail
 }
 
 struct EventListView: View {
