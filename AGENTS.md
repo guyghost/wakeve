@@ -890,6 +890,13 @@ openspec archive <change-id> --yes
 - Agent Transport (optimisation multi-participants)
 - Agent Destination & Logement
 
+### Phase 2.6 Complète ✅
+- First Time Onboarding (Android + iOS)
+- 4-screen onboarding flow
+- Material You (Android) + Liquid Glass (iOS)
+- Local persistence (SharedPreferences/UserDefaults)
+- 35 automated tests (25 Android + 10 iOS)
+
 ### Phase 4 Future 🔮
 - Agent Réunions (Zoom/Meet/FaceTime)
 - Agent Paiement & Tricount
