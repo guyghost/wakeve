@@ -88,6 +88,15 @@ git status
 ✅ 27 reusable UI components
 ✅ 75/89 tasks completed (84%)
 
+### Phase 2.6: First Time Onboarding (Implemented)
+✅ 4-screen onboarding flow (Android + iOS)
+✅ Material You design for Android
+✅ Liquid Glass design for iOS
+✅ Local persistence (SharedPreferences/UserDefaults)
+✅ Skip functionality
+✅ 35 automated tests (25 Android + 10 iOS)
+✅ 30/38 tasks completed (79%)
+
 ## iOS Interface - Tab Navigation
 
 The iOS application features a tab-based navigation with 3 main tabs:
@@ -186,6 +195,36 @@ The iOS application features a tab-based navigation with 3 main tabs:
 ⏳ Offline-first synchronization
 ⏳ Push notifications
 ⏳ Native calendar integration
+
+## First Time User Experience
+
+### Onboarding Flow
+
+When you launch the app for the first time, you'll be greeted with a beautiful onboarding experience:
+
+**Android (Material You)**
+- 4-screen horizontal pager introducing key features
+- Material Design 3 components and animations
+- Skip button to jump directly to the app
+- "Get Started" button to complete onboarding
+
+**iOS (Liquid Glass)**
+- 4-page TabView with smooth transitions
+- Liquid Glass materials and continuous corners
+- Skip button in top-right corner
+- "Get Started" button on final page
+
+**Onboarding Screens:**
+1. **Create Events** - Learn how to create and organize events
+2. **Collaborate** - Invite participants and vote on dates
+3. **Organize** - Manage scenarios, budgets, and logistics
+4. **Enjoy** - Focus on the experience, not the planning
+
+**Persistence:**
+- Onboarding state is saved locally (Android SharedPreferences, iOS UserDefaults)
+- Only shown on first launch
+- Can be skipped at any time
+- Does not reappear on subsequent launches
 
 ## Development Workflow
 

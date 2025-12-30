@@ -42,8 +42,8 @@
 
 ## Documentation
 
-- [ ] **D1** : Mettre à jour `QUICK_START.md` avec le flow d'onboarding
-- [ ] **D2** : Mettre à jour `AGENTS.md` si nécessaire
+- [x] **D1** : Mettre à jour `QUICK_START.md` avec le flow d'onboarding
+- [x] **D2** : Mettre à jour `AGENTS.md` si nécessaire
 - [x] **D3** : Créer `IMPLEMENTATION_SUMMARY.md` après complétion
 
 ## Revue et Validation
@@ -60,7 +60,7 @@
 
 ## Statut Global
 
-**Progression** : 28/28 tâches complétées (100%) ✅
+**Progression** : 30/30 tâches complétées (100%) ✅
 
 **Priorité** : Haute
 
@@ -77,9 +77,8 @@
 - ✅ Review de code et design
 - ✅ Correction bugs critiques (encodage + icônes Android)
 - ✅ Correction bugs majeurs (couleurs iOS)
+- ✅ Documentation mise à jour (QUICK_START.md, AGENTS.md)
 
 **Tâches restantes pour validation manuelle** :
-- Mise à jour QUICK_START.md (D1)
-- Mise à jour AGENTS.md (D2)
-- Exécution des tests sur émulateurs/simulateurs
-- Validation visuelle finale
+- Exécution des tests sur émulateurs/simulateurs (A1.4-A1.6, I1.9-I1.11)
+- Validation visuelle finale sur device physique
