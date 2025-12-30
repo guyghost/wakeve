@@ -6,15 +6,6 @@ import Shared
 /// Manages the state and intents for displaying detailed information about a single event.
 /// Uses the shared Kotlin state machine to handle all business logic.
 ///
-/// ## State Management
-///
-/// The ViewModel:
-/// 1. Creates a state machine via `IosFactory`
-/// 2. Observes state changes from the state machine
-/// 3. Observes side effects for navigation and toasts
-/// 4. Exposes `dispatch()` method for the view to send intents
-/// 5. Filters the selected event from the state's events list
-///
 /// ## Usage
 ///
 /// ```swift
@@ -32,7 +23,7 @@ class EventDetailViewModel: ObservableObject {
     // MARK: - Published Properties
     
     /// Current state from the state machine
-    @Published var state: EventManagementContractState
+    @Published var state: EventManagementContract.State
     
     /// The currently selected event (filtered from state.events)
     @Published var selectedEvent: Event?
@@ -52,8 +43,8 @@ class EventDetailViewModel: ObservableObject {
     private let eventId: String
     
     /// The observable state machine wrapper
-    private let stateMachineWrapper: ViewModelWrapper<
-        EventManagementContractState,
+    private let stateMachineWrapper: ObservableStateMachine<
+        EventManagementContract.State,
         EventManagementContractIntent,
         EventManagementContractSideEffect
     >
@@ -61,35 +52,31 @@ class EventDetailViewModel: ObservableObject {
     // MARK: - Initialization
     
     /// Initialize the ViewModel with a specific event ID.
-    ///
-    /// - Parameter eventId: The ID of the event to display details for
     init(eventId: String) {
         self.eventId = eventId
         
         // Get the shared database from RepositoryProvider
         let database = RepositoryProvider.shared.database
         
-        // Create the state machine via iOS factory
-        self.stateMachineWrapper = IosFactory().createEventStateMachine(database: database)
+        // Create the state machine via iOS factory (IosFactory is an object/singleton)
+        self.stateMachineWrapper = IosFactory.shared.createEventStateMachine(database: database)
         
         // Initialize state with current state from state machine
-        self.state = self.stateMachineWrapper.currentState as! EventManagementContractState
+        self.state = self.stateMachineWrapper.currentState!
         
         // Observe state changes from the state machine
         self.stateMachineWrapper.onStateChange = { [weak self] newState in
-            guard let self = self else { return }
+            guard let self = self, let newState = newState else { return }
             
             DispatchQueue.main.async {
-                if let newState = newState as? EventManagementContractState {
-                    self.state = newState
-                    self.updateSelectedEvent()
-                }
+                self.state = newState
+                self.updateSelectedEvent()
             }
         }
         
         // Observe side effects from the state machine
         self.stateMachineWrapper.onSideEffect = { [weak self] effect in
-            guard let self = self else { return }
+            guard let self = self, let effect = effect else { return }
             
             DispatchQueue.main.async {
                 self.handleSideEffect(effect)
@@ -97,38 +84,55 @@ class EventDetailViewModel: ObservableObject {
         }
         
         // Load participants and poll results
-        dispatch(EventManagementContractIntent.loadParticipants(eventId: eventId))
-        dispatch(EventManagementContractIntent.loadPollResults(eventId: eventId))
+        loadParticipants()
+        loadPollResults()
     }
     
     // MARK: - Public Methods
     
     /// Dispatch an intent to the state machine.
-    ///
-    /// - Parameter intent: The intent to dispatch
     func dispatch(_ intent: EventManagementContractIntent) {
         stateMachineWrapper.dispatch(intent: intent)
+    }
+    
+    /// Load participants for the event
+    func loadParticipants() {
+        dispatch(EventManagementContractIntentLoadParticipants(eventId: eventId))
+    }
+    
+    /// Load poll results for the event
+    func loadPollResults() {
+        dispatch(EventManagementContractIntentLoadPollResults(eventId: eventId))
+    }
+    
+    /// Delete the event
+    func deleteEvent() {
+        dispatch(EventManagementContractIntentDeleteEvent(eventId: eventId))
+    }
+    
+    /// Update the event
+    func updateEvent(_ event: Event) {
+        dispatch(EventManagementContractIntentUpdateEvent(event: event))
     }
     
     // MARK: - Private Methods
     
     /// Update the selected event by filtering from the state's events list.
-    ///
-    /// This is called whenever the state changes to keep selectedEvent in sync.
     private func updateSelectedEvent() {
         selectedEvent = state.events.first { $0.id == eventId }
     }
     
     /// Handle side effects emitted by the state machine.
-    ///
-    /// - Parameter effect: The side effect to handle
-    private func handleSideEffect(_ effect: Any) {
-        if let showToast = effect as? EventManagementContractSideEffectShowToast {
+    private func handleSideEffect(_ effect: EventManagementContractSideEffect) {
+        switch effect {
+        case let showToast as EventManagementContractSideEffectShowToast:
             toastMessage = showToast.message
-        } else if let navigateTo = effect as? EventManagementContractSideEffectNavigateTo {
+        case let navigateTo as EventManagementContractSideEffectNavigateTo:
             navigationRoute = navigateTo.route
-        } else if effect is EventManagementContractSideEffectNavigateBack {
+        case is EventManagementContractSideEffectNavigateBack:
             shouldNavigateBack = true
+        default:
+            break
         }
     }
     
@@ -137,29 +141,5 @@ class EventDetailViewModel: ObservableObject {
     deinit {
         // Clean up state machine resources
         stateMachineWrapper.dispose()
-    }
-}
-
-// MARK: - Type Extensions
-
-/// Helper to create LoadParticipants intent
-extension EventManagementContractIntent {
-    static func loadParticipants(eventId: String) -> EventManagementContractIntent {
-        return EventManagementContractIntent.loadParticipants(eventId: eventId)
-    }
-    
-    /// Helper to create LoadPollResults intent
-    static func loadPollResults(eventId: String) -> EventManagementContractIntent {
-        return EventManagementContractIntent.loadPollResults(eventId: eventId)
-    }
-    
-    /// Helper to create DeleteEvent intent
-    static func deleteEvent(eventId: String) -> EventManagementContractIntent {
-        return EventManagementContractIntent.deleteEvent(eventId: eventId)
-    }
-    
-    /// Helper to create UpdateEvent intent
-    static func updateEvent(_ event: Event) -> EventManagementContractIntent {
-        return EventManagementContractIntent.updateEvent(event: event)
     }
 }

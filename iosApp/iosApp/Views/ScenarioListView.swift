@@ -1,31 +1,19 @@
 import SwiftUI
 import Shared
 
-// MARK: - Local Models
-
-enum ScenarioStatus: String {
-    case proposed = "PROPOSED"
-    case selected = "SELECTED"
-    case rejected = "REJECTED"
-}
-
 /// Scenario List View - iOS
 ///
 /// Displays all scenarios for an event with voting interface.
 /// Uses Liquid Glass design system with Material backgrounds.
+/// Uses State Machine via ViewModel for state management.
 struct ScenarioListView: View {
     let event: Event
-    let repository: ScenarioRepository
     let participantId: String
     let onScenarioTap: (Scenario_) -> Void
     let onCompareTap: () -> Void
     let onBack: () -> Void
     
-    @State private var scenarios: [ScenarioWithVotes] = []
-    @State private var userVotes: [String: ScenarioVote] = [:]
-    @State private var isLoading = true
-    @State private var errorMessage = ""
-    @State private var showError = false
+    @StateObject private var viewModel = ScenarioListViewModel()
     
     var body: some View {
         ZStack {
@@ -36,30 +24,28 @@ struct ScenarioListView: View {
                 // Header
                 headerView
                 
-                if isLoading {
+                if viewModel.isLoading {
                     loadingView
-                } else if scenarios.isEmpty {
+                } else if viewModel.isEmpty {
                     emptyStateView
                 } else {
                     ScrollView {
                         VStack(spacing: 16) {
                             // Compare button
-                            if scenarios.count > 1 {
+                            if viewModel.scenarios.count > 1 {
                                 compareButton
                             }
                             
                             // Scenario cards with voting
-                            ForEach(scenarios, id: \.scenario.id) { scenarioWithVotes in
+                            ForEach(viewModel.scenarios, id: \.scenario.id) { scenarioWithVotes in
                                 ScenarioCard(
                                     scenarioWithVotes: scenarioWithVotes,
-                                    userVote: userVotes[scenarioWithVotes.scenario.id],
+                                    userVote: getUserVote(for: scenarioWithVotes),
                                     onVote: { voteType in
-                                        Task {
-                                            await submitVote(
-                                                scenarioId: scenarioWithVotes.scenario.id,
-                                                voteType: voteType
-                                            )
-                                        }
+                                        viewModel.voteScenario(
+                                            scenarioId: scenarioWithVotes.scenario.id,
+                                            voteType: voteType
+                                        )
                                     },
                                     onTap: { onScenarioTap(scenarioWithVotes.scenario) }
                                 )
@@ -75,12 +61,15 @@ struct ScenarioListView: View {
             }
         }
         .onAppear {
-            loadScenarios()
+            viewModel.initialize(eventId: event.id, participantId: participantId)
         }
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
+        .alert("Error", isPresented: Binding(
+            get: { viewModel.hasError },
+            set: { if !$0 { viewModel.clearError() } }
+        )) {
+            Button("OK", role: .cancel) { viewModel.clearError() }
         } message: {
-            Text(errorMessage)
+            Text(viewModel.errorMessage ?? "An error occurred")
         }
     }
     
@@ -185,47 +174,10 @@ struct ScenarioListView: View {
         .frame(maxHeight: .infinity)
     }
     
-    // MARK: - Data Loading
+    // MARK: - Helpers
     
-    private func loadScenarios() {
-        Task {
-            let scenariosWithVotes = repository.getScenariosWithVotes(eventId: event.id)
-            
-            // Extract user's votes
-            var votes: [String: ScenarioVote] = [:]
-            for swv in scenariosWithVotes {
-                if let userVote = swv.votes.first(where: { $0.participantId == participantId }) {
-                    votes[swv.scenario.id] = userVote
-                }
-            }
-            
-            await MainActor.run {
-                self.scenarios = scenariosWithVotes
-                self.userVotes = votes
-                self.isLoading = false
-            }
-        }
-    }
-    
-    private func submitVote(scenarioId: String, voteType: ScenarioVoteType) async {
-        do {
-            let vote = ScenarioVote(
-                id: UUID().uuidString,
-                scenarioId: scenarioId,
-                participantId: participantId,
-                vote: voteType,
-                createdAt: ISO8601DateFormatter().string(from: Date())
-            )
-            _ = try await repository.addVote(vote: vote)
-            
-            // Reload scenarios to refresh
-            loadScenarios()
-        } catch {
-            await MainActor.run {
-                self.errorMessage = error.localizedDescription
-                self.showError = true
-            }
-        }
+    private func getUserVote(for scenarioWithVotes: ScenarioWithVotes) -> ScenarioVote? {
+        scenarioWithVotes.votes.first { $0.participantId == participantId }
     }
 }
 
@@ -255,15 +207,15 @@ struct ScenarioCard: View {
                 
                 Spacer()
                 
-                ScenarioStatusBadge(status: ScenarioStatus(rawValue: scenario.status.name) ?? .proposed)
+                ScenarioStatusBadge(status: scenario.status.name)
             }
             
             // Key details
             VStack(spacing: 12) {
-                InfoRow(label: "Date", value: scenario.dateOrPeriod, icon: "calendar")
-                InfoRow(label: "Location", value: scenario.location, icon: "mappin.circle")
-                InfoRow(label: "Duration", value: "\(scenario.duration) days", icon: "clock")
-                InfoRow(
+                ScenarioInfoRow(label: "Date", value: scenario.dateOrPeriod, icon: "calendar")
+                ScenarioInfoRow(label: "Location", value: scenario.location, icon: "mappin.circle")
+                ScenarioInfoRow(label: "Duration", value: "\(scenario.duration) days", icon: "clock")
+                ScenarioInfoRow(
                     label: "Budget",
                     value: String(format: "$%.0f per person", scenario.estimatedBudgetPerPerson),
                     icon: "dollarsign.circle"
@@ -304,21 +256,23 @@ struct ScenarioCard: View {
 // MARK: - Status Badge
 
 struct ScenarioStatusBadge: View {
-    let status: ScenarioStatus
+    let status: String
     
     private var color: Color {
-        switch status {
-        case .proposed: return .blue
-        case .selected: return .green
-        case .rejected: return .red
+        switch status.uppercased() {
+        case "PROPOSED": return .blue
+        case "SELECTED": return .green
+        case "REJECTED": return .red
+        default: return .gray
         }
     }
     
     private var text: String {
-        switch status {
-        case .proposed: return "Proposed"
-        case .selected: return "Selected"
-        case .rejected: return "Rejected"
+        switch status.uppercased() {
+        case "PROPOSED": return "Proposed"
+        case "SELECTED": return "Selected"
+        case "REJECTED": return "Rejected"
+        default: return status
         }
     }
     
@@ -477,6 +431,35 @@ struct ScenarioVoteButton: View {
             .padding(.vertical, 16)
             .background(isSelected ? color : color.opacity(0.1))
             .continuousCornerRadius(12)
+        }
+    }
+}
+
+// MARK: - Scenario Info Row
+
+struct ScenarioInfoRow: View {
+    let label: String
+    let value: String
+    let icon: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.blue)
+                .frame(width: 24)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.secondary)
+                
+                Text(value)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.primary)
+            }
+            
+            Spacer()
         }
     }
 }

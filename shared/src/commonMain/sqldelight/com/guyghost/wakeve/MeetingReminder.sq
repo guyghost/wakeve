@@ -1,0 +1,43 @@
+-- Meeting Reminders table: tracks automatic reminders before meetings
+CREATE TABLE meeting_reminder (
+    id TEXT PRIMARY KEY NOT NULL,
+    meeting_id TEXT NOT NULL,
+    participant_id TEXT, -- NULL means send to all participants
+    timing TEXT NOT NULL, -- ONE_DAY_BEFORE, ONE_HOUR_BEFORE, FIFTEEN_MINUTES_BEFORE, FIVE_MINUTES_BEFORE
+    scheduled_for TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    sent_at TEXT, -- ISO 8601 UTC timestamp
+    status TEXT NOT NULL DEFAULT 'SCHEDULED', -- SCHEDULED, SENT, FAILED
+    FOREIGN KEY (meeting_id) REFERENCES meeting(id) ON DELETE CASCADE,
+    FOREIGN KEY (participant_id) REFERENCES participant(id) ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX idx_meeting_reminder_meeting ON meeting_reminder(meeting_id);
+CREATE INDEX idx_meeting_reminder_participant ON meeting_reminder(participant_id);
+CREATE INDEX idx_meeting_reminder_scheduled_for ON meeting_reminder(scheduled_for);
+CREATE INDEX idx_meeting_reminder_status ON meeting_reminder(status);
+
+-- Queries
+insertMeetingReminder:
+INSERT INTO meeting_reminder (id, meeting_id, participant_id, timing, scheduled_for, sent_at, status)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+updateMeetingReminder:
+UPDATE meeting_reminder
+SET status = ?, sent_at = ?
+WHERE id = ?;
+
+selectByMeetingId:
+SELECT * FROM meeting_reminder WHERE meeting_id = ? ORDER BY scheduled_for ASC;
+
+selectByParticipantId:
+SELECT * FROM meeting_reminder WHERE participant_id = ? AND status = 'SCHEDULED' ORDER BY scheduled_for ASC;
+
+selectPendingByParticipant:
+SELECT * FROM meeting_reminder WHERE participant_id = ? AND status = 'SCHEDULED';
+
+deleteByMeetingId:
+DELETE FROM meeting_reminder WHERE meeting_id = ?;
+
+countPendingByMeetingId:
+SELECT COUNT(*) FROM meeting_reminder WHERE meeting_id = ? AND status = 'SCHEDULED';

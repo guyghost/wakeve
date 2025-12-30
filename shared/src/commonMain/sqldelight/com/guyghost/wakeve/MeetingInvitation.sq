@@ -1,0 +1,43 @@
+-- Meeting Invitations table: tracks invitations sent to participants
+CREATE TABLE meeting_invitation (
+    id TEXT PRIMARY KEY NOT NULL,
+    meeting_id TEXT NOT NULL,
+    participant_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PENDING', -- PENDING, ACCEPTED, DECLINED, TENTATIVE
+    sent_at TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    responded_at TEXT, -- ISO 8601 UTC timestamp
+    accepted_at TEXT, -- ISO 8601 UTC timestamp
+    FOREIGN KEY (meeting_id) REFERENCES meeting(id) ON DELETE CASCADE,
+    FOREIGN KEY (participant_id) REFERENCES participant(id) ON DELETE CASCADE,
+    UNIQUE (meeting_id, participant_id)
+);
+
+-- Indexes
+CREATE INDEX idx_meeting_invitation_meeting ON meeting_invitation(meeting_id);
+CREATE INDEX idx_meeting_invitation_participant ON meeting_invitation(participant_id);
+CREATE INDEX idx_meeting_invitation_status ON meeting_invitation(status);
+
+-- Queries
+insertMeetingInvitation:
+INSERT INTO meeting_invitation (id, meeting_id, participant_id, status, sent_at, responded_at, accepted_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+updateMeetingInvitation:
+UPDATE meeting_invitation
+SET status = ?, responded_at = ?, accepted_at = ?
+WHERE id = ?;
+
+selectById:
+SELECT * FROM meeting_invitation WHERE id = ?;
+
+selectByMeetingId:
+SELECT * FROM meeting_invitation WHERE meeting_id = ?;
+
+selectByParticipantId:
+SELECT * FROM meeting_invitation WHERE participant_id = ?;
+
+deleteByMeetingId:
+DELETE FROM meeting_invitation WHERE meeting_id = ?;
+
+countByMeetingIdAndStatus:
+SELECT COUNT(*) FROM meeting_invitation WHERE meeting_id = ? AND status = ?;

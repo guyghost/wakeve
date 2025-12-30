@@ -31,7 +31,8 @@ class SessionManagerTest {
 
     @After
     fun teardown() {
-        database.close()
+        // Reset the database singleton for the next test
+        DatabaseProvider.resetDatabase()
     }
 
     // ============================================
@@ -235,8 +236,8 @@ class SessionManagerTest {
 /**
  * Test database factory for JVM tests.
  */
-class JvmTestDatabaseFactory {
-    fun createDriver(): app.cash.sqldelight.db.SqlDriver {
+class JvmTestDatabaseFactory : DatabaseFactory {
+    override fun createDriver(): app.cash.sqldelight.db.SqlDriver {
         return app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver(
             url = app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver.IN_MEMORY
         ).also { driver ->

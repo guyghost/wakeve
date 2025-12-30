@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.meeting
 
+import com.guyghost.wakeve.NotificationService
 import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.models.EventStatus
@@ -7,21 +8,18 @@ import com.guyghost.wakeve.models.InvitationStatus
 import com.guyghost.wakeve.models.MeetingLinkResponse
 import com.guyghost.wakeve.models.MeetingPlatform
 import com.guyghost.wakeve.models.MeetingReminderTiming
-import com.guyghost.wakeve.models.MeetingStatus
-import com.guyghost.wakeve.models.MeetingVotingResult
-import com.guyghost.wakeve.models.MeetingVotingResultResponse
-import com.guyghost.wakeve.models.MeetingWithVotes
 import com.guyghost.wakeve.models.NotificationMessage
 import com.guyghost.wakeve.models.NotificationType
 import com.guyghost.wakeve.models.ReminderStatus
-import com.guyghost.wakeve.notification.NotificationService
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.datetime.toInstant
 import kotlin.random.Random
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Service principal pour gérer les réunions virtuelles
@@ -40,7 +38,7 @@ class MeetingService(
 
     private val eventQueries = database.eventQueries
     private val participantQueries = database.participantQueries
-    private val meetingRepository: MeetingRepository
+    private val meetingRepository: MeetingRepository = MeetingRepository(database)
 
     // Platform providers
     private val zoomProvider = ZoomMeetingPlatformProvider()
@@ -105,11 +103,11 @@ class MeetingService(
                     organizerId = organizerId
                 )
                 MeetingPlatform.TEAMS, MeetingPlatform.WEBEX ->
-                    return Result.failure(MeetingException.UnsupportedPlatform(platform))
+                    return Result.failure(Exception("Platform $platform is not supported"))
             }
 
             val meeting = com.guyghost.wakeve.meeting.Meeting(
-                id = generateMeetingId(),
+                id = generateId(),
                 eventId = eventId,
                 organizerId = organizerId,
                 title = title,
@@ -121,7 +119,7 @@ class MeetingService(
                 hostMeetingId = meetingDetails.hostMeetingId,
                 password = meetingDetails.password ?: "",
                 invitedParticipants = invitedParticipants,
-                status = MeetingStatus.SCHEDULED,
+                status = com.guyghost.wakeve.meeting.MeetingStatus.SCHEDULED,
                 createdAt = Clock.System.now().toString()
             )
 
@@ -158,7 +156,7 @@ class MeetingService(
 
             meetingRepository.updateMeeting(meetingId, updates)
 
-            val meeting = meetingRepository.getMeetingById(meetingId) ?: return Result.failure(MeetingException.MeetingNotFound(meetingId))
+            val meeting = meetingRepository.getMeetingById(meetingId) ?: return Result.failure(Exception("Meeting $meetingId not found"))
             calendarService.updateNativeCalendarEvent(
                 eventId = meeting.eventId,
                 participantId = meeting.organizerId
@@ -174,9 +172,9 @@ class MeetingService(
     suspend fun cancelMeeting(meetingId: String): Result<Unit> {
         return try {
             val meeting = meetingRepository.getMeetingById(meetingId)
-                ?: return Result.failure(MeetingException.MeetingNotFound(meetingId))
+                ?: return Result.failure(Exception("Meeting $meetingId not found"))
 
-            val platform = MeetingPlatform.valueOf(meeting.platform)
+            val platform = meeting.platform
 
             when (platform) {
                 MeetingPlatform.ZOOM -> zoomProvider.cancelMeeting(platform, meeting.hostMeetingId)
@@ -185,14 +183,9 @@ class MeetingService(
                 else -> { }
             }
 
-            meetingRepository.updateMeetingStatus(meetingId, MeetingStatus.CANCELLED)
+            meetingRepository.updateMeetingStatus(meetingId, com.guyghost.wakeve.meeting.MeetingStatus.CANCELLED)
 
             cancelMeetingReminders(meetingId)
-
-            calendarService.removeFromNativeCalendar(
-                eventId = meeting.eventId,
-                participantId = meeting.organizerId
-            )
 
             notifyParticipantsMeetingCancelled(meeting)
 
@@ -205,15 +198,15 @@ class MeetingService(
     suspend fun startMeeting(meetingId: String): Result<com.guyghost.wakeve.models.VirtualMeeting> {
         return try {
             val meeting = meetingRepository.getMeetingById(meetingId)
-                ?: return Result.failure(MeetingException.MeetingNotFound(meetingId))
+                ?: return Result.failure(Exception("Meeting $meetingId not found"))
 
-            if (meeting.status == MeetingStatus.STARTED) {
-                return Result.failure(MeetingException.MeetingStartedException(meetingId))
+            if (meeting.status == com.guyghost.wakeve.meeting.MeetingStatus.STARTED) {
+                return Result.failure(Exception("Meeting $meetingId has already been started"))
             }
 
-            meetingRepository.updateMeetingStatus(meetingId, MeetingStatus.STARTED)
+            meetingRepository.updateMeetingStatus(meetingId, com.guyghost.wakeve.meeting.MeetingStatus.STARTED)
 
-            val updated = meetingRepository.getMeetingById(meetingId) ?: return Result.failure(MeetingException.MeetingNotFound(meetingId))
+            val updated = meetingRepository.getMeetingById(meetingId) ?: return Result.failure(Exception("Meeting $meetingId not found"))
             Result.success(toVirtualMeeting(updated, null, "UTC"))
         } catch (e: Exception) {
             Result.failure(e)
@@ -223,15 +216,15 @@ class MeetingService(
     suspend fun endMeeting(meetingId: String): Result<com.guyghost.wakeve.models.VirtualMeeting> {
         return try {
             val meeting = meetingRepository.getMeetingById(meetingId)
-                ?: return Result.failure(MeetingException.MeetingNotFound(meetingId))
+                ?: return Result.failure(Exception("Meeting $meetingId not found"))
 
-            if (meeting.status == MeetingStatus.ENDED) {
-                return Result.failure(MeetingException.MeetingAlreadyEndedException(meetingId))
+            if (meeting.status == com.guyghost.wakeve.meeting.MeetingStatus.ENDED) {
+                return Result.failure(Exception("Meeting $meetingId has already ended"))
             }
 
-            meetingRepository.updateMeetingStatus(meetingId, MeetingStatus.ENDED)
+            meetingRepository.updateMeetingStatus(meetingId, com.guyghost.wakeve.meeting.MeetingStatus.ENDED)
 
-            val updated = meetingRepository.getMeetingById(meetingId) ?: return Result.failure(MeetingException.MeetingNotFound(meetingId))
+            val updated = meetingRepository.getMeetingById(meetingId) ?: return Result.failure(Exception("Meeting $meetingId not found"))
             Result.success(toVirtualMeeting(updated, null, "UTC"))
         } catch (e: Exception) {
             Result.failure(e)
@@ -241,7 +234,7 @@ class MeetingService(
     suspend fun sendInvitations(meetingId: String): Result<Unit> {
         return try {
             val meeting = meetingRepository.getMeetingById(meetingId)
-                ?: return Result.failure(MeetingException.MeetingNotFound(meetingId))
+                ?: return Result.failure(Exception("Meeting $meetingId not found"))
 
             val participants = participantQueries
                 .selectByEventId(meeting.eventId)
@@ -264,7 +257,7 @@ class MeetingService(
                     userId = participant.userId,
                     type = NotificationType.EVENT_UPDATE,
                     title = "Invitation: ${meeting.title}",
-                    body = "Vous êtes invité à une réunion virtuelle le ${formatDate(Instant.parse(meeting.startTime), "Europe/Paris")}",
+                    body = "Vous êtes invité à une réunion virtuelle le ${formatDate(meeting.startTime)}",
                     data = mapOf("meetingId" to meetingId),
                     sentAt = Clock.System.now().toString(),
                     readAt = null
@@ -291,7 +284,7 @@ class MeetingService(
             val invitation = database.meetingInvitationQueries
                 .selectById(invitationId)
                 .executeAsOneOrNull()
-                ?: return Result.failure(MeetingException.InvitationNotFound(invitationId))
+                ?: return Result.failure(Exception("Invitation $invitationId not found"))
 
             val now = Clock.System.now().toString()
             val acceptedAt = if (status == InvitationStatus.ACCEPTED) now else null
@@ -339,7 +332,7 @@ class MeetingService(
                     startTime = scheduledFor,
                     duration = duration
                 )
-                else -> return Result.failure(MeetingException.UnsupportedPlatform(platform))
+                else -> return Result.failure(Exception("Platform $platform is not supported"))
             }
 
             val hostMeetingId = when (platform) {
@@ -504,7 +497,7 @@ class MeetingService(
             id = meeting.id,
             eventId = meeting.eventId,
             organizerId = meeting.organizerId,
-            platform = MeetingPlatform.valueOf(meeting.platform),
+            platform = meeting.platform,
             meetingId = meeting.hostMeetingId,
             meetingPassword = meeting.password,
             meetingUrl = meeting.meetingLink,
@@ -522,7 +515,7 @@ class MeetingService(
             waitingRoom = details?.waitingRoom ?: true,
             hostKey = details?.hostKey,
             createdAt = Clock.System.now(),
-            status = meeting.status
+            status = com.guyghost.wakeve.models.MeetingStatus.valueOf(meeting.status.name)
         )
     }
 
@@ -531,18 +524,20 @@ class MeetingService(
         timing: MeetingReminderTiming,
         timezone: String
     ): Instant {
-        val zone = TimeZone.of(timezone)
-        val localTime = meetingTime.toLocalDateTime(zone)
-
         return when (timing) {
-            MeetingReminderTiming.ONE_DAY_BEFORE -> localTime.minus(1, kotlin.time.Days).toInstant(zone)
-            MeetingReminderTiming.ONE_HOUR_BEFORE -> localTime.minus(1, kotlin.time.Hours).toInstant(zone)
-            MeetingReminderTiming.FIFTEEN_MINUTES_BEFORE -> localTime.minus(15, kotlin.time.Minutes).toInstant(zone)
-            MeetingReminderTiming.FIVE_MINUTES_BEFORE -> localTime.minus(5, kotlin.time.Minutes).toInstant(zone)
+            MeetingReminderTiming.ONE_DAY_BEFORE -> meetingTime.minus(1.days)
+            MeetingReminderTiming.ONE_HOUR_BEFORE -> meetingTime.minus(1.hours)
+            MeetingReminderTiming.FIFTEEN_MINUTES_BEFORE -> meetingTime.minus(15.minutes)
+            MeetingReminderTiming.FIVE_MINUTES_BEFORE -> meetingTime.minus(5.minutes)
         }
     }
 
     private fun notifyParticipantsMeetingCancelled(meeting: com.guyghost.wakeve.meeting.Meeting) {
+    }
+
+    private fun formatDate(instant: Instant): String {
+        val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
+        return "${localDateTime.date} ${localDateTime.time}"
     }
 
     private fun generatePassword(length: Int): String {
@@ -551,7 +546,7 @@ class MeetingService(
     }
 
     private fun generateId(): String {
-        return "\${Clock.System.now().toEpochMilliseconds()}_\${Random.nextInt(1000, 9999)}"
+        return "${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000, 9999)}"
     }
 
     suspend fun getMeeting(meetingId: String): com.guyghost.wakeve.models.VirtualMeeting? {
