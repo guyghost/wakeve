@@ -65,6 +65,72 @@ wakeve/
 └─────────────────────────────────────┘
 ```
 
+### State Machine Workflow Coordination
+
+**Architecture Pattern**: MVI (Model-View-Intent) avec Finite State Machines (FSM)
+
+Le workflow de Wakeve est coordonné par 3 state machines qui communiquent via un repository partagé:
+
+1. **EventManagementStateMachine**: Gère le cycle de vie DRAFT → POLLING → CONFIRMED → ORGANIZING → FINALIZED
+2. **ScenarioManagementStateMachine**: Gère la création et le vote des scénarios (COMPARING)
+3. **MeetingServiceStateMachine**: Gère les réunions virtuelles
+
+#### Pattern Repository-Mediated Communication
+
+```kotlin
+// State Machine 1 met à jour le status
+eventStateMachine.dispatch(Intent.ConfirmDate("event-1", "slot-1"))
+// → Repository: Event.status = CONFIRMED
+
+// State Machine 2 lit le status depuis le repository
+val event = eventRepository.getEvent("event-1")
+val canCreate = event?.status in listOf(CONFIRMED, COMPARING)
+```
+
+**Avantages**:
+- ✅ Couplage faible entre state machines
+- ✅ Cohérence forte via repository partagé
+- ✅ Tests simples (mock repository uniquement)
+- ✅ Source de vérité claire (Event.status)
+
+#### Workflow Complet
+
+```
+Event(DRAFT) 
+  → StartPoll 
+  → Event(POLLING)
+  → ConfirmDate 
+  → Event(CONFIRMED) + scenariosUnlocked + NavigateTo("scenarios/$id")
+  → [User creates scenarios]
+  → SelectScenarioAsFinal (optional)
+  → TransitionToOrganizing 
+  → Event(ORGANIZING) + meetingsUnlocked + NavigateTo("meetings/$id")
+  → [User creates meetings]
+  → MarkAsFinalized 
+  → Event(FINALIZED)
+```
+
+#### Business Rules par EventStatus
+
+| EventStatus | Scénarios | Réunions | Actions |
+|-------------|-----------|----------|---------|
+| DRAFT | ❌ | ❌ | CreateEvent, StartPoll |
+| POLLING | ❌ | ❌ | Vote, ConfirmDate |
+| CONFIRMED | ✅ | ❌ | CreateScenario, TransitionToOrganizing |
+| COMPARING | ✅ | ❌ | VoteScenario, SelectScenarioAsFinal |
+| ORGANIZING | ❌ | ✅ | CreateMeeting, MarkAsFinalized |
+| FINALIZED | ❌ | ❌ | Read-only |
+
+#### Tests
+
+- **Unit Tests**: 13 tests (EventManagementStateMachineTest.kt) - 100% passing
+- **Integration Tests**: 6 tests (WorkflowIntegrationTest.kt) - 100% passing
+- **Pattern validé**: Repository-mediated communication
+
+**Documentation complète**: `openspec/changes/verify-statemachine-workflow/`
+- [WORKFLOW_DIAGRAMS.md](openspec/changes/verify-statemachine-workflow/WORKFLOW_DIAGRAMS.md): Diagrammes Mermaid
+- [TROUBLESHOOTING.md](openspec/changes/verify-statemachine-workflow/TROUBLESHOOTING.md): Guide de dépannage
+
 ## Domaine Métier
 
 ### Cycle de vie d'un événement

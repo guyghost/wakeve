@@ -47,6 +47,8 @@ object EventManagementContract {
         val selectedEvent: Event? = null,
         val participantIds: List<String> = emptyList(),
         val pollVotes: Map<String, Map<String, Vote>> = emptyMap(),
+        val scenariosUnlocked: Boolean = false,
+        val meetingsUnlocked: Boolean = false,
         val error: String? = null
     ) {
         /**
@@ -58,6 +60,27 @@ object EventManagementContract {
          * Convenient property to check if list is empty
          */
         val isEmpty: Boolean get() = events.isEmpty()
+
+        /**
+         * Check if scenarios are available based on event status
+         */
+        fun canAccessScenarios(): Boolean =
+            selectedEvent?.status in listOf(
+                com.guyghost.wakeve.models.EventStatus.COMPARING,
+                com.guyghost.wakeve.models.EventStatus.CONFIRMED,
+                com.guyghost.wakeve.models.EventStatus.ORGANIZING,
+                com.guyghost.wakeve.models.EventStatus.FINALIZED
+            )
+
+        /**
+         * Check if meetings are available based on event status
+         */
+        fun canAccessMeetings(): Boolean =
+            selectedEvent?.status in listOf(
+                com.guyghost.wakeve.models.EventStatus.CONFIRMED,
+                com.guyghost.wakeve.models.EventStatus.ORGANIZING,
+                com.guyghost.wakeve.models.EventStatus.FINALIZED
+            )
     }
 
     // ========================================================================
@@ -129,7 +152,60 @@ object EventManagementContract {
         data class DeleteEvent(val eventId: String) : Intent
 
         /**
-         * Load participants for a selected event.
+         * Start polling on time slots.
+         *
+         * Transitions event from DRAFT to POLLING.
+         * Only the organizer can start polling.
+         * Emits side effects for success or error handling.
+         *
+         * @property eventId The ID of the event to start polling for
+         */
+        data class StartPoll(val eventId: String) : Intent
+
+        /**
+         * Confirm the final date for an event.
+         *
+         * Transitions event from POLLING to CONFIRMED.
+         * Only the organizer can confirm the date.
+         * At least one participant must have voted.
+         * Unlocks scenario creation.
+         * Emits NavigateTo side effect to navigate to scenarios screen.
+         *
+         * @property eventId The ID of the event
+         * @property slotId The ID of the selected time slot
+         */
+        data class ConfirmDate(
+            val eventId: String,
+            val slotId: String
+        ) : Intent
+
+        /**
+         * Transition event to organizing phase.
+         *
+         * Transitions event from CONFIRMED to ORGANIZING.
+         * Only the organizer can trigger this transition.
+         * A scenario must have been selected.
+         * Unlocks meeting creation.
+         * Emits NavigateTo side effect to navigate to meetings screen.
+         *
+         * @property eventId The ID of the event
+         */
+        data class TransitionToOrganizing(val eventId: String) : Intent
+
+        /**
+         * Mark event as finalized.
+         *
+         * Transitions event from ORGANIZING to FINALIZED.
+         * Only the organizer can finalize.
+         * All critical details must be confirmed.
+         * Emits side effects for success confirmation.
+         *
+         * @property eventId The ID of the event
+         */
+        data class MarkAsFinalized(val eventId: String) : Intent
+
+        /**
+         * Load participants for an event.
          *
          * Called after selecting an event to populate participantIds.
          *
@@ -148,7 +224,7 @@ object EventManagementContract {
         data class AddParticipant(val eventId: String, val participantId: String) : Intent
 
         /**
-         * Load poll results for a selected event.
+         * Load poll results for an event.
          *
          * Called after selecting an event to populate pollVotes.
          *
