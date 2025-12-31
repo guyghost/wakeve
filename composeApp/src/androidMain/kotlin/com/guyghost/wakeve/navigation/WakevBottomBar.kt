@@ -34,10 +34,10 @@ fun WakevBottomBar(navController: NavController) {
             contentDescription = "Accueil - Tableau de bord principal"
         ),
         BottomNavItem(
-            screen = Screen.Events,
-            label = "Événements",
-            icon = Icons.Filled.DateRange,
-            contentDescription = "Événements - Liste des événements"
+            screen = Screen.Inbox,
+            label = "Inbox",
+            icon = Icons.Filled.Notifications,
+            contentDescription = "Inbox - Notifications, tâches et messages"
         ),
         BottomNavItem(
             screen = Screen.Explore,

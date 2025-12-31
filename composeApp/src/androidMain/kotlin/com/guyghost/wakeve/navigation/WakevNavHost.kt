@@ -57,18 +57,8 @@ fun WakevNavHost(
             )
         }
         
-        composable(Screen.Events.route) {
-            EventsTabScreen(
-                userId = userId,
-                onEventClick = { event ->
-                    // Navigate using event object's id
-                    navController.navigate("event/${event.id}")
-                },
-                onCreateEvent = {
-                    navController.navigate(Screen.EventCreation.route)
-                }
-            )
-        }
+        // Events tab removed - functionality moved to Home tab
+        // Users can access event list from Home screen
         
         composable(Screen.Explore.route) {
             ExploreTabScreen(
@@ -288,9 +278,15 @@ fun WakevNavHost(
         // ========================================
         
         composable(Screen.Inbox.route) {
-            // TODO: Implement InboxScreen
-            // For now, show placeholder
-            navController.navigateUp()
+            InboxScreen(
+                userId = userId,
+                onNotificationClick = { notificationId ->
+                    // TODO: Navigate to relevant screen based on notification type
+                },
+                onBack = {
+                    // Inbox is a main tab, no back navigation
+                }
+            )
         }
         
         // ========================================

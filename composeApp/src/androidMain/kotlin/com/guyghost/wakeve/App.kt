@@ -116,7 +116,7 @@ fun App() {
     val showBottomBar = remember(currentRoute.value?.destination?.route) {
         currentRoute.value?.destination?.route in listOf(
             Screen.Home.route,
-            Screen.Events.route,
+            Screen.Inbox.route,
             Screen.Explore.route,
             Screen.Profile.route
         )

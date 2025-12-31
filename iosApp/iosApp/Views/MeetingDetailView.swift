@@ -124,11 +124,11 @@ struct MeetingDetailView: View {
                 
                 // Meeting info
                 VStack(spacing: 16) {
-                    InfoRow(icon: "calendar", title: "Date et heure", value: meeting.dateTime)
+                    MeetingInfoRow(icon: "calendar", title: "Date et heure", value: meeting.dateTime)
                     Divider()
-                    InfoRow(icon: "person.2", title: "Participants", value: "\(meeting.participants.count) personnes")
+                    MeetingInfoRow(icon: "person.2", title: "Participants", value: "\(meeting.participants.count) personnes")
                     Divider()
-                    InfoRow(icon: "clock", title: "Durée", value: meeting.duration)
+                    MeetingInfoRow(icon: "clock", title: "Durée", value: meeting.duration)
                 }
                 .padding(20)
                 .background(.ultraThinMaterial)
@@ -223,9 +223,9 @@ struct MeetingDetailView: View {
     }
 }
 
-// MARK: - Info Row
+// MARK: - Meeting Info Row
 
-struct InfoRow: View {
+struct MeetingInfoRow: View {
     let icon: String
     let title: String
     let value: String

@@ -130,7 +130,7 @@ class MeetingDetailViewModel: ObservableObject {
     }
 
     /// Generate a meeting link
-    func generateMeetingLink(platform: MeetingPlatform) {
+    func generateMeetingLink(platform: Shared.MeetingPlatform) {
         dispatch(MeetingManagementContractIntentGenerateMeetingLink(meetingId: meetingId, platform: platform))
     }
 

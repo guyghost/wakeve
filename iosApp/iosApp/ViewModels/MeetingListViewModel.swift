@@ -101,7 +101,7 @@ class MeetingListViewModel: ObservableObject {
 
     /// Create a new meeting
     func createMeeting(
-        platform: MeetingPlatform,
+        platform: Shared.MeetingPlatform,
         title: String,
         description: String?,
         scheduledFor: Date,
@@ -150,7 +150,7 @@ class MeetingListViewModel: ObservableObject {
     }
 
     /// Generate a meeting link for a specific platform
-    func generateMeetingLink(meetingId: String, platform: MeetingPlatform) {
+    func generateMeetingLink(meetingId: String, platform: Shared.MeetingPlatform) {
         dispatch(MeetingManagementContractIntentGenerateMeetingLink(meetingId: meetingId, platform: platform))
     }
 
