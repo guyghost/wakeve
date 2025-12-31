@@ -8,6 +8,12 @@ struct InfoRow: View {
     let value: String
     let icon: String?
     
+    init(label: String, value: String, icon: String? = nil) {
+        self.label = label
+        self.value = value
+        self.icon = icon
+    }
+    
     var body: some View {
         HStack(spacing: 12) {
             if let icon = icon {

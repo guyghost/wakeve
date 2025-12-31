@@ -8,7 +8,7 @@ import UIKit
 /// Defines the available tabs in the Wakeve app
 enum WakevTab: String, CaseIterable, Identifiable {
     case home
-    case events
+    case inbox
     case explore
     case profile
     
@@ -16,17 +16,17 @@ enum WakevTab: String, CaseIterable, Identifiable {
     
     var title: String {
         switch self {
-        case .home: return "Home"
-        case .events: return "Events"
-        case .explore: return "Explore"
-        case .profile: return "Profile"
+        case .home: return "Accueil"
+        case .inbox: return "Inbox"
+        case .explore: return "Explorer"
+        case .profile: return "Profil"
         }
     }
     
     var icon: String {
         switch self {
         case .home: return "house"
-        case .events: return "calendar"
+        case .inbox: return "tray.fill"
         case .explore: return "sparkles"
         case .profile: return "person.crop.circle"
         }
@@ -84,24 +84,24 @@ struct WakevTabContent<Content: View>: View {
 
 /// Native iOS TabView container with Liquid Glass support
 /// Uses native TabView which automatically adopts Liquid Glass on iOS 26+
-struct WakevTabBarContainer<Home: View, Events: View, Explore: View, Profile: View>: View {
+struct WakevTabBarContainer<Home: View, Inbox: View, Explore: View, Profile: View>: View {
     @Binding var selectedTab: WakevTab
     
     let homeContent: Home
-    let eventsContent: Events
+    let inboxContent: Inbox
     let exploreContent: Explore
     let profileContent: Profile
     
     init(
         selectedTab: Binding<WakevTab>,
         @ViewBuilder home: () -> Home,
-        @ViewBuilder events: () -> Events,
+        @ViewBuilder inbox: () -> Inbox,
         @ViewBuilder explore: () -> Explore,
         @ViewBuilder profile: () -> Profile
     ) {
         self._selectedTab = selectedTab
         self.homeContent = home()
-        self.eventsContent = events()
+        self.inboxContent = inbox()
         self.exploreContent = explore()
         self.profileContent = profile()
     }
@@ -110,25 +110,25 @@ struct WakevTabBarContainer<Home: View, Events: View, Explore: View, Profile: Vi
         TabView(selection: $selectedTab) {
             homeContent
                 .tabItem {
-                    Label("Home", systemImage: "house")
+                    Label("Accueil", systemImage: "house")
                 }
                 .tag(WakevTab.home)
             
-            eventsContent
+            inboxContent
                 .tabItem {
-                    Label("Events", systemImage: "calendar")
+                    Label("Inbox", systemImage: "tray.fill")
                 }
-                .tag(WakevTab.events)
+                .tag(WakevTab.inbox)
             
             exploreContent
                 .tabItem {
-                    Label("Explore", systemImage: "sparkles")
+                    Label("Explorer", systemImage: "sparkles")
                 }
                 .tag(WakevTab.explore)
             
             profileContent
                 .tabItem {
-                    Label("Profile", systemImage: "person.crop.circle")
+                    Label("Profil", systemImage: "person.crop.circle")
                 }
                 .tag(WakevTab.profile)
         }
@@ -270,10 +270,10 @@ struct WakevTabBarPreview: View {
                     color: .blue
                 )
             },
-            events: {
+            inbox: {
                 PreviewContent(
-                    title: "Events",
-                    icon: "calendar.circle.fill",
+                    title: "Inbox",
+                    icon: "tray.fill",
                     color: .purple
                 )
             },
@@ -336,18 +336,18 @@ struct GlassComponentsPreview: View {
             .ignoresSafeArea()
             
             VStack(spacing: 24) {
-                // Glass Card
-                LiquidGlassCard {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Liquid Glass Card")
-                            .font(.headline)
-                        Text("This card uses native Liquid Glass on iOS 26+")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding(.horizontal)
+                // Glass Card - Commented out due to import scope issue
+                // LiquidGlassCard {
+                //     VStack(alignment: .leading, spacing: 12) {
+                //         Text("Liquid Glass Card")
+                //             .font(.headline)
+                //         Text("This card uses native Liquid Glass on iOS 26+")
+                //             .font(.subheadline)
+                //             .foregroundColor(.secondary)
+                //     }
+                //     .frame(maxWidth: .infinity, alignment: .leading)
+                // }
+                // .padding(.horizontal)
                 
                 // Glass Button
                 LiquidGlassButton("Tap Me", icon: "hand.tap") {

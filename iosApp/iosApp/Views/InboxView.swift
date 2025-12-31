@@ -35,23 +35,29 @@ struct InboxView: View {
                     // Filter chips
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
-                            FilterChip(
+                            InboxFilterChip(
                                 title: "Tout",
                                 isSelected: selectedFilter == .all,
                                 count: items.count,
                                 action: { selectedFilter = .all }
                             )
-                            FilterChip(
-                                title: "Non lus",
-                                isSelected: selectedFilter == .unread,
-                                count: items.filter { !$0.isRead }.count,
-                                action: { selectedFilter = .unread }
+                            InboxFilterChip(
+                                title: "Tâches",
+                                isSelected: selectedFilter == .tasks,
+                                count: items.filter { $0.requiresAction }.count,
+                                action: { selectedFilter = .tasks }
                             )
-                            FilterChip(
-                                title: "Invitations",
-                                isSelected: selectedFilter == .invitations,
-                                count: items.filter { $0.type == .invitation }.count,
-                                action: { selectedFilter = .invitations }
+                            InboxFilterChip(
+                                title: "Messages",
+                                isSelected: selectedFilter == .messages,
+                                count: items.filter { $0.type == .comment }.count,
+                                action: { selectedFilter = .messages }
+                            )
+                            InboxFilterChip(
+                                title: "Notifications",
+                                isSelected: selectedFilter == .notifications,
+                                count: items.filter { !$0.requiresAction && $0.type != .comment }.count,
+                                action: { selectedFilter = .notifications }
                             )
                         }
                         .padding(.horizontal, 20)
@@ -96,10 +102,12 @@ struct InboxView: View {
         switch selectedFilter {
         case .all:
             return items
-        case .unread:
-            return items.filter { !$0.isRead }
-        case .invitations:
-            return items.filter { $0.type == .invitation }
+        case .tasks:
+            return items.filter { $0.requiresAction }
+        case .messages:
+            return items.filter { $0.type == .comment }
+        case .notifications:
+            return items.filter { !$0.requiresAction && $0.type != .comment }
         }
     }
     
@@ -140,24 +148,27 @@ struct InboxView: View {
     private var emptyStateIcon: String {
         switch selectedFilter {
         case .all: return "tray"
-        case .unread: return "checkmark.circle"
-        case .invitations: return "envelope"
+        case .tasks: return "checkmark.circle"
+        case .messages: return "bubble.left"
+        case .notifications: return "bell"
         }
     }
     
     private var emptyStateTitle: String {
         switch selectedFilter {
         case .all: return "Aucune notification"
-        case .unread: return "Tout est lu"
-        case .invitations: return "Aucune invitation"
+        case .tasks: return "Aucune tâche"
+        case .messages: return "Aucun message"
+        case .notifications: return "Aucune notification"
         }
     }
     
     private var emptyStateSubtitle: String {
         switch selectedFilter {
         case .all: return "Vos notifications apparaîtront ici"
-        case .unread: return "Vous êtes à jour avec toutes vos notifications"
-        case .invitations: return "Vous n'avez pas d'invitations en attente"
+        case .tasks: return "Vous n'avez pas de tâches en attente"
+        case .messages: return "Vous n'avez pas de nouveaux messages"
+        case .notifications: return "Vous n'avez pas de notifications"
         }
     }
     
@@ -207,9 +218,9 @@ struct InboxView: View {
     }
 }
 
-// MARK: - Filter Chip
+// MARK: - Inbox Filter Chip
 
-struct FilterChip: View {
+struct InboxFilterChip: View {
     let title: String
     let isSelected: Bool
     let count: Int
@@ -294,7 +305,7 @@ struct InboxItemCard: View {
 // MARK: - Supporting Types
 
 enum InboxFilter {
-    case all, unread, invitations
+    case all, tasks, messages, notifications
 }
 
 struct InboxItemModel: Identifiable {
@@ -304,6 +315,16 @@ struct InboxItemModel: Identifiable {
     var timeAgo: String
     var type: InboxItemType
     var isRead: Bool
+    
+    var requiresAction: Bool {
+        // Tasks are items that require user action (invitations, poll updates)
+        switch type {
+        case .invitation, .pollUpdate:
+            return true
+        case .comment, .eventUpdate:
+            return false
+        }
+    }
     
     var icon: String {
         switch type {

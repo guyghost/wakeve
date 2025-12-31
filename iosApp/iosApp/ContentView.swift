@@ -162,7 +162,7 @@ struct AuthenticatedView: View {
         WakevTabBarContainer(
             selectedTab: $selectedTab,
             home: { homeTabContent },
-            events: { eventsTabContent },
+            inbox: { inboxTabContent },
             explore: { exploreTabContent },
             profile: { profileTabContent }
         )
@@ -379,11 +379,14 @@ struct AuthenticatedView: View {
         }
     }
     
-    // MARK: - Events Tab
+    // MARK: - Inbox Tab
     
     @ViewBuilder
-    private var eventsTabContent: some View {
-        EventsTabView(userId: userId)
+    private var inboxTabContent: some View {
+        InboxView(
+            userId: userId,
+            onBack: { /* Inbox is main tab, no back action needed */ }
+        )
     }
     
     // MARK: - Explore Tab
