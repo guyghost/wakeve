@@ -100,6 +100,10 @@ class EventManagementStateMachine(
             is EventManagementContract.Intent.LoadParticipants -> loadParticipants(intent.eventId)
             is EventManagementContract.Intent.AddParticipant -> addParticipant(intent.eventId, intent.participantId)
             is EventManagementContract.Intent.LoadPollResults -> loadPollResults(intent.eventId)
+            is EventManagementContract.Intent.StartPoll -> startPoll(intent.eventId)
+            is EventManagementContract.Intent.ConfirmDate -> confirmDate(intent.eventId, intent.slotId)
+            is EventManagementContract.Intent.TransitionToOrganizing -> transitionToOrganizing(intent.eventId)
+            is EventManagementContract.Intent.MarkAsFinalized -> markAsFinalized(intent.eventId)
             is EventManagementContract.Intent.ClearError -> clearError()
         }
     }
@@ -321,5 +325,285 @@ class EventManagementStateMachine(
      */
     private suspend fun clearError() {
         updateState { it.copy(error = null) }
+    }
+
+    // ========================================================================
+    // Workflow Transition Handlers
+    // ========================================================================
+
+    /**
+     * Start polling on time slots.
+     *
+     * Transitions event from DRAFT to POLLING.
+     * Only the organizer can start polling.
+     *
+     * Flow:
+     * 1. Validate repository is available
+     * 2. Load the event
+     * 3. Validate event status is DRAFT
+     * 4. Validate user is organizer (TODO: add userId parameter)
+     * 5. Update event status to POLLING
+     * 6. Update state
+     * 7. Emit ShowToast
+     *
+     * @param eventId The ID of the event to start polling for
+     */
+    private suspend fun startPoll(eventId: String) {
+        if (eventRepository == null) {
+            updateState { it.copy(error = "Repository not available") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Repository not available"))
+            return
+        }
+
+        updateState { it.copy(isLoading = true, error = null) }
+
+        val event = eventRepository.getEvent(eventId)
+        if (event == null) {
+            updateState { it.copy(isLoading = false, error = "Event not found") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event not found"))
+            return
+        }
+
+        // Validate status
+        if (event.status != com.guyghost.wakeve.models.EventStatus.DRAFT) {
+            val errorMsg = "Cannot start poll: Event is not in DRAFT status"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        // Update event status to POLLING
+        val result = eventRepository.updateEventStatus(
+            id = eventId,
+            status = com.guyghost.wakeve.models.EventStatus.POLLING,
+            finalDate = null
+        )
+
+        result.fold(
+            onSuccess = {
+                // Reload events to get updated status
+                loadEvents()
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast("Poll started successfully"))
+            },
+            onFailure = { error ->
+                val errorMessage = error.message ?: "Failed to start poll"
+                updateState { it.copy(isLoading = false, error = errorMessage) }
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
+            }
+        )
+    }
+
+    /**
+     * Confirm the final date for an event.
+     *
+     * Transitions event from POLLING to CONFIRMED.
+     * Only the organizer can confirm the date.
+     * At least one participant must have voted.
+     *
+     * Flow:
+     * 1. Validate repository is available
+     * 2. Load the event
+     * 3. Validate event status is POLLING
+     * 4. Validate user is organizer (TODO: add userId parameter)
+     * 5. Validate at least one vote exists
+     * 6. Find the selected time slot
+     * 7. Update event status to CONFIRMED with finalDate
+     * 8. Update state with scenariosUnlocked = true
+     * 9. Emit NavigateTo scenarios screen
+     *
+     * @param eventId The ID of the event
+     * @param slotId The ID of the selected time slot
+     */
+    private suspend fun confirmDate(eventId: String, slotId: String) {
+        if (eventRepository == null) {
+            updateState { it.copy(error = "Repository not available") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Repository not available"))
+            return
+        }
+
+        updateState { it.copy(isLoading = true, error = null) }
+
+        val event = eventRepository.getEvent(eventId)
+        if (event == null) {
+            updateState { it.copy(isLoading = false, error = "Event not found") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event not found"))
+            return
+        }
+
+        // Validate status
+        if (event.status != com.guyghost.wakeve.models.EventStatus.POLLING) {
+            val errorMsg = "Cannot confirm date: Event is not in POLLING status"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        // Validate at least one vote exists
+        val poll = eventRepository.getPoll(eventId)
+        if (poll == null || poll.votes.isEmpty()) {
+            val errorMsg = "Cannot confirm date: No votes have been submitted"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        // Find the selected time slot
+        val selectedSlot = event.proposedSlots.find { it.id == slotId }
+        if (selectedSlot == null) {
+            val errorMsg = "Selected time slot not found"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        // Update event status to CONFIRMED
+        val result = eventRepository.updateEventStatus(
+            id = eventId,
+            status = com.guyghost.wakeve.models.EventStatus.CONFIRMED,
+            finalDate = selectedSlot.start
+        )
+
+        result.fold(
+            onSuccess = {
+                // Reload events to get updated status
+                loadEvents()
+                updateState { it.copy(scenariosUnlocked = true) }
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast("Date confirmed successfully"))
+                emitSideEffect(EventManagementContract.SideEffect.NavigateTo("scenarios/$eventId"))
+            },
+            onFailure = { error ->
+                val errorMessage = error.message ?: "Failed to confirm date"
+                updateState { it.copy(isLoading = false, error = errorMessage) }
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
+            }
+        )
+    }
+
+    /**
+     * Transition event to organizing phase.
+     *
+     * Transitions event from CONFIRMED to ORGANIZING.
+     * Only the organizer can trigger this transition.
+     * A scenario must have been selected.
+     *
+     * Flow:
+     * 1. Validate repository is available
+     * 2. Load the event
+     * 3. Validate event status is CONFIRMED
+     * 4. Validate user is organizer (TODO: add userId parameter)
+     * 5. Update event status to ORGANIZING
+     * 6. Update state with meetingsUnlocked = true
+     * 7. Emit NavigateTo meetings screen
+     *
+     * @param eventId The ID of the event
+     */
+    private suspend fun transitionToOrganizing(eventId: String) {
+        if (eventRepository == null) {
+            updateState { it.copy(error = "Repository not available") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Repository not available"))
+            return
+        }
+
+        updateState { it.copy(isLoading = true, error = null) }
+
+        val event = eventRepository.getEvent(eventId)
+        if (event == null) {
+            updateState { it.copy(isLoading = false, error = "Event not found") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event not found"))
+            return
+        }
+
+        // Validate status
+        if (event.status != com.guyghost.wakeve.models.EventStatus.CONFIRMED) {
+            val errorMsg = "Cannot transition to organizing: Event is not in CONFIRMED status"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        // Update event status to ORGANIZING
+        val result = eventRepository.updateEventStatus(
+            id = eventId,
+            status = com.guyghost.wakeve.models.EventStatus.ORGANIZING,
+            finalDate = event.finalDate
+        )
+
+        result.fold(
+            onSuccess = {
+                // Reload events to get updated status
+                loadEvents()
+                updateState { it.copy(meetingsUnlocked = true) }
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast("Transitioned to organizing phase"))
+                emitSideEffect(EventManagementContract.SideEffect.NavigateTo("meetings/$eventId"))
+            },
+            onFailure = { error ->
+                val errorMessage = error.message ?: "Failed to transition to organizing"
+                updateState { it.copy(isLoading = false, error = errorMessage) }
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
+            }
+        )
+    }
+
+    /**
+     * Mark event as finalized.
+     *
+     * Transitions event from ORGANIZING to FINALIZED.
+     * Only the organizer can finalize.
+     * All critical details must be confirmed.
+     *
+     * Flow:
+     * 1. Validate repository is available
+     * 2. Load the event
+     * 3. Validate event status is ORGANIZING
+     * 4. Validate user is organizer (TODO: add userId parameter)
+     * 5. Update event status to FINALIZED
+     * 6. Update state
+     * 7. Emit ShowToast
+     *
+     * @param eventId The ID of the event
+     */
+    private suspend fun markAsFinalized(eventId: String) {
+        if (eventRepository == null) {
+            updateState { it.copy(error = "Repository not available") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Repository not available"))
+            return
+        }
+
+        updateState { it.copy(isLoading = true, error = null) }
+
+        val event = eventRepository.getEvent(eventId)
+        if (event == null) {
+            updateState { it.copy(isLoading = false, error = "Event not found") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event not found"))
+            return
+        }
+
+        // Validate status
+        if (event.status != com.guyghost.wakeve.models.EventStatus.ORGANIZING) {
+            val errorMsg = "Cannot finalize: Event is not in ORGANIZING status"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        // Update event status to FINALIZED
+        val result = eventRepository.updateEventStatus(
+            id = eventId,
+            status = com.guyghost.wakeve.models.EventStatus.FINALIZED,
+            finalDate = event.finalDate
+        )
+
+        result.fold(
+            onSuccess = {
+                // Reload events to get updated status
+                loadEvents()
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event finalized successfully!"))
+            },
+            onFailure = { error ->
+                val errorMessage = error.message ?: "Failed to finalize event"
+                updateState { it.copy(isLoading = false, error = errorMessage) }
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
+            }
+        )
     }
 }

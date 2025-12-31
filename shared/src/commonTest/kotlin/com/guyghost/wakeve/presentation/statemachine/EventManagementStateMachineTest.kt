@@ -579,4 +579,373 @@ class EventManagementStateMachineTest {
         assertEquals(1, state.events.size)
         assertFalse(state.isLoading)
     }
+
+    // ========================================================================
+    // Workflow Transition Tests (Phase 3)
+    // ========================================================================
+
+    @Test
+    fun testStartPoll_Success() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val event = createTestEvent("evt-1").copy(status = EventStatus.DRAFT)
+        repository.events[event.id] = event
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        stateMachine.dispatch(EventManagementContract.Intent.StartPoll("evt-1"))
+        advanceUntilIdle()
+
+        val state = stateMachine.state.value
+        assertFalse(state.isLoading)
+        assertNull(state.error)
+        
+        // Verify event status was updated to POLLING
+        val updatedEvent = repository.getEvent("evt-1")
+        assertNotNull(updatedEvent)
+        assertEquals(EventStatus.POLLING, updatedEvent.status)
+    }
+
+    @Test
+    fun testStartPoll_FailsIfNotDraft() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val event = createTestEvent("evt-1").copy(status = EventStatus.POLLING)
+        repository.events[event.id] = event
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        stateMachine.dispatch(EventManagementContract.Intent.StartPoll("evt-1"))
+        advanceUntilIdle()
+
+        val state = stateMachine.state.value
+        assertFalse(state.isLoading)
+        assertNotNull(state.error)
+        assertTrue(state.error!!.contains("not in DRAFT status"))
+    }
+
+    @Test
+    fun testConfirmDate_Success() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val slot = TimeSlot(
+            id = "slot-1",
+            start = "2025-12-20T10:00:00Z",
+            end = "2025-12-20T12:00:00Z",
+            timezone = "UTC"
+        )
+        val event = createTestEvent("evt-1").copy(
+            status = EventStatus.POLLING,
+            proposedSlots = listOf(slot)
+        )
+        repository.events[event.id] = event
+        
+        // Add at least one vote
+        val poll = Poll(
+            id = "poll-1",
+            eventId = "evt-1",
+            votes = mapOf("p1" to mapOf("slot-1" to Vote.YES))
+        )
+        repository.polls["evt-1"] = poll
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        stateMachine.dispatch(EventManagementContract.Intent.ConfirmDate("evt-1", "slot-1"))
+        advanceUntilIdle()
+
+        val state = stateMachine.state.value
+        assertFalse(state.isLoading)
+        assertNull(state.error)
+        assertTrue(state.scenariosUnlocked)
+        
+        // Verify event status was updated to CONFIRMED
+        val updatedEvent = repository.getEvent("evt-1")
+        assertNotNull(updatedEvent)
+        assertEquals(EventStatus.CONFIRMED, updatedEvent.status)
+        assertEquals("2025-12-20T10:00:00Z", updatedEvent.finalDate)
+    }
+
+    @Test
+    fun testConfirmDate_FailsIfNotPolling() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val event = createTestEvent("evt-1").copy(status = EventStatus.DRAFT)
+        repository.events[event.id] = event
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        stateMachine.dispatch(EventManagementContract.Intent.ConfirmDate("evt-1", "slot-1"))
+        advanceUntilIdle()
+
+        val state = stateMachine.state.value
+        assertFalse(state.isLoading)
+        assertNotNull(state.error)
+        assertTrue(state.error!!.contains("not in POLLING status"))
+    }
+
+    @Test
+    fun testConfirmDate_FailsIfNoVotes() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val event = createTestEvent("evt-1").copy(status = EventStatus.POLLING)
+        repository.events[event.id] = event
+        
+        // No votes - empty poll
+        val poll = Poll(id = "poll-1", eventId = "evt-1", votes = emptyMap())
+        repository.polls["evt-1"] = poll
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        stateMachine.dispatch(EventManagementContract.Intent.ConfirmDate("evt-1", "slot-1"))
+        advanceUntilIdle()
+
+        val state = stateMachine.state.value
+        assertFalse(state.isLoading)
+        assertNotNull(state.error)
+        assertTrue(state.error!!.contains("No votes"))
+    }
+
+    @Test
+    fun testTransitionToOrganizing_Success() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val event = createTestEvent("evt-1").copy(
+            status = EventStatus.CONFIRMED,
+            finalDate = "2025-12-20T10:00:00Z"
+        )
+        repository.events[event.id] = event
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        stateMachine.dispatch(EventManagementContract.Intent.TransitionToOrganizing("evt-1"))
+        advanceUntilIdle()
+
+        val state = stateMachine.state.value
+        assertFalse(state.isLoading)
+        assertNull(state.error)
+        assertTrue(state.meetingsUnlocked)
+        
+        // Verify event status was updated to ORGANIZING
+        val updatedEvent = repository.getEvent("evt-1")
+        assertNotNull(updatedEvent)
+        assertEquals(EventStatus.ORGANIZING, updatedEvent.status)
+    }
+
+    @Test
+    fun testTransitionToOrganizing_FailsIfNotConfirmed() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val event = createTestEvent("evt-1").copy(status = EventStatus.POLLING)
+        repository.events[event.id] = event
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        stateMachine.dispatch(EventManagementContract.Intent.TransitionToOrganizing("evt-1"))
+        advanceUntilIdle()
+
+        val state = stateMachine.state.value
+        assertFalse(state.isLoading)
+        assertNotNull(state.error)
+        assertTrue(state.error!!.contains("not in CONFIRMED status"))
+    }
+
+    @Test
+    fun testMarkAsFinalized_Success() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val event = createTestEvent("evt-1").copy(
+            status = EventStatus.ORGANIZING,
+            finalDate = "2025-12-20T10:00:00Z"
+        )
+        repository.events[event.id] = event
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        stateMachine.dispatch(EventManagementContract.Intent.MarkAsFinalized("evt-1"))
+        advanceUntilIdle()
+
+        val state = stateMachine.state.value
+        assertFalse(state.isLoading)
+        assertNull(state.error)
+        
+        // Verify event status was updated to FINALIZED
+        val updatedEvent = repository.getEvent("evt-1")
+        assertNotNull(updatedEvent)
+        assertEquals(EventStatus.FINALIZED, updatedEvent.status)
+    }
+
+    @Test
+    fun testMarkAsFinalized_FailsIfNotOrganizing() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val event = createTestEvent("evt-1").copy(status = EventStatus.CONFIRMED)
+        repository.events[event.id] = event
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        stateMachine.dispatch(EventManagementContract.Intent.MarkAsFinalized("evt-1"))
+        advanceUntilIdle()
+
+        val state = stateMachine.state.value
+        assertFalse(state.isLoading)
+        assertNotNull(state.error)
+        assertTrue(state.error!!.contains("not in ORGANIZING status"))
+    }
+
+    @Test
+    fun testCompleteWorkflow_DraftToFinalized() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val slot = TimeSlot(
+            id = "slot-1",
+            start = "2025-12-20T10:00:00Z",
+            end = "2025-12-20T12:00:00Z",
+            timezone = "UTC"
+        )
+        val event = createTestEvent("evt-1").copy(
+            status = EventStatus.DRAFT,
+            proposedSlots = listOf(slot)
+        )
+        repository.events[event.id] = event
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        // Step 1: DRAFT → POLLING
+        stateMachine.dispatch(EventManagementContract.Intent.StartPoll("evt-1"))
+        advanceUntilIdle()
+        var updatedEvent = repository.getEvent("evt-1")
+        assertEquals(EventStatus.POLLING, updatedEvent?.status)
+
+        // Step 2: Add votes
+        val poll = Poll(
+            id = "poll-1",
+            eventId = "evt-1",
+            votes = mapOf("p1" to mapOf("slot-1" to Vote.YES))
+        )
+        repository.polls["evt-1"] = poll
+
+        // Step 3: POLLING → CONFIRMED
+        stateMachine.dispatch(EventManagementContract.Intent.ConfirmDate("evt-1", "slot-1"))
+        advanceUntilIdle()
+        updatedEvent = repository.getEvent("evt-1")
+        assertEquals(EventStatus.CONFIRMED, updatedEvent?.status)
+        assertTrue(stateMachine.state.value.scenariosUnlocked)
+
+        // Step 4: CONFIRMED → ORGANIZING
+        stateMachine.dispatch(EventManagementContract.Intent.TransitionToOrganizing("evt-1"))
+        advanceUntilIdle()
+        updatedEvent = repository.getEvent("evt-1")
+        assertEquals(EventStatus.ORGANIZING, updatedEvent?.status)
+        assertTrue(stateMachine.state.value.meetingsUnlocked)
+
+        // Step 5: ORGANIZING → FINALIZED
+        stateMachine.dispatch(EventManagementContract.Intent.MarkAsFinalized("evt-1"))
+        advanceUntilIdle()
+        updatedEvent = repository.getEvent("evt-1")
+        assertEquals(EventStatus.FINALIZED, updatedEvent?.status)
+
+        val finalState = stateMachine.state.value
+        assertFalse(finalState.isLoading)
+        assertNull(finalState.error)
+    }
 }

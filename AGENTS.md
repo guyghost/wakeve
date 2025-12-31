@@ -510,6 +510,201 @@ actual class NotificationService {
 }
 ```
 
+### State Machine Workflow Coordination
+
+Wakeve utilise une architecture **MVI (Model-View-Intent) avec Finite State Machines (FSM)** pour gérer le cycle de vie des événements à travers plusieurs phases coordonnées.
+
+#### Pattern Repository-Mediated Communication
+
+Les state machines communiquent **indirectement via un repository partagé**, sans communication directe entre elles.
+
+```kotlin
+// State Machine 1: Met à jour le status dans le repository
+eventStateMachine.dispatch(Intent.ConfirmDate("event-1", "slot-1"))
+// → Repository: Event.status = CONFIRMED
+
+// State Machine 2: Lit le status depuis le repository
+val event = eventRepository.getEvent("event-1")
+val canCreate = when (event?.status) {
+    EventStatus.CONFIRMED, EventStatus.COMPARING -> true
+    else -> false
+}
+```
+
+**Avantages:**
+- ✅ **Couplage faible** entre state machines
+- ✅ **Cohérence forte** via repository partagé
+- ✅ **Tests simples** (mock repository uniquement)
+- ✅ **Source de vérité claire** (Event.status)
+
+#### Workflow Complet: DRAFT → FINALIZED
+
+```
+Event(DRAFT) 
+  → StartPoll 
+  → Event(POLLING)
+  → ConfirmDate 
+  → Event(CONFIRMED) + scenariosUnlocked + NavigateTo("scenarios/$id")
+  → [User creates scenarios]
+  → SelectScenarioAsFinal (optional)
+  → Event(CONFIRMED) + NavigateTo("meetings/$id")
+  → TransitionToOrganizing 
+  → Event(ORGANIZING) + meetingsUnlocked
+  → [User creates meetings]
+  → MarkAsFinalized 
+  → Event(FINALIZED)
+```
+
+#### State Machines et Responsabilités
+
+| State Machine | Responsabilité | Intents Clés |
+|---------------|----------------|--------------|
+| **EventManagementStateMachine** | Gestion du cycle de vie de l'événement | StartPoll, ConfirmDate, TransitionToOrganizing, MarkAsFinalized |
+| **ScenarioManagementStateMachine** | Gestion des scénarios de destination/hébergement | CreateScenario, VoteScenario, SelectScenarioAsFinal |
+| **MeetingServiceStateMachine** | Gestion des réunions virtuelles | CreateMeeting, GenerateMeetingLink |
+
+#### Navigation Side Effects
+
+Les transitions de status **émettent des side effects de navigation** pour guider l'utilisateur:
+
+```kotlin
+// EventManagementStateMachine.kt
+private fun handleConfirmDate(eventId: String, slotId: String) {
+    // Mettre à jour le status
+    repository.updateEvent(
+        eventId = eventId,
+        status = EventStatus.CONFIRMED,
+        finalDate = date,
+        scenariosUnlocked = true
+    )
+    
+    // Émettre la navigation
+    emitSideEffect(NavigateTo("scenarios/$eventId"))
+}
+```
+
+**Side effects de navigation:**
+- `ConfirmDate` → `NavigateTo("scenarios/{eventId}")`
+- `SelectScenarioAsFinal` → `NavigateTo("meetings/{eventId}")`
+- `TransitionToOrganizing` → `NavigateTo("meetings/{eventId}")`
+
+#### Business Rules et Guards
+
+Chaque transition est **protégée par des guards** qui vérifient l'EventStatus:
+
+```kotlin
+// Exemple: StartPoll guard
+if (event.status != EventStatus.DRAFT) {
+    emitSideEffect(ShowError("Cannot start poll: Event not in DRAFT status"))
+    return
+}
+
+// Exemple: canCreateScenarios helper
+fun State.canCreateScenarios(): Boolean {
+    return eventStatus in listOf(EventStatus.COMPARING, EventStatus.CONFIRMED)
+}
+```
+
+**Règles métier par EventStatus:**
+
+| EventStatus | Scénarios Autorisés | Réunions Autorisées | Actions Possibles |
+|-------------|---------------------|---------------------|-------------------|
+| DRAFT | ❌ | ❌ | CreateEvent, StartPoll |
+| POLLING | ❌ | ❌ | Vote, ConfirmDate |
+| CONFIRMED | ✅ | ❌ | CreateScenario, TransitionToOrganizing |
+| COMPARING | ✅ | ❌ | VoteScenario, SelectScenarioAsFinal |
+| ORGANIZING | ❌ | ✅ | CreateMeeting, MarkAsFinalized |
+| FINALIZED | ❌ | ❌ | (Read-only) |
+
+#### Fichiers Clés
+
+**Contracts:**
+```
+shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/state/
+├── EventManagementContract.kt      # Intents, State, SideEffect pour EventManagement
+├── ScenarioManagementContract.kt   # Intents, State, SideEffect pour ScenarioManagement
+└── MeetingManagementContract.kt    # Intents, State, SideEffect pour MeetingService
+```
+
+**State Machines:**
+```
+shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/statemachine/
+├── EventManagementStateMachine.kt      # Gestion cycle de vie événement
+└── ScenarioManagementStateMachine.kt   # Gestion scénarios
+```
+
+**Tests:**
+```
+shared/src/commonTest/kotlin/com/guyghost/wakeve/
+├── presentation/statemachine/
+│   ├── EventManagementStateMachineTest.kt    # 13 tests unitaires
+│   └── ScenarioManagementStateMachineTest.kt # Tests helpers
+└── workflow/
+    └── WorkflowIntegrationTest.kt             # 6 tests d'intégration
+```
+
+#### Documentation Complète
+
+Pour plus de détails, consulter:
+- **[WORKFLOW_DIAGRAMS.md](openspec/changes/verify-statemachine-workflow/WORKFLOW_DIAGRAMS.md)**: Diagrammes séquence et état
+- **[TROUBLESHOOTING.md](openspec/changes/verify-statemachine-workflow/TROUBLESHOOTING.md)**: Guide de résolution de problèmes
+- **[INDEX.md](openspec/changes/verify-statemachine-workflow/INDEX.md)**: Navigation dans la documentation du changement
+
+#### Exemple d'Implémentation
+
+```kotlin
+// 1. Créer un événement (DRAFT)
+eventStateMachine.dispatch(Intent.CreateEvent(title, description))
+
+// 2. Démarrer le poll (DRAFT → POLLING)
+eventStateMachine.dispatch(Intent.StartPoll(eventId))
+
+// 3. Confirmer la date (POLLING → CONFIRMED)
+eventStateMachine.dispatch(Intent.ConfirmDate(eventId, slotId))
+// Side effect: NavigateTo("scenarios/$eventId")
+
+// 4. Créer des scénarios (CONFIRMED/COMPARING)
+scenarioStateMachine.dispatch(Intent.CreateScenario(eventId, destination, lodging))
+
+// 5. Optionnel: Sélectionner scénario final
+scenarioStateMachine.dispatch(Intent.SelectScenarioAsFinal(eventId, scenarioId))
+// Side effect: NavigateTo("meetings/$eventId")
+
+// 6. Transition vers organisation (CONFIRMED → ORGANIZING)
+eventStateMachine.dispatch(Intent.TransitionToOrganizing(eventId))
+// Side effect: NavigateTo("meetings/$eventId")
+
+// 7. Créer des réunions (ORGANIZING)
+meetingStateMachine.dispatch(Intent.CreateMeeting(eventId, platform))
+
+// 8. Finaliser l'événement (ORGANIZING → FINALIZED)
+eventStateMachine.dispatch(Intent.MarkAsFinalized(eventId))
+```
+
+#### Stratégie de Tests
+
+**Tests Unitaires** (EventManagementStateMachineTest.kt):
+- Test de chaque Intent handler individuellement
+- Validation des transitions de status
+- Test des guards et cas d'erreur
+- **Couverture**: 13 tests, 100% passing
+
+**Tests d'Intégration** (WorkflowIntegrationTest.kt):
+- Test de coordination cross-state-machine
+- Validation du pattern repository-mediated communication
+- Test du workflow complet (DRAFT → FINALIZED)
+- Validation de l'application des règles métier
+- **Couverture**: 6 tests, 100% passing
+
+**Commandes de test:**
+```bash
+# Tests unitaires state machine
+./gradlew shared:jvmTest --tests "*EventManagementStateMachineTest*"
+
+# Tests d'intégration workflow
+./gradlew shared:jvmTest --tests "*WorkflowIntegrationTest*"
+```
+
 ---
 
 ## 🔄 Git Flow - Workflow de Développement

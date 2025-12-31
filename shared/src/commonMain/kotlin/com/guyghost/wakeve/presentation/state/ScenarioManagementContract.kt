@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.presentation.state
 
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.ScenarioVoteType
@@ -56,6 +57,7 @@ object ScenarioManagementContract {
      * @property selectedScenario The currently selected scenario (for detail view)
      * @property votingResults Map of scenario ID to voting result aggregates
      * @property comparison Current scenario comparison (if in comparison mode)
+     * @property eventStatus The current status of the event (for validating scenario operations)
      * @property error Error message if operation failed (null = no error)
      */
     @Serializable
@@ -67,6 +69,7 @@ object ScenarioManagementContract {
         val selectedScenario: Scenario? = null,
         val votingResults: Map<String, ScenarioVotingResult> = emptyMap(),
         val comparison: ScenarioComparison? = null,
+        val eventStatus: EventStatus? = null,
         val error: String? = null
     ) {
         /**
@@ -109,6 +112,26 @@ object ScenarioManagementContract {
             scenarios.sortedByDescending { scenario ->
                 votingResults[scenario.scenario.id]?.score ?: 0
             }
+
+        /**
+         * Check if scenarios can be created based on event status.
+         *
+         * Scenarios can only be created in COMPARING or CONFIRMED states.
+         */
+        fun canCreateScenarios(): Boolean =
+            eventStatus in listOf(
+                EventStatus.COMPARING,
+                EventStatus.CONFIRMED
+            )
+
+        /**
+         * Check if a scenario can be selected as final.
+         *
+         * Only in COMPARING state can the organizer select a scenario as final.
+         * This transitions the event to CONFIRMED and unlocks meeting creation.
+         */
+        fun canSelectScenarioAsFinal(): Boolean =
+            eventStatus == EventStatus.COMPARING
     }
 
     /**
@@ -194,10 +217,12 @@ object ScenarioManagementContract {
          * Select a scenario for viewing details.
          *
          * Sets selectedScenario and loads its voting data.
-         * Can also be used to select a scenario as the final choice (by organizer).
          * Emits NavigateTo side effect to navigate to detail screen.
          *
-         * @property scenarioId The ID of the scenario to select
+         * NOTE: This is for navigation/viewing only. To select a scenario
+         * as the final choice, use SelectScenarioAsFinal.
+         *
+         * @property scenarioId The ID of the scenario to view
          */
         data class SelectScenario(val scenarioId: String) : Intent
 
@@ -236,6 +261,22 @@ object ScenarioManagementContract {
         data class VoteScenario(
             val scenarioId: String,
             val vote: ScenarioVoteType
+        ) : Intent
+
+        /**
+         * Select a scenario as the final choice for the event.
+         *
+         * This is different from SelectScenario (which navigates to detail).
+         * Only the organizer can select the final scenario.
+         * Updates event status from COMPARING to CONFIRMED.
+         * Unlocks meeting creation.
+         *
+         * @property eventId The ID of the event
+         * @property scenarioId The ID of the scenario to select as final
+         */
+        data class SelectScenarioAsFinal(
+            val eventId: String,
+            val scenarioId: String
         ) : Intent
 
         /**

@@ -1,6 +1,9 @@
 package com.guyghost.wakeve.presentation.statemachine
 
+import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.ScenarioRepository
 import com.guyghost.wakeve.models.Scenario
+import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.ScenarioWithVotes
 import com.guyghost.wakeve.models.ScenarioVoteType
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract
@@ -104,6 +107,8 @@ import kotlinx.coroutines.CoroutineScope
  * @property voteScenarioUseCase Use case for voting on scenarios
  * @property updateScenarioUseCase Use case for updating scenarios
  * @property deleteScenarioUseCase Use case for deleting scenarios
+ * @property eventRepository Direct access to event repository for status updates (nullable)
+ * @property scenarioRepository Direct access to scenario repository for status updates (nullable)
  * @property scope CoroutineScope for launching async work
  */
 class ScenarioManagementStateMachine(
@@ -112,6 +117,8 @@ class ScenarioManagementStateMachine(
     private val voteScenarioUseCase: VoteScenarioUseCase,
     private val updateScenarioUseCase: UpdateScenarioUseCase,
     private val deleteScenarioUseCase: DeleteScenarioUseCase,
+    private val eventRepository: EventRepositoryInterface? = null,
+    private val scenarioRepository: ScenarioRepository? = null,
     scope: CoroutineScope
 ) : StateMachine<State, Intent, SideEffect>(
     initialState = State(),
@@ -128,6 +135,7 @@ class ScenarioManagementStateMachine(
             is Intent.LoadScenariosForEvent -> handleLoadScenariosForEvent(intent)
             is Intent.CreateScenario -> handleCreateScenario(intent)
             is Intent.SelectScenario -> handleSelectScenario(intent)
+            is Intent.SelectScenarioAsFinal -> handleSelectScenarioAsFinal(intent)
             is Intent.UpdateScenario -> handleUpdateScenario(intent)
             is Intent.DeleteScenario -> handleDeleteScenario(intent)
             is Intent.VoteScenario -> handleVoteScenario(intent)
@@ -351,7 +359,7 @@ class ScenarioManagementStateMachine(
      * Handle select scenario intent.
      *
      * Selects a scenario for viewing details.
-     * Can also be used by organizer to select a scenario as final choice.
+     * This is for navigation/viewing only.
      *
      * Flow:
      * 1. Find scenario in scenarios list by ID
@@ -369,6 +377,101 @@ class ScenarioManagementStateMachine(
         } else {
             emitSideEffect(SideEffect.ShowError("Scenario not found"))
         }
+    }
+
+    /**
+     * Handle select scenario as final intent.
+     *
+     * Selects a scenario as the final choice for the event.
+     * This is different from SelectScenario (which navigates to detail).
+     * Only the organizer can select the final scenario.
+     * Updates event status from COMPARING to CONFIRMED.
+     * Unlocks meeting creation.
+     *
+     * Flow:
+     * 1. Validate repositories are available
+     * 2. Load the event
+     * 3. Validate event status is COMPARING
+     * 4. Validate user is organizer (TODO: add userId parameter)
+     * 5. Load the scenario
+     * 6. Update scenario status to SELECTED
+     * 7. Update event status to CONFIRMED
+     * 8. Reload scenarios
+     * 9. Emit ShowToast and NavigateTo meetings
+     *
+     * @param intent Contains eventId and scenarioId
+     */
+    private suspend fun handleSelectScenarioAsFinal(intent: Intent.SelectScenarioAsFinal) {
+        if (eventRepository == null || scenarioRepository == null) {
+            val errorMsg = "Repository not available"
+            updateState { it.copy(error = errorMsg) }
+            emitSideEffect(SideEffect.ShowError(errorMsg))
+            return
+        }
+
+        updateState { it.copy(isLoading = true, error = null) }
+
+        // Load event
+        val event = eventRepository.getEvent(intent.eventId)
+        if (event == null) {
+            val errorMsg = "Event not found"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(SideEffect.ShowError(errorMsg))
+            return
+        }
+
+        // Validate event status
+        if (event.status != com.guyghost.wakeve.models.EventStatus.COMPARING) {
+            val errorMsg = "Cannot select scenario: Event is not in COMPARING status"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(SideEffect.ShowError(errorMsg))
+            return
+        }
+
+        // Load scenario
+        val scenario = scenarioRepository.getScenarioById(intent.scenarioId)
+        if (scenario == null) {
+            val errorMsg = "Scenario not found"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(SideEffect.ShowError(errorMsg))
+            return
+        }
+
+        // Update scenario status to SELECTED
+        val scenarioResult = scenarioRepository.updateScenarioStatus(
+            scenarioId = intent.scenarioId,
+            status = ScenarioStatus.SELECTED
+        )
+
+        scenarioResult.fold(
+            onSuccess = {
+                // Update event status to CONFIRMED
+                val eventResult = eventRepository.updateEventStatus(
+                    id = intent.eventId,
+                    status = com.guyghost.wakeve.models.EventStatus.CONFIRMED,
+                    finalDate = event.finalDate
+                )
+
+                eventResult.fold(
+                    onSuccess = {
+                        // Reload scenarios
+                        reloadScenarios(intent.eventId)
+                        emitSideEffect(SideEffect.ShowToast("Scenario selected successfully!"))
+                        emitSideEffect(SideEffect.NavigateTo("meetings/${intent.eventId}"))
+                    },
+                    onFailure = { error ->
+                        val errorMsg = error.message ?: "Failed to update event status"
+                        updateState { it.copy(isLoading = false, error = errorMsg) }
+                        emitSideEffect(SideEffect.ShowError(errorMsg))
+                    }
+                )
+            },
+            onFailure = { error ->
+                val errorMsg = error.message ?: "Failed to select scenario"
+                updateState { it.copy(isLoading = false, error = errorMsg) }
+                emitSideEffect(SideEffect.ShowError(errorMsg))
+            }
+        )
     }
 
     // ========================================================================

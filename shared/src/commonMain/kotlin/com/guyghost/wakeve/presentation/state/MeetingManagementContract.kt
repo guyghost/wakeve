@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.presentation.state
 
 import com.guyghost.wakeve.models.CreateMeetingRequest
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.MeetingLinkResponse
 import com.guyghost.wakeve.models.MeetingPlatform
 import com.guyghost.wakeve.models.UpdateMeetingRequest
@@ -124,6 +125,11 @@ object MeetingManagementContract {
         val generatedLink: MeetingLinkResponse? = null,
 
         /**
+         * The current status of the event (for validating meeting operations)
+         */
+        val eventStatus: EventStatus? = null,
+
+        /**
          * Error message if an operation failed
          */
         val error: String? = null
@@ -145,6 +151,19 @@ object MeetingManagementContract {
          */
         val hasGeneratedLink: Boolean
             get() = generatedLink != null
+
+        /**
+         * Check if meetings can be created based on event status.
+         *
+         * Meetings can only be created in CONFIRMED, ORGANIZING, or FINALIZED states.
+         * Before CONFIRMED, the event date hasn't been confirmed yet.
+         */
+        fun canCreateMeetings(): Boolean =
+            eventStatus in listOf(
+                EventStatus.CONFIRMED,
+                EventStatus.ORGANIZING,
+                EventStatus.FINALIZED
+            )
     }
 
     /**
