@@ -7,8 +7,6 @@ import com.guyghost.wakeve.models.MeetingPlatform
 import com.guyghost.wakeve.models.MeetingStatus
 import com.guyghost.wakeve.NotificationService
 import kotlin.time.Duration.Companion.hours
-import com.guyghost.wakeve.presentation.state.machine.MeetingServiceStateMachine
-import com.guyghost.wakeve.presentation.viewmodel.MeetingListViewModel
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -44,7 +42,7 @@ class MeetingServiceTest {
             title = "Test Meeting",
             description = "Test Description",
             scheduledFor = Clock.System.now(),
-            duration = hours(1),
+            duration = 1.hours,
             timezone = "Europe/Paris",
             requirePassword = true,
             waitingRoom = true
@@ -76,7 +74,7 @@ class MeetingServiceTest {
             title = "Test Meeting",
             description = null,
             scheduledFor = Clock.System.now(),
-            duration = hours(1),
+            duration = 1.hours,
             timezone = "Europe/Paris"
         )
 
@@ -106,7 +104,7 @@ class MeetingServiceTest {
             title = "Test Meeting",
             description = null,
             scheduledFor = Clock.System.now(),
-            duration = hours(1),
+            duration = 1.hours,
             timezone = "Europe/Paris"
         )
 
@@ -136,7 +134,7 @@ class MeetingServiceTest {
             title = "Test Meeting",
             description = null,
             scheduledFor = Clock.System.now(),
-            duration = hours(1),
+            duration = 1.hours,
             timezone = "Europe/Paris"
         )
 
@@ -289,7 +287,7 @@ class MeetingServiceTest {
             title = "Test",
             description = null,
             scheduledFor = Clock.System.now(),
-            duration = kotlin.time.Duration.Companion.hours(1)
+            duration = 1.hours
         )
 
         // Then
@@ -305,7 +303,7 @@ class MeetingServiceTest {
             title = "Test",
             description = null,
             scheduledFor = Clock.System.now(),
-            duration = kotlin.time.Duration.Companion.hours(1)
+            duration = 1.hours
         )
 
         // Then

@@ -113,7 +113,7 @@ struct ModernEventCreationView: View {
                                             .foregroundColor(.white)
                                         
                                         if !timeSlots.isEmpty {
-                                            Text(timeSlots[0].start)
+                                            Text(timeSlots[0].start ?? "")
                                                 .font(.system(size: 15))
                                                 .foregroundColor(.white.opacity(0.7))
                                         }
@@ -125,7 +125,7 @@ struct ModernEventCreationView: View {
                                 .frame(minHeight: 44)
                             }
                             .accessibilityLabel("Select date and time")
-                            .accessibilityValue(timeSlots.isEmpty ? "No date selected" : timeSlots[0].start)
+                            .accessibilityValue(timeSlots.isEmpty ? "No date selected" : (timeSlots[0].start ?? ""))
                             
                             Divider().background(Color.white.opacity(0.2))
                             
@@ -239,7 +239,7 @@ struct ModernEventCreationView: View {
                     // Update timeSlots with single slot for now
                     let start = ISO8601DateFormatter().string(from: selectedDate)
                     let end = ISO8601DateFormatter().string(from: selectedDate.addingTimeInterval(3600))
-                    timeSlots = [TimeSlot(id: UUID().uuidString, start: start, end: end, timezone: TimeZone.current.identifier)]
+                    timeSlots = [TimeSlot(id: UUID().uuidString, start: start, end: end, timezone: TimeZone.current.identifier, timeOfDay: .specific)]
                 }
                 .padding()
                 .buttonStyle(.borderedProminent)
@@ -300,7 +300,7 @@ struct ModernEventCreationView: View {
             if timeSlots.isEmpty {
                 let start = ISO8601DateFormatter().string(from: selectedDate)
                 let end = ISO8601DateFormatter().string(from: selectedDate.addingTimeInterval(3600))
-                timeSlots = [TimeSlot(id: UUID().uuidString, start: start, end: end, timezone: TimeZone.current.identifier)]
+                timeSlots = [TimeSlot(id: UUID().uuidString, start: start, end: end, timezone: TimeZone.current.identifier, timeOfDay: .specific)]
             }
 
             let now = ISO8601DateFormatter().string(from: Date())
@@ -315,7 +315,12 @@ struct ModernEventCreationView: View {
                 status: EventStatus.draft,
                 finalDate: nil,
                 createdAt: now,
-                updatedAt: now
+                updatedAt: now,
+                eventType: .other,
+                eventTypeCustom: nil,
+                minParticipants: nil,
+                maxParticipants: nil,
+                expectedParticipants: nil
             )
 
             let result = try await repository.createEvent(event: event)

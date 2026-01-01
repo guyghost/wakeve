@@ -1,10 +1,10 @@
 package com.guyghost.wakeve
 
 import com.guyghost.wakeve.database.WakevDb
-import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
-import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.test.createTestEvent
+import com.guyghost.wakeve.test.createTestTimeSlot
 import kotlinx.coroutines.runBlocking
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -28,14 +28,14 @@ class DatabaseEventRepositoryTest {
     @Test
     fun testCreateAndRetrieveEvent() = runBlocking {
         
-        val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
-        val event = Event(
+        val event = createTestEvent(
             id = "event-1",
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
-            participants = emptyList(),
-            proposedSlots = listOf(slot1),
+            proposedSlots = listOf(
+                createTestTimeSlot(id = "slot-1", start = "2025-12-01T10:00:00Z", end = "2025-12-01T12:00:00Z")
+            ),
             deadline = "2025-11-20T18:00:00Z",
             status = EventStatus.DRAFT,
             createdAt = "2025-11-20T10:00:00Z",
@@ -55,16 +55,12 @@ class DatabaseEventRepositoryTest {
     @Test
     fun testAddParticipant() = runBlocking {
         
-        val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
-        val event = Event(
+        val event = createTestEvent(
             id = "event-1",
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
-            participants = emptyList(),
-            proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT,
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"
         )
@@ -82,14 +78,11 @@ class DatabaseEventRepositoryTest {
     @Test
     fun testAddParticipantToNonDraftEventFails() = runBlocking {
         
-        val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
-        val event = Event(
+        val event = createTestEvent(
             id = "event-1",
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
-            participants = emptyList(),
-            proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
             status = EventStatus.POLLING,
             createdAt = "2025-11-20T10:00:00Z",
@@ -105,16 +98,12 @@ class DatabaseEventRepositoryTest {
     @Test
     fun testAddDuplicateParticipantFails() = runBlocking {
         
-        val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
-        val event = Event(
+        val event = createTestEvent(
             id = "event-1",
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
-            participants = emptyList(),
-            proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT,
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"
         )
@@ -129,16 +118,12 @@ class DatabaseEventRepositoryTest {
     @Test
     fun testUpdateEventStatus() = runBlocking {
         
-        val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
-        val event = Event(
+        val event = createTestEvent(
             id = "event-1",
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
-            participants = emptyList(),
-            proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT,
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"
         )
@@ -155,17 +140,13 @@ class DatabaseEventRepositoryTest {
     @Test
     fun testAddVoteToEvent() = runBlocking {
         
-        val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
         // Create event in DRAFT status first
-        val event = Event(
+        val event = createTestEvent(
             id = "event-1",
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
-            participants = emptyList(),
-            proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT,
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"
         )
@@ -183,17 +164,13 @@ class DatabaseEventRepositoryTest {
     @Test
     fun testVoteBeforeDeadlineFails() = runBlocking {
         
-        val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
         // Create event in DRAFT status first
-        val event = Event(
+        val event = createTestEvent(
             id = "event-1",
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
-            participants = emptyList(),
-            proposedSlots = listOf(slot1),
             deadline = "2025-11-10T10:00:00Z", // Past deadline
-            status = EventStatus.DRAFT,
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"
         )
@@ -211,18 +188,17 @@ class DatabaseEventRepositoryTest {
     @Test
     fun testGetPoll() = runBlocking {
         
-        val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
-        val slot2 = TimeSlot("slot-2", "2025-12-02T14:00:00Z", "2025-12-02T16:00:00Z", "UTC")
         // Create event in DRAFT status first
-        val event = Event(
+        val event = createTestEvent(
             id = "event-1",
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
-            participants = emptyList(),
-            proposedSlots = listOf(slot1, slot2),
+            proposedSlots = listOf(
+                createTestTimeSlot(id = "slot-1", start = "2025-12-01T10:00:00Z", end = "2025-12-01T12:00:00Z"),
+                createTestTimeSlot(id = "slot-2", start = "2025-12-02T14:00:00Z", end = "2025-12-02T16:00:00Z")
+            ),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT,
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"
         )
@@ -245,20 +221,15 @@ class DatabaseEventRepositoryTest {
     @Test
     fun testGetAllEvents() = runBlocking {
         
-        val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
-        
         repeat(3) { i ->
-            val event = Event(
+            val event = createTestEvent(
                 id = "event-$i",
                 title = "Meeting $i",
                 description = "Description $i",
                 organizerId = "org-1",
-                participants = emptyList(),
-                proposedSlots = listOf(slot1),
                 deadline = "2025-11-20T18:00:00Z",
-                status = EventStatus.DRAFT,
-            createdAt = "2025-11-20T10:00:00Z",
-            updatedAt = "2025-11-20T10:00:00Z"
+                createdAt = "2025-11-20T10:00:00Z",
+                updatedAt = "2025-11-20T10:00:00Z"
             )
             repository.createEvent(event)
         }
@@ -270,16 +241,12 @@ class DatabaseEventRepositoryTest {
     @Test
     fun testIsOrganizer() = runBlocking {
         
-        val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
-        val event = Event(
+        val event = createTestEvent(
             id = "event-1",
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
-            participants = emptyList(),
-            proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT,
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"
         )
@@ -293,16 +260,12 @@ class DatabaseEventRepositoryTest {
     @Test
     fun testCanModifyEvent() = runBlocking {
         
-        val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
-        val event = Event(
+        val event = createTestEvent(
             id = "event-1",
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
-            participants = emptyList(),
-            proposedSlots = listOf(slot1),
             deadline = "2025-11-20T18:00:00Z",
-            status = EventStatus.DRAFT,
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"
         )
@@ -323,16 +286,13 @@ class DatabaseEventRepositoryTest {
     @Test
     fun testConfirmEventDate() = runBlocking {
         
-        val slot1 = TimeSlot("slot-1", "2025-12-01T10:00:00Z", "2025-12-01T12:00:00Z", "UTC")
-        val event = Event(
+        val event = createTestEvent(
             id = "event-1",
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
-            participants = emptyList(),
-            proposedSlots = listOf(slot1),
-            deadline = "2025-11-20T18:00:00Z",
             status = EventStatus.POLLING,
+            deadline = "2025-11-20T18:00:00Z",
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"
         )

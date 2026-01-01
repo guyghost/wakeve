@@ -1,0 +1,406 @@
+-- ChatMessages table: stores real-time chat messages for events
+-- Supports sections, reactions, read receipts, and offline-first sync
+
+-- Main chat messages table
+CREATE TABLE IF NOT EXISTS chat_message (
+    id TEXT PRIMARY KEY NOT NULL,
+    event_id TEXT NOT NULL,
+    sender_id TEXT NOT NULL,
+    sender_name TEXT NOT NULL,  -- Denormalized for performance
+    sender_avatar_url TEXT,  -- Denormalized for performance
+    content TEXT NOT NULL,
+    section TEXT,  -- TRANSPORT, ACCOMMODATION, FOOD, EQUIPMENT, ACTIVITIES, GENERAL (nullable for general chat)
+    section_item_id TEXT,  -- Optional ID of specific item within section
+    parent_message_id TEXT,  -- Thread reply reference (nullable for top-level messages)
+    timestamp TEXT NOT NULL,  -- ISO 8601 UTC timestamp
+    status TEXT NOT NULL DEFAULT 'SENT',  -- SENT, DELIVERED, FAILED, READ
+    is_offline INTEGER NOT NULL DEFAULT 0,  -- 0 = false, 1 = true (created while offline)
+    reply_count INTEGER NOT NULL DEFAULT 0,
+    edit_timestamp TEXT,  -- ISO 8601 UTC timestamp, NULL if never edited
+    is_edited INTEGER NOT NULL DEFAULT 0,  -- 0 = false, 1 = true
+    reactions_json TEXT,  -- JSON array of reactions: [{"userId": "...", "emoji": "...", "timestamp": "..."}]
+    read_by_json TEXT,  -- JSON array of user IDs who have read: ["userId1", "userId2"]
+    created_at TEXT NOT NULL,  -- ISO 8601 UTC timestamp (for sync)
+    updated_at TEXT NOT NULL,  -- ISO 8601 UTC timestamp (for sync)
+    FOREIGN KEY (event_id) REFERENCES event(id) ON DELETE CASCADE,
+    FOREIGN KEY (parent_message_id) REFERENCES chat_message(id) ON DELETE CASCADE
+);
+
+-- Message reactions table: individual reaction records (normalized for easy querying)
+CREATE TABLE IF NOT EXISTS message_reaction (
+    id TEXT PRIMARY KEY NOT NULL,
+    message_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    timestamp TEXT NOT NULL,  -- ISO 8601 UTC timestamp
+    FOREIGN KEY (message_id) REFERENCES chat_message(id) ON DELETE CASCADE
+);
+
+-- Message read status table: tracks when users read messages
+CREATE TABLE IF NOT EXISTS message_read_status (
+    id TEXT PRIMARY KEY NOT NULL,
+    message_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    read_at TEXT NOT NULL,  -- ISO 8601 UTC timestamp
+    UNIQUE(message_id, user_id),
+    FOREIGN KEY (message_id) REFERENCES chat_message(id) ON DELETE CASCADE
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_chat_message_event_id ON chat_message(event_id);
+CREATE INDEX IF NOT EXISTS idx_chat_message_sender_id ON chat_message(sender_id);
+CREATE INDEX IF NOT EXISTS idx_chat_message_section ON chat_message(section);
+CREATE INDEX IF NOT EXISTS idx_chat_message_section_item ON chat_message(section_item_id);
+CREATE INDEX IF NOT EXISTS idx_chat_message_parent ON chat_message(parent_message_id);
+CREATE INDEX IF NOT EXISTS idx_chat_message_timestamp ON chat_message(timestamp);
+CREATE INDEX IF NOT EXISTS idx_chat_message_status ON chat_message(status);
+CREATE INDEX IF NOT EXISTS idx_chat_message_event_timestamp ON chat_message(event_id, timestamp DESC);
+
+-- Composite indexes for common query patterns
+CREATE INDEX IF NOT EXISTS idx_chat_message_event_section ON chat_message(event_id, section, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_message_event_section_item ON chat_message(event_id, section, section_item_id, timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_chat_message_parent_thread ON chat_message(parent_message_id, timestamp ASC);
+CREATE INDEX IF NOT EXISTS idx_chat_message_event_offline ON chat_message(event_id, is_offline, timestamp DESC);
+
+CREATE INDEX IF NOT EXISTS idx_message_reaction_message ON message_reaction(message_id);
+CREATE INDEX IF NOT EXISTS idx_message_reaction_user ON message_reaction(user_id, emoji);
+CREATE INDEX IF NOT EXISTS idx_message_read_status_message ON message_read_status(message_id);
+CREATE INDEX IF NOT EXISTS idx_message_read_status_user ON message_read_status(user_id, read_at);
+
+-- ==================== CHAT MESSAGE QUERIES ====================
+
+-- Read operations for messages
+selectMessageById:
+SELECT * FROM chat_message WHERE id = ?;
+
+selectMessagesByEvent:
+SELECT * FROM chat_message 
+WHERE event_id = ? 
+ORDER BY timestamp ASC;
+
+selectMessagesByEventPaginated:
+SELECT * FROM chat_message 
+WHERE event_id = ? 
+ORDER BY timestamp DESC
+LIMIT ? OFFSET ?;
+
+selectMessagesByEventAndSection:
+SELECT * FROM chat_message 
+WHERE event_id = ? AND section = ? 
+ORDER BY timestamp ASC;
+
+selectMessagesByEventSectionPaginated:
+SELECT * FROM chat_message 
+WHERE event_id = ? AND section = ? 
+ORDER BY timestamp DESC
+LIMIT ? OFFSET ?;
+
+selectMessagesByEventSectionAndItem:
+SELECT * FROM chat_message 
+WHERE event_id = ? AND section = ? AND section_item_id = ?
+ORDER BY timestamp ASC;
+
+selectMessagesByEventSectionAndItemPaginated:
+SELECT * FROM chat_message 
+WHERE event_id = ? AND section = ? AND section_item_id = ?
+ORDER BY timestamp DESC
+LIMIT ? OFFSET ?;
+
+selectThreadMessages:
+SELECT * FROM chat_message 
+WHERE parent_message_id = ?
+ORDER BY timestamp ASC;
+
+selectTopLevelMessages:
+SELECT * FROM chat_message 
+WHERE event_id = ? AND parent_message_id IS NULL
+ORDER BY timestamp ASC;
+
+selectTopLevelMessagesPaginated:
+SELECT * FROM chat_message 
+WHERE event_id = ? AND parent_message_id IS NULL
+ORDER BY timestamp DESC
+LIMIT ? OFFSET ?;
+
+selectTopLevelMessagesBySection:
+SELECT * FROM chat_message 
+WHERE event_id = ? AND section = ? AND parent_message_id IS NULL
+ORDER BY timestamp ASC;
+
+selectTopLevelMessagesBySectionPaginated:
+SELECT * FROM chat_message 
+WHERE event_id = ? AND section = ? AND parent_message_id IS NULL
+ORDER BY timestamp DESC
+LIMIT ? OFFSET ?;
+
+selectMessagesBySender:
+SELECT * FROM chat_message 
+WHERE event_id = ? AND sender_id = ?
+ORDER BY timestamp DESC;
+
+selectMessagesByStatus:
+SELECT * FROM chat_message 
+WHERE event_id = ? AND status = ?
+ORDER BY timestamp ASC;
+
+selectFailedMessages:
+SELECT * FROM chat_message 
+WHERE event_id = ? AND status = 'FAILED'
+ORDER BY timestamp ASC;
+
+selectOfflineMessages:
+SELECT * FROM chat_message 
+WHERE event_id = ? AND is_offline = 1
+ORDER BY timestamp ASC;
+
+selectRecentMessages:
+SELECT * FROM chat_message 
+WHERE event_id = ? AND timestamp > ?
+ORDER BY timestamp ASC
+LIMIT ?;
+
+-- Create operations for messages
+insertMessage:
+INSERT INTO chat_message(
+    id, event_id, sender_id, sender_name, sender_avatar_url, content,
+    section, section_item_id, parent_message_id, timestamp, status,
+    is_offline, reply_count, edit_timestamp, is_edited, reactions_json,
+    read_by_json, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+insertMessageMinimal:
+INSERT INTO chat_message(
+    id, event_id, sender_id, sender_name, sender_avatar_url, content,
+    section, section_item_id, parent_message_id, timestamp, status,
+    is_offline, reply_count, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Update operations for messages
+updateMessage:
+UPDATE chat_message
+SET content = ?, edit_timestamp = ?, is_edited = 1, updated_at = ?
+WHERE id = ?;
+
+updateMessageStatus:
+UPDATE chat_message
+SET status = ?, updated_at = ?
+WHERE id = ?;
+
+updateMessageReactions:
+UPDATE chat_message
+SET reactions_json = ?, updated_at = ?
+WHERE id = ?;
+
+updateMessageReadBy:
+UPDATE chat_message
+SET read_by_json = ?, updated_at = ?
+WHERE id = ?;
+
+markMessageAsRead:
+UPDATE chat_message
+SET status = 'READ', updated_at = ?
+WHERE id = ?;
+
+incrementReplyCount:
+UPDATE chat_message
+SET reply_count = reply_count + 1, updated_at = ?
+WHERE id = ?;
+
+decrementReplyCount:
+UPDATE chat_message
+SET reply_count = GREATEST(0, reply_count - 1), updated_at = ?
+WHERE id = ?;
+
+-- Mark message as synced (from offline to online)
+markMessageAsSynced:
+UPDATE chat_message
+SET is_offline = 0, status = 'SENT', updated_at = ?
+WHERE id = ?;
+
+-- Mark all messages in event as read by user
+markAllMessagesAsReadByUser:
+UPDATE chat_message
+SET read_by_json = ?,
+    status = CASE WHEN status = 'DELIVERED' THEN 'READ' ELSE status END,
+    updated_at = ?
+WHERE event_id = ?
+AND is_offline = 0;
+
+-- Delete operations for messages
+deleteMessage:
+DELETE FROM chat_message WHERE id = ?;
+
+deleteMessagesByEvent:
+DELETE FROM chat_message WHERE event_id = ?;
+
+deleteMessagesBySection:
+DELETE FROM chat_message WHERE event_id = ? AND section = ?;
+
+deleteMessagesBySender:
+DELETE FROM chat_message WHERE event_id = ? AND sender_id = ?;
+
+deleteFailedMessages:
+DELETE FROM chat_message WHERE event_id = ? AND status = 'FAILED';
+
+-- ==================== MESSAGE REACTION QUERIES ====================
+
+-- Read operations for reactions
+selectReactionsByMessage:
+SELECT * FROM message_reaction WHERE message_id = ? ORDER BY timestamp ASC;
+
+selectReactionsByUser:
+SELECT * FROM message_reaction WHERE message_id = ? AND user_id = ?;
+
+selectUserReactions:
+SELECT * FROM message_reaction WHERE user_id = ? ORDER BY timestamp DESC;
+
+selectReactionCounts:
+SELECT emoji, COUNT(*)
+FROM message_reaction
+WHERE message_id = ?
+GROUP BY emoji
+ORDER BY COUNT(*) DESC;
+
+selectUserReactionForMessage:
+SELECT * FROM message_reaction 
+WHERE message_id = ? AND user_id = ? AND emoji = ?;
+
+-- Create operations for reactions
+insertReaction:
+INSERT INTO message_reaction(id, message_id, user_id, emoji, timestamp)
+VALUES (?, ?, ?, ?, ?);
+
+-- Delete operations for reactions
+deleteReaction:
+DELETE FROM message_reaction WHERE message_id = ? AND user_id = ? AND emoji = ?;
+
+deleteReactionsByMessage:
+DELETE FROM message_reaction WHERE message_id = ?;
+
+deleteReactionsByUser:
+DELETE FROM message_reaction WHERE user_id = ?;
+
+-- ==================== MESSAGE READ STATUS QUERIES ====================
+
+-- Read operations for read status
+selectReadStatusByMessage:
+SELECT * FROM message_read_status WHERE message_id = ?;
+
+selectReadStatusByUser:
+SELECT * FROM message_read_status WHERE user_id = ? ORDER BY read_at DESC;
+
+selectUnreadMessagesForUser:
+SELECT cm.* FROM chat_message cm
+LEFT JOIN message_read_status mrs ON cm.id = mrs.message_id AND mrs.user_id = ?
+WHERE cm.event_id = ? 
+AND cm.sender_id != ?
+AND (mrs.id IS NULL OR mrs.read_at < cm.updated_at)
+ORDER BY cm.timestamp ASC;
+
+selectUnreadCountForUser:
+SELECT COUNT(*) FROM chat_message cm
+WHERE cm.event_id = ?
+AND cm.sender_id != ?
+AND (cm.read_by_json NOT LIKE '%' || ? || '%' OR cm.read_by_json IS NULL);
+
+-- Create operations for read status
+insertReadStatus:
+INSERT OR REPLACE INTO message_read_status(id, message_id, user_id, read_at)
+VALUES (?, ?, ?, ?);
+
+-- Update operations for read status
+updateReadStatus:
+INSERT OR REPLACE INTO message_read_status(id, message_id, user_id, read_at)
+VALUES (?, ?, ?, ?);
+
+-- Delete operations for read status
+deleteReadStatus:
+DELETE FROM message_read_status WHERE message_id = ? AND user_id = ?;
+
+deleteReadStatusByUser:
+DELETE FROM message_read_status WHERE user_id = ?;
+
+-- ==================== AGGREGATION QUERIES ====================
+
+countMessagesByEvent:
+SELECT COUNT(*) FROM chat_message WHERE event_id = ?;
+
+countMessagesByEventAndSection:
+SELECT COUNT(*) FROM chat_message WHERE event_id = ? AND section = ?;
+
+countMessagesBySender:
+SELECT COUNT(*) FROM chat_message WHERE event_id = ? AND sender_id = ?;
+
+countUnreadMessages:
+SELECT COUNT(*) FROM chat_message 
+WHERE event_id = ? 
+AND status != 'READ'
+AND sender_id != ?;
+
+selectMessageStatsBySection:
+SELECT 
+    COALESCE(section, 'GENERAL') AS section,
+    COUNT(*) AS message_count,
+    COUNT(DISTINCT sender_id) AS unique_senders,
+    COUNT(DISTINCT parent_message_id) AS thread_count
+FROM chat_message
+WHERE event_id = ?
+GROUP BY section
+ORDER BY message_count DESC;
+
+selectTopChatters:
+SELECT 
+    sender_id,
+    sender_name,
+    COUNT(*) AS message_count
+FROM chat_message
+WHERE event_id = ?
+GROUP BY sender_id, sender_name
+ORDER BY message_count DESC
+LIMIT ?;
+
+selectRecentActivity:
+SELECT 
+    sender_id,
+    sender_name,
+    COUNT(*) AS message_count,
+    MAX(timestamp) AS last_message_at
+FROM chat_message
+WHERE event_id = ? AND timestamp > ?
+GROUP BY sender_id, sender_name
+ORDER BY last_message_at DESC;
+
+-- Get message thread info (first message and reply count)
+selectThreadInfo:
+SELECT 
+    cm.*,
+    COUNT(mr.id) AS reaction_count,
+    (SELECT COUNT(*) FROM chat_message WHERE parent_message_id = cm.id) AS reply_count
+FROM chat_message cm
+LEFT JOIN message_reaction mr ON cm.id = mr.message_id
+WHERE cm.id = ?
+GROUP BY cm.id;
+
+-- ==================== OFFLINE SYNC QUERIES ====================
+
+selectPendingMessages:
+SELECT * FROM chat_message WHERE is_offline = 1 ORDER BY timestamp ASC;
+
+selectPendingSyncCount:
+SELECT COUNT(*) FROM chat_message WHERE is_offline = 1;
+
+markAllPendingAsSynced:
+UPDATE chat_message
+SET is_offline = 0, updated_at = ?
+WHERE is_offline = 1;
+
+-- Cleanup old messages (keep last N messages per event)
+cleanupOldMessages:
+DELETE FROM chat_message 
+WHERE event_id = ? 
+AND id NOT IN (
+    SELECT id FROM chat_message 
+    WHERE event_id = ? 
+    ORDER BY timestamp DESC
+    LIMIT ?
+);

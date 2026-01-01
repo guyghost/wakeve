@@ -28,6 +28,7 @@ dependencies {
     implementation(libs.sqldelight.jvmDriver)
     implementation(libs.java.jwt)
     implementation(libs.ktor.serverRateLimit)
+    implementation(libs.ktor.serverWebsockets)
     implementation(libs.micrometer.core)
     implementation(libs.micrometer.registry.prometheus)
     testImplementation(libs.ktor.serverTestHost)

@@ -1,0 +1,275 @@
+-- UserBadges table: stores user badge achievements
+-- Badge definitions table: stores all available badge templates
+
+-- Badge definitions table: master list of all available badges
+CREATE TABLE IF NOT EXISTS badge_definition (
+    id TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+    icon TEXT NOT NULL,  -- Icon identifier/name
+    requirement INTEGER NOT NULL,  -- Threshold to unlock (e.g., 10 events, 100 votes)
+    points_reward INTEGER NOT NULL DEFAULT 0,  -- Points awarded when badge is unlocked
+    category TEXT NOT NULL,  -- CREATION, VOTING, PARTICIPATION, ENGAGEMENT, SPECIAL
+    rarity TEXT NOT NULL DEFAULT 'COMMON',  -- COMMON, RARE, EPIC, LEGENDARY
+    created_at TEXT NOT NULL  -- ISO 8601 UTC timestamp
+);
+
+-- User badges table: badges unlocked by users
+CREATE TABLE IF NOT EXISTS user_badge (
+    user_id TEXT NOT NULL,
+    badge_id TEXT NOT NULL,
+    unlocked_at TEXT NOT NULL,  -- ISO 8601 UTC timestamp
+    progress INTEGER DEFAULT 0,  -- Current progress towards requirement (for partial progress)
+    is_acknowledged INTEGER NOT NULL DEFAULT 0,  -- 0 = false, 1 = true (user has seen the badge)
+    PRIMARY KEY (user_id, badge_id),
+    FOREIGN KEY (badge_id) REFERENCES badge_definition(id) ON DELETE CASCADE
+);
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_user_badge_user_id ON user_badge(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_badge_badge_id ON user_badge(badge_id);
+CREATE INDEX IF NOT EXISTS idx_badge_definition_category ON badge_definition(category);
+CREATE INDEX IF NOT EXISTS idx_badge_definition_rarity ON badge_definition(rarity);
+
+-- ==================== BADGE DEFINITION QUERIES ====================
+
+-- Read operations for badge definitions
+selectAllBadgeDefinitions:
+SELECT * FROM badge_definition ORDER BY category, rarity, name;
+
+selectBadgeDefinitionById:
+SELECT * FROM badge_definition WHERE id = ?;
+
+selectBadgeDefinitionsByCategory:
+SELECT * FROM badge_definition WHERE category = ? ORDER BY requirement ASC;
+
+selectBadgeDefinitionsByRarity:
+SELECT * FROM badge_definition WHERE rarity = ? ORDER BY requirement ASC;
+
+selectBadgeDefinitionsByCategories:
+SELECT * FROM badge_definition WHERE category IN (?) ORDER BY category, requirement ASC;
+
+-- Create operations for badge definitions
+insertBadgeDefinition:
+INSERT INTO badge_definition(id, name, description, icon, requirement, points_reward, category, rarity, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Seed common badge definitions
+seedBadgeDefinition:
+INSERT OR IGNORE INTO badge_definition(id, name, description, icon, requirement, points_reward, category, rarity, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Update operations for badge definitions
+updateBadgeDefinition:
+UPDATE badge_definition
+SET name = ?, description = ?, icon = ?, requirement = ?, points_reward = ?, category = ?, rarity = ?
+WHERE id = ?;
+
+-- Delete operations for badge definitions
+deleteBadgeDefinition:
+DELETE FROM badge_definition WHERE id = ?;
+
+-- ==================== USER BADGE QUERIES ====================
+
+-- Read operations for user badges
+selectUserBadges:
+SELECT 
+    ub.user_id,
+    ub.unlocked_at,
+    ub.progress,
+    ub.is_acknowledged,
+    bd.id,
+    bd.name,
+    bd.description,
+    bd.icon,
+    bd.requirement,
+    bd.points_reward,
+    bd.category,
+    bd.rarity
+FROM user_badge ub
+JOIN badge_definition bd ON ub.badge_id = bd.id
+WHERE ub.user_id = ?
+ORDER BY ub.unlocked_at DESC;
+
+selectUserBadgesByCategory:
+SELECT 
+    ub.user_id,
+    ub.unlocked_at,
+    ub.progress,
+    ub.is_acknowledged,
+    bd.id,
+    bd.name,
+    bd.description,
+    bd.icon,
+    bd.requirement,
+    bd.points_reward,
+    bd.category,
+    bd.rarity
+FROM user_badge ub
+JOIN badge_definition bd ON ub.badge_id = bd.id
+WHERE ub.user_id = ? AND bd.category = ?
+ORDER BY bd.rarity DESC, ub.unlocked_at DESC;
+
+selectUserBadgesByRarity:
+SELECT 
+    ub.user_id,
+    ub.unlocked_at,
+    ub.progress,
+    ub.is_acknowledged,
+    bd.id,
+    bd.name,
+    bd.description,
+    bd.icon,
+    bd.requirement,
+    bd.points_reward,
+    bd.category,
+    bd.rarity
+FROM user_badge ub
+JOIN badge_definition bd ON ub.badge_id = bd.id
+WHERE ub.user_id = ? AND bd.rarity = ?
+ORDER BY ub.unlocked_at DESC;
+
+selectUserUnacknowledgedBadges:
+SELECT 
+    ub.user_id,
+    ub.unlocked_at,
+    ub.progress,
+    bd.id,
+    bd.name,
+    bd.description,
+    bd.icon,
+    bd.requirement,
+    bd.points_reward,
+    bd.category,
+    bd.rarity
+FROM user_badge ub
+JOIN badge_definition bd ON ub.badge_id = bd.id
+WHERE ub.user_id = ? AND ub.is_acknowledged = 0
+ORDER BY ub.unlocked_at ASC;
+
+selectUserBadgeCount:
+SELECT COUNT(*) FROM user_badge WHERE user_id = ?;
+
+selectUserBadgeCountByRarity:
+SELECT 
+    bd.rarity,
+    COUNT(*) AS badge_count
+FROM user_badge ub
+JOIN badge_definition bd ON ub.badge_id = bd.id
+WHERE ub.user_id = ?
+GROUP BY bd.rarity
+ORDER BY 
+    CASE bd.rarity
+        WHEN 'LEGENDARY' THEN 1
+        WHEN 'EPIC' THEN 2
+        WHEN 'RARE' THEN 3
+        WHEN 'COMMON' THEN 4
+    END;
+
+selectUserNextBadge:
+SELECT 
+    bd.id,
+    bd.name,
+    bd.description,
+    bd.icon,
+    bd.requirement,
+    bd.points_reward,
+    bd.category,
+    bd.rarity,
+    (SELECT COUNT(*) FROM user_badge WHERE user_id = ?) AS current_count
+FROM badge_definition bd
+WHERE bd.requirement = (
+    SELECT MIN(requirement) FROM badge_definition 
+    WHERE requirement > (SELECT COUNT(*) FROM user_badge WHERE user_id = ?)
+)
+LIMIT 1;
+
+-- Create operations for user badges
+insertUserBadge:
+INSERT INTO user_badge(user_id, badge_id, unlocked_at, progress, is_acknowledged)
+VALUES (?, ?, ?, 0, 0);
+
+insertUserBadgeWithProgress:
+INSERT INTO user_badge(user_id, badge_id, unlocked_at, progress, is_acknowledged)
+VALUES (?, ?, ?, ?, 0);
+
+-- Update operations for user badges
+updateUserBadgeProgress:
+UPDATE user_badge
+SET progress = ?
+WHERE user_id = ? AND badge_id = ?;
+
+acknowledgeUserBadge:
+UPDATE user_badge
+SET is_acknowledged = 1
+WHERE user_id = ? AND badge_id = ?;
+
+acknowledgeAllUserBadges:
+UPDATE user_badge
+SET is_acknowledged = 1
+WHERE user_id = ?;
+
+-- Delete operations for user badges
+deleteUserBadge:
+DELETE FROM user_badge WHERE user_id = ? AND badge_id = ?;
+
+deleteAllUserBadges:
+DELETE FROM user_badge WHERE user_id = ?;
+
+-- Check if user has a specific badge
+userHasBadge:
+SELECT COUNT(*) FROM user_badge WHERE user_id = ? AND badge_id = ?;
+
+-- Get total points from badges for a user
+selectUserBadgePoints:
+SELECT COALESCE(SUM(bd.points_reward), 0) AS total_badge_points
+FROM user_badge ub
+JOIN badge_definition bd ON ub.badge_id = bd.id
+WHERE ub.user_id = ?;
+
+-- Get badges near completion (progress >= 80% of requirement)
+selectUserNearCompletionBadges:
+SELECT 
+    bd.id,
+    bd.name,
+    bd.description,
+    bd.icon,
+    bd.requirement,
+    bd.category,
+    bd.rarity,
+    ub.progress,
+    ((CAST(ub.progress AS REAL) / bd.requirement) * 100) AS progress_percentage
+FROM user_badge ub
+JOIN badge_definition bd ON ub.badge_id = bd.id
+WHERE ub.user_id = ? 
+AND ub.progress > 0 
+AND ub.progress < bd.requirement
+AND ((CAST(ub.progress AS REAL) / bd.requirement) * 100) >= 80;
+
+-- Badge statistics
+selectBadgeUnlockStatistics:
+SELECT 
+    bd.id,
+    bd.name,
+    bd.rarity,
+    COUNT(ub.user_id) AS unlock_count
+FROM badge_definition bd
+LEFT JOIN user_badge ub ON bd.id = ub.badge_id
+GROUP BY bd.id
+ORDER BY unlock_count DESC;
+
+-- Gamification leaderboard with badges
+selectLeaderboardWithBadges:
+SELECT 
+    up.user_id,
+    up.total_points,
+    COUNT(ub.badge_id) AS badge_count,
+    SUM(CASE WHEN bd.rarity = 'LEGENDARY' THEN 1 ELSE 0 END) AS legendary_count,
+    SUM(CASE WHEN bd.rarity = 'EPIC' THEN 1 ELSE 0 END) AS epic_count,
+    SUM(CASE WHEN bd.rarity = 'RARE' THEN 1 ELSE 0 END) AS rare_count
+FROM user_points up
+LEFT JOIN user_badge ub ON up.user_id = ub.user_id
+LEFT JOIN badge_definition bd ON ub.badge_id = bd.id
+GROUP BY up.user_id
+ORDER BY up.total_points DESC
+LIMIT ?;

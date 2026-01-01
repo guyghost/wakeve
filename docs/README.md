@@ -39,6 +39,7 @@ Bienvenue dans la documentation technique du projet Wakeve, une application mobi
 ### Implémentation & Roadmap
 - [PRD Status](implementation/prd-status.md) - Statut des fonctionnalités du PRD
 - [Feature Integration](implementation/feature-integration.md) - Intégration des nouvelles fonctionnalités
+- [Draft Event Wizard](implementation/draft-event-wizard-guide.md) - Documentation UX du wizard de création
 
 ### Historique & Sessions
 - [Session Summaries](meetings/session-summaries.md) - Résumés des sessions de développement

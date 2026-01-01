@@ -319,7 +319,8 @@ struct EventCreationSheet: View {
                 id: UUID().uuidString,
                 start: startString,
                 end: endString,
-                timezone: TimeZone.current.identifier
+                timezone: TimeZone.current.identifier,
+                timeOfDay: .specific
             )
             
             let event = Event(
@@ -333,7 +334,12 @@ struct EventCreationSheet: View {
                 status: EventStatus.draft,
                 finalDate: nil,
                 createdAt: now,
-                updatedAt: now
+                updatedAt: now,
+                eventType: .other,
+                eventTypeCustom: nil,
+                minParticipants: nil,
+                maxParticipants: nil,
+                expectedParticipants: nil
             )
             
             let result = try await repository.createEvent(event: event)

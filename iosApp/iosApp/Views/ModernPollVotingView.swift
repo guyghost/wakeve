@@ -322,7 +322,7 @@ struct ModernTimeSlotVoteCard: View {
         VStack(spacing: 16) {
             // Time slot header
             VStack(spacing: 6) {
-                Text(formatDate(timeSlot.start))
+                Text(formatDate(timeSlot.start ?? ""))
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.primary)
 
@@ -331,7 +331,7 @@ struct ModernTimeSlotVoteCard: View {
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
 
-                    Text("\(formatTime(timeSlot.start)) - \(formatTime(timeSlot.end))")
+                    Text("\(formatTime(timeSlot.start ?? "")) - \(formatTime(timeSlot.end ?? ""))")
                         .font(.system(size: 15))
                         .foregroundColor(.secondary)
                 }

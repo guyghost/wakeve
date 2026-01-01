@@ -12,10 +12,12 @@ import com.guyghost.wakeve.metrics.AuthMetricsCollector
 import com.guyghost.wakeve.routes.authRoutes
 import com.guyghost.wakeve.routes.budgetRoutes
 import com.guyghost.wakeve.routes.calendarRoutes
+import com.guyghost.wakeve.routes.chatWebSocketRoute
 import com.guyghost.wakeve.routes.commentRoutes
 import com.guyghost.wakeve.routes.eventRoutes
 import com.guyghost.wakeve.routes.mealRoutes
 import com.guyghost.wakeve.routes.participantRoutes
+import com.guyghost.wakeve.routes.potentialLocationRoutes
 import com.guyghost.wakeve.routes.scenarioRoutes
 import com.guyghost.wakeve.routes.sessionRoutes
 import com.guyghost.wakeve.routes.syncRoutes
@@ -43,6 +45,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.ratelimit.RateLimit
 import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
+import io.ktor.server.websocket.WebSockets
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -176,6 +179,7 @@ fun main() {
     val budgetRepository = com.guyghost.wakeve.budget.BudgetRepository(database)
     val mealRepository = com.guyghost.wakeve.meal.MealRepository(database)
     val commentRepository = com.guyghost.wakeve.comment.CommentRepository(database)
+    val locationRepository = PotentialLocationRepository(eventRepository)
     
     // Initialize Calendar Service
     val platformCalendarService = PlatformCalendarServiceImpl()
@@ -189,6 +193,7 @@ fun main() {
             budgetRepository, 
             mealRepository, 
             commentRepository,
+            locationRepository,
             calendarService
         )
     }).start(wait = true)
@@ -201,6 +206,7 @@ fun Application.module(
     budgetRepository: com.guyghost.wakeve.budget.BudgetRepository = com.guyghost.wakeve.budget.BudgetRepository(database),
     mealRepository: com.guyghost.wakeve.meal.MealRepository = com.guyghost.wakeve.meal.MealRepository(database),
     commentRepository: com.guyghost.wakeve.comment.CommentRepository = com.guyghost.wakeve.comment.CommentRepository(database),
+    locationRepository: PotentialLocationRepositoryInterface = PotentialLocationRepository(eventRepository),
     calendarService: CalendarService = CalendarService(database, PlatformCalendarServiceImpl())
 ) {
     // Initialize metrics
@@ -273,6 +279,14 @@ fun Application.module(
         }
     }
 
+    // Install WebSocket support for real-time chat
+    install(WebSockets) {
+        // Configure WebSocket ping/pong for connection health
+        pingPeriodMillis = 30_000 // 30 seconds
+        timeoutMillis = 60_000 // 60 seconds
+        maxFrameSize = Long.MAX_VALUE
+    }
+
     // Install JWT authentication
     install(Authentication) {
         jwt("auth-jwt") {
@@ -304,6 +318,9 @@ fun Application.module(
             call.respondText("OK")
         }
 
+        // WebSocket endpoint for real-time chat
+        chatWebSocketRoute()
+
         // Metrics endpoint (Prometheus format)
         get("/metrics") {
             call.respondText(meterRegistry.scrape(), io.ktor.http.ContentType.parse("text/plain; version=0.0.4"))
@@ -329,6 +346,7 @@ fun Application.module(
                 budgetRoutes(budgetRepository)
                 mealRoutes(mealRepository)
                 commentRoutes(commentRepository)
+                potentialLocationRoutes(locationRepository)
                 syncRoutes(syncService)
                 sessionRoutes(sessionManager)
                 calendarRoutes(calendarService)

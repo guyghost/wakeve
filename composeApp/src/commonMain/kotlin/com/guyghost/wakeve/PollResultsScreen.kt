@@ -103,7 +103,7 @@ fun PollResultsScreen(
                             .padding(bottom = 12.dp)
                     ) {
                         Text(
-                            bestSlot.start,
+                            bestSlot.start ?: "Start time not set",
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
@@ -112,7 +112,7 @@ fun PollResultsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            bestSlot.end,
+                            bestSlot.end ?: "End time not set",
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -276,7 +276,7 @@ fun SlotResultCard(
             ) {
                 Column {
                     Text(
-                        slot.start,
+                        slot.start ?: "Start time not set",
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
@@ -284,7 +284,7 @@ fun SlotResultCard(
                         style = MaterialTheme.typography.bodySmall
                     )
                     Text(
-                        slot.end,
+                        slot.end ?: "End time not set",
                         style = MaterialTheme.typography.bodySmall
                     )
                 }

@@ -289,7 +289,12 @@ struct CalendarIntegrationCard: View {
         status: .confirmed,
         finalDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(172800)),
         createdAt: ISO8601DateFormatter().string(from: Date()),
-        updatedAt: ISO8601DateFormatter().string(from: Date())
+        updatedAt: ISO8601DateFormatter().string(from: Date()),
+        eventType: .teamBuilding,
+        eventTypeCustom: nil,
+        minParticipants: nil,
+        maxParticipants: nil,
+        expectedParticipants: nil
     )
     
     CalendarIntegrationCard(

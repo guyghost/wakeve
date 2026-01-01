@@ -35,10 +35,17 @@ fun io.ktor.server.routing.Route.eventRoutes(repository: DatabaseEventRepository
                                 id = slot.id,
                                 start = slot.start,
                                 end = slot.end,
-                                timezone = slot.timezone
+                                timezone = slot.timezone,
+                                timeOfDay = slot.timeOfDay.name
                             )
                         },
-                        finalDate = event.finalDate
+                        finalDate = event.finalDate,
+                        // Enhanced DRAFT phase fields
+                        eventType = event.eventType.name,
+                        eventTypeCustom = event.eventTypeCustom,
+                        minParticipants = event.minParticipants,
+                        maxParticipants = event.maxParticipants,
+                        expectedParticipants = event.expectedParticipants
                     )
                 }
                 call.respond(HttpStatusCode.OK, mapOf("events" to responses))
@@ -76,10 +83,17 @@ fun io.ktor.server.routing.Route.eventRoutes(repository: DatabaseEventRepository
                             id = slot.id,
                             start = slot.start,
                             end = slot.end,
-                            timezone = slot.timezone
+                            timezone = slot.timezone,
+                            timeOfDay = slot.timeOfDay.name
                         )
                     },
-                    finalDate = event.finalDate
+                    finalDate = event.finalDate,
+                    // Enhanced DRAFT phase fields
+                    eventType = event.eventType.name,
+                    eventTypeCustom = event.eventTypeCustom,
+                    minParticipants = event.minParticipants,
+                    maxParticipants = event.maxParticipants,
+                    expectedParticipants = event.expectedParticipants
                 )
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
@@ -100,7 +114,10 @@ fun io.ktor.server.routing.Route.eventRoutes(repository: DatabaseEventRepository
                         id = slot.id,
                         start = slot.start,
                         end = slot.end,
-                        timezone = slot.timezone
+                        timezone = slot.timezone,
+                        timeOfDay = slot.timeOfDay?.let { 
+                            com.guyghost.wakeve.models.TimeOfDay.valueOf(it)
+                        } ?: com.guyghost.wakeve.models.TimeOfDay.SPECIFIC
                     )
                 }
 
@@ -115,7 +132,15 @@ fun io.ktor.server.routing.Route.eventRoutes(repository: DatabaseEventRepository
                     deadline = request.deadline,
                     status = com.guyghost.wakeve.models.EventStatus.DRAFT,
                     createdAt = now,
-                    updatedAt = now
+                    updatedAt = now,
+                    // Enhanced DRAFT phase fields
+                    eventType = request.eventType?.let { 
+                        com.guyghost.wakeve.models.EventType.valueOf(it)
+                    } ?: com.guyghost.wakeve.models.EventType.OTHER,
+                    eventTypeCustom = request.eventTypeCustom,
+                    minParticipants = request.minParticipants,
+                    maxParticipants = request.maxParticipants,
+                    expectedParticipants = request.expectedParticipants
                 )
 
                 val result = repository.createEvent(event)
@@ -134,9 +159,16 @@ fun io.ktor.server.routing.Route.eventRoutes(repository: DatabaseEventRepository
                                 id = slot.id,
                                 start = slot.start,
                                 end = slot.end,
-                                timezone = slot.timezone
+                                timezone = slot.timezone,
+                                timeOfDay = slot.timeOfDay.name
                             )
-                        }
+                        },
+                        // Enhanced DRAFT phase fields
+                        eventType = event.eventType.name,
+                        eventTypeCustom = event.eventTypeCustom,
+                        minParticipants = event.minParticipants,
+                        maxParticipants = event.maxParticipants,
+                        expectedParticipants = event.expectedParticipants
                     )
                     call.respond(HttpStatusCode.Created, response)
                 } else {
@@ -189,10 +221,17 @@ fun io.ktor.server.routing.Route.eventRoutes(repository: DatabaseEventRepository
                                     id = slot.id,
                                     start = slot.start,
                                     end = slot.end,
-                                    timezone = slot.timezone
+                                    timezone = slot.timezone,
+                                    timeOfDay = slot.timeOfDay.name
                                 )
                             },
-                            finalDate = event.finalDate
+                            finalDate = event.finalDate,
+                            // Enhanced DRAFT phase fields
+                            eventType = event.eventType.name,
+                            eventTypeCustom = event.eventTypeCustom,
+                            minParticipants = event.minParticipants,
+                            maxParticipants = event.maxParticipants,
+                            expectedParticipants = event.expectedParticipants
                         )
                         call.respond(HttpStatusCode.OK, response)
                     } else {

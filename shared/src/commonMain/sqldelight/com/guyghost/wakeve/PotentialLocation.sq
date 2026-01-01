@@ -1,0 +1,36 @@
+-- Potential locations table: stores proposed locations for events in DRAFT phase
+CREATE TABLE potentialLocation (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    name TEXT NOT NULL, -- e.g., "Paris", "Château de Versailles"
+    locationType TEXT NOT NULL, -- CITY, REGION, SPECIFIC_VENUE, ONLINE
+    address TEXT, -- Optional physical address
+    coordinates TEXT, -- Optional JSON: {"latitude": 48.8566, "longitude": 2.3522}
+    createdAt TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+-- Queries
+selectAll:
+SELECT * FROM potentialLocation;
+
+selectById:
+SELECT * FROM potentialLocation WHERE id = ?;
+
+selectByEventId:
+SELECT * FROM potentialLocation WHERE eventId = ? ORDER BY createdAt ASC;
+
+insertLocation:
+INSERT INTO potentialLocation(id, eventId, name, locationType, address, coordinates, createdAt)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+updateLocation:
+UPDATE potentialLocation
+SET name = ?, locationType = ?, address = ?, coordinates = ?
+WHERE id = ?;
+
+deleteLocation:
+DELETE FROM potentialLocation WHERE id = ?;
+
+deleteByEventId:
+DELETE FROM potentialLocation WHERE eventId = ?;

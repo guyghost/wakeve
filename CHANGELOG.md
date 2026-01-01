@@ -1,13 +1,113 @@
-# CHANGELOG
+# Changelog
 
-All notable changes to the Wakeve project will be documented in this file.
+All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added - 2025-12-31
+## [0.3.0] - 2026-01-01
+
+### Added
+
+- **Event Type Classification**
+  - New `EventType` enum with 11 predefined types (BIRTHDAY, WEDDING, TEAM_BUILDING, CONFERENCE, WORKSHOP, PARTY, SPORTS_EVENT, CULTURAL_EVENT, FAMILY_GATHERING, OTHER, CUSTOM)
+  - Support for custom event types with `eventTypeCustom` field
+  - `SuggestEventTypeUseCase` for preset event type suggestions
+  
+- **Participant Estimation**
+  - New fields in Event model: `minParticipants`, `maxParticipants`, `expectedParticipants`
+  - `EstimateParticipantsUseCase` for participant count calculations
+  - Validation: max >= min, all counts >= 0
+  
+- **Potential Locations**
+  - New `PotentialLocation` model for event location suggestions
+  - `LocationType` enum: CITY, REGION, SPECIFIC_VENUE, ONLINE
+  - CRUD operations for potential locations (add/remove in DRAFT only)
+  - New API endpoints: `GET/POST/DELETE /api/events/{id}/potential-locations`
+  
+- **Flexible Time Slots**
+  - New `TimeOfDay` enum: ALL_DAY, MORNING, AFTERNOON, EVENING, SPECIFIC
+  - `timeOfDay` field in TimeSlot model
+  - Support for flexible slots without exact times (e.g., "afternoon in June")
+  - Migration: existing slots default to SPECIFIC
+  
+- **Draft Event Wizard UI**
+  - 4-step wizard for event creation (Basics, Participants, Locations, Time Slots)
+  - Android: Material You design with `DraftEventWizard` composable
+  - iOS: Liquid Glass design with `DraftEventWizardView` SwiftUI
+  - Auto-save behavior for each step
+  - Real-time validation feedback
+  
+- **State Machine Updates**
+  - New Intents: `UpdateDraftEvent`, `AddPotentialLocation`, `RemovePotentialLocation`
+  - Validation guards for DRAFT status only operations
+  - Enhanced `EventManagementStateMachine` with new handlers
+  
+- **Use Cases**
+  - `ValidateEventDraftUseCase` for multi-field event validation
+  - `SuggestEventTypeUseCase` for preset type suggestions
+  - `EstimateParticipantsUseCase` for participant count estimations
+  
+- **Testing**
+  - 14 unit tests for State Machine new Intents
+  - 12 unit tests for Draft Event Use Cases
+  - 10 migration tests for SQLDelight schema updates
+  - 12 integration tests for complete DRAFT workflow
+  - Total: 48 new tests (100% passing)
+  
+- **Documentation**
+  - Updated `event-organization` specification with new requirements
+  - Updated `AGENTS.md` with new models and agent capabilities
+  - Updated `API.md` with new endpoints and data models
+  - New `draft-event-wizard-guide.md` with UX documentation
+
+### Changed
+
+- **Event Model**
+  - Enhanced with 5 new optional fields (eventType, eventTypeCustom, minParticipants, maxParticipants, expectedParticipants)
+  - Updated serialization/deserialization for new fields
+  
+- **TimeSlot Model**
+  - Added `timeOfDay` field (nullable, default SPECIFIC)
+  - `start` and `end` can now be null if `timeOfDay != SPECIFIC`
+  
+- **Event Creation Flow**
+  - Split into multi-step wizard (previously single screen)
+  - Reduced cognitive load with progressive disclosure
+  - All new fields are optional for backward compatibility
+  
+- **API POST /api/events**
+  - Request body now accepts new optional fields
+  - Validation enhanced with new rules (participant counts, custom type)
+  
+- **Database Schema**
+  - Migrated Event table with 5 new columns
+  - Migrated TimeSlot table with 1 new column
+  - New PotentialLocation table with FK cascade delete
+
+### Deprecated
+
+- Single-screen event creation UI (replaced by 4-step wizard)
+
+### Removed
+
+- None
+
+### Fixed
+
+- **Compatibility**: Fixed EventRepository to work with new Event fields
+- **Migration**: Ensured existing events work correctly with default values
+- **UI**: Fixed PollResultsScreen to handle nullable TimeSlot start/end times
+
+### Security
+
+- None
+
+## [0.2.0] - 2025-12-31
+
+### Added
 - **Workflow Coordination System** (`verify-statemachine-workflow`) - Complete event lifecycle coordination between state machines
   - Implemented repository-mediated communication pattern for loose coupling between EventManagement, ScenarioManagement, and MeetingService state machines
   - Added 5 new Intent handlers enabling complete DRAFT → FINALIZED workflow:
@@ -54,8 +154,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| 0.3.0 | 2026-01-01 | Enhanced DRAFT phase, wizard UI, event types, participants estimation, potential locations |
+| 0.2.0 | 2025-12-31 | Workflow coordination, state machine communication, navigation automation |
 | 0.1.0 | 2025-12-29 | Initial KMP release, event organization, polls, scenarios, meetings |
-| Unreleased | 2025-12-31 | Workflow coordination, state machine communication, navigation automation |
 
 ---
 

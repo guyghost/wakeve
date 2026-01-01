@@ -13,15 +13,22 @@ data class CreateEventRequest(
     val description: String,
     val organizerId: String,
     val deadline: String,
-    val proposedSlots: List<CreateTimeSlotRequest>
+    val proposedSlots: List<CreateTimeSlotRequest>,
+    // Enhanced DRAFT phase fields
+    val eventType: String? = null, // EventType enum name
+    val eventTypeCustom: String? = null, // Required if eventType == "CUSTOM"
+    val minParticipants: Int? = null,
+    val maxParticipants: Int? = null,
+    val expectedParticipants: Int? = null
 )
 
 @Serializable
 data class CreateTimeSlotRequest(
     val id: String,
-    val start: String,
-    val end: String,
-    val timezone: String
+    val start: String?, // Nullable for flexible slots (ALL_DAY, MORNING, etc.)
+    val end: String?,   // Nullable for flexible slots
+    val timezone: String,
+    val timeOfDay: String? = null // TimeOfDay enum name (default SPECIFIC)
 )
 
 @Serializable
@@ -34,15 +41,22 @@ data class EventResponse(
     val deadline: String,
     val status: String,
     val proposedSlots: List<TimeSlotResponse>,
-    val finalDate: String? = null
+    val finalDate: String? = null,
+    // Enhanced DRAFT phase fields
+    val eventType: String? = null, // EventType enum name
+    val eventTypeCustom: String? = null,
+    val minParticipants: Int? = null,
+    val maxParticipants: Int? = null,
+    val expectedParticipants: Int? = null
 )
 
 @Serializable
 data class TimeSlotResponse(
     val id: String,
-    val start: String,
-    val end: String,
-    val timezone: String
+    val start: String?, // Nullable for flexible slots
+    val end: String?,   // Nullable for flexible slots
+    val timezone: String,
+    val timeOfDay: String? = null // TimeOfDay enum name
 )
 
 @Serializable
@@ -160,4 +174,23 @@ data class ScenarioWithVotesResponse(
     val scenario: ScenarioResponse,
     val votes: List<ScenarioVoteResponse>,
     val result: ScenarioVotingResultResponse
+)
+
+// PotentialLocation API Models (enhance-draft-phase)
+
+@Serializable
+data class CreatePotentialLocationRequest(
+    val name: String,
+    val locationType: String, // LocationType enum name (CITY, REGION, VENUE, ONLINE)
+    val address: String? = null
+)
+
+@Serializable
+data class PotentialLocationResponse(
+    val id: String,
+    val eventId: String,
+    val name: String,
+    val locationType: String, // LocationType enum name
+    val address: String? = null,
+    val createdAt: String
 )
