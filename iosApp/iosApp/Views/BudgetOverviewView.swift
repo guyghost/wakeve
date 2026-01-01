@@ -590,7 +590,12 @@ struct BudgetOverviewView_Previews: PreviewProvider {
                 status: .organizing,
                 finalDate: nil,
                 createdAt: "2025-12-01T00:00:00Z",
-                updatedAt: "2025-12-01T00:00:00Z"
+                updatedAt: "2025-12-01T00:00:00Z",
+                eventType: .teamBuilding,
+                eventTypeCustom: nil,
+                minParticipants: nil,
+                maxParticipants: nil,
+                expectedParticipants: nil
             ),
             repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
             onBack: {},

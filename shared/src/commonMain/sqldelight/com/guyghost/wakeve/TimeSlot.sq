@@ -2,13 +2,13 @@
 CREATE TABLE timeSlot (
     id TEXT PRIMARY KEY NOT NULL,
     eventId TEXT NOT NULL,
-    startTime TEXT NOT NULL, -- ISO 8601 UTC timestamp
-    endTime TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    startTime TEXT, -- ISO 8601 UTC timestamp, nullable for flexible slots
+    endTime TEXT, -- ISO 8601 UTC timestamp, nullable for flexible slots
     timezone TEXT NOT NULL, -- e.g., "Europe/Paris", "America/New_York"
     proposedByParticipantId TEXT, -- null if proposed by organizer
     createdAt TEXT NOT NULL,
     updatedAt TEXT NOT NULL,
-    UNIQUE(eventId, startTime, timezone),
+    timeOfDay TEXT DEFAULT 'SPECIFIC', -- ALL_DAY, MORNING, AFTERNOON, EVENING, SPECIFIC
     FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
 );
 
@@ -26,12 +26,12 @@ selectByEventIdAndProposer:
 SELECT * FROM timeSlot WHERE eventId = ? AND proposedByParticipantId = ? ORDER BY startTime ASC;
 
 insertTimeSlot:
-INSERT INTO timeSlot(id, eventId, startTime, endTime, timezone, proposedByParticipantId, createdAt, updatedAt)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO timeSlot(id, eventId, startTime, endTime, timezone, proposedByParticipantId, createdAt, updatedAt, timeOfDay)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateTimeSlot:
 UPDATE timeSlot
-SET endTime = ?, updatedAt = ?
+SET endTime = ?, updatedAt = ?, timeOfDay = ?
 WHERE id = ?;
 
 deleteTimeSlot:

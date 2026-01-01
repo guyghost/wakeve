@@ -1,0 +1,133 @@
+-- UserPoints table: stores gamification points for users
+-- Tracks points earned from various activities (event creation, voting, comments, participation)
+
+CREATE TABLE IF NOT EXISTS user_points (
+    user_id TEXT PRIMARY KEY NOT NULL,
+    total_points INTEGER NOT NULL DEFAULT 0,
+    event_creation_points INTEGER NOT NULL DEFAULT 0,
+    voting_points INTEGER NOT NULL DEFAULT 0,
+    comment_points INTEGER NOT NULL DEFAULT 0,
+    participation_points INTEGER NOT NULL DEFAULT 0,
+    decay_points INTEGER NOT NULL DEFAULT 0,  -- Points decayed over time (inactivity)
+    last_updated TEXT NOT NULL  -- ISO 8601 UTC timestamp
+);
+
+-- Index for performance on user lookups
+CREATE INDEX IF NOT EXISTS idx_user_points_user_id ON user_points(user_id);
+
+-- ==================== QUERIES ====================
+
+-- Read operations
+selectUserPoints:
+SELECT * FROM user_points WHERE user_id = ?;
+
+selectUserPointsOrDefault:
+SELECT * FROM user_points WHERE user_id = ?
+UNION ALL
+SELECT ?, 0, 0, 0, 0, 0, 0, ?  -- Default values if not exists
+LIMIT 1;
+
+selectAllUserPoints:
+SELECT * FROM user_points ORDER BY total_points DESC;
+
+selectTopPointEarners:
+SELECT * FROM user_points ORDER BY total_points DESC LIMIT ?;
+
+selectPointsByCategory:
+SELECT 
+    user_id,
+    event_creation_points,
+    voting_points,
+    comment_points,
+    participation_points,
+    (event_creation_points + voting_points + comment_points + participation_points) AS total_earned,
+    decay_points,
+    total_points
+FROM user_points
+WHERE user_id = ?;
+
+-- Create operations
+insertUserPoints:
+INSERT INTO user_points(
+    user_id, total_points, event_creation_points, voting_points, 
+    comment_points, participation_points, decay_points, last_updated
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Update operations
+updateUserPoints:
+UPDATE user_points
+SET total_points = ?, event_creation_points = ?, voting_points = ?, 
+    comment_points = ?, participation_points = ?, decay_points = ?, last_updated = ?
+WHERE user_id = ?;
+
+updateUserPointsTotal:
+UPDATE user_points
+SET total_points = ?, last_updated = ?
+WHERE user_id = ?;
+
+-- Increment points for a specific category
+-- field: 'event_creation_points', 'voting_points', 'comment_points', 'participation_points', 'decay_points'
+incrementEventCreationPoints:
+UPDATE user_points
+SET event_creation_points = event_creation_points + ?,
+    total_points = total_points + ?,
+    last_updated = ?
+WHERE user_id = ?;
+
+incrementVotingPoints:
+UPDATE user_points
+SET voting_points = voting_points + ?,
+    total_points = total_points + ?,
+    last_updated = ?
+WHERE user_id = ?;
+
+incrementCommentPoints:
+UPDATE user_points
+SET comment_points = comment_points + ?,
+    total_points = total_points + ?,
+    last_updated = ?
+WHERE user_id = ?;
+
+incrementParticipationPoints:
+UPDATE user_points
+SET participation_points = participation_points + ?,
+    total_points = total_points + ?,
+    last_updated = ?
+WHERE user_id = ?;
+
+incrementDecayPoints:
+UPDATE user_points
+SET decay_points = decay_points + ?,
+    total_points = GREATEST(0, total_points - ?),
+    last_updated = ?
+WHERE user_id = ?;
+
+-- Decay all user points (called periodically)
+decayAllPoints:
+UPDATE user_points
+SET decay_points = decay_points + 1,
+    total_points = GREATEST(0, total_points - 1),
+    last_updated = ?
+WHERE total_points > 0;
+
+-- Delete operations
+deleteUserPoints:
+DELETE FROM user_points WHERE user_id = ?;
+
+-- Aggregation queries
+countUsersWithPoints:
+SELECT COUNT(*) FROM user_points WHERE total_points > 0;
+
+selectPointsStatistics:
+SELECT 
+    COUNT(*) AS user_count,
+    SUM(total_points) AS total_points_sum,
+    AVG(total_points) AS avg_points,
+    MAX(total_points) AS max_points,
+    MIN(total_points) AS min_points
+FROM user_points;
+
+-- Check if user has minimum points threshold
+userHasMinimumPoints:
+SELECT CASE WHEN total_points >= ? THEN 1 ELSE 0 END
+FROM user_points WHERE user_id = ?;

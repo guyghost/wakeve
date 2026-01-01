@@ -283,6 +283,7 @@ Orchestrateur:
 - Normalise fuseaux horaires; évite overlaps
 - Calcule meilleur créneau avec scoring: YES=2, MAYBE=1, NO=-1
 - Verrouille le créneau retenu après échéance
+- Supporte des créneaux flexibles via `TimeSlot` et `timeOfDay` (Matin, Après-midi, etc.)
 - Notifie les agents dépendants
 
 **Implémentation:**
@@ -298,6 +299,7 @@ Orchestrateur:
 #### Agent Suggestions (Phase 3 - Planifié)
 **Responsabilités:**
 - Analyse préférences utilisateur (jours, heures, lieux, activités)
+- Utilise `EventType` pour personnaliser les recommandations selon le type d'événement
 - Génère recommandations personnalisées avec scoring
 - Supporte A/B testing pour optimisation
 
@@ -356,6 +358,7 @@ Orchestrateur:
 #### Agent Transport (Phase 3 - Planifié)
 **Responsabilités:**
 - Calcule routes optimisées multi-participants (coût/temps/équilibré)
+- Utilise `expectedParticipants` + `PotentialLocation` pour planifier le transport
 - Intègre providers de transport (vols, trains, etc.)
 - Planifie points de rencontre pour groupes
 
@@ -370,6 +373,7 @@ Orchestrateur:
 #### Agent Destination & Logement (Phase 3 - Planifié)
 **Responsabilités:**
 - Fournit liste courte de destinations et hébergements
+- Utilise `PotentialLocation` comme base de recherche
 - Score multi-critères: coût, accessibilité, préférences, saisonnalité
 - Providers mockés puis réels via backend
 
@@ -934,6 +938,14 @@ Avant de merger dans `main`, vérifier :
 - **SwiftUI** - UI iOS (Liquid Glass)
 - **kotlinx-serialization** - Sérialisation JSON
 
+### Domain Models
+- **Event**: Ajout de eventType, eventTypeCustom, minParticipants, maxParticipants, expectedParticipants
+- **EventType**: Enum (11 types: BIRTHDAY, WEDDING, TEAM_BUILDING, etc.)
+- **PotentialLocation**: Nouveau modèle pour lieux potentiels
+- **LocationType**: Enum (CITY, REGION, SPECIFIC_VENUE, ONLINE)
+- **TimeSlot**: Ajout de timeOfDay
+- **TimeOfDay**: Enum (ALL_DAY, MORNING, AFTERNOON, EVENING, SPECIFIC)
+
 ### Frameworks UI
 
 #### Android (Jetpack Compose + Material You)
@@ -1091,6 +1103,7 @@ openspec archive <change-id> --yes
 - Material You (Android) + Liquid Glass (iOS)
 - Local persistence (SharedPreferences/UserDefaults)
 - 35 automated tests (25 Android + 10 iOS)
+- **Enhanced DRAFT Phase** (event types, participants estimation, potential locations, flexible time slots)
 
 ### Phase 4 Future 🔮
 - Agent Réunions (Zoom/Meet/FaceTime)

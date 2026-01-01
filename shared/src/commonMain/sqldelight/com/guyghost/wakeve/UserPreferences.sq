@@ -1,13 +1,30 @@
--- User preferences table: stores user preferences for smart suggestions
+-- User preferences table: stores user preferences for AI-powered recommendations
+-- Collects anonymized voting history and learns user preferences over time
 CREATE TABLE user_preferences (
     user_id TEXT PRIMARY KEY NOT NULL REFERENCES user(id) ON DELETE CASCADE,
-    preferred_days_of_week TEXT NOT NULL,  -- JSON array of strings
-    preferred_times TEXT NOT NULL,         -- JSON array of strings
-    preferred_locations TEXT NOT NULL,     -- JSON array of strings
-    preferred_activities TEXT NOT NULL,    -- JSON array of strings
-    budget_range TEXT,                     -- 'LOW', 'MEDIUM', 'HIGH'
-    group_size_preference INTEGER,
-    last_updated TEXT NOT NULL             -- ISO 8601 UTC timestamp
+    preferred_days TEXT NOT NULL,              -- JSON array of DayOfWeek (MONDAY, TUESDAY, etc.)
+    preferred_time_of_day TEXT NOT NULL,       -- JSON array of TimeOfDay (MORNING, AFTERNOON, EVENING)
+    preferred_event_types TEXT NOT NULL,       -- JSON array of EventType (BIRTHDAY, WEDDING, etc.)
+    preferred_locations TEXT NOT NULL,         -- JSON array of city names
+    avoid_events INTEGER DEFAULT 0,            -- Boolean (0/1): avoid certain event types
+    score_weights TEXT NOT NULL,               -- JSON of ScoreWeights
+    last_updated TEXT NOT NULL                 -- ISO 8601 UTC timestamp
+);
+
+-- Interaction history table: tracks user interactions for learning preferences
+-- Stores anonymized voting history with weighted timestamps for decay calculations
+CREATE TABLE preference_interaction (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    event_id TEXT NOT NULL,
+    interaction_type TEXT NOT NULL,            -- 'VOTE', 'EVENT_CREATION', 'PARTICIPATION'
+    event_type TEXT,                           -- EventType for event creation/participation
+    time_of_day TEXT,                          -- TimeOfDay from time slot
+    vote_type TEXT,                            -- 'YES', 'MAYBE', 'NO' for votes
+    day_of_week TEXT,                          -- DayOfWeek extracted from time slot
+    location TEXT,                             -- City/location from event
+    timestamp TEXT NOT NULL,                   -- ISO 8601 UTC timestamp
+    synced INTEGER DEFAULT 0                   -- 0 = false, 1 = true (for offline sync)
 );
 
 -- Queries for user preferences
@@ -15,13 +32,33 @@ selectPreferencesByUserId:
 SELECT * FROM user_preferences WHERE user_id = ?;
 
 insertPreferences:
-INSERT INTO user_preferences(user_id, preferred_days_of_week, preferred_times, preferred_locations, preferred_activities, budget_range, group_size_preference, last_updated)
+INSERT INTO user_preferences(user_id, preferred_days, preferred_time_of_day, preferred_event_types, preferred_locations, avoid_events, score_weights, last_updated)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 updatePreferences:
 UPDATE user_preferences
-SET preferred_days_of_week = ?, preferred_times = ?, preferred_locations = ?, preferred_activities = ?, budget_range = ?, group_size_preference = ?, last_updated = ?
+SET preferred_days = ?, preferred_time_of_day = ?, preferred_event_types = ?, preferred_locations = ?, avoid_events = ?, score_weights = ?, last_updated = ?
 WHERE user_id = ?;
 
 deletePreferences:
 DELETE FROM user_preferences WHERE user_id = ?;
+
+-- Queries for preference interactions
+selectInteractionsByUserId:
+SELECT * FROM preference_interaction WHERE user_id = ? ORDER BY timestamp DESC;
+
+selectRecentInteractionsByUserId:
+SELECT * FROM preference_interaction WHERE user_id = ? AND timestamp >= ? ORDER BY timestamp DESC;
+
+insertInteraction:
+INSERT INTO preference_interaction(id, user_id, event_id, interaction_type, event_type, time_of_day, vote_type, day_of_week, location, timestamp, synced)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteOldInteractions:
+DELETE FROM preference_interaction WHERE timestamp < ?;
+
+markInteractionsSynced:
+UPDATE preference_interaction SET synced = 1 WHERE user_id = ? AND synced = 0;
+
+selectUnsyncedInteractions:
+SELECT * FROM preference_interaction WHERE synced = 0;

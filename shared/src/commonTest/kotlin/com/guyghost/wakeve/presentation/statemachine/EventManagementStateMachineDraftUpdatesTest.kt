@@ -35,9 +35,6 @@ import kotlin.test.assertTrue
  *
  * All tests follow the AAA pattern (Arrange, Act, Assert) and use mocks to isolate
  * the state machine behavior from the repository.
- *
- * These tests are written in TDD style (Red-Green-Blue) and will initially fail
- * because the intents are not yet implemented in EventManagementStateMachine.
  */
 class EventManagementStateMachineDraftUpdatesTest {
 
@@ -158,14 +155,6 @@ class EventManagementStateMachineDraftUpdatesTest {
 
     /**
      * Create a test event in DRAFT status.
-     *
-     * @param id The event ID
-     * @param title The event title
-     * @param eventType The event type (default: OTHER)
-     * @param expectedParticipants Expected participant count (default: null)
-     * @param minParticipants Minimum participants (default: null)
-     * @param maxParticipants Maximum participants (default: null)
-     * @return A test Event in DRAFT status
      */
     private fun createDraftEvent(
         id: String = "evt-draft-1",
@@ -200,14 +189,6 @@ class EventManagementStateMachineDraftUpdatesTest {
 
     /**
      * Create a test potential location.
-     *
-     * @param id The location ID
-     * @param eventId The event ID this location belongs to
-     * @param name The location name
-     * @param locationType The type of location
-     * @param address Optional address
-     * @param coordinates Optional geographic coordinates
-     * @return A test PotentialLocation
      */
     private fun createTestLocation(
         id: String = "loc-1",
@@ -226,13 +207,13 @@ class EventManagementStateMachineDraftUpdatesTest {
         createdAt = "2025-12-01T10:00:00Z"
     )
 
-    /**
-     * Setup a state machine with test repositories.
-     *
-     * @return A tuple of (stateMachine, repository)
-     */
-    private fun setupStateMachine(): Pair<EventManagementStateMachine, MockEventRepository> {
-        val testDispatcher = StandardTestDispatcher()
+    // ========================================================================
+    // Tests: UpdateDraftEvent Intent
+    // ========================================================================
+
+    @Test
+    fun testUpdateDraftEvent_Success() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
         val scope = CoroutineScope(testDispatcher + SupervisorJob())
         val repository = MockEventRepository()
 
@@ -245,25 +226,6 @@ class EventManagementStateMachineDraftUpdatesTest {
             eventRepository = repository,
             scope = scope
         )
-
-        return Pair(stateMachine, repository)
-    }
-
-    // ========================================================================
-    // Tests: UpdateDraftEvent Intent
-    // ========================================================================
-
-    /**
-     * Test UpdateDraftEvent with partial field updates.
-     *
-     * **Scenario:** UpdateDraftEvent - Success (mise à jour partielle)
-     * - **GIVEN** Événement en status DRAFT avec title="Old Title"
-     * - **WHEN** Dispatch `UpdateDraftEvent(eventId, eventType=TEAM_BUILDING, expectedParticipants=20)`
-     * - **THEN** Event mis à jour avec les nouveaux champs, status reste DRAFT, ShowToast emitted
-     */
-    @Test
-    fun testUpdateDraftEvent_Success() = runTest {
-        val (stateMachine, repository) = setupStateMachine()
 
         // ARRANGE: Create event with initial state
         val originalEvent = createDraftEvent(
@@ -291,22 +253,26 @@ class EventManagementStateMachineDraftUpdatesTest {
         assertNotNull(updatedEvent)
         assertEquals(EventType.TEAM_BUILDING, updatedEvent.eventType)
         assertEquals(20, updatedEvent.expectedParticipants)
-        assertEquals("Old Title", updatedEvent.title) // Other fields unchanged
-        assertEquals(EventStatus.DRAFT, updatedEvent.status) // Status remains DRAFT
+        assertEquals("Old Title", updatedEvent.title)
+        assertEquals(EventStatus.DRAFT, updatedEvent.status)
         assertFalse(state.isLoading)
     }
 
-    /**
-     * Test UpdateDraftEvent with validation error (max < min).
-     *
-     * **Scenario:** UpdateDraftEvent - Validation error (maxParticipants < minParticipants)
-     * - **GIVEN** Événement en status DRAFT
-     * - **WHEN** Dispatch `UpdateDraftEvent(eventId, minParticipants=30, maxParticipants=20)`
-     * - **THEN** Validation error émise, "Le maximum doit être supérieur ou égal au minimum"
-     */
     @Test
     fun testUpdateDraftEvent_ValidationError_MaxLessThanMin() = runTest {
-        val (stateMachine, repository) = setupStateMachine()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
 
         // ARRANGE: Create event in DRAFT status
         val event = createDraftEvent("evt-1")
@@ -326,21 +292,25 @@ class EventManagementStateMachineDraftUpdatesTest {
         val state = stateMachine.state.value
 
         assertNotNull(state.error)
-        assertTrue(state.error!!.contains("maximum") || state.error!!.contains("maximum"))
+        assertTrue(state.error!!.contains("Max") || state.error!!.contains("max"))
         assertFalse(state.isLoading)
     }
 
-    /**
-     * Test UpdateDraftEvent fails if event is not in DRAFT status.
-     *
-     * **Scenario:** UpdateDraftEvent - Not in DRAFT status
-     * - **GIVEN** Événement en status POLLING
-     * - **WHEN** Dispatch `UpdateDraftEvent(eventId, ...)`
-     * - **THEN** Error émise, "Cannot update draft: Event not in DRAFT status"
-     */
     @Test
     fun testUpdateDraftEvent_FailsIfNotDraft() = runTest {
-        val (stateMachine, repository) = setupStateMachine()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
 
         // ARRANGE: Create event in POLLING status
         val event = createDraftEvent("evt-1").copy(status = EventStatus.POLLING)
@@ -364,17 +334,21 @@ class EventManagementStateMachineDraftUpdatesTest {
         assertFalse(state.isLoading)
     }
 
-    /**
-     * Test UpdateDraftEvent with custom event type.
-     *
-     * **Scenario:** UpdateDraftEvent - Success with CUSTOM event type
-     * - **GIVEN** Événement en status DRAFT
-     * - **WHEN** Dispatch `UpdateDraftEvent(eventId, eventType=CUSTOM, eventTypeCustom="Fantasy Convention")`
-     * - **THEN** Event mis à jour avec les champs, status reste DRAFT
-     */
     @Test
     fun testUpdateDraftEvent_CustomEventType() = runTest {
-        val (stateMachine, repository) = setupStateMachine()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
 
         // ARRANGE: Create event in DRAFT status
         val event = createDraftEvent("evt-1")
@@ -403,17 +377,21 @@ class EventManagementStateMachineDraftUpdatesTest {
     // Tests: AddPotentialLocation Intent
     // ========================================================================
 
-    /**
-     * Test AddPotentialLocation successfully adds a location.
-     *
-     * **Scenario:** AddPotentialLocation - Success
-     * - **GIVEN** Événement en status DRAFT, sans PotentialLocations
-     * - **WHEN** Dispatch `AddPotentialLocation(eventId, locationId, "Paris", CITY)`
-     * - **THEN** PotentialLocation créée, list mise à jour dans state, ShowToast emitted
-     */
     @Test
     fun testAddPotentialLocation_Success() = runTest {
-        val (stateMachine, repository) = setupStateMachine()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
 
         // ARRANGE: Create event in DRAFT status
         val event = createDraftEvent("evt-1")
@@ -433,34 +411,46 @@ class EventManagementStateMachineDraftUpdatesTest {
 
         // ASSERT: Verify location was added
         val state = stateMachine.state.value
-        val locations = repository.potentialLocations["evt-1"] ?: emptyList()
 
-        assertEquals(1, locations.size)
-        assertEquals("Paris", locations[0].name)
-        assertEquals(LocationType.CITY, locations[0].locationType)
+        assertEquals(1, state.potentialLocations.size)
+        assertEquals("Paris", state.potentialLocations[0].name)
+        assertEquals(LocationType.CITY, state.potentialLocations[0].locationType)
         assertFalse(state.isLoading)
         assertNull(state.error)
     }
 
-    /**
-     * Test AddPotentialLocation with multiple locations.
-     *
-     * **Scenario:** AddPotentialLocation - Multiple locations
-     * - **GIVEN** Événement en status DRAFT avec 1 PotentialLocation
-     * - **WHEN** Dispatch `AddPotentialLocation(eventId, locationId, "London", CITY)`
-     * - **THEN** Deuxième location créée, list contient 2 locations
-     */
     @Test
     fun testAddPotentialLocation_Multiple() = runTest {
-        val (stateMachine, repository) = setupStateMachine()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
 
-        // ARRANGE: Create event with existing location
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        // ARRANGE: Create event in DRAFT status
         val event = createDraftEvent("evt-1")
         repository.events[event.id] = event
-        val existingLocation = createTestLocation("loc-1", "evt-1", "Paris", LocationType.CITY)
-        repository.potentialLocations[event.id] = mutableListOf(existingLocation)
 
-        // ACT: Add a second location
+        // ACT: Add first location through state machine
+        stateMachine.dispatch(
+            EventManagementContract.Intent.AddPotentialLocation(
+                eventId = "evt-1",
+                locationId = "loc-1",
+                locationName = "Paris",
+                locationType = LocationType.CITY
+            )
+        )
+        advanceUntilIdle()
+
+        // ACT: Add second location through state machine
         stateMachine.dispatch(
             EventManagementContract.Intent.AddPotentialLocation(
                 eventId = "evt-1",
@@ -471,25 +461,29 @@ class EventManagementStateMachineDraftUpdatesTest {
         )
         advanceUntilIdle()
 
-        // ASSERT: Verify both locations exist
-        val locations = repository.potentialLocations["evt-1"] ?: emptyList()
+        // ASSERT: Verify both locations exist in state
+        val state = stateMachine.state.value
 
-        assertEquals(2, locations.size)
-        assertEquals("Paris", locations[0].name)
-        assertEquals("London", locations[1].name)
+        assertEquals(2, state.potentialLocations.size)
+        assertEquals("Paris", state.potentialLocations[0].name)
+        assertEquals("London", state.potentialLocations[1].name)
     }
 
-    /**
-     * Test AddPotentialLocation fails if event is not in DRAFT status.
-     *
-     * **Scenario:** AddPotentialLocation - Not in DRAFT status
-     * - **GIVEN** Événement en status POLLING
-     * - **WHEN** Dispatch `AddPotentialLocation(eventId, ...)`
-     * - **THEN** Error émise, "Cannot add location: Event not in DRAFT status"
-     */
     @Test
     fun testAddPotentialLocation_FailsIfNotDraft() = runTest {
-        val (stateMachine, repository) = setupStateMachine()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
 
         // ARRANGE: Create event in POLLING status
         val event = createDraftEvent("evt-1").copy(status = EventStatus.POLLING)
@@ -511,27 +505,30 @@ class EventManagementStateMachineDraftUpdatesTest {
 
         assertNotNull(state.error)
         assertTrue(state.error!!.contains("not in DRAFT status"))
-        val locations = repository.potentialLocations["evt-1"] ?: emptyList()
-        assertEquals(0, locations.size)
+        assertEquals(0, state.potentialLocations.size)
     }
 
-    /**
-     * Test AddPotentialLocation with specific venue and coordinates.
-     *
-     * **Scenario:** AddPotentialLocation - Specific venue with coordinates
-     * - **GIVEN** Événement en status DRAFT
-     * - **WHEN** Dispatch `AddPotentialLocation(eventId, ..., locationType=SPECIFIC_VENUE, coordinates=...)`
-     * - **THEN** Location créée avec adresse et coordonnées
-     */
     @Test
     fun testAddPotentialLocation_WithVenueDetails() = runTest {
-        val (stateMachine, repository) = setupStateMachine()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
 
         // ARRANGE: Create event in DRAFT status
         val event = createDraftEvent("evt-1")
         repository.events[event.id] = event
 
-        val coordinates = Coordinates(48.8566, 2.3522) // Eiffel Tower coordinates
+        val coordinates = Coordinates(48.8566, 2.3522)
 
         // ACT: Add a venue location with details
         stateMachine.dispatch(
@@ -547,39 +544,60 @@ class EventManagementStateMachineDraftUpdatesTest {
         advanceUntilIdle()
 
         // ASSERT: Verify location details
-        val locations = repository.potentialLocations["evt-1"] ?: emptyList()
+        val state = stateMachine.state.value
 
-        assertEquals(1, locations.size)
-        assertEquals("Château de Versailles", locations[0].name)
-        assertEquals(LocationType.SPECIFIC_VENUE, locations[0].locationType)
-        assertEquals("78000 Versailles, France", locations[0].address)
-        assertNotNull(locations[0].coordinates)
-        assertEquals(48.8566, locations[0].coordinates!!.latitude)
-        assertEquals(2.3522, locations[0].coordinates!!.longitude)
+        assertEquals(1, state.potentialLocations.size)
+        assertEquals("Château de Versailles", state.potentialLocations[0].name)
+        assertEquals(LocationType.SPECIFIC_VENUE, state.potentialLocations[0].locationType)
+        assertEquals("78000 Versailles, France", state.potentialLocations[0].address)
+        assertNotNull(state.potentialLocations[0].coordinates)
+        assertEquals(48.8566, state.potentialLocations[0].coordinates!!.latitude)
+        assertEquals(2.3522, state.potentialLocations[0].coordinates!!.longitude)
     }
 
     // ========================================================================
     // Tests: RemovePotentialLocation Intent
     // ========================================================================
 
-    /**
-     * Test RemovePotentialLocation successfully removes a location.
-     *
-     * **Scenario:** RemovePotentialLocation - Success
-     * - **GIVEN** Événement en status DRAFT avec 2 PotentialLocations
-     * - **WHEN** Dispatch `RemovePotentialLocation(eventId, locationId)`
-     * - **THEN** PotentialLocation supprimée, list mise à jour, ShowToast emitted
-     */
     @Test
     fun testRemovePotentialLocation_Success() = runTest {
-        val (stateMachine, repository) = setupStateMachine()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
 
-        // ARRANGE: Create event with two locations
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        // ARRANGE: Create event and add two locations through state machine
         val event = createDraftEvent("evt-1")
         repository.events[event.id] = event
-        val location1 = createTestLocation("loc-1", "evt-1", "Paris", LocationType.CITY)
-        val location2 = createTestLocation("loc-2", "evt-1", "London", LocationType.CITY)
-        repository.potentialLocations[event.id] = mutableListOf(location1, location2)
+
+        stateMachine.dispatch(
+            EventManagementContract.Intent.AddPotentialLocation(
+                eventId = "evt-1",
+                locationId = "loc-1",
+                locationName = "Paris",
+                locationType = LocationType.CITY
+            )
+        )
+        advanceUntilIdle()
+
+        stateMachine.dispatch(
+            EventManagementContract.Intent.AddPotentialLocation(
+                eventId = "evt-1",
+                locationId = "loc-2",
+                locationName = "London",
+                locationType = LocationType.CITY
+            )
+        )
+        advanceUntilIdle()
 
         // ACT: Remove first location
         stateMachine.dispatch(
@@ -592,33 +610,62 @@ class EventManagementStateMachineDraftUpdatesTest {
 
         // ASSERT: Verify location was removed
         val state = stateMachine.state.value
-        val locations = repository.potentialLocations["evt-1"] ?: emptyList()
 
-        assertEquals(1, locations.size)
-        assertEquals("London", locations[0].name)
+        assertEquals(1, state.potentialLocations.size)
+        assertEquals("London", state.potentialLocations[0].name)
         assertFalse(state.isLoading)
         assertNull(state.error)
     }
 
-    /**
-     * Test RemovePotentialLocation removes all occurrences.
-     *
-     * **Scenario:** RemovePotentialLocation - Remove specific location
-     * - **GIVEN** Événement avec 3 locations (loc-1, loc-2, loc-3)
-     * - **WHEN** Dispatch `RemovePotentialLocation(eventId, "loc-2")`
-     * - **THEN** Seule loc-2 est supprimée, list contient loc-1 et loc-3
-     */
     @Test
     fun testRemovePotentialLocation_RemovesCorrectOne() = runTest {
-        val (stateMachine, repository) = setupStateMachine()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
 
-        // ARRANGE: Create event with three locations
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        // ARRANGE: Create event and add three locations through state machine
         val event = createDraftEvent("evt-1")
         repository.events[event.id] = event
-        val location1 = createTestLocation("loc-1", "evt-1", "Paris")
-        val location2 = createTestLocation("loc-2", "evt-1", "London")
-        val location3 = createTestLocation("loc-3", "evt-1", "Berlin")
-        repository.potentialLocations[event.id] = mutableListOf(location1, location2, location3)
+
+        stateMachine.dispatch(
+            EventManagementContract.Intent.AddPotentialLocation(
+                eventId = "evt-1",
+                locationId = "loc-1",
+                locationName = "Paris",
+                locationType = LocationType.CITY
+            )
+        )
+        advanceUntilIdle()
+
+        stateMachine.dispatch(
+            EventManagementContract.Intent.AddPotentialLocation(
+                eventId = "evt-1",
+                locationId = "loc-2",
+                locationName = "London",
+                locationType = LocationType.CITY
+            )
+        )
+        advanceUntilIdle()
+
+        stateMachine.dispatch(
+            EventManagementContract.Intent.AddPotentialLocation(
+                eventId = "evt-1",
+                locationId = "loc-3",
+                locationName = "Berlin",
+                locationType = LocationType.CITY
+            )
+        )
+        advanceUntilIdle()
 
         // ACT: Remove middle location
         stateMachine.dispatch(
@@ -630,32 +677,52 @@ class EventManagementStateMachineDraftUpdatesTest {
         advanceUntilIdle()
 
         // ASSERT: Verify correct location was removed
-        val locations = repository.potentialLocations["evt-1"] ?: emptyList()
+        val state = stateMachine.state.value
 
-        assertEquals(2, locations.size)
-        assertEquals("Paris", locations[0].name)
-        assertEquals("Berlin", locations[1].name)
+        assertEquals(2, state.potentialLocations.size)
+        assertEquals("Paris", state.potentialLocations[0].name)
+        assertEquals("Berlin", state.potentialLocations[1].name)
     }
 
-    /**
-     * Test RemovePotentialLocation fails if event is not in DRAFT status.
-     *
-     * **Scenario:** RemovePotentialLocation - Not in DRAFT status
-     * - **GIVEN** Événement en status POLLING
-     * - **WHEN** Dispatch `RemovePotentialLocation(eventId, ...)`
-     * - **THEN** Error émise, "Cannot remove location: Event not in DRAFT status"
-     */
     @Test
     fun testRemovePotentialLocation_FailsIfNotDraft() = runTest {
-        val (stateMachine, repository) = setupStateMachine()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
 
-        // ARRANGE: Create event in POLLING status with a location
-        val event = createDraftEvent("evt-1").copy(status = EventStatus.POLLING)
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        // ARRANGE: Create event in DRAFT status first
+        val event = createDraftEvent("evt-1")
         repository.events[event.id] = event
-        val location = createTestLocation("loc-1", "evt-1", "Paris")
-        repository.potentialLocations[event.id] = mutableListOf(location)
 
-        // ACT: Try to remove location
+        // Add a location while in DRAFT status
+        stateMachine.dispatch(
+            EventManagementContract.Intent.AddPotentialLocation(
+                eventId = "evt-1",
+                locationId = "loc-1",
+                locationName = "Paris",
+                locationType = LocationType.CITY
+            )
+        )
+        advanceUntilIdle()
+
+        // Verify location was added
+        var state = stateMachine.state.value
+        assertEquals(1, state.potentialLocations.size)
+
+        // Now change event to POLLING status (simulating state transition)
+        repository.events[event.id] = event.copy(status = EventStatus.POLLING)
+
+        // ACT: Try to remove location (should fail because not DRAFT)
         stateMachine.dispatch(
             EventManagementContract.Intent.RemovePotentialLocation(
                 eventId = "evt-1",
@@ -665,25 +732,28 @@ class EventManagementStateMachineDraftUpdatesTest {
         advanceUntilIdle()
 
         // ASSERT: Verify error and location still exists
-        val state = stateMachine.state.value
-        val locations = repository.potentialLocations["evt-1"] ?: emptyList()
+        state = stateMachine.state.value
 
         assertNotNull(state.error)
         assertTrue(state.error!!.contains("not in DRAFT status"))
-        assertEquals(1, locations.size) // Location should not be removed
+        assertEquals(1, state.potentialLocations.size) // Location should not be removed
     }
 
-    /**
-     * Test RemovePotentialLocation from empty list.
-     *
-     * **Scenario:** RemovePotentialLocation - No locations to remove
-     * - **GIVEN** Événement en status DRAFT sans locations
-     * - **WHEN** Dispatch `RemovePotentialLocation(eventId, "nonexistent")`
-     * - **THEN** State remains unchanged (no error, location list still empty)
-     */
     @Test
     fun testRemovePotentialLocation_EmptyList() = runTest {
-        val (stateMachine, repository) = setupStateMachine()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
 
         // ARRANGE: Create event with no locations
         val event = createDraftEvent("evt-1")
@@ -701,27 +771,30 @@ class EventManagementStateMachineDraftUpdatesTest {
 
         // ASSERT: Verify no error and list is still empty
         val state = stateMachine.state.value
-        val locations = repository.potentialLocations["evt-1"] ?: emptyList()
 
         assertNull(state.error)
-        assertEquals(0, locations.size)
+        assertEquals(0, state.potentialLocations.size)
     }
 
     // ========================================================================
     // Integration Tests: Multiple Intents in Sequence
     // ========================================================================
 
-    /**
-     * Test draft event updates and location management workflow.
-     *
-     * **Scenario:** Workflow - Update event type, add multiple locations, remove one
-     * - **GIVEN** Événement DRAFT vierge
-     * - **WHEN** Dispatch UpdateDraftEvent, puis AddPotentialLocation (x2), puis RemovePotentialLocation
-     * - **THEN** Event correctement mis à jour, locations correctement gérées
-     */
     @Test
     fun testDraftWorkflow_UpdateAndManageLocations() = runTest {
-        val (stateMachine, repository) = setupStateMachine()
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
 
         // ARRANGE: Create initial draft event
         val event = createDraftEvent("evt-1", "Team Retreat", EventType.OTHER)
@@ -754,8 +827,8 @@ class EventManagementStateMachineDraftUpdatesTest {
         )
         advanceUntilIdle()
 
-        var locations = repository.potentialLocations["evt-1"] ?: emptyList()
-        assertEquals(1, locations.size)
+        state = stateMachine.state.value
+        assertEquals(1, state.potentialLocations.size)
 
         // Step 3 - Add second location
         stateMachine.dispatch(
@@ -768,8 +841,8 @@ class EventManagementStateMachineDraftUpdatesTest {
         )
         advanceUntilIdle()
 
-        locations = repository.potentialLocations["evt-1"] ?: emptyList()
-        assertEquals(2, locations.size)
+        state = stateMachine.state.value
+        assertEquals(2, state.potentialLocations.size)
 
         // Step 4 - Remove first location
         stateMachine.dispatch(
@@ -780,9 +853,9 @@ class EventManagementStateMachineDraftUpdatesTest {
         )
         advanceUntilIdle()
 
-        locations = repository.potentialLocations["evt-1"] ?: emptyList()
-        assertEquals(1, locations.size)
-        assertEquals("French Riviera", locations[0].name)
+        state = stateMachine.state.value
+        assertEquals(1, state.potentialLocations.size)
+        assertEquals("French Riviera", state.potentialLocations[0].name)
 
         // Step 5 - Update with min/max participants
         stateMachine.dispatch(

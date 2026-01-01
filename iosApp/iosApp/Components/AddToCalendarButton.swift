@@ -56,7 +56,12 @@ struct AddToCalendarButton: View {
                 status: .confirmed,
                 finalDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(86400)),
                 createdAt: ISO8601DateFormatter().string(from: Date()),
-                updatedAt: ISO8601DateFormatter().string(from: Date())
+                updatedAt: ISO8601DateFormatter().string(from: Date()),
+                eventType: .teamBuilding,
+                eventTypeCustom: nil,
+                minParticipants: nil,
+                maxParticipants: nil,
+                expectedParticipants: nil
             ),
             isLoading: false,
             isEnabled: true,
@@ -75,7 +80,12 @@ struct AddToCalendarButton: View {
                 status: .polling,
                 finalDate: nil,
                 createdAt: ISO8601DateFormatter().string(from: Date()),
-                updatedAt: ISO8601DateFormatter().string(from: Date())
+                updatedAt: ISO8601DateFormatter().string(from: Date()),
+                eventType: .teamBuilding,
+                eventTypeCustom: nil,
+                minParticipants: nil,
+                maxParticipants: nil,
+                expectedParticipants: nil
             ),
             isLoading: true,
             isEnabled: false,

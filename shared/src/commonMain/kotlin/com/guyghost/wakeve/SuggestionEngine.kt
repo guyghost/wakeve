@@ -83,15 +83,18 @@ class DefaultSuggestionEngine : SuggestionEngine {
 
     private fun calculateDateScore(slot: TimeSlot, preferences: UserPreferences): Double {
         var score = 0.5
+        
+        // If no specific time is set, use default score
+        val startTime = slot.start ?: return score
 
-        val dateStr = slot.start.substring(0, 10)
+        val dateStr = startTime.substring(0, 10)
         val dayOfWeek = getDayOfWeek(dateStr)
 
         if (preferences.preferredDaysOfWeek.contains(dayOfWeek)) {
             score += 0.3
         }
 
-        val hour = slot.start.substring(11, 13).toIntOrNull() ?: 12
+        val hour = startTime.substring(11, 13).toIntOrNull() ?: 12
         val timeOfDay = when {
             hour in 6..11 -> "morning"
             hour in 12..17 -> "afternoon"
@@ -107,15 +110,18 @@ class DefaultSuggestionEngine : SuggestionEngine {
 
     private fun buildDateReason(slot: TimeSlot, preferences: UserPreferences, score: Double): String {
         val reasons = mutableListOf<String>()
+        
+        // If no specific time is set, return generic reason
+        val startTime = slot.start ?: return "Flexible time slot"
 
-        val dateStr = slot.start.substring(0, 10)
+        val dateStr = startTime.substring(0, 10)
         val dayOfWeek = getDayOfWeek(dateStr)
 
         if (preferences.preferredDaysOfWeek.contains(dayOfWeek)) {
             reasons.add("preferred day ($dayOfWeek)")
         }
 
-        val hour = slot.start.substring(11, 13).toIntOrNull() ?: 12
+        val hour = startTime.substring(11, 13).toIntOrNull() ?: 12
         val timeOfDay = when {
             hour in 6..11 -> "morning"
             hour in 12..17 -> "afternoon"

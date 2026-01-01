@@ -171,7 +171,7 @@ class CalendarService(
                 // Utiliser confirmedDate si disponible
                 val confirmedDate = database.confirmedDateQueries
                     .selectWithTimeslotDetails(event.id).executeAsOneOrNull()
-                if (confirmedDate != null) {
+                if (confirmedDate != null && confirmedDate.startTime != null) {
                     parseISO8601(confirmedDate.startTime)
                 } else {
                     // Fallback aux slots proposés
@@ -179,7 +179,7 @@ class CalendarService(
                         .selectByEventId(event.id)
                         .executeAsList()
                         .firstOrNull()
-                    firstSlot?.let { parseISO8601(it.startTime) } ?: Clock.System.now()
+                    firstSlot?.startTime?.let { parseISO8601(it) } ?: Clock.System.now()
                 }
             }
             else -> {
@@ -188,7 +188,7 @@ class CalendarService(
                     .selectByEventId(event.id)
                     .executeAsList()
                     .firstOrNull()
-                firstSlot?.let { parseISO8601(it.startTime) } ?: Clock.System.now()
+                firstSlot?.startTime?.let { parseISO8601(it) } ?: Clock.System.now()
             }
         }
     }
@@ -202,7 +202,7 @@ class CalendarService(
                 // Utiliser confirmedDate si disponible
                 val confirmedDate = database.confirmedDateQueries
                     .selectWithTimeslotDetails(event.id).executeAsOneOrNull()
-                if (confirmedDate != null) {
+                if (confirmedDate != null && confirmedDate.endTime != null) {
                     parseISO8601(confirmedDate.endTime)
                 } else {
                     // Durée par défaut de 2 heures
@@ -215,7 +215,7 @@ class CalendarService(
                     .selectByEventId(event.id)
                     .executeAsList()
                     .firstOrNull()
-                firstSlot?.let { parseISO8601(it.endTime) } ?: startDate.plus(2, DateTimeUnit.HOUR)
+                firstSlot?.endTime?.let { parseISO8601(it) } ?: startDate.plus(2, DateTimeUnit.HOUR)
             }
         }
     }

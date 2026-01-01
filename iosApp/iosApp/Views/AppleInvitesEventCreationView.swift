@@ -346,7 +346,8 @@ struct AppleInvitesEventCreationView: View {
                 id: UUID().uuidString,
                 start: ISO8601DateFormatter().string(from: selectedDate),
                 end: ISO8601DateFormatter().string(from: selectedDate.addingTimeInterval(2 * 60 * 60)),
-                timezone: TimeZone.current.identifier
+                timezone: TimeZone.current.identifier,
+                timeOfDay: .specific
             )
 
             let event = Event(
@@ -360,7 +361,12 @@ struct AppleInvitesEventCreationView: View {
                 status: EventStatus.draft,
                 finalDate: nil,
                 createdAt: now,
-                updatedAt: now
+                updatedAt: now,
+                eventType: .other,
+                eventTypeCustom: nil,
+                minParticipants: nil,
+                maxParticipants: nil,
+                expectedParticipants: nil
             )
 
             let result = try await repository.createEvent(event: event)

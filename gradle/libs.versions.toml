@@ -29,6 +29,9 @@ logback = "1.5.20"
 sqldelight = "2.0.2"
 jwt = "4.4.0"
 micrometer = "1.14.4"
+tensorflow-lite = "0.4.0"
+google-ml-kit-vision = "17.0.0"
+google-ml-kit-face-detection = "16.1.6"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -67,10 +70,17 @@ androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "a
 androidx-datastore-preferences = { module = "androidx.datastore:preferences", version.ref = "androidx-datastore" }
 java-jwt = { module = "com.auth0:java-jwt", version.ref = "jwt" }
 ktor-serverRateLimit = { module = "io.ktor:ktor-server-rate-limit-jvm", version.ref = "ktor" }
+ktor-serverWebsockets = { module = "io.ktor:ktor-server-websockets-jvm", version.ref = "ktor" }
 micrometer-core = { module = "io.micrometer:micrometer-core", version.ref = "micrometer" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+# TensorFlow Lite (Android & JVM)
+tensorflow-lite-core = { module = "org.tensorflow:tensorflow-lite-core", version.ref = "tensorflow-lite" }
+tensorflow-lite-support = { module = "org.tensorflow:tensorflow-lite-support", version.ref = "tensorflow-lite" }
+# ML Kit Vision (Android)
+ml-kit-vision = { module = "com.google.mlkit:vision", version.ref = "google-ml-kit-vision" }
+ml-kit-face-detection = { module = "com.google.mlkit:face-detection", version.ref = "google-ml-kit-face-detection" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

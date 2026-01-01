@@ -1,6 +1,9 @@
 package com.guyghost.wakeve.presentation.state
 
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventType
+import com.guyghost.wakeve.models.LocationType
+import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.Vote
 import kotlinx.serialization.Serializable
 
@@ -49,6 +52,7 @@ object EventManagementContract {
         val pollVotes: Map<String, Map<String, Vote>> = emptyMap(),
         val scenariosUnlocked: Boolean = false,
         val meetingsUnlocked: Boolean = false,
+        val potentialLocations: List<PotentialLocation> = emptyList(),
         val error: String? = null
     ) {
         /**
@@ -238,6 +242,63 @@ object EventManagementContract {
          * Use this to dismiss error messages in the UI.
          */
         data object ClearError : Intent
+
+        /**
+         * Update a draft event incrementally.
+         *
+         * Only works if event is in DRAFT status.
+         * Allows partial updates (one or more fields).
+         * Validates: maxParticipants >= minParticipants, participants >= 0, custom type requires description.
+         *
+         * @property eventId The ID of the event to update
+         * @property eventType Optional: new event type
+         * @property eventTypeCustom Optional: custom type description (required if eventType=CUSTOM)
+         * @property expectedParticipants Optional: expected number of participants
+         * @property minParticipants Optional: minimum participants
+         * @property maxParticipants Optional: maximum participants
+         */
+        data class UpdateDraftEvent(
+            val eventId: String,
+            val eventType: EventType? = null,
+            val eventTypeCustom: String? = null,
+            val expectedParticipants: Int? = null,
+            val minParticipants: Int? = null,
+            val maxParticipants: Int? = null
+        ) : Intent
+
+        /**
+         * Add a potential location to a draft event.
+         *
+         * Only works if event is in DRAFT status.
+         *
+         * @property eventId The ID of the event
+         * @property locationId The ID of the location to add
+         * @property locationName Name of the location (required)
+         * @property locationType Type of location (CITY, REGION, SPECIFIC_VENUE, ONLINE)
+         * @property address Optional: text address
+         * @property coordinates Optional: geographic coordinates
+         */
+        data class AddPotentialLocation(
+            val eventId: String,
+            val locationId: String,
+            val locationName: String,
+            val locationType: LocationType,
+            val address: String? = null,
+            val coordinates: com.guyghost.wakeve.models.Coordinates? = null
+        ) : Intent
+
+        /**
+         * Remove a potential location from a draft event.
+         *
+         * Only works if event is in DRAFT status.
+         *
+         * @property eventId The ID of the event
+         * @property locationId The ID of the location to remove
+         */
+        data class RemovePotentialLocation(
+            val eventId: String,
+            val locationId: String
+        ) : Intent
     }
 
     // ========================================================================

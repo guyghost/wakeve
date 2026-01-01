@@ -231,7 +231,7 @@ struct BestSlotCard: View {
             }
 
             VStack(spacing: 8) {
-                Text(formatDate(slot.start))
+                Text(formatDate(slot.start ?? ""))
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.primary)
 
@@ -240,7 +240,7 @@ struct BestSlotCard: View {
                         .font(.system(size: 15))
                         .foregroundColor(.secondary)
 
-                    Text("\(formatTime(slot.start)) - \(formatTime(slot.end))")
+                    Text("\(formatTime(slot.start ?? "")) - \(formatTime(slot.end ?? ""))")
                         .font(.system(size: 17))
                         .foregroundColor(.secondary)
                 }
@@ -309,7 +309,7 @@ struct ConfirmedDateCard: View {
                     Divider()
 
                     VStack(spacing: 8) {
-                        Text(formatDate(slot.start))
+                        Text(formatDate(slot.start ?? ""))
                             .font(.system(size: 22, weight: .semibold))
                             .foregroundColor(.primary)
 
@@ -318,7 +318,7 @@ struct ConfirmedDateCard: View {
                                 .font(.system(size: 15))
                                 .foregroundColor(.secondary)
 
-                            Text("\(formatTime(slot.start)) - \(formatTime(slot.end))")
+                            Text("\(formatTime(slot.start ?? "")) - \(formatTime(slot.end ?? ""))")
                                 .font(.system(size: 17))
                                 .foregroundColor(.secondary)
                         }
@@ -375,7 +375,7 @@ struct ModernSlotResultCard: View {
         VStack(spacing: 16) {
             // Date and Time
             VStack(spacing: 6) {
-                Text(formatDate(slot.start))
+                Text(formatDate(slot.start ?? ""))
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.primary)
 
@@ -384,7 +384,7 @@ struct ModernSlotResultCard: View {
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
 
-                    Text("\(formatTime(slot.start)) - \(formatTime(slot.end))")
+                    Text("\(formatTime(slot.start ?? "")) - \(formatTime(slot.end ?? ""))")
                         .font(.system(size: 15))
                         .foregroundColor(.secondary)
                 }

@@ -1,10 +1,18 @@
 package com.guyghost.wakeve.presentation.statemachine
 
 import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.PotentialLocationRepositoryInterface
+import com.guyghost.wakeve.models.Coordinates
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.EventType
+import com.guyghost.wakeve.models.LocationType
+import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
 import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.datetime.Clock
 
 /**
  * State Machine for event management workflows.
@@ -105,6 +113,26 @@ class EventManagementStateMachine(
             is EventManagementContract.Intent.TransitionToOrganizing -> transitionToOrganizing(intent.eventId)
             is EventManagementContract.Intent.MarkAsFinalized -> markAsFinalized(intent.eventId)
             is EventManagementContract.Intent.ClearError -> clearError()
+            is EventManagementContract.Intent.UpdateDraftEvent -> updateDraftEvent(
+                intent.eventId,
+                intent.eventType,
+                intent.eventTypeCustom,
+                intent.expectedParticipants,
+                intent.minParticipants,
+                intent.maxParticipants
+            )
+            is EventManagementContract.Intent.AddPotentialLocation -> addPotentialLocation(
+                intent.eventId,
+                intent.locationId,
+                intent.locationName,
+                intent.locationType,
+                intent.address,
+                intent.coordinates
+            )
+            is EventManagementContract.Intent.RemovePotentialLocation -> removePotentialLocation(
+                intent.eventId,
+                intent.locationId
+            )
         }
     }
 
@@ -325,6 +353,216 @@ class EventManagementStateMachine(
      */
     private suspend fun clearError() {
         updateState { it.copy(error = null) }
+    }
+
+    // ========================================================================
+    // Draft Phase Update Handlers
+    // ========================================================================
+
+    /**
+     * Update a draft event incrementally.
+     *
+     * Only works if event is in DRAFT status.
+     * Allows partial updates (one or more fields).
+     * Validates: maxParticipants >= minParticipants, participants >= 0, custom type requires description.
+     *
+     * @param eventId The ID of the event to update
+     * @param eventType Optional: new event type
+     * @param eventTypeCustom Optional: custom type description (required if eventType=CUSTOM)
+     * @param expectedParticipants Optional: expected number of participants
+     * @param minParticipants Optional: minimum participants
+     * @param maxParticipants Optional: maximum participants
+     */
+    private suspend fun updateDraftEvent(
+        eventId: String,
+        eventType: EventType?,
+        eventTypeCustom: String?,
+        expectedParticipants: Int?,
+        minParticipants: Int?,
+        maxParticipants: Int?
+    ) {
+        if (eventRepository == null) {
+            updateState { it.copy(isLoading = false, error = "Repository not available") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Repository not available"))
+            return
+        }
+
+        updateState { it.copy(isLoading = true, error = null) }
+
+        val event = eventRepository.getEvent(eventId)
+        if (event == null) {
+            updateState { it.copy(isLoading = false, error = "Event not found") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event not found"))
+            return
+        }
+
+        // Validate status - only DRAFT events can be updated
+        if (event.status != EventStatus.DRAFT) {
+            val errorMsg = "Cannot update draft: Event is not in DRAFT status"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        // Validate participant counts
+        if (minParticipants != null && minParticipants < 0) {
+            val errorMsg = "Participants counts must be non-negative"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        if (maxParticipants != null && maxParticipants < 0) {
+            val errorMsg = "Participants counts must be non-negative"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        if (minParticipants != null && maxParticipants != null && maxParticipants < minParticipants) {
+            val errorMsg = "Max participants must be >= min participants"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        // Validate custom event type
+        if (eventType == EventType.CUSTOM && eventTypeCustom.isNullOrBlank()) {
+            val errorMsg = "Custom event type requires a description"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        // Build updated event with new fields
+        val updatedEvent = event.copy(
+            eventType = eventType ?: event.eventType,
+            eventTypeCustom = eventTypeCustom ?: event.eventTypeCustom,
+            expectedParticipants = expectedParticipants ?: event.expectedParticipants,
+            minParticipants = minParticipants ?: event.minParticipants,
+            maxParticipants = maxParticipants ?: event.maxParticipants
+        )
+
+        // Update via repository
+        val result = eventRepository.updateEvent(updatedEvent)
+
+        result.fold(
+            onSuccess = {
+                // Update in state
+                val updatedEvents = currentState.events.map { if (it.id == updatedEvent.id) updatedEvent else it }
+                updateState { it.copy(isLoading = false, events = updatedEvents, selectedEvent = updatedEvent) }
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event updated successfully"))
+            },
+            onFailure = { error ->
+                val errorMessage = error.message ?: "Failed to update event"
+                updateState { it.copy(isLoading = false, error = errorMessage) }
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
+            }
+        )
+    }
+
+    /**
+     * Add a potential location to a draft event.
+     *
+     * Only works if event is in DRAFT status.
+     *
+     * @param eventId The ID of the event
+     * @param locationId The ID of the location to add
+     * @param name Name of the location (required)
+     * @param locationType Type of location (CITY, REGION, SPECIFIC_VENUE, ONLINE)
+     * @param address Optional: text address
+     * @param coordinates Optional: geographic coordinates
+     */
+    private suspend fun addPotentialLocation(
+        eventId: String,
+        locationId: String,
+        name: String,
+        locationType: LocationType,
+        address: String?,
+        coordinates: Coordinates?
+    ) {
+        if (eventRepository == null) {
+            updateState { it.copy(isLoading = false, error = "Repository not available") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Repository not available"))
+            return
+        }
+
+        updateState { it.copy(isLoading = true, error = null) }
+
+        val event = eventRepository.getEvent(eventId)
+        if (event == null) {
+            updateState { it.copy(isLoading = false, error = "Event not found") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event not found"))
+            return
+        }
+
+        // Validate status - only DRAFT events can have locations added
+        if (event.status != EventStatus.DRAFT) {
+            val errorMsg = "Cannot add location: Event is not in DRAFT status"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        // Create PotentialLocation
+        val now = Clock.System.now().toString()
+        val location = PotentialLocation(
+            id = locationId,
+            eventId = eventId,
+            name = name,
+            locationType = locationType,
+            address = address,
+            coordinates = coordinates,
+            createdAt = now
+        )
+
+        // Add to state
+        val updatedLocations = currentState.potentialLocations + location
+        updateState { it.copy(isLoading = false, potentialLocations = updatedLocations) }
+
+        emitSideEffect(EventManagementContract.SideEffect.ShowToast("Location added successfully"))
+    }
+
+    /**
+     * Remove a potential location from a draft event.
+     *
+     * Only works if event is in DRAFT status.
+     *
+     * @param eventId The ID of the event
+     * @param locationId The ID of the location to remove
+     */
+    private suspend fun removePotentialLocation(
+        eventId: String,
+        locationId: String
+    ) {
+        if (eventRepository == null) {
+            updateState { it.copy(isLoading = false, error = "Repository not available") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Repository not available"))
+            return
+        }
+
+        updateState { it.copy(isLoading = true, error = null) }
+
+        val event = eventRepository.getEvent(eventId)
+        if (event == null) {
+            updateState { it.copy(isLoading = false, error = "Event not found") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event not found"))
+            return
+        }
+
+        // Validate status - only DRAFT events can have locations removed
+        if (event.status != EventStatus.DRAFT) {
+            val errorMsg = "Cannot remove location: Event is not in DRAFT status"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        // Remove from state
+        val updatedLocations = currentState.potentialLocations.filter { it.id != locationId }
+        updateState { it.copy(isLoading = false, potentialLocations = updatedLocations) }
+
+        emitSideEffect(EventManagementContract.SideEffect.ShowToast("Location removed successfully"))
     }
 
     // ========================================================================

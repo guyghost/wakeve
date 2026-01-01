@@ -1,0 +1,13 @@
+-- Migration 1: Add enhanced DRAFT phase columns to event and timeSlot tables
+-- Adds eventType, eventTypeCustom, minParticipants, maxParticipants, expectedParticipants to event
+-- Adds timeOfDay to timeSlot
+
+-- Event table columns
+ALTER TABLE event ADD COLUMN eventType TEXT DEFAULT 'OTHER';
+ALTER TABLE event ADD COLUMN eventTypeCustom TEXT;
+ALTER TABLE event ADD COLUMN minParticipants INTEGER;
+ALTER TABLE event ADD COLUMN maxParticipants INTEGER;
+ALTER TABLE event ADD COLUMN expectedParticipants INTEGER;
+
+-- TimeSlot table column
+ALTER TABLE timeSlot ADD COLUMN timeOfDay TEXT DEFAULT 'SPECIFIC';

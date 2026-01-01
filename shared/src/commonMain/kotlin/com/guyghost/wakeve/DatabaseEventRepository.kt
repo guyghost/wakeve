@@ -33,7 +33,12 @@ class DatabaseEventRepository(private val db: WakevDb, private val syncManager: 
                 deadline = event.deadline,
                 createdAt = now,
                 updatedAt = now,
-                version = 1
+                version = 1,
+                eventType = event.eventType.name,
+                eventTypeCustom = event.eventTypeCustom,
+                minParticipants = event.minParticipants?.toLong(),
+                maxParticipants = event.maxParticipants?.toLong(),
+                expectedParticipants = event.expectedParticipants?.toLong()
             )
 
             // Insert organizer as participant
@@ -58,7 +63,8 @@ class DatabaseEventRepository(private val db: WakevDb, private val syncManager: 
                     timezone = slot.timezone,
                     proposedByParticipantId = null,
                     createdAt = now,
-                    updatedAt = now
+                    updatedAt = now,
+                    timeOfDay = slot.timeOfDay.name
                 )
             }
 
@@ -98,12 +104,25 @@ class DatabaseEventRepository(private val db: WakevDb, private val syncManager: 
             description = eventRow.description,
             organizerId = eventRow.organizerId,
             participants = participants.map { it.userId },
-            proposedSlots = timeSlots.map { TimeSlot(it.id, it.startTime, it.endTime, it.timezone) },
+            proposedSlots = timeSlots.map { 
+                TimeSlot(
+                    id = it.id,
+                    start = it.startTime,
+                    end = it.endTime,
+                    timezone = it.timezone,
+                    timeOfDay = com.guyghost.wakeve.models.TimeOfDay.valueOf(it.timeOfDay ?: "SPECIFIC")
+                )
+            },
             deadline = eventRow.deadline,
             status = EventStatus.valueOf(eventRow.status),
             finalDate = null, // Will be populated from confirmedDate table if exists
             createdAt = eventRow.createdAt,
-            updatedAt = eventRow.updatedAt
+            updatedAt = eventRow.updatedAt,
+            eventType = com.guyghost.wakeve.models.EventType.valueOf(eventRow.eventType ?: "OTHER"),
+            eventTypeCustom = eventRow.eventTypeCustom,
+            minParticipants = eventRow.minParticipants?.toInt(),
+            maxParticipants = eventRow.maxParticipants?.toInt(),
+            expectedParticipants = eventRow.expectedParticipants?.toInt()
         )
     }
 
@@ -248,6 +267,11 @@ class DatabaseEventRepository(private val db: WakevDb, private val syncManager: 
                 status = event.status.name,
                 deadline = event.deadline,
                 updatedAt = now,
+                eventType = event.eventType.name,
+                eventTypeCustom = event.eventTypeCustom,
+                minParticipants = event.minParticipants?.toLong(),
+                maxParticipants = event.maxParticipants?.toLong(),
+                expectedParticipants = event.expectedParticipants?.toLong(),
                 id = event.id
             )
 
