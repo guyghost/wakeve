@@ -1,0 +1,136 @@
+package com.guyghost.wakeve.ios.ui.components
+
+import SwiftUI
+import shared
+
+/**
+ * MessageStatusIconView - Liquid Glass component for displaying message delivery/read status.
+ * 
+ * Features:
+ * - Single checkmark for SENT status (gray, semi-transparent)
+ * - Double checkmark for DELIVERED status (gray, fully opaque)
+ * - Double checkmark for READ status (blue/accent, fully opaque)
+ * - Error icon for FAILED status (red)
+ * - Only visible for messages sent by current user
+ * 
+ * ## Usage
+ * 
+ * ```swift
+ * MessageStatusIconView(
+ *     status: message.status,
+ *     isCurrentUser: true
+ * )
+ * ```
+ */
+struct MessageStatusIconView: View {
+    let status: MessageStatus
+    let isCurrentUser: Bool
+    
+    var body: some View {
+        if !isCurrentUser {
+            EmptyView()
+        } else {
+            switch status {
+            case .SENT:
+                sentStatus
+            case .DELIVERED:
+                deliveredStatus
+            case .READ:
+                readStatus
+            case .FAILED:
+                failedStatus
+            @unknown default:
+                EmptyView()
+            }
+        }
+    }
+    
+    // MARK: - Status Variations
+    
+    private var sentStatus: some View {
+        HStack(spacing: 0) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(Color.secondary.opacity(0.6))
+        }
+        .frame(width: 20, height: 20)
+        .accessibilityLabel("Envoyé")
+    }
+    
+    private var deliveredStatus: some View {
+        HStack(spacing: -2) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(Color.secondary.opacity(0.8))
+            
+            Image(systemName: "checkmark")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(Color.secondary.opacity(0.8))
+                .offset(x: 2, y: 2)
+        }
+        .frame(width: 20, height: 20)
+        .accessibilityLabel("Distribué")
+    }
+    
+    private var readStatus: some View {
+        HStack(spacing: -2) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(Color.accentColor)
+            
+            Image(systemName: "checkmark")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundColor(Color.accentColor)
+                .offset(x: 2, y: 2)
+        }
+        .frame(width: 20, height: 20)
+        .accessibilityLabel("Lu")
+    }
+    
+    private var failedStatus: some View {
+        Image(systemName: "exclamationmark.circle.fill")
+            .font(.system(size: 14))
+            .foregroundColor(Color.red)
+            .frame(width: 20, height: 20)
+            .accessibilityLabel("Échec d'envoi")
+    }
+}
+
+// MARK: - Preview
+
+#Preview("Message Status Icons") {
+    VStack(spacing: 16) {
+        HStack(spacing: 20) {
+            MessageStatusIconView(status: .SENT, isCurrentUser: true)
+            Text("Sent")
+                .font(.caption)
+            
+            MessageStatusIconView(status: .DELIVERED, isCurrentUser: true)
+            Text("Delivered")
+                .font(.caption)
+            
+            MessageStatusIconView(status: .READ, isCurrentUser: true)
+            Text("Read")
+                .font(.caption)
+            
+            MessageStatusIconView(status: .FAILED, isCurrentUser: true)
+            Text("Failed")
+                .font(.caption)
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+        .cornerRadius(12)
+        
+        // Non-current user should show nothing
+        HStack(spacing: 20) {
+            MessageStatusIconView(status: .READ, isCurrentUser: false)
+            Text("(Not shown for others)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(.ultraThinMaterial)
+        .cornerRadius(12)
+    }
+    .padding()
+}

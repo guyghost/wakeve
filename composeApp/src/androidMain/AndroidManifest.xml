@@ -15,15 +15,82 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+        <!-- Google Assistant App Actions -->
+        <meta-data
+            android:name="com.google.android.actions"
+            android:resource="@xml/actions" />
+
         <activity
             android:exported="true"
             android:name=".MainActivity">
+
+            <!-- Main Launcher Intent -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Deep Link: Create Event - wakeve://event/create -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="wakeve"
+                    android:host="event"
+                    android:pathPrefix="/create" />
+            </intent-filter>
+
+            <!-- Deep Link: Share Event - wakeve://event/share -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="wakeve"
+                    android:host="event"
+                    android:pathPrefix="/share" />
+            </intent-filter>
+
+            <!-- Deep Link: Cancel Event - wakeve://event/cancel -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="wakeve"
+                    android:host="event"
+                    android:pathPrefix="/cancel" />
+            </intent-filter>
+
+            <!-- Deep Link: Open Calendar - wakeve://calendar -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="wakeve"
+                    android:host="calendar" />
+            </intent-filter>
+
+            <!-- Deep Link: Reminder - wakeve://reminder/check-votes -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="wakeve"
+                    android:host="reminder"
+                    android:pathPrefix="/check-votes" />
+            </intent-filter>
         </activity>
+
+        <!-- Shortcuts for Google Assistant -->
+        <meta-data
+            android:name="android.app.shortcuts"
+            android:resource="@xml/shortcuts" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

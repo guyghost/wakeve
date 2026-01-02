@@ -1,0 +1,517 @@
+package com.guyghost.wakeve.services
+
+import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.ml.Language
+import com.guyghost.wakeve.ml.VoiceCommand
+import com.guyghost.wakeve.ml.VoiceContext
+import com.guyghost.wakeve.ml.VoiceIntent
+import com.guyghost.wakeve.ml.VoiceSession
+import com.guyghost.wakeve.ml.VoiceStep
+import com.guyghost.wakeve.ml.SessionStatus
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.voice.VoiceCommandParser
+import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.mockito.kotlin.*
+
+/**
+ * Unit tests for VoiceAssistantService implementation.
+ * Tests intent recognition, parameter extraction, confidence scoring, and multi-language support.
+ */
+class VoiceAssistantServiceTest {
+
+    private lateinit var mockRepository: EventRepositoryInterface
+    private lateinit var parser: VoiceCommandParser
+    private lateinit var service: VoiceAssistantServiceImpl
+
+    @Before
+    fun setup() {
+        mockRepository = mock()
+        parser = VoiceCommandParser()
+        service = VoiceAssistantServiceImpl(parser, mockRepository)
+    }
+
+    // ========== Session Management Tests ==========
+
+    @Test
+    fun `startSession creates new session with ACTIVE status`() = runTest {
+        // When
+        val result = service.startSession("user-123", Language.FR)
+
+        // Then
+        assertTrue(result is VoiceResult.Success)
+        val session = (result as VoiceResult.Success).data
+        assertEquals("user-123", session.userId)
+        assertEquals(SessionStatus.ACTIVE, session.status)
+        assertEquals(Language.FR, session.context.language)
+        assertEquals(VoiceStep.COMPLETE, session.context.step)
+        assertNull(session.context.eventId)
+        assertTrue(session.commands.isEmpty())
+    }
+
+    @Test
+    fun `startSession generates unique session IDs`() = runTest {
+        // When
+        val result1 = service.startSession("user-123", Language.EN)
+        val result2 = service.startSession("user-123", Language.EN)
+
+        // Then
+        assertTrue(result1 is VoiceResult.Success)
+        assertTrue(result2 is VoiceResult.Success)
+        val session1 = (result1 as VoiceResult.Success).data
+        val session2 = (result2 as VoiceResult.Success).data
+        assertNotEquals(session1.sessionId, session2.sessionId)
+    }
+
+    @Test
+    fun `endSession marks session as COMPLETED`() = runTest {
+        // Given
+        val startResult = service.startSession("user-123", Language.FR)
+        val session = (startResult as VoiceResult.Success).data
+
+        // When
+        val endResult = service.endSession(session.sessionId)
+
+        // Then
+        assertTrue(endResult is VoiceResult.Success)
+        val completedSession = (endResult as VoiceResult.Success).data
+        assertEquals(SessionStatus.COMPLETED, completedSession.status)
+        assertNotNull(completedSession.endTime)
+    }
+
+    @Test
+    fun `endSession returns error for non-existent session`() = runTest {
+        // When
+        val result = service.endSession("non-existent-session")
+
+        // Then
+        assertTrue(result is VoiceResult.Error)
+    }
+
+    // ========== Command Processing Tests ==========
+
+    @Test
+    fun `processCommand parses CREATE_EVENT intent`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.FR)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "Crée un mariage pour juin"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertEquals(VoiceIntent.CREATE_EVENT, command.intent)
+        assertTrue(command.parameters.containsKey("eventType"))
+        assertEquals("WEDDING", command.parameters["eventType"])
+    }
+
+    @Test
+    fun `processCommand extracts title from CREATE_EVENT`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.EN)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "Create a birthday party for John"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertEquals(VoiceIntent.CREATE_EVENT, command.intent)
+        assertEquals("BIRTHDAY", command.parameters["eventType"])
+    }
+
+    @Test
+    fun `processCommand extracts date from SET_DATE intent`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.FR)
+        val session = (sessionResult as VoiceResult.Success).data
+        // Start event creation to be in DATE step
+        service.processCommand(session.sessionId, "Crée un événement")
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "15 juin 2026 à 15 heures"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertEquals(VoiceIntent.SET_DATE, command.intent)
+        assertNotNull(command.parameters["date"])
+    }
+
+    @Test
+    fun `processCommand extracts timeOfDay from command`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.FR)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "Ajoute un créneau samedi après-midi"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertEquals(VoiceIntent.ADD_SLOT, command.intent)
+        assertEquals("AFTERNOON", command.parameters["timeOfDay"])
+    }
+
+    @Test
+    fun `processCommand extracts participant count`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.EN)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "About ten people"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertEquals(VoiceIntent.SET_PARTICIPANTS, command.intent)
+        assertEquals("3", command.parameters["participantCount"]) // "a few" maps to 3
+    }
+
+    @Test
+    fun `processCommand returns error for non-existent session`() = runTest {
+        // When
+        val result = service.processCommand(
+            "non-existent-session",
+            "Crée un événement"
+        )
+
+        // Then
+        assertTrue(result is VoiceResult.Error)
+    }
+
+    // ========== Intent Recognition Tests ==========
+
+    @Test
+    fun `processCommand recognizes SEND_INVITATIONS intent`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.FR)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "Envoie les invitations maintenant"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertEquals(VoiceIntent.SEND_INVITATIONS, command.intent)
+    }
+
+    @Test
+    fun `processCommand recognizes OPEN_CALENDAR intent`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.EN)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "Open the calendar"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertEquals(VoiceIntent.OPEN_CALENDAR, command.intent)
+    }
+
+    @Test
+    fun `processCommand recognizes CANCEL_EVENT intent`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.FR)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "Annule le dernier événement"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertEquals(VoiceIntent.CANCEL_EVENT, command.intent)
+    }
+
+    @Test
+    fun `processCommand recognizes GET_STATS intent`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.EN)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "How many events have I created"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertEquals(VoiceIntent.GET_STATS, command.intent)
+    }
+
+    // ========== Multi-language Support Tests ==========
+
+    @Test
+    fun `processCommand supports French language`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.FR)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "Crée un mariage pour juin"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertEquals(VoiceIntent.CREATE_EVENT, command.intent)
+    }
+
+    @Test
+    fun `processCommand supports English language`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.EN)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "Create a wedding for June"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertEquals(VoiceIntent.CREATE_EVENT, command.intent)
+    }
+
+    @Test
+    fun `processCommand supports Spanish language`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.ES)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "Crea una boda para junio"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertEquals(VoiceIntent.CREATE_EVENT, command.intent)
+    }
+
+    @Test
+    fun `processCommand supports German language`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.DE)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "Erstelle eine Hochzeit für Juni"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertEquals(VoiceIntent.CREATE_EVENT, command.intent)
+    }
+
+    // ========== Confidence Scoring Tests ==========
+
+    @Test
+    fun `processCommand assigns confidence score between 0 and 1`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.EN)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "Create a birthday party"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        val command = (commandResult as VoiceResult.Success).data
+        assertTrue(command.confidenceScore >= 0.0)
+        assertTrue(command.confidenceScore <= 1.0)
+    }
+
+    @Test
+    fun `processCommand assigns higher confidence for clear commands`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.EN)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When - Clear command
+        val clearResult = service.processCommand(
+            session.sessionId,
+            "Create a new birthday party"
+        )
+
+        // Then
+        assertTrue(clearResult is VoiceResult.Success)
+        val clearCommand = (clearResult as VoiceResult.Success).data
+        assertTrue(clearCommand.confidenceScore >= 0.5)
+    }
+
+    // ========== Contextual Suggestions Tests ==========
+
+    @Test
+    fun `getContextualSuggestions returns suggestions for WEDDING type`() = runTest {
+        // When
+        val result = service.getContextualSuggestions(null, EventType.WEDDING)
+
+        // Then
+        assertTrue(result is VoiceResult.Success)
+        val suggestions = (result as VoiceResult.Success).data
+        assertTrue(suggestions.isNotEmpty())
+        assertTrue(suggestions.any { it.contains("traiteur", ignoreCase = true) ||
+            it.contains("lieu", ignoreCase = true) })
+    }
+
+    @Test
+    fun `getContextualSuggestions returns suggestions for CULTURAL_EVENT type`() = runTest {
+        // When
+        val result = service.getContextualSuggestions(null, EventType.CULTURAL_EVENT)
+
+        // Then
+        assertTrue(result is VoiceResult.Success)
+        val suggestions = (result as VoiceResult.Success).data
+        assertTrue(suggestions.isNotEmpty())
+        assertTrue(suggestions.any { it.contains("musée", ignoreCase = true) ||
+            it.contains("théâtre", ignoreCase = true) })
+    }
+
+    @Test
+    fun `getContextualSuggestions returns suggestions for BIRTHDAY type`() = runTest {
+        // When
+        val result = service.getContextualSuggestions(null, EventType.BIRTHDAY)
+
+        // Then
+        assertTrue(result is VoiceResult.Success)
+        val suggestions = (result as VoiceResult.Success).data
+        assertTrue(suggestions.isNotEmpty())
+        assertTrue(suggestions.any { it.contains("gâteau", ignoreCase = true) ||
+            it.contains("bougies", ignoreCase = true) })
+    }
+
+    @Test
+    fun `getContextualSuggestions returns generic suggestions when no event type`() = runTest {
+        // When
+        val result = service.getContextualSuggestions(null, null)
+
+        // Then
+        assertTrue(result is VoiceResult.Success)
+        val suggestions = (result as VoiceResult.Success).data
+        assertTrue(suggestions.isNotEmpty())
+    }
+
+    // ========== Command History Tests ==========
+
+    @Test
+    fun `processCommand adds command to session history`() = runTest {
+        // Given
+        val sessionResult = service.startSession("user-123", Language.EN)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        service.processCommand(session.sessionId, "Create a birthday party")
+        service.processCommand(session.sessionId, "Add a slot for Saturday")
+
+        // Then - Get session and check history
+        val updatedSession = service.endSession(session.sessionId)
+        assertTrue(updatedSession is VoiceResult.Success)
+        val completedSession = (updatedSession as VoiceResult.Success).data
+        assertEquals(2, completedSession.commands.size)
+    }
+
+    // ========== Event Creation Integration Tests ==========
+
+    @Test
+    fun `handleCreateEvent creates event in repository`() = runTest {
+        // Given
+        val mockEvent = Event(
+            id = "test-event-id",
+            title = "Test Event",
+            description = "",
+            organizerId = "user-123",
+            participants = emptyList(),
+            proposedSlots = emptyList(),
+            deadline = "2026-01-15T10:00:00",
+            status = EventStatus.DRAFT,
+            finalDate = null,
+            createdAt = getCurrentTimestamp(),
+            updatedAt = getCurrentTimestamp(),
+            eventType = EventType.OTHER,
+            eventTypeCustom = null,
+            minParticipants = null,
+            maxParticipants = null,
+            expectedParticipants = null
+        )
+
+        whenever(mockRepository.createEvent(any())).thenReturn(Result.success(mockEvent))
+
+        val sessionResult = service.startSession("user-123", Language.EN)
+        val session = (sessionResult as VoiceResult.Success).data
+
+        // When
+        val commandResult = service.processCommand(
+            session.sessionId,
+            "Create a test event"
+        )
+
+        // Then
+        assertTrue(commandResult is VoiceResult.Success)
+        verify(mockRepository).createEvent(any())
+    }
+
+    // ========== Helper Functions ==========
+
+    private fun getCurrentTimestamp(): String {
+        return Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            .toString()
+            .replace("T", " ")
+            .substringBefore(".")
+    }
+}

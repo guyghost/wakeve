@@ -1,0 +1,57 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Wakeve</string>
+    
+    <!-- Google Assistant App Actions - Spanish -->
+    <string name="actions_intent_CREATE_EVENT">Crear un evento de Wakeve</string>
+    <string name="actions_intent_CREATE_EVENT_name">Título del evento</string>
+    <string name="actions_intent_CREATE_EVENT_description">Descripción del evento</string>
+    <string name="actions_intent_CREATE_EVENT_startDate">Fecha del evento</string>
+    <string name="actions_intent_CREATE_EVENT_attendees">Participantes</string>
+    
+    <string name="actions_intent_SHARE_EVENT">Compartir un evento</string>
+    <string name="actions_intent_SHARE_EVENT_name">Nombre del evento</string>
+    
+    <string name="actions_intent_OPEN_APP_FEATURE">Abrir una función</string>
+    <string name="actions_intent_OPEN_APP_FEATURE_feature">Función</string>
+    
+    <string name="actions_intent_CANCEL_EVENT">Cancelar un evento</string>
+    <string name="actions_intent_CANCEL_EVENT_name">Nombre del evento</string>
+    
+    <string name="actions_intent_SET_REMINDER">Crear un recordatorio</string>
+    <string name="actions_intent_SET_REMINDER_time">Hora del recordatorio</string>
+    
+    <!-- Shortcut Labels -->
+    <string name="create_event_short_label">Crear evento</string>
+    <string name="create_event_long_label">Crear un nuevo evento en Wakeve</string>
+    
+    <string name="open_calendar_short_label">Abrir calendario</string>
+    <string name="open_calendar_long_label">Mostrar el calendario de eventos</string>
+    
+    <string name="share_event_short_label">Compartir evento</string>
+    <string name="share_event_long_label">Enviar invitaciones a los participantes</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_badges_name">Insignias Desbloqueadas</string>
+    <string name="notification_channel_badges_description">Notificaciones cuando se desbloquean insignias</string>
+
+    <string name="notification_channel_points_name">Puntos Ganados</string>
+    <string name="notification_channel_points_description">Notificaciones cuando se ganan puntos</string>
+
+    <string name="notification_channel_voice_name">Asistente de Voz</string>
+    <string name="notification_channel_voice_description">Notificaciones del asistente de voz</string>
+
+    <!-- Notification Actions -->
+    <string name="notification_action_view_badge">Ver Insignia</string>
+    <string name="notification_action_view_points">Ver Puntos</string>
+
+    <!-- Notification Titles -->
+    <string name="notification_badge_unlocked_title">¡Insignia Desbloqueada!</string>
+    <string name="notification_points_earned_title">¡Puntos Ganados!</string>
+    <string name="notification_voice_error_title">Error del Asistente de Voz</string>
+
+    <!-- Notification Bodies -->
+    <string name="notification_badge_unlocked_body">¡Enhorabuena! Has ganado %1$d puntos y la insignia \'%2$s\'</string>
+    <string name="notification_points_earned_body">Has ganado %1$d puntos por %2$s</string>
+    <string name="notification_voice_error_body">Se produjo un error: %1$s</string>
+</resources>

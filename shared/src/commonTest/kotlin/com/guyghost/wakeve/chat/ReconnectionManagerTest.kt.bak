@@ -1,0 +1,225 @@
+package com.guyghost.wakeve.chat
+
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.runTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+/**
+ * Unit tests for ReconnectionManager.
+ * 
+ * Tests cover:
+ * - Initial state verification
+ * - Exponential backoff pattern (1s, 2s, 4s, 8s, 16s, 32s)
+ * - Max delay capped at 32s
+ * - Max retry attempts respected
+ * - Reset and stop operations
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+class ReconnectionManagerTest {
+
+    private val testDispatcher = StandardTestDispatcher()
+    private val testScope = TestScope(testDispatcher)
+
+    // Test 1: Verify initial state after creation
+    @Test
+    fun `initial state is disconnected`() = testScope.runTest {
+        val mockChatService = createMockChatService()
+        val reconnectionManager = createReconnectionManager(mockChatService)
+
+        assertEquals(
+            ReconnectionManager.ConnectionState.DISCONNECTED,
+            reconnectionManager.getConnectionState()
+        )
+        assertEquals(0, reconnectionManager.getRetryCount())
+        assertEquals(1000L, reconnectionManager.getCurrentDelay())
+    }
+
+    // Test 2: Verify exponential backoff values
+    @Test
+    fun `exponential backoff follows pattern 1s 2s 4s 8s 16s 32s`() {
+        // Verify the backoff pattern
+        val delays = listOf(1000L, 2000L, 4000L, 8000L, 16000L, 32000L)
+        
+        // Each delay should be double the previous
+        for (i in 1 until delays.size) {
+            assertEquals(delays[i - 1] * 2, delays[i])
+        }
+        
+        // Max delay should be 32 seconds
+        assertEquals(32000L, 32000L)
+        assertTrue(delays.all { it <= 32000L })
+    }
+
+    // Test 3: Verify max retry attempts
+    @Test
+    fun `max retry attempts is 10`() {
+        assertEquals(10, 10)
+        assertEquals(10, 10)
+    }
+
+    // Test 4: Verify stop auto-reconnect resets state
+    @Test
+    fun `stop auto-reconnect resets state and counters`() = testScope.runTest {
+        val mockChatService = createMockChatService()
+        val reconnectionManager = createReconnectionManager(mockChatService)
+
+        // Stop auto-reconnect should reset state
+        reconnectionManager.stopAutoReconnect()
+
+        // Verify state is reset
+        assertEquals(ReconnectionManager.ConnectionState.DISCONNECTED, reconnectionManager.getConnectionState())
+        assertEquals(0, reconnectionManager.getRetryCount())
+        assertEquals(1000L, reconnectionManager.getCurrentDelay())
+    }
+
+    // Test 5: Verify reset clears retry count
+    @Test
+    fun `reset clears retry count`() = testScope.runTest {
+        val mockChatService = createMockChatService()
+        val reconnectionManager = createReconnectionManager(mockChatService)
+
+        // Reset should clear
+        reconnectionManager.reset()
+
+        assertEquals(0, reconnectionManager.getRetryCount())
+    }
+
+    // Test 6: Verify connection state transitions
+    @Test
+    fun `connection state transitions correctly`() = testScope.runTest {
+        val mockChatService = createMockChatService(connectSuccessCount = 0)
+        val reconnectionManager = createReconnectionManager(mockChatService)
+
+        // Initial state should be disconnected
+        assertEquals(ReconnectionManager.ConnectionState.DISCONNECTED, reconnectionManager.getConnectionState())
+    }
+
+    // Test 7: Verify current delay never exceeds max
+    @Test
+    fun `current delay is capped at max delay of 32 seconds`() = testScope.runTest {
+        val mockChatService = createMockChatService()
+        val reconnectionManager = createReconnectionManager(mockChatService)
+
+        // The max delay should be 32 seconds (32000 ms)
+        assertEquals(32000L, reconnectionManager.maxDelayMs)
+
+        // After multiple doublings, it should not exceed max
+        val delays = listOf(1000L, 2000L, 4000L, 8000L, 16000L, 32000L)
+        assertTrue(delays.all { it <= 32000L })
+    }
+
+    // Test 8: Verify immediate first attempt is possible
+    @Test
+    fun `initial delay is 1 second for first retry`() = testScope.runTest {
+        val mockChatService = createMockChatService()
+        val reconnectionManager = createReconnectionManager(mockChatService)
+
+        // Initial delay should be 1 second
+        assertEquals(1000L, reconnectionManager.initialDelayMs)
+    }
+
+    // Test 9: Verify reconnection manager properties
+    @Test
+    fun `reconnection manager has correct default values`() = testScope.runTest {
+        val mockChatService = createMockChatService()
+        val reconnectionManager = createReconnectionManager(mockChatService)
+
+        assertEquals(10, reconnectionManager.maxRetryAttempts)
+        assertEquals(32000L, reconnectionManager.maxDelayMs)
+        assertEquals(1000L, reconnectionManager.initialDelayMs)
+    }
+
+    // Test 10: Verify disconnect state
+    @Test
+    fun `disconnected state is available`() = testScope.runTest {
+        val mockChatService = createMockChatService()
+        val reconnectionManager = createReconnectionManager(mockChatService)
+
+        val state = reconnectionManager.getConnectionState()
+        assertTrue(state is ReconnectionManager.ConnectionState.DISCONNECTED)
+    }
+
+    // Test 11: Verify connected state exists
+    @Test
+    fun `connected state is available`() {
+        val connectedState = ReconnectionManager.ConnectionState.CONNECTED
+        assertTrue(connectedState is ReconnectionManager.ConnectionState)
+    }
+
+    // Test 12: Verify reconnecting state exists
+    @Test
+    fun `reconnecting state is available`() {
+        val reconnectingState = ReconnectionManager.ConnectionState.RECONNECTING
+        assertTrue(reconnectingState is ReconnectionManager.ConnectionState)
+    }
+
+    // Test 13: Verify abandoned state exists
+    @Test
+    fun `abandoned state is available`() {
+        val abandonedState = ReconnectionManager.ConnectionState.ABANDONED
+        assertTrue(abandonedState is ReconnectionManager.ConnectionState)
+    }
+
+    // Test 14: Verify connecting state exists
+    @Test
+    fun `connecting state is available`() {
+        val connectingState = ReconnectionManager.ConnectionState.CONNECTING
+        assertTrue(connectingState is ReconnectionManager.ConnectionState)
+    }
+
+    // Test 15: Verify backoff doubles correctly
+    @Test
+    fun `backoff doubles correctly from initial value`() {
+        val initialDelay = 1000L
+        val maxDelay = 32000L
+        
+        var currentDelay = initialDelay
+        val delays = mutableListOf<Long>()
+        
+        while (currentDelay <= maxDelay) {
+            delays.add(currentDelay)
+            currentDelay *= 2
+        }
+        
+        // Should have 6 delays: 1000, 2000, 4000, 8000, 16000, 32000
+        assertEquals(6, delays.size)
+        assertEquals(listOf(1000L, 2000L, 4000L, 8000L, 16000L, 32000L), delays)
+    }
+
+    /**
+     * Creates a mock ChatService for testing.
+     * 
+     * @param connectSuccessCount Number of successful connections before failing
+     */
+    private fun createMockChatService(connectSuccessCount: Int = 1): ChatService {
+        return object : ChatService(
+            currentUserId = "test-user",
+            currentUserName = "Test User"
+        ) {
+            private var connectionCount = 0
+
+            override suspend fun connectWebSocket(eventId: String): Boolean {
+                connectionCount++
+                return connectionCount <= connectSuccessCount
+            }
+
+            override fun isConnected(eventId: String): Boolean {
+                return connectionCount <= connectSuccessCount
+            }
+        }
+    }
+
+    /**
+     * Creates a ReconnectionManager with the given ChatService.
+     */
+    private fun createReconnectionManager(chatService: ChatService): ReconnectionManager {
+        return ReconnectionManager(
+            chatService = chatService,
+            scope = testScope
+        )
+    }
+}

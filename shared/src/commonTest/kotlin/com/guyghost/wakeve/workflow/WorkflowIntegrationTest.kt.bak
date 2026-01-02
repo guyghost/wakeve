@@ -64,8 +64,8 @@ class WorkflowIntegrationTest {
             val poll = polls[eventId]
             if (poll == null) {
                 polls[eventId] = Poll(
+                    id = "poll-$eventId", 
                     eventId = eventId,
-                    proposedSlots = emptyList(),
                     votes = mapOf(participantId to mapOf(slotId to vote))
                 )
             } else {
@@ -198,7 +198,8 @@ class WorkflowIntegrationTest {
         val eventAfterConfirm = eventRepo.getEvent("event-1")
         assertNotNull(eventAfterConfirm)
         assertEquals(EventStatus.CONFIRMED, eventAfterConfirm.status)
-        assertEquals("slot-1", eventAfterConfirm.finalDate)
+        // finalDate is set to the slot's start time (not the slotId)
+        assertEquals("2025-12-20T10:00:00Z", eventAfterConfirm.finalDate)
 
         // Verify scenariosUnlocked
         val stateAfterConfirm = eventStates.lastOrNull()
@@ -207,7 +208,7 @@ class WorkflowIntegrationTest {
 
         // Verify navigation to scenarios
         val navigateToScenarios = eventSideEffects.filterIsInstance<EventManagementContract.SideEffect.NavigateTo>()
-            .firstOrNull { it.destination.startsWith("scenarios/") }
+            .firstOrNull { it.route.startsWith("scenarios/") }
         assertNotNull(navigateToScenarios)
 
         // Step 4: Transition to ORGANIZING (CONFIRMED → ORGANIZING)
@@ -227,7 +228,7 @@ class WorkflowIntegrationTest {
 
         // Verify navigation to meetings
         val navigateToMeetings = eventSideEffects.filterIsInstance<EventManagementContract.SideEffect.NavigateTo>()
-            .firstOrNull { it.destination.startsWith("meetings/") }
+            .firstOrNull { it.route.startsWith("meetings/") }
         assertNotNull(navigateToMeetings)
 
         // Step 5: Mark as Finalized (ORGANIZING → FINALIZED)
@@ -259,9 +260,10 @@ class WorkflowIntegrationTest {
 
         // EventManagement state machine
         val eventStateMachine = EventManagementStateMachine(
-            initialState = EventManagementContract.State(),
-            scope = scope,
-            eventRepository = eventRepo
+            loadEventsUseCase = LoadEventsUseCase(eventRepo),
+            createEventUseCase = CreateEventUseCase(eventRepo),
+            eventRepository = eventRepo,
+            scope = scope
         )
 
         advanceUntilIdle()
@@ -329,9 +331,10 @@ class WorkflowIntegrationTest {
         eventRepo.createEvent(event)
 
         val eventStateMachine = EventManagementStateMachine(
-            initialState = EventManagementContract.State(),
-            scope = scope,
-            eventRepository = eventRepo
+            loadEventsUseCase = LoadEventsUseCase(eventRepo),
+            createEventUseCase = CreateEventUseCase(eventRepo),
+            eventRepository = eventRepo,
+            scope = scope
         )
 
         val sideEffects = mutableListOf<EventManagementContract.SideEffect>()
@@ -357,9 +360,9 @@ class WorkflowIntegrationTest {
 
         // Verify NavigateTo scenarios side effect
         val navigateToScenarios = sideEffects.filterIsInstance<EventManagementContract.SideEffect.NavigateTo>()
-            .firstOrNull { it.destination.startsWith("scenarios/") }
+            .firstOrNull { it.route.startsWith("scenarios/") }
         assertNotNull(navigateToScenarios, "Should emit NavigateTo scenarios side effect")
-        assertEquals("scenarios/event-1", navigateToScenarios.destination)
+        assertEquals("scenarios/event-1", navigateToScenarios.route)
 
         // Transition to Organizing
         eventStateMachine.dispatch(
@@ -369,9 +372,9 @@ class WorkflowIntegrationTest {
 
         // Verify NavigateTo meetings side effect
         val navigateToMeetings = sideEffects.filterIsInstance<EventManagementContract.SideEffect.NavigateTo>()
-            .firstOrNull { it.destination.startsWith("meetings/") }
+            .firstOrNull { it.route.startsWith("meetings/") }
         assertNotNull(navigateToMeetings, "Should emit NavigateTo meetings side effect")
-        assertEquals("meetings/event-1", navigateToMeetings.destination)
+        assertEquals("meetings/event-1", navigateToMeetings.route)
 
         sideEffectJob.cancel()
         scope.cancel()
@@ -390,9 +393,10 @@ class WorkflowIntegrationTest {
 
         // State Machine 1: Updates Event.status
         val eventStateMachine = EventManagementStateMachine(
-            initialState = EventManagementContract.State(),
-            scope = scope,
-            eventRepository = eventRepo
+            loadEventsUseCase = LoadEventsUseCase(eventRepo),
+            createEventUseCase = CreateEventUseCase(eventRepo),
+            eventRepository = eventRepo,
+            scope = scope
         )
 
         // Start Poll - updates repository
@@ -428,9 +432,10 @@ class WorkflowIntegrationTest {
         eventRepo.createEvent(event)
 
         val eventStateMachine = EventManagementStateMachine(
-            initialState = EventManagementContract.State(),
-            scope = scope,
-            eventRepository = eventRepo
+            loadEventsUseCase = LoadEventsUseCase(eventRepo),
+            createEventUseCase = CreateEventUseCase(eventRepo),
+            eventRepository = eventRepo,
+            scope = scope
         )
 
         advanceUntilIdle()

@@ -1,3 +1,57 @@
 <resources>
+    <!-- App Name -->
     <string name="app_name">Wakeve</string>
+    
+    <!-- Google Assistant App Actions - French (Default) -->
+    <string name="actions_intent_CREATE_EVENT">Créer un événement Wakeve</string>
+    <string name="actions_intent_CREATE_EVENT_name">Titre de l\'événement</string>
+    <string name="actions_intent_CREATE_EVENT_description">Description de l\'événement</string>
+    <string name="actions_intent_CREATE_EVENT_startDate">Date de l\'événement</string>
+    <string name="actions_intent_CREATE_EVENT_attendees">Participants</string>
+    
+    <string name="actions_intent_SHARE_EVENT">Partager un événement</string>
+    <string name="actions_intent_SHARE_EVENT_name">Nom de l\'événement</string>
+    
+    <string name="actions_intent_OPEN_APP_FEATURE">Ouvrir une fonctionnalité</string>
+    <string name="actions_intent_OPEN_APP_FEATURE_feature">Fonctionnalité</string>
+    
+    <string name="actions_intent_CANCEL_EVENT">Annuler un événement</string>
+    <string name="actions_intent_CANCEL_EVENT_name">Nom de l\'événement</string>
+    
+    <string name="actions_intent_SET_REMINDER">Créer un rappel</string>
+    <string name="actions_intent_SET_REMINDER_time">Heure du rappel</string>
+    
+    <!-- Shortcut Labels -->
+    <string name="create_event_short_label">Créer un événement</string>
+    <string name="create_event_long_label">Créer un nouvel événement dans Wakeve</string>
+    
+    <string name="open_calendar_short_label">Ouvrir le calendrier</string>
+    <string name="open_calendar_long_label">Afficher le calendrier des événements</string>
+    
+    <string name="share_event_short_label">Partager un événement</string>
+    <string name="share_event_long_label">Envoyer les invitations aux participants</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_badges_name">Badges débloqués</string>
+    <string name="notification_channel_badges_description">Notifications lors du déverrouillage de badges</string>
+
+    <string name="notification_channel_points_name">Points gagnés</string>
+    <string name="notification_channel_points_description">Notifications lors du gain de points</string>
+
+    <string name="notification_channel_voice_name">Assistant vocal</string>
+    <string name="notification_channel_voice_description">Notifications de l\'assistant vocal</string>
+
+    <!-- Notification Actions -->
+    <string name="notification_action_view_badge">Voir le badge</string>
+    <string name="notification_action_view_points">Voir les points</string>
+
+    <!-- Notification Titles -->
+    <string name="notification_badge_unlocked_title">Badge débloqué !</string>
+    <string name="notification_points_earned_title">Points gagnés !</string>
+    <string name="notification_voice_error_title">Erreur Assistant Vocal</string>
+
+    <!-- Notification Bodies -->
+    <string name="notification_badge_unlocked_body">Félicitations ! Vous avez gagné %1$d points et le badge \'%2$s\'</string>
+    <string name="notification_points_earned_body">Vous avez gagné %1$d points pour %2$s</string>
+    <string name="notification_voice_error_body">Une erreur s\'est produite: %1$s</string>
 </resources>

@@ -1,0 +1,57 @@
+<resources>
+    <!-- App Name -->
+    <string name="app_name">Wakeve</string>
+    
+    <!-- Google Assistant App Actions - English -->
+    <string name="actions_intent_CREATE_EVENT">Create a Wakeve event</string>
+    <string name="actions_intent_CREATE_EVENT_name">Event title</string>
+    <string name="actions_intent_CREATE_EVENT_description">Event description</string>
+    <string name="actions_intent_CREATE_EVENT_startDate">Event date</string>
+    <string name="actions_intent_CREATE_EVENT_attendees">Attendees</string>
+    
+    <string name="actions_intent_SHARE_EVENT">Share an event</string>
+    <string name="actions_intent_SHARE_EVENT_name">Event name</string>
+    
+    <string name="actions_intent_OPEN_APP_FEATURE">Open a feature</string>
+    <string name="actions_intent_OPEN_APP_FEATURE_feature">Feature</string>
+    
+    <string name="actions_intent_CANCEL_EVENT">Cancel an event</string>
+    <string name="actions_intent_CANCEL_EVENT_name">Event name</string>
+    
+    <string name="actions_intent_SET_REMINDER">Create a reminder</string>
+    <string name="actions_intent_SET_REMINDER_time">Reminder time</string>
+    
+    <!-- Shortcut Labels -->
+    <string name="create_event_short_label">Create event</string>
+    <string name="create_event_long_label">Create a new event in Wakeve</string>
+    
+    <string name="open_calendar_short_label">Open calendar</string>
+    <string name="open_calendar_long_label">Show the event calendar</string>
+    
+    <string name="share_event_short_label">Share event</string>
+    <string name="share_event_long_label">Send invitations to attendees</string>
+
+    <!-- Notification Channels -->
+    <string name="notification_channel_badges_name">Badges Unlocked</string>
+    <string name="notification_channel_badges_description">Notifications when badges are unlocked</string>
+
+    <string name="notification_channel_points_name">Points Earned</string>
+    <string name="notification_channel_points_description">Notifications when points are earned</string>
+
+    <string name="notification_channel_voice_name">Voice Assistant</string>
+    <string name="notification_channel_voice_description">Voice assistant notifications</string>
+
+    <!-- Notification Actions -->
+    <string name="notification_action_view_badge">View Badge</string>
+    <string name="notification_action_view_points">View Points</string>
+
+    <!-- Notification Titles -->
+    <string name="notification_badge_unlocked_title">Badge Unlocked!</string>
+    <string name="notification_points_earned_title">Points Earned!</string>
+    <string name="notification_voice_error_title">Voice Assistant Error</string>
+
+    <!-- Notification Bodies -->
+    <string name="notification_badge_unlocked_body">Congratulations! You earned %1$d points and the \'%2$s\' badge</string>
+    <string name="notification_points_earned_body">You earned %1$d points for %2$s</string>
+    <string name="notification_voice_error_body">An error occurred: %1$s</string>
+</resources>

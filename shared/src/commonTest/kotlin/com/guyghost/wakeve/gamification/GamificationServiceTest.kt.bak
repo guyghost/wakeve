@@ -1,0 +1,220 @@
+package com.guyghost.wakeve.gamification
+
+import com.guyghost.wakeve.gamification.repository.UserBadgesRepository
+import com.guyghost.wakeve.gamification.repository.UserPointsRepository
+import kotlinx.coroutines.test.runTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+
+/**
+ * Unit tests for the GamificationService.
+ * Tests points calculation, badge unlocking logic, and leaderboard ranking.
+ */
+class GamificationServiceTest {
+
+    private lateinit var userPointsRepository: UserPointsRepository
+    private lateinit var userBadgesRepository: UserBadgesRepository
+    private lateinit var badgeEligibilityChecker: BadgeEligibilityChecker
+    private lateinit var gamificationService: GamificationService
+
+    @Test
+    fun `getPointsForAction returns correct points for CREATE_EVENT`() {
+        val points = GamificationService.POINTS_CREATE_EVENT
+        assertEquals(50, points)
+    }
+
+    @Test
+    fun `getPointsForAction returns correct points for VOTE`() {
+        val points = GamificationService.POINTS_VOTE
+        assertEquals(5, points)
+    }
+
+    @Test
+    fun `getPointsForAction returns correct points for COMMENT`() {
+        val points = GamificationService.POINTS_COMMENT
+        assertEquals(10, points)
+    }
+
+    @Test
+    fun `getPointsForAction returns correct points for PARTICIPATE`() {
+        val points = GamificationService.POINTS_PARTICIPATE
+        assertEquals(20, points)
+    }
+
+    @Test
+    fun `getPointsForAction returns correct points for CREATE_SCENARIO`() {
+        val points = GamificationService.POINTS_CREATE_SCENARIO
+        assertEquals(15, points)
+    }
+
+    @Test
+    fun `getPointsForAction returns correct points for VOTE_SCENARIO`() {
+        val points = GamificationService.POINTS_VOTE_SCENARIO
+        assertEquals(3, points)
+    }
+
+    @Test
+    fun `AwardResult contains correct points earned`() {
+        val result = AwardResult(
+            pointsEarned = 50,
+            newTotal = 150,
+            badgesUnlocked = emptyList()
+        )
+        assertEquals(50, result.pointsEarned)
+        assertEquals(150, result.newTotal)
+        assertTrue(result.badgesUnlocked.isEmpty())
+    }
+
+    @Test
+    fun `UnlockResult unlocked state is correctly set`() {
+        val unlockSuccess = UnlockResult(
+            unlocked = true,
+            message = "Badge unlocked!",
+            pointsReward = 100
+        )
+        assertTrue(unlockSuccess.unlocked)
+        assertEquals(100, unlockSuccess.pointsReward)
+
+        val unlockFailure = UnlockResult(
+            unlocked = false,
+            message = "Already owned",
+            pointsReward = 0
+        )
+        assertFalse(unlockFailure.unlocked)
+        assertEquals(0, unlockFailure.pointsReward)
+    }
+
+    @Test
+    fun `Badge categories are correctly defined`() {
+        assertEquals(5, BadgeCategory.entries.size)
+        assertTrue(BadgeCategory.CREATION in BadgeCategory.entries)
+        assertTrue(BadgeCategory.VOTING in BadgeCategory.entries)
+        assertTrue(BadgeCategory.PARTICIPATION in BadgeCategory.entries)
+        assertTrue(BadgeCategory.ENGAGEMENT in BadgeCategory.entries)
+        assertTrue(BadgeCategory.SPECIAL in BadgeCategory.entries)
+    }
+
+    @Test
+    fun `Badge rarities are correctly ordered`() {
+        assertEquals(4, BadgeRarity.entries.size)
+        assertEquals(BadgeRarity.COMMON, BadgeRarity.entries[0])
+        assertEquals(BadgeRarity.RARE, BadgeRarity.entries[1])
+        assertEquals(BadgeRarity.EPIC, BadgeRarity.entries[2])
+        assertEquals(BadgeRarity.LEGENDARY, BadgeRarity.entries[3])
+    }
+
+    @Test
+    fun `LeaderboardType has all expected values`() {
+        assertEquals(4, LeaderboardType.entries.size)
+        assertTrue(LeaderboardType.ALL_TIME in LeaderboardType.entries)
+        assertTrue(LeaderboardType.THIS_MONTH in LeaderboardType.entries)
+        assertTrue(LeaderboardType.THIS_WEEK in LeaderboardType.entries)
+        assertTrue(LeaderboardType.FRIENDS in LeaderboardType.entries)
+    }
+
+    @Test
+    fun `UserPoints calculates effective points correctly`() {
+        val userPoints = UserPoints(
+            userId = "user-1",
+            totalPoints = 100,
+            eventCreationPoints = 50,
+            votingPoints = 30,
+            commentPoints = 10,
+            participationPoints = 10,
+            decayPoints = 5
+        )
+        assertEquals(105, userPoints.effectivePoints)
+    }
+
+    @Test
+    fun `UserPoints shouldApplyDecay returns false for empty timestamp`() {
+        val userPoints = UserPoints(
+            userId = "user-1",
+            totalPoints = 100,
+            lastUpdated = ""
+        )
+        assertFalse(userPoints.shouldApplyDecay())
+    }
+
+    @Test
+    fun `Badge has all required properties`() {
+        val badge = Badge(
+            id = "test-badge",
+            name = "Test Badge",
+            description = "Test description",
+            icon = "🏆",
+            requirement = 10,
+            pointsReward = 50,
+            category = BadgeCategory.CREATION,
+            rarity = BadgeRarity.EPIC
+        )
+        assertEquals("test-badge", badge.id)
+        assertEquals("Test Badge", badge.name)
+        assertEquals("Test description", badge.description)
+        assertEquals("🏆", badge.icon)
+        assertEquals(10, badge.requirement)
+        assertEquals(50, badge.pointsReward)
+        assertEquals(BadgeCategory.CREATION, badge.category)
+        assertEquals(BadgeRarity.EPIC, badge.rarity)
+    }
+
+    @Test
+    fun `LeaderboardEntry creates anonymous entry correctly`() {
+        val entry = LeaderboardEntry.anonymous(5)
+        assertEquals("anonymous", entry.userId)
+        assertEquals("Anonyme", entry.username)
+        assertEquals(0, entry.totalPoints)
+        assertEquals(5, entry.rank)
+    }
+
+    @Test
+    fun `UserBadges hasBadge returns correct result`() {
+        val badge = Badge(
+            id = "test-badge",
+            name = "Test Badge",
+            description = "Test",
+            icon = "🏆",
+            requirement = 10,
+            pointsReward = 50,
+            category = BadgeCategory.CREATION,
+            rarity = BadgeRarity.COMMON
+        )
+        val userBadges = UserBadges(
+            userId = "user-1",
+            badges = listOf(badge)
+        )
+        assertTrue(userBadges.hasBadge("test-badge"))
+        assertFalse(userBadges.hasBadge("other-badge"))
+    }
+
+    @Test
+    fun `UserBadges countByRarity works correctly`() {
+        val badges = listOf(
+            Badge("1", "Badge 1", "Desc", "🏆", 10, 50, BadgeCategory.CREATION, BadgeRarity.COMMON),
+            Badge("2", "Badge 2", "Desc", "🏆", 10, 50, BadgeCategory.VOTING, BadgeRarity.RARE),
+            Badge("3", "Badge 3", "Desc", "🏆", 10, 50, BadgeCategory.PARTICIPATION, BadgeRarity.EPIC),
+            Badge("4", "Badge 4", "Desc", "🏆", 10, 50, BadgeCategory.ENGAGEMENT, BadgeRarity.LEGENDARY),
+            Badge("5", "Badge 5", "Desc", "🏆", 10, 50, BadgeCategory.SPECIAL, BadgeRarity.COMMON)
+        )
+        val userBadges = UserBadges("user-1", badges)
+
+        assertEquals(2, userBadges.countByRarity(BadgeRarity.COMMON))
+        assertEquals(1, userBadges.countByRarity(BadgeRarity.RARE))
+        assertEquals(1, userBadges.countByRarity(BadgeRarity.EPIC))
+        assertEquals(1, userBadges.countByRarity(BadgeRarity.LEGENDARY))
+    }
+
+    @Test
+    fun `UserBadges totalBadgePoints calculates correctly`() {
+        val badges = listOf(
+            Badge("1", "Badge 1", "Desc", "🏆", 10, 50, BadgeCategory.CREATION, BadgeRarity.COMMON),
+            Badge("2", "Badge 2", "Desc", "🏆", 10, 75, BadgeCategory.VOTING, BadgeRarity.RARE),
+            Badge("3", "Badge 3", "Desc", "🏆", 10, 100, BadgeCategory.PARTICIPATION, BadgeRarity.EPIC)
+        )
+        val userBadges = UserBadges("user-1", badges)
+        assertEquals(225, userBadges.totalBadgePoints())
+    }
+}
