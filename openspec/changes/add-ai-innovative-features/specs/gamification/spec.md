@@ -21,13 +21,17 @@ The system SHALL implement a points system that rewards user participation in ev
 - Points are not transferable between users
 - Leaderboard ranks users by total points
 
-**Scenarios:**
-- Given user creates an event
-- Then User earns +50 "Creator" points
-- Given user votes on a poll slot
-- Then User earns +5 points per vote
-- Given user comments on a scenario
-- Then User earns +10 points per comment
+#### Scenario: Creating an event earns points
+- **GIVEN** user creates an event
+- **THEN** user earns +50 "Creator" points
+
+#### Scenario: Voting earns points
+- **GIVEN** user votes on a poll slot
+- **THEN** user earns +5 points per vote
+
+#### Scenario: Commenting earns points
+- **GIVEN** user comments on a scenario
+- **THEN** user earns +10 points per comment
 
 ### Requirement: Badges
 **ID**: `gamification-102`
@@ -40,13 +44,17 @@ The system SHALL award badges for specific achievements.
 - Badges are permanent (no expiration)
 - Badges display on user profile
 
-**Scenarios:**
-- Given user has created 10 events
-- Then User earns "Super Organizer" badge
-- Given user votes on 24 hours straight
-- Then User earns "Early Bird" badge
-- Given user organizes 5 events in a month
-- Then User earns "Event Master" badge
+#### Scenario: Creating 10 events earns Super Organizer badge
+- **GIVEN** user has created 10 events
+- **THEN** user earns "Super Organizer" badge
+
+#### Scenario: Voting for 24 hours earns Early Bird badge
+- **GIVEN** user votes on 24 hours straight
+- **THEN** user earns "Early Bird" badge
+
+#### Scenario: Organizing 5 events in a month earns Event Master badge
+- **GIVEN** user organizes 5 events in a month
+- **THEN** user earns "Event Master" badge
 
 ### Requirement: Leaderboards
 **ID**: `gamification-103`
@@ -59,13 +67,17 @@ The system SHALL display rankings of users based on points and badges.
 - Anonymous option available for privacy
 - Friends leaderboard shows only user's friends
 
-**Scenarios:**
-- Given user clicks on leaderboard
-- Then System displays top 20 users ranked by points
-- Given user selects "Friends only"
-- Then System shows ranking of user's friends only
-- Given user enables "Anonymous mode"
-- Then User is not shown on leaderboard
+#### Scenario: View leaderboard displays top users
+- **GIVEN** user clicks on leaderboard
+- **THEN** system displays top 20 users ranked by points
+
+#### Scenario: Filter leaderboard to friends only
+- **GIVEN** user selects "Friends only"
+- **THEN** system shows ranking of user's friends only
+
+#### Scenario: Enable anonymous mode hides user from leaderboard
+- **GIVEN** user enables "Anonymous mode"
+- **THEN** user is not shown on leaderboard
 
 ## Data Models
 

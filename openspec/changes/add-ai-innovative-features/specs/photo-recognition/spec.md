@@ -8,7 +8,7 @@
 ## Summary
 The Photo Recognition & Auto-Tagging system provides an intelligent way to organize event memories. It automatically detects faces (locally for privacy), tags visual content (food, decoration, location), and groups photos into smart albums. Users can search their photo library using natural language or visual similarity.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Automatic Face Detection
 **ID**: `photo-101`
