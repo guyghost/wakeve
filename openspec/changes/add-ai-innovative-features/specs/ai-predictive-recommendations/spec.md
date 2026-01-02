@@ -8,7 +8,7 @@
 ## Summary
 This specification defines the integration of Machine Learning (ML) to provide predictive and personalized recommendations for event planning. It covers user preference learning, availability prediction, and an A/B testing framework to optimize recommendation quality over time.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: ML-Based Recommendations
 **ID**: `suggestion-101`

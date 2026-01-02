@@ -8,7 +8,7 @@
 ## Summary
 Créer un assistant vocal intelligent intégré à Wakeve pour permettre une gestion mains libres des événements, depuis la création initiale jusqu'à la consultation des résultats de sondages. L'assistant utilise le traitement du langage naturel (NLP) pour extraire des intentions et des entités à partir de la parole de l'utilisateur.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Voice-Activated Event Creation
 **ID:** `voice-101`
@@ -21,12 +21,12 @@ The system SHALL allow users to create events using voice commands.
 - Natural language parsing for dates (ex: "demain 15h" → "2026-01-02T15:00")
 - Confirmation before creation: "Créer l'événement ?"
 
-**Scenarios:**
-- Given user says "Crée un mariage pour juin"
-- When VoiceAssistant processes command
-- Then User prompted: "Quel titre ?" → "Mariage de Sophie" → "Description ?"
-- Then Event created with title="Mariage de Sophie", date=June, type=WEDDING
-- Then Confirmation: "Événement créé avec succès"
+#### Scenario: Create event via voice command
+- **GIVEN** user says "Crée un mariage pour juin"
+- **WHEN** VoiceAssistant processes command
+- **THEN** user prompted: "Quel titre ?" → "Mariage de Sophie" → "Description ?"
+- **THEN** event created with title="Mariage de Sophie", date=June, type=WEDDING
+- **THEN** confirmation: "Événement créé avec succès"
 
 ### Requirement: Poll Management via Voice
 **ID:** `voice-102`

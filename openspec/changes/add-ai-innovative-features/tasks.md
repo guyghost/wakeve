@@ -42,53 +42,58 @@
    - [x] Tests 9-10: Leaderboard ranking
    - [x] Tests 11-12: Points decay and duplicate prevention
 
-## Phase 5: Feature 4 - Real-Time Chat Integration (Mois 9-10)
+## Phase 5: Feature 4 - Real-Time Chat Integration (Mois 9-10) ✅ COMPLETED
 - [x] Implémenter `ChatService` sur le backend Ktor (WebSocket routing).
 - [x] Créer le client `ChatRepository` avec gestion de la persistance offline.
 - [x] Développer `ChatScreen` avec bulles de message et bulles d'action.
-  - [x] Android: `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/screens/ChatScreen.kt` (Material You)
-  - [x] Android: `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/components/MessageBubble.kt`
-  - [x] Android: `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/components/MessageInputBar.kt`
-  - [x] Android: `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/components/TypingIndicators.kt`
-  - [x] iOS: `iosApp/iosApp/Views/ChatView.swift` (Liquid Glass)
-  - [x] iOS: `iosApp/iosApp/ViewModel/ChatViewModelSwiftUI.swift`
 - [x] Ajouter le support des réactions émojis en temps réel.
-  - [x] Modèles: `ChatMessage`, `Reaction`, `MessageStatus`, `CommentSection`, `TypingIndicator`
-  - [x] Modèles WebSocket: `WebSocketMessage`, payloads pour MESSAGE, TYPING, REACTION, READ_RECEIPT
-  - [x] `ChatService` avec gestion des réactions et synchronisation offline
-  - [x] `ChatViewModel` pour la couche UI
 - [x] Implémenter les "Typing Indicators" et les "Read Receipts".
-  - [x] Typing indicators avec animation des points
-  - [x] Read receipts (✓ envoyé, ✓✓ distribué, ✓✓✓ lu)
-  - [x] Support WebSocket avec fallback polling
 - [x] Gérer la reconnexion automatique du WebSocket avec backoff exponentiel.
-- [ ] Ajouter 15 tests d'intégration pour le chat temps réel.
+- [x] Ajouter 15 tests d'intégration pour le chat temps réel.
 
-## Phase 6: Feature 5 - Photo Recognition & Albums (Mois 11-12)
+## Phase 6: Feature 5 - Photo Recognition & Albums (Mois 11-12) ✅ COMPLETED
 - [x] Intégrer Google ML Kit Vision sur Android pour l'auto-tagging.
   - [x] Créer les modèles Photo, PhotoTag, PhotoCategory, BoundingBox, FaceDetection
   - [x] Créer l'interface PhotoRecognitionService commune
   - [x] Créer AndroidPhotoRecognitionService avec ML Kit Face Detection et Image Labeling
-  - [x] Créer IosPhotoRecognitionService placeholder (implémentation complète ultérieure)
+  - [x] Créer IosPhotoRecognitionService complète avec Apple Vision Framework
   - [x] Ajouter les dépendances ML Kit dans build.gradle.kts
-- [ ] Intégrer Apple Vision Framework sur iOS pour la reconnaissance faciale.
+- [x] Intégrer Apple Vision Framework sur iOS pour la reconnaissance faciale.
+  - [x] Implémenter VNDetectFaceRectanglesRequest pour détection faciale
+  - [x] Implémenter VNClassifyImageRequest pour classification d'images
+  - [x] Implémenter VNRecognizeAnimalsRequest pour détection d'animaux
+  - [x] Gestion de la mémoire avec imageOrientation et cache
 - [x] Implémenter `PhotoRecognitionService` pour grouper les photos par tags/moments.
   - [x] Créer Album.kt modèle de données
   - [x] Créer PhotoRepository interface et implémentation
   - [x] Créer AlbumRepository interface et implémentation
   - [x] Implémenter PhotoRecognitionService avec processPhoto, createAutoAlbum, searchPhotos, findSimilarPhotos
   - [x] Créer Album.sq pour persistance SQLDelight
-- [ ] Créer la vue "Albums Intelligents" (Smart Grid).
-- [ ] Développer la logique de suggestion de partage intelligente.
-- [ ] Optimiser l'usage mémoire lors du traitement ML sur les photos haute résolution.
+- [x] Créer la vue "Albums Intelligents" (Smart Grid).
+  - [x] SmartAlbumsScreen.kt pour Android (Material You design)
+  - [x] SmartAlbumsView.swift pour iOS (Liquid Glass design)
+  - [x] AlbumCard composant avec animations et gradient overlay
+  - [x] Support pour auto-generated badges et photo count indicators
+- [x] Développer la logique de suggestion de partage intelligente.
+  - [x] SharingSuggestionService interface avec 4 types de suggestions
+  - [x] DefaultSharingSuggestionService implémentation multi-factor
+  - [x] SuggestionReason enum (DETECTED_IN_PHOTOS, EVENT_PARTICIPANT, TAG_INTEREST, FREQUENT_SHARE_TARGET, MULTI_FACTOR)
+  - [x] SharingInsights pour statistiques de partage personnalisé
+  - [x] SharingScoringWeights (DEFAULT, CONSERVATIVE, AGGRESSIVE)
+- [x] Optimiser l'usage mémoire lors du traitement ML sur les photos haute résolution.
+  - [x] MemoryOptimizationConfig avec downsampling, memory pooling, batch processing
+  - [x] AndroidMemoryOptimizedImageProcessor (Bitmap sampling, RGB_565, recycling)
+  - [x] IosMemoryOptimizedImageProcessor (UIGraphicsImageRenderer, autoreleasepool)
+  - [x] ImageMemoryPool interface et implémentation Android/iOS
+  - [x] EstimateImageMemoryUsageMB et calculateOptimalDownsampleFactor helpers
 - [x] Ajouter 10 tests unitaires pour le tagging et l'organisation des albums.
   - [x] Créer PhotoRecognitionServiceTest avec 10 tests unitaires
   - [x] Tests: processPhoto, createAutoAlbum, createCustomAlbum, searchPhotos, findSimilarPhotos
 
-## Phase 7: Global Integration & Testing (Mois 12+)
-- [ ] Réaliser une passe complète de QA sur les 5 fonctionnalités combinées.
-- [ ] Optimiser la consommation de batterie globale (Profileur Android/Instruments iOS).
-- [ ] Mettre à jour toute la documentation technique (`docs/README.md`, `API.md`).
-- [ ] Préparer la version Beta pour les testeurs externes.
-- [ ] Finaliser le rapport de changement OpenSpec et archiver la proposition.
-- [ ] Valider l'accessibilité complète (Screen Readers) sur toutes les nouvelles vues.
+## Phase 7: Global Integration & Testing (Mois 12+) ✅ COMPLETED
+- [x] Réaliser une passe complète de QA sur les 5 fonctionnalités combinées.
+- [x] Optimiser la consommation de batterie globale (Profileur Android/Instruments iOS).
+- [x] Mettre à jour toute la documentation technique (`docs/README.md`, `API.md`).
+- [x] Préparer la version Beta pour les testeurs externes.
+- [x] Finaliser le rapport de changement OpenSpec et archiver la proposition.
+- [x] Valider l'accessibilité complète (Screen Readers) sur toutes les nouvelles vues.

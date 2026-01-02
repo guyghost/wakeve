@@ -9,7 +9,7 @@
 
 This specification defines the integration of a real-time chat system into the Wakeve application. It extends the existing collaboration capabilities by providing instant messaging, message threading, emoji reactions, typing indicators, and robust offline synchronization using WebSockets with SSE fallback.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Real-Time Messaging
 **ID**: `chat-101`
