@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<actions xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- Create Event Action - voice-101 -->
+    <action
+        android:name="CREATE_EVENT"
+        android:identifier="wakeve.create.event"
+        description="Créer un nouvel événement dans Wakeve">
+        <parameter
+            android:name="event.name"
+            android:identifier="event.name"
+            android:type="string"
+            required="true"
+            description="Titre de l'événement">
+            <context-constraint name="event.name" minCount="1"/>
+        </parameter>
+        <parameter
+            android:name="event.description"
+            android:identifier="event.description"
+            android:type="string"
+            required="false"
+            description="Description de l'événement">
+            <context-constraint name="event.description" minCount="0"/>
+        </parameter>
+        <parameter
+            android:name="event.startDate"
+            android:identifier="event.startDate"
+            android:type="string"
+            required="false"
+            description="Date de l'événement">
+            <context-constraint name="event.startDate" minCount="0"/>
+        </parameter>
+        <parameter
+            android:name="event.attendees"
+            android:identifier="event.attendees"
+            android:type="string"
+            required="false"
+            description="Liste des participants">
+            <context-constraint name="event.attendees" minCount="0"/>
+        </parameter>
+        
+        <fulfillment
+            android:urlTemplate="wakeve://event/create{?name,description,startDate,attendees}">
+            <parameter-mapping
+                android:urlParameter="name"
+                android:intentParameter="event.name"/>
+            <parameter-mapping
+                android:urlParameter="description"
+                android:intentParameter="event.description"/>
+            <parameter-mapping
+                android:urlParameter="startDate"
+                android:intentParameter="event.startDate"/>
+            <parameter-mapping
+                android:urlParameter="attendees"
+                android:intentParameter="event.attendees"/>
+        </fulfillment>
+    </action>
+    
+    <!-- Send Invitations Action - voice-104 quick action -->
+    <action
+        android:name="SEND_INVITATIONS"
+        android:identifier="wakeve.send.invitations"
+        description="Envoyer les invitations d'un événement">
+        <parameter
+            android:name="event.name"
+            android:identifier="event.name"
+            android:type="string"
+            required="true"
+            description="Nom de l'événement">
+            <context-constraint name="event.name" minCount="1"/>
+        </parameter>
+        
+        <fulfillment
+            android:urlTemplate="wakeve://event/share{?name}">
+            <parameter-mapping
+                android:urlParameter="name"
+                android:intentParameter="event.name"/>
+        </fulfillment>
+    </action>
+    
+    <!-- Open Calendar Action - voice-104 quick action -->
+    <action
+        android:name="OPEN_CALENDAR"
+        android:identifier="wakeve.open.calendar"
+        description="Ouvrir le calendrier des événements">
+        <parameter
+            android:name="feature"
+            android:identifier="feature"
+            android:type="string"
+            required="false"
+            description="Fonctionnalité à ouvrir">
+            <context-constraint name="feature" minCount="0"/>
+        </parameter>
+        
+        <fulfillment
+            android:urlTemplate="wakeve://calendar">
+        </fulfillment>
+    </action>
+    
+    <!-- Cancel Event Action - voice-104 quick action -->
+    <action
+        android:name="CANCEL_EVENT"
+        android:identifier="wakeve.cancel.event"
+        description="Annuler un événement">
+        <parameter
+            android:name="event.name"
+            android:identifier="event.name"
+            android:type="string"
+            required="false"
+            description="Nom de l'événement à annuler">
+            <context-constraint name="event.name" minCount="0"/>
+        </parameter>
+        
+        <fulfillment
+            android:urlTemplate="wakeve://event/cancel{?name}">
+            <parameter-mapping
+                android:urlParameter="name"
+                android:intentParameter="event.name"/>
+        </fulfillment>
+    </action>
+    
+    <!-- Set Reminder Action - voice-104 quick action -->
+    <action
+        android:name="SET_REMINDER"
+        android:identifier="wakeve.set.reminder"
+        description="Créer un rappel pour vérifier les votes">
+        <parameter
+            android:name="reminder.time"
+            android:identifier="reminder.time"
+            android:type="string"
+            required="false"
+            description="Heure du rappel">
+            <context-constraint name="reminder.time" minCount="0"/>
+        </parameter>
+        
+        <fulfillment
+            android:urlTemplate="wakeve://reminder/check-votes{?time}">
+            <parameter-mapping
+                android:urlParameter="time"
+                android:intentParameter="reminder.time"/>
+        </fulfillment>
+    </action>
+    
+</actions>

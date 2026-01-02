@@ -12,6 +12,7 @@ import com.guyghost.wakeve.metrics.AuthMetricsCollector
 import com.guyghost.wakeve.routes.authRoutes
 import com.guyghost.wakeve.routes.budgetRoutes
 import com.guyghost.wakeve.routes.calendarRoutes
+import com.guyghost.wakeve.routes.chatRoutes
 import com.guyghost.wakeve.routes.chatWebSocketRoute
 import com.guyghost.wakeve.routes.commentRoutes
 import com.guyghost.wakeve.routes.eventRoutes
@@ -22,6 +23,7 @@ import com.guyghost.wakeve.routes.scenarioRoutes
 import com.guyghost.wakeve.routes.sessionRoutes
 import com.guyghost.wakeve.routes.syncRoutes
 import com.guyghost.wakeve.routes.voteRoutes
+import com.guyghost.wakeve.routes.ChatService
 import com.guyghost.wakeve.sync.SyncService
 import io.micrometer.core.instrument.binder.jvm.JvmMemoryMetrics
 import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
@@ -184,6 +186,9 @@ fun main() {
     // Initialize Calendar Service
     val platformCalendarService = PlatformCalendarServiceImpl()
     val calendarService = CalendarService(database, platformCalendarService)
+    
+    // Initialize Chat Service
+    val chatService = ChatService(database)
 
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = {
         module(
@@ -194,7 +199,8 @@ fun main() {
             mealRepository, 
             commentRepository,
             locationRepository,
-            calendarService
+            calendarService,
+            chatService
         )
     }).start(wait = true)
 }
@@ -207,7 +213,8 @@ fun Application.module(
     mealRepository: com.guyghost.wakeve.meal.MealRepository = com.guyghost.wakeve.meal.MealRepository(database),
     commentRepository: com.guyghost.wakeve.comment.CommentRepository = com.guyghost.wakeve.comment.CommentRepository(database),
     locationRepository: PotentialLocationRepositoryInterface = PotentialLocationRepository(eventRepository),
-    calendarService: CalendarService = CalendarService(database, PlatformCalendarServiceImpl())
+    calendarService: CalendarService = CalendarService(database, PlatformCalendarServiceImpl()),
+    chatService: ChatService = ChatService(database)
 ) {
     // Initialize metrics
     val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -331,27 +338,28 @@ fun Application.module(
             authRoutes(authService)
         }
 
-        // API endpoints (protected by JWT authentication + blacklist check)
-        authenticate("auth-jwt") {
-            route("/api") {
-                // Install JWT blacklist checking for all API routes
-                install(JWTBlacklistPlugin) {
-                    this.sessionRepository = sessionRepository
-                }
+                // API endpoints (protected by JWT authentication + blacklist check)
+                authenticate("auth-jwt") {
+                    route("/api") {
+                        // Install JWT blacklist checking for all API routes
+                        install(JWTBlacklistPlugin) {
+                            this.sessionRepository = sessionRepository
+                        }
 
-                eventRoutes(eventRepository)
-                participantRoutes(eventRepository)
-                voteRoutes(eventRepository)
-                scenarioRoutes(scenarioRepository)
-                budgetRoutes(budgetRepository)
-                mealRoutes(mealRepository)
-                commentRoutes(commentRepository)
-                potentialLocationRoutes(locationRepository)
-                syncRoutes(syncService)
-                sessionRoutes(sessionManager)
-                calendarRoutes(calendarService)
-            }
-        }
+                        eventRoutes(eventRepository)
+                        participantRoutes(eventRepository)
+                        voteRoutes(eventRepository)
+                        scenarioRoutes(scenarioRepository)
+                        budgetRoutes(budgetRepository)
+                        mealRoutes(mealRepository)
+                        commentRoutes(commentRepository)
+                        potentialLocationRoutes(locationRepository)
+                        syncRoutes(syncService)
+                        sessionRoutes(sessionManager)
+                        calendarRoutes(calendarService)
+                        chatRoutes(chatService)
+                    }
+                }
 
         // Root endpoint for compatibility
         get("/") {

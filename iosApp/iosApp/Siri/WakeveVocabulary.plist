@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>ApplicationPhraseVocabulary</key>
+    <array>
+        <!-- Event Types - FR -->
+        <dict>
+            <key>Phrase</key>
+            <string>Créer un mariage</string>
+            <key>Type</key>
+            <string>CreateEventIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Organiser un anniversaire</string>
+            <key>Type</key>
+            <string>CreateEventIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Planifier une fête</string>
+            <key>Type</key>
+            <string>CreateEventIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Prévoir une conférence</string>
+            <key>Type</key>
+            <string>CreateEventIntent</string>
+        </dict>
+        
+        <!-- Poll Commands - FR -->
+        <dict>
+            <key>Phrase</key>
+            <string>Ajouter un créneau</string>
+            <key>Type</key>
+            <string>AddPollSlotIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Confirmer la date</string>
+            <key>Type</key>
+            <string>ConfirmPollDateIntent</string>
+        </dict>
+        
+        <!-- Quick Actions - FR -->
+        <dict>
+            <key>Phrase</key>
+            <string>Envoyer les invitations</string>
+            <key>Type</key>
+            <string>SendInvitationsIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Ouvrir le calendrier</string>
+            <key>Type</key>
+            <string>OpenCalendarIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Annuler l&apos;événement</string>
+            <key>Type</key>
+            <string>CancelEventIntent</string>
+        </dict>
+        
+        <!-- Statistics - FR -->
+        <dict>
+            <key>Phrase</key>
+            <string>Combien d&apos;événements ai-je créés</string>
+            <key>Type</key>
+            <string>GetStatsIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Mes événements à venir</string>
+            <key>Type</key>
+            <string>GetStatsIntent</string>
+        </dict>
+        
+        <!-- Event Types - EN -->
+        <dict>
+            <key>Phrase</key>
+            <string>Create a wedding</string>
+            <key>Type</key>
+            <string>CreateEventIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Organize a birthday</string>
+            <key>Type</key>
+            <string>CreateEventIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Plan a party</string>
+            <key>Type</key>
+            <string>CreateEventIntent</string>
+        </dict>
+        
+        <!-- Poll Commands - EN -->
+        <dict>
+            <key>Phrase</key>
+            <string>Add a time slot</string>
+            <key>Type</key>
+            <string>AddPollSlotIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Confirm the date</string>
+            <key>Type</key>
+            <string>ConfirmPollDateIntent</string>
+        </dict>
+        
+        <!-- Quick Actions - EN -->
+        <dict>
+            <key>Phrase</key>
+            <string>Send invitations</string>
+            <key>Type</key>
+            <string>SendInvitationsIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Open calendar</string>
+            <key>Type</key>
+            <string>OpenCalendarIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Cancel the last event</string>
+            <key>Type</key>
+            <string>CancelEventIntent</string>
+        </dict>
+        
+        <!-- Statistics - EN -->
+        <dict>
+            <key>Phrase</key>
+            <string>How many events have I created</string>
+            <key>Type</key>
+            <string>GetStatsIntent</string>
+        </dict>
+        
+        <!-- Event Types - ES -->
+        <dict>
+            <key>Phrase</key>
+            <string>Crear una boda</string>
+            <key>Type</key>
+            <string>CreateEventIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Organizar un cumpleaños</string>
+            <key>Type</key>
+            <string>CreateEventIntent</string>
+        </dict>
+        
+        <!-- Poll Commands - ES -->
+        <dict>
+            <key>Phrase</key>
+            <string>Añadir un horario</string>
+            <key>Type</key>
+            <string>AddPollSlotIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Confirmar la fecha</string>
+            <key>Type</key>
+            <string>ConfirmPollDateIntent</string>
+        </dict>
+        
+        <!-- Event Types - DE -->
+        <dict>
+            <key>Phrase</key>
+            <string>Eine Hochzeit erstellen</string>
+            <key>Type</key>
+            <string>CreateEventIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Einen Geburtstag organisieren</string>
+            <key>Type</key>
+            <string>CreateEventIntent</string>
+        </dict>
+        
+        <!-- Poll Commands - DE -->
+        <dict>
+            <key>Phrase</key>
+            <string>Einen Zeitraum hinzufügen</string>
+            <key>Type</key>
+            <string>AddPollSlotIntent</string>
+        </dict>
+        <dict>
+            <key>Phrase</key>
+            <string>Das Datum bestätigen</string>
+            <key>Type</key>
+            <string>ConfirmPollDateIntent</string>
+        </dict>
+    </array>
+    
+    <key>ContactVocabulary</key>
+    <array>
+        <string>participer</string>
+        <string>participeront</string>
+        <string>invités</string>
+        <string>participants</string>
+        <string>confirmé</string>
+        <string>participer</string>
+        <string>will attend</string>
+        <string>guests</string>
+        <string>participants</string>
+        <string>confirmed</string>
+        <string>participar</string>
+        <string>invitados</string>
+        <string>participantes</string>
+        <string>confirmado</string>
+        <string>teilnehmen</string>
+        <string>Gäste</string>
+        <string>Teilnehmer</string>
+        <string>bestätigt</string>
+    </array>
+    
+    <key>PersonalVocabulary</key>
+    <array>
+        <string>aujourd&apos;hui</string>
+        <string>demain</string>
+        <string>ce week-end</string>
+        <string>la semaine prochaine</string>
+        <string>le mois prochain</string>
+        <string>today</string>
+        <string>tomorrow</string>
+        <string>this weekend</string>
+        <string>next week</string>
+        <string>next month</string>
+        <string>hoy</string>
+        <string>mañana</string>
+        <string>este fin de semana</string>
+        <string>la próxima semana</string>
+        <string>heute</string>
+        <string>morgen</string>
+        <string>dieses Wochenende</string>
+        <string>nächste Woche</string>
+    </array>
+</dict>
+</plist>

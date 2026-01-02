@@ -1,0 +1,310 @@
+package com.guyghost.wakeve.gamification
+
+import com.guyghost.wakeve.gamification.repository.InMemoryUserBadgesRepository
+import com.guyghost.wakeve.gamification.repository.InMemoryUserPointsRepository
+import com.guyghost.wakeve.gamification.repository.UserBadgesRepository
+import com.guyghost.wakeve.gamification.repository.LeaderboardRepository
+import com.guyghost.wakeve.gamification.repository.UserPointsRepository
+import kotlinx.coroutines.test.runTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+
+/**
+ * Unit tests for Gamification Rules.
+ *
+ * Tests cover:
+ * - Points calculation for all actions
+ * - Badge unlocking logic and thresholds
+ * - Leaderboard ranking and sorting
+ * - Points decay over time
+ *
+ * @see GamificationService
+ * @see BadgeEligibilityChecker
+ */
+class GamificationRulesTest {
+
+    private lateinit var userPointsRepository: UserPointsRepository
+    private lateinit var userBadgesRepository: UserBadgesRepository
+    private lateinit var badgeEligibilityChecker: BadgeEligibilityChecker
+    private lateinit var gamificationService: GamificationService
+    private lateinit var leaderboardRepository: LeaderboardRepository
+
+    // Setup before each test
+    private fun setup() {
+        userPointsRepository = InMemoryUserPointsRepository()
+        userBadgesRepository = InMemoryUserBadgesRepository()
+        badgeEligibilityChecker = BadgeEligibilityChecker(
+            userPointsRepository,
+            userBadgesRepository
+        )
+        gamificationService = GamificationService(
+            userPointsRepository,
+            userBadgesRepository,
+            badgeEligibilityChecker
+        )
+        // Note: leaderboardRepository would be set up in a real implementation
+        // For these tests, we'll use userPointsRepository directly
+    }
+
+    // ============================================
+    // POINTS CALCULATION TESTS (Tests 1-4)
+    // ============================================
+
+    /**
+     * Test 1: Points awarded for creating an event.
+     * Requirement: 50 points for CREATE_EVENT action.
+     */
+    @Test
+    fun `given user creates event, when awardPoints, then receives 50 points`() = runTest {
+        setup()
+        val userId = "user-123"
+
+        val result = gamificationService.awardPoints(userId, PointsAction.CREATE_EVENT)
+
+        assertEquals(50, result.pointsEarned)
+        assertEquals(50, userPointsRepository.getTotalPoints(userId))
+    }
+
+    /**
+     * Test 2: Points awarded for voting on a poll.
+     * Requirement: 5 points per vote.
+     */
+    @Test
+    fun `given user votes, when awardPoints, then receives 5 points`() = runTest {
+        setup()
+        val userId = "user-456"
+
+        val result = gamificationService.awardPoints(userId, PointsAction.VOTE)
+
+        assertEquals(5, result.pointsEarned)
+        assertEquals(5, userPointsRepository.getTotalPoints(userId))
+    }
+
+    /**
+     * Test 3: Points awarded for commenting.
+     * Requirement: 10 points per comment.
+     */
+    @Test
+    fun `given user comments, when awardPoints, then receives 10 points`() = runTest {
+        setup()
+        val userId = "user-789"
+
+        val result = gamificationService.awardPoints(userId, PointsAction.COMMENT)
+
+        assertEquals(10, result.pointsEarned)
+        assertEquals(10, userPointsRepository.getTotalPoints(userId))
+    }
+
+    /**
+     * Test 4: Points awarded for participating in an event.
+     * Requirement: 20 points per participation.
+     */
+    @Test
+    fun `given user participates in event, when awardPoints, then receives 20 points`() = runTest {
+        setup()
+        val userId = "user-111"
+
+        val result = gamificationService.awardPoints(userId, PointsAction.PARTICIPATE)
+
+        assertEquals(20, result.pointsEarned)
+        assertEquals(20, userPointsRepository.getTotalPoints(userId))
+    }
+
+    // ============================================
+    // BADGE UNLOCKING TESTS (Tests 5-8)
+    // ============================================
+
+    /**
+     * Test 5: Badge unlock after creating 10 events.
+     * Badge: "Super Organizer" requires 10 events.
+     */
+    @Test
+    fun `given 10 events created, when checkBadges, then Super Organizer unlocked`() = runTest {
+        setup()
+        val userId = "user-222"
+        repeat(10) {
+            gamificationService.awardPoints(userId, PointsAction.CREATE_EVENT)
+        }
+
+        val badges = gamificationService.checkBadgeEligibility(userId)
+
+        assertTrue(badges.any { it.id == "badge-super-organizer" }, "Super Organizer badge should be unlocked")
+    }
+
+    /**
+     * Test 6: Badge unlock after participating in 5 events.
+     * Badge: "Regular Attendee" requires 5 participations.
+     */
+    @Test
+    fun `given user participates in 5 events, when checkBadges, then Regular Attendee unlocked`() = runTest {
+        setup()
+        val userId = "user-333"
+        repeat(5) {
+            gamificationService.awardPoints(userId, PointsAction.PARTICIPATE)
+        }
+
+        val badges = gamificationService.checkBadgeEligibility(userId)
+
+        assertTrue(badges.any { it.id == "badge-regular-attendee" }, "Regular Attendee badge should be unlocked")
+    }
+
+    /**
+     * Test 7: Badge unlock after reaching 1000 points.
+     * Badge: "Millennium Club" requires 1000 points.
+     */
+    @Test
+    fun `given user reaches 1000 points, when checkBadges, then Millennium Club unlocked`() = runTest {
+        setup()
+        val userId = "user-444"
+        // 20 events * 50 points = 1000 points
+        repeat(20) {
+            gamificationService.awardPoints(userId, PointsAction.CREATE_EVENT)
+        }
+
+        val badges = gamificationService.checkBadgeEligibility(userId)
+
+        assertTrue(badges.any { it.id == "badge-millenium-club" }, "Millennium Club badge should be unlocked")
+    }
+
+    /**
+     * Test 8: Badge unlock after casting 10 votes.
+     * Badge: "Dedicated Voter" requires 10 votes.
+     */
+    @Test
+    fun `given user casts 10 votes, when checkBadges, then Dedicated Voter unlocked`() = runTest {
+        setup()
+        val userId = "user-555"
+        repeat(10) {
+            gamificationService.awardPoints(userId, PointsAction.VOTE)
+        }
+
+        val badges = gamificationService.checkBadgeEligibility(userId)
+
+        assertTrue(badges.any { it.id == "badge-dedicated-voter" }, "Dedicated Voter badge should be unlocked")
+    }
+
+    // ============================================
+    // LEADERBOARD RANKING TESTS (Tests 9-10)
+    // ============================================
+
+    /**
+     * Test 9: Leaderboard sorts users by total points descending.
+     * Requirement: Users ranked by total points.
+     */
+    @Test
+    fun `given 3 users with different points, when getLeaderboard, then sorted by points DESC`() = runTest {
+        setup()
+        val user1 = "user-leaderboard-1"
+        val user2 = "user-leaderboard-2"
+        val user3 = "user-leaderboard-3"
+
+        // User 1: 50 points (1 event)
+        gamificationService.awardPoints(user1, PointsAction.CREATE_EVENT)
+
+        // User 2: 100 points (2 events)
+        gamificationService.awardPoints(user2, PointsAction.CREATE_EVENT)
+        gamificationService.awardPoints(user2, PointsAction.CREATE_EVENT)
+
+        // User 3: 70 points (1 event + 4 votes = 50 + 20 = 70)
+        gamificationService.awardPoints(user3, PointsAction.CREATE_EVENT)
+        repeat(4) {
+            gamificationService.awardPoints(user3, PointsAction.VOTE)
+        }
+
+        // Get leaderboard via repository
+        val topEarners = userPointsRepository.getTopPointEarners(10)
+
+        assertEquals(3, topEarners.size)
+        assertEquals("user-leaderboard-2", topEarners[0].userId) // 100 points
+        assertEquals("user-leaderboard-3", topEarners[1].userId) // 70 points
+        assertEquals("user-leaderboard-1", topEarners[2].userId) // 50 points
+    }
+
+    /**
+     * Test 10: User rank is correctly calculated.
+     * Requirement: Get user's position in leaderboard.
+     */
+    @Test
+    fun `given user has points, when getUserRank, then returns correct rank`() = runTest {
+        setup()
+        val userId = "user-rank-test"
+        gamificationService.awardPoints(userId, PointsAction.CREATE_EVENT)
+
+        val rank = gamificationService.getUserRank(userId, LeaderboardType.ALL_TIME)
+
+        assertNotNull(rank)
+        assertTrue(rank >= 1, "Rank should be at least 1")
+    }
+
+    // ============================================
+    // POINTS DECAY TESTS (Tests 11-12)
+    // ============================================
+
+    /**
+     * Test 11: Points decay after inactivity period.
+     * Requirement: 1% decay per day after 30 days.
+     */
+    @Test
+    fun `given old points with decay, when applyDecay, then points reduced by 1 percent`() = runTest {
+        setup()
+        val userId = "user-decay-test"
+
+        // Award 100 points (2 events)
+        gamificationService.awardPoints(userId, PointsAction.CREATE_EVENT)
+        gamificationService.awardPoints(userId, PointsAction.CREATE_EVENT)
+
+        // Get current points (should be 100)
+        var userPoints = userPointsRepository.getUserPoints(userId)
+        assertEquals(100, userPoints?.totalPoints)
+
+        // Apply decay manually (in real impl, would check lastUpdated)
+        // For test, we simulate by calling applyPointsDecay
+        userPointsRepository.applyPointsDecay(userId)
+
+        // After decay: 100 - (100 * 0.01) = 99 points
+        userPoints = userPointsRepository.getUserPoints(userId)
+        assertNotNull(userPoints)
+        assertEquals(99, userPoints.totalPoints)
+    }
+
+    /**
+     * Test 12: Badge is not unlocked twice for same achievement.
+     * Requirement: Each badge can be earned only once per user.
+     */
+    @Test
+    fun `given user already has badge, when checkBadges again, then badge not returned`() = runTest {
+        setup()
+        val userId = "user-duplicate-test"
+
+        // Create first event to get "First Event" badge
+        gamificationService.awardPoints(userId, PointsAction.CREATE_EVENT)
+
+        // Check for newly unlocked badges
+        val firstCheck = gamificationService.checkBadgeEligibility(userId)
+        assertTrue(firstCheck.any { it.id == "badge-first-event" })
+
+        // Check again - should not return already unlocked badge
+        val secondCheck = gamificationService.checkBadgeEligibility(userId)
+        assertFalse(secondCheck.any { it.id == "badge-first-event" }, "Badge should not be returned again")
+    }
+}
+
+/**
+ * Simple leaderboard entry for testing.
+ */
+data class LeaderboardEntry(
+    val userId: String,
+    val totalPoints: Int,
+    val rank: Int
+)
+
+/**
+ * Repository interface for leaderboard operations (simplified for testing).
+ */
+interface LeaderboardRepository {
+    suspend fun getLeaderboard(type: LeaderboardType): List<LeaderboardEntry>
+    suspend fun getUserRank(userId: String, type: LeaderboardType): Int?
+}

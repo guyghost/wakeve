@@ -37,6 +37,9 @@ kotlin {
             implementation(libs.ktor.clientContentNegotiation)
             implementation(libs.ktor.clientCio)
             implementation(libs.androidx.core.ktx)
+            // ML Kit Vision for on-device photo recognition
+            implementation("com.google.android.gms:play-services-mlkit-image-labeling:16.0.8")
+            implementation("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
         }
         iosMain.dependencies {
             implementation(libs.sqldelight.iosDriver)
