@@ -1,7 +1,14 @@
 package com.guyghost.wakeve.activity
 
-import com.guyghost.wakeve.models.*
-import kotlin.test.*
+import com.guyghost.wakeve.models.Activity
+import com.guyghost.wakeve.models.ActivityRequest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Tests for ActivityManager service

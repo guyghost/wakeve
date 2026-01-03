@@ -3,7 +3,8 @@ package com.guyghost.wakeve.meeting
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.MeetingLinkResponse
+import com.guyghost.wakeve.models.MeetingPlatform
 
 /**
  * Android implementation of MeetingProvider

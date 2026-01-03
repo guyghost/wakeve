@@ -1,8 +1,8 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.models.TransportLocation
 import com.guyghost.wakeve.models.OptimizationType
 import com.guyghost.wakeve.models.Route
+import com.guyghost.wakeve.models.TransportLocation
 import com.guyghost.wakeve.models.TransportMode
 import com.guyghost.wakeve.models.TransportOption
 import com.guyghost.wakeve.models.TransportPlan

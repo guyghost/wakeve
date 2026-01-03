@@ -1,11 +1,13 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.Scenario
+import com.guyghost.wakeve.models.ScenarioStatus
+import com.guyghost.wakeve.models.ScenarioVote
+import com.guyghost.wakeve.models.ScenarioVoteType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 class ScenarioLogicTest {
 

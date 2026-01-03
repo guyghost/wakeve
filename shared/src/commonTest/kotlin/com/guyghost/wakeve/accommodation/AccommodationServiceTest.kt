@@ -1,7 +1,15 @@
 package com.guyghost.wakeve.accommodation
 
-import com.guyghost.wakeve.models.*
-import kotlin.test.*
+import com.guyghost.wakeve.models.Accommodation
+import com.guyghost.wakeve.models.AccommodationType
+import com.guyghost.wakeve.models.BookingStatus
+import com.guyghost.wakeve.models.RoomAssignment
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Unit tests for AccommodationService

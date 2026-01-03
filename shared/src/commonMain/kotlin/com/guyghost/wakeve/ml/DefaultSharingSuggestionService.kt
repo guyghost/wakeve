@@ -1,14 +1,12 @@
 package com.guyghost.wakeve.ml
 
-import com.guyghost.wakeve.models.FaceDetection
+import com.guyghost.wakeve.models.Album
 import com.guyghost.wakeve.models.Photo
 import com.guyghost.wakeve.models.PhotoTag
-import com.guyghost.wakeve.models.Album
-import com.guyghost.wakeve.models.Participant
+import com.guyghost.wakeve.models.UserInterest
+import com.guyghost.wakeve.repository.SharingPreferencesRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
-import kotlinx.serialization.Serializable
 
 /**
  * Default implementation of SharingSuggestionService.
@@ -22,7 +20,7 @@ import kotlinx.serialization.Serializable
  * All processing runs on-device for privacy compliance.
  */
 class DefaultSharingSuggestionService(
-    private val userPreferencesRepository: UserPreferencesRepository,
+    private val sharingPreferencesRepository: SharingPreferencesRepository,
     private val scoringWeights: SharingScoringWeights = SharingScoringWeights.DEFAULT
 ) : SharingSuggestionService {
 
@@ -108,7 +106,7 @@ class DefaultSharingSuggestionService(
         }
 
         // Get users interested in this tag from preferences
-        val interestedUsers = userPreferencesRepository.getUsersInterestedInTag(tag.category)
+        val interestedUsers = sharingPreferencesRepository.getUsersInterestedInTag(tag.category)
 
         // Generate suggestions
         val suggestions = interestedUsers.map { user ->
@@ -142,7 +140,7 @@ class DefaultSharingSuggestionService(
         photoIds: List<String>,
         wasAccepted: Boolean
     ) {
-        userPreferencesRepository.recordSharingAction(
+        sharingPreferencesRepository.recordSharingAction(
             userId = userId,
             targetUserId = targetUserId,
             photoIds = photoIds,
@@ -160,7 +158,7 @@ class DefaultSharingSuggestionService(
      * Gets personalized sharing insights for a user.
      */
     override suspend fun getSharingInsights(userId: String): SharingInsights {
-        return userPreferencesRepository.getSharingInsights(userId)
+        return sharingPreferencesRepository.getSharingInsights(userId)
     }
 
     // MARK: - Private Helper Methods
@@ -173,7 +171,7 @@ class DefaultSharingSuggestionService(
             .filter { it.confidence >= FACE_CONFIDENCE_THRESHOLD }
             .mapNotNull { face ->
                 // Match face to user (simplified - would use actual face recognition)
-                val matchedUser = userPreferencesRepository.matchFaceToUser(face)
+                val matchedUser = sharingPreferencesRepository.matchFaceToUser(face)
                     ?: return@mapNotNull null
 
                 val relevanceScore = scoringWeights.faceDetectionWeight * face.confidence
@@ -196,7 +194,7 @@ class DefaultSharingSuggestionService(
      * Generates event-based suggestions from event participants.
      */
     private suspend fun generateEventBasedSuggestions(photo: Photo): List<SharingSuggestion> {
-        val participants = userPreferencesRepository.getEventParticipants(photo.eventId)
+        val participants = sharingPreferencesRepository.getEventParticipants(photo.eventId)
 
         return participants.map { participant ->
             val relevanceScore = scoringWeights.eventParticipantWeight
@@ -210,7 +208,7 @@ class DefaultSharingSuggestionService(
                 confidence = 0.8, // Medium confidence for event-based
                 supportingDetails = listOf(
                     "Event participant",
-                    "Event: ${userPreferencesRepository.getEventName(photo.eventId) ?: photo.eventId}"
+                    "Event: ${sharingPreferencesRepository.getEventName(photo.eventId) ?: photo.eventId}"
                 )
             )
         }
@@ -223,7 +221,7 @@ class DefaultSharingSuggestionService(
         val suggestions = mutableListOf<SharingSuggestion>()
 
         for (tag in photo.tags) {
-            val interestedUsers = userPreferencesRepository.getUsersInterestedInTag(tag.category)
+            val interestedUsers = sharingPreferencesRepository.getUsersInterestedInTag(tag.category)
 
             for (user in interestedUsers) {
                 val relevanceScore = scoringWeights.tagInterestWeight * tag.confidence
@@ -252,7 +250,7 @@ class DefaultSharingSuggestionService(
      * Generates history-based suggestions from sharing history.
      */
     private suspend fun generateHistoryBasedSuggestions(photo: Photo): List<SharingSuggestion> {
-        val frequentTargets = userPreferencesRepository.getFrequentShareTargets(
+        val frequentTargets = sharingPreferencesRepository.getFrequentShareTargets(
             userId = getCurrentUserId()
         )
 
@@ -346,36 +344,6 @@ class DefaultSharingSuggestionService(
      * Gets the current user ID.
      */
     private fun getCurrentUserId(): String {
-        return userPreferencesRepository.getCurrentUserId()
+        return sharingPreferencesRepository.getCurrentUserId()
     }
 }
-
-// MARK: - Supporting Data Classes
-
-@Serializable
-data class UserInterest(
-    val userId: String,
-    val name: String,
-    val avatarUrl: String?,
-    val interestConfidence: Double // 0.0 - 1.0
-)
-
-@Serializable
-data class FrequentShareTarget(
-    val userId: String,
-    val name: String,
-    val avatarUrl: String?,
-    val shareCount: Int,
-    val acceptanceRate: Double // 0.0 - 1.0
-)
-
-/**
- * Result of face matching operation.
- */
-@Serializable
-data class FaceMatchResult(
-    val userId: String,
-    val name: String,
-    val avatarUrl: String?,
-    val confidence: Double // 0.0 - 1.0
-)

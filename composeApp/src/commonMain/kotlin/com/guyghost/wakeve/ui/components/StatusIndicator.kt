@@ -13,7 +13,6 @@ import androidx.compose.material.icons.filled.HowToVote
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.EventAvailable
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable

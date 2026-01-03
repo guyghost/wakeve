@@ -10,10 +10,10 @@ import com.guyghost.wakeve.models.ScenarioVoteType
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.test.assertFailsWith
 
 class ScenarioRepositoryTest {
 

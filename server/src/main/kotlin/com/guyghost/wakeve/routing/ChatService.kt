@@ -1,17 +1,32 @@
 package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.database.WakevDb
-import com.guyghost.wakeve.models.*
-import com.guyghost.wakeve.routing.eventChatConnections
-import io.ktor.server.routing.*
-import io.ktor.server.websocket.*
-import io.ktor.websocket.*
+import com.guyghost.wakeve.models.AddReactionRequest
+import com.guyghost.wakeve.models.ChatMessage
+import com.guyghost.wakeve.models.ChatMessageType
+import com.guyghost.wakeve.models.ChatType
+import com.guyghost.wakeve.models.ChatWebSocketResponse
+import com.guyghost.wakeve.models.CommentSection
+import com.guyghost.wakeve.models.CreateMessageRequest
+import com.guyghost.wakeve.models.MessageData
+import com.guyghost.wakeve.models.MessageStatus
+import com.guyghost.wakeve.models.Reaction
+import com.guyghost.wakeve.models.TypingIndicator
+import com.guyghost.wakeve.models.TypingStatus
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
+import io.ktor.server.request.receive
+import io.ktor.server.response.respond
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.UUID
 
@@ -31,7 +46,7 @@ import java.util.UUID
  */
 class ChatService(
     private val database: WakevDb,
-    private val eventConnections: EventChatConnections = eventChatConnections
+    private val eventConnections: EventChatConnections = com.guyghost.wakeve.routes.eventChatConnections
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -327,7 +342,7 @@ class ChatService(
             val status = if (isTyping) TypingStatus.TYPING.name else TypingStatus.IDLE.name
             
             // Save typing indicator to database
-            database.typingIndicatorQueries.insertTypingIndicator(
+            database.typingIndicatorsQueries.insertTypingIndicator(
                 user_id = userId,
                 chat_id = eventId,
                 chat_type = ChatType.EVENT.name,
@@ -380,7 +395,7 @@ class ChatService(
                     parentMessageId = row.parent_message_id,
                     timestamp = row.timestamp,
                     status = MessageStatus.valueOf(row.status),
-                    isOffline = row.is_offline == 1,
+                    isOffline = row.is_offline == 1L,
                     reactions = row.reactions_json?.let {
                         try {
                             json.decodeFromString<List<Reaction>>(it)
@@ -395,7 +410,7 @@ class ChatService(
                             emptyList()
                         }
                     } ?: emptyList(),
-                    isEdited = row.is_edited == 1
+                    isEdited = row.is_edited == 1L
                 )
             }
         } catch (e: Exception) {
@@ -430,7 +445,7 @@ class ChatService(
                     parentMessageId = row.parent_message_id,
                     timestamp = row.timestamp,
                     status = MessageStatus.valueOf(row.status),
-                    isOffline = row.is_offline == 1,
+                    isOffline = row.is_offline == 1L,
                     reactions = row.reactions_json?.let {
                         try {
                             json.decodeFromString<List<Reaction>>(it)
@@ -445,7 +460,7 @@ class ChatService(
                             emptyList()
                         }
                     } ?: emptyList(),
-                    isEdited = row.is_edited == 1
+                    isEdited = row.is_edited == 1L
                 )
             }
         } catch (e: Exception) {
@@ -482,7 +497,7 @@ class ChatService(
                     parentMessageId = row.parent_message_id,
                     timestamp = row.timestamp,
                     status = MessageStatus.valueOf(row.status),
-                    isOffline = row.is_offline == 1,
+                    isOffline = row.is_offline == 1L,
                     reactions = row.reactions_json?.let {
                         try {
                             json.decodeFromString<List<Reaction>>(it)
@@ -497,7 +512,7 @@ class ChatService(
                             emptyList()
                         }
                     } ?: emptyList(),
-                    isEdited = row.is_edited == 1
+                    isEdited = row.is_edited == 1L
                 )
             }
         } catch (e: Exception) {
@@ -529,7 +544,7 @@ class ChatService(
                         parentMessageId = row.parent_message_id,
                         timestamp = row.timestamp,
                         status = MessageStatus.valueOf(row.status),
-                        isOffline = row.is_offline == 1,
+                        isOffline = row.is_offline == 1L,
                         reactions = row.reactions_json?.let {
                             try {
                                 json.decodeFromString<List<Reaction>>(it)
@@ -544,7 +559,7 @@ class ChatService(
                                 emptyList()
                             }
                         } ?: emptyList(),
-                        isEdited = row.is_edited == 1
+                        isEdited = row.is_edited == 1L
                     )
                 }
         } catch (e: Exception) {
@@ -565,7 +580,7 @@ class ChatService(
     ): Int = withContext(Dispatchers.IO) {
         try {
             database.chatMessagesQueries
-                .selectUnreadCountForUser(eventId, userId)
+                .selectUnreadCountForUser(eventId, userId, userId)
                 .executeAsOne()
                 .toInt()
         } catch (e: Exception) {
@@ -583,7 +598,7 @@ class ChatService(
         try {
             val threshold = (System.currentTimeMillis() - 3000).toString()
             
-            database.typingIndicatorQueries
+            database.typingIndicatorsQueries
                 .selectActiveTypingUsers(eventId, threshold)
                 .executeAsList()
                 .map { row ->
@@ -634,7 +649,7 @@ class ChatService(
             database.chatMessagesQueries.updateMessage(
                 content,
                 timestamp,
-                1,
+                timestamp,
                 messageId
             )
             
@@ -691,7 +706,7 @@ class ChatService(
     suspend fun cleanupExpiredTypingIndicators(eventId: String) = withContext(Dispatchers.IO) {
         try {
             val threshold = (System.currentTimeMillis() - 3000).toString()
-            database.typingIndicatorQueries.cleanupExpiredTypingIndicators(
+            database.typingIndicatorsQueries.cleanupExpiredTypingIndicators(
                 eventId,
                 threshold
             )
@@ -711,8 +726,6 @@ class ChatService(
                 userId = message.senderId,
                 userName = message.senderName,
                 content = message.content,
-                section = message.section?.name,
-                parentMessageId = message.parentMessageId,
                 timestamp = message.timestamp
             ),
             success = true
@@ -800,35 +813,48 @@ class ChatServiceException(
 /**
  * Routes for chat HTTP endpoints.
  */
-fun Route.chatRoutes(
+fun io.ktor.server.routing.Route.chatRoutes(
     chatService: ChatService
 ) {
     route("/api/events/{eventId}/chat") {
         // Get messages for an event
         get("messages") {
-            val eventId = call.parameters["eventId"] ?: return@get
+            val eventId = call.parameters["eventId"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
             val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 100
             val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
-            
+
             val messages = chatService.getMessages(eventId, limit, offset)
             val totalCount = chatService.getMessages(eventId, Int.MAX_VALUE, 0).size
-            
-            call.respond(mapOf(
+
+            call.respond(HttpStatusCode.OK, mapOf(
                 "messages" to messages,
                 "totalCount" to totalCount,
                 "hasMore" to (messages.size == limit)
             ))
         }
-        
+
         // Send a new message
         post("messages") {
-            val eventId = call.parameters["eventId"] ?: return@post
-            val userId = call.principal?.get("userId") ?: return@post
-            val userName = call.principal?.get("userName") ?: "Unknown"
-            val userAvatarUrl = call.principal?.get("avatarUrl")
-            
+            val eventId = call.parameters["eventId"] ?: return@post call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
+            val principal = call.principal<JWTPrincipal>() ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Authentication required")
+            )
+            val userId = principal.payload.getClaim("userId")?.asString() ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid user ID in token")
+            )
+            val userName = principal.payload.getClaim("userName")?.asString() ?: "Unknown"
+            val userAvatarUrl = principal.payload.getClaim("avatarUrl")?.asString()
+
             val request = call.receive<CreateMessageRequest>()
-            
+
             val message = chatService.sendMessage(
                 eventId = eventId,
                 userId = userId,
@@ -838,139 +864,245 @@ fun Route.chatRoutes(
                 section = request.section,
                 parentMessageId = request.parentMessageId
             )
-            
-            call.respond(mapOf("message" to message))
+
+            call.respond(HttpStatusCode.Created, mapOf("message" to message))
         }
-        
+
         // Get a specific message
         get("messages/{messageId}") {
-            val messageId = call.parameters["messageId"] ?: return@get
+            val messageId = call.parameters["messageId"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Message ID required")
+            )
             val message = chatService.getMessage(messageId)
-            
+
             if (message != null) {
-                call.respond(mapOf("message" to message))
+                call.respond(HttpStatusCode.OK, mapOf("message" to message))
             } else {
-                call.respond(mapOf("error" to "Message not found"))
+                call.respond(HttpStatusCode.NotFound, mapOf("error" to "Message not found"))
             }
         }
-        
+
         // Update a message
         put("messages/{messageId}") {
-            val messageId = call.parameters["messageId"] ?: return@put
-            val userId = call.principal?.get("userId") ?: return@put
+            val messageId = call.parameters["messageId"] ?: return@put call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Message ID required")
+            )
+            val principal = call.principal<JWTPrincipal>() ?: return@put call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Authentication required")
+            )
+            val userId = principal.payload.getClaim("userId")?.asString() ?: return@put call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid user ID in token")
+            )
             val request = call.receive<CreateMessageRequest>()
-            
+
             val message = chatService.updateMessage(messageId, request.content, userId)
-            
+
             if (message != null) {
-                call.respond(mapOf("message" to message))
+                call.respond(HttpStatusCode.OK, mapOf("message" to message))
             } else {
-                call.respond(mapOf("error" to "Message not found or unauthorized"))
+                call.respond(HttpStatusCode.NotFound, mapOf("error" to "Message not found or unauthorized"))
             }
         }
-        
+
         // Delete a message
         delete("messages/{messageId}") {
-            val messageId = call.parameters["messageId"] ?: return@delete
-            val userId = call.principal?.get("userId") ?: return@delete
-            
+            val messageId = call.parameters["messageId"] ?: return@delete call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Message ID required")
+            )
+            val principal = call.principal<JWTPrincipal>() ?: return@delete call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Authentication required")
+            )
+            val userId = principal.payload.getClaim("userId")?.asString() ?: return@delete call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid user ID in token")
+            )
+
             val deleted = chatService.deleteMessage(messageId, userId)
-            
+
             if (deleted) {
-                call.respond(mapOf("success" to true))
+                call.respond(HttpStatusCode.OK, mapOf("success" to true))
             } else {
-                call.respond(mapOf("error" to "Message not found or unauthorized"))
+                call.respond(HttpStatusCode.NotFound, mapOf("error" to "Message not found or unauthorized"))
             }
         }
-        
+
         // Get thread messages
         get("messages/{messageId}/replies") {
-            val messageId = call.parameters["messageId"] ?: return@get
+            val messageId = call.parameters["messageId"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Message ID required")
+            )
             val messages = chatService.getThreadMessages(messageId)
-            call.respond(mapOf("messages" to messages))
+            call.respond(HttpStatusCode.OK, mapOf("messages" to messages))
         }
-        
+
         // Add reaction to a message
         post("messages/{messageId}/reactions") {
-            val eventId = call.parameters["eventId"] ?: return@post
-            val messageId = call.parameters["messageId"] ?: return@post
-            val userId = call.principal?.get("userId") ?: return@post
+            val eventId = call.parameters["eventId"] ?: return@post call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
+            val messageId = call.parameters["messageId"] ?: return@post call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Message ID required")
+            )
+            val principal = call.principal<JWTPrincipal>() ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Authentication required")
+            )
+            val userId = principal.payload.getClaim("userId")?.asString() ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid user ID in token")
+            )
             val request = call.receive<AddReactionRequest>()
-            
+
             chatService.addReaction(eventId, messageId, userId, request.emoji)
-            call.respond(mapOf("success" to true))
+            call.respond(HttpStatusCode.OK, mapOf("success" to true))
         }
-        
+
         // Remove reaction from a message
         delete("messages/{messageId}/reactions") {
-            val eventId = call.parameters["eventId"] ?: return@delete
-            val messageId = call.parameters["messageId"] ?: return@delete
-            val userId = call.principal?.get("userId") ?: return@delete
-            val emoji = call.request.queryParameters["emoji"] ?: return@delete
-            
+            val eventId = call.parameters["eventId"] ?: return@delete call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
+            val messageId = call.parameters["messageId"] ?: return@delete call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Message ID required")
+            )
+            val principal = call.principal<JWTPrincipal>() ?: return@delete call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Authentication required")
+            )
+            val userId = principal.payload.getClaim("userId")?.asString() ?: return@delete call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid user ID in token")
+            )
+            val emoji = call.request.queryParameters["emoji"] ?: return@delete call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Emoji required")
+            )
+
             chatService.removeReaction(eventId, messageId, userId, emoji)
-            call.respond(mapOf("success" to true))
+            call.respond(HttpStatusCode.OK, mapOf("success" to true))
         }
-        
+
         // Mark message as read
         post("messages/{messageId}/read") {
-            val eventId = call.parameters["eventId"] ?: return@post
-            val messageId = call.parameters["messageId"] ?: return@post
-            val userId = call.principal?.get("userId") ?: return@post
-            
+            val eventId = call.parameters["eventId"] ?: return@post call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
+            val messageId = call.parameters["messageId"] ?: return@post call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Message ID required")
+            )
+            val principal = call.principal<JWTPrincipal>() ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Authentication required")
+            )
+            val userId = principal.payload.getClaim("userId")?.asString() ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid user ID in token")
+            )
+
             chatService.markAsRead(eventId, messageId, userId)
-            call.respond(mapOf("success" to true))
+            call.respond(HttpStatusCode.OK, mapOf("success" to true))
         }
-        
+
         // Mark all messages as read
         post("messages/read-all") {
-            val eventId = call.parameters["eventId"] ?: return@post
-            val userId = call.principal?.get("userId") ?: return@post
-            
+            val eventId = call.parameters["eventId"] ?: return@post call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
+            val principal = call.principal<JWTPrincipal>() ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Authentication required")
+            )
+            val userId = principal.payload.getClaim("userId")?.asString() ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid user ID in token")
+            )
+
             chatService.markAllAsRead(eventId, userId)
-            call.respond(mapOf("success" to true))
+            call.respond(HttpStatusCode.OK, mapOf("success" to true))
         }
-        
+
         // Get typing users
         get("typing") {
-            val eventId = call.parameters["eventId"] ?: return@get
+            val eventId = call.parameters["eventId"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
             val typingUsers = chatService.getTypingUsers(eventId)
-            call.respond(mapOf("typingUsers" to typingUsers))
+            call.respond(HttpStatusCode.OK, mapOf("typingUsers" to typingUsers))
         }
-        
+
         // Set typing status
         post("typing") {
-            val eventId = call.parameters["eventId"] ?: return@post
-            val userId = call.principal?.get("userId") ?: return@post
-            val userName = call.principal?.get("userName") ?: "Unknown"
+            val eventId = call.parameters["eventId"] ?: return@post call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
+            val principal = call.principal<JWTPrincipal>() ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Authentication required")
+            )
+            val userId = principal.payload.getClaim("userId")?.asString() ?: return@post call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid user ID in token")
+            )
+            val userName = principal.payload.getClaim("userName")?.asString() ?: "Unknown"
             val isTyping = call.request.queryParameters["typing"]?.toBoolean() ?: true
-            
+
             chatService.setTypingStatus(eventId, userId, userName, isTyping)
-            call.respond(mapOf("success" to true))
+            call.respond(HttpStatusCode.OK, mapOf("success" to true))
         }
-        
+
         // Get unread count
         get("unread-count") {
-            val eventId = call.parameters["eventId"] ?: return@get
-            val userId = call.principal?.get("userId") ?: return@get
-            
+            val eventId = call.parameters["eventId"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
+            val principal = call.principal<JWTPrincipal>() ?: return@get call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Authentication required")
+            )
+            val userId = principal.payload.getClaim("userId")?.asString() ?: return@get call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid user ID in token")
+            )
+
             val count = chatService.getUnreadCount(eventId, userId)
-            call.respond(mapOf("unreadCount" to count))
+            call.respond(HttpStatusCode.OK, mapOf("unreadCount" to count))
         }
-        
+
         // Get messages by section
         get("messages/section/{section}") {
-            val eventId = call.parameters["eventId"] ?: return@get
-            val sectionName = call.parameters["section"] ?: return@get
+            val eventId = call.parameters["eventId"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
+            val sectionName = call.parameters["section"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Section required")
+            )
             val section = try {
                 CommentSection.valueOf(sectionName.uppercase())
             } catch (e: Exception) {
-                call.respond(mapOf("error" to "Invalid section"))
-                return@get
+                return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid section"))
             }
-            
+
             val messages = chatService.getMessagesBySection(eventId, section)
-            call.respond(mapOf("messages" to messages))
+            call.respond(HttpStatusCode.OK, mapOf("messages" to messages))
         }
     }
 }

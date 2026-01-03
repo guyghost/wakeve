@@ -5,7 +5,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue

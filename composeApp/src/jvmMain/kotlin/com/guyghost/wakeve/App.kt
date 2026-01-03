@@ -6,7 +6,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.guyghost.wakeve.auth.AuthState
 import com.guyghost.wakeve.auth.AuthStateManager
@@ -18,9 +26,9 @@ import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.security.JvmSecureTokenStorage
-import com.guyghost.wakeve.sync.SyncManager
-import com.guyghost.wakeve.sync.KtorSyncHttpClient
 import com.guyghost.wakeve.sync.JvmNetworkStatusDetector
+import com.guyghost.wakeve.sync.KtorSyncHttpClient
+import com.guyghost.wakeve.sync.SyncManager
 import kotlinx.coroutines.launch
 
 /**

@@ -2,11 +2,17 @@ package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.meal.MealPlanner
 import com.guyghost.wakeve.meal.MealRepository
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.AutoMealPlanRequest
+import com.guyghost.wakeve.models.DietaryRestrictionRequest
+import com.guyghost.wakeve.models.MealRequest
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.*
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
 import java.time.Instant
 
 /**

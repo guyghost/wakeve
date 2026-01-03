@@ -4,12 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.guyghost.wakeve.models.Album
 import com.guyghost.wakeve.models.Photo
-import com.guyghost.wakeve.models.photoCount
 import com.guyghost.wakeve.repository.AlbumRepository
 import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.repository.PhotoRepository
-import com.guyghost.wakeve.services.SmartSharingService
 import com.guyghost.wakeve.services.SharingSuggestion
+import com.guyghost.wakeve.services.SmartSharingService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

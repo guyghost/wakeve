@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.presentation.usecase
 
-import com.guyghost.wakeve.models.VirtualMeeting
 import com.guyghost.wakeve.meeting.MeetingRepository
+import com.guyghost.wakeve.models.VirtualMeeting
 
 /**
  * Use case for loading meetings for an event

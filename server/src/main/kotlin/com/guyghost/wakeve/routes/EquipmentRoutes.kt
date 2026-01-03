@@ -2,11 +2,21 @@ package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.equipment.EquipmentManager
 import com.guyghost.wakeve.equipment.EquipmentRepository
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.AssignEquipmentItemRequest
+import com.guyghost.wakeve.models.AutoGenerateEquipmentRequest
+import com.guyghost.wakeve.models.CreateEquipmentItemRequest
+import com.guyghost.wakeve.models.EquipmentCategory
+import com.guyghost.wakeve.models.ItemStatus
+import com.guyghost.wakeve.models.UpdateEquipmentItemRequest
+import com.guyghost.wakeve.models.UpdateEquipmentStatusRequest
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.*
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
 
 /**
  * Equipment API Routes

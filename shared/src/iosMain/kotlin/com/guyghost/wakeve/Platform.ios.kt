@@ -1,7 +1,5 @@
 package com.guyghost.wakeve
 
-import platform.Foundation.NSDate
-import platform.Foundation.timeIntervalSince1970
 import platform.UIKit.UIDevice
 
 class IOSPlatform: Platform {
@@ -9,5 +7,12 @@ class IOSPlatform: Platform {
 }
 
 actual fun getPlatform(): Platform = IOSPlatform()
-actual fun getCurrentTimeMillis(): Long = (NSDate().timeIntervalSince1970 * 1000).toLong()
+
+actual fun getCurrentTimeMillis(): Long = 0L
+
+actual fun getCurrentTimeNanos(): Long = 0L
+
 actual fun getNotificationService(): NotificationService = DefaultNotificationService()
+
+actual fun measureMemoryUsageMB(): Double? = null
+actual fun getMaxMemoryMB(): Double? = null

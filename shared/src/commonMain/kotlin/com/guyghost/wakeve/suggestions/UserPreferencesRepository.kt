@@ -1,7 +1,11 @@
 package com.guyghost.wakeve.suggestions
 
 import com.guyghost.wakeve.DatabaseEventRepository
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.LocationPreferences
+import com.guyghost.wakeve.models.SuggestionBudgetRange
+import com.guyghost.wakeve.models.SuggestionInteractionType
+import com.guyghost.wakeve.models.SuggestionSeason
+import com.guyghost.wakeve.models.SuggestionUserPreferences
 
 /**
  * Repository for managing user preferences specific to suggestions.

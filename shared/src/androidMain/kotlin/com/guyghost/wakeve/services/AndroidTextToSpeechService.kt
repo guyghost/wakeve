@@ -130,8 +130,11 @@ class AndroidTextToSpeechService(
             
             val startTime = System.currentTimeMillis()
             
-            // Speak the text
-            tts?.speak(text, ttsQueueMode, "utterance_${System.currentTimeMillis()}")
+            // Speak the text (params are required on newer Android versions)
+            val params = HashMap<String, String>().apply {
+                put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "utterance_${System.currentTimeMillis()}")
+            }
+            tts?.speak(text, ttsQueueMode, params)
             
             // Wait for speech to complete (approximate)
             // The actual completion is handled by the UtteranceProgressListener

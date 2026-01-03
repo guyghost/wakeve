@@ -1,18 +1,15 @@
 package com.guyghost.wakeve.repository
 
 import com.guyghost.wakeve.UserRepository
+import com.guyghost.wakeve.gamification.BadgeRarity
 import com.guyghost.wakeve.gamification.LeaderboardEntry
 import com.guyghost.wakeve.gamification.LeaderboardType
 import com.guyghost.wakeve.gamification.UserPoints
-import com.guyghost.wakeve.gamification.UserBadges
-import com.guyghost.wakeve.gamification.BadgeRarity
-import com.guyghost.wakeve.gamification.BadgeCategory
-import com.guyghost.wakeve.gamification.repository.UserPointsRepository
 import com.guyghost.wakeve.gamification.repository.UserBadgesRepository
+import com.guyghost.wakeve.gamification.repository.UserPointsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 
 /**
  * Repository interface for managing leaderboard data.

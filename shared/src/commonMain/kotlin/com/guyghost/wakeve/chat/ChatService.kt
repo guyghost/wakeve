@@ -16,7 +16,6 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.seconds
-import kotlin.time.ExperimentalTime
 
 /**
  * ChatService - Manages real-time chat functionality with offline support and automatic reconnection.

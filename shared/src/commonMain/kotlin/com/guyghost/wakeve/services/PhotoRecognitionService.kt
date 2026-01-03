@@ -1,19 +1,17 @@
 package com.guyghost.wakeve.services
 
 import com.guyghost.wakeve.models.Album
-import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.Photo
 import com.guyghost.wakeve.models.PhotoCategory
 import com.guyghost.wakeve.models.PhotoTag
-import com.guyghost.wakeve.models.TagSource
 import com.guyghost.wakeve.repository.AlbumRepository
 import com.guyghost.wakeve.repository.PhotoRepository
-import com.guyghost.wakeve.ml.PhotoRecognitionService as PlatformPhotoRecognitionService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.random.Random
+import com.guyghost.wakeve.ml.PhotoRecognitionService as PlatformPhotoRecognitionService
 
 /**
  * Service for photo recognition, auto-tagging, and smart album management.

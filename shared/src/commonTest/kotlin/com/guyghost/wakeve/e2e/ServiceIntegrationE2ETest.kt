@@ -1,12 +1,26 @@
 package com.guyghost.wakeve.e2e
 
 import com.guyghost.wakeve.EventRepositoryInterface
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.Comment
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.EventType
+import com.guyghost.wakeve.models.Poll
+import com.guyghost.wakeve.models.PotentialLocation
+import com.guyghost.wakeve.models.Scenario
+import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.models.TransportLocation
+import com.guyghost.wakeve.models.TransportMode
+import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.test.createTestEvent
 import com.guyghost.wakeve.test.createTestTimeSlot
-import kotlinx.coroutines.*
-import kotlinx.coroutines.test.*
-import kotlin.test.*
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.runTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * # Service Integration E2E Tests for Wakeve

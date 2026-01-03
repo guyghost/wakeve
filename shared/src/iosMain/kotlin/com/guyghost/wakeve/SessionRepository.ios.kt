@@ -1,6 +1,8 @@
 package com.guyghost.wakeve
 
-import platform.Foundation.*
+import platform.Foundation.NSDate
+import platform.Foundation.NSString
+import platform.Foundation.timeIntervalSince1970
 
 /**
  * iOS implementation of SHA-256 hashing.

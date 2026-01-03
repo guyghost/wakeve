@@ -1,21 +1,20 @@
 package com.guyghost.wakeve.meeting
 
+import com.guyghost.wakeve.NotificationService
 import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.models.InvitationStatus
 import com.guyghost.wakeve.models.MeetingPlatform
 import com.guyghost.wakeve.models.MeetingStatus
-import com.guyghost.wakeve.NotificationService
-import kotlin.time.Duration.Companion.hours
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.hours
 
 /**
  * Tests pour MeetingService

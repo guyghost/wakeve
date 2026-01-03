@@ -1,7 +1,6 @@
 package com.guyghost.wakeve.navigation
 
 import android.widget.Toast
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -10,7 +9,17 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.guyghost.wakeve.*
+import com.guyghost.wakeve.EventCreationScreen
+import com.guyghost.wakeve.EventDetailScreen
+import com.guyghost.wakeve.ExploreTabScreen
+import com.guyghost.wakeve.GetStartedScreen
+import com.guyghost.wakeve.HomeScreen
+import com.guyghost.wakeve.InboxScreen
+import com.guyghost.wakeve.LoginScreen
+import com.guyghost.wakeve.OnboardingScreen
+import com.guyghost.wakeve.ProfileTabScreen
+import com.guyghost.wakeve.SettingsScreen
+import com.guyghost.wakeve.SplashScreen
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
 import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
 import org.koin.compose.koinInject
