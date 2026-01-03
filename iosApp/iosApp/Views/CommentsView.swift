@@ -1,9 +1,75 @@
 import SwiftUI
+import shared
 
-// TODO: Replace with actual types from Shared module
+// MARK: - Comment Section Enum
+
 enum CommentSection: String, CaseIterable {
     case GENERAL, SCENARIO, POLL, TRANSPORT, ACCOMMODATION, MEAL, EQUIPMENT, ACTIVITY, BUDGET
 }
+
+// MARK: - Comment Repository Wrapper
+
+/// Wrapper class to expose CommentRepository to SwiftUI
+class CommentRepositoryWrapper: ObservableObject {
+    let repository: CommentRepository
+
+    init(database: WakevDb) {
+        self.repository = IosFactory().createCommentRepository(database: database)
+    }
+
+    // CRUD Operations
+    func getCommentsByEvent(eventId: String) -> [SharedComment] {
+        return repository.getCommentsByEvent(eventId: eventId)
+    }
+
+    func getTopLevelComments(eventId: String, section: CommentSection?, limit: Int, offset: Int) -> [SharedComment] {
+        if let section = section {
+            let result = repository.getTopLevelCommentsBySectionPaginated(
+                eventId: eventId,
+                section: SharedCommentSection.valueOf(rawValue: section.rawValue),
+                limit: Int32(limit),
+                offset: Int32(offset)
+            )
+            return result.items
+        } else {
+            let result = repository.getTopLevelCommentsByEventPaginated(
+                eventId: eventId,
+                limit: Int32(limit),
+                offset: Int32(offset)
+            )
+            return result.items
+        }
+    }
+
+    func getReplies(parentCommentId: String) -> [SharedComment] {
+        return repository.getReplies(parentCommentId: parentCommentId)
+    }
+
+    func createComment(eventId: String, authorId: String, authorName: String, section: CommentSection, sectionItemId: String?, content: String, parentCommentId: String?) -> SharedComment {
+        let request = SharedCommentRequest(
+            section: SharedCommentSection.valueOf(rawValue: section.rawValue),
+            sectionItemId: sectionItemId,
+            content: content,
+            parentCommentId: parentCommentId
+        )
+        return repository.createComment(
+            eventId: eventId,
+            authorId: authorId,
+            authorName: authorName,
+            request: request
+        )
+    }
+
+    func updateComment(commentId: String, content: String) -> SharedComment? {
+        return repository.updateComment(commentId: commentId, content: content)
+    }
+
+    func deleteComment(commentId: String) {
+        repository.deleteComment(commentId: commentId)
+    }
+}
+
+// MARK: - Swift Comment Models
 
 struct Comment {
     let id: String
@@ -26,101 +92,23 @@ struct CommentThread {
     let hasMoreReplies: Bool
 }
 
-struct CommentQueryFilters {
-    let section: CommentSection?
-    let sectionItemId: String?
-    let authorId: String?
-    let parentCommentId: String?
-    let limit: Int
-    let offset: Int
+// MARK: - Type Conversion Helpers
 
-    init(
-        section: CommentSection? = nil,
-        sectionItemId: String? = nil,
-        authorId: String? = nil,
-        parentCommentId: String? = nil,
-        limit: Int = 50,
-        offset: Int = 0
-    ) {
-        self.section = section
-        self.sectionItemId = sectionItemId
-        self.authorId = authorId
-        self.parentCommentId = parentCommentId
-        self.limit = limit
-        self.offset = offset
-    }
-}
-
-struct CommentRequest {
-    let section: CommentSection
-    let sectionItemId: String?
-    let content: String
-    let parentCommentId: String?
-
-    init(
-        section: CommentSection,
-        sectionItemId: String? = nil,
-        content: String,
-        parentCommentId: String? = nil
-    ) {
-        self.section = section
-        self.sectionItemId = sectionItemId
-        self.content = content
-        self.parentCommentId = parentCommentId
-    }
-}
-
-class CommentRepository {
-    // TODO: Replace with actual repository implementation
-    func getCommentsByEvent(eventId: String) -> [Comment] {
-        // Mock data for preview/testing
-        return [
-            Comment(
-                id: "comment-1",
-                eventId: eventId,
-                section: .GENERAL,
-                sectionItemId: nil,
-                authorId: "user-1",
-                authorName: "Alice",
-                content: "I'm excited for this event! Can't wait to see everyone.",
-                parentCommentId: nil,
-                createdAt: "2025-12-25T10:00:00Z",
-                updatedAt: nil,
-                isEdited: false,
-                replyCount: 1
-            ),
-            Comment(
-                id: "comment-2",
-                eventId: eventId,
-                section: .GENERAL,
-                sectionItemId: nil,
-                authorId: "user-2",
-                authorName: "Bob",
-                content: "Me too! What time should we meet?",
-                parentCommentId: "comment-1",
-                createdAt: "2025-12-25T10:15:00Z",
-                updatedAt: nil,
-                isEdited: false,
-                replyCount: 0
-            )
-        ]
-    }
-
-    func createComment(eventId: String, authorId: String, authorName: String, request: CommentRequest) -> Comment {
-        // Mock implementation
+extension SharedComment {
+    func toSwift() -> Comment {
         return Comment(
-            id: UUID().uuidString,
-            eventId: eventId,
-            section: request.section,
-            sectionItemId: request.sectionItemId,
-            authorId: authorId,
-            authorName: authorName,
-            content: request.content,
-            parentCommentId: request.parentCommentId,
-            createdAt: ISO8601DateFormatter().string(from: Date()),
-            updatedAt: nil,
-            isEdited: false,
-            replyCount: 0
+            id: self.id,
+            eventId: self.eventId,
+            section: CommentSection(rawValue: self.section.rawValue) ?? .GENERAL,
+            sectionItemId: self.sectionItemId,
+            authorId: self.authorId,
+            authorName: self.authorName,
+            content: self.content,
+            parentCommentId: self.parentCommentId,
+            createdAt: self.createdAt,
+            updatedAt: self.updatedAt,
+            isEdited: self.isEdited,
+            replyCount: self.replyCount
         )
     }
 }
@@ -136,12 +124,8 @@ struct CommentsView: View {
     let currentUserId: String
     let currentUserName: String
 
-    // TODO: Inject repository via dependency injection
-    // For now, using placeholder - in real implementation, get from DI container
-    private var repository: CommentRepository {
-        // TODO: Get from shared container
-        fatalError("CommentRepository must be injected")
-    }
+    /// Repository wrapper - inject via environment or initializer in production
+    @StateObject private var repositoryWrapper: CommentRepositoryWrapper
 
     @State private var commentThreads: [CommentThread] = []
     @State private var isLoading = false
@@ -151,6 +135,25 @@ struct CommentsView: View {
     @State private var showAddCommentSheet = false
     @State private var replyToComment: Comment?
     @State private var newCommentText = ""
+    @State private var editingComment: Comment?
+
+    init(
+        eventId: String,
+        section: CommentSection? = nil,
+        sectionItemId: String? = nil,
+        currentUserId: String,
+        currentUserName: String
+    ) {
+        self.eventId = eventId
+        self.section = section
+        self.sectionItemId = sectionItemId
+        self.currentUserId = currentUserId
+        self.currentUserName = currentUserName
+
+        // Note: In production, inject the database via proper DI
+        // For now, create a wrapper with nil database (will need proper initialization)
+        _repositoryWrapper = StateObject(wrappedValue: CommentRepositoryWrapper(database: WakevDb.Companion().shared.invoke(driver: RuntimeSqliteDriver(name: "wakeve.db", onConfiguration: { _ in }))))
+    }
 
     var body: some View {
         ZStack {
@@ -183,6 +186,7 @@ struct CommentsView: View {
                     Spacer()
                     Button(action: {
                         replyToComment = nil
+                        editingComment = nil
                         newCommentText = ""
                         showAddCommentSheet = true
                     }) {
@@ -266,7 +270,7 @@ struct CommentsView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
-        .background(            Color.gray.opacity(0.05))
+        .background(Color.gray.opacity(0.05))
     }
 
     // MARK: - Filter Bar
@@ -313,11 +317,15 @@ struct CommentsView: View {
                         currentUserId: currentUserId,
                         onReply: { comment in
                             replyToComment = comment
+                            editingComment = nil
                             newCommentText = ""
                             showAddCommentSheet = true
                         },
                         onEdit: { comment in
-                            // TODO: Implement edit
+                            editingComment = comment
+                            replyToComment = nil
+                            newCommentText = comment.content
+                            showAddCommentSheet = true
                         },
                         onDelete: { comment in
                             Task { await deleteComment(comment) }
@@ -374,12 +382,12 @@ struct CommentsView: View {
         .padding(.top, 60)
     }
 
-    // MARK: - Add Comment Sheet
+    // MARK: - Add/Edit Comment Sheet
 
     private var addCommentSheet: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Reply indicator if replying
+                // Reply/Edit indicator
                 if let replyTo = replyToComment {
                     HStack(spacing: 12) {
                         Rectangle()
@@ -401,7 +409,32 @@ struct CommentsView: View {
                         Spacer()
                     }
                     .padding(16)
-        .background(Color(.tertiarySystemFill))
+                    .background(Color(.tertiarySystemFill))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                } else if let editComment = editingComment {
+                    HStack(spacing: 12) {
+                        Rectangle()
+                            .fill(Color.orange)
+                            .frame(width: 3)
+                            .clipShape(RoundedRectangle(cornerRadius: 1.5, style: .continuous))
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Editing your comment")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(.primary)
+
+                            Text(editComment.content)
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
+                        }
+
+                        Spacer()
+                    }
+                    .padding(16)
+                    .background(Color(.tertiarySystemFill))
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .padding(.horizontal, 20)
                     .padding(.top, 16)
@@ -422,7 +455,7 @@ struct CommentsView: View {
                             )
 
                         if newCommentText.isEmpty {
-                            Text(replyToComment != nil ? "Write a reply..." : "Write a comment...")
+                            Text(editingComment != nil ? "Edit your comment..." : (replyToComment != nil ? "Write a reply..." : "Write a comment..."))
                                 .font(.system(size: 16))
                                 .foregroundColor(.secondary)
                                 .padding(16)
@@ -443,20 +476,26 @@ struct CommentsView: View {
 
                 Spacer()
             }
-            .navigationTitle(replyToComment != nil ? "Reply" : "New Comment")
-            // iOS only: .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(editingComment != nil ? "Edit Comment" : (replyToComment != nil ? "Reply" : "New Comment"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
                         showAddCommentSheet = false
                         replyToComment = nil
+                        editingComment = nil
                         newCommentText = ""
                     }
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(replyToComment != nil ? "Reply" : "Post") {
-                        Task { await postComment() }
+                    Button(editingComment != nil ? "Save" : (replyToComment != nil ? "Reply" : "Post")) {
+                        Task {
+                            if editingComment != nil {
+                                await updateComment()
+                            } else {
+                                await postComment()
+                            }
+                        }
                     }
                     .disabled(newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
@@ -511,7 +550,6 @@ struct CommentsView: View {
                 }
             }
             .navigationTitle("Filter Comments")
-            // iOS only: .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
@@ -544,36 +582,26 @@ struct CommentsView: View {
         errorMessage = nil
 
         do {
-            let filters = CommentQueryFilters(
+            // Get top-level comments with pagination
+            let topLevelComments = repositoryWrapper.getTopLevelComments(
+                eventId: eventId,
                 section: selectedSection,
-                sectionItemId: sectionItemId,
-                parentCommentId: nil, // Only top-level comments
                 limit: 50,
                 offset: 0
             )
 
-            // TODO: Implement getCommentThreads in repository
-            // For now, simulate with individual calls
-            let comments = repository.getCommentsByEvent(eventId: eventId)
-            let filteredComments = comments.filter { comment in
-                if let section = selectedSection {
-                    return comment.section == section
-                }
-                return comment.parentCommentId == nil // Only top-level
-            }
-
-            // Build threads
+            // Build threads with replies
             var threads: [CommentThread] = []
-            for comment in filteredComments {
-                if comment.parentCommentId == nil { // Top-level comment
-                    let replies = comments.filter { $0.parentCommentId == comment.id }
-                    let thread = CommentThread(
-                        comment: comment,
-                        replies: replies,
-                        hasMoreReplies: false // TODO: Implement pagination
-                    )
-                    threads.append(thread)
-                }
+            for sharedComment in topLevelComments {
+                let comment = sharedComment.toSwift()
+                let replies = repositoryWrapper.getReplies(parentCommentId: comment.id)
+                    .map { $0.toSwift() }
+                let thread = CommentThread(
+                    comment: comment,
+                    replies: replies,
+                    hasMoreReplies: false // TODO: Implement pagination for replies
+                )
+                threads.append(thread)
             }
 
             // Sort by creation date (newest first)
@@ -590,18 +618,16 @@ struct CommentsView: View {
         guard !newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
 
         do {
-            let request = CommentRequest(
-                section: selectedSection ?? section ?? .GENERAL,
-                sectionItemId: sectionItemId,
-                content: newCommentText.trimmingCharacters(in: .whitespacesAndNewlines),
-                parentCommentId: replyToComment?.id
-            )
+            let section = selectedSection ?? section ?? CommentSection.GENERAL
 
-            let _ = repository.createComment(
+            _ = repositoryWrapper.createComment(
                 eventId: eventId,
                 authorId: currentUserId,
                 authorName: currentUserName,
-                request: request
+                section: section,
+                sectionItemId: sectionItemId,
+                content: newCommentText.trimmingCharacters(in: .whitespacesAndNewlines),
+                parentCommentId: replyToComment?.id
             )
 
             showAddCommentSheet = false
@@ -616,10 +642,31 @@ struct CommentsView: View {
         }
     }
 
+    private func updateComment() async {
+        guard let editComment = editingComment,
+              !newCommentText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        do {
+            _ = repositoryWrapper.updateComment(
+                commentId: editComment.id,
+                content: newCommentText.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+
+            showAddCommentSheet = false
+            editingComment = nil
+            newCommentText = ""
+
+            // Reload comments
+            await loadCommentsAsync()
+
+        } catch {
+            errorMessage = "Failed to update comment: \(error.localizedDescription)"
+        }
+    }
+
     private func deleteComment(_ comment: Comment) async {
         do {
-            // TODO: Implement deleteComment in repository
-            // repository.deleteComment(commentId: comment.id)
+            repositoryWrapper.deleteComment(commentId: comment.id)
 
             // Reload comments
             await loadCommentsAsync()

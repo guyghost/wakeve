@@ -36,6 +36,7 @@ kotlin {
             implementation(libs.ktor.clientCore)
             implementation(libs.ktor.clientContentNegotiation)
             implementation(libs.ktor.clientCio)
+            implementation(libs.ktor.clientWebsocket)
             implementation(libs.androidx.core.ktx)
             // ML Kit Vision for on-device photo recognition
             implementation("com.google.android.gms:play-services-mlkit-image-labeling:16.0.8")
@@ -46,12 +47,14 @@ kotlin {
             implementation(libs.ktor.clientCore)
             implementation(libs.ktor.clientContentNegotiation)
             implementation(libs.ktor.clientCio)
+            implementation(libs.ktor.clientWebsocket)
         }
         jvmMain.dependencies {
             implementation(libs.sqldelight.jvmDriver)
             implementation(libs.ktor.clientCore)
             implementation(libs.ktor.clientContentNegotiation)
             implementation(libs.ktor.clientCio)
+            implementation(libs.ktor.clientWebsocket)
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
         }
         commonTest.dependencies {

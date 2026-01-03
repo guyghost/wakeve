@@ -154,9 +154,9 @@ fun App() {
                         if (!isOAuthInProgress) {
                             isOAuthInProgress = true
                             scope.launch {
-                                // Create browser OAuth helper
+                                // Create browser OAuth helper with BuildConfig
                                 val helper = BrowserOAuthHelper(
-                                    clientId = "YOUR_GOOGLE_CLIENT_ID", // TODO: Move to BuildConfig
+                                    clientId = BuildConfig.GOOGLE_CLIENT_ID,
                                     authorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth"
                                 )
                                 browserOAuthHelper = helper

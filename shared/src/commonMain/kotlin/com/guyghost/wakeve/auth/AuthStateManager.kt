@@ -4,10 +4,10 @@ import com.guyghost.wakeve.currentTimeMillis
 import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.UserResponse
 import com.guyghost.wakeve.security.SecureTokenStorage
+import com.guyghost.wakeve.security.UserProfileData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -98,260 +98,281 @@ class AuthStateManager(
     private val authService: ClientAuthenticationService,
     private val enableOAuth: Boolean = false // Feature flag
 ) {
-    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
-    val authState: StateFlow<AuthState> = _authState.asStateFlow()
+    val authState: StateFlow<AuthState> = _authState
 
-    // Token refresh job
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var tokenRefreshJob: Job? = null
 
+    init {
+        scope.launch {
+            checkExistingAuth()
+        }
+    }
+
     /**
-     * Initialize authentication state.
-     *
-     * This should be called when the app starts. It checks for existing
-     * authentication and validates the stored tokens.
+     * Check for existing authentication on startup.
      */
-    suspend fun initialize() {
+    private suspend fun checkExistingAuth() {
+        val accessToken = secureStorage.getAccessToken()
+        val userId = secureStorage.getUserId()
+
+        if (accessToken != null && userId != null && !secureStorage.isTokenExpired()) {
+            // User is logged in, fetch full profile
+            fetchAndSetUserProfile(userId)
+        } else {
+            _authState.value = AuthState.Unauthenticated
+        }
+    }
+
+    /**
+     * Fetch full user profile from server.
+     */
+    private suspend fun fetchAndSetUserProfile(userId: String) {
         _authState.value = AuthState.Loading
 
-        // If OAuth is disabled, create a demo user and skip auth
-        if (!enableOAuth) {
-            // Create a demo user for development/testing
-            val demoUser = UserResponse(
-                id = "demo-user-${(1000..9999).random()}",
-                email = "demo@wakeve.local",
-                name = "Demo User",
-                provider = "DEMO",
-                avatarUrl = null,
-                role = "USER",
-                createdAt = getCurrentTimestamp()
+        try {
+            val response = authService.getUserProfile(userId)
+            if (response.isSuccess && response.valueOrNull() != null) {
+                val userProfile = response.valueOrNull()!!
+
+                // Store user profile data
+                secureStorage.storeUserName(userProfile.name)
+                secureStorage.storeUserEmail(userProfile.email)
+                secureStorage.storeUserProvider(userProfile.provider.toString())
+
+                // Set authenticated state
+                val session = generateSessionId()
+                secureStorage.storeSessionId(session)
+
+                _authState.value = AuthState.Authenticated(
+                    userId = userId,
+                    user = userProfile,
+                    sessionId = session
+                )
+            } else {
+                _authState.value = AuthState.Error(
+                    message = "Failed to fetch user profile",
+                    code = ErrorCode.SERVER_ERROR
+                )
+            }
+        } catch (e: Exception) {
+            _authState.value = AuthState.Error(
+                message = e.message ?: "Unknown error",
+                code = mapErrorCode(e)
             )
-            
-            _authState.value = AuthState.Authenticated(
-                userId = demoUser.id,
-                user = demoUser,
-                sessionId = generateSessionId()
+        }
+    }
+
+    /**
+     * Login with Google OAuth.
+     */
+    suspend fun loginWithGoogle(authCode: String) {
+        if (!enableOAuth) {
+            _authState.value = AuthState.Error(
+                message = "OAuth is not enabled",
+                code = ErrorCode.UNKNOWN
             )
             return
         }
 
+        _authState.value = AuthState.Loading
+
         try {
-            // Check if user is already logged in
-            if (authService.isLoggedIn()) {
-                // Check if token is still valid
-                if (secureStorage.hasValidToken()) {
-                    val userId = secureStorage.getUserId()
-                    val accessToken = secureStorage.getAccessToken()
+            val response = authService.loginWithGoogle(authCode)
 
-                    if (userId != null && accessToken != null) {
-                        // Try to refresh token proactively if it's close to expiry
-                        if (shouldRefreshToken()) {
-                            refreshTokenIfNeeded()
-                        }
+            if (response.isSuccess && response.valueOrNull() != null) {
+                val loginResponse = response.valueOrNull()!!
 
-                        // TODO: Fetch full user profile from server
-                        // For now, create a minimal user response
-                        val user = UserResponse(
-                            id = userId,
-                            email = "user@example.com", // TODO: Get from server
-                            name = "User", // TODO: Get from server
-                            provider = "GOOGLE", // TODO: Get from storage
-                            avatarUrl = null,
-                            createdAt = getCurrentTimestamp()
-                        )
+                // Store tokens
+                secureStorage.storeAccessToken(loginResponse.accessToken)
+                secureStorage.storeRefreshToken(loginResponse.refreshToken)
+                secureStorage.storeTokenExpiry(loginResponse.expiresIn * 1000L + currentTimeMillis())
 
-                        _authState.value = AuthState.Authenticated(
-                            userId = userId,
-                            user = user,
-                            sessionId = generateSessionId()
-                        )
+                // Store user profile
+                secureStorage.storeUserId(loginResponse.user.id)
+                secureStorage.storeUserName(loginResponse.user.name)
+                secureStorage.storeUserEmail(loginResponse.user.email)
+                secureStorage.storeUserProvider(loginResponse.user.provider.toString())
 
-                        // Start token refresh monitoring
-                        startTokenRefreshMonitoring()
-                        return
-                    }
-                }
+                // Set authenticated state
+                val session = generateSessionId()
+                secureStorage.storeSessionId(session)
 
-                // Token invalid or expired - logout
-                logout()
+                _authState.value = AuthState.Authenticated(
+                    userId = loginResponse.user.id,
+                    user = loginResponse.user,
+                    sessionId = session
+                )
+            } else {
+                _authState.value = AuthState.Error(
+                    message = "OAuth login failed",
+                    code = ErrorCode.INVALID_CREDENTIALS
+                )
             }
-
-            _authState.value = AuthState.Unauthenticated
-
         } catch (e: Exception) {
             _authState.value = AuthState.Error(
-                message = "Failed to initialize authentication: ${e.message}",
-                code = ErrorCode.UNKNOWN
+                message = e.message ?: "Unknown error",
+                code = mapErrorCode(e)
             )
         }
     }
 
     /**
-     * Login with OAuth authorization code.
-     *
-     * @param authCode The authorization code from OAuth provider
-     * @param provider The OAuth provider (Google, Apple)
-     * @return Result indicating success or failure
+     * Login with Apple Sign In.
      */
-    suspend fun login(authCode: String, provider: OAuthProvider): Result<Unit> = runCatching {
+    suspend fun loginWithApple(authCode: String, userInfo: String? = null) {
+        if (!enableOAuth) {
+            _authState.value = AuthState.Error(
+                message = "OAuth is not enabled",
+                code = ErrorCode.UNKNOWN
+            )
+            return
+        }
+
         _authState.value = AuthState.Loading
 
-        // Perform login request
-        val result = when (provider) {
-            OAuthProvider.GOOGLE -> authService.loginWithGoogle(authCode)
-            OAuthProvider.APPLE -> authService.loginWithApple(authCode, null)
-        }
+        try {
+            val response = authService.loginWithApple(authCode, userInfo)
 
-        result.fold(
-            onSuccess = { response ->
-                // Login successful
+            if (response.isSuccess && response.valueOrNull() != null) {
+                val loginResponse = response.valueOrNull()!!
+
+                // Store tokens
+                secureStorage.storeAccessToken(loginResponse.accessToken)
+                secureStorage.storeRefreshToken(loginResponse.refreshToken)
+                secureStorage.storeTokenExpiry(loginResponse.expiresIn * 1000L + currentTimeMillis())
+
+                // Store user profile
+                secureStorage.storeUserId(loginResponse.user.id)
+                secureStorage.storeUserName(loginResponse.user.name)
+                secureStorage.storeUserEmail(loginResponse.user.email)
+                secureStorage.storeUserProvider(loginResponse.user.provider.toString())
+
+                // Set authenticated state
+                val session = generateSessionId()
+                secureStorage.storeSessionId(session)
+
                 _authState.value = AuthState.Authenticated(
-                    userId = response.user.id,
-                    user = response.user,
-                    sessionId = generateSessionId()
+                    userId = loginResponse.user.id,
+                    user = loginResponse.user,
+                    sessionId = session
                 )
-
-                // Start token refresh monitoring
-                startTokenRefreshMonitoring()
-            },
-            onFailure = { error ->
+            } else {
                 _authState.value = AuthState.Error(
-                    message = "Login failed: ${error.message}",
-                    code = mapErrorCode(error)
+                    message = "Apple login failed",
+                    code = ErrorCode.INVALID_CREDENTIALS
                 )
-                throw error
             }
-        )
-    }
-
-    /**
-     * Logout the current user.
-     *
-     * Clears all stored tokens and resets state to Unauthenticated.
-     */
-    suspend fun logout(): Result<Unit> = runCatching {
-        // Stop token refresh monitoring
-        tokenRefreshJob?.cancel()
-        tokenRefreshJob = null
-
-        // Clear tokens
-        authService.logout()
-
-        // Update state
-        _authState.value = AuthState.Unauthenticated
-    }
-
-    /**
-     * Refresh token if needed.
-     *
-     * This proactively refreshes the access token before it expires.
-     */
-    suspend fun refreshTokenIfNeeded(): Result<Unit> = runCatching {
-        if (!shouldRefreshToken()) {
-            return@runCatching
+        } catch (e: Exception) {
+            _authState.value = AuthState.Error(
+                message = e.message ?: "Unknown error",
+                code = mapErrorCode(e)
+            )
         }
+    }
 
-        val result = authService.refreshToken()
+    /**
+     * Refresh access token.
+     */
+    suspend fun refreshToken() {
+        _authState.value = AuthState.Loading
 
-        result.fold(
-            onSuccess = { response ->
-                // Token refreshed successfully
-                // State remains Authenticated, just with new token
-                val currentState = _authState.value
-                if (currentState is AuthState.Authenticated) {
-                    // Update user info if needed
-                    _authState.value = currentState.copy(user = response.user)
-                }
-            },
-            onFailure = { error ->
-                // Refresh failed - logout user
+        try {
+            val response = authService.refreshToken()
+
+            if (response.isSuccess && response.valueOrNull() != null) {
+                val refreshResponse = response.valueOrNull()!!
+
+                // Update tokens
+                secureStorage.storeAccessToken(refreshResponse.accessToken)
+                secureStorage.storeRefreshToken(refreshResponse.refreshToken)
+                secureStorage.storeTokenExpiry(refreshResponse.expiresIn * 1000L + currentTimeMillis())
+
+                _authState.value = AuthState.Authenticated(
+                    userId = getCurrentUserId(),
+                    user = getCurrentUser(),
+                    sessionId = getCurrentSessionId()
+                )
+            } else {
                 _authState.value = AuthState.Error(
-                    message = "Session expired. Please login again.",
+                    message = "Token refresh failed",
                     code = ErrorCode.TOKEN_EXPIRED
                 )
-                logout()
-                throw error
             }
-        )
-    }
-
-    /**
-     * Handle token expiry (typically called from API error handlers).
-     *
-     * Attempts to refresh the token. If refresh fails, logs out the user.
-     */
-    suspend fun handleTokenExpired() {
-        try {
-            refreshTokenIfNeeded()
         } catch (e: Exception) {
-            logout()
+            _authState.value = AuthState.Error(
+                message = e.message ?: "Unknown error",
+                code = mapErrorCode(e)
+            )
         }
     }
 
     /**
-     * Get the current user ID (if authenticated).
+     * Logout user.
      */
-    fun getCurrentUserId(): String? {
-        return when (val state = _authState.value) {
-            is AuthState.Authenticated -> state.userId
-            else -> null
+    suspend fun logout() {
+        _authState.value = AuthState.Loading
+
+        try {
+            authService.logout()
+            secureStorage.clearAllTokens()
+            _authState.value = AuthState.Unauthenticated
+        } catch (e: Exception) {
+            _authState.value = AuthState.Error(
+                message = e.message ?: "Logout failed",
+                code = mapErrorCode(e)
+            )
         }
     }
 
     /**
-     * Get the current access token (if authenticated).
+     * Check if user is logged in.
      */
-    suspend fun getCurrentAccessToken(): String? {
-        return if (_authState.value is AuthState.Authenticated) {
-            secureStorage.getAccessToken()
-        } else {
-            null
-        }
+    suspend fun isLoggedIn(): Boolean {
+        return authState.value is AuthState.Authenticated
     }
 
     /**
-     * Check if token should be refreshed.
-     *
-     * Returns true if token expires in less than 10 minutes.
+     * Get current user ID.
      */
-    private suspend fun shouldRefreshToken(): Boolean {
-        val expiryTimestamp = secureStorage.getTokenExpiry() ?: return false
-        val currentTime = currentTimeMillis()
-        val timeUntilExpiry = expiryTimestamp - currentTime
-
-        // Refresh if expires in less than 10 minutes
-        return timeUntilExpiry < 10 * 60 * 1000
+    suspend fun getCurrentUserId(): String? {
+        return secureStorage.getUserId()
     }
 
     /**
-     * Start background token refresh monitoring.
-     *
-     * Checks token expiry every 5 minutes and refreshes proactively.
+     * Get current user.
      */
-    private fun startTokenRefreshMonitoring() {
-        tokenRefreshJob?.cancel()
-        tokenRefreshJob = scope.launch {
-            while (isActive) {
-                delay(5 * 60 * 1000) // Check every 5 minutes
+    suspend fun getCurrentUser(): UserResponse? {
+        val userId = secureStorage.getUserId()
+        val email = secureStorage.getUserEmail()
+        val name = secureStorage.getUserName()
+        val providerStr = secureStorage.getUserProvider()
 
-                if (_authState.value is AuthState.Authenticated) {
-                    try {
-                        refreshTokenIfNeeded()
-                    } catch (e: Exception) {
-                        // Log error but don't crash
-                        println("Token refresh failed: ${e.message}")
-                    }
-                }
+        if (userId != null && email != null && name != null && providerStr != null) {
+            val provider = try {
+                OAuthProvider.valueOf(providerStr)
+            } catch (e: Exception) {
+                OAuthProvider.GOOGLE
             }
+
+            return UserResponse(
+                id = userId,
+                email = email,
+                name = name,
+                provider = provider,
+                profilePictureUrl = secureStorage.getUserAvatarUrl()
+            )
         }
+
+        return null
     }
 
     /**
-     * Generate a unique session ID.
+     * Get current session ID.
      */
-    private fun generateSessionId(): String {
-        return "session-${currentTimeMillis()}-${(0..999).random()}"
+    suspend fun getCurrentSessionId(): String? {
+        return secureStorage.getSessionId()
     }
 
     /**
@@ -382,5 +403,137 @@ class AuthStateManager(
     fun dispose() {
         tokenRefreshJob?.cancel()
         scope.cancel()
+    }
+
+    companion object {
+        /**
+         * Singleton instance for simple access.
+         *
+         * Note: For production use, consider dependency injection (Koin).
+         *
+         * @param secureStorage Optional secure storage (lazy initialized if not provided)
+         * @param authService Optional auth service (lazy initialized if not provided)
+         * @param enableOAuth Feature flag for OAuth
+         */
+        private var instance: AuthStateManager? = null
+
+        /**
+         * Get singleton instance of AuthStateManager.
+         *
+         * Note: For production use, consider dependency injection (Koin).
+         *
+         * @param secureStorage Optional secure storage (lazy initialized if not provided)
+         * @param authService Optional auth service (lazy initialized if not provided)
+         * @param enableOAuth Feature flag for OAuth
+         */
+        fun getInstance(
+            secureStorage: SecureTokenStorage? = null,
+            authService: ClientAuthenticationService? = null,
+            enableOAuth: Boolean = false
+        ): AuthStateManager {
+            // Use memoization for thread-safe lazy initialization
+            val currentValue = instance
+
+            if (currentValue != null) {
+                return currentValue
+            }
+
+            val newInstance = AuthStateManager(
+                secureStorage = secureStorage ?: DummySecureTokenStorage(),
+                authService = authService ?: DummyAuthenticationService(),
+                enableOAuth = enableOAuth
+            )
+
+            instance = newInstance
+            return newInstance
+        }
+
+        /**
+         * Check if instance exists
+         */
+        fun hasInstance(): Boolean = instance != null
+
+        /**
+         * Clear the singleton instance (for testing)
+         */
+        fun clearInstance() {
+            instance?.dispose()
+            instance = null
+        }
+    }
+}
+
+/**
+ * Generate a unique session ID.
+ */
+private fun generateSessionId(): String {
+    return "session-${currentTimeMillis()}-${(0..999).random()}"
+}
+
+/**
+ * Simple authentication error class.
+ */
+private class NotImplementedError(message: String) : Exception(message)
+
+/**
+ * Dummy implementation of SecureTokenStorage for shared module compilation.
+ */
+private class DummySecureTokenStorage : SecureTokenStorage {
+    override suspend fun storeAccessToken(token: String) = Result.success(Unit)
+    override suspend fun storeRefreshToken(token: String) = Result.success(Unit)
+    override suspend fun storeUserId(userId: String) = Result.success(Unit)
+    override suspend fun storeTokenExpiry(expiryTimestamp: Long) = Result.success(Unit)
+    override suspend fun storeUserEmail(email: String) = Result.success(Unit)
+    override suspend fun storeUserName(name: String) = Result.success(Unit)
+    override suspend fun storeUserProvider(provider: String) = Result.success(Unit)
+    override suspend fun storeUserAvatarUrl(avatarUrl: String?) = Result.success(Unit)
+    override suspend fun storeUserProfile(profile: UserProfileData) = Result.success(Unit)
+    override suspend fun getAccessToken(): String? = null
+    override suspend fun getRefreshToken(): String? = null
+    override suspend fun getUserId(): String? = null
+    override suspend fun getTokenExpiry(): Long? = null
+    override suspend fun getUserEmail(): String? = null
+    override suspend fun getUserName(): String? = null
+    override suspend fun getUserProvider(): String? = null
+    override suspend fun getUserAvatarUrl(): String? = null
+    override suspend fun getUserProfile(): UserProfileData? = null
+    override suspend fun getSessionId(): String? = null
+    override suspend fun storeSessionId(sessionId: String) = Result.success(Unit)
+    override suspend fun clearAllTokens() = Result.success(Unit)
+    override suspend fun isTokenExpired(): Boolean = true
+    override suspend fun hasValidToken(): Boolean = false
+}
+
+/**
+ * Dummy implementation of ClientAuthenticationService for shared module compilation.
+ */
+private class DummyAuthenticationService : ClientAuthenticationService {
+    override suspend fun loginWithGoogle(authCode: String): Result<AuthResult<UserResponse>> =
+        Result.failure(NotImplementedError("Use platform-specific implementation"))
+
+    override suspend fun loginWithApple(authCode: String, userInfo: String?): Result<AuthResult<UserResponse>> =
+        Result.failure(NotImplementedError("Use platform-specific implementation"))
+
+    override suspend fun refreshToken(): Result<AuthResult<UserResponse>> =
+        Result.failure(NotImplementedError("Use platform-specific implementation"))
+
+    override suspend fun logout(): Result<Unit> = Result.success(Unit)
+
+    override fun isLoggedIn(): Boolean = false
+}
+
+/**
+ * Result wrapper for auth operations.
+ */
+sealed class AuthResult<out T> {
+    data class Success<out T>(val value: T) : AuthResult<T>()
+    data class Failure(val error: Exception) : AuthResult<Nothing>()
+
+    val isSuccess: Boolean get() = this is Success
+    val isFailure: Boolean get() = this is Failure
+
+    fun valueOrNull(): T? = when (this) {
+        is Success<T> -> value
+        is Failure -> null
     }
 }

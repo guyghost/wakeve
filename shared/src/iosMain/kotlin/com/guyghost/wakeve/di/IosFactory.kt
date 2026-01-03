@@ -3,6 +3,8 @@ package com.guyghost.wakeve.di
 import com.guyghost.wakeve.DatabaseEventRepository
 import com.guyghost.wakeve.EventRepositoryInterface
 import com.guyghost.wakeve.ScenarioRepository
+import com.guyghost.wakeve.comment.CommentCache
+import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.meeting.MeetingRepository
 import com.guyghost.wakeve.meeting.MeetingService
@@ -243,5 +245,17 @@ object IosFactory {
 
         // Wrap for SwiftUI
         return ObservableStateMachine(stateMachine)
+    }
+
+    /**
+     * Create a CommentRepository for iOS.
+     *
+     * Provides access to comment CRUD operations for the CommentsView.
+     *
+     * @param database The WakevDb instance (must be provided by iOS app)
+     * @return A CommentRepository instance
+     */
+    fun createCommentRepository(database: WakevDb): CommentRepository {
+        return CommentRepository(database)
     }
 }

@@ -28,8 +28,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import android.content.Intent
+import android.net.Uri
 
 /**
  * State for the login screen.
@@ -193,6 +196,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             // Privacy Policy & Terms
+            val context = LocalContext.current
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.padding(bottom = 16.dp)
@@ -205,7 +209,12 @@ fun LoginScreen(
                 Row(
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    TextButton(onClick = { /* TODO: Open privacy policy */ }) {
+                    TextButton(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wakeve.com/privacy"))
+                            context.startActivity(intent)
+                        }
+                    ) {
                         Text(
                             text = "Privacy Policy",
                             style = MaterialTheme.typography.bodySmall
@@ -217,7 +226,12 @@ fun LoginScreen(
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                         modifier = Modifier.align(Alignment.CenterVertically)
                     )
-                    TextButton(onClick = { /* TODO: Open terms */ }) {
+                    TextButton(
+                        onClick = {
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wakeve.com/terms"))
+                            context.startActivity(intent)
+                        }
+                    ) {
                         Text(
                             text = "Terms of Service",
                             style = MaterialTheme.typography.bodySmall

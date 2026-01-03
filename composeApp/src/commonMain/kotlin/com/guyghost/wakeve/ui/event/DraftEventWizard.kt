@@ -47,6 +47,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.auth.AuthStateManager
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
@@ -114,11 +115,13 @@ fun DraftEventWizard(
     
     // Build current event
     fun buildEvent(): Event {
+        val authStateManager = AuthStateManager.getInstance()
+        val currentUser = authStateManager.currentUser.value
         return Event(
             id = initialEvent?.id ?: "event-${Clock.System.now().toEpochMilliseconds()}",
             title = title,
             description = description,
-            organizerId = initialEvent?.organizerId ?: "current-user", // TODO: Get from auth
+            organizerId = initialEvent?.organizerId ?: currentUser?.id ?: "anonymous",
             participants = initialEvent?.participants ?: emptyList(),
             proposedSlots = timeSlots,
             deadline = initialEvent?.deadline ?: Clock.System.now().toString(), // TODO: Set proper deadline
