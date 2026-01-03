@@ -1,0 +1,23 @@
+-- Suggestion Preferences for Users
+-- Stores user preferences for AI-powered recommendations
+-- Stores budget, duration, seasons, activities, location preferences and accessibility needs
+
+CREATE TABLE suggestion_preferences (
+    user_id TEXT PRIMARY KEY,
+    budgetMin REAL NOT NULL,
+    budgetMax REAL NOT NULL,
+    budgetCurrency TEXT NOT NULL,
+    preferredDurationMin INTEGER NOT NULL,
+    preferredDurationMax INTEGER NOT NULL,
+    preferredSeasons TEXT NOT NULL,           -- JSON array of SuggestionSeason
+    preferredActivities TEXT NOT NULL,         -- JSON array of activity names
+    maxGroupSize INTEGER NOT NULL,
+    preferredRegions TEXT NOT NULL,            -- JSON array of region names
+    maxDistanceFromCity INTEGER NOT NULL,    -- Distance in km
+    nearbyCities TEXT NOT NULL,                -- JSON array of city names
+    accessibilityNeeds TEXT NOT NULL,          -- JSON array of accessibility requirements
+    lastUpdated TEXT NOT NULL                  -- ISO 8601 UTC timestamp
+);
+
+-- Index for efficient user lookups
+CREATE INDEX idx_suggestion_preferences_user ON suggestion_preferences(user_id);
