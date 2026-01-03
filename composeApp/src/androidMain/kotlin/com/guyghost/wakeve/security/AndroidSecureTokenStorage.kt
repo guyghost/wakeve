@@ -38,6 +38,12 @@ class AndroidSecureTokenStorage(private val context: Context) : SecureTokenStora
     private val userIdKey = "user_id"
     private val tokenExpiryKey = "token_expiry"
 
+    // User profile keys
+    private val userEmailKey = "user_email"
+    private val userNameKey = "user_name"
+    private val userProviderKey = "user_provider"
+    private val userAvatarUrlKey = "user_avatar_url"
+
     override suspend fun storeAccessToken(token: String): Result<Unit> = runCatching {
         encryptedPrefs.edit()
             .putString(accessTokenKey, token)
@@ -62,6 +68,36 @@ class AndroidSecureTokenStorage(private val context: Context) : SecureTokenStora
             .apply()
     }
 
+    override suspend fun storeUserEmail(email: String): Result<Unit> = runCatching {
+        encryptedPrefs.edit()
+            .putString(userEmailKey, email)
+            .apply()
+    }
+
+    override suspend fun storeUserName(name: String): Result<Unit> = runCatching {
+        encryptedPrefs.edit()
+            .putString(userNameKey, name)
+            .apply()
+    }
+
+    override suspend fun storeUserProvider(provider: String): Result<Unit> = runCatching {
+        encryptedPrefs.edit()
+            .putString(userProviderKey, provider)
+            .apply()
+    }
+
+    override suspend fun storeUserAvatarUrl(avatarUrl: String?): Result<Unit> = runCatching {
+        if (avatarUrl != null) {
+            encryptedPrefs.edit()
+                .putString(userAvatarUrlKey, avatarUrl)
+                .apply()
+        } else {
+            encryptedPrefs.edit()
+                .remove(userAvatarUrlKey)
+                .apply()
+        }
+    }
+
     override suspend fun getAccessToken(): String? {
         return encryptedPrefs.getString(accessTokenKey, null)
     }
@@ -79,12 +115,51 @@ class AndroidSecureTokenStorage(private val context: Context) : SecureTokenStora
         return if (expiry == 0L) null else expiry
     }
 
+    override suspend fun getUserEmail(): String? {
+        return encryptedPrefs.getString(userEmailKey, null)
+    }
+
+    override suspend fun getUserName(): String? {
+        return encryptedPrefs.getString(userNameKey, null)
+    }
+
+    override suspend fun getUserProvider(): String? {
+        return encryptedPrefs.getString(userProviderKey, null)
+    }
+
+    override suspend fun getUserAvatarUrl(): String? {
+        return encryptedPrefs.getString(userAvatarUrlKey, null)
+    }
+
+    override suspend fun getUserProfile(): UserProfileData? {
+        val userId = getUserId() ?: return null
+        return UserProfileData(
+            userId = userId,
+            email = getUserEmail(),
+            name = getUserName(),
+            provider = getUserProvider(),
+            avatarUrl = getUserAvatarUrl()
+        )
+    }
+
+    override suspend fun storeUserProfile(profile: UserProfileData): Result<Unit> = runCatching {
+        storeUserId(profile.userId)
+        profile.email?.let { storeUserEmail(it) }
+        profile.name?.let { storeUserName(it) }
+        profile.provider?.let { storeUserProvider(it) }
+        storeUserAvatarUrl(profile.avatarUrl)
+    }
+
     override suspend fun clearAllTokens(): Result<Unit> = runCatching {
         encryptedPrefs.edit()
             .remove(accessTokenKey)
             .remove(refreshTokenKey)
             .remove(userIdKey)
             .remove(tokenExpiryKey)
+            .remove(userEmailKey)
+            .remove(userNameKey)
+            .remove(userProviderKey)
+            .remove(userAvatarUrlKey)
             .apply()
     }
 

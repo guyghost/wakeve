@@ -101,6 +101,7 @@ import kotlin.time.Duration
 @Composable
 fun MeetingListScreen(
     viewModel: MeetingManagementViewModel,
+    eventId: String? = null,
     isOrganizer: Boolean = false,
     onNavigateToDetail: (String) -> Unit = {}
 ) {
@@ -108,9 +109,10 @@ fun MeetingListScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
 
     // Load meetings on first composition
-    LaunchedEffect(state.eventId) {
-        if (state.eventId.isNotEmpty()) {
-            viewModel.initialize(state.eventId)
+    LaunchedEffect(eventId ?: state.eventId) {
+        val id = eventId ?: state.eventId
+        if (id.isNotEmpty()) {
+            viewModel.initialize(id)
         }
     }
 

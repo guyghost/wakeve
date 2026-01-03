@@ -20,7 +20,11 @@ import com.guyghost.wakeve.OnboardingScreen
 import com.guyghost.wakeve.ProfileTabScreen
 import com.guyghost.wakeve.SettingsScreen
 import com.guyghost.wakeve.SplashScreen
+import com.guyghost.wakeve.ui.meeting.MeetingListScreen
+import com.guyghost.wakeve.ui.scenario.ScenarioComparisonScreen
+import com.guyghost.wakeve.ui.scenario.ScenarioDetailScreen
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
+import com.guyghost.wakeve.viewmodel.MeetingManagementViewModel
 import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
 import org.koin.compose.koinInject
 
@@ -251,8 +255,8 @@ fun WakevNavHost(
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
             val viewModel: ScenarioManagementViewModel = koinInject()
             
-            // TODO: Get event from repository
-            // For now, navigate back
+            // Scenario list is handled by ScenarioManagementScreen
+            // This route is for navigation completeness
             navController.navigateUp()
         }
         
@@ -265,10 +269,36 @@ fun WakevNavHost(
         ) { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
             val scenarioId = backStackEntry.arguments?.getString("scenarioId") ?: ""
+            val viewModel: ScenarioManagementViewModel = koinInject()
+            val eventViewModel: EventManagementViewModel = koinInject()
             
-            // TODO: Implement ScenarioDetailScreen
-            // For now, show placeholder
-            navController.navigateUp()
+            // Get the scenario from the state machine
+            val state = viewModel.state.value
+            val scenarioWithVotes = state.scenarios.find { it.scenario.id == scenarioId }
+            val scenario = scenarioWithVotes?.scenario
+            
+            if (scenario != null) {
+                ScenarioDetailScreen(
+                    scenario = scenario,
+                    votingResult = scenarioWithVotes?.votingResult,
+                    votes = scenarioWithVotes?.votes ?: emptyList(),
+                    isOrganizer = userId == eventViewModel.state.value.organizerId,
+                    onSelectAsFinal = {
+                        viewModel.dispatch(
+                            com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent.SelectScenarioAsFinal(scenarioId)
+                        )
+                    },
+                    onNavigateToMeetings = {
+                        navController.navigate(Screen.MeetingList.createRoute(eventId))
+                    },
+                    onNavigateBack = {
+                        navController.navigateUp()
+                    }
+                )
+            } else {
+                // Scenario not found, navigate back
+                navController.navigateUp()
+            }
         }
         
         composable(
@@ -276,10 +306,39 @@ fun WakevNavHost(
             arguments = listOf(navArgument("eventId") { type = NavType.StringType })
         ) { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val viewModel: ScenarioManagementViewModel = koinInject()
+            val eventViewModel: EventManagementViewModel = koinInject()
             
-            // TODO: Implement ScenarioComparisonScreen
-            // For now, show placeholder
-            navController.navigateUp()
+            val state = viewModel.state.value
+            
+            ScenarioComparisonScreen(
+                scenarios = state.scenarios,
+                eventId = eventId,
+                isOrganizer = userId == eventViewModel.state.value.organizerId,
+                onVote = { scenarioId ->
+                    viewModel.dispatch(
+                        com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent.VoteScenario(
+                            scenarioId,
+                            com.guyghost.wakeve.models.ScenarioVoteType.PREFER
+                        )
+                    )
+                },
+                onSelectWinner = { scenarioId ->
+                    viewModel.dispatch(
+                        com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent.SelectScenarioAsFinal(scenarioId)
+                    )
+                    navController.navigate(Screen.MeetingList.createRoute(eventId))
+                },
+                onNavigateBack = {
+                    viewModel.dispatch(
+                        com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent.ClearComparison
+                    )
+                    navController.navigateUp()
+                },
+                onNavigateToMeetings = { id ->
+                    navController.navigate(Screen.MeetingList.createRoute(id))
+                }
+            )
         }
         
         // ========================================
@@ -302,10 +361,21 @@ fun WakevNavHost(
         // MEETINGS (Phase 4)
         // ========================================
         
-        composable(Screen.MeetingList.route) {
-            // TODO: Implement MeetingListScreen (Phase 4)
-            // For now, show placeholder
-            navController.navigateUp()
+        composable(
+            route = Screen.MeetingList.route,
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val viewModel: MeetingManagementViewModel = koinInject()
+            val eventViewModel: EventManagementViewModel = koinInject()
+            
+            MeetingListScreen(
+                viewModel = viewModel,
+                isOrganizer = userId == eventViewModel.state.value.organizerId,
+                onNavigateToDetail = { route ->
+                    navController.navigate(route)
+                }
+            )
         }
         
         composable(

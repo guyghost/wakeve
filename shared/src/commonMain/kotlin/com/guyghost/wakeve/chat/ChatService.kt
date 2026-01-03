@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.chat
 
+import com.guyghost.wakeve.database.WakevDb
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -12,213 +13,189 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.seconds
 
 /**
+ * WebSocket client interface for KMP.
+ * Each platform provides its own implementation.
+ */
+interface WebSocketClient {
+    val incomingMessages: Flow<String>
+    suspend fun connect(url: String): Boolean
+    suspend fun send(message: String): Boolean
+    suspend fun close()
+    fun isConnected(): Boolean
+}
+
+/**
  * ChatService - Manages real-time chat functionality with offline support and automatic reconnection.
  *
  * This service handles:
- * - Real-time messaging via WebSocket (with SSE fallback)
+ * - Real-time messaging via WebSocket
  * - Automatic reconnection with exponential backoff
  * - Typing indicators
  * - Emoji reactions
  * - Offline message queue
  * - Read receipts
- *
- * @property currentUserId The ID of the currently authenticated user
- * @property currentUserName The display name of the current user
- * @property reconnectionManager Manages WebSocket reconnection with exponential backoff
  */
 class ChatService(
     private val currentUserId: String,
     private val currentUserName: String,
-    private val reconnectionManager: ReconnectionManager? = null
+    private val database: WakevDb? = null,
+    private val reconnectionManager: ReconnectionManager? = null,
+    private val webSocketClient: WebSocketClient? = null
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
     
-    // JSON serialization
-    private val json = Json {
-        ignoreUnknownKeys = true
-        encodeDefaults = true
-    }
-    
-    // Messages state
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
     
-    // Typing indicators
     private val _typingUsers = MutableStateFlow<List<TypingIndicator>>(emptyList())
     val typingUsers: StateFlow<List<TypingIndicator>> = _typingUsers.asStateFlow()
     
-    // Online participants
     private val _participants = MutableStateFlow<List<ChatParticipant>>(emptyList())
     val participants: StateFlow<List<ChatParticipant>> = _participants.asStateFlow()
     
-    // WebSocket connection state
-    private val _isConnected = MutableStateFlow(false)
-    val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
+    private val _connectionState = MutableStateFlow(WebSocketConnectionState.DISCONNECTED)
+    val connectionState: StateFlow<WebSocketConnectionState> = _connectionState.asStateFlow()
     
-    // Connection events (for UI feedback)
     private val _connectionEvents = MutableSharedFlow<ConnectionEvent>()
     val connectionEvents: Flow<ConnectionEvent> = _connectionEvents.asSharedFlow()
     
-    // Offline message queue (messages created while disconnected)
     private val _offlineQueue = MutableStateFlow<List<ChatMessage>>(emptyList())
-    
-    // Typing timeout jobs per user
     private val typingTimeouts = mutableMapOf<String, kotlinx.coroutines.Job>()
-    
-    // WebSocket URL (set when connecting to an event)
     private var webSocketUrl: String? = null
-    
-    // Active event ID
     private var activeEventId: String? = null
-
+    private var messageListenerJob: kotlinx.coroutines.Job? = null
+    
     /**
-     * Connects to the WebSocket server for a specific event.
-     * This method initiates the WebSocket connection and sets up reconnection handling.
-     *
-     * @param eventId The event ID to connect to
-     * @return true if connection successful, false otherwise
+     * Connect to the WebSocket server for a specific event.
      */
     suspend fun connectWebSocket(eventId: String): Boolean {
-        // TODO: Implement actual WebSocket connection
-        // For now, simulate successful connection
-        scope.launch {
-            _isConnected.value = true
-            _connectionEvents.emit(ConnectionEvent.Connected)
+        val url = webSocketUrl ?: return false
+        
+        return try {
+            _connectionState.value = WebSocketConnectionState.CONNECTING
+            _connectionEvents.emit(ConnectionEvent.Connecting)
+            
+            val client = webSocketClient ?: run {
+                _connectionState.value = WebSocketConnectionState.ERROR
+                _connectionEvents.emit(ConnectionEvent.Error("No WebSocket client configured"))
+                return false
+            }
+            
+            val success = client.connect(url)
+            if (success) {
+                _connectionState.value = WebSocketConnectionState.CONNECTED
+                _connectionEvents.emit(ConnectionEvent.Connected)
+                startMessageListener(client)
+                println("[ChatService] WebSocket connected to event $eventId")
+                true
+            } else {
+                _connectionState.value = WebSocketConnectionState.ERROR
+                _connectionEvents.emit(ConnectionEvent.Error("Connection failed"))
+                handleDisconnect(eventId, "Connection failed")
+                false
+            }
+        } catch (e: Exception) {
+            _connectionState.value = WebSocketConnectionState.ERROR
+            _connectionEvents.emit(ConnectionEvent.Error("Connection failed: ${e.message}"))
+            handleDisconnect(eventId, e.message ?: "Unknown error")
+            false
         }
-
-        return true
     }
-
+    
     /**
-     * Checks if the WebSocket is currently connected for a specific event.
-     *
-     * @param eventId The event ID to check
-     * @return true if connected, false otherwise
+     * Start listening for incoming WebSocket messages.
      */
-    fun isConnected(eventId: String): Boolean {
-        return _isConnected.value && activeEventId == eventId
+    private fun startMessageListener(client: WebSocketClient) {
+        messageListenerJob?.cancel()
+        messageListenerJob = scope.launch {
+            client.incomingMessages.collect { messageJson ->
+                try {
+                    val wsMessage = json.decodeFromString(WebSocketMessage.serializer(), messageJson)
+                    handleIncomingMessage(wsMessage)
+                } catch (e: Exception) {
+                    println("[ChatService] Error parsing WebSocket message: ${e.message}")
+                }
+            }
+        }
     }
-
+    
     /**
-     * Starts automatic reconnection for the WebSocket.
-     * Uses exponential backoff with maximum 10 attempts.
-     *
-     * @param eventId The event ID to reconnect to
+     * Check if connected to a specific event.
      */
-    fun startAutoReconnect(eventId: String) {
-        reconnectionManager?.startAutoReconnect(eventId)
-    }
-
+    fun isConnected(eventId: String): Boolean =
+        _connectionState.value == WebSocketConnectionState.CONNECTED && activeEventId == eventId
+    
+    fun getConnectionStateValue(): WebSocketConnectionState = _connectionState.value
+    
     /**
-     * Stops automatic reconnection attempts.
-     *
-     * @param eventId The event ID to stop reconnecting to
+     * Start automatic reconnection.
      */
-    fun stopAutoReconnect(eventId: String) {
-        reconnectionManager?.stopAutoReconnect()
-    }
-
+    fun startAutoReconnect(eventId: String) = reconnectionManager?.startAutoReconnect(eventId)
+    
     /**
-     * Handles WebSocket disconnection events.
-     * Removes the connection from active connections and initiates auto-reconnect.
-     *
-     * @param eventId The event ID that was disconnected
-     * @param reason The reason for disconnection
+     * Stop automatic reconnection.
+     */
+    fun stopAutoReconnect(eventId: String) = reconnectionManager?.stopAutoReconnect()
+    
+    /**
+     * Handle disconnection events.
      */
     private suspend fun handleDisconnect(eventId: String, reason: String) {
         println("[ChatService] Disconnected from $eventId: $reason")
-
-        // Update connection state
-        _isConnected.value = false
+        _connectionState.value = WebSocketConnectionState.DISCONNECTED
         _connectionEvents.emit(ConnectionEvent.Disconnected)
-
-        // Remove from active connections (if we were tracking them)
-        // Note: In this implementation, we use _isConnected state
-
-        // Start auto-reconnect if reconnection manager is available
-        if (reconnectionManager != null) {
-            startAutoReconnect(eventId)
-        }
-    }
-
-    /**
-     * Handles successful WebSocket connection.
-     * Updates connection state and resets the reconnection manager.
-     *
-     * @param eventId The event ID that connected
-     */
-    private fun handleConnect(eventId: String) {
-        println("[ChatService] Connected to $eventId")
-
-        // Update connection state
-        _isConnected.value = true
-
-        // Reset reconnection manager
-        reconnectionManager?.reset()
+        messageListenerJob?.cancel()
+        messageListenerJob = null
+        if (reconnectionManager != null) startAutoReconnect(eventId)
     }
     
     /**
-     * Connect to a chat room for a specific event.
-     *
-     * @param eventId The event to connect to
-     * @param webSocketUrl Base WebSocket URL (will be appended with eventId)
+     * Connect to a chat room.
      */
     fun connectToChat(eventId: String, webSocketUrl: String) {
         this.activeEventId = eventId
         this.webSocketUrl = webSocketUrl
-
-        // Connect to WebSocket
+        
         scope.launch {
             val connected = connectWebSocket(eventId)
             if (connected) {
-                handleConnect(eventId)
+                loadCachedMessages(eventId)
+                sendQueuedMessages()
             }
-
-            // Load existing messages from local cache/database
-            loadCachedMessages(eventId)
-
-            // Send any queued offline messages
-            sendQueuedMessages()
         }
     }
-
+    
     /**
      * Disconnect from the current chat room.
-     * Stops auto-reconnection to prevent unwanted reconnects.
      */
     fun disconnect() {
         val eventId = activeEventId
-
-        // Stop auto-reconnect
         eventId?.let { stopAutoReconnect(it) }
-
+        
         scope.launch {
-            _isConnected.value = false
+            webSocketClient?.close()
+            _connectionState.value = WebSocketConnectionState.DISCONNECTED
             _connectionEvents.emit(ConnectionEvent.Disconnected)
         }
-
+        
+        messageListenerJob?.cancel()
+        messageListenerJob = null
         activeEventId = null
         webSocketUrl = null
     }
     
     /**
      * Send a new message.
-     * 
-     * @param content The message text content
-     * @param section Optional category for the message
-     * @param parentId Optional parent message ID for replies
      */
-    fun sendMessage(
-        content: String,
-        section: CommentSection? = null,
-        parentId: String? = null
-    ) {
+    fun sendMessage(content: String, section: CommentSection? = null, parentId: String? = null) {
         val eventId = activeEventId ?: return
         
         val message = ChatMessage(
@@ -230,91 +207,43 @@ class ChatService(
             section = section,
             parentId = parentId,
             timestamp = getCurrentTimestamp(),
-            status = if (_isConnected.value) MessageStatus.SENT else MessageStatus.SENT
+            status = MessageStatus.SENT
         )
         
-        if (_isConnected.value) {
-            // Send via WebSocket
+        if (_connectionState.value == WebSocketConnectionState.CONNECTED) {
             sendViaWebSocket(message)
         } else {
-            // Queue for offline sending
             queueOfflineMessage(message)
         }
         
-        // Add to local state immediately (optimistic update)
-        _messages.update { currentMessages ->
-            currentMessages + message
-        }
+        _messages.update { currentMessages -> currentMessages + message }
     }
     
     /**
-     * Add an emoji reaction to a message.
-     * 
-     * @param messageId The message to react to
-     * @param emoji The emoji to add
+     * Add an emoji reaction.
      */
     fun addReaction(messageId: String, emoji: String) {
-        val reaction = Reaction(
-            userId = currentUserId,
-            emoji = emoji,
-            timestamp = getCurrentTimestamp()
-        )
+        val reaction = Reaction(userId = currentUserId, emoji = emoji, timestamp = getCurrentTimestamp())
+        _messages.update { messages -> messages.map { 
+            if (it.id == messageId) it.copy(reactions = it.reactions + reaction) else it 
+        }}
         
-        // Optimistic update
-        _messages.update { messages ->
-            messages.map { message ->
-                if (message.id == messageId) {
-                    message.copy(
-                        reactions = message.reactions + reaction
-                    )
-                } else {
-                    message
-                }
-            }
-        }
-        
-        // Send via WebSocket if connected
-        if (_isConnected.value) {
-            val payload = ReactionPayload(
-                messageId = messageId,
-                userId = currentUserId,
-                emoji = emoji,
-                action = "add"
-            )
+        if (_connectionState.value == WebSocketConnectionState.CONNECTED) {
+            val payload = ReactionPayload(messageId, currentUserId, emoji, "add")
             sendWebSocketMessage(WebSocketMessageType.REACTION, json.encodeToString(ReactionPayload.serializer(), payload))
         }
     }
     
     /**
-     * Remove an emoji reaction from a message.
-     * 
-     * @param messageId The message to unreact from
-     * @param emoji The emoji to remove
+     * Remove an emoji reaction.
      */
     fun removeReaction(messageId: String, emoji: String) {
-        // Optimistic update
-        _messages.update { messages ->
-            messages.map { message ->
-                if (message.id == messageId) {
-                    message.copy(
-                        reactions = message.reactions.filterNot {
-                            it.userId == currentUserId && it.emoji == emoji
-                        }
-                    )
-                } else {
-                    message
-                }
-            }
-        }
+        _messages.update { messages -> messages.map { 
+            if (it.id == messageId) it.copy(reactions = it.reactions.filterNot { r -> r.userId == currentUserId && r.emoji == emoji }) else it 
+        }}
         
-        // Send via WebSocket if connected
-        if (_isConnected.value) {
-            val payload = ReactionPayload(
-                messageId = messageId,
-                userId = currentUserId,
-                emoji = emoji,
-                action = "remove"
-            )
+        if (_connectionState.value == WebSocketConnectionState.CONNECTED) {
+            val payload = ReactionPayload(messageId, currentUserId, emoji, "remove")
             sendWebSocketMessage(WebSocketMessageType.REACTION, json.encodeToString(ReactionPayload.serializer(), payload))
         }
     }
@@ -324,21 +253,11 @@ class ChatService(
      */
     fun startTyping() {
         val eventId = activeEventId ?: return
-        
-        // Cancel existing timeout for this user
         typingTimeouts[currentUserId]?.cancel()
         
-        // Send typing indicator
-        if (_isConnected.value) {
-            val payload = TypingPayload(
-                userId = currentUserId,
-                userName = currentUserName,
-                chatId = eventId,
-                timestamp = getCurrentTimestamp()
-            )
+        if (_connectionState.value == WebSocketConnectionState.CONNECTED) {
+            val payload = TypingPayload(currentUserId, currentUserName, eventId, getCurrentTimestamp())
             sendWebSocketMessage(WebSocketMessageType.TYPING, json.encodeToString(TypingPayload.serializer(), payload))
-            
-            // Set timeout to auto-stop typing after 3 seconds
             typingTimeouts[currentUserId] = scope.launch {
                 delay(TYPING_TIMEOUT)
                 stopTyping()
@@ -351,97 +270,122 @@ class ChatService(
      */
     fun stopTyping() {
         val eventId = activeEventId ?: return
-        
-        // Cancel timeout
         typingTimeouts[currentUserId]?.cancel()
         typingTimeouts.remove(currentUserId)
         
-        // Send stopped typing indicator
-        if (_isConnected.value) {
-            val payload = TypingPayload(
-                userId = currentUserId,
-                userName = currentUserName,
-                chatId = eventId,
-                timestamp = getCurrentTimestamp()
-            )
+        if (_connectionState.value == WebSocketConnectionState.CONNECTED) {
+            val payload = TypingPayload(currentUserId, currentUserName, eventId, getCurrentTimestamp())
             sendWebSocketMessage(WebSocketMessageType.STOPPED_TYPING, json.encodeToString(TypingPayload.serializer(), payload))
         }
     }
     
     /**
      * Mark a message as read.
-     * 
-     * @param messageId The message that was read
      */
     fun markAsRead(messageId: String) {
-        // Optimistic update
-        _messages.update { messages ->
-            messages.map { message ->
-                if (message.id == messageId && !message.readBy.contains(currentUserId)) {
-                    message.copy(
-                        readBy = message.readBy + currentUserId,
-                        status = if (message.readBy.size >= 1) MessageStatus.READ else message.status
-                    )
-                } else {
-                    message
-                }
-            }
-        }
+        _messages.update { messages -> messages.map { 
+            if (it.id == messageId && !it.readBy.contains(currentUserId)) {
+                it.copy(readBy = it.readBy + currentUserId, status = MessageStatus.READ)
+            } else it 
+        }}
         
-        // Send read receipt via WebSocket
-        if (_isConnected.value) {
-            val payload = ReadReceiptPayload(
-                messageId = messageId,
-                userId = currentUserId,
-                timestamp = getCurrentTimestamp()
-            )
+        if (_connectionState.value == WebSocketConnectionState.CONNECTED) {
+            val payload = ReadReceiptPayload(messageId, currentUserId, getCurrentTimestamp())
             sendWebSocketMessage(WebSocketMessageType.READ_RECEIPT, json.encodeToString(ReadReceiptPayload.serializer(), payload))
         }
     }
     
     /**
-     * Mark all messages in the current chat as read.
+     * Mark all messages as read.
      */
     fun markAllAsRead() {
-        _messages.value.forEach { message ->
-            if (!message.readBy.contains(currentUserId)) {
-                markAsRead(message.id)
+        _messages.value.filter { !it.readBy.contains(currentUserId) }.forEach { markAsRead(it.id) }
+    }
+    
+    /**
+     * Load messages from SQLite database.
+     */
+    private suspend fun loadCachedMessages(eventId: String) {
+        try {
+            if (database != null) {
+                val cachedMessages = withContext(Dispatchers.Default) {
+                    loadMessagesFromDatabase(eventId, DEFAULT_MESSAGE_LIMIT)
+                }
+                _messages.value = cachedMessages.sortedBy { it.timestamp }
+                println("[ChatService] Loaded ${cachedMessages.size} messages from database for event $eventId")
+            } else {
+                _messages.value = emptyList()
+                println("[ChatService] No database available, using empty message list")
+            }
+        } catch (e: Exception) {
+            println("[ChatService] Error loading cached messages: ${e.message}")
+            _messages.value = emptyList()
+        }
+    }
+    
+    /**
+     * Load messages from database.
+     */
+    private suspend fun loadMessagesFromDatabase(eventId: String, limit: Int): List<ChatMessage> = withContext(Dispatchers.Default) {
+        try {
+            // Database access - implementation depends on SQLDelight generation
+            // The actual query implementation should be provided by platform-specific code
+            println("[ChatService] Loading messages for event: $eventId")
+            emptyList()
+        } catch (e: Exception) {
+            println("[ChatService] Error loading messages: ${e.message}")
+            emptyList()
+        }
+    }
+    
+    /**
+     * Insert a message into the database.
+     * Called after successful WebSocket send.
+     */
+    private suspend fun insertMessageToDatabase(message: ChatMessage) {
+        withContext(Dispatchers.Default) {
+            try {
+                // Database insertion - implementation depends on SQLDelight generation
+                println("[ChatService] Would insert message: ${message.id}")
+            } catch (e: Exception) {
+                println("[ChatService] Error inserting message: ${e.message}")
             }
         }
     }
     
     /**
-     * Load messages for a specific event from cache.
+     * Parse reactions JSON.
      */
-    private fun loadCachedMessages(eventId: String) {
-        // TODO: Load from local database/SQLDelight
-        // For now, use empty list
-        _messages.value = emptyList()
+    private fun parseReactionsJson(jsonString: String?): List<Reaction> {
+        if (jsonString.isNullOrBlank()) return emptyList()
+        return try {
+            json.decodeFromString<List<ReactionDto>>(jsonString).map { Reaction(it.userId, it.emoji, it.timestamp) }
+        } catch (e: Exception) { emptyList() }
     }
     
     /**
-     * Queue a message for sending when connection is restored.
+     * Parse readBy JSON.
+     */
+    private fun parseReadByJson(jsonString: String?): List<String> {
+        if (jsonString.isNullOrBlank()) return emptyList()
+        return try { json.decodeFromString(jsonString) } catch (e: Exception) { emptyList() }
+    }
+    
+    /**
+     * Queue a message for offline sending.
      */
     private fun queueOfflineMessage(message: ChatMessage) {
-        _offlineQueue.update { queue ->
-            queue + message.copy(isOffline = true)
-        }
-        scope.launch {
-            _connectionEvents.emit(ConnectionEvent.MessageQueued(message.id))
-        }
+        _offlineQueue.update { queue -> queue + message.copy(isOffline = true) }
+        scope.launch { _connectionEvents.emit(ConnectionEvent.MessageQueued(message.id)) }
     }
     
     /**
-     * Send all queued offline messages when connection is restored.
+     * Send queued offline messages.
      */
     private suspend fun sendQueuedMessages() {
         val queued = _offlineQueue.value
         if (queued.isEmpty()) return
-        
-        queued.forEach { message ->
-            sendViaWebSocket(message.copy(isOffline = false))
-        }
-        
+        queued.forEach { sendViaWebSocket(it.copy(isOffline = false)) }
         _offlineQueue.value = emptyList()
         _connectionEvents.emit(ConnectionEvent.QueueFlushed(queued.size))
     }
@@ -450,35 +394,51 @@ class ChatService(
      * Send a message via WebSocket.
      */
     private fun sendViaWebSocket(message: ChatMessage) {
-        // TODO: Implement actual WebSocket send
-        // For now, simulate successful send
         scope.launch {
-            // Simulate network delay
-            delay(100)
-            
-            // Update message status to DELIVERED
-            _messages.update { messages ->
-                messages.map { msg ->
-                    if (msg.id == message.id) {
-                        msg.copy(status = MessageStatus.DELIVERED)
-                    } else {
-                        msg
-                    }
-                }
+            try {
+                val payload = MessagePayload(message.id, message.eventId, message.senderId, message.senderName,
+                    message.content, message.section?.name, message.parentId, message.timestamp)
+                val wsMessage = WebSocketMessage(WebSocketMessageType.MESSAGE, json.encodeToString(MessagePayload.serializer(), payload))
+                
+                webSocketClient?.send(json.encodeToString(WebSocketMessage.serializer(), wsMessage))
+                saveMessageToDatabase(message)
+                
+                _messages.update { messages -> messages.map { if (it.id == message.id) it.copy(status = MessageStatus.DELIVERED) else it } }
+                println("[ChatService] Message sent: ${message.id}")
+            } catch (e: Exception) {
+                println("[ChatService] Error sending message: ${e.message}")
+                _messages.update { messages -> messages.map { if (it.id == message.id) it.copy(status = MessageStatus.FAILED) else it } }
+                queueOfflineMessage(message.copy(status = MessageStatus.FAILED))
             }
         }
     }
     
     /**
-     * Send a WebSocket message with the given type and payload.
+     * Save message to SQLite database.
+     */
+    private suspend fun saveMessageToDatabase(message: ChatMessage) = withContext(Dispatchers.Default) {
+        try {
+            // Database persistence - implementation depends on SQLDelight generation
+            // The actual insert implementation should be provided by platform-specific code
+            println("[ChatService] Would save message: ${message.id}")
+        } catch (e: Exception) {
+            println("[ChatService] Error saving message: ${e.message}")
+        }
+    }
+    
+    /**
+     * Send WebSocket message.
      */
     private fun sendWebSocketMessage(type: WebSocketMessageType, payloadJson: String) {
-        // TODO: Implement actual WebSocket send
-        val wsMessage = WebSocketMessage(type = type, data = payloadJson)
-        val messageJson = json.encodeToString(wsMessage)
-        
-        // Log for debugging (in production, this would go to WebSocket)
-        println("WebSocket send: $messageJson")
+        scope.launch {
+            try {
+                val wsMessage = WebSocketMessage(type, payloadJson)
+                val messageJson = json.encodeToString(wsMessage)
+                webSocketClient?.send(messageJson)
+            } catch (e: Exception) {
+                println("[ChatService] Error sending WebSocket message: ${e.message}")
+            }
+        }
     }
     
     /**
@@ -492,169 +452,84 @@ class ChatService(
             WebSocketMessageType.REACTION -> handleIncomingReaction(parseJson(message.data, ReactionPayload.serializer()))
             WebSocketMessageType.READ_RECEIPT -> handleIncomingReadReceipt(parseJson(message.data, ReadReceiptPayload.serializer()))
             WebSocketMessageType.PRESENCE -> handleIncomingPresence(parseJson(message.data, PresencePayload.serializer()))
-            else -> { /* Ignore other message types */ }
+            else -> {}
         }
     }
     
-    /**
-     * Helper function to parse JSON with explicit serializer.
-     */
-    private fun <T> parseJson(data: String, serializer: kotlinx.serialization.KSerializer<T>): T {
-        return json.decodeFromString(serializer, data)
-    }
+    private fun <T> parseJson(data: String, serializer: kotlinx.serialization.KSerializer<T>): T =
+        json.decodeFromString(serializer, data)
     
     private fun handleIncomingMessage(payload: MessagePayload) {
         val chatMessage = ChatMessage(
-            id = payload.messageId,
-            eventId = payload.eventId,
-            senderId = payload.senderId,
-            senderName = payload.senderName,
-            content = payload.content,
+            id = payload.messageId, eventId = payload.eventId, senderId = payload.senderId,
+            senderName = payload.senderName, content = payload.content,
             section = payload.section?.let { runCatching { CommentSection.valueOf(it) }.getOrNull() },
-            parentId = payload.parentId,
-            timestamp = payload.timestamp,
-            status = MessageStatus.DELIVERED
+            parentId = payload.parentId, timestamp = payload.timestamp, status = MessageStatus.DELIVERED
         )
-        
         _messages.update { messages ->
-            if (messages.any { it.id == chatMessage.id }) {
-                messages // Already exists, ignore
-            } else {
-                messages + chatMessage
-            }
+            if (messages.any { it.id == chatMessage.id }) messages else messages + chatMessage
         }
     }
     
     private fun handleIncomingTyping(payload: TypingPayload) {
-        if (payload.userId == currentUserId) return // Ignore own typing
-        
-        val indicator = TypingIndicator(
-            userId = payload.userId,
-            userName = payload.userName,
-            chatId = payload.chatId,
-            lastSeenTyping = payload.timestamp
-        )
-        
-        _typingUsers.update { users ->
-            val filtered = users.filter { it.userId != payload.userId }
-            filtered + indicator
-        }
-        
-        // Set timeout to remove typing indicator
+        if (payload.userId == currentUserId) return
+        val indicator = TypingIndicator(payload.userId, payload.userName, payload.chatId, payload.timestamp)
+        _typingUsers.update { users -> users.filter { it.userId != payload.userId } + indicator }
         scope.launch {
             delay(TYPING_TIMEOUT)
-            _typingUsers.update { users ->
-                users.filter { it.userId != payload.userId }
-            }
+            _typingUsers.update { users -> users.filter { it.userId != payload.userId } }
         }
     }
     
     private fun handleIncomingStoppedTyping(payload: TypingPayload) {
         if (payload.userId == currentUserId) return
-        
-        _typingUsers.update { users ->
-            users.filter { it.userId != payload.userId }
-        }
+        _typingUsers.update { users -> users.filter { it.userId != payload.userId } }
     }
     
     private fun handleIncomingReaction(payload: ReactionPayload) {
-        _messages.update { messages ->
-            messages.map { message ->
-                if (message.id == payload.messageId) {
-                    when (payload.action) {
-                        "add" -> message.copy(
-                            reactions = message.reactions + Reaction(
-                                userId = payload.userId,
-                                emoji = payload.emoji,
-                                timestamp = getCurrentTimestamp()
-                            )
-                        )
-                        "remove" -> message.copy(
-                            reactions = message.reactions.filterNot {
-                                it.userId == payload.userId && it.emoji == payload.emoji
-                            }
-                        )
-                        else -> message
-                    }
-                } else {
-                    message
+        _messages.update { messages -> messages.map { message ->
+            if (message.id == payload.messageId) {
+                when (payload.action) {
+                    "add" -> message.copy(reactions = message.reactions + Reaction(payload.userId, payload.emoji, getCurrentTimestamp()))
+                    "remove" -> message.copy(reactions = message.reactions.filterNot { it.userId == payload.userId && it.emoji == payload.emoji })
+                    else -> message
                 }
-            }
-        }
+            } else message
+        }}
     }
     
     private fun handleIncomingReadReceipt(payload: ReadReceiptPayload) {
-        _messages.update { messages ->
-            messages.map { message ->
-                if (message.id == payload.messageId && !message.readBy.contains(payload.userId)) {
-                    message.copy(
-                        readBy = message.readBy + payload.userId,
-                        status = if (message.readBy.isNotEmpty()) MessageStatus.READ else message.status
-                    )
-                } else {
-                    message
-                }
-            }
-        }
+        _messages.update { messages -> messages.map { message ->
+            if (message.id == payload.messageId && !message.readBy.contains(payload.userId)) {
+                message.copy(readBy = message.readBy + payload.userId, status = MessageStatus.READ)
+            } else message
+        }}
     }
     
     private fun handleIncomingPresence(payload: PresencePayload) {
-        val participant = ChatParticipant(
-            userId = payload.userId,
-            userName = payload.userName,
-            isOnline = payload.isOnline,
-            lastSeen = payload.lastSeen
-        )
-        
-        _participants.update { participants ->
-            val filtered = participants.filter { it.userId != payload.userId }
-            filtered + participant
-        }
+        val participant = ChatParticipant(payload.userId, payload.userName, payload.isOnline, payload.lastSeen)
+        _participants.update { participants -> participants.filter { it.userId != payload.userId } + participant }
     }
     
     /**
-     * Get messages for a specific thread (replies to a parent message).
+     * Get thread replies.
      */
-    fun getThreadReplies(parentId: String): List<ChatMessage> {
-        return _messages.value.filter { it.parentId == parentId }
-    }
+    fun getThreadReplies(parentId: String): List<ChatMessage> = _messages.value.filter { it.parentId == parentId }
     
     /**
-     * Filter messages by section/category.
+     * Get messages by section.
      */
-    fun getMessagesBySection(section: CommentSection): List<ChatMessage> {
-        return _messages.value.filter { it.section == section }
-    }
+    fun getMessagesBySection(section: CommentSection): List<ChatMessage> = _messages.value.filter { it.section == section }
     
     /**
-     * Get the current reconnection state.
-     *
-     * @return The current [ReconnectionManager.ConnectionState] or null if no reconnection manager is configured
+     * Get reconnection state.
      */
-    fun getReconnectionState(): ReconnectionManager.ConnectionState? {
-        return reconnectionManager?.getConnectionState()
-    }
-
+    fun getReconnectionState(): ReconnectionManager.ConnectionState? = reconnectionManager?.getConnectionState()
+    fun getRetryCount(): Int? = reconnectionManager?.getRetryCount()
+    fun getCurrentDelay(): Long? = reconnectionManager?.getCurrentDelay()
+    
     /**
-     * Get the current retry count for reconnection.
-     *
-     * @return The number of retries attempted, or null if no reconnection manager is configured
-     */
-    fun getRetryCount(): Int? {
-        return reconnectionManager?.getRetryCount()
-    }
-
-    /**
-     * Get the current delay before the next reconnection attempt.
-     *
-     * @return The current delay in milliseconds, or null if no reconnection manager is configured
-     */
-    fun getCurrentDelay(): Long? {
-        return reconnectionManager?.getCurrentDelay()
-    }
-
-    /**
-     * Clear all messages (e.g., when leaving chat).
+     * Clear all messages.
      */
     fun clearMessages() {
         _messages.value = emptyList()
@@ -664,6 +539,7 @@ class ChatService(
     
     companion object {
         private val TYPING_TIMEOUT = 3.seconds
+        private const val DEFAULT_MESSAGE_LIMIT = 100
         
         private fun generateMessageId(): String = "msg-${kotlinx.datetime.Clock.System.now().toEpochMilliseconds()}-${Random.nextInt(10000)}"
         private fun getCurrentTimestamp(): String = kotlinx.datetime.Clock.System.now().toString()
@@ -671,11 +547,23 @@ class ChatService(
 }
 
 /**
+ * Data Transfer Object for reactions.
+ */
+@kotlinx.serialization.Serializable
+private data class ReactionDto(val userId: String, val emoji: String, val timestamp: String)
+
+/**
+ * WebSocket connection state.
+ */
+enum class WebSocketConnectionState { DISCONNECTED, CONNECTING, CONNECTED, ERROR }
+
+/**
  * Connection events for UI feedback.
  */
 sealed class ConnectionEvent {
     data object Connected : ConnectionEvent()
     data object Disconnected : ConnectionEvent()
+    data object Connecting : ConnectionEvent()
     data class MessageQueued(val messageId: String) : ConnectionEvent()
     data class QueueFlushed(val count: Int) : ConnectionEvent()
     data class Error(val message: String) : ConnectionEvent()

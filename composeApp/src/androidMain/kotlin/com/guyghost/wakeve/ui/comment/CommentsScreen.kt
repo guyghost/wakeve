@@ -230,7 +230,8 @@ fun CommentsScreen(
                 DeleteCommentDialog(
                     comment = comment,
                     onConfirm = {
-                        // TODO: Implement deleteComment method in CommentRepository
+                        commentRepository.deleteComment(comment.id)
+                        loadComments()
                         commentToDelete = null
                     },
                     onDismiss = { commentToDelete = null }
@@ -685,9 +686,23 @@ private fun CommentDialog(
                                 )
 
                                 if (isEdit) {
-                                    // TODO: Implement updateComment method in CommentRepository
-                                    isSubmitting = false
+                                    // Update existing comment
+                                    commentRepository.updateComment(editingComment!!.id, content)
+                                    onCommentPosted()
                                 } else {
+                                    // Create new comment or reply
+                                    val request = CommentRequest(
+                                        section = section,
+                                        sectionItemId = sectionItemId,
+                                        content = content,
+                                        parentCommentId = parentComment?.id
+                                    )
+                                    commentRepository.createComment(
+                                        eventId = eventId,
+                                        authorId = currentUserId,
+                                        authorName = currentUserName,
+                                        request = request
+                                    )
                                     onCommentPosted()
                                 }
                             }

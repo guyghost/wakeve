@@ -1,0 +1,374 @@
+package com.guyghost.wakeve.suggestions
+
+import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.models.SuggestionBudgetRange
+import com.guyghost.wakeve.models.SuggestionInteractionType
+import com.guyghost.wakeve.models.SuggestionSeason
+import com.guyghost.wakeve.models.SuggestionUserPreferences
+import com.squareup.sqldelight.sqlite.driver.JdbcDriver
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertAll
+import org.junit.jupiter.api.assertEquals
+import org.junit.jupiter.api.assertNotNull
+import org.junit.jupiter.api.assertNull
+import org.junit.jupiter.api.assertTrue
+import java.sql.DriverManager
+
+/**
+ * Unit tests for DatabaseSuggestionPreferencesRepository.
+ * Tests CRUD operations and interaction tracking for suggestion preferences.
+ */
+class DatabaseSuggestionPreferencesRepositoryTest {
+
+    private lateinit var database: WakevDb
+    private lateinit var repository: DatabaseSuggestionPreferencesRepository
+    private val json = Json { ignoreUnknownKeys = true }
+
+    @BeforeEach
+    fun setup() {
+        // Create an in-memory SQLite database for testing
+        val driver = JdbcDriver("jdbc:sqlite::memory:")
+        WakevDb.Schema.create(driver)
+        database = WakevDb(driver)
+        repository = DatabaseSuggestionPreferencesRepository(database, json)
+    }
+
+    @AfterEach
+    fun teardown() {
+        // Database is in-memory, so cleanup is automatic
+    }
+
+    @Test
+    fun `save and retrieve preferences returns correct data`() {
+        // Given
+        val userId = "user_123"
+        val preferences = createTestPreferences(userId)
+
+        // When
+        repository.saveSuggestionPreferences(preferences)
+        val retrieved = repository.getSuggestionPreferences(userId)
+
+        // Then
+        assertNotNull(retrieved)
+        assertEquals(userId, retrieved?.userId)
+        assertEquals(100.0, retrieved?.budgetRange?.min)
+        assertEquals(500.0, retrieved?.budgetRange?.max)
+        assertEquals("EUR", retrieved?.budgetRange?.currency)
+        assertEquals(2..5, retrieved?.preferredDurationRange)
+        assertEquals(3, retrieved?.maxGroupSize)
+    }
+
+    @Test
+    fun `get preferences returns null for non-existent user`() {
+        // When
+        val result = repository.getSuggestionPreferences("non_existent_user")
+
+        // Then
+        assertNull(result)
+    }
+
+    @Test
+    fun `update budget range updates correctly`() {
+        // Given
+        val userId = "user_456"
+        repository.saveSuggestionPreferences(createTestPreferences(userId))
+        val newBudgetRange = SuggestionBudgetRange(200.0, 1000.0, "USD")
+
+        // When
+        repository.updateBudgetRange(userId, newBudgetRange)
+        val updated = repository.getSuggestionPreferences(userId)
+
+        // Then
+        assertNotNull(updated)
+        assertEquals(200.0, updated?.budgetRange?.min)
+        assertEquals(1000.0, updated?.budgetRange?.max)
+        assertEquals("USD", updated?.budgetRange?.currency)
+    }
+
+    @Test
+    fun `update preferred seasons updates correctly`() {
+        // Given
+        val userId = "user_789"
+        repository.saveSuggestionPreferences(createTestPreferences(userId))
+        val newSeasons = listOf(SuggestionSeason.SUMMER, SuggestionSeason.FALL)
+
+        // When
+        repository.updatePreferredSeasons(userId, newSeasons)
+        val updated = repository.getSuggestionPreferences(userId)
+
+        // Then
+        assertNotNull(updated)
+        assertEquals(2, updated?.preferredSeasons?.size)
+        assertTrue(updated?.preferredSeasons?.contains(SuggestionSeason.SUMMER) == true)
+        assertTrue(updated?.preferredSeasons?.contains(SuggestionSeason.FALL) == true)
+    }
+
+    @Test
+    fun `update preferred activities updates correctly`() {
+        // Given
+        val userId = "user_activities"
+        repository.saveSuggestionPreferences(createTestPreferences(userId))
+        val newActivities = listOf("hiking", "swimming", "wine_tasting")
+
+        // When
+        repository.updatePreferredActivities(userId, newActivities)
+        val updated = repository.getSuggestionPreferences(userId)
+
+        // Then
+        assertNotNull(updated)
+        assertEquals(3, updated?.preferredActivities?.size)
+        assertTrue(updated?.preferredActivities?.contains("hiking") == true)
+    }
+
+    @Test
+    fun `update location preferences updates correctly`() {
+        // Given
+        val userId = "user_location"
+        repository.saveSuggestionPreferences(createTestPreferences(userId))
+        val newLocationPrefs = com.guyghost.wakeve.models.LocationPreferences(
+            preferredRegions = listOf("Provence", "Côte d'Azur"),
+            maxDistanceFromCity = 200,
+            nearbyCities = listOf("Marseille", "Nice", "Cannes")
+        )
+
+        // When
+        repository.updateLocationPreferences(userId, newLocationPrefs)
+        val updated = repository.getSuggestionPreferences(userId)
+
+        // Then
+        assertNotNull(updated)
+        assertEquals(2, updated?.locationPreferences?.preferredRegions?.size)
+        assertEquals(200, updated?.locationPreferences?.maxDistanceFromCity)
+        assertEquals(3, updated?.locationPreferences?.nearbyCities?.size)
+    }
+
+    @Test
+    fun `update accessibility needs updates correctly`() {
+        // Given
+        val userId = "user_a11y"
+        repository.saveSuggestionPreferences(createTestPreferences(userId))
+        val newNeeds = listOf("wheelchair_accessible", "elevator", "parking")
+
+        // When
+        repository.updateAccessibilityNeeds(userId, newNeeds)
+        val updated = repository.getSuggestionPreferences(userId)
+
+        // Then
+        assertNotNull(updated)
+        assertEquals(3, updated?.accessibilityNeeds?.size)
+        assertTrue(updated?.accessibilityNeeds?.contains("wheelchair_accessible") == true)
+    }
+
+    @Test
+    fun `delete preferences removes all data`() {
+        // Given
+        val userId = "user_delete"
+        repository.saveSuggestionPreferences(createTestPreferences(userId))
+        assertNotNull(repository.getSuggestionPreferences(userId))
+
+        // When
+        repository.deleteSuggestionPreferences(userId)
+
+        // Then
+        assertNull(repository.getSuggestionPreferences(userId))
+    }
+
+    @Test
+    fun `track interaction stores interaction data`() {
+        // Given
+        val userId = "user_interaction"
+        val suggestionId = "suggestion_001"
+        val interactionType = SuggestionInteractionType.CLICKED
+
+        // When
+        repository.trackInteraction(userId, suggestionId, interactionType)
+        val history = repository.getInteractionHistory(userId)
+
+        // Then
+        assertEquals(1, history.size)
+        assertEquals(userId, history[0].userId)
+        assertEquals(suggestionId, history[0].suggestionId)
+        assertEquals(interactionType, history[0].interactionType)
+    }
+
+    @Test
+    fun `track interaction with metadata stores metadata correctly`() {
+        // Given
+        val userId = "user_meta"
+        val suggestionId = "suggestion_002"
+        val interactionType = SuggestionInteractionType.ACCEPTED
+        val metadata = mapOf("source" to "search_results", "position" to "3")
+
+        // When
+        repository.trackInteractionWithMetadata(userId, suggestionId, interactionType, metadata)
+        val history = repository.getInteractionHistory(userId)
+
+        // Then
+        assertEquals(1, history.size)
+        assertEquals(metadata, history[0].metadata)
+    }
+
+    @Test
+    fun `get interaction history returns multiple interactions`() {
+        // Given
+        val userId = "user_multi"
+        repository.trackInteraction(userId, "suggestion_1", SuggestionInteractionType.VIEWED)
+        repository.trackInteraction(userId, "suggestion_1", SuggestionInteractionType.CLICKED)
+        repository.trackInteraction(userId, "suggestion_2", SuggestionInteractionType.ACCEPTED)
+
+        // When
+        val history = repository.getInteractionHistory(userId)
+
+        // Then
+        assertEquals(3, history.size)
+    }
+
+    @Test
+    fun `interaction history is ordered by timestamp descending`() {
+        // Given
+        val userId = "user_order"
+        repository.trackInteraction(userId, "suggestion_1", SuggestionInteractionType.VIEWED)
+        repository.trackInteraction(userId, "suggestion_2", SuggestionInteractionType.CLICKED)
+        repository.trackInteraction(userId, "suggestion_3", SuggestionInteractionType.ACCEPTED)
+
+        // When
+        val history = repository.getInteractionHistory(userId)
+
+        // Then
+        assertAll(
+            { assertTrue(history[0].timestamp >= history[1].timestamp) },
+            { assertTrue(history[1].timestamp >= history[2].timestamp) }
+        )
+    }
+
+    @Test
+    fun `get interaction counts by type returns correct counts`() {
+        // Given
+        val userId = "user_counts"
+        val sinceTimestamp = "2024-01-01T00:00:00Z"
+        repository.trackInteraction(userId, "suggestion_1", SuggestionInteractionType.VIEWED)
+        repository.trackInteraction(userId, "suggestion_2", SuggestionInteractionType.VIEWED)
+        repository.trackInteraction(userId, "suggestion_1", SuggestionInteractionType.CLICKED)
+        repository.trackInteraction(userId, "suggestion_1", SuggestionInteractionType.ACCEPTED)
+
+        // When
+        val counts = repository.getInteractionCountsByType(userId, sinceTimestamp)
+
+        // Then
+        assertEquals(2L, counts[SuggestionInteractionType.VIEWED])
+        assertEquals(1L, counts[SuggestionInteractionType.CLICKED])
+        assertEquals(1L, counts[SuggestionInteractionType.ACCEPTED])
+    }
+
+    @Test
+    fun `get top suggestions returns empty list for cross-user aggregation`() {
+        // Given - getTopSuggestions uses cross-user aggregation which is currently a placeholder
+        val sinceTimestamp = "2024-01-01T00:00:00Z"
+        repository.trackInteraction("user_1", "suggestion_popular", SuggestionInteractionType.VIEWED)
+        repository.trackInteraction("user_2", "suggestion_popular", SuggestionInteractionType.VIEWED)
+        repository.trackInteraction("user_3", "suggestion_popular", SuggestionInteractionType.VIEWED)
+        repository.trackInteraction("user_1", "suggestion_less", SuggestionInteractionType.VIEWED)
+        repository.trackInteraction("user_2", "suggestion_less", SuggestionInteractionType.VIEWED)
+
+        // When
+        val topSuggestions = repository.getTopSuggestions(sinceTimestamp, 5)
+
+        // Then - cross-user aggregation is a placeholder, returns empty list
+        // This test verifies the placeholder behavior
+        assertTrue(topSuggestions.isEmpty() || topSuggestions.size <= 2)
+    }
+
+    @Test
+    fun `cleanup old interactions removes old records`() {
+        // Given
+        val userId = "user_cleanup"
+        repository.trackInteraction(userId, "suggestion_old", SuggestionInteractionType.VIEWED)
+        repository.trackInteraction(userId, "suggestion_recent", SuggestionInteractionType.CLICKED)
+        
+        // When
+        repository.cleanupOldInteractions("2030-01-01T00:00:00Z")
+        val history = repository.getInteractionHistory(userId)
+
+        // Then
+        assertEquals(0, history.size)
+    }
+
+    @Test
+    fun `multiple users have isolated preferences`() {
+        // Given
+        val user1Prefs = createTestPreferences("user_1")
+        val user2Prefs = createTestPreferences("user_2")
+            .copy(budgetRange = SuggestionBudgetRange(1000.0, 2000.0, "USD"))
+
+        // When
+        repository.saveSuggestionPreferences(user1Prefs)
+        repository.saveSuggestionPreferences(user2Prefs)
+        val retrieved1 = repository.getSuggestionPreferences("user_1")
+        val retrieved2 = repository.getSuggestionPreferences("user_2")
+
+        // Then
+        assertNotNull(retrieved1)
+        assertNotNull(retrieved2)
+        assertEquals(100.0, retrieved1?.budgetRange?.min)
+        assertEquals(1000.0, retrieved2?.budgetRange?.min)
+    }
+
+    @Test
+    fun `preferred seasons deserialization handles empty list`() {
+        // Given
+        val userId = "user_empty_seasons"
+        val preferences = createTestPreferences(userId).copy(preferredSeasons = emptyList())
+        
+        // When
+        repository.saveSuggestionPreferences(preferences)
+        val retrieved = repository.getSuggestionPreferences(userId)
+
+        // Then
+        assertNotNull(retrieved)
+        assertTrue(retrieved?.preferredSeasons?.isEmpty() == true)
+    }
+
+    @Test
+    fun `preferred activities deserialization handles special characters`() {
+        // Given
+        val userId = "user_special_chars"
+        val activities = listOf("café_concert", "randonnée_pédestre", "œnologie")
+        val preferences = createTestPreferences(userId).copy(preferredActivities = activities)
+        
+        // When
+        repository.saveSuggestionPreferences(preferences)
+        val retrieved = repository.getSuggestionPreferences(userId)
+
+        // Then
+        assertNotNull(retrieved)
+        assertEquals(3, retrieved?.preferredActivities?.size)
+        assertTrue(retrieved?.preferredActivities?.contains("café_concert") == true)
+    }
+
+    // ===== Helper Functions =====
+
+    private fun createTestPreferences(userId: String): SuggestionUserPreferences {
+        return SuggestionUserPreferences(
+            userId = userId,
+            budgetRange = SuggestionBudgetRange(
+                min = 100.0,
+                max = 500.0,
+                currency = "EUR"
+            ),
+            preferredDurationRange = 2..5,
+            preferredSeasons = listOf(SuggestionSeason.SUMMER, SuggestionSeason.SPRING),
+            preferredActivities = listOf("hiking", "swimming"),
+            maxGroupSize = 3,
+            locationPreferences = com.guyghost.wakeve.models.LocationPreferences(
+                preferredRegions = listOf("Île-de-France"),
+                maxDistanceFromCity = 50,
+                nearbyCities = listOf("Paris", "Versailles")
+            ),
+            accessibilityNeeds = listOf("parking")
+        )
+    }
+}

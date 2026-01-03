@@ -2,6 +2,7 @@ package com.guyghost.wakeve.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.guyghost.wakeve.auth.AuthStateManager
 import com.guyghost.wakeve.models.CreateMeetingRequest
 import com.guyghost.wakeve.models.MeetingLinkResponse
 import com.guyghost.wakeve.models.MeetingPlatform
@@ -160,7 +161,7 @@ class MeetingManagementViewModel(
     ) {
         val request = CreateMeetingRequest(
             eventId = _state.value.eventId,
-            organizerId = getCurrentUserId(), // TODO: Get from AuthService
+            organizerId = getCurrentUserId(),
             platform = platform,
             title = title,
             description = description,
@@ -310,12 +311,10 @@ class MeetingManagementViewModel(
     // ========================================================================
 
     /**
-     * Get the current user ID (placeholder)
-     *
-     * In a real implementation, this would come from AuthService
+     * Get the current user ID from AuthStateManager
      */
     private fun getCurrentUserId(): String {
-        // TODO: Get from AuthService
-        return "user-placeholder"
+        val authStateManager = AuthStateManager.getInstance()
+        return authStateManager.getCurrentUserId() ?: "anonymous"
     }
 }

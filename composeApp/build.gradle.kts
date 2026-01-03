@@ -137,4 +137,8 @@ buildConfig {
 
     // Server URL for OAuth endpoints
     buildConfigField("String", "SERVER_URL", "\"http://10.0.2.2:8080\"")
+
+    // Google OAuth Client ID - Replace with your actual client ID
+    // Get this from Google Cloud Console: https://console.cloud.google.com/
+    buildConfigField("String", "GOOGLE_CLIENT_ID", "\"YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com\"")
 }
