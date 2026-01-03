@@ -1,8 +1,15 @@
 package com.guyghost.wakeve.auth
 
 import com.guyghost.wakeve.currentTimeMillis
+import com.guyghost.wakeve.gamification.BadgeNotificationService
+import com.guyghost.wakeve.models.BadgeCount
+import com.guyghost.wakeve.models.BadgeNotification
+import com.guyghost.wakeve.models.BadgeType
 import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.UserResponse
+import com.guyghost.wakeve.models.createDeepLink
+import com.guyghost.wakeve.models.getDefaultMessage
+import com.guyghost.wakeve.models.getNotificationTitle
 import com.guyghost.wakeve.security.SecureTokenStorage
 import com.guyghost.wakeve.security.UserProfileData
 import kotlinx.coroutines.CoroutineScope
@@ -98,10 +105,15 @@ enum class ErrorCode {
 class AuthStateManager(
     private val secureStorage: SecureTokenStorage,
     private val authService: ClientAuthenticationService,
-    private val enableOAuth: Boolean = false // Feature flag
+    private val enableOAuth: Boolean = false, // Feature flag
+    private val badgeNotificationService: BadgeNotificationService? = null
 ) {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Loading)
     val authState: StateFlow<AuthState> = _authState
+    
+    // Badge count state for UI updates
+    private val _badgeCount = MutableStateFlow(BadgeCount(count = 0))
+    val badgeCount: StateFlow<BadgeCount> = _badgeCount.asStateFlow()
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var tokenRefreshJob: Job? = null
@@ -110,6 +122,8 @@ class AuthStateManager(
         scope.launch {
             checkExistingAuth()
         }
+        // Initialize badge notification service
+        setupNotifications()
     }
 
     /**
@@ -392,6 +406,90 @@ class AuthStateManager(
     }
 
     /**
+     * Setup notification permissions and channels.
+     */
+    private fun setupNotifications() {
+        scope.launch {
+            badgeNotificationService?.requestNotificationPermission()
+        }
+    }
+    
+    /**
+     * Sends a badge notification for an event update.
+     *
+     * @param type The type of badge notification
+     * @param eventTitle Optional event title for the notification message
+     * @param eventId Optional event ID for deep link generation
+     */
+    suspend fun sendBadgeNotification(
+        type: BadgeType,
+        eventTitle: String? = null,
+        eventId: String? = null
+    ) {
+        val notification = BadgeNotification(
+            id = generateNotificationId(),
+            type = type,
+            title = type.getNotificationTitle(),
+            message = eventTitle?.let { type.getDefaultMessage(it) } ?: type.getDefaultMessage(),
+            badgeCount = _badgeCount.value.count + 1,
+            deepLink = eventId?.let { type.createDeepLink(it) }
+        )
+        
+        // Update badge count
+        _badgeCount.value = _badgeCount.value.increment()
+        
+        // Send notification
+        badgeNotificationService?.sendBadgeNotification(notification)
+    }
+    
+    /**
+     * Sends a custom badge notification with full control over content.
+     *
+     * @param notification The complete notification payload
+     */
+    suspend fun sendCustomBadgeNotification(notification: BadgeNotification) {
+        // Update badge count
+        _badgeCount.value = _badgeCount.value.increment()
+        
+        // Send notification
+        badgeNotificationService?.sendBadgeNotification(notification)
+    }
+    
+    /**
+     * Updates the badge count on the app icon.
+     *
+     * @param count The badge count to display
+     */
+    suspend fun updateBadgeCount(count: Int) {
+        _badgeCount.value = _badgeCount.value.update(count)
+        badgeNotificationService?.updateBadgeCount(count)
+    }
+    
+    /**
+     * Clears a specific badge notification.
+     *
+     * @param notificationId The ID of the notification to clear
+     */
+    suspend fun clearBadgeNotification(notificationId: String) {
+        badgeNotificationService?.clearBadgeNotification(notificationId)
+    }
+    
+    /**
+     * Clears all badge notifications and resets badge count.
+     */
+    suspend fun clearAllBadgeNotifications() {
+        _badgeCount.value = BadgeCount(count = 0)
+        badgeNotificationService?.updateBadgeCount(0)
+    }
+    
+    /**
+     * Generates a unique notification ID.
+     */
+    private fun generateNotificationId(): String {
+        return "badge-${currentTimeMillis()}-${(0..9999).random()}"
+    }
+    
+    /**
      * Get current timestamp in ISO 8601 format.
      */
     private fun getCurrentTimestamp(): String {
@@ -427,11 +525,13 @@ class AuthStateManager(
          * @param secureStorage Optional secure storage (lazy initialized if not provided)
          * @param authService Optional auth service (lazy initialized if not provided)
          * @param enableOAuth Feature flag for OAuth
+         * @param badgeNotificationService Optional badge notification service
          */
         fun getInstance(
             secureStorage: SecureTokenStorage? = null,
             authService: ClientAuthenticationService? = null,
-            enableOAuth: Boolean = false
+            enableOAuth: Boolean = false,
+            badgeNotificationService: BadgeNotificationService? = null
         ): AuthStateManager {
             // Use memoization for thread-safe lazy initialization
             val currentValue = instance
@@ -443,7 +543,8 @@ class AuthStateManager(
             val newInstance = AuthStateManager(
                 secureStorage = secureStorage ?: DummySecureTokenStorage(),
                 authService = authService ?: DummyAuthenticationService(),
-                enableOAuth = enableOAuth
+                enableOAuth = enableOAuth,
+                badgeNotificationService = badgeNotificationService
             )
 
             instance = newInstance

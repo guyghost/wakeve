@@ -106,9 +106,9 @@ class EventManagementStateMachine(
             is EventManagementContract.Intent.AddParticipant -> addParticipant(intent.eventId, intent.participantId)
             is EventManagementContract.Intent.LoadPollResults -> loadPollResults(intent.eventId)
             is EventManagementContract.Intent.StartPoll -> startPoll(intent.eventId)
-            is EventManagementContract.Intent.ConfirmDate -> confirmDate(intent.eventId, intent.slotId)
-            is EventManagementContract.Intent.TransitionToOrganizing -> transitionToOrganizing(intent.eventId)
-            is EventManagementContract.Intent.MarkAsFinalized -> markAsFinalized(intent.eventId)
+            is EventManagementContract.Intent.ConfirmDate -> confirmDate(intent.eventId, intent.slotId, intent.userId)
+            is EventManagementContract.Intent.TransitionToOrganizing -> transitionToOrganizing(intent.eventId, intent.userId)
+            is EventManagementContract.Intent.MarkAsFinalized -> markAsFinalized(intent.eventId, intent.userId)
             is EventManagementContract.Intent.ClearError -> clearError()
             is EventManagementContract.Intent.UpdateDraftEvent -> updateDraftEvent(
                 intent.eventId,
@@ -563,6 +563,36 @@ class EventManagementStateMachine(
     }
 
     // ========================================================================
+    // Permission Validation Helpers
+    // ========================================================================
+
+    /**
+     * Validate that a user is the organizer of an event.
+     *
+     * This is a pure function that checks organizer permissions.
+     * Used by privileged operations like confirming dates, transitioning phases,
+     * and finalizing events.
+     *
+     * @param event The event to check (null if not found)
+     * @param userId The ID of the user to validate
+     * @return true if user is the organizer, false otherwise
+     */
+    private fun validateOrganizerPermission(event: com.guyghost.wakeve.models.Event?, userId: String): Boolean {
+        if (event == null) return false
+        return userId == event.organizerId
+    }
+
+    /**
+     * Emit an error side effect for unauthorized access.
+     *
+     * @param message The error message to show
+     */
+    private fun emitUnauthorizedError(message: String) {
+        updateState { it.copy(isLoading = false, error = message) }
+        emitSideEffect(EventManagementContract.SideEffect.ShowToast(message))
+    }
+
+    // ========================================================================
     // Workflow Transition Handlers
     // ========================================================================
 
@@ -648,8 +678,9 @@ class EventManagementStateMachine(
      *
      * @param eventId The ID of the event
      * @param slotId The ID of the selected time slot
+     * @param userId The ID of the user attempting to confirm (must be organizer)
      */
-    private suspend fun confirmDate(eventId: String, slotId: String) {
+    private suspend fun confirmDate(eventId: String, slotId: String, userId: String) {
         if (eventRepository == null) {
             updateState { it.copy(error = "Repository not available") }
             emitSideEffect(EventManagementContract.SideEffect.ShowToast("Repository not available"))
@@ -659,9 +690,17 @@ class EventManagementStateMachine(
         updateState { it.copy(isLoading = true, error = null) }
 
         val event = eventRepository.getEvent(eventId)
+
+        // Guard: Event must exist
         if (event == null) {
             updateState { it.copy(isLoading = false, error = "Event not found") }
             emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event not found"))
+            return
+        }
+
+        // Guard: Only organizer can confirm dates
+        if (!validateOrganizerPermission(event, userId)) {
+            emitUnauthorizedError("Only event organizer can confirm dates")
             return
         }
 
@@ -731,8 +770,9 @@ class EventManagementStateMachine(
      * 7. Emit NavigateTo meetings screen
      *
      * @param eventId The ID of the event
+     * @param userId The ID of the user attempting to transition (must be organizer)
      */
-    private suspend fun transitionToOrganizing(eventId: String) {
+    private suspend fun transitionToOrganizing(eventId: String, userId: String) {
         if (eventRepository == null) {
             updateState { it.copy(error = "Repository not available") }
             emitSideEffect(EventManagementContract.SideEffect.ShowToast("Repository not available"))
@@ -742,9 +782,17 @@ class EventManagementStateMachine(
         updateState { it.copy(isLoading = true, error = null) }
 
         val event = eventRepository.getEvent(eventId)
+
+        // Guard: Event must exist
         if (event == null) {
             updateState { it.copy(isLoading = false, error = "Event not found") }
             emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event not found"))
+            return
+        }
+
+        // Guard: Only organizer can transition
+        if (!validateOrganizerPermission(event, userId)) {
+            emitUnauthorizedError("Only event organizer can transition to organizing")
             return
         }
 
@@ -796,8 +844,9 @@ class EventManagementStateMachine(
      * 7. Emit ShowToast
      *
      * @param eventId The ID of the event
+     * @param userId The ID of the user attempting to finalize (must be organizer)
      */
-    private suspend fun markAsFinalized(eventId: String) {
+    private suspend fun markAsFinalized(eventId: String, userId: String) {
         if (eventRepository == null) {
             updateState { it.copy(error = "Repository not available") }
             emitSideEffect(EventManagementContract.SideEffect.ShowToast("Repository not available"))
@@ -807,9 +856,17 @@ class EventManagementStateMachine(
         updateState { it.copy(isLoading = true, error = null) }
 
         val event = eventRepository.getEvent(eventId)
+
+        // Guard: Event must exist
         if (event == null) {
             updateState { it.copy(isLoading = false, error = "Event not found") }
             emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event not found"))
+            return
+        }
+
+        // Guard: Only organizer can finalize
+        if (!validateOrganizerPermission(event, userId)) {
+            emitUnauthorizedError("Only event organizer can finalize the event")
             return
         }
 

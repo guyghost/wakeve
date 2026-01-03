@@ -349,6 +349,36 @@ class ScenarioManagementStateMachine(
     }
 
     // ========================================================================
+    // Permission Validation Helpers
+    // ========================================================================
+
+    /**
+     * Validate that a user is the organizer of an event.
+     *
+     * This is a pure function that checks organizer permissions.
+     * Used by privileged operations like selecting final scenarios.
+     *
+     * @param event The event to check (null if not found)
+     * @param userId The ID of the user to validate
+     * @return true if user is the organizer, false otherwise
+     */
+    private fun validateOrganizerPermission(
+        event: com.guyghost.wakeve.models.Event?
+    ): (String) -> Boolean = { userId ->
+        event != null && userId == event.organizerId
+    }
+
+    /**
+     * Emit an error side effect for unauthorized access.
+     *
+     * @param message The error message to show
+     */
+    private fun emitUnauthorizedError(message: String) {
+        updateState { it.copy(isLoading = false, error = message) }
+        emitSideEffect(SideEffect.ShowError(message))
+    }
+
+    // ========================================================================
     // Intent Handlers - Selection and Navigation
     // ========================================================================
 
@@ -396,7 +426,7 @@ class ScenarioManagementStateMachine(
      * 8. Reload scenarios
      * 9. Emit ShowToast and NavigateTo meetings
      *
-     * @param intent Contains eventId and scenarioId
+     * @param intent Contains eventId, scenarioId and userId
      */
     private suspend fun handleSelectScenarioAsFinal(intent: Intent.SelectScenarioAsFinal) {
         if (eventRepository == null || scenarioRepository == null) {
@@ -410,6 +440,14 @@ class ScenarioManagementStateMachine(
 
         // Load event
         val event = eventRepository.getEvent(intent.eventId)
+
+        // Guard: Only organizer can select final scenario
+        val isOrganizer = validateOrganizerPermission(event)(intent.userId)
+        if (!isOrganizer) {
+            emitUnauthorizedError("Only event organizer can select final scenario")
+            return
+        }
+
         if (event == null) {
             val errorMsg = "Event not found"
             updateState { it.copy(isLoading = false, error = errorMsg) }
