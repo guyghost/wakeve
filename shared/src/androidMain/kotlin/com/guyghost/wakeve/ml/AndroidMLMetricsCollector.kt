@@ -1,10 +1,9 @@
 package com.guyghost.wakeve.ml
 
-import com.guyghost.wakeve.Platform
-import com.guyghost.wakeve.getCurrentPlatform
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.max
 
@@ -26,6 +25,10 @@ import kotlin.math.max
  */
 class AndroidMLMetricsCollector : MLMetricsCollector {
     
+    private val collectorScope = kotlinx.coroutines.CoroutineScope(
+        kotlinx.coroutines.SupervisorJob() + Dispatchers.IO
+    )
+    
     private val _metricsFlow = MutableStateFlow<List<MLMetricsEvent>>(emptyList())
     private val metricsLock = kotlinx.coroutines.sync.Mutex()
     private val metricsList = mutableListOf<MLMetricsEvent>()
@@ -44,7 +47,7 @@ class AndroidMLMetricsCollector : MLMetricsCollector {
      * @param event The metrics event to record
      */
     override fun recordMetrics(event: MLMetricsEvent) {
-        kotlinx.coroutines.GlobalScope.launch(Dispatchers.IO) {
+        collectorScope.launch {
             metricsLock.lock()
             try {
                 // Add new event at the beginning (most recent first)
@@ -248,9 +251,3 @@ class AndroidMLMetricsCollector : MLMetricsCollector {
         )
     }
 }
-
-// Import for GlobalScope (needed for fire-and-forget operations)
-private fun kotlinx.coroutines.GlobalScope.launch(
-    context: kotlinx.coroutines.CoroutineDispatcher,
-    block: suspend kotlinx.coroutines.CoroutineScope.() -> Unit
-) = kotlinx.coroutines.GlobalScope.launch(context, block = block)

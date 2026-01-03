@@ -2,7 +2,6 @@ package com.guyghost.wakeve.presentation.state
 
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Scenario
-import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.ScenarioVoteType
 import com.guyghost.wakeve.models.ScenarioVotingResult
 import com.guyghost.wakeve.models.ScenarioWithVotes

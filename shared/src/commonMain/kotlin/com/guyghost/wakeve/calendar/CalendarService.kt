@@ -1,13 +1,17 @@
 package com.guyghost.wakeve.calendar
 
-import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.Event
-import com.guyghost.wakeve.User
 import com.guyghost.wakeve.Participant
+import com.guyghost.wakeve.User
+import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.models.EnhancedCalendarEvent
-import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.ICSDocument
-import kotlinx.datetime.*
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * Service de calendrier pour Wakeve

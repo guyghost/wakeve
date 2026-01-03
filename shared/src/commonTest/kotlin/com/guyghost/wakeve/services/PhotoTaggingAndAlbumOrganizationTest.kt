@@ -7,7 +7,6 @@ import com.guyghost.wakeve.models.Photo
 import com.guyghost.wakeve.models.PhotoCategory
 import com.guyghost.wakeve.models.PhotoTag
 import com.guyghost.wakeve.models.TagSource
-import com.guyghost.wakeve.ml.PhotoRecognitionService as PlatformPhotoRecognitionService
 import com.guyghost.wakeve.repository.AlbumRepository
 import com.guyghost.wakeve.repository.PhotoRepository
 import kotlinx.coroutines.test.runTest
@@ -15,9 +14,9 @@ import kotlinx.datetime.Clock
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import com.guyghost.wakeve.ml.PhotoRecognitionService as PlatformPhotoRecognitionService
 
 /**
  * Unit tests for Photo Tagging and Album Organization.

@@ -1,8 +1,6 @@
 package com.guyghost.wakeve.meeting
 
-import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.MeetingPlatform
-import com.guyghost.wakeve.models.ParticipantStatus
 import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration

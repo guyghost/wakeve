@@ -1,9 +1,9 @@
 package com.guyghost.wakeve.ml
 
-import com.guyghost.wakeve.models.FaceDetection
-import com.guyghost.wakeve.models.Photo
-import com.guyghost.wakeve.models.PhotoTag
 import com.guyghost.wakeve.models.Album
+import com.guyghost.wakeve.models.Photo
+import com.guyghost.wakeve.models.PhotoCategory
+import com.guyghost.wakeve.models.PhotoTag
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -195,7 +195,7 @@ data class ShareTargetStats(
  * @param averageRelevance Average relevance score of shares with this tag
  */
 data class TagShareStats(
-    val tag: PhotoTag.PhotoCategory,
+    val tag: PhotoCategory,
     val shareCount: Int,
     val averageRelevance: Double
 )
@@ -234,8 +234,8 @@ data class SharingScoringWeights(
         val DEFAULT = SharingScoringWeights(
             faceDetectionWeight = 0.4,
             eventParticipantWeight = 0.3,
-            val tagInterestWeight = 0.2,
-            val historyWeight = 0.1
+            tagInterestWeight = 0.2,
+            historyWeight = 0.1
         )
 
         /**
@@ -244,8 +244,8 @@ data class SharingScoringWeights(
         val CONSERVATIVE = SharingScoringWeights(
             faceDetectionWeight = 0.5,
             eventParticipantWeight = 0.4,
-            val tagInterestWeight = 0.1,
-            val historyWeight = 0.0
+            tagInterestWeight = 0.1,
+            historyWeight = 0.0
         )
 
         /**
@@ -254,8 +254,8 @@ data class SharingScoringWeights(
         val AGGRESSIVE = SharingScoringWeights(
             faceDetectionWeight = 0.2,
             eventParticipantWeight = 0.2,
-            val tagInterestWeight = 0.4,
-            val historyWeight = 0.2
+            tagInterestWeight = 0.4,
+            historyWeight = 0.2
         )
     }
 }

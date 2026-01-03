@@ -1,12 +1,25 @@
 package com.guyghost.wakeve.e2e
 
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.Comment
+import com.guyghost.wakeve.models.CommentSection
+import com.guyghost.wakeve.models.CommentThread
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.Scenario
+import com.guyghost.wakeve.models.ScenarioStatus
+import com.guyghost.wakeve.models.ScenarioVote
+import com.guyghost.wakeve.models.ScenarioVoteType
+import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.test.createTestEvent
 import com.guyghost.wakeve.test.createTestTimeSlot
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import kotlin.random.Random
-import kotlin.test.*
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * # Multi-User Collaboration Test Suite for Wakeve

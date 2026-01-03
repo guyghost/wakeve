@@ -1,9 +1,6 @@
 package com.guyghost.wakeve.presentation.statemachine
 
-import com.guyghost.wakeve.EventRepositoryInterface
-import com.guyghost.wakeve.PotentialLocationRepositoryInterface
 import com.guyghost.wakeve.models.Coordinates
-import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.LocationType

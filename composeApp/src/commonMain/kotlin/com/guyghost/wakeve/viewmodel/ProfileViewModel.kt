@@ -7,7 +7,6 @@ import com.guyghost.wakeve.gamification.BadgeCategory
 import com.guyghost.wakeve.gamification.BadgeRarity
 import com.guyghost.wakeve.gamification.LeaderboardEntry
 import com.guyghost.wakeve.gamification.LeaderboardType
-import com.guyghost.wakeve.gamification.UserBadges
 import com.guyghost.wakeve.gamification.UserPoints
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

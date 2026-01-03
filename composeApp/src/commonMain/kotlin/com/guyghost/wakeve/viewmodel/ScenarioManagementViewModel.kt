@@ -10,10 +10,10 @@ import com.guyghost.wakeve.models.ScenarioWithVotes
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract
 import com.guyghost.wakeve.presentation.statemachine.ScenarioManagementStateMachine
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.SharingStarted
 
 /**
  * ViewModel for scenario management that wraps the ScenarioManagementStateMachine.

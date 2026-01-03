@@ -2,7 +2,6 @@ package com.guyghost.wakeve
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
  * Unit tests for app navigation logic.

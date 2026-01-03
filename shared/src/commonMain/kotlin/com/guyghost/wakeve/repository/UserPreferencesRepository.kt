@@ -1,12 +1,18 @@
 package com.guyghost.wakeve.repository
 
 import com.guyghost.wakeve.database.WakevDb
-import com.guyghost.wakeve.models.*
-import com.guyghost.wakeve.User_preferences
-import com.guyghost.wakeve.Preference_interaction
+import com.guyghost.wakeve.models.DayOfWeek
+import com.guyghost.wakeve.models.EventType
+import com.guyghost.wakeve.models.InteractionType
+import com.guyghost.wakeve.models.PreferenceInteraction
+import com.guyghost.wakeve.models.ScoreWeights
+import com.guyghost.wakeve.models.TimeOfDay
+import com.guyghost.wakeve.models.UserPreference
+import com.guyghost.wakeve.models.VoteType
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import java.time.Instant
 import kotlin.math.exp
 
 /**
@@ -61,7 +67,7 @@ class UserPreferencesRepository(private val database: WakevDb) {
      * @param preferences The UserPreference to save
      */
     suspend fun updateUserPreferences(userId: String, preferences: UserPreference) {
-        val timestamp = Instant.now().toString()
+        val timestamp = Clock.System.now().toString()
         val updatedPreferences = preferences.copy(lastUpdated = timestamp)
 
         database.userPreferencesQueries.insertPreferences(
@@ -93,7 +99,7 @@ class UserPreferencesRepository(private val database: WakevDb) {
         timeOfDay: TimeOfDay,
         dayOfWeek: DayOfWeek
     ) {
-        val timestamp = Instant.now().toString()
+        val timestamp = Clock.System.now().toString()
         val interactionId = generateInteractionId(userId, eventId, timestamp)
 
         database.userPreferencesQueries.insertInteraction(
@@ -123,7 +129,7 @@ class UserPreferencesRepository(private val database: WakevDb) {
         eventId: String,
         eventType: EventType
     ) {
-        val timestamp = Instant.now().toString()
+        val timestamp = Clock.System.now().toString()
         val interactionId = generateInteractionId(userId, eventId, timestamp)
 
         database.userPreferencesQueries.insertInteraction(
@@ -153,7 +159,7 @@ class UserPreferencesRepository(private val database: WakevDb) {
         eventId: String,
         location: String?
     ) {
-        val timestamp = Instant.now().toString()
+        val timestamp = Clock.System.now().toString()
         val interactionId = generateInteractionId(userId, eventId, timestamp)
 
         database.userPreferencesQueries.insertInteraction(
@@ -190,9 +196,9 @@ class UserPreferencesRepository(private val database: WakevDb) {
         userId: String,
         decayDays: Int = 30
     ): UserPreference {
-        val cutoffDate = Instant.now()
-            .minusSeconds(decayDays * 24L * 60L * 60L)
-            .toString()
+        val now = Clock.System.now()
+        val cutoffMillis = now.toEpochMilliseconds() - (decayDays * 24L * 60L * 60L * 1000L)
+        val cutoffDate = Instant.fromEpochMilliseconds(cutoffMillis).toString()
 
         val interactions = database.userPreferencesQueries
             .selectRecentInteractionsByUserId(userId, cutoffDate)
@@ -208,8 +214,6 @@ class UserPreferencesRepository(private val database: WakevDb) {
         val eventTypeScores = mutableMapOf<EventType, Double>()
         val locationScores = mutableMapOf<String, Double>()
         var avoidEventTypes = mutableSetOf<EventType>()
-
-        val now = Instant.now()
 
         for (interaction in interactions) {
             val daysAgo = calculateDaysAgo(interaction.timestamp, now)
@@ -291,7 +295,7 @@ class UserPreferencesRepository(private val database: WakevDb) {
             preferredLocations = preferredLocations,
             avoidEvents = avoidEventTypes.isNotEmpty(),
             scoreWeights = ScoreWeights.DEFAULT,
-            lastUpdated = Instant.now().toString()
+            lastUpdated = Clock.System.now().toString()
         )
     }
 
@@ -304,9 +308,9 @@ class UserPreferencesRepository(private val database: WakevDb) {
      */
     suspend fun applyDecay(userId: String, decayDays: Int = 30) {
         // Remove interactions older than the decay period
-        val cutoffDate = Instant.now()
-            .minusSeconds(decayDays * 3L * 24L * 60L * 60L) // Keep 3x decayDays for history
-            .toString()
+        val now = Clock.System.now()
+        val cutoffMillis = now.toEpochMilliseconds() - (decayDays * 3L * 24L * 60L * 60L * 1000L) // Keep 3x decayDays for history
+        val cutoffDate = Instant.fromEpochMilliseconds(cutoffMillis).toString()
 
         database.userPreferencesQueries.deleteOldInteractions(cutoffDate)
     }
@@ -374,7 +378,7 @@ class UserPreferencesRepository(private val database: WakevDb) {
             preferredLocations = explicitPreferences.preferredLocations.ifEmpty { implicitPreferences.preferredLocations },
             avoidEvents = explicitPreferences.avoidEvents,
             scoreWeights = explicitPreferences.scoreWeights,
-            lastUpdated = Instant.now().toString()
+            lastUpdated = Clock.System.now().toString()
         )
     }
 
@@ -393,7 +397,7 @@ class UserPreferencesRepository(private val database: WakevDb) {
     private fun calculateDaysAgo(timestamp: String, now: Instant): Long {
         return try {
             val then = Instant.parse(timestamp)
-            val diffSeconds = now.epochSecond - then.epochSecond
+            val diffSeconds = now.toEpochMilliseconds() / 1000 - then.toEpochMilliseconds() / 1000
             diffSeconds / (24 * 60 * 60)
         } catch (e: Exception) {
             0

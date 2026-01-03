@@ -1,11 +1,6 @@
 package com.guyghost.wakeve.security
 
-import java.io.File
 import java.util.prefs.Preferences
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.decodeFromString
 
 /**
  * Secure token storage for JVM using Java Preferences API

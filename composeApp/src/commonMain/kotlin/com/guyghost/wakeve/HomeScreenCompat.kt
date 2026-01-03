@@ -3,7 +3,6 @@ package com.guyghost.wakeve
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.guyghost.wakeve.models.Event
-import com.guyghost.wakeve.viewmodel.EventManagementViewModel
 
 /**
  * Compatibility wrapper for HomeScreen that accepts the old signature.

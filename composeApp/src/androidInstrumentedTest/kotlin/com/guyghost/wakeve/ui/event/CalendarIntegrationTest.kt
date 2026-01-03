@@ -1,9 +1,6 @@
 package com.guyghost.wakeve.ui.event
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -12,12 +9,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.TimeSlot
-import kotlin.test.BeforeTest
-import kotlin.test.Test
 import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
 import org.junit.Rule
 import org.junit.runner.RunWith
+import kotlin.test.BeforeTest
+import kotlin.test.Test
 
 /**
  * UI tests for Calendar Integration Card component.

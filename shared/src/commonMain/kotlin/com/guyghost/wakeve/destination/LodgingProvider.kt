@@ -1,6 +1,10 @@
 package com.guyghost.wakeve.destination
 
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.AccommodationType
+import com.guyghost.wakeve.models.Destination
+import com.guyghost.wakeve.models.ExternalAccommodation
+import com.guyghost.wakeve.models.Location
+import com.guyghost.wakeve.models.SuggestionSeason
 
 /**
  * Provider d'hébergement (mocké pour l'instant)

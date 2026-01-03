@@ -1,18 +1,31 @@
 package com.guyghost.wakeve.e2e
 
 import com.guyghost.wakeve.EventRepositoryInterface
-import com.guyghost.wakeve.models.*
-import com.guyghost.wakeve.presentation.state.EventManagementContract
-import com.guyghost.wakeve.presentation.state.ScenarioManagementContract
-import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
-import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
-import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
+import com.guyghost.wakeve.models.Comment
+import com.guyghost.wakeve.models.CommentSection
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.EventType
+import com.guyghost.wakeve.models.LocationType
+import com.guyghost.wakeve.models.Poll
+import com.guyghost.wakeve.models.PotentialLocation
+import com.guyghost.wakeve.models.Scenario
+import com.guyghost.wakeve.models.ScenarioStatus
+import com.guyghost.wakeve.models.TimeOfDay
+import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.test.createTestEvent
 import com.guyghost.wakeve.test.createTestTimeSlot
-import kotlinx.coroutines.*
-import kotlinx.coroutines.test.*
-import kotlin.test.*
-import kotlin.math.absoluteValue
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * # Comprehensive E2E Tests for Wakeve PRD Workflow

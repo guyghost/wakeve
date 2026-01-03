@@ -1,7 +1,6 @@
 package com.guyghost.wakeve.viewmodel
 
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
 import kotlinx.coroutines.flow.Flow

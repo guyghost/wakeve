@@ -2,19 +2,16 @@ package com.guyghost.wakeve.presentation.statemachine
 
 import com.guyghost.wakeve.EventRepositoryInterface
 import com.guyghost.wakeve.ScenarioRepository
-import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioStatus
-import com.guyghost.wakeve.models.ScenarioWithVotes
-import com.guyghost.wakeve.models.ScenarioVoteType
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract
-import com.guyghost.wakeve.presentation.state.ScenarioManagementContract.State
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract.SideEffect
-import com.guyghost.wakeve.presentation.usecase.LoadScenariosUseCase
+import com.guyghost.wakeve.presentation.state.ScenarioManagementContract.State
 import com.guyghost.wakeve.presentation.usecase.CreateScenarioUseCase
-import com.guyghost.wakeve.presentation.usecase.VoteScenarioUseCase
-import com.guyghost.wakeve.presentation.usecase.UpdateScenarioUseCase
 import com.guyghost.wakeve.presentation.usecase.DeleteScenarioUseCase
+import com.guyghost.wakeve.presentation.usecase.LoadScenariosUseCase
+import com.guyghost.wakeve.presentation.usecase.UpdateScenarioUseCase
+import com.guyghost.wakeve.presentation.usecase.VoteScenarioUseCase
 import kotlinx.coroutines.CoroutineScope
 
 /**

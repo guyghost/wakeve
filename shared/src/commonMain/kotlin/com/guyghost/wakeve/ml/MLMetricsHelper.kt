@@ -1,8 +1,9 @@
 package com.guyghost.wakeve.ml
 
+import com.guyghost.wakeve.calculateDurationMillis
+import com.guyghost.wakeve.getCurrentTimeNanos
 import com.guyghost.wakeve.getPlatform
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.guyghost.wakeve.measureMemoryUsageMB
 import kotlin.math.max
 
 /**
@@ -50,7 +51,7 @@ object MLMetricsHelper {
         operation: MLOperation,
         block: suspend () -> T
     ): Pair<T, MLMetricsEvent> {
-        val startTime = System.nanoTime()
+        val startTime = getCurrentTimeNanos()
         var result: T? = null
         var success = false
         var errorMessage: String? = null
@@ -63,7 +64,7 @@ object MLMetricsHelper {
             errorMessage = e.message
         }
         
-        val durationMs = (System.nanoTime() - startTime) / 1_000_000
+        val durationMs = calculateDurationMillis(startTime, getCurrentTimeNanos())
         val platformEnum = detectPlatform()
         
         val event = MLMetricsEvent(
@@ -103,7 +104,7 @@ object MLMetricsHelper {
         operation: MLOperation,
         block: suspend () -> Pair<T, Double?>
     ): Triple<T, Double?, MLMetricsEvent> {
-        val startTime = System.nanoTime()
+        val startTime = getCurrentTimeNanos()
         var pairResult: Pair<T, Double?>? = null
         var success = false
         var errorMessage: String? = null
@@ -116,7 +117,7 @@ object MLMetricsHelper {
             errorMessage = e.message
         }
         
-        val durationMs = (System.nanoTime() - startTime) / 1_000_000
+        val durationMs = calculateDurationMillis(startTime, getCurrentTimeNanos())
         val actualPair = pairResult ?: Pair(null as T, null)
         val platformEnum = detectPlatform()
         
@@ -145,8 +146,8 @@ object MLMetricsHelper {
         operation: MLOperation,
         block: suspend () -> T
     ): Triple<T, Double?, MLMetricsEvent> {
-        val startTime = System.nanoTime()
-        val memoryBefore = measureMemory()
+        val startTime = getCurrentTimeNanos()
+        val memoryBefore = measureMemoryUsageMB()
         var result: T? = null
         var success = false
         var errorMessage: String? = null
@@ -159,12 +160,12 @@ object MLMetricsHelper {
             errorMessage = e.message
         }
         
-        val memoryAfter = measureMemory()
+        val memoryAfter = measureMemoryUsageMB()
         val memoryUsage = if (memoryBefore != null && memoryAfter != null) {
             max(0.0, memoryAfter - memoryBefore)
         } else null
         
-        val durationMs = (System.nanoTime() - startTime) / 1_000_000
+        val durationMs = calculateDurationMillis(startTime, getCurrentTimeNanos())
         val platformEnum = detectPlatform()
         
         val event = MLMetricsEvent(
@@ -192,7 +193,7 @@ object MLMetricsHelper {
         operation: MLOperation,
         block: suspend () -> Triple<T, Double?, Double?>
     ): Quadruple<T, Double?, Double?, MLMetricsEvent> {
-        val startTime = System.nanoTime()
+        val startTime = getCurrentTimeNanos()
         var tripleResult: Triple<T, Double?, Double?>? = null
         var success = false
         var errorMessage: String? = null
@@ -205,7 +206,7 @@ object MLMetricsHelper {
             errorMessage = e.message
         }
         
-        val durationMs = (System.nanoTime() - startTime) / 1_000_000
+        val durationMs = calculateDurationMillis(startTime, getCurrentTimeNanos())
         val actualTriple = tripleResult ?: Triple(null as T, null, null)
         val platformEnum = detectPlatform()
         
@@ -225,17 +226,12 @@ object MLMetricsHelper {
     
     /**
      * Measure current memory usage.
-     * Platform-specific implementation via expect/actual.
+     * Platform-specific implementation via expect/actual in utils/MemoryUtils.kt.
      *
      * @return Current memory usage in megabytes, or null if measurement failed
      */
     private fun measureMemory(): Double? {
-        return try {
-            val runtime = Runtime.getRuntime()
-            (runtime.totalMemory() - runtime.freeMemory()) / (1024.0 * 1024.0)
-        } catch (e: Exception) {
-            null
-        }
+        return measureMemoryUsageMB()
     }
     
     /**

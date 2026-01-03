@@ -1,7 +1,17 @@
 package com.guyghost.wakeve.meal
 
-import com.guyghost.wakeve.models.*
-import kotlin.test.*
+import com.guyghost.wakeve.models.AutoMealPlanRequest
+import com.guyghost.wakeve.models.DietaryRestriction
+import com.guyghost.wakeve.models.Meal
+import com.guyghost.wakeve.models.MealStatus
+import com.guyghost.wakeve.models.MealType
+import com.guyghost.wakeve.models.ParticipantDietaryRestriction
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Unit tests for MealPlanner

@@ -1,9 +1,5 @@
 package com.guyghost.wakeve.di
 
-import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
-import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
-import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
-
 /**
  * Shared DI configuration for cross-platform dependencies.
  *

@@ -1,6 +1,5 @@
 package com.guyghost.wakeve.presentation.usecase
 
-import com.guyghost.wakeve.meeting.Meeting
 import com.guyghost.wakeve.meeting.MeetingRepository
 
 /**

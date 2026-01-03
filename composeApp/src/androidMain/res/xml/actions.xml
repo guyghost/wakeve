@@ -40,19 +40,20 @@
         </parameter>
         
         <fulfillment
-            android:urlTemplate="wakeve://event/create{?name,description,startDate,attendees}">
+            android:targetPackage="com.wakeve.app"
+            android:targetClass="com.wakeve.app.MainActivity">
             <parameter-mapping
-                android:urlParameter="name"
-                android:intentParameter="event.name"/>
+                android:key="name"
+                android:value="event.name"/>
             <parameter-mapping
-                android:urlParameter="description"
-                android:intentParameter="event.description"/>
+                android:key="description"
+                android:value="event.description"/>
             <parameter-mapping
-                android:urlParameter="startDate"
-                android:intentParameter="event.startDate"/>
+                android:key="startDate"
+                android:value="event.startDate"/>
             <parameter-mapping
-                android:urlParameter="attendees"
-                android:intentParameter="event.attendees"/>
+                android:key="attendees"
+                android:value="event.attendees"/>
         </fulfillment>
     </action>
     
@@ -71,10 +72,11 @@
         </parameter>
         
         <fulfillment
-            android:urlTemplate="wakeve://event/share{?name}">
+            android:targetPackage="com.wakeve.app"
+            android:targetClass="com.wakeve.app.MainActivity">
             <parameter-mapping
-                android:urlParameter="name"
-                android:intentParameter="event.name"/>
+                android:key="name"
+                android:value="event.name"/>
         </fulfillment>
     </action>
     
@@ -93,7 +95,11 @@
         </parameter>
         
         <fulfillment
-            android:urlTemplate="wakeve://calendar">
+            android:targetPackage="com.wakeve.app"
+            android:targetClass="com.wakeve.app.MainActivity">
+            <parameter-mapping
+                android:key="feature"
+                android:value="feature"/>
         </fulfillment>
     </action>
     
@@ -112,10 +118,11 @@
         </parameter>
         
         <fulfillment
-            android:urlTemplate="wakeve://event/cancel{?name}">
+            android:targetPackage="com.wakeve.app"
+            android:targetClass="com.wakeve.app.MainActivity">
             <parameter-mapping
-                android:urlParameter="name"
-                android:intentParameter="event.name"/>
+                android:key="name"
+                android:value="event.name"/>
         </fulfillment>
     </action>
     
@@ -134,10 +141,11 @@
         </parameter>
         
         <fulfillment
-            android:urlTemplate="wakeve://reminder/check-votes{?time}">
+            android:targetPackage="com.wakeve.app"
+            android:targetClass="com.wakeve.app.MainActivity">
             <parameter-mapping
-                android:urlParameter="time"
-                android:intentParameter="reminder.time"/>
+                android:key="time"
+                android:value="reminder.time"/>
         </fulfillment>
     </action>
     

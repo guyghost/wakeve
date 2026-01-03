@@ -6,7 +6,6 @@ import android.content.ContentValues
 import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.CalendarContract
-import android.provider.CalendarContract.Attendees
 import androidx.core.content.ContextCompat
 import com.guyghost.wakeve.models.EnhancedCalendarEvent
 

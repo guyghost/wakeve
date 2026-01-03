@@ -1,6 +1,5 @@
 package com.guyghost.wakeve.ui.components
 
-import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -34,8 +33,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
-import com.guyghost.wakeve.ui.components.AIAnimationDurations
-import com.guyghost.wakeve.ui.components.AIEasing
 
 /**
  * Voice Assistant Floating Action Button

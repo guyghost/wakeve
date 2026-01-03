@@ -1,9 +1,18 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.models.*
-import io.ktor.client.call.body
+import com.guyghost.wakeve.models.CreateEventRequest
+import com.guyghost.wakeve.models.CreatePotentialLocationRequest
+import com.guyghost.wakeve.models.CreateTimeSlotRequest
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.EventType
+import com.guyghost.wakeve.models.LocationType
+import com.guyghost.wakeve.models.PotentialLocation
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.*
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -13,8 +22,6 @@ import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertTrue
 
 /**
  * Integration tests for Enhanced DRAFT Phase API endpoints.

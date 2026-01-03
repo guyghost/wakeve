@@ -2,10 +2,8 @@ package com.guyghost.wakeve.ml
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Matrix
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.ByteArrayOutputStream
 
 /**
  * Android implementation of memory-optimized image processing.
@@ -200,8 +198,8 @@ class AndroidMemoryOptimizedImageProcessor : MemoryOptimizedImageProcessor {
             Bitmap.Config.ARGB_8888
         }
 
-        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true).apply {
-            config(bitmapConfig)
+        return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true).let { scaledBitmap ->
+            scaledBitmap.copy(bitmapConfig, scaledBitmap.isMutable)
         }
     }
 

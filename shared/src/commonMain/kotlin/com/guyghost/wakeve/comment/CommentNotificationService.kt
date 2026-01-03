@@ -1,12 +1,14 @@
 package com.guyghost.wakeve.comment
 
-import com.guyghost.wakeve.NotificationService
-import com.guyghost.wakeve.models.*
 import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.NotificationService
+import com.guyghost.wakeve.models.Comment
+import com.guyghost.wakeve.models.CommentSection
+import com.guyghost.wakeve.models.NotificationMessage
+import com.guyghost.wakeve.models.NotificationType
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.datetime.Clock
 import kotlin.random.Random
 
 /**

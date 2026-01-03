@@ -1,7 +1,15 @@
 package com.guyghost.wakeve.equipment
 
-import com.guyghost.wakeve.models.*
-import kotlin.test.*
+import com.guyghost.wakeve.models.EquipmentCategory
+import com.guyghost.wakeve.models.ItemStatus
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Tests for EquipmentManager service

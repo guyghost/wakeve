@@ -1,11 +1,18 @@
 package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.accommodation.AccommodationService
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.Accommodation
+import com.guyghost.wakeve.models.AccommodationRequest
+import com.guyghost.wakeve.models.RoomAssignment
+import com.guyghost.wakeve.models.RoomAssignmentRequest
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
-import io.ktor.server.routing.*
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.put
+import io.ktor.server.routing.route
 import java.util.UUID
 
 /**

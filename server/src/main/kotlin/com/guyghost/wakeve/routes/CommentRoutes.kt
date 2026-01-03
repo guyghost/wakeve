@@ -1,7 +1,8 @@
 package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.comment.CommentRepository
-import com.guyghost.wakeve.models.*
+import com.guyghost.wakeve.models.CommentRequest
+import com.guyghost.wakeve.models.CommentSection
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
