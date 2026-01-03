@@ -2,6 +2,9 @@ package com.guyghost.wakeve.ios.ui.views
 
 import SwiftUI
 import shared
+import Photos
+import PhotosUI
+import UIKit
 
 /**
  * ChatView - SwiftUI view for real-time messaging with Liquid Glass design.
@@ -214,7 +217,11 @@ struct ChatView: View {
                         .foregroundColor(.secondary)
                 }
                 .confirmationDialog("Ajouter", isPresented: $showAttachmentMenu) {
-                    Button("Image") { /* TODO: Image picker */ }
+                    Button("Image") {
+                        Task {
+                            await handleImagePicker()
+                        }
+                    }
                     Button("Fichier") { /* TODO: File picker */ }
                     Button("Annuler", role: .cancel) { }
                 }
@@ -328,6 +335,128 @@ struct ChatView: View {
         viewModel.sendMessage(content: messageText, section: viewModel.selectedSection)
         messageText = ""
         viewModel.stopTyping()
+    }
+    
+    // MARK: - Image Picker Integration
+    
+    /// Handles the image picker flow with proper permission handling
+    @MainActor
+    private func handleImagePicker() async {
+        // Check permission status
+        if PhotoPickerPermissionHandler.isDenied() {
+            // Show settings alert
+            await showSettingsAlert()
+            return
+        }
+        
+        // Create picker configuration
+        let configuration = PHPickerConfiguration(photoLibrary: .shared())
+        configuration.selectionLimit = 1
+        configuration.filter = .images
+        
+        // Create picker
+        let picker = PHPickerViewController(configuration: configuration)
+        
+        // Present with permission handling
+        PhotoPickerPermissionHandler.presentImagePicker(
+            picker,
+            from: getHostingController()
+        ) { [weak self] result in
+            self?.processPickedImage(result)
+        } onCancel: {
+            // User cancelled, no action needed
+        }
+    }
+    
+    /// Gets the hosting view controller for presenting the picker
+    private func getHostingController() -> UIViewController {
+        // Find the UIWindowScene and return its root view controller
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            return UIViewController()
+        }
+        
+        // Traverse to find the topmost view controller
+        var topController = rootViewController
+        while let presented = topController.presentedViewController {
+            topController = presented
+        }
+        
+        return topController
+    }
+    
+    /// Processes the picked image result
+    private func processPickedImage(_ result: PHPickerResult) {
+        guard let assetIdentifier = result.assetIdentifier else {
+            print("Image picker: No asset identifier")
+            return
+        }
+        
+        // Get the asset from the photo library
+        let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetIdentifier], options: nil)
+        
+        guard let asset = fetchResult.firstObject else {
+            print("Image picker: Could not find asset")
+            return
+        }
+        
+        // Request the image
+        let manager = PHImageManager.default()
+        let options = PHImageRequestOptions()
+        options.deliveryMode = .highQualityFormat
+        options.isNetworkAccessAllowed = true
+        
+        let targetSize = CGSize(width: 800, height: 800)
+        
+        manager.requestImage(
+            for: asset,
+            targetSize: targetSize,
+            contentMode: .aspectFit,
+            options: options
+        ) { [weak self] image, info in
+            guard let image = image else {
+                print("Image picker: Could not load image")
+                return
+            }
+            
+            // Convert to data for sending
+            if let imageData = image.jpegData(compressionQuality: 0.8) {
+                // Create image URI (using asset identifier as pseudo-URI)
+                let imageURI = "ph://\(assetIdentifier)"
+                
+                // Send as image message through view model
+                self?.viewModel.sendImageMessage(imageURI, imageData)
+            }
+        }
+    }
+    
+    /// Shows an alert directing user to settings
+    @MainActor
+    private func showSettingsAlert() async {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            return
+        }
+        
+        var topController = rootViewController
+        while let presented = topController.presentedViewController {
+            topController = presented
+        }
+        
+        let alert = UIAlertController(
+            title: "Accès aux photos désactivé",
+            message: "Pour envoyer des images, activez l'accès aux photos dans les paramètres.",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Annuler", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Paramètres", style: .default) { _ in
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+        })
+        
+        topController.present(alert, animated: true)
     }
 }
 

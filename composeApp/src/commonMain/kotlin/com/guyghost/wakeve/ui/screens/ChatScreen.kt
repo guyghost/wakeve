@@ -40,13 +40,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.guyghost.wakeve.chat.ChatMessage
+import com.guyghost.wakeve.di.getImagePickerService
+import com.guyghost.wakeve.image.ImagePickerService
+import com.guyghost.wakeve.image.ImagePickerService as ImagePicker
 import com.guyghost.wakeve.ui.components.ActionBubble
 import com.guyghost.wakeve.ui.components.ConnectionStatusBanner
 import com.guyghost.wakeve.ui.components.MessageBubble
@@ -54,6 +59,7 @@ import com.guyghost.wakeve.ui.components.MessageInputBar
 import com.guyghost.wakeve.ui.components.TypingIndicatorRow
 import com.guyghost.wakeve.viewmodel.ChatViewModel
 import com.guyghost.wakeve.viewmodel.ConnectionStatus
+import kotlinx.coroutines.launch
 
 /**
  * ChatScreen - Main screen for real-time messaging in an event.
@@ -66,6 +72,7 @@ import com.guyghost.wakeve.viewmodel.ConnectionStatus
  * - Section-based message organization
  * - Offline support with connection status
  * - Action bubbles for creating scenarios
+ * - Image sending from gallery
  * 
  * ## Usage
  * 
@@ -83,7 +90,7 @@ import com.guyghost.wakeve.viewmodel.ConnectionStatus
  *     ChatScreen(
  *         eventId = eventId,
  *         eventTitle = "Week-end ski",
- *         viewModel = viewModel
+ *         viewModel = view
  *     )
  * }
  * ```
@@ -115,6 +122,11 @@ fun ChatScreen(
     
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    
+    // Image picker service
+    val imagePicker = remember { getImagePickerService() }
     
     // Show connection status changes in snackbar
     LaunchedEffect(connectionStatus) {
@@ -220,6 +232,28 @@ fun ChatScreen(
                 onTypingStop = { viewModel.stopTyping() },
                 selectedSection = selectedSection,
                 onSectionChange = { viewModel.setSectionFilter(it) },
+                onImageSelected = {
+                    scope.launch {
+                        val result = imagePicker.pickImage()
+                        result.fold(
+                            onSuccess = { image ->
+                                viewModel.sendImageMessage(
+                                    image = image,
+                                    section = selectedSection
+                                )
+                                snackbarHostState.showSnackbar("Image ajouté à la discussion")
+                            },
+                            onFailure = { error ->
+                                val message = when (error) {
+                                    is ImagePickerService.ImagePickerCancelledException -> "Sélection d'image annulée"
+                                    is ImagePickerService.ImagePickerPermissionDeniedException -> "Permission refusée"
+                                    else -> "Erreur: ${error.message}"
+                                }
+                                snackbarHostState.showSnackbar(message)
+                            }
+                        )
+                    }
+                },
                 modifier = Modifier.fillMaxWidth()
             )
         }

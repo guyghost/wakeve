@@ -874,3 +874,839 @@ Dans `composeApp/src/androidMain/res/drawable/`:
 - Tests unitaires complets pour la logique pure (compilation OK, exécution en attente de la résolution des problèmes SQLDelight préexistants)
 - StateFlow pour une réactivité optimale dans l'UI
 - Les erreurs de compilation restantes sont dans des fichiers préexistants (UserRepository.kt, SuggestionPreferencesQueries.kt) et ne sont pas liées à cette implémentation
+
+---
+
+# File Picker Implementation - Tasks
+
+## Overview
+Implémentation des pickers de fichiers pour Android et iOS selon l'architecture Functional Core & Imperative Shell pour la sélection de documents.
+
+## Architecture FC&IS
+
+### Functional Core (models/, file/)
+- `DocumentType` - Énumération des types de documents (pur, sans I/O)
+- `PickedDocument` - Data class avec métadonnées du document (pur)
+- `DocumentPickerConfig` - Configuration du picker (pur)
+- `DocumentBatchResult` - Résultat d'une sélection multiple (pur)
+- `FilePickerResult` - Résultat scellé (success/failure) (pur)
+- `DocumentPickerService` - Interface du service (contrat pur)
+- Exceptions: `DocumentPickerCancelledException`, `DocumentPickerPermissionDeniedException`, `DocumentPickerInvalidDocumentException`
+
+### Imperative Shell (file/, di/)
+- `AndroidDocumentPickerService` - Implémentation Android avec GetContent API
+- `IosDocumentPickerService` - Implémentation iOS avec UIDocumentPickerViewController
+- `DocumentPickerFactory`, `AndroidDocumentPickerFactory`, `IosDocumentPickerFactory` - Factory pattern
+- Side effects: Accès système de fichiers, permissions, présentation UI
+
+## Fichiers Créés
+
+### 1. Modèles (Core)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/models/DocumentPickerModels.kt`
+- **Contenu**:
+  - `DocumentType` - Enum avec 10 types (PDF, DOC, DOCX, IMAGE, VIDEO, AUDIO, etc.)
+  - `PickedDocument` - Data class avec métadonnées (uri, displayName, type, size, lastModified, mimeType)
+  - `DocumentPickerConfig` - Configuration avec presets (singleDocument, multipleDocuments, pdfOnly, etc.)
+  - `DocumentBatchResult` - Résultat batch avec totalSize
+  - `FilePickerResult` - Sealed class Success/MultipleSuccess/Failure
+  - Méthodes helper: `fromMimeType()`, `formatFileSize()`, `isLargeFile`
+
+### 2. Interface Service (Core)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/file/DocumentPickerService.kt`
+- **Contenu**:
+  - `DocumentPickerService` - Interface du service
+  - `pickDocument()` - Sélection d'un seul document
+  - `pickDocuments(limit)` - Sélection multiple
+  - `pickDocument(type)` - Sélection filtrée par type
+  - `pickDocumentsWithConfig(config)` - Sélection avec configuration
+  - `isDocumentPickerAvailable()` - Vérification disponibilité
+  - `getLastPickedDocument()` / `clearCache()` - Gestion cache
+  - Exceptions: `DocumentPickerCancelledException`, `DocumentPickerPermissionDeniedException`, `DocumentPickerInvalidDocumentException`
+
+### 3. Factory Interface (Core)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/file/DocumentPickerFactory.kt`
+- **Contenu**:
+  - `DocumentPickerFactory` - expect class avec companion
+  - `getDocumentPickerService()` - Fonction de convenance
+
+### 4. Implémentation Android (Shell)
+- **Fichier**: `shared/src/androidMain/kotlin/com/guyghost/wakeve/file/AndroidDocumentPickerService.kt`
+- **Contenu**:
+  - `AndroidDocumentPickerService` - Implémentation avec ActivityResultContracts
+  - GetContent API pour Android 13+ sans permission
+  - Fallback pour Android < 13 avec permission READ_EXTERNAL_STORAGE
+  - Extraction métadonnées via ContentResolver (OpenableColumns)
+  - Channels pour conversion callback vers suspend
+
+### 5. Factory Android (Shell)
+- **Fichier**: `shared/src/androidMain/kotlin/com/guyghost/wakeve/di/AndroidDocumentPickerFactory.kt`
+- **Contenu**:
+  - `DocumentPickerFactory` - actual class avec activity
+  - Extensions `AppCompatActivity.getDocumentPickerService()`
+  - Extensions `AppCompatActivity.getDocumentPickerFactory()`
+
+### 6. Implémentation iOS (Shell)
+- **Fichier**: `shared/src/iosMain/kotlin/com/guyghost/wakeve/file/IosDocumentPickerService.kt`
+- **Contenu**:
+  - `IosDocumentPickerService` - Implémentation avec UIDocumentPickerViewController
+  - Support single et multiple selection
+  - Filtrage par UTType basé sur DocumentType
+  - Security-scoped resource access
+  - Conversion NSURL vers PickedDocument
+
+### 7. Factory iOS (Shell)
+- **Fichier**: `shared/src/iosMain/kotlin/com/guyghost/wakeve/di/IosDocumentPickerFactory.kt`
+- **Contenu**:
+  - `IosDocumentPickerFactory` - object factory
+  - `createPickerService()` - Création du service
+  - `createConfiguredService()` - Service avec configuration
+
+### 8. Tests Unitaires
+- **Fichier**: `shared/src/commonTest/kotlin/com/guyghost/wakeve/file/DocumentPickerServiceTest.kt`
+- **Contenu**: 35+ tests couvrant:
+  - DocumentType.fromMimeType() (8 tests)
+  - PickedDocument properties (5 tests)
+  - DocumentPickerConfig presets (6 tests)
+  - DocumentBatchResult calculations (3 tests)
+  - FilePickerResult sealed class (8 tests)
+  - Service contract interface (1 test)
+  - Exceptions (3 tests)
+
+## Fonctionnalités Implémentées
+
+### File Picker Service (core-001)
+- [x] Interface DocumentPickerService avec méthodes async
+- [x] Exceptions personnalisées (Cancelled, PermissionDenied, InvalidDocument)
+- [x] Support de tous les types de documents (PDF, DOC, DOCX, IMAGE, VIDEO, AUDIO, etc.)
+- [x] Configuration flexible (maxSelectionLimit, allowedTypes, allowMultipleSelection)
+- [x] Batch result avec total size calculation
+- [x] Cache management (getLastPickedDocument, clearCache)
+
+### Android Implementation (android-001)
+- [x] UIDocumentPickerViewController pour iOS 14+
+- [x] Multiple selection avec allowsPickingMultipleItems
+- [x] Conversion NSURL vers PickedDocument avec security-scoped access
+- [x] UTType mapping pour chaque DocumentType
+- [x] Presentation mode pour UIViewController
+- [x] Continuation-based async pattern
+
+### Factory Pattern (factory-001)
+- [x] expect/actual DocumentPickerFactory pour KMP
+- [x] Android factory avec Activity binding
+- [x] iOS factory object singleton
+- [x] Extension functions pour convenance
+
+### Tests Unitaires (test-001)
+- [x] Tests pour DocumentType (8 tests)
+- [x] Tests pour PickedDocument (5 tests)
+- [x] Tests pour DocumentPickerConfig (6 tests)
+- [x] Tests pour DocumentBatchResult (3 tests)
+- [x] Tests pour FilePickerResult (8 tests)
+- [x] Tests pour Service contract (1 test)
+- [x] Tests pour Exceptions (3 tests)
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  IMPERATIVE SHELL                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │            AndroidDocumentPickerService              │   │
+│  │  • ActivityResultContracts.GetContent               │   │
+│  │  • ContentResolver pour métadonnées                 │   │
+│  │  • Channel pour callback-to-suspend                 │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              IosDocumentPickerService                │   │
+│  │  • UIDocumentPickerViewController (iOS 14+)         │   │
+│  │  • UTType mapping pour filtering                    │   │
+│  │  • Security-scoped resource access                  │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌───────────────────┐    ┌─────────────────────────────┐  │
+│  │ AndroidDocument   │    │ IosDocumentPickerFactory    │  │
+│  │ PickerFactory     │    │                             │  │
+│  │ • Activity bound  │    │ • Object singleton          │  │
+│  └───────────────────┘    └─────────────────────────────┘  │
+├─────────────────────────────────────────────────────────────┤
+│                    FUNCTIONAL CORE                           │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  DocumentPickerService (Interface pure)               │  │
+│  │  DocumentType, PickedDocument, DocumentPickerConfig   │  │
+│  │  DocumentBatchResult, FilePickerResult                │  │
+│  │  Exceptions: DocumentPickerCancelledException, etc.   │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Types de Documents Supportés
+
+| DocumentType | Display Name | MIME Type | UTType (iOS) |
+|--------------|--------------|-----------|--------------|
+| PDF | PDF Document | application/pdf | UTType.pdf |
+| DOC | Word Document | application/msword | UTType.doc |
+| DOCX | Word Document | application/vnd.openxmlformats... | UTType.docx |
+| SPREADSHEET | Spreadsheet | application/vnd.ms-excel | UTType.spreadsheet |
+| PRESENTATION | Presentation | application/vnd.ms-powerpoint | UTType.presentation |
+| IMAGE | Image | image/* | UTType.image |
+| VIDEO | Video | video/* | UTType.movie, UTType.video |
+| AUDIO | Audio | audio/* | UTType.audio |
+| ARCHIVE | Archive | application/zip | UTType.archive |
+| OTHER | Other File | */* | UTType.data |
+
+## Configuration Presets
+
+| Preset | maxSelectionLimit | allowedTypes | allowMultipleSelection |
+|--------|-------------------|--------------|------------------------|
+| singleDocument | 1 | empty | false |
+| multipleDocuments | 10 | empty | true |
+| pdfOnly | 1 | [PDF] | false |
+| imagesOnly | 5 | [IMAGE] | true |
+| mediaOnly | 5 | [IMAGE, VIDEO, AUDIO] | true |
+
+## Vérification
+
+```bash
+# Compilation du projet
+./gradlew :shared:compileCommonMainKotlinMetadata
+
+# Tests unitaires
+./gradlew shared:jvmTest --tests "*DocumentPickerServiceTest*"
+
+# Build Android
+./gradlew :composeApp:assembleDebug
+```
+
+## Intégration
+
+### Android
+
+```kotlin
+class MainActivity : AppCompatActivity() {
+    private val documentPicker: DocumentPickerService by lazy {
+        this.getDocumentPickerService()
+    }
+
+    private fun onPickDocument() {
+        lifecycleScope.launch {
+            val result = documentPicker.pickDocument()
+            result.fold(
+                onSuccess = { document ->
+                    processDocument(document.uri)
+                },
+                onFailure = { error ->
+                    showError(error.message)
+                }
+            )
+        }
+    }
+}
+```
+
+### iOS
+
+```swift
+let factory = IosDocumentPickerFactory()
+let documentPicker = factory.createPickerService()
+
+Task {
+    let result = await documentPicker.pickDocument()
+    result.fold(
+        onSuccess: { document in
+            uploadDocument(document.uri)
+        },
+        onFailure: { error in
+            showError("Failed to pick document: \(error.localizedDescription)")
+        }
+    )
+}
+```
+
+## Notes
+
+- Architecture FC&IS respectée: Core (models) pur, Shell (implémentation) avec side effects
+- GetContent API (Android 13+) pour une expérience moderne et privacy-friendly
+- UIDocumentPickerViewController (iOS 14+) pour une intégration native
+- Security-scoped resources sur iOS pour accéder aux fichiers sélectionnés
+- Tests unitaires complets pour la logique pure (35+ tests)
+- Extension functions Kotlin pour une API ergonomique sur Android
+- Factory pattern expect/actual pour compatibilité KMP complète
+
+---
+
+# Android Image Picker - Tasks
+
+## Overview
+Implémentation de la fonctionnalité "Image Picker" pour sélectionner des photos et images depuis la galerie de l'appareil, en respectant l'architecture Functional Core & Imperative Shell.
+
+## Architecture FC&IS
+
+### Functional Core (models/, image/)
+- `MediaType`, `ImageQuality`, `ImagePickerResult`, `PickedImage` - Modèles purs (sans I/O)
+- `ImagePickerConfig`, `ImageBatchResult` - Configuration et résultats
+- `ChatImageAttachment` - Modèle pour les pièces jointes d'images
+- Aucune dépendance I/O dans les models
+
+### Imperative Shell (image/, di/)
+- `ImagePickerService` - Interface de service (contrat pur)
+- `AndroidImagePickerService` - Implémentation Android avec ActivityResultContracts
+- `ImagePickerFactory`, `AndroidImagePickerFactory` - Factory pattern pour DI
+- Side effects: Accès galerie, permissions, compression d'images
+
+## Fichiers Créés/Modifiés
+
+### 1. Modèles (Core)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/models/ImagePickerModels.kt`
+- **Contenu**:
+  - `MediaType` - Énumération des types de médias (IMAGE, VIDEO, DOCUMENT)
+  - `ImageQuality` - Énumération des qualités de compression (HIGH, MEDIUM, LOW)
+  - `ImagePickerResult` - Résultat d'une opération de sélection d'image
+  - `PickedImage` - Image sélectionnée avec métadonnées
+  - `ImagePickerConfig` - Configuration du picker
+  - `ImageBatchResult` - Résultat d'une sélection multiple
+
+### 2. Interface Service (Core)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/image/ImagePickerService.kt`
+- **Contenu**:
+  - `ImagePickerService` - Interface du service
+  - `pickImage()` - Sélection d'une seule image
+  - `pickMultipleImages(limit)` - Sélection multiple
+  - `pickImageWithCompression(quality)` - Sélection avec compression
+  - `pickImagesWithConfig(config)` - Sélection avec configuration
+  - `pickVisualMedia(maxItems)` - Sélection media visuel
+  - `isPhotoPickerAvailable()` - Vérification disponibilité
+  - `getLastPickedImage()` - Récupération du cache
+  - `clearCache()` - Nettoyage du cache
+  - Exceptions: `ImagePickerCancelledException`, `ImagePickerPermissionDeniedException`, `ImagePickerInvalidImageException`
+
+### 3. Implémentation Android (Shell)
+- **Fichier**: `shared/src/androidMain/kotlin/com/guyghost/wakeve/image/AndroidImagePickerService.kt`
+- **Contenu**:
+  - `AndroidImagePickerService` - Implémentation avec Photo Picker API (Android 13+)
+  - ActivityResultContracts pour PickVisualMedia
+  - Extraction métadonnées via MediaStore
+  - Compression d'images via Bitmap API
+  - Support fallback pour Android < 13
+
+### 4. Factory (Core + Shell)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/di/ImagePickerFactory.kt`
+- **Contenu**:
+  - `ImagePickerFactory` - Interface expect/actual
+  - `getImagePickerService()` - Fonction de convenance
+
+- **Fichier**: `shared/src/androidMain/kotlin/com/guyghost/wakeve/di/AndroidImagePickerFactory.kt`
+- **Contenu**:
+  - `AndroidImagePickerFactory` - Implémentation Android
+  - Extensions `AppCompatActivity.getImagePickerService()`
+  - Extensions `AppCompatActivity.getImagePickerFactory()`
+
+### 5. Modèle Chat (Modification)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/chat/ChatModels.kt`
+- **Modifications**:
+  - Ajout `ChatImageAttachment` - Modèle pour les pièces jointes
+  - Ajout `imageAttachment` à `ChatMessage`
+  - Extensions: `isImageMessage`, `isTextMessage`, `isEmpty`
+
+### 6. ChatService (Modification)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/chat/ChatService.kt`
+- **Modifications**:
+  - Paramètre `imageAttachment` dans `sendMessage()`
+  - Support des messages avec images
+
+### 7. ChatViewModel (Modification)
+- **Fichier**: `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/viewmodel/ChatViewModel.kt`
+- **Modifications**:
+  - Import `ChatImageAttachment`
+  - `sendImageMessage(image, section, caption)` - Envoi d'image
+  - `sendImageFromAttachment(attachment, section, caption)` - Envoi depuis attachment
+
+### 8. MessageInputBar (Modification)
+- **Fichier**: `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/components/MessageInputBar.kt`
+- **Modifications**:
+  - Paramètre `onImageSelected: (() -> Unit)?` dans le constructeur
+  - Passage du callback à `AttachmentMenu`
+
+### 9. ChatScreen (Modification)
+- **Fichier**: `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/screens/ChatScreen.kt`
+- **Modifications**:
+  - Import `getImagePickerService`, `ImagePickerService`
+  - Initialisation du service image picker
+  - Callback `onImageSelected` dans `MessageInputBar`
+  - Traitement du résultat avec gestion d'erreurs
+
+### 10. Tests Unitaires
+- **Fichier**: `shared/src/commonTest/kotlin/com/guyghost/wakeve/image/ImagePickerServiceTest.kt`
+- **Contenu**: Tests pour les modèles et le contrat du service
+
+## Fonctionnalités Implémentées
+
+### Image Picker (chat-101)
+- [x] Sélection d'image unique depuis la galerie
+- [x] Sélection multiple d'images (avec limite configurable)
+- [x] Compression d'images (HIGH/MEDIUM/LOW)
+- [x] Extraction automatique des métadonnées (taille, dimensions, type MIME)
+- [x] Support Photo Picker API (Android 13+)
+- [x] Fallback pour Android < 13
+- [x] Gestion des erreurs (permissions, annulation, image invalide)
+
+### Intégration Chat (chat-102)
+- [x] Modèle `ChatImageAttachment` pour les messages
+- [x] Extension `sendImageMessage()` dans ChatViewModel
+- [x] Support `imageAttachment` dans ChatService
+- [x] UI `MessageInputBar` avec callback `onImageSelected`
+- [x] Intégration `ChatScreen` avec le picker
+- [x] Feedback visuel (snackbar) après sélection
+
+### Architecture FC&IS (chat-103)
+- [x] Modèles purs (`MediaType`, `ImageQuality`, `PickedImage`, etc.)
+- [x] Service interface pure (pas d'I/O dans le contrat)
+- [x] Implémentation plateforme avec side effects
+- [x] Factory pattern pour injection de dépendance
+- [x] Tests unitaires pour la logique pure
+
+## Notes
+
+- Architecture FC&IS respectée: Core (models) pur, Shell (implémentation) avec side effects
+- Photo Picker API (Android 13+) pour une expérience moderne et privacy-friendly
+- Compression d'images pour réduire l'utilisation de bande passante
+- Fallback graceful pour les anciennes versions d'Android
+- Intégration fluide avec le système de chat existant
+
+---
+
+# iOS Image Picker Implementation - Tasks
+
+## Overview
+Implémentation complète de l'image picker iOS avec PHPickerViewController selon l'architecture Functional Core & Imperative Shell.
+
+## Architecture FC&IS
+
+### Functional Core (image/)
+- `ImageQuality` - Énumération des niveaux de compression (réexporté depuis models)
+- `PickedImage` - Modèle de résultat d'image pickée (réexporté depuis models)
+- Aucune dépendance I/O dans les models
+
+### Imperative Shell (image/, di/)
+- `ImagePickerService` - Interface du service de picking
+- `IosImagePickerService` - Implémentation iOS avec PHPickerViewController
+- `IosImagePickerFactory` - Factory pour créer le service
+- `PhotoPickerPermissionHandler` - Gestion des permissions iOS (Swift)
+- Side effects: Accès photo library, permissions, UI presentation
+
+## Fichiers Créés/Modifiés
+
+### 1. ImagePickerModels.kt (Core)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/image/ImagePickerModels.kt`
+- **Contenu**: Réexportation des modèles ImageQuality et PickedImage depuis models/
+
+### 2. ImagePickerService.kt (Interface)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/image/ImagePickerService.kt`
+- **Contenu**:
+  - `ImagePickerService` - Interface du service
+  - `pickImage()` - Picking d'une seule image
+  - `pickMultipleImages(limit)` - Picking multiple
+  - `pickImageWithCompression(quality)` - Picking avec compression
+  - `pickImagesWithConfig(config)` - Picking avec configuration
+  - `pickVisualMedia(maxItems)` - Picking images et vidéos
+  - `isPhotoPickerAvailable()` - Vérification disponibilité
+  - `getLastPickedImage()` / `clearCache()` - Gestion cache
+  - `ImagePickerCancelledException` - Exception cancel
+  - `ImagePickerPermissionDeniedException` - Exception permission
+  - `ImagePickerInvalidImageException` - Exception image invalide
+
+### 3. IosImagePickerService.kt (Shell iOS)
+- **Fichier**: `shared/src/iosMain/kotlin/com/guyghost/wakeve/image/IosImagePickerService.kt`
+- **Contenu**:
+  - Implémentation avec PHPickerViewController (iOS 14+)
+  - Support single et multiple selection
+  - Compression image avec UIImageJPEGRepresentation
+  - Gestion permissions PHAuthorizationStatus
+  - Conversion PHAsset vers PickedImage
+  - Flow d'authorization status
+
+### 4. IosImagePickerFactory.kt (Shell Factory)
+- **Fichier**: `shared/src/iosMain/kotlin/com/guyghost/wakeve/di/IosImagePickerFactory.kt`
+- **Contenu**:
+  - `createPickerService()` - Création du service
+  - `createConfiguredService()` - Service avec configuration
+
+### 5. PhotoPickerPermissionHandler.swift (Shell iOS Swift)
+- **Fichier**: `iosApp/iosApp/PhotoPickerPermissionHandler.swift`
+- **Contenu**:
+  - `authorizationStatus()` - Vérification status permission
+  - `isAuthorized()` / `isDenied()` / `isNotDetermined()` - Helpers
+  - `requestPermission()` - Demande permission (iOS 14+)
+  - `requestLimitedAccess()` - Limited access mode (iOS 14+)
+  - `openSettingsToEnableAccess()` - Ouverture paramètres
+  - `presentImagePicker()` - Convenience method
+
+### 6. ChatView.swift (Modifié)
+- **Fichier**: `iosApp/iosApp/Views/ChatView.swift`
+- **Modifications**:
+  - Ajout imports Photos, PhotosUI, UIKit
+  - Intégration `handleImagePicker()` dans le menu attachment
+  - `getHostingController()` - Récupération du view controller
+  - `processPickedImage()` - Traitement de l'image pickée
+  - `showSettingsAlert()` - Alert si permission deny
+
+### 7. IosImagePickerServiceTest.kt (Tests)
+- **Fichier**: `shared/src/iosTest/kotlin/com/guyghost/wakeve/image/IosImagePickerServiceTest.kt`
+- **Contenu**: 14 tests unitaires pour:
+  - Modèle PickedImage (properties, compression, convenience)
+  - ImageQuality enum values
+  - ImagePickerConfig defaults et presets
+  - ImageBatchResult calculations
+  - Service factory creation
+
+## Fonctionnalités Implémentées
+
+### Image Picker Service (Core)
+- [x] Interface ImagePickerService avec méthodes async
+- [x] Exceptions personnalisées (Cancelled, PermissionDenied, InvalidImage)
+- [x] Support compression avec ImageQuality (HIGH/MEDIUM/LOW)
+- [x] Configuration flexible (maxSelectionLimit, allowedMediaTypes)
+- [x] Batch result avec total size calculation
+
+### iOS Implementation (Shell)
+- [x] PHPickerViewController pour iOS 14+
+- [x] Multiple selection avec PHPickerConfiguration
+- [x] Conversion PHAsset vers PickedImage avec dimensions
+- [x] Compression avec UIImageJPEGRepresentation
+- [x] Permission handling avec PHAuthorizationStatus
+- [x] Limited access support (iOS 14+)
+- [x] Authorization status flow
+
+### Permission Handler (Swift)
+- [x] Status check helpers (isAuthorized, isDenied, isNotDetermined)
+- [x] Request permission avec completion handler
+- [x] Limited access request (iOS 14+)
+- [x] Open settings pour enable access
+- [x] Convenience presentImagePicker method
+- [x] PhotoPickerDelegate class pour callback
+
+### ChatView Integration
+- [x] Ajout imports Photos/PhotosUI/UIKit
+- [x] handleImagePicker() dans confirmationDialog
+- [x] getHostingController() pour presenter
+- [x] processPickedImage() avec PHImageManager
+- [x] sendImageMessage() integration
+- [x] showSettingsAlert() si permission deny
+
+### Tests Unitaires
+- [x] PickedImage properties access
+- [x] PickedImage compression quality
+- [x] ImageQuality enum values
+- [x] PickedImage convenience properties
+- [x] ImagePickerConfig defaults
+- [x] ImagePickerConfig presets
+- [x] ImageBatchResult calculations
+- [x] ImageBatchResult empty state
+- [x] IosImagePickerFactory creation
+- [x] Service method signatures
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  IMPERATIVE SHELL                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              IosImagePickerService                    │   │
+│  │  • PHPickerViewController (iOS 14+)                  │   │
+│  │  • PHImageManager pour chargement image              │   │
+│  │  • UIImageJPEGRepresentation pour compression        │   │
+│  │  • PHPhotoLibrary pour permissions                   │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌───────────────────┐    ┌─────────────────────────────┐  │
+│  │ IosImagePicker    │    │ PhotoPickerPermissionHandler │  │
+│  │ Factory           │    │ (Swift)                      │  │
+│  └───────────────────┘    └─────────────────────────────┘  │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │ ChatView (iOS SwiftUI)                               │   │
+│  │ • handleImagePicker()                                │   │
+│  │ • processPickedImage()                               │   │
+│  │ • sendImageMessage() integration                     │   │
+│  └─────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────┤
+│                    FUNCTIONAL CORE                           │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  ImagePickerService (Interface pure)                  │  │
+│  │  ImageQuality, PickedImage (Data classes)             │  │
+│  │  ImagePickerConfig, ImageBatchResult                  │  │
+│  │  Exceptions: ImagePickerCancelledException, etc.      │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Configuration Required
+
+### Info.plist (iOS)
+Pour utiliser le photo picker, ajouter dans Info.plist:
+
+```xml
+<key>NSPhotoLibraryUsageDescription</key>
+<string>We need access to your photo library to attach images to messages.</string>
+
+<key>NSPhotoLibraryAddUsageDescription</key>
+<string>We need permission to save images to your photo library.</string>
+```
+
+## Vérification
+
+```bash
+# Compilation iOS (nécessite Xcode)
+./gradlew :shared:compileCommonMainKotlinMetadata
+
+# Tests unitaires
+./gradlew shared:jvmTest --tests "*IosImagePickerServiceTest*"
+```
+
+## Intégration ChatView
+
+### Avant (TODO)
+```swift
+Button("Image") { /* TODO: Image picker */ }
+```
+
+### Après (Implémenté)
+```swift
+Button("Image") {
+    Task {
+        await handleImagePicker()
+    }
+}
+```
+
+## Notes
+
+- Architecture FC&IS respectée: Core (models) pur, Shell (service + handlers) avec side effects
+- PHPickerViewController nécessite iOS 14+
+- Limited access mode (iOS 14+) pour préserver la vie privée
+- Compression configurable pour optimiser la taille des uploads
+- Tests unitaires pour la logique pure (pas de mock iOS requis)
+- Le projet ne compilera pas完全的 pour iOS sans Xcode, mais les fichiers Kotlin compilent
+
+---
+
+# Smart Albums - Create/Filter Albums UI
+
+## Overview
+Implémentation de la fonctionnalité "Smart Albums" pour organiser les photos avec filtrage intelligent selon l'architecture Functional Core & Imperative Shell.
+
+## Architecture FC&IS
+
+### Functional Core (models/)
+- `AlbumSorting` - Énumération des options de tri (DATE_ASC, DATE_DESC, NAME_ASC, NAME_DESC)
+- `AlbumFilter` - Énumération des types de filtres (ALL, RECENT, FAVORITES, TAGS, DATE_RANGE)
+- `AlbumFilterParams` - Data class des paramètres de filtrage (pur, immutable)
+- `SmartAlbum` - Album intelligent avec métadonnées IA
+- `SmartAlbumType` - Types d'albums intelligents (CUSTOM, AUTO_GENERATED, AI_SUGGESTED, EVENT_BASED)
+- `AlbumUpdateParams` - Data class pour les mises à jour partielles
+
+### Imperative Shell (viewmodel/, ui/)
+- `SmartAlbumsViewModel` - ViewModel avec StateFlow pour l'état UI
+- `SmartAlbumsScreen` - Écran Compose avec Material Design 3
+- `AlbumRepository` - Interface étendue pour les opérations d'albums
+- Side effects: Navigation, CRUD opérations, notifications
+
+## Fichiers Créés/Modifiés
+
+### 1. Album Models (Core)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/models/AlbumModels.kt`
+- **Contenu**:
+  - `AlbumSorting` enum avec displayName et value
+  - `AlbumFilter` enum avec displayName et value
+  - `AlbumFilterParams` data class avec validation et helpers
+  - `SmartAlbum` data class avec métadonnées IA
+  - `SmartAlbumType` enum
+  - Extensions: `toAlbum()`, `isAiSuggested()`, `isRecent()`
+  - `AlbumUpdateParams` data class pour mises à jour partielles
+
+### 2. Album Repository Interface (Extension)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/repository/AlbumRepository.kt`
+- **Modifications**:
+  - Ajout `getAlbums(params: AlbumFilterParams)` avec Result
+  - Ajout `createSmartAlbum()` avec Result
+  - Ajout `updateAlbum(albumId, updates)` avec Result
+  - Ajout `deleteAlbum()` avec Result
+  - Ajout `toggleFavorite()` avec Result
+  - Ajout `addPhotosToAlbum()` et `removePhotosFromAlbum()` avec Result
+  - Ajout `getAutoGeneratedAlbums()`, `getFavoriteAlbums()`, `getRecentAlbums()`
+  - Ajout `searchAlbums()`, `getAlbumsByTags()`, `getAlbumsByDateRange()`
+  - Ajout `AlbumUpdateParams` avec helpers (rename, changeCover, setFavorite, updateTags)
+
+### 3. Smart Albums ViewModel
+- **Fichier**: `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/viewmodel/SmartAlbumsViewModel.kt`
+- **Contenu**:
+  - `SmartAlbumsUiState` - Sealed class (Loading, Content, Empty, Error)
+  - `SmartAlbumsSideEffect` - Sealed class pour one-shot events
+  - `SmartAlbumsViewModel` - ViewModel complet avec StateFlow
+  - `loadAlbums(params)` - Chargement avec filtres
+  - `searchAlbums(query)` - Recherche par nom
+  - `changeFilter(filter)`, `changeSorting(sorting)` - Filtres
+  - `updateDateRange()`, `updateTags()` - Filtres avancés
+  - `createAlbum()`, `renameAlbum()`, `changeAlbumCover()` - CRUD
+  - `deleteAlbum()`, `toggleFavorite()` - Opérations
+  - `addPhotosToAlbum()`, `removePhotosFromAlbum()` - Gestion photos
+  - `selectAlbum()` - Navigation
+
+### 4. Smart Albums Screen (Compose UI)
+- **Fichier**: `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/photo/SmartAlbumsScreen.kt`
+- **Contenu**:
+  - `SmartAlbumsScreen` - Écran principal avec Scaffold
+  - `SmartAlbumsTopBar` - Barre de recherche et actions
+  - `SmartAlbumsFilterBar` - Filter chips et tri
+  - `AlbumsGrid` - Grille d'albums avec LazyVerticalGrid
+  - `SmartAlbumCard` - Carte d'album avec interactions
+  - `EmptyAlbumsState` - État vide personnalisé
+  - `ErrorAlbumsState` - État d'erreur avec retry
+  - `CreateAlbumDialog` - Dialogue de création d'album
+  - `FilterBottomSheetContent` - Filtres avancés
+
+### 5. Tests Unitaires (Models)
+- **Fichier**: `shared/src/commonTest/kotlin/com/guyghost/wakeve/models/AlbumModelsTest.kt`
+- **Contenu**: 30+ tests pour:
+  - AlbumSorting (enum values, fromValue, displayName)
+  - AlbumFilter (enum values, fromValue, displayName)
+  - AlbumFilterParams (validation, helpers, serialization)
+  - SmartAlbum (extensions, AI features)
+  - AlbumUpdateParams (applyTo, helpers)
+
+### 6. Tests Unitaires (ViewModel)
+- **Fichier**: `composeApp/src/commonTest/kotlin/com/guyghost/wakeve/viewmodel/SmartAlbumsViewModelTest.kt`
+- **Contenu**: 25+ tests pour:
+  - Initialization et loading
+  - Filtres et tri
+  - Recherche
+  - Opérations CRUD
+  - Gestion d'état (Loading, Content, Empty, Error)
+  - Side effects
+
+## Fonctionnalités Implémentées
+
+### Album Models (smart-albums-101)
+- [x] AlbumSorting enum avec 4 options de tri
+- [x] AlbumFilter enum avec 5 types de filtres
+- [x] AlbumFilterParams avec validation et helpers
+- [x] SmartAlbum avec métadonnées IA
+- [x] Extensions pour conversion et vérification
+- [x] AlbumUpdateParams pour mises à jour partielles
+
+### Repository Interface (smart-albums-102)
+- [x] Méthodes avec Result<T> pour gestion d'erreurs
+- [x] Méthodes CRUD complètes avec Result
+- [x] Méthodes de filtrage avancées (tags, date range)
+- [x] Méthodes de recherche (searchAlbums)
+- [x] Méthodes spécialisées (auto-generated, favorites, recent)
+
+### ViewModel (smart-albums-103)
+- [x] StateFlow pour uiState, albums, filterParams
+- [x] SharedFlow pour side effects
+- [x] Chargement avec filtrage et tri
+- [x] Recherche par nom
+- [x] Opérations CRUD complètes
+- [x] Gestion d'état (Loading, Content, Empty, Error)
+
+### UI Compose (smart-albums-104)
+- [x] Écran SmartAlbumsScreen avec Material Design 3
+- [x] TopBar avec recherche
+- [x] Filter chips pour filtrage rapide
+- [x] Dropdown pour tri
+- [x] Grille d'albums adaptative
+- [x] Cartes d'album avec animations
+- [x] Dialogue de création d'album
+- [x] Bottom sheet pour filtres avancés
+- [x] États vides et erreur
+
+### Tests (smart-albums-105)
+- [x] Tests AlbumModels (30+ tests)
+- [x] Tests SmartAlbumsViewModel (25+ tests)
+- [x] Tests AlbumUpdateParams
+- [x] Tests SmartAlbumsUiState
+- [x] Tests SmartAlbumsSideEffect
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  IMPERATIVE SHELL                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              SmartAlbumsViewModel                     │   │
+│  │  • uiState: StateFlow<SmartAlbumsUiState>            │   │
+│  │  • albums: StateFlow<List<Album>>                    │   │
+│  │  • filterParams: StateFlow<AlbumFilterParams>        │   │
+│  │  • sideEffect: SharedFlow<SmartAlbumsSideEffect>     │   │
+│  │  • loadAlbums(), searchAlbums(), createAlbum(), etc.  │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              SmartAlbumsScreen (Compose)              │   │
+│  │  • SmartAlbumsTopBar (search + actions)              │   │
+│  │  • SmartAlbumsFilterBar (chips + sorting)            │   │
+│  │  • AlbumsGrid (LazyVerticalGrid)                     │   │
+│  │  • SmartAlbumCard (animations + actions)             │   │
+│  │  • CreateAlbumDialog, FilterBottomSheet              │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+├─────────────────────────────────────────────────────────────┤
+│                    FUNCTIONAL CORE                           │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  AlbumSorting, AlbumFilter, AlbumFilterParams         │  │
+│  │  SmartAlbum, SmartAlbumType, AlbumUpdateParams        │  │
+│  │  (Models purs, sans dépendances I/O)                  │  │
+│  │  Extensions: toAlbum(), isAiSuggested(), isRecent()   │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Filtres Supportés
+
+| Filter | Description | Parameters Requis |
+|--------|-------------|-------------------|
+| ALL | Tous les albums | Aucun |
+| RECENT | Albums récents (30 jours) | Aucun |
+| FAVORITES | Albums favoris | Aucun |
+| TAGS | Albums avec tags spécifiques | Liste de tags |
+| DATE_RANGE | Albums dans une plage de dates | startDate, endDate |
+
+## Options de Tri
+
+| Sorting | Description |
+|---------|-------------|
+| DATE_ASC | Date croissante (plus vieux en premier) |
+| DATE_DESC | Date décroissante (plus récent en premier) |
+| NAME_ASC | Nom A-Z |
+| NAME_DESC | Nom Z-A |
+
+## Vérification
+
+```bash
+# Tests des modèles
+./gradlew shared:jvmTest --tests "*AlbumModelsTest*"
+
+# Tests du ViewModel
+./gradlew composeApp:testDebugUnitTest --tests "*SmartAlbumsViewModelTest*"
+
+# Compilation
+./gradlew :shared:compileCommonMainKotlinMetadata
+./gradlew :composeApp:compileDebugKotlinMetadata
+```
+
+## Notes
+
+- Architecture FC&IS respectée: Core (models) pur, Shell (ViewModel + UI) avec side effects
+- StateFlow pour réactivité optimale dans Compose
+- Sealed classes pour états et effets (type-safe)
+- Result<T> pour gestion d'erreurs élégante
+- Material Design 3 avec support du mode sombre
+- Tests unitaires pour toute la logique pure
+- Les erreurs iOS (CommentsView, ChatView, PhotoPickerPermissionHandler) sont préexistantes et non liées à cette implémentation
+

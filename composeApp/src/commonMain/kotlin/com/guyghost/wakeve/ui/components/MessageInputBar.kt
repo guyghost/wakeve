@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.dp
  * @param modifier Modifier for the component
  * @param selectedSection Currently selected section/category
  * @param onSectionChange Callback when section is changed
+ * @param onImageSelected Callback when an image is selected from gallery
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,7 +75,8 @@ fun MessageInputBar(
     onTypingStop: () -> Unit = {},
     modifier: Modifier = Modifier,
     selectedSection: com.guyghost.wakeve.chat.CommentSection? = null,
-    onSectionChange: ((com.guyghost.wakeve.chat.CommentSection?) -> Unit)? = null
+    onSectionChange: ((com.guyghost.wakeve.chat.CommentSection?) -> Unit)? = null,
+    onImageSelected: (() -> Unit)? = null
 ) {
     var text by remember { mutableStateOf("") }
     var showAttachmentMenu by remember { mutableStateOf(false) }
@@ -123,7 +125,10 @@ fun MessageInputBar(
                     if (showAttachmentMenu) {
                         AttachmentMenu(
                             onDismiss = { showAttachmentMenu = false },
-                            onImageSelected = { /* TODO: Open image picker */ },
+                            onImageSelected = {
+                                onImageSelected?.invoke()
+                                showAttachmentMenu = false
+                            },
                             onFileSelected = { /* TODO: Open file picker */ }
                         )
                     }
