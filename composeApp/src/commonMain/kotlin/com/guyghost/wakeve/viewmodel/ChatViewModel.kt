@@ -2,12 +2,14 @@ package com.guyghost.wakeve.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.guyghost.wakeve.chat.ChatImageAttachment
 import com.guyghost.wakeve.chat.ChatMessage
 import com.guyghost.wakeve.chat.ChatParticipant
 import com.guyghost.wakeve.chat.ChatService
 import com.guyghost.wakeve.chat.CommentSection
 import com.guyghost.wakeve.chat.ConnectionEvent
 import com.guyghost.wakeve.chat.TypingIndicator
+import com.guyghost.wakeve.models.PickedImage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -123,13 +125,13 @@ class ChatViewModel(
         chatService.disconnect()
     }
     
-    /**
-     * Send a new message.
-     * 
-     * @param content The message text content
-     * @param section Optional category for the message
-     * @param parentId Optional parent message ID for replies
-     */
+/**
+      * Send a new message.
+      * 
+      * @param content The message text content
+      * @param section Optional category for the message
+      * @param parentId Optional parent message ID for replies
+      */
     fun sendMessage(
         content: String,
         section: CommentSection? = null,
@@ -138,6 +140,52 @@ class ChatViewModel(
         if (content.isBlank()) return
         
         chatService.sendMessage(content = content, section = section, parentId = parentId)
+    }
+    
+    /**
+     * Send an image message.
+     * 
+     * @param image The picked image to send
+     * @param section Optional category for the message
+     * @param caption Optional caption for the image
+     */
+    fun sendImageMessage(
+        image: PickedImage,
+        section: CommentSection? = null,
+        caption: String = ""
+    ) {
+        val imageAttachment = ChatImageAttachment(
+            uri = image.uri,
+            mimeType = image.mimeType ?: "image/*",
+            width = image.width,
+            height = image.height,
+            sizeBytes = image.sizeBytes
+        )
+        
+        chatService.sendMessage(
+            content = caption,
+            section = section,
+            imageAttachment = imageAttachment
+        )
+    }
+    
+    /**
+     * Send an image message from a ChatImageAttachment.
+     * 
+     * @param attachment The image attachment to send
+     * @param section Optional category for the message
+     * @param caption Optional caption for the image
+     */
+    fun sendImageFromAttachment(
+        attachment: ChatImageAttachment,
+        section: CommentSection? = null,
+        caption: String = ""
+    ) {
+        chatService.sendMessage(
+            content = caption,
+            section = section,
+            imageAttachment = attachment
+        )
     }
     
     /**

@@ -3,6 +3,49 @@ package com.guyghost.wakeve.chat
 import kotlinx.serialization.Serializable
 
 /**
+ * Represents an image attachment for a chat message.
+ *
+ * @property uri Content URI of the image
+ * @property mimeType MIME type of the image
+ * @property width Width in pixels (null if unknown)
+ * @property height Height in pixels (null if unknown)
+ * @property sizeBytes File size in bytes
+ * @property thumbnail Optional thumbnail URL
+ */
+@Serializable
+data class ChatImageAttachment(
+    val uri: String,
+    val mimeType: String,
+    val width: Int? = null,
+    val height: Int? = null,
+    val sizeBytes: Long,
+    val thumbnail: String? = null
+) {
+    /**
+     * Get human-readable file size.
+     */
+    val formattedSize: String
+        get() = formatFileSize(sizeBytes)
+    
+    /**
+     * Get image dimensions as formatted string.
+     */
+    val dimensions: String?
+        get() = if (width != null && height != null) "${width}×${height}" else null
+    
+    companion object {
+        private fun formatFileSize(bytes: Long): String {
+            return when {
+                bytes < 1024 -> "$bytes B"
+                bytes < 1024 * 1024 -> "${bytes / 1024} KB"
+                bytes < 1024 * 1024 * 1024 -> "${bytes / (1024 * 1024)} MB"
+                else -> String.format("%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0))
+            }
+        }
+    }
+}
+
+/**
  * Represents a chat message in the real-time messaging system.
  *
  * @property id Unique message identifier
@@ -17,6 +60,7 @@ import kotlinx.serialization.Serializable
  * @property status Delivery status (SENT, DELIVERED, FAILED, READ)
  * @property readBy List of user IDs who have read this message
  * @property isOffline Flag for messages queued while offline
+ * @property imageAttachment Optional image attachment
  */
 @Serializable
 data class ChatMessage(
@@ -31,7 +75,8 @@ data class ChatMessage(
     val reactions: List<Reaction> = emptyList(),
     val status: MessageStatus = MessageStatus.SENT,
     val readBy: List<String> = emptyList(),
-    val isOffline: Boolean = false
+    val isOffline: Boolean = false,
+    val imageAttachment: ChatImageAttachment? = null
 ) {
     /**
      * Check if this message is from the current user
@@ -48,6 +93,24 @@ data class ChatMessage(
      */
     fun hasUserReacted(userId: String, emoji: String): Boolean =
         reactions.any { it.userId == userId && it.emoji == emoji }
+    
+    /**
+     * Check if this message contains an image attachment
+     */
+    val isImageMessage: Boolean
+        get() = imageAttachment != null
+    
+    /**
+     * Check if this message has text content only
+     */
+    val isTextMessage: Boolean
+        get() = content.isNotBlank() && imageAttachment == null
+    
+    /**
+     * Check if this is an empty message (no content and no image)
+     */
+    val isEmpty: Boolean
+        get() = content.isBlank() && imageAttachment == null
 }
 
 /**

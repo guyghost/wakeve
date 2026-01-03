@@ -195,8 +195,16 @@ class ChatService(
     /**
      * Send a new message.
      */
-    fun sendMessage(content: String, section: CommentSection? = null, parentId: String? = null) {
+    fun sendMessage(
+        content: String,
+        section: CommentSection? = null,
+        parentId: String? = null,
+        imageAttachment: com.guyghost.wakeve.chat.ChatImageAttachment? = null
+    ) {
         val eventId = activeEventId ?: return
+        
+        // Don't send empty messages without attachments
+        if (content.isBlank() && imageAttachment == null) return
         
         val message = ChatMessage(
             id = generateMessageId(),
@@ -207,7 +215,8 @@ class ChatService(
             section = section,
             parentId = parentId,
             timestamp = getCurrentTimestamp(),
-            status = MessageStatus.SENT
+            status = MessageStatus.SENT,
+            imageAttachment = imageAttachment
         )
         
         if (_connectionState.value == WebSocketConnectionState.CONNECTED) {
