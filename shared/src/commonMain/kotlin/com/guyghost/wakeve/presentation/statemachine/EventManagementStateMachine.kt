@@ -587,7 +587,7 @@ class EventManagementStateMachine(
      *
      * @param message The error message to show
      */
-    private fun emitUnauthorizedError(message: String) {
+    private suspend fun emitUnauthorizedError(message: String) {
         updateState { it.copy(isLoading = false, error = message) }
         emitSideEffect(EventManagementContract.SideEffect.ShowToast(message))
     }

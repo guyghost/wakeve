@@ -46,7 +46,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -615,6 +617,7 @@ private fun CommentDialog(
 ) {
     var content by remember { mutableStateOf(editingComment?.content ?: "") }
     var isSubmitting by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     val isReply = parentComment != null
     val isEdit = editingComment != null
@@ -685,25 +688,24 @@ private fun CommentDialog(
                                     parentCommentId = parentComment?.id
                                 )
 
-                                if (isEdit) {
-                                    // Update existing comment
-                                    commentRepository.updateComment(editingComment!!.id, content)
-                                    onCommentPosted()
-                                } else {
-                                    // Create new comment or reply
-                                    val request = CommentRequest(
-                                        section = section,
-                                        sectionItemId = sectionItemId,
-                                        content = content,
-                                        parentCommentId = parentComment?.id
-                                    )
-                                    commentRepository.createComment(
-                                        eventId = eventId,
-                                        authorId = currentUserId,
-                                        authorName = currentUserName,
-                                        request = request
-                                    )
-                                    onCommentPosted()
+                                scope.launch {
+                                    try {
+                                        if (isEdit) {
+                                            // Update existing comment
+                                            repository.updateComment(editingComment!!.id, content)
+                                        } else {
+                                            // Create new comment or reply
+                                            repository.createComment(
+                                                eventId = eventId,
+                                                authorId = currentUserId,
+                                                authorName = currentUserName,
+                                                request = request
+                                            )
+                                        }
+                                        onCommentPosted()
+                                    } catch (e: Exception) {
+                                        isSubmitting = false
+                                    }
                                 }
                             }
                         },

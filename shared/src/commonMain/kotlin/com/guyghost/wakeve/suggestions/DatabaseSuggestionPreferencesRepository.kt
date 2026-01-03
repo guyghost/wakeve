@@ -39,20 +39,20 @@ class DatabaseSuggestionPreferencesRepository(
                 SuggestionUserPreferences(
                     userId = row.user_id,
                     budgetRange = SuggestionBudgetRange(
-                        min = row.budget_min,
-                        max = row.budget_max,
-                        currency = row.budget_currency
+                        min = row.budgetMin,
+                        max = row.budgetMax,
+                        currency = row.budgetCurrency
                     ),
-                    preferredDurationRange = row.preferred_duration_min.toInt()..row.preferred_duration_max.toInt(),
-                    preferredSeasons = decodeSeasons(row.preferred_seasons),
-                    preferredActivities = decodeStringList(row.preferred_activities),
-                    maxGroupSize = row.max_group_size.toInt(),
+                    preferredDurationRange = row.preferredDurationMin.toInt()..row.preferredDurationMax.toInt(),
+                    preferredSeasons = decodeSeasons(row.preferredSeasons),
+                    preferredActivities = decodeStringList(row.preferredActivities),
+                    maxGroupSize = row.maxGroupSize.toInt(),
                     locationPreferences = LocationPreferences(
-                        preferredRegions = decodeStringList(row.preferred_regions),
-                        maxDistanceFromCity = row.max_distance_from_city.toInt(),
-                        nearbyCities = decodeStringList(row.nearby_cities)
+                        preferredRegions = decodeStringList(row.preferredRegions),
+                        maxDistanceFromCity = row.maxDistanceFromCity.toInt(),
+                        nearbyCities = decodeStringList(row.nearbyCities)
                     ),
-                    accessibilityNeeds = decodeStringList(row.accessibility_needs)
+                    accessibilityNeeds = decodeStringList(row.accessibilityNeeds)
                 )
             }
         } catch (e: Exception) {
@@ -70,19 +70,19 @@ class DatabaseSuggestionPreferencesRepository(
 
          preferencesQueries.insertOrReplacePreferences(
              user_id = preferences.userId,
-             budget_min = preferences.budgetRange.min,
-             budget_max = preferences.budgetRange.max,
-             budget_currency = preferences.budgetRange.currency,
-             preferred_duration_min = preferences.preferredDurationRange.start.toLong(),
-             preferred_duration_max = preferences.preferredDurationRange.endInclusive.toLong(),
-             preferred_seasons = encodeSeasons(preferences.preferredSeasons),
-             preferred_activities = encodeStringList(preferences.preferredActivities),
-             max_group_size = preferences.maxGroupSize.toLong(),
-             preferred_regions = encodeStringList(preferences.locationPreferences.preferredRegions),
-             max_distance_from_city = preferences.locationPreferences.maxDistanceFromCity.toLong(),
-             nearby_cities = encodeStringList(preferences.locationPreferences.nearbyCities),
-             accessibility_needs = encodeStringList(preferences.accessibilityNeeds),
-             last_updated = now
+             budgetMin = preferences.budgetRange.min,
+             budgetMax = preferences.budgetRange.max,
+             budgetCurrency = preferences.budgetRange.currency,
+             preferredDurationMin = preferences.preferredDurationRange.start.toLong(),
+             preferredDurationMax = preferences.preferredDurationRange.endInclusive.toLong(),
+             preferredSeasons = encodeSeasons(preferences.preferredSeasons),
+             preferredActivities = encodeStringList(preferences.preferredActivities),
+             maxGroupSize = preferences.maxGroupSize.toLong(),
+             preferredRegions = encodeStringList(preferences.locationPreferences.preferredRegions),
+             maxDistanceFromCity = preferences.locationPreferences.maxDistanceFromCity.toLong(),
+             nearbyCities = encodeStringList(preferences.locationPreferences.nearbyCities),
+             accessibilityNeeds = encodeStringList(preferences.accessibilityNeeds),
+             lastUpdated = now
          )
      }
 
@@ -92,9 +92,9 @@ class DatabaseSuggestionPreferencesRepository(
      override suspend fun updateBudgetRange(userId: String, budgetRange: SuggestionBudgetRange) {
          val now = Clock.System.now().toString()
          preferencesQueries.updateBudgetRange(
-             budget_min = budgetRange.min,
-             budget_max = budgetRange.max,
-             last_updated = now,
+             budgetMin = budgetRange.min,
+             budgetMax = budgetRange.max,
+             lastUpdated = now,
              user_id = userId
          )
      }
@@ -105,9 +105,9 @@ class DatabaseSuggestionPreferencesRepository(
      override suspend fun updateDurationRange(userId: String, durationRange: ClosedRange<Int>) {
          val now = Clock.System.now().toString()
          preferencesQueries.updateDurationRange(
-             preferred_duration_min = durationRange.start.toLong(),
-             preferred_duration_max = durationRange.endInclusive.toLong(),
-             last_updated = now,
+             preferredDurationMin = durationRange.start.toLong(),
+             preferredDurationMax = durationRange.endInclusive.toLong(),
+             lastUpdated = now,
              user_id = userId
          )
      }
@@ -118,8 +118,8 @@ class DatabaseSuggestionPreferencesRepository(
      override suspend fun updatePreferredSeasons(userId: String, seasons: List<SuggestionSeason>) {
          val now = Clock.System.now().toString()
          preferencesQueries.updatePreferredSeasons(
-             preferred_seasons = encodeSeasons(seasons),
-             last_updated = now,
+             preferredSeasons = encodeSeasons(seasons),
+             lastUpdated = now,
              user_id = userId
          )
      }
@@ -130,8 +130,8 @@ class DatabaseSuggestionPreferencesRepository(
      override suspend fun updatePreferredActivities(userId: String, activities: List<String>) {
          val now = Clock.System.now().toString()
          preferencesQueries.updatePreferredActivities(
-             preferred_activities = encodeStringList(activities),
-             last_updated = now,
+             preferredActivities = encodeStringList(activities),
+             lastUpdated = now,
              user_id = userId
          )
      }
@@ -142,10 +142,10 @@ class DatabaseSuggestionPreferencesRepository(
       override suspend fun updateLocationPreferences(userId: String, locationPrefs: LocationPreferences) {
           val now = Clock.System.now().toString()
           preferencesQueries.updateLocationPreferences(
-              preferred_regions = encodeStringList(locationPrefs.preferredRegions),
-              max_distance_from_city = locationPrefs.maxDistanceFromCity.toLong(),
-              nearby_cities = encodeStringList(locationPrefs.nearbyCities),
-              last_updated = now,
+              preferredRegions = encodeStringList(locationPrefs.preferredRegions),
+              maxDistanceFromCity = locationPrefs.maxDistanceFromCity.toLong(),
+              nearbyCities = encodeStringList(locationPrefs.nearbyCities),
+              lastUpdated = now,
               user_id = userId
           )
       }
@@ -156,8 +156,8 @@ class DatabaseSuggestionPreferencesRepository(
       override suspend fun updateAccessibilityNeeds(userId: String, needs: List<String>) {
           val now = Clock.System.now().toString()
           preferencesQueries.updateAccessibilityNeeds(
-              accessibility_needs = encodeStringList(needs),
-              last_updated = now,
+              accessibilityNeeds = encodeStringList(needs),
+              lastUpdated = now,
               user_id = userId
           )
       }

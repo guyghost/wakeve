@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 
 private val LightColorScheme = lightColorScheme(
@@ -67,6 +68,23 @@ private val DarkColorScheme = darkColorScheme(
     onSurfaceVariant = WakeveTextSecondaryDark,
     outline = WakeveBorderDark
 )
+
+/**
+ * Spacing values for consistent layout throughout the app.
+ */
+object WakevSpacing {
+    val small = 8.dp
+    val medium = 16.dp
+    val large = 24.dp
+    val extraLarge = 32.dp
+}
+
+/**
+ * Theme object providing access to spacing and other design tokens.
+ */
+object WakevTheme {
+    val spacing: WakevSpacing = WakevSpacing
+}
 
 @Composable
 fun WakeveTheme(

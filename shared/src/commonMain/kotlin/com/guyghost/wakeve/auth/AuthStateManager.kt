@@ -5,6 +5,8 @@ import com.guyghost.wakeve.gamification.BadgeNotificationService
 import com.guyghost.wakeve.models.BadgeCount
 import com.guyghost.wakeve.models.BadgeNotification
 import com.guyghost.wakeve.models.BadgeType
+import com.guyghost.wakeve.models.OAuthLoginRequest
+import com.guyghost.wakeve.models.OAuthLoginResponse
 import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.UserResponse
 import com.guyghost.wakeve.models.createDeepLink
@@ -142,24 +144,21 @@ class AuthStateManager(
     }
 
     /**
-     * Fetch full user profile from server.
+     * Restore user profile from cached storage.
      */
     private suspend fun fetchAndSetUserProfile(userId: String) {
         _authState.value = AuthState.Loading
 
         try {
-            val response = authService.getUserProfile(userId)
-            if (response.isSuccess && response.valueOrNull() != null) {
-                val userProfile = response.valueOrNull()!!
+            // Get cached user profile data
+            val userProfile = getCurrentUser()
 
-                // Store user profile data
-                secureStorage.storeUserName(userProfile.name)
-                secureStorage.storeUserEmail(userProfile.email)
-                secureStorage.storeUserProvider(userProfile.provider.toString())
-
-                // Set authenticated state
-                val session = generateSessionId()
-                secureStorage.storeSessionId(session)
+            if (userProfile != null) {
+                // Restore session
+                val session = secureStorage.getSessionId() ?: generateSessionId()
+                if (secureStorage.getSessionId() == null) {
+                    secureStorage.storeSessionId(session)
+                }
 
                 _authState.value = AuthState.Authenticated(
                     userId = userId,
@@ -167,10 +166,8 @@ class AuthStateManager(
                     sessionId = session
                 )
             } else {
-                _authState.value = AuthState.Error(
-                    message = "Failed to fetch user profile",
-                    code = ErrorCode.SERVER_ERROR
-                )
+                // No cached profile, user needs to re-login
+                _authState.value = AuthState.Unauthenticated
             }
         } catch (e: Exception) {
             _authState.value = AuthState.Error(
@@ -197,19 +194,19 @@ class AuthStateManager(
         try {
             val response = authService.loginWithGoogle(authCode)
 
-            if (response.isSuccess && response.valueOrNull() != null) {
-                val loginResponse = response.valueOrNull()!!
+            if (response.isSuccess) {
+                val loginResponse = response.getOrNull()!!
 
                 // Store tokens
                 secureStorage.storeAccessToken(loginResponse.accessToken)
-                secureStorage.storeRefreshToken(loginResponse.refreshToken)
+                secureStorage.storeRefreshToken(loginResponse.refreshToken ?: "")
                 secureStorage.storeTokenExpiry(loginResponse.expiresIn * 1000L + currentTimeMillis())
 
                 // Store user profile
                 secureStorage.storeUserId(loginResponse.user.id)
                 secureStorage.storeUserName(loginResponse.user.name)
                 secureStorage.storeUserEmail(loginResponse.user.email)
-                secureStorage.storeUserProvider(loginResponse.user.provider.toString())
+                secureStorage.storeUserProvider(loginResponse.user.provider)
 
                 // Set authenticated state
                 val session = generateSessionId()
@@ -251,19 +248,19 @@ class AuthStateManager(
         try {
             val response = authService.loginWithApple(authCode, userInfo)
 
-            if (response.isSuccess && response.valueOrNull() != null) {
-                val loginResponse = response.valueOrNull()!!
+            if (response.isSuccess) {
+                val loginResponse = response.getOrNull()!!
 
                 // Store tokens
                 secureStorage.storeAccessToken(loginResponse.accessToken)
-                secureStorage.storeRefreshToken(loginResponse.refreshToken)
+                secureStorage.storeRefreshToken(loginResponse.refreshToken ?: "")
                 secureStorage.storeTokenExpiry(loginResponse.expiresIn * 1000L + currentTimeMillis())
 
                 // Store user profile
                 secureStorage.storeUserId(loginResponse.user.id)
                 secureStorage.storeUserName(loginResponse.user.name)
                 secureStorage.storeUserEmail(loginResponse.user.email)
-                secureStorage.storeUserProvider(loginResponse.user.provider.toString())
+                secureStorage.storeUserProvider(loginResponse.user.provider)
 
                 // Set authenticated state
                 val session = generateSessionId()
@@ -297,19 +294,24 @@ class AuthStateManager(
         try {
             val response = authService.refreshToken()
 
-            if (response.isSuccess && response.valueOrNull() != null) {
-                val refreshResponse = response.valueOrNull()!!
+            if (response.isSuccess) {
+                val refreshResponse = response.getOrNull()!!
 
                 // Update tokens
                 secureStorage.storeAccessToken(refreshResponse.accessToken)
-                secureStorage.storeRefreshToken(refreshResponse.refreshToken)
+                secureStorage.storeRefreshToken(refreshResponse.refreshToken ?: "")
                 secureStorage.storeTokenExpiry(refreshResponse.expiresIn * 1000L + currentTimeMillis())
 
-                _authState.value = AuthState.Authenticated(
-                    userId = getCurrentUserId(),
-                    user = getCurrentUser(),
-                    sessionId = getCurrentSessionId()
-                )
+                val user = getCurrentUser()
+                if (user != null) {
+                    _authState.value = AuthState.Authenticated(
+                        userId = getCurrentUserId() ?: "",
+                        user = user,
+                        sessionId = getCurrentSessionId() ?: ""
+                    )
+                } else {
+                    _authState.value = AuthState.Unauthenticated
+                }
             } else {
                 _authState.value = AuthState.Error(
                     message = "Token refresh failed",
@@ -376,8 +378,9 @@ class AuthStateManager(
                 id = userId,
                 email = email,
                 name = name,
-                provider = provider,
-                profilePictureUrl = secureStorage.getUserAvatarUrl()
+                provider = providerStr,
+                avatarUrl = secureStorage.getUserAvatarUrl(),
+                createdAt = "" // Unknown from cache
             )
         }
 
@@ -540,9 +543,10 @@ class AuthStateManager(
                 return currentValue
             }
 
+            val storage = secureStorage ?: DummySecureTokenStorage()
             val newInstance = AuthStateManager(
-                secureStorage = secureStorage ?: DummySecureTokenStorage(),
-                authService = authService ?: DummyAuthenticationService(),
+                secureStorage = storage,
+                authService = authService ?: DummyAuthenticationService(storage, ""),
                 enableOAuth = enableOAuth,
                 badgeNotificationService = badgeNotificationService
             )
@@ -610,19 +614,27 @@ private class DummySecureTokenStorage : SecureTokenStorage {
 /**
  * Dummy implementation of ClientAuthenticationService for shared module compilation.
  */
-private class DummyAuthenticationService : ClientAuthenticationService {
-    override suspend fun loginWithGoogle(authCode: String): Result<AuthResult<UserResponse>> =
+private class DummyAuthenticationService(
+    secureStorage: SecureTokenStorage,
+    baseUrl: String
+) : ClientAuthenticationService(secureStorage, baseUrl) {
+    override suspend fun loginWithGoogle(authorizationCode: String): Result<OAuthLoginResponse> =
         Result.failure(NotImplementedError("Use platform-specific implementation"))
 
-    override suspend fun loginWithApple(authCode: String, userInfo: String?): Result<AuthResult<UserResponse>> =
+    override suspend fun loginWithApple(authorizationCode: String, userInfo: String?): Result<OAuthLoginResponse> =
         Result.failure(NotImplementedError("Use platform-specific implementation"))
 
-    override suspend fun refreshToken(): Result<AuthResult<UserResponse>> =
+    override suspend fun refreshToken(): Result<OAuthLoginResponse> =
         Result.failure(NotImplementedError("Use platform-specific implementation"))
 
     override suspend fun logout(): Result<Unit> = Result.success(Unit)
 
-    override fun isLoggedIn(): Boolean = false
+    override suspend fun getStoredAccessToken(): String? = null
+
+    override suspend fun isLoggedIn(): Boolean = false
+
+    override suspend fun performLoginRequest(request: OAuthLoginRequest): Result<OAuthLoginResponse> =
+        Result.failure(NotImplementedError("Use platform-specific implementation"))
 }
 
 /**

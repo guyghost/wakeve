@@ -38,6 +38,9 @@ kotlin {
             implementation(libs.ktor.clientCio)
             implementation(libs.ktor.clientWebsocket)
             implementation(libs.androidx.core.ktx)
+            // Activity Result API for image picker
+            implementation("androidx.activity:activity-ktx:1.9.3")
+            implementation("androidx.appcompat:appcompat:1.7.0")
             // ML Kit Vision for on-device photo recognition
             implementation("com.google.android.gms:play-services-mlkit-image-labeling:16.0.8")
             implementation("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")

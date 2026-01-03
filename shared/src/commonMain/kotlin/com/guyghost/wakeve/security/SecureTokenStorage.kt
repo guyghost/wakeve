@@ -39,6 +39,10 @@ interface SecureTokenStorage {
     suspend fun clearAllTokens(): Result<Unit>
     suspend fun isTokenExpired(): Boolean
     suspend fun hasValidToken(): Boolean
+
+    // Session management
+    suspend fun storeSessionId(sessionId: String): Result<Unit>
+    suspend fun getSessionId(): String?
 }
 
 /**

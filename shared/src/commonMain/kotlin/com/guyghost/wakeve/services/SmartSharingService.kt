@@ -156,7 +156,7 @@ class SmartSharingService(
      * @return List of [SharingSuggestion] for the album
      */
     suspend fun getAlbumSharingSuggestions(albumId: String): List<SharingSuggestion> {
-        val album = albumRepository.getAlbum(albumId) ?: return emptyList()
+        val album = albumRepository.getAlbumSimple(albumId) ?: return emptyList()
         return getSharingSuggestions(album.photoIds)
     }
 

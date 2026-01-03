@@ -39,7 +39,11 @@ data class ChatImageAttachment(
                 bytes < 1024 -> "$bytes B"
                 bytes < 1024 * 1024 -> "${bytes / 1024} KB"
                 bytes < 1024 * 1024 * 1024 -> "${bytes / (1024 * 1024)} MB"
-                else -> String.format("%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0))
+                else -> {
+                    val gb = bytes / (1024.0 * 1024.0 * 1024.0)
+                    val rounded = (gb * 100).toLong() / 100.0
+                    "$rounded GB"
+                }
             }
         }
     }
