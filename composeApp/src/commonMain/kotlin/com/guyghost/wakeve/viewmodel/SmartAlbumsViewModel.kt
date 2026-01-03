@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.guyghost.wakeve.auth.AuthStateManager
 import com.guyghost.wakeve.models.*
 import com.guyghost.wakeve.repository.AlbumRepository
+import com.guyghost.wakeve.repository.AlbumUpdateParams
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 

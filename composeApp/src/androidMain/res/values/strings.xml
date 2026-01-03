@@ -30,6 +30,12 @@
     
     <string name="share_event_short_label">Partager un événement</string>
     <string name="share_event_long_label">Envoyer les invitations aux participants</string>
+    
+    <!-- App Actions Entity Sets -->
+    <string name="event_name_entity">Nom de l\'événement</string>
+    <string name="feature_invitations">Invitations</string>
+    <string name="feature_reminders">Rappels</string>
+    <string name="feature_calendar">Calendrier</string>
 
     <!-- Notification Channels -->
     <string name="notification_channel_badges_name">Badges débloqués</string>

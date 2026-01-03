@@ -313,8 +313,21 @@ class MeetingManagementViewModel(
     /**
      * Get the current user ID from AuthStateManager
      */
-    private fun getCurrentUserId(): String {
+    private suspend fun getCurrentUserIdAsync(): String {
         val authStateManager = AuthStateManager.getInstance()
         return authStateManager.getCurrentUserId() ?: "anonymous"
+    }
+    
+    /**
+     * Synchronous version using the auth state
+     */
+    private fun getCurrentUserId(): String {
+        val authStateManager = AuthStateManager.getInstance()
+        val authState = authStateManager.authState.value
+        return if (authState is com.guyghost.wakeve.auth.AuthState.Authenticated) {
+            authState.userId
+        } else {
+            "anonymous"
+        }
     }
 }

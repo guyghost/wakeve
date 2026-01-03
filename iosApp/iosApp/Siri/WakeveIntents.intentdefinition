@@ -162,7 +162,7 @@
                         <string>INIntentParameterDateTypeDateTime</string>
                         <key>INIntentParameterDefaultNumberType</key>
                         <string>INIntentParameterNumberTypeInteger</string>
-                        <string>INIntentParameterDefaultStringType</key>
+                        <key>INIntentParameterDefaultStringType</key>
                         <string>INIntentParameterStringTypeGeneric</string>
                     </dict>
                     <key>INIntentParameterDisplayName</key>
@@ -193,7 +193,7 @@
                         <string>INIntentParameterDateTypeDateTime</string>
                         <key>INIntentParameterDefaultNumberType</key>
                         <string>INIntentParameterNumberTypeInteger</string>
-                        <string>INIntentParameterDefaultStringType</key>
+                        <key>INIntentParameterDefaultStringType</key>
                         <string>INIntentParameterStringTypeGeneric</string>
                     </dict>
                     <key>INIntentParameterDisplayName</key>
@@ -338,7 +338,7 @@
                         <string>INIntentParameterDateTypeDateTime</string>
                         <key>INIntentParameterDefaultNumberType</key>
                         <string>INIntentParameterNumberTypeInteger</string>
-                        <string>INIntentParameterDefaultStringType</key>
+                        <key>INIntentParameterDefaultStringType</key>
                         <string>INIntentParameterStringTypeGeneric</string>
                     </dict>
                     <key>INIntentParameterDisplayName</key>
@@ -547,7 +547,7 @@
                         <string>INIntentParameterDateTypeDateTime</string>
                         <key>INIntentParameterDefaultNumberType</key>
                         <string>INIntentParameterNumberTypeInteger</string>
-                        <string>INIntentParameterDefaultStringType</key>
+                        <key>INIntentParameterDefaultStringType</key>
                         <string>INIntentParameterStringTypeGeneric</string>
                     </dict>
                     <key>INIntentParameterDisplayName</key>

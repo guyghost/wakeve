@@ -173,6 +173,19 @@ class AndroidSecureTokenStorage(private val context: Context) : SecureTokenStora
         return token != null && !isTokenExpired()
     }
 
+    // Session management
+    private val sessionIdKey = "session_id"
+
+    override suspend fun storeSessionId(sessionId: String): Result<Unit> = runCatching {
+        encryptedPrefs.edit()
+            .putString(sessionIdKey, sessionId)
+            .apply()
+    }
+
+    override suspend fun getSessionId(): String? {
+        return encryptedPrefs.getString(sessionIdKey, null)
+    }
+
     /**
      * Generate or retrieve encryption key from KeyStore
      */

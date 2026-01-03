@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.guyghost.wakeve.models.Album
 import com.guyghost.wakeve.models.Photo
 import com.guyghost.wakeve.repository.AlbumRepository
-import com.guyghost.wakeve.repository.EventRepository
+import com.guyghost.wakeve.EventRepositoryInterface
 import com.guyghost.wakeve.repository.PhotoRepository
 import com.guyghost.wakeve.services.SharingSuggestion
 import com.guyghost.wakeve.services.SmartSharingService
@@ -59,7 +59,7 @@ import kotlinx.coroutines.launch
 class AlbumsViewModel(
     private val albumRepository: AlbumRepository,
     private val photoRepository: PhotoRepository,
-    private val eventRepository: EventRepository,
+    private val eventRepository: EventRepositoryInterface,
     private val smartSharingService: SmartSharingService
 ) : ViewModel() {
 

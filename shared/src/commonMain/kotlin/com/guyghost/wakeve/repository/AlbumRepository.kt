@@ -29,12 +29,12 @@ interface AlbumRepository {
     suspend fun getAlbums(eventId: String?): List<Album>
     
     /**
-     * Gets an album by its ID.
+     * Gets an album by its ID (simple version).
      *
      * @param albumId The album ID
      * @return The album or null if not found
      */
-    suspend fun getAlbum(albumId: String): Album?
+    suspend fun getAlbumSimple(albumId: String): Album?
     
     /**
      * Updates an album.
@@ -60,11 +60,11 @@ interface AlbumRepository {
     suspend fun updateAlbumCover(albumId: String, coverPhotoId: String)
     
     /**
-     * Deletes an album.
+     * Deletes an album (simple version).
      *
      * @param albumId The album ID to delete
      */
-    suspend fun deleteAlbum(albumId: String)
+    suspend fun deleteAlbumSimple(albumId: String)
     
     /**
      * Adds a photo to an album.
@@ -281,7 +281,7 @@ data class AlbumUpdateParams(
         return album.copy(
             name = name ?: album.name,
             coverPhotoId = coverUri ?: album.coverPhotoId,
-            updatedAt = if (hasUpdates) java.time.Instant.now().toString() else album.updatedAt
+            updatedAt = if (hasUpdates) kotlinx.datetime.Clock.System.now().toString() else album.updatedAt
         )
     }
     

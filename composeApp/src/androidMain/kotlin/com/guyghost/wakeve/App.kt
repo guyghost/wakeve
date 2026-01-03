@@ -87,7 +87,7 @@ fun App() {
             authService = authService,
             enableOAuth = false // TODO: Enable OAuth when configured
         )
-        authStateManager.initialize()
+        // AuthStateManager initializes automatically in init block
         
         // Observe authentication state
         authStateManager.authState.collect { state ->

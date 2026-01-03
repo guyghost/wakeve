@@ -217,9 +217,9 @@ fun SmartAlbum.isAiSuggested(): Boolean = smartType == SmartAlbumType.AI_SUGGEST
  * Extension to check if smart album is recent (created within 30 days).
  */
 fun SmartAlbum.isRecent(): Boolean {
-    val thirtyDaysAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000)
+    val thirtyDaysAgo = kotlinx.datetime.Clock.System.now().toEpochMilliseconds() - (30L * 24 * 60 * 60 * 1000)
     return try {
-        val createdAt = java.time.Instant.parse(dateCreated).toEpochMilli()
+        val createdAt = kotlinx.datetime.Instant.parse(dateCreated).toEpochMilliseconds()
         createdAt > thirtyDaysAgo
     } catch (e: Exception) {
         false

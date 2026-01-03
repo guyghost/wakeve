@@ -282,10 +282,10 @@ fun WakevNavHost(
                     scenario = scenario,
                     votingResult = scenarioWithVotes?.votingResult,
                     votes = scenarioWithVotes?.votes ?: emptyList(),
-                    isOrganizer = userId == eventViewModel.state.value.organizerId,
+                    isOrganizer = userId == eventViewModel.state.value.selectedEvent?.organizerId,
                     onSelectAsFinal = {
                         viewModel.dispatch(
-                            com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent.SelectScenarioAsFinal(scenarioId)
+                            com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent.SelectScenarioAsFinal(eventId, scenarioId, userId)
                         )
                     },
                     onNavigateToMeetings = {
@@ -314,7 +314,7 @@ fun WakevNavHost(
             ScenarioComparisonScreen(
                 scenarios = state.scenarios,
                 eventId = eventId,
-                isOrganizer = userId == eventViewModel.state.value.organizerId,
+                isOrganizer = userId == eventViewModel.state.value.selectedEvent?.organizerId,
                 onVote = { scenarioId ->
                     viewModel.dispatch(
                         com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent.VoteScenario(
@@ -325,7 +325,7 @@ fun WakevNavHost(
                 },
                 onSelectWinner = { scenarioId ->
                     viewModel.dispatch(
-                        com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent.SelectScenarioAsFinal(scenarioId)
+                        com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent.SelectScenarioAsFinal(eventId, scenarioId, userId)
                     )
                     navController.navigate(Screen.MeetingList.createRoute(eventId))
                 },
@@ -371,7 +371,7 @@ fun WakevNavHost(
             
             MeetingListScreen(
                 viewModel = viewModel,
-                isOrganizer = userId == eventViewModel.state.value.organizerId,
+                isOrganizer = userId == eventViewModel.state.value.selectedEvent?.organizerId,
                 onNavigateToDetail = { route ->
                     navController.navigate(route)
                 }

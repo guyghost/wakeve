@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
@@ -90,12 +91,13 @@ class ChatViewModel(
         }
         
         viewModelScope.launch {
-            chatService.isConnected.collect { connected ->
+            chatService.connectionState.collect { state ->
+                val connected = state == com.guyghost.wakeve.chat.WebSocketConnectionState.CONNECTED
                 _isConnected.value = connected
-                _connectionStatus.value = if (connected) {
-                    ConnectionStatus.Connected
-                } else {
-                    ConnectionStatus.Disconnected
+                _connectionStatus.value = when (state) {
+                    com.guyghost.wakeve.chat.WebSocketConnectionState.CONNECTED -> ConnectionStatus.Connected
+                    com.guyghost.wakeve.chat.WebSocketConnectionState.CONNECTING -> ConnectionStatus.Connecting
+                    else -> ConnectionStatus.Disconnected
                 }
             }
         }
@@ -314,6 +316,9 @@ class ChatViewModel(
                 is ConnectionEvent.Connected -> {
                     _connectionStatus.value = ConnectionStatus.Connected
                 }
+                is ConnectionEvent.Connecting -> {
+                    _connectionStatus.value = ConnectionStatus.Connecting
+                }
                 is ConnectionEvent.Disconnected -> {
                     _connectionStatus.value = ConnectionStatus.Disconnected
                 }
@@ -343,6 +348,7 @@ class ChatViewModel(
  */
 sealed class ConnectionStatus {
     data object Connected : ConnectionStatus()
+    data object Connecting : ConnectionStatus()
     data object Disconnected : ConnectionStatus()
     data class Queued(val count: Int) : ConnectionStatus()
     data class Syncing(val count: Int) : ConnectionStatus()

@@ -116,12 +116,17 @@ fun DraftEventWizard(
     // Build current event
     fun buildEvent(): Event {
         val authStateManager = AuthStateManager.getInstance()
-        val currentUser = authStateManager.currentUser.value
+        val authState = authStateManager.authState.value
+        val currentUserId = if (authState is com.guyghost.wakeve.auth.AuthState.Authenticated) {
+            authState.userId
+        } else {
+            "anonymous"
+        }
         return Event(
             id = initialEvent?.id ?: "event-${Clock.System.now().toEpochMilliseconds()}",
             title = title,
             description = description,
-            organizerId = initialEvent?.organizerId ?: currentUser?.id ?: "anonymous",
+            organizerId = initialEvent?.organizerId ?: currentUserId,
             participants = initialEvent?.participants ?: emptyList(),
             proposedSlots = timeSlots,
             deadline = initialEvent?.deadline ?: Clock.System.now().toString(), // TODO: Set proper deadline

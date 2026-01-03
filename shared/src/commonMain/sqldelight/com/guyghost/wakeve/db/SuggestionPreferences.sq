@@ -21,3 +21,48 @@ CREATE TABLE suggestion_preferences (
 
 -- Index for efficient user lookups
 CREATE INDEX idx_suggestion_preferences_user ON suggestion_preferences(user_id);
+
+-- Queries for suggestion preferences
+selectPreferencesByUserId:
+SELECT * FROM suggestion_preferences WHERE user_id = ?;
+
+insertOrReplacePreferences:
+INSERT OR REPLACE INTO suggestion_preferences(
+    user_id, budgetMin, budgetMax, budgetCurrency,
+    preferredDurationMin, preferredDurationMax, preferredSeasons,
+    preferredActivities, maxGroupSize, preferredRegions,
+    maxDistanceFromCity, nearbyCities, accessibilityNeeds, lastUpdated
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateBudgetRange:
+UPDATE suggestion_preferences
+SET budgetMin = ?, budgetMax = ?, lastUpdated = ?
+WHERE user_id = ?;
+
+updateDurationRange:
+UPDATE suggestion_preferences
+SET preferredDurationMin = ?, preferredDurationMax = ?, lastUpdated = ?
+WHERE user_id = ?;
+
+updatePreferredSeasons:
+UPDATE suggestion_preferences
+SET preferredSeasons = ?, lastUpdated = ?
+WHERE user_id = ?;
+
+updatePreferredActivities:
+UPDATE suggestion_preferences
+SET preferredActivities = ?, lastUpdated = ?
+WHERE user_id = ?;
+
+updateLocationPreferences:
+UPDATE suggestion_preferences
+SET preferredRegions = ?, maxDistanceFromCity = ?, nearbyCities = ?, lastUpdated = ?
+WHERE user_id = ?;
+
+updateAccessibilityNeeds:
+UPDATE suggestion_preferences
+SET accessibilityNeeds = ?, lastUpdated = ?
+WHERE user_id = ?;
+
+deletePreferences:
+DELETE FROM suggestion_preferences WHERE user_id = ?;
