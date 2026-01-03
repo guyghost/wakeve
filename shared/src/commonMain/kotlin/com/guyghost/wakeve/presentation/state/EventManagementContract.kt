@@ -177,10 +177,12 @@ object EventManagementContract {
          *
          * @property eventId The ID of the event
          * @property slotId The ID of the selected time slot
+         * @property userId The ID of the user attempting to confirm (must be organizer)
          */
         data class ConfirmDate(
             val eventId: String,
-            val slotId: String
+            val slotId: String,
+            val userId: String
         ) : Intent
 
         /**
@@ -193,8 +195,12 @@ object EventManagementContract {
          * Emits NavigateTo side effect to navigate to meetings screen.
          *
          * @property eventId The ID of the event
+         * @property userId The ID of the user attempting to transition (must be organizer)
          */
-        data class TransitionToOrganizing(val eventId: String) : Intent
+        data class TransitionToOrganizing(
+            val eventId: String,
+            val userId: String
+        ) : Intent
 
         /**
          * Mark event as finalized.
@@ -205,8 +211,12 @@ object EventManagementContract {
          * Emits side effects for success confirmation.
          *
          * @property eventId The ID of the event
+         * @property userId The ID of the user attempting to finalize (must be organizer)
          */
-        data class MarkAsFinalized(val eventId: String) : Intent
+        data class MarkAsFinalized(
+            val eventId: String,
+            val userId: String
+        ) : Intent
 
         /**
          * Load participants for an event.

@@ -655,3 +655,222 @@ Implémentation de la persistence SQLite complète pour les préférences utilis
 - Offline-first: Toutes les données stockées localement en SQLite
 - Type-safe: SQLDelight génère les interfaces de queries
 - Sérialisation: kotlinx.serialization pour JSON
+
+---
+
+# Badge Notification System - Tasks
+
+## Overview
+Implémentation complète du système de notifications par badge pour Android et iOS selon l'architecture Functional Core & Imperative Shell.
+
+## Architecture FC&IS
+
+### Functional Core (models/)
+- `BadgeType` - Énumération des types de notifications (purs, sans I/O)
+- `BadgeCount` - Data class pour le suivi des compteurs de badges (purs)
+- `BadgeNotification` - Data class pour le payload des notifications (purs)
+- Fonctions d'extension pour la génération de contenu
+
+### Imperative Shell (gamification/)
+- `AndroidBadgeNotificationService` - Implémentation Android avec NotificationManagerCompat
+- `IosBadgeNotificationService` - Implémentation iOS avec UserNotifications framework
+- `BadgeDismissReceiver` - BroadcastReceiver pour Android
+- Side effects: Affichage des notifications, mise à jour du badge
+
+## Fichiers Créés/Modifiés
+
+### 1. BadgeModels.kt (Core)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/models/BadgeModels.kt`
+- **Contenu**:
+  - `BadgeType` - Enum avec 8 types de notifications (EVENT_CREATED, POLL_OPENED, etc.)
+  - `BadgeCount` - Data class avec méthodes increment(), decrement(), update(), isValid()
+  - `BadgeNotification` - Data class avec deep link, badge count, validation
+  - Fonctions d'extension: getNotificationTitle(), getDefaultMessage(), createDeepLink()
+
+### 2. AndroidBadgeNotificationService.kt (Shell)
+- **Fichier**: `shared/src/androidMain/kotlin/com/guyghost/wakeve/gamification/AndroidBadgeNotificationService.kt`
+- **Contenu**:
+  - Création de canaux de notification (Android 8+)
+  - Badge number sur l'icône de l'app
+  - Boutons d'action (Ouvrir, Ignorer)
+  - Son et vibration
+  - Support ShortcutBadger pour les launchers
+
+### 3. IosBadgeNotificationService.kt (Shell)
+- **Fichier**: `shared/src/iosMain/kotlin/com/guyghost/wakeve/gamification/IosBadgeNotificationService.kt`
+- **Contenu**:
+  - UNNotificationContent avec interruption levels
+  - Badge number sur l'icône de l'app
+  - Boutons d'action (Ouvrir, Ignorer)
+  - Configuration des catégories de notification
+
+### 4. BadgeDismissReceiver.kt (Shell Android)
+- **Fichier**: `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/gamification/BadgeDismissReceiver.kt`
+- **Contenu**:
+  - BroadcastReceiver pour gérer les actions de dismissal
+  - BadgeDismissIntentBuilder pour créer les intents
+
+### 5. AuthStateManager.kt (Modification)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/AuthStateManager.kt`
+- **Modifications**:
+  - Ajout paramètre `badgeNotificationService` au constructeur
+  - Ajout `_badgeCount` StateFlow pour le suivi du compteur
+  - Méthode `sendBadgeNotification()` pour envoyer des notifications
+  - Méthode `sendCustomBadgeNotification()` pour les notifications personnalisées
+  - Méthode `updateBadgeCount()` pour mettre à jour le badge
+  - Méthode `clearBadgeNotification()` pour effacer une notification
+  - Méthode `clearAllBadgeNotifications()` pour tout effacer
+
+### 6. BadgeNotificationService.kt (Interface Update)
+- **Fichier**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/gamification/BadgeNotificationService.kt`
+- **Modifications**:
+  - Ajout méthode `sendBadgeNotification(notification: BadgeNotification)`
+  - Ajout méthode `clearBadgeNotification(notificationId: String)`
+  - Ajout méthode `updateBadgeCount(count: Int)`
+
+### 7. BadgeNotificationServiceTest.kt (Tests)
+- **Fichier**: `shared/src/commonTest/kotlin/com/guyghost/wakeve/gamification/BadgeNotificationServiceTest.kt`
+- **Contenu**: 20+ tests unitaires pour:
+  - BadgeCount (increment, decrement, update, validation)
+  - BadgeNotification (withBadgeCount, withDeepLink, isValid, getChannelId)
+  - BadgeType extensions (getNotificationTitle, getDefaultMessage, createDeepLink)
+
+## Fonctionnalités Implémentées
+
+### Badge Models (Core)
+- [x] BadgeType enum avec 8 types de notifications
+- [x] BadgeCount data class avec méthodes de manipulation
+- [x] BadgeNotification data class avec deep link et validation
+- [x] Extensions pour la génération de contenu localisé
+
+### Android Implementation (Shell)
+- [x] Notification channels pour chaque type de notification
+- [x] Affichage du badge number sur l'icône de l'app
+- [x] Boutons d'action (Ouvrir, Ignorer)
+- [x] Son et vibration
+- [x] Support ShortcutBadger (Samsung, Huawei, etc.)
+- [x] BroadcastReceiver pour les actions de dismissal
+
+### iOS Implementation (Shell)
+- [x] UNNotificationContent avec interruption levels
+- [x] Affichage du badge number sur l'icône de l'app
+- [x] Boutons d'action (Ouvrir, Ignorer)
+- [x] Catégories de notification configurées
+- [x] Support deep link via userInfo
+
+### AuthStateManager Integration
+- [x] Badge notification service optional parameter
+- [x] Badge count StateFlow pour l'UI
+- [x] Méthodes pour envoyer des notifications
+- [x] Méthodes pour gérer les badges
+
+### Tests Unitaires
+- [x] Tests BadgeCount (9 tests)
+- [x] Tests BadgeNotification (8 tests)
+- [x] Tests BadgeType extensions (8 tests)
+- [x] Tests Notification content (2 tests)
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  IMPERATIVE SHELL                            │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │           AuthStateManager                           │   │
+│  │  • sendBadgeNotification()                           │   │
+│  │  • updateBadgeCount()                                │   │
+│  │  • clearBadgeNotification()                          │   │
+│  │  • badgeCount: StateFlow                             │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌───────────────────┐    ┌─────────────────────────────┐  │
+│  │ AndroidBadge      │    │ IosBadgeNotificationService │  │
+│  │ NotificationService│    │                             │  │
+│  │ • Notification    │    │ • UNNotificationRequest     │  │
+│  │   ManagerCompat   │    │ • UNUserNotificationCenter  │  │
+│  │ • ShortcutBadger  │    │ • Badge count update        │  │
+│  └───────────────────┘    └─────────────────────────────┘  │
+├─────────────────────────────────────────────────────────────┤
+│                    FUNCTIONAL CORE                           │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  BadgeType, BadgeCount, BadgeNotification             │  │
+│  │  (Models purs, sans dépendances I/O)                  │  │
+│  │  Extensions: getNotificationTitle(), createDeepLink() │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Types de Notifications Supportés
+
+| BadgeType | Titre | Channel Android | Interruption iOS |
+|-----------|-------|-----------------|------------------|
+| EVENT_CREATED | Nouvel événement créé | wakeve_notifications | Active |
+| POLL_OPENED | Nouveau sondage ouvert | wakeve_notifications_polls | Active |
+| POLL_CLOSING_SOON | Sondage bientôt terminé | wakeve_notifications_polls | TimeSensitive |
+| DATE_CONFIRMED | Date confirmée | wakeve_notifications_dates | Active |
+| SCENARIO_UNLOCKED | Scénarios disponibles | wakeve_notifications_scenarios | Active |
+| MEETING_SCHEDULED | Réunion planifiée | wakeve_notifications_meetings | Active |
+| COMMENT_MENTION | Mention dans un commentaire | wakeve_notifications_comments | Active |
+| EVENT_FINALIZED | Événement finalisé | wakeve_notifications | Active |
+
+## Deep Links Supportés
+
+| BadgeType | Deep Link Format |
+|-----------|------------------|
+| Default | `wakeve://events/{eventId}` |
+| SCENARIO_UNLOCKED | `wakeve://events/{eventId}/scenarios` |
+| MEETING_SCHEDULED | `wakeve://events/{eventId}/meetings` |
+| COMMENT_MENTION | `wakeve://events/{eventId}/comments` |
+
+## Vérification
+
+```bash
+# Compilation du projet (badge models compiles successfully)
+./gradlew :shared:compileCommonMainKotlinMetadata -x :shared:generateCommonMainWakevDbInterface
+
+# Tests unitaires (nécessite résolution des problèmes SQLDelight préexistants)
+./gradlew shared:jvmTest --tests "*BadgeNotificationServiceTest*"
+
+# Build Android (nécessite les ressources drawable)
+./gradlew :composeApp:assembleDebug
+```
+
+## Intégration AndroidManifest.xml
+
+Pour le BadgeDismissReceiver, ajouter dans AndroidManifest.xml:
+
+```xml
+<application>
+    <receiver
+        android:name=".gamification.BadgeDismissReceiver"
+        android:exported="false">
+        <intent-filter>
+            <action android:name="com.guyghost.wakeve.DISMISS_BADGE" />
+        </intent-filter>
+    </receiver>
+</application>
+```
+
+## Ressources Android Requis
+
+Dans `composeApp/src/androidMain/res/values/strings.xml`:
+
+```xml
+<string name="notification_action_view_badge">Voir le badge</string>
+<string name="notification_action_dismiss">Ignorer</string>
+```
+
+Dans `composeApp/src/androidMain/res/drawable/`:
+
+- `ic_notification_badge.xml` - Icône de notification
+- `ic_open.xml` - Icône pour le bouton Ouvrir
+- `ic_dismiss.xml` - Icône pour le bouton Ignorer
+
+## Notes
+
+- Architecture FC&IS respectée: Core (models) pur, Shell (services) avec side effects
+- Compatible Android 8+ (API 26+) et iOS 10+
+- Deep links optionnels pour la navigation après tap sur notification
+- Tests unitaires complets pour la logique pure (compilation OK, exécution en attente de la résolution des problèmes SQLDelight préexistants)
+- StateFlow pour une réactivité optimale dans l'UI
+- Les erreurs de compilation restantes sont dans des fichiers préexistants (UserRepository.kt, SuggestionPreferencesQueries.kt) et ne sont pas liées à cette implémentation

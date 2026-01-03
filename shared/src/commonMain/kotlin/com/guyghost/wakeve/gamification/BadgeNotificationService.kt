@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.gamification
 
 import com.guyghost.wakeve.ml.Language
+import com.guyghost.wakeve.models.BadgeNotification
 
 /**
  * Service interface for gamification-related push notifications.
@@ -53,6 +54,27 @@ interface BadgeNotificationService {
         userId: String,
         error: String
     )
+    
+    /**
+     * Sends a badge notification to the system notification shade.
+     *
+     * @param notification The notification payload to display
+     */
+    suspend fun sendBadgeNotification(notification: BadgeNotification)
+    
+    /**
+     * Clears a specific badge notification from the notification shade.
+     *
+     * @param notificationId The ID of the notification to clear
+     */
+    suspend fun clearBadgeNotification(notificationId: String)
+    
+    /**
+     * Updates the badge count displayed on the app launcher icon.
+     *
+     * @param count The badge count to display
+     */
+    suspend fun updateBadgeCount(count: Int)
     
     /**
      * Requests notification permission from the user.

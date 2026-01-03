@@ -272,10 +272,12 @@ object ScenarioManagementContract {
          *
          * @property eventId The ID of the event
          * @property scenarioId The ID of the scenario to select as final
+         * @property userId The ID of the user attempting to select (must be organizer)
          */
         data class SelectScenarioAsFinal(
             val eventId: String,
-            val scenarioId: String
+            val scenarioId: String,
+            val userId: String
         ) : Intent
 
         /**
