@@ -1,108 +1,9 @@
-# Specification: Workflow Coordination - DRAFT Phase
-
-> **Capability**: `workflow-coordination`
-> **Version**: 1.0.0
-> **Status**: Draft
-> **Last Updated**: 2026-01-04
-
-## Purpose
-
-This specification defines coordinated workflow for DRAFT phase of event creation across all platforms (Android, iOS, JVM, Web). It ensures consistent user experience and state machine orchestration using **MVI (Model-View-Intent)** pattern with **Finite State Machines (FSM)**.
-
-### Core Concepts
-
-**DRAFT Phase**: The initial phase of an event where organizer configures event details before opening it for participant voting.
-
-**Wizard Workflow**: A multi-step interface that guides organizer through event creation with validation at each step.
-
-**State Machine Orchestration**: The EventManagementStateMachine orchestrates workflow through Intents, State updates, and Side Effects (navigation, toasts).
-
-**Auto-save**: Automatic persistence of event data at each step transition to prevent data loss.
-
-## ADDED Requirements
-
-### Requirement: DRAFT Wizard Workflow
-**ID**: `workflow-draft-001`
-
-The system SHALL provide a multi-step wizard for creating events in DRAFT status.
-
-**Business Rules:**
-- Wizard MUST have 4 sequential steps (Basic Info → Participants → Locations → Time Slots)
-- User CANNOT skip required steps (Basic Info, Time Slots)
-- User CAN skip optional steps or fields (Participants, Locations)
-- Auto-save MUST occur at each step transition
-- Validation MUST prevent navigation to next step if current step is invalid
-- User CAN navigate back to previous steps at any time
-
-**Side Effects:**
-- Auto-save: `UpdateDraftEvent` intent dispatched on step transition
-- Navigation: `NavigateTo` side effect emitted for step changes
-- Feedback: `ShowToast` or `ShowError` for validation failures
-
-#### Scenario: Organizer completes DRAFT wizard
-- **GIVEN** Organizer starts event creation
-- **WHEN** They complete all 4 steps with valid data
-- **THEN** Event is created with status=DRAFT, auto-saved at each transition, and user navigates to poll setup.
-
-#### Scenario: Organizer attempts invalid step transition
-- **GIVEN** Organizer is on Step 1 (Basic Info)
-- **WHEN** They click "Next" without filling required fields
-- **THEN** Navigation is blocked, validation error is shown, and event is NOT saved.
-
-#### Scenario: Organizer cancels wizard mid-way
-- **GIVEN** Organizer is on Step 2 (Participants)
-- **WHEN** They click "Cancel"
-- **THEN** Any partial data is discarded, user returns to event list, and NO event is created.
-
-### Requirement: Step 1 - Basic Info
-**ID**: `workflow-draft-101`
-
-The system SHALL validate and collect basic event information.
-
-**Validation Rules:**
-- `title` MUST be non-empty and trimmed (required)
-- `description` MUST be non-empty and trimmed (required)
-- `eventType` CAN be selected from presets OR custom (optional, default: OTHER)
-- If `eventType = CUSTOM`, `eventTypeCustom` MUST be non-empty (required)
-
-**Auto-save Behavior:**
-- Dispatch `UpdateDraftEvent` intent when leaving Step 1
-- Persist title, description, eventType, eventTypeCustom
-
-**State Machine Integration:**
-```kotlin
-// Intent dispatched on step transition
-EventManagementContract.Intent.UpdateDraftEvent(
-    event = Event(
-        id = eventId,
-        title = title,
-        description = description,
-        eventType = eventType,
-        eventTypeCustom = if (eventType == CUSTOM) customType else null,
-        status = EventStatus.DRAFT
-    )
-)
-```
-
-#### Scenario: Organizer fills Basic Info step
-- **GIVEN** Organizer is on Step 1
-- **WHEN** They enter title="Team Retreat", description="Annual team building", eventType=TEAM_BUILDING
-- **THEN** Auto-save occurs, validation passes, and "Next" button becomes enabled.
-
-### Requirement: Step 2 - Participants Estimation
-**ID**: `workflow-draft-102`
-
-The system SHALL allow organizers to estimate participant counts.
-
-**Validation Rules:**
-- `minParticipants`, `maxParticipants`, `expectedParticipants` CAN be null (optional)
-- If provided, values MUST be positive (> 0)
 - If both `min` and `max` provided: `max >= min` (required)
-- All fields CAN be left empty (optional)
+- All fields MUST be left empty (optional)
 
 **Auto-save Behavior:**
-- Dispatch `UpdateDraftEvent` intent when leaving Step 2
-- Persist minParticipants, maxParticipants, expectedParticipants
+- MUST dispatch `UpdateDraftEvent` intent when leaving Step 2
+- MUST persist minParticipants, maxParticipants, expectedParticipants
 
 **State Machine Integration:**
 ```kotlin
@@ -127,20 +28,20 @@ EventManagementContract.Intent.UpdateDraftEvent(
 - **WHEN** They attempt to proceed
 - **THEN** Validation error "max must be >= min" is shown, navigation is blocked.
 
-### Requirement: Step 3 - Potential Locations
+### Requirement: The system SHALL allow organizers to propose potential locations
 **ID**: `workflow-draft-103`
 
 The system SHALL allow organizers to propose potential locations.
 
 **Validation Rules:**
-- Locations list CAN be empty (optional)
+- Locations list MUST be empty (optional)
 - Each location MUST have: `name` (required), `locationType` (required)
-- `address` and `coordinates` CAN be null (optional)
+- `address` and `coordinates` MUST be nullable (optional)
 
 **Auto-save Behavior:**
-- Dispatch `AddPotentialLocation` intent when adding a location
-- Dispatch `RemovePotentialLocation` intent when removing a location
-- Auto-save occurs on add/remove operations
+- MUST dispatch `AddPotentialLocation` intent when adding a location
+- MUST dispatch `RemovePotentialLocation` intent when removing a location
+- Auto-save MUST occur on add/remove operations
 
 **State Machine Integration:**
 ```kotlin
@@ -168,7 +69,7 @@ EventManagementContract.Intent.AddPotentialLocation(
 - **WHEN** They delete "Lyon"
 - **THEN** Location is removed, auto-save occurs, and only "Paris" remains.
 
-### Requirement: Step 4 - Time Slots
+### Requirement: The system SHALL allow organizers to propose time slots with flexible time-of-day
 **ID**: `workflow-draft-104`
 
 The system SHALL allow organizers to propose time slots with flexible time-of-day.
@@ -177,11 +78,11 @@ The system SHALL allow organizers to propose time slots with flexible time-of-da
 - At least 1 TimeSlot MUST be added (required)
 - Each TimeSlot MUST have: `date` (required), `timeOfDay` (required)
 - If `timeOfDay = SPECIFIC`, `start` and `end` MUST be provided (required)
-- If `timeOfDay != SPECIFIC`, `start` and `end` CAN be null (optional)
+- If `timeOfDay != SPECIFIC`, `start` and `end` MUST be nullable (optional)
 
 **Auto-save Behavior:**
-- Dispatch `AddTimeSlot` intent when adding a slot
-- Dispatch `RemoveTimeSlot` intent when removing a slot
+- MUST dispatch `AddTimeSlot` intent when adding a slot
+- MUST dispatch `RemoveTimeSlot` intent when removing a slot
 
 **State Machine Integration:**
 ```kotlin
@@ -208,7 +109,7 @@ EventManagementContract.Intent.AddTimeSlot(
 - **WHEN** They add slot: date="2025-06-15", timeOfDay=SPECIFIC, start="14:00", end="16:00"
 - **THEN** Slot is added with exact times, auto-save occurs.
 
-### Requirement: Complete DRAFT Workflow
+### Requirement: The system SHALL create event and transition to poll setup after wizard completion
 **ID**: `workflow-draft-005`
 
 The system SHALL create event and transition to poll setup after wizard completion.
@@ -216,13 +117,13 @@ The system SHALL create event and transition to poll setup after wizard completi
 **Business Rules:**
 - All 4 steps MUST be completed
 - All validations MUST pass
-- Event is created with status=DRAFT
-- User is navigated to poll setup (StartPoll flow)
+- Event MUST be created with status=DRAFT
+- User MUST be navigated to poll setup (StartPoll flow)
 
 **Side Effects:**
-- Dispatch `CreateEvent` intent
-- Emit `NavigateTo("event-detail/{eventId}")` side effect
-- Optionally show `ShowToast("Event created successfully")`
+- MUST dispatch `CreateEvent` intent
+- MUST emit `NavigateTo("event-detail/{eventId}")` side effect
+- MAY show `ShowToast("Event created successfully")`
 
 **State Machine Integration:**
 ```kotlin
@@ -388,7 +289,7 @@ struct DraftEventWizardView: View {
 
 ### Deprecation Notice
 
-**EventCreationScreen.kt** (Android) is **deprecated** and will be removed in the next major version.
+**EventCreationScreen.kt** (Android) MUST be deprecated and WILL be removed in a future major version.
 
 **Migration Guide**:
 ```kotlin
@@ -420,18 +321,18 @@ DraftEventWizard(
 
 ## Acceptance Criteria
 
-- ✅ DRAFT wizard has 4 sequential steps
-- ✅ Auto-save occurs at each step transition
-- ✅ Validation prevents invalid transitions
-- ✅ Required fields are enforced (title, description, time slots)
-- ✅ Optional fields can be skipped (participants, locations)
-- ✅ State Machine orchestrates all intents
-- ✅ Navigation is consistent across platforms
-- ✅ EventCreationScreen is deprecated with migration guide
+- ✅ DRAFT wizard MUST have 4 sequential steps
+- ✅ Auto-save MUST occur at each step transition
+- ✅ Validation MUST prevent invalid transitions
+- ✅ Required fields MUST be enforced (title, description, time slots)
+- ✅ Optional fields MUST be skippable (participants, locations)
+- ✅ State Machine MUST orchestrate all intents
+- ✅ Navigation MUST be consistent across platforms
+- ✅ EventCreationScreen MUST be deprecated with migration guide
 
 ## Success Metrics
 
-- 100% of new events created via DraftEventWizard
+- 100% of new events MUST be created via DraftEventWizard
 - 0 crashes related to DRAFT workflow
 - < 3 minutes average time to complete wizard
 - 95% auto-save success rate

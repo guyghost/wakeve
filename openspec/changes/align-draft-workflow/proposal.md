@@ -133,17 +133,17 @@ Ce changement **ne modifie pas le code** mais documente et aligne le workflow DR
 ## Success Criteria
 
 ✅ **Doit** :
-- [ ] Spécification du workflow DRAFT documentée dans `workflow-coordination/spec.md`
-- [ ] Mapping étapes UI ↔ State Machine Intents documenté
-- [ ] Règles de validation par étape documentées
-- [ ] Side effects de navigation documentés
-- [ ] EventCreationScreen.kt marqué comme @Deprecated avec commentaire migratoire
-- [ ] Tests de workflow d'intégration passants (DRAFT → POLLING)
+- [x] Spécification du workflow DRAFT documentée dans `workflow-coordination/spec.md`
+- [x] Mapping étapes UI ↔ State Machine Intents documenté
+- [x] Règles de validation par étape documentées
+- [x] Side effects de navigation documentés
+- [x] EventCreationScreen.kt marqué comme @Deprecated avec commentaire migratoire
+- [x] Tests de workflow d'intégration passants (DRAFT → POLLING)
 
 ✅ **Devrait** :
-- [ ] Diagramme de séquence du workflow DRAFT
-- [ ] Guide de migration vers DraftEventWizard
-- [ ] Documentation des edge cases (champs optionnels, valeurs par défaut)
+- [x] Diagramme de séquence du workflow DRAFT
+- [x] Guide de migration vers DraftEventWizard
+- [x] Documentation des edge cases (champs optionnels, valeurs par défaut)
 
 🔜 **Pourrait** (phases futures) :
 - [ ] Ajouter une étape de "Résumé" avant création

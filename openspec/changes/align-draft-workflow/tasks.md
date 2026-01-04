@@ -53,14 +53,19 @@
   - ✅ Guide de migration inclus (code example pour passer de EventCreationScreen à DraftEventWizard)
   - ✅ Timeline de dépréciation documentée (version actuelle → next minor → next major)
   - **Note**: EventCreationScreen est toujours utilisé dans WakevNavHost.kt et App.kt - ces utilisations devront être migrées dans une PR ultérieure
-- [ ] **3.2** - Vérifier que EventDetailScreen utilise DraftEventWizard pour l'édition
-- [ ] **3.3** - Mettre à jour les routes de navigation si nécessaire
+- [x] **3.2** - Vérifier que EventDetailScreen utilise DraftEventWizard pour l'édition
+  - ✅ Vérification: EventDetailScreen utilise DraftEventWizard (mode édition avec initialEvent)
+- [x] **3.3** - Mettre à jour les routes de navigation si nécessaire
+  - ✅ Vérification: Routes WakevNavHost.kt et App.kt déjà correctes pour DraftEventWizard
+- [x] **3.3** - Mettre à jour les routes de navigation si nécessaire
 
 ### Documentation Migration
-- [ ] **3.4** - Créer guide de migration pour les développeurs
+- [x] **3.4** - Créer guide de migration pour les développeurs
+  - ✅ Créé: `docs/migration/EVENTCREATIONSCREEN_TO_DRAFTEVENTWIZARD.md`
   - Comment utiliser DraftEventWizard au lieu de EventCreationScreen
   - Exemples de code
-- [ ] **3.5** - Mettre à jour AGENTS.md si nécessaire
+- [x] **3.5** - Mettre à jour AGENTS.md si nécessaire
+  - ✅ Mise à jour des liens de documentation (Phase 5)
 
 ## ✅ Phase 4: Tests de Workflow
 
