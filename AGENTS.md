@@ -645,9 +645,10 @@ Intent.StartPoll(eventId: String)  // DRAFT → POLLING
 **Documentation:**
 
 Pour une intégration complète, consulter:
-- [DraftEventWizard Usage Guide](./docs/guides/DRAFT_WORKFLOW_GUIDE.md)
-- [State Machine Integration Guide](./docs/guides/STATE_MACHINE_INTEGRATION_GUIDE.md)
-- [Workflow Coordination Specification](./openspec/specs/workflow-coordination/)
+- [DRAFT Wizard Usage Guide](./docs/guides/DRAFT_WIZARD_USAGE.md) - Guide d'utilisation du wizard Android/iOS
+- [State Machine Integration Guide](./docs/guides/STATE_MACHINE_INTEGRATION_GUIDE.md) - Guide d'intégration MVI + FSM
+- [Migration Guide: EventCreationScreen → DraftEventWizard](./docs/migration/EVENTCREATIONSCREEN_TO_DRAFTEVENTWIZARD.md) - Guide de migration
+- [Workflow Coordination Specification](./openspec/specs/workflow-coordination/spec.md) - Spécification complète du workflow DRAFT
 
 #### Workflow Complet: DRAFT → FINALIZED
 

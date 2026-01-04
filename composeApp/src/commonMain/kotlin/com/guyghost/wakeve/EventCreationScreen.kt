@@ -65,8 +65,6 @@ data class EventCreationState(
     val errorMessage: String = ""
 )
 
-package com.guyghost.wakeve
-
 /**
  * @deprecated This screen is deprecated and will be removed in a future major version.
  * Use [DraftEventWizard] instead, which provides a better UX with a multi-step wizard.
