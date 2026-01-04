@@ -41,7 +41,7 @@ enum BadgeRarity: String, CaseIterable, Codable {
     }
 }
 
-struct Badge: Identifiable, Equatable {
+struct ProfileBadge: Identifiable, Equatable {
     let id: String
     let name: String
     let description: String
@@ -52,7 +52,7 @@ struct Badge: Identifiable, Equatable {
     let rarity: BadgeRarity
     let unlockedAt: String?
     
-    static func == (lhs: Badge, rhs: Badge) -> Bool {
+    static func == (lhs: ProfileBadge, rhs: ProfileBadge) -> Bool {
         lhs.id == rhs.id
     }
 }
@@ -114,7 +114,7 @@ class ProfileViewModel: ObservableObject {
     @Published var isLoading: Bool = true
     @Published var error: String?
     @Published var userPoints: UserPoints?
-    @Published var badges: [Badge] = []
+    @Published var badges: [ProfileBadge] = []
     @Published var leaderboard: [LeaderboardEntry] = []
     @Published var selectedTab: LeaderboardType = .allTime
     
@@ -144,7 +144,7 @@ class ProfileViewModel: ObservableObject {
         userPoints?.participationPoints ?? 0
     }
     
-    var badgesByCategory: [BadgeCategory: [Badge]] {
+    var badgesByCategory: [BadgeCategory: [ProfileBadge]] {
         Dictionary(grouping: badges, by: { $0.category })
     }
     
@@ -191,7 +191,7 @@ class ProfileViewModel: ObservableObject {
     private func loadUserBadges() async throws {
         // Mock data for demonstration
         badges = [
-            Badge(
+            ProfileBadge(
                 id: "badge-first-event",
                 name: "Premier Événement",
                 description: "A créé son premier événement",
@@ -202,7 +202,7 @@ class ProfileViewModel: ObservableObject {
                 rarity: .common,
                 unlockedAt: "2025-12-01T10:00:00Z"
             ),
-            Badge(
+            ProfileBadge(
                 id: "badge-super-organizer",
                 name: "Super Organisateur",
                 description: "A créé 10 événements",
@@ -213,7 +213,7 @@ class ProfileViewModel: ObservableObject {
                 rarity: .epic,
                 unlockedAt: "2025-12-15T14:30:00Z"
             ),
-            Badge(
+            ProfileBadge(
                 id: "badge-early-bird",
                 name: "早起鸟 (Early Bird)",
                 description: "A voté dans les 24h",
@@ -224,7 +224,7 @@ class ProfileViewModel: ObservableObject {
                 rarity: .common,
                 unlockedAt: "2025-12-20T08:00:00Z"
             ),
-            Badge(
+            ProfileBadge(
                 id: "badge-voting-master",
                 name: "Maître du Vote",
                 description: "A voté 50 fois",
@@ -235,7 +235,7 @@ class ProfileViewModel: ObservableObject {
                 rarity: .rare,
                 unlockedAt: "2025-12-28T16:00:00Z"
             ),
-            Badge(
+            ProfileBadge(
                 id: "badge-active-participant",
                 name: "Participant Actif",
                 description: "A participé à 5 événements",
@@ -246,7 +246,7 @@ class ProfileViewModel: ObservableObject {
                 rarity: .common,
                 unlockedAt: "2025-12-10T12:00:00Z"
             ),
-            Badge(
+            ProfileBadge(
                 id: "badge-event-master",
                 name: "Maître des Événements",
                 description: "A organisé 5 événements ce mois",
@@ -257,7 +257,7 @@ class ProfileViewModel: ObservableObject {
                 rarity: .legendary,
                 unlockedAt: "2025-12-25T20:00:00Z"
             ),
-            Badge(
+            ProfileBadge(
                 id: "badge-commentator",
                 name: "Commentateur",
                 description: "A commenté 10 scénarios",
@@ -268,7 +268,7 @@ class ProfileViewModel: ObservableObject {
                 rarity: .common,
                 unlockedAt: "2025-12-18T11:00:00Z"
             ),
-            Badge(
+            ProfileBadge(
                 id: "badge-dedicated",
                 name: "Dévoué",
                 description: "7 jours consécutifs de participation",

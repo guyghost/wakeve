@@ -1,7 +1,5 @@
-package com.guyghost.wakeve.ios.ui.components
-
 import SwiftUI
-import shared
+import Shared
 
 /**
  * MessageStatusIconView - Liquid Glass component for displaying message delivery/read status.

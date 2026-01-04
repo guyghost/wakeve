@@ -6,6 +6,7 @@ import com.guyghost.wakeve.models.SuggestionInteractionType
 import com.guyghost.wakeve.models.SuggestionSeason
 import com.guyghost.wakeve.models.SuggestionUserPreferences
 import com.squareup.sqldelight.sqlite.driver.JdbcDriver
+import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.AfterEach
@@ -43,7 +44,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `save and retrieve preferences returns correct data`() {
+    fun `save and retrieve preferences returns correct data`() = runTest {
         // Given
         val userId = "user_123"
         val preferences = createTestPreferences(userId)
@@ -72,7 +73,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `update budget range updates correctly`() {
+    fun `update budget range updates correctly`() = runTest {
         // Given
         val userId = "user_456"
         repository.saveSuggestionPreferences(createTestPreferences(userId))
@@ -90,7 +91,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `update preferred seasons updates correctly`() {
+    fun `update preferred seasons updates correctly`() = runTest {
         // Given
         val userId = "user_789"
         repository.saveSuggestionPreferences(createTestPreferences(userId))
@@ -108,7 +109,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `update preferred activities updates correctly`() {
+    fun `update preferred activities updates correctly`() = runTest {
         // Given
         val userId = "user_activities"
         repository.saveSuggestionPreferences(createTestPreferences(userId))
@@ -125,7 +126,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `update location preferences updates correctly`() {
+    fun `update location preferences updates correctly`() = runTest {
         // Given
         val userId = "user_location"
         repository.saveSuggestionPreferences(createTestPreferences(userId))
@@ -147,7 +148,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `update accessibility needs updates correctly`() {
+    fun `update accessibility needs updates correctly`() = runTest {
         // Given
         val userId = "user_a11y"
         repository.saveSuggestionPreferences(createTestPreferences(userId))
@@ -164,7 +165,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `delete preferences removes all data`() {
+    fun `delete preferences removes all data`() = runTest {
         // Given
         val userId = "user_delete"
         repository.saveSuggestionPreferences(createTestPreferences(userId))
@@ -178,7 +179,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `track interaction stores interaction data`() {
+    fun `track interaction stores interaction data`() = runTest {
         // Given
         val userId = "user_interaction"
         val suggestionId = "suggestion_001"
@@ -196,7 +197,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `track interaction with metadata stores metadata correctly`() {
+    fun `track interaction with metadata stores metadata correctly`() = runTest {
         // Given
         val userId = "user_meta"
         val suggestionId = "suggestion_002"
@@ -213,7 +214,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `get interaction history returns multiple interactions`() {
+    fun `get interaction history returns multiple interactions`() = runTest {
         // Given
         val userId = "user_multi"
         repository.trackInteraction(userId, "suggestion_1", SuggestionInteractionType.VIEWED)
@@ -228,7 +229,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `interaction history is ordered by timestamp descending`() {
+    fun `interaction history is ordered by timestamp descending`() = runTest {
         // Given
         val userId = "user_order"
         repository.trackInteraction(userId, "suggestion_1", SuggestionInteractionType.VIEWED)
@@ -246,7 +247,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `get interaction counts by type returns correct counts`() {
+    fun `get interaction counts by type returns correct counts`() = runTest {
         // Given
         val userId = "user_counts"
         val sinceTimestamp = "2024-01-01T00:00:00Z"
@@ -265,7 +266,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `get top suggestions returns empty list for cross-user aggregation`() {
+    fun `get top suggestions returns empty list for cross-user aggregation`() = runTest {
         // Given - getTopSuggestions uses cross-user aggregation which is currently a placeholder
         val sinceTimestamp = "2024-01-01T00:00:00Z"
         repository.trackInteraction("user_1", "suggestion_popular", SuggestionInteractionType.VIEWED)
@@ -283,7 +284,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `cleanup old interactions removes old records`() {
+    fun `cleanup old interactions removes old records`() = runTest {
         // Given
         val userId = "user_cleanup"
         repository.trackInteraction(userId, "suggestion_old", SuggestionInteractionType.VIEWED)
@@ -298,7 +299,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `multiple users have isolated preferences`() {
+    fun `multiple users have isolated preferences`() = runTest {
         // Given
         val user1Prefs = createTestPreferences("user_1")
         val user2Prefs = createTestPreferences("user_2")
@@ -318,7 +319,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `preferred seasons deserialization handles empty list`() {
+    fun `preferred seasons deserialization handles empty list`() = runTest {
         // Given
         val userId = "user_empty_seasons"
         val preferences = createTestPreferences(userId).copy(preferredSeasons = emptyList())
@@ -333,7 +334,7 @@ class DatabaseSuggestionPreferencesRepositoryTest {
     }
 
     @Test
-    fun `preferred activities deserialization handles special characters`() {
+    fun `preferred activities deserialization handles special characters`() = runTest {
         // Given
         val userId = "user_special_chars"
         val activities = listOf("café_concert", "randonnée_pédestre", "œnologie")

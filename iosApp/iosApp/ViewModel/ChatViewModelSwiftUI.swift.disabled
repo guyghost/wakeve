@@ -1,8 +1,6 @@
-package com.guyghost.wakeve.ios.ui.viewmodel
-
 import SwiftUI
 import Combine
-import shared
+import Shared
 
 /**
  * ChatViewModelSwiftUI - SwiftUI wrapper for ChatService.

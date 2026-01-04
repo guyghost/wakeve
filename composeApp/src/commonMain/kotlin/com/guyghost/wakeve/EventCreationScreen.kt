@@ -65,7 +65,76 @@ data class EventCreationState(
     val errorMessage: String = ""
 )
 
+package com.guyghost.wakeve
+
+/**
+ * @deprecated This screen is deprecated and will be removed in a future major version.
+ * Use [DraftEventWizard] instead, which provides a better UX with a multi-step wizard.
+ *
+ * ## Migration Guide
+ *
+ * The deprecated `EventCreationScreen` used a simple form approach. The new `DraftEventWizard`
+ * provides a progressive 4-step experience:
+ * 1. Event Details (title, description, type)
+ * 2. Participants Estimation (min/max/expected)
+ * 3. Time Slots (flexible with timeOfDay)
+ * 4. Location (potential locations)
+ *
+ * ### Migration Example
+ *
+ * ```kotlin
+ * // OLD (deprecated) - EventCreationScreen usage
+ * EventCreationScreen(
+ *     userId = userId,
+ *     onEventCreated = { event ->
+ *         // Handle created event
+ *         navController.navigate(Screen.ParticipantManagement.createRoute(event.id))
+ *     },
+ *     onBack = {
+ *         navController.navigateUp()
+ *     }
+ * )
+ *
+ * // NEW - DraftEventWizard usage
+ * DraftEventWizard(
+ *     initialEvent = null,
+ *     onSaveStep = { event ->
+ *         // Optionally save draft state between steps
+ *         viewModel.dispatch(Intent.UpdateDraftEvent(event))
+ *     },
+ *     onComplete = { event ->
+ *         // Event creation completed - navigate to next screen
+ *         navController.navigate(Screen.ParticipantManagement.createRoute(event.id)) {
+ *             popUpTo(Screen.EventCreation.route) { inclusive = true }
+ *         }
+ *     },
+ *     onCancel = {
+ *         navController.navigateUp()
+ *     }
+ * )
+ * ```
+ *
+ * ### Benefits of DraftEventWizard
+ * - **Progressive Disclosure**: Users fill information in manageable steps
+ * - **Better UX**: Clear step indicators and validation per step
+ * - **Enhanced Features**: Supports event types, participant estimation, flexible time slots, and potential locations
+ * - **State Preservation**: Draft state can be saved between steps
+ *
+ * ### Deprecation Timeline
+ * - **Current version**: @Deprecated annotation added, warning logged when used
+ * - **Next minor version**: Warning message in logs
+ * - **Next major version**: This screen will be removed entirely
+ *
+ * @see DraftEventWizard
+ * @see <a href="docs/implementation/draft-event-wizard-guide.md">Draft Event Wizard Guide</a>
+ */
 @OptIn(ExperimentalMaterial3Api::class)
+@Deprecated(
+    message = "Use DraftEventWizard instead for better UX with multi-step wizard. " +
+             "See docs/implementation/draft-event-wizard-guide.md for migration details.",
+    replaceWith = ReplaceWith("DraftEventWizard"),
+    level = DeprecationLevel.WARNING
+)
 @Composable
 fun EventCreationScreen(
     userId: String,

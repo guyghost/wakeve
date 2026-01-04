@@ -134,21 +134,16 @@ struct MealPlanningView: View {
             .sheet(isPresented: $showComments) {
                 NavigationView {
                     if let meal = selectedMealForComments {
-                        CommentsView(
-                            eventId: eventId,
-                            section: .MEAL,
-                            sectionItemId: meal.id,
-                            currentUserId: currentUserId,
-                            currentUserName: currentUserName
-                        )
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .navigationBarLeading) {
-                                Button("Fermer") {
-                                    showComments = false
+                        // TODO: Re-enable CommentsView when Shared types are properly integrated
+                        Text("Comments for \(meal.name)")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar {
+                                ToolbarItem(placement: .navigationBarLeading) {
+                                    Button("Fermer") {
+                                        showComments = false
+                                    }
                                 }
                             }
-                        }
                     }
                 }
             }

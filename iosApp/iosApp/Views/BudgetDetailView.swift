@@ -122,21 +122,22 @@ struct BudgetDetailView: View {
             }
             .sheet(isPresented: $showComments) {
                 NavigationView {
-                    if let item = selectedItemForComments {
-                        CommentsView(
-                            eventId: eventId,
-                            section: .BUDGET,
-                            sectionItemId: item.id,
-                            currentUserId: currentUserId,
-                            currentUserName: currentUserName
-                        )
+                    // TODO: Re-enable CommentsView when Shared types are properly integrated
+                    VStack(spacing: 16) {
+                        Image(systemName: "bubble.left.and.bubble.right")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
+                        Text("Comments - Coming Soon")
+                            .font(.title2)
+                            .foregroundColor(.secondary)
                     }
-                }
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Fermer") {
-                            showComments = false
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Fermer") {
+                                showComments = false
+                            }
                         }
                     }
                 }

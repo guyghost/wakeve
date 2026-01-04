@@ -985,7 +985,7 @@
                     <key>INTypePropertyDisplayPriority</key>
                     <integer>4</integer>
                     <key>INTypePropertyName</key>
-                    <string>description</string>
+                    <string>eventDescription</string>
                     <key>INTypePropertyTag</key>
                     <integer>4</integer>
                     <key>INTypePropertyType</key>

@@ -142,7 +142,7 @@ struct PointBreakdownRow: View {
 // MARK: - Badges Section
 
 struct BadgesSection: View {
-    let badges: [Badge]
+    let badges: [ProfileBadge]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -177,7 +177,7 @@ struct BadgesSection: View {
 
 struct BadgeCategorySection: View {
     let category: BadgeCategory
-    let badges: [Badge]
+    let badges: [ProfileBadge]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -199,7 +199,7 @@ struct BadgeCategorySection: View {
 }
 
 struct BadgeItemView: View {
-    let badge: Badge
+    let badge: ProfileBadge
     
     var body: some View {
         VStack(spacing: 8) {
@@ -414,22 +414,6 @@ private func formatPoints(_ points: Int) -> String {
         return String(format: "%.1fk", Double(points) / 1_000)
     } else {
         return "\(points)"
-    }
-}
-
-// MARK: - Color Extension
-
-extension Color {
-    init(hex: String) {
-        let scanner = Scanner(string: hex)
-        var rgbValue: UInt64 = 0
-        scanner.scanHexInt64(&rgbValue)
-        
-        let r = Double((rgbValue & 0xFF0000) >> 16) / 255.0
-        let g = Double((rgbValue & 0x00FF00) >> 8) / 255.0
-        let b = Double(rgbValue & 0x0000FF) / 255.0
-        
-        self.init(red: r, green: g, blue: b)
     }
 }
 

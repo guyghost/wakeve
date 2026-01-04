@@ -1,5 +1,5 @@
 import SwiftUI
-import shared
+import Shared
 
 // MARK: - Comment Section Enum
 
@@ -18,11 +18,11 @@ class CommentRepositoryWrapper: ObservableObject {
     }
 
     // CRUD Operations
-    func getCommentsByEvent(eventId: String) -> [SharedComment] {
+    func getCommentsByEvent(eventId: String) -> [Comment] {
         return repository.getCommentsByEvent(eventId: eventId)
     }
 
-    func getTopLevelComments(eventId: String, section: CommentSection?, limit: Int, offset: Int) -> [SharedComment] {
+    func getTopLevelComments(eventId: String, section: CommentSection?, limit: Int, offset: Int) -> [Comment] {
         if let section = section {
             let result = repository.getTopLevelCommentsBySectionPaginated(
                 eventId: eventId,
@@ -41,11 +41,11 @@ class CommentRepositoryWrapper: ObservableObject {
         }
     }
 
-    func getReplies(parentCommentId: String) -> [SharedComment] {
+    func getReplies(parentCommentId: String) -> [Shared.Comment] {
         return repository.getReplies(parentCommentId: parentCommentId)
     }
 
-    func createComment(eventId: String, authorId: String, authorName: String, section: CommentSection, sectionItemId: String?, content: String, parentCommentId: String?) -> SharedComment {
+    func createComment(eventId: String, authorId: String, authorName: String, section: CommentSection, sectionItemId: String?, content: String, parentCommentId: String?) -> Shared.Comment {
         let request = SharedCommentRequest(
             section: SharedCommentSection.valueOf(rawValue: section.rawValue),
             sectionItemId: sectionItemId,
@@ -60,7 +60,7 @@ class CommentRepositoryWrapper: ObservableObject {
         )
     }
 
-    func updateComment(commentId: String, content: String) -> SharedComment? {
+    func updateComment(commentId: String, content: String) -> Shared.Comment? {
         return repository.updateComment(commentId: commentId, content: content)
     }
 
@@ -71,7 +71,7 @@ class CommentRepositoryWrapper: ObservableObject {
 
 // MARK: - Swift Comment Models
 
-struct Comment {
+struct SwiftComment {
     let id: String
     let eventId: String
     let section: CommentSection
@@ -87,16 +87,16 @@ struct Comment {
 }
 
 struct CommentThread {
-    let comment: Comment
-    let replies: [Comment]
+    let comment: SwiftComment
+    let replies: [SwiftComment]
     let hasMoreReplies: Bool
 }
 
 // MARK: - Type Conversion Helpers
 
-extension SharedComment {
-    func toSwift() -> Comment {
-        return Comment(
+extension Shared.Comment {
+    func toSwift() -> SwiftComment {
+        return SwiftComment(
             id: self.id,
             eventId: self.eventId,
             section: CommentSection(rawValue: self.section.rawValue) ?? .GENERAL,
@@ -133,9 +133,9 @@ struct CommentsView: View {
     @State private var selectedSection: CommentSection?
     @State private var showFilterSheet = false
     @State private var showAddCommentSheet = false
-    @State private var replyToComment: Comment?
+    @State private var replyToComment: SwiftComment?
     @State private var newCommentText = ""
-    @State private var editingComment: Comment?
+    @State private var editingComment: SwiftComment?
 
     init(
         eventId: String,
@@ -664,7 +664,7 @@ struct CommentsView: View {
         }
     }
 
-    private func deleteComment(_ comment: Comment) async {
+    private func deleteComment(_ comment: SwiftComment) async {
         do {
             repositoryWrapper.deleteComment(commentId: comment.id)
 
@@ -675,7 +675,7 @@ struct CommentsView: View {
         }
     }
 
-    private func loadMoreReplies(for comment: Comment) async {
+    private func loadMoreReplies(for comment: SwiftComment) async {
         // TODO: Implement pagination for replies
     }
 
@@ -741,10 +741,10 @@ struct CommentsView: View {
 private struct CommentThreadView: View {
     let thread: CommentThread
     let currentUserId: String
-    let onReply: (Comment) -> Void
-    let onEdit: (Comment) -> Void
-    let onDelete: (Comment) -> Void
-    let onLoadMoreReplies: (Comment) -> Void
+    let onReply: (SwiftComment) -> Void
+    let onEdit: (SwiftComment) -> Void
+    let onDelete: (SwiftComment) -> Void
+    let onLoadMoreReplies: (SwiftComment) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -788,7 +788,7 @@ private struct CommentThreadView: View {
 // MARK: - Comment Cell
 
 private struct CommentCell: View {
-    let comment: Comment
+    let comment: SwiftComment
     let isCurrentUser: Bool
     let onReply: () -> Void
     let onEdit: () -> Void
@@ -903,7 +903,7 @@ private struct CommentCell: View {
 // MARK: - Reply Comment Cell
 
 private struct ReplyCommentCell: View {
-    let comment: Comment
+    let comment: SwiftComment
     let isCurrentUser: Bool
     let onReply: () -> Void
     let onEdit: () -> Void
