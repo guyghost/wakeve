@@ -75,9 +75,8 @@ extension View {
     
     /// Apply smooth scale effect on press
     func scaleOnPress(scale: CGFloat = 0.95) -> some View {
-        self.scaleEffect(
-            animation: LiquidGlassAnimations.scale
-        )
+        self.scaleEffect(scale)
+            .animation(LiquidGlassAnimations.scale, value: scale)
     }
 }
 
@@ -93,18 +92,23 @@ struct GlassCardModifier: ViewModifier {
     var shadowOpacity: Double = 0.05
     var shadowRadius: CGFloat = 8
     
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content
-            .background(material)
-            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .if(showShadow) {
-                $0.shadow(
+        if showShadow {
+            content
+                .background(material)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                .shadow(
                     color: Color.black.opacity(shadowOpacity),
                     radius: shadowRadius,
                     x: 0,
                     y: shadowRadius / 2
                 )
-            }
+        } else {
+            content
+                .background(material)
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        }
     }
 }
 
@@ -248,20 +252,32 @@ struct AnimatedBadgeModifier: ViewModifier {
     
     @State private var hasAppeared = false
     
+    @ViewBuilder
     func body(content: Content) -> some View {
-        content
-            .opacity(hasAppeared ? 1 : 0)
-            .scaleEffect(hasAppeared ? 1 : 0.8)
-            .animation(
-                LiquidGlassAnimations.spring,
-                value: hasAppeared
-            )
-            .if(showPulse && hasAppeared) {
-                $0.pulseEffect(scale: 1.02, duration: 2.0)
-            }
-            .onAppear {
-                hasAppeared = isVisible
-            }
+        if showPulse && hasAppeared {
+            content
+                .opacity(hasAppeared ? 1 : 0)
+                .scaleEffect(hasAppeared ? 1 : 0.8)
+                .animation(
+                    LiquidGlassAnimations.spring,
+                    value: hasAppeared
+                )
+                .pulseEffect(scale: 1.02, duration: 2.0)
+                .onAppear {
+                    hasAppeared = isVisible
+                }
+        } else {
+            content
+                .opacity(hasAppeared ? 1 : 0)
+                .scaleEffect(hasAppeared ? 1 : 0.8)
+                .animation(
+                    LiquidGlassAnimations.spring,
+                    value: hasAppeared
+                )
+                .onAppear {
+                    hasAppeared = isVisible
+                }
+        }
     }
 }
 
@@ -342,7 +358,7 @@ extension View {
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(Color.purple)
-            .continuousCornerRadius(8)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .animatedBadge(isVisible: true, showPulse: true)
         
         Text("New")
@@ -351,7 +367,7 @@ extension View {
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(Color.green)
-            .continuousCornerRadius(8)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .animatedBadge(isVisible: true, showPulse: true)
     }
     .padding()

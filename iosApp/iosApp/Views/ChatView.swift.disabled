@@ -1,7 +1,5 @@
-package com.guyghost.wakeve.ios.ui.views
-
 import SwiftUI
-import shared
+import Shared
 import Photos
 import PhotosUI
 import UIKit
@@ -537,7 +535,7 @@ struct MessageBubbleView: View {
     
     private func groupedReactions() -> [(emoji: String, count: Int)] {
         let grouped = Dictionary(grouping: message.reactions, by: { $0.emoji })
-        return grouped.map { ($0.key, $0.value.count) }.sorted by { $0.count > $1.count }
+        return grouped.map { ($0.key, $0.value.count) }.sorted { $0.count > $1.count }
     }
     
     private func formatTimestamp(_ timestamp: String) -> String {

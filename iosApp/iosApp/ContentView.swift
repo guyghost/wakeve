@@ -338,11 +338,10 @@ struct AuthenticatedView: View {
             
         case .mealPlanning:
             if let event = selectedEvent {
-                MealPlanningView(
-                    eventId: event.id,
-                    currentUserId: userId,
-                    currentUserName: "Current User" // TODO: Get actual user name
-                )
+                // TODO: Re-enable MealPlanningView when Shared types are properly integrated
+                Text("Meal Planning - Coming Soon")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
             }
             
         case .equipmentChecklist:

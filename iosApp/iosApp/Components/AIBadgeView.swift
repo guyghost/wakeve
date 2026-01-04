@@ -174,9 +174,10 @@ struct AIBadgeView: View {
 
 extension AIBadgeView {
     /// Initialize from badge type with default values
-    init(type: AIBadgeType, onTap: (() -> Void)? = nil) {
+    init(type: AIBadgeType, onTap: (() -> Void)? = nil, showTooltip: Bool = false) {
         self.badge = AIBadge.from(type: type)
         self.onTap = onTap
+        self.showTooltip = showTooltip
     }
 }
 

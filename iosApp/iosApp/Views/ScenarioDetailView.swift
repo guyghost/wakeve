@@ -167,13 +167,16 @@ struct ScenarioDetailView: View {
             }
             .sheet(isPresented: $showComments) {
                 NavigationView {
-                    CommentsView(
-                        eventId: eventId,
-                        section: .SCENARIO,
-                        sectionItemId: viewModel.scenario?.id,
-                        currentUserId: currentUserId,
-                        currentUserName: currentUserName
-                    )
+                    // TODO: Re-enable CommentsView when Shared types are properly integrated
+                    VStack(spacing: 16) {
+                        Image(systemName: "bubble.left.and.bubble.right")
+                            .font(.system(size: 48))
+                            .foregroundColor(.secondary)
+                        Text("Comments - Coming Soon")
+                            .font(.title2)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .navigationBarLeading) {

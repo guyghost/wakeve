@@ -86,13 +86,10 @@ struct AccommodationView: View {
             }
             .sheet(isPresented: $showComments) {
                 NavigationView {
-                    CommentsView(
-                        eventId: eventId,
-                        section: .ACCOMMODATION,
-                        sectionItemId: nil,
-                        currentUserId: currentUserId,
-                        currentUserName: currentUserName
-                    )
+                    // TODO: Re-enable CommentsView when Shared types are properly integrated
+                    Text("Comments - Coming Soon")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
                 }
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {

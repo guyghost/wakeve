@@ -1,5 +1,5 @@
 import SwiftUI
-import LiquidGlass
+import Shared
 
 /// Smart Albums screen displaying auto-generated and custom albums in a grid layout.
 ///

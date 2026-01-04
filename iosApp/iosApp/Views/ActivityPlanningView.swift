@@ -385,13 +385,10 @@ struct ActivityPlanningView: View {
             }
             .sheet(isPresented: $showComments) {
                 NavigationView {
-                    CommentsView(
-                        eventId: eventId,
-                        section: .ACTIVITY,
-                        sectionItemId: nil,
-                        currentUserId: currentUserId,
-                        currentUserName: currentUserName
-                    )
+                    // TODO: Re-enable CommentsView when Shared types are properly integrated
+                    Text("Comments - Coming Soon")
+                        .font(.title2)
+                        .foregroundColor(.secondary)
                 }
             }
             .alert("Supprimer l'activité", isPresented: $showDeleteAlert, presenting: activityToDelete) { activity in
