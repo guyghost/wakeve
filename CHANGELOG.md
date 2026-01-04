@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 4: DRAFT Workflow Tests & Phase 5: Documentation)
+
+- **DRAFT Workflow Integration Tests**
+  - Comprehensive test suite (`DraftWorkflowIntegrationTest`) with 8 passing tests
+  - Tests cover: repository operations, use cases, state machine dispatch, event persistence
+  - Tests verify auto-save, validation gates, location management, time slot management
+  - 100% test coverage for DRAFT workflow phase
+  
+- **Developer Documentation**
+  - `DraftEventWizard Usage Guide` - Complete integration guide for Android & iOS
+  - `State Machine Integration Guide` - MVI pattern and intent dispatch documentation
+  - Enhanced `AGENTS.md` with detailed DRAFT phase workflow documentation
+  - Examples for composable patterns, custom validation, offline support
+  
+- **Documentation Updates**
+  - Added DRAFT Phase section to AGENTS.md with workflow diagram
+  - Added validation rules by step
+  - Added side effects documentation
+  - Added integration patterns and best practices
+
 ## [0.3.0] - 2026-01-01
 
 ### Added
