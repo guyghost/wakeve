@@ -541,6 +541,114 @@ val canCreate = when (event?.status) {
 - ✅ **Tests simples** (mock repository uniquement)
 - ✅ **Source de vérité claire** (Event.status)
 
+#### DRAFT Phase - Event Creation Wizard
+
+La **DRAFT Phase** est la première étape de création d'un événement. Elle utilise un wizard en 4 étapes pour guider l'organisateur à travers la configuration de l'événement.
+
+**Structure du Wizard DRAFT:**
+
+```
+┌──────────────────────────────────┐
+│       Step 1: Basic Info         │
+│  • Title (required)              │
+│  • Description (required)        │
+│  • Event Type (optional)         │
+│  • Custom Type if OTHER          │
+└──────────────────────────────────┘
+              ↓ (auto-save)
+┌──────────────────────────────────┐
+│    Step 2: Participants Est.     │
+│  • Min Participants (opt)        │
+│  • Max Participants (opt)        │
+│  • Expected Participants (opt)   │
+└──────────────────────────────────┘
+              ↓ (auto-save)
+┌──────────────────────────────────┐
+│    Step 3: Potential Locations   │
+│  • Add Location (optional)       │
+│  • Remove Location               │
+└──────────────────────────────────┘
+              ↓ (auto-save)
+┌──────────────────────────────────┐
+│       Step 4: Time Slots         │
+│  • Add Time Slot (required)      │
+│  • Remove Time Slot              │
+│  • Time of Day selection         │
+└──────────────────────────────────┘
+              ↓ (validation + StartPoll)
+         Event(POLLING)
+```
+
+**Key Features:**
+
+- **Auto-save**: Données sauvegardées à chaque transition d'étape
+- **Validation stricte**: Navigation bloquée si l'étape actuelle est invalide
+- **Navigation flexible**: L'utilisateur peut revenir à l'étape précédente
+- **Persistance offline**: Données stockées localement en SQLite
+- **Recovery**: Si l'utilisateur ferme l'app, il peut continuer plus tard
+
+**Intents DRAFT:**
+
+```kotlin
+// Step 1: Basic Info
+Intent.CreateEvent(
+    title: String,
+    description: String,
+    eventType: EventType = OTHER,
+    eventTypeCustom: String? = null
+)
+
+// Step 2: Participants
+Intent.UpdateDraftEvent(
+    event = event.copy(
+        minParticipants = 5,
+        maxParticipants = 20,
+        expectedParticipants = 12
+    )
+)
+
+// Step 3: Locations
+Intent.AddPotentialLocation(location: PotentialLocation)
+Intent.RemovePotentialLocation(locationId: String)
+
+// Step 4: Time Slots
+Intent.AddTimeSlot(timeSlot: TimeSlot)
+Intent.RemoveTimeSlot(slotId: String)
+
+// Completion
+Intent.StartPoll(eventId: String)  // DRAFT → POLLING
+```
+
+**Validation Rules by Step:**
+
+| Step | Field | Rule |
+|------|-------|------|
+| **1** | title | Non-empty, trimmed (required) |
+| **1** | description | Non-empty, trimmed (required) |
+| **1** | eventType | Valid enum or CUSTOM (optional) |
+| **1** | eventTypeCustom | Non-empty if eventType==CUSTOM (conditional) |
+| **2** | minParticipants | Positive integer (optional) |
+| **2** | maxParticipants | Positive integer (optional) |
+| **2** | expectedParticipants | Positive integer (optional) |
+| **2** | Constraint | max >= min (if both provided) |
+| **3** | locations | Can be empty, but recommended to add ≥1 |
+| **4** | timeSlots | At least 1 required (required) |
+| **4** | timeOfDay | Valid enum value (required per slot) |
+
+**Side Effects:**
+
+- `UpdateDraftEvent` → Auto-save to repository
+- `StartPoll` → Navigate to poll view + mark event as POLLING
+- Navigation errors → ShowError side effect with message
+- Validation errors → ShowToast with field-specific feedback
+
+**Documentation:**
+
+Pour une intégration complète, consulter:
+- [DraftEventWizard Usage Guide](./docs/guides/DRAFT_WORKFLOW_GUIDE.md)
+- [State Machine Integration Guide](./docs/guides/STATE_MACHINE_INTEGRATION_GUIDE.md)
+- [Workflow Coordination Specification](./openspec/specs/workflow-coordination/)
+
 #### Workflow Complet: DRAFT → FINALIZED
 
 ```
