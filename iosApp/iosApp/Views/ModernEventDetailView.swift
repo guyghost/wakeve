@@ -49,15 +49,15 @@ struct ModernEventDetailView: View {
                                         .foregroundColor(.primary)
                                 }
                             } else {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "clock")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                    
-                                    Text("Vote by \(formatDeadline(event.deadline))")
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundColor(.secondary)
-                                }
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "clock")
+                                            .font(.system(size: 16, weight: .medium))
+                                            .foregroundColor(.secondary)
+                                        
+                                        Text(NSLocalizedString("vote_by", comment: "Vote by date") + " \(formatDeadline(event.deadline))")
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundColor(.secondary)
+                                    }
                             }
                             
                             // Location (if available)
@@ -75,13 +75,55 @@ struct ModernEventDetailView: View {
                             }
                         }
                         
-                        // RSVP Buttons (if not host and polling)
-                        if event.status == .polling && event.organizerId != userId {
-                            RSVPButtonsSection(
-                                userResponse: $userResponse,
-                                onVote: onVote
-                            )
+                    // Vote Button (if not host and polling)
+                    // Harmonized with Android's PollVotingScreen approach
+                    if event.status == .polling && event.organizerId != userId {
+                        VStack(spacing: 12) {
+                            Button(action: onVote) {
+                                HStack(spacing: 12) {
+                                    Image(systemName: "chart.bar")
+                                        .font(.system(size: 20, weight: .semibold))
+
+                                    Text("Participer au sondage")
+                                        .font(.headline.weight(.semibold))
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 16, weight: .semibold))
+                                }
+                                .foregroundColor(.white)
+                                .padding(16)
+                                .frame(maxWidth: .infinity)
+                                .background(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.wakevPrimary,
+                                            Color.wakevAccent
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .continuousCornerRadius(12)
+                            }
+                            .accessibilityLabel("Participer au sondage")
+                            .accessibilityHint("Ouvre l'écran de vote pour les créneaux")
+
+                            // Vote info text
+                            HStack(spacing: 8) {
+                                Image(systemName: "info.circle")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.secondary)
+
+                                Text("Votez pour vos créneaux préférés")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+
+                                Spacer()
+                            }
                         }
+                    }
                         
                         // Host Options
                         if event.organizerId == userId {
@@ -124,7 +166,7 @@ struct ModernEventDetailView: View {
                         // Description Section
                         if !event.description.isEmpty {
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("About")
+                                Text(NSLocalizedString("about", comment: "About section title"))
                                     .font(.system(size: 20, weight: .semibold))
                                     .foregroundColor(.primary)
                                 
@@ -162,7 +204,7 @@ struct ModernEventDetailView: View {
                             .background(.thinMaterial)
                             .clipShape(Circle())
                     }
-                    .accessibilityLabel("Fermer")
+                    .accessibilityLabel(NSLocalizedString("close_accessibility", comment: "Close button"))
                     .padding(.leading, 16)
                     .padding(.top, 12)
                     
@@ -177,7 +219,7 @@ struct ModernEventDetailView: View {
                             .background(.thinMaterial)
                             .clipShape(Circle())
                     }
-                    .accessibilityLabel("Plus d'options")
+                    .accessibilityLabel(NSLocalizedString("more_options", comment: "More options button"))
                     .padding(.trailing, 16)
                     .padding(.top, 12)
                 }
@@ -277,9 +319,9 @@ struct StatusBadgeLarge: View {
     
     private var statusText: String {
         switch status {
-        case .draft: return "Hosting"
-        case .polling: return "Polling"
-        case .confirmed: return "Confirmed"
+        case .draft: return NSLocalizedString("hosting", comment: "Draft/Hosting status")
+        case .polling: return NSLocalizedString("polling", comment: "Polling status")
+        case .confirmed: return NSLocalizedString("confirmed", comment: "Confirmed status")
         default: return ""
         }
     }
@@ -310,7 +352,7 @@ struct RSVPButtonsSection: View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
                 RSVPButton(
-                    title: "Going",
+                    title: NSLocalizedString("going_rsvp", comment: "Going button"),
                     icon: "checkmark",
                     isSelected: userResponse == .going,
                     color: .green,
@@ -321,7 +363,7 @@ struct RSVPButtonsSection: View {
                 )
                 
                 RSVPButton(
-                    title: "Not Going",
+                    title: NSLocalizedString("not_going_rsvp", comment: "Not going button"),
                     icon: "xmark",
                     isSelected: userResponse == .notGoing,
                     color: .red,
@@ -331,7 +373,7 @@ struct RSVPButtonsSection: View {
                 )
                 
                 RSVPButton(
-                    title: "Maybe",
+                    title: NSLocalizedString("maybe_rsvp", comment: "Maybe button"),
                     icon: "questionmark",
                     isSelected: userResponse == .maybe,
                     color: .orange,
@@ -384,7 +426,7 @@ struct HostActionsSection: View {
     var body: some View {
         VStack(spacing: 12) {
             HostActionButton(
-                title: "Manage Participants",
+                title: NSLocalizedString("manage_participants", comment: "Manage participants button"),
                 icon: "person.2.fill",
                 color: .blue,
                 action: onManageParticipants
@@ -392,7 +434,7 @@ struct HostActionsSection: View {
             
             if event.status == .polling {
                 HostActionButton(
-                    title: "View Results",
+                    title: NSLocalizedString("view_results", comment: "View results button"),
                     icon: "chart.bar.fill",
                     color: .purple,
                     action: onViewResults
@@ -457,7 +499,7 @@ struct PRDFeatureButtonsSection: View {
             // Scenario Planning - Available in COMPARING and CONFIRMED states
             if event.status == .comparing || event.status == .confirmed {
                 HostActionButton(
-                    title: "Scenario Planning",
+                    title: NSLocalizedString("scenario_planning", comment: "Scenario planning button"),
                     icon: "list.bullet.rectangle.portrait",
                     color: .blue,
                     action: {
@@ -469,7 +511,7 @@ struct PRDFeatureButtonsSection: View {
             // Budget Overview - Available in CONFIRMED and ORGANIZING states
             if event.status == .confirmed || event.status == .organizing {
                 HostActionButton(
-                    title: "Budget Overview",
+                    title: NSLocalizedString("budget_overview", comment: "Budget overview button"),
                     icon: "dollarsign.circle",
                     color: .green,
                     action: {
@@ -481,7 +523,7 @@ struct PRDFeatureButtonsSection: View {
             // Accommodation - Available in ORGANIZING state
             if event.status == .organizing {
                 HostActionButton(
-                    title: "Accommodation",
+                    title: NSLocalizedString("accommodation", comment: "Accommodation button"),
                     icon: "house.fill",
                     color: .purple,
                     action: {
@@ -490,7 +532,7 @@ struct PRDFeatureButtonsSection: View {
                 )
                 
                 HostActionButton(
-                    title: "Meal Planning",
+                    title: NSLocalizedString("meal_planning", comment: "Meal planning button"),
                     icon: "fork.knife",
                     color: .orange,
                     action: {
@@ -499,7 +541,7 @@ struct PRDFeatureButtonsSection: View {
                 )
                 
                 HostActionButton(
-                    title: "Equipment Checklist",
+                    title: NSLocalizedString("equipment_checklist", comment: "Equipment checklist button"),
                     icon: "bag.fill",
                     color: .pink,
                     action: {
@@ -508,7 +550,7 @@ struct PRDFeatureButtonsSection: View {
                 )
                 
                 HostActionButton(
-                    title: "Activity Planning",
+                    title: NSLocalizedString("activity_planning", comment: "Activity planning button"),
                     icon: "figure.walk",
                     color: .red,
                     action: {
@@ -548,11 +590,11 @@ struct HostedBySection: View {
                 )
             
             VStack(alignment: .leading, spacing: 2) {
-                Text("Hosted by \(hostId)")
+                Text(NSLocalizedString("hosted_by", comment: "Hosted by text") + " \(hostId)")
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.primary)
                 
-                Text("Organizer")
+                Text(NSLocalizedString("organizer", comment: "Organizer label"))
                     .font(.system(size: 15))
                     .foregroundColor(.secondary)
             }
@@ -571,12 +613,12 @@ struct ParticipantsSection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("\(goingCount) Going")
+            Text(NSLocalizedString("going_count", comment: "Going count") + " " + NSLocalizedString("going", comment: "Going label"))
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(.primary)
             
             if participants.isEmpty {
-                Text("No participants yet")
+                Text(NSLocalizedString("no_participants_yet", comment: "No participants yet"))
                     .font(.system(size: 17))
                     .foregroundColor(.secondary)
                     .padding(.vertical, 20)
@@ -588,7 +630,7 @@ struct ParticipantsSection: View {
                     
                     if participants.count > 10 {
                         HStack {
-                            Text("+ \(participants.count - 10) more")
+                            Text(NSLocalizedString("more_participants", comment: "More participants") + " \(participants.count - 10)")
                                 .font(.system(size: 17, weight: .medium))
                                 .foregroundColor(.blue)
                             
@@ -636,7 +678,7 @@ struct ModernParticipantRow: View {
                     .font(.system(size: 17, weight: .medium))
                     .foregroundColor(.primary)
                 
-                Text("Going")
+                Text(NSLocalizedString("participating", comment: "Participating status"))
                     .font(.system(size: 15))
                     .foregroundColor(.secondary)
             }

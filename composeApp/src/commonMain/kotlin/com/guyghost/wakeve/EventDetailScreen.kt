@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.presentation.state.EventManagementContract
+import com.guyghost.wakeve.ui.components.HeroImageSection
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
 import kotlinx.datetime.toLocalDateTime
 
@@ -151,6 +152,11 @@ fun EventDetailScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Hero Image Section (NEW - feature parity with iOS)
+                item {
+                    HeroImageSection(event = selectedEvent)
+                }
+
                 // Event info card
                 item {
                     EventInfoCard(event = selectedEvent)

@@ -14,7 +14,12 @@
       "Bash(./gradlew:*)",
       "Bash(xcodebuild:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(adb logcat:*)"
+      "Bash(adb logcat:*)",
+      "Bash(rm:*)",
+      "Bash(xcrun simctl:*)",
+      "Bash(plutil -lint:*)",
+      "Bash(xxd:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

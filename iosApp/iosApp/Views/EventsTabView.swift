@@ -60,7 +60,7 @@ struct EventsTabView: View {
                             
                             // Empty State
                             if filteredAndSortedEvents.isEmpty && !isLoading {
-                                EmptyStateView(onCreateEvent: {
+                                EventsEmptyStateView(onCreateEvent: {
                                     showEventCreationSheet = true
                                 })
                             }
@@ -91,7 +91,7 @@ struct EventsTabView: View {
                 loadEvents()
             }
             .sheet(isPresented: $showEventCreationSheet) {
-                EventCreationSheet(
+                CreateEventView(
                     userId: userId,
                     repository: repository,
                     onEventCreated: { eventId in
@@ -289,8 +289,8 @@ struct EventRowView: View {
     }
 }
 
-// MARK: - Empty State View
-struct EmptyStateView: View {
+// MARK: - Events Empty State View
+private struct EventsEmptyStateView: View {
     let onCreateEvent: () -> Void
     
     @State private var isAnimating = false

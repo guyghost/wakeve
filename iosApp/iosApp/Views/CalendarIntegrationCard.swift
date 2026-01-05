@@ -25,13 +25,13 @@ struct CalendarIntegrationCard: View {
         var displayText: String {
             switch self {
             case .notInCalendar:
-                return "Not in calendar"
+                return NSLocalizedString("calendar_not_added", comment: "Not in calendar")
             case .inCalendar:
-                return "Added to calendar"
+                return NSLocalizedString("calendar_added", comment: "Added to calendar")
             case .loading:
-                return "Checking..."
+                return NSLocalizedString("calendar_checking", comment: "Checking calendar")
             case .error:
-                return "Error"
+                return NSLocalizedString("calendar_error", comment: "Calendar error")
             }
         }
         
@@ -71,7 +71,7 @@ struct CalendarIntegrationCard: View {
                     .foregroundColor(calendarStatus.iconColor)
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Calendar")
+                    Text(NSLocalizedString("calendar", comment: "Calendar label"))
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(.primary)
                     
@@ -99,7 +99,7 @@ struct CalendarIntegrationCard: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
                         
-                        Text("Add to Calendar")
+                        Text(NSLocalizedString("add_to_calendar", comment: "Add to calendar button"))
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
                         
@@ -126,7 +126,7 @@ struct CalendarIntegrationCard: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.blue)
                         
-                        Text("Share Invitation")
+                        Text(NSLocalizedString("share_invitation", comment: "Share invitation button"))
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.blue)
                         
@@ -149,10 +149,10 @@ struct CalendarIntegrationCard: View {
             .padding(12)
             .glassCard(cornerRadius: 12, material: .thinMaterial)
         }
-        .alert("Calendar Error", isPresented: $showError) {
-            Button("OK", role: .cancel) { }
+        .alert(NSLocalizedString("calendar_error_title", comment: "Calendar error title"), isPresented: $showError) {
+            Button(NSLocalizedString("ok", comment: "OK button"), role: .cancel) { }
         } message: {
-            Text(errorMessage)
+            Text(NSLocalizedString("calendar_error_message", comment: "Calendar error message"))
         }
         .onAppear {
             checkCalendarStatus()
@@ -174,7 +174,7 @@ struct CalendarIntegrationCard: View {
                 onAddToCalendar()
             } catch {
                 calendarStatus = .error
-                errorMessage = "Failed to add event to calendar"
+                errorMessage = NSLocalizedString("calendar_error_message", comment: "Failed to add event to calendar")
                 showError = true
             }
             
@@ -226,7 +226,7 @@ struct CalendarIntegrationCard: View {
                     }
                 }
             } catch {
-                errorMessage = "Failed to share invitation: \(error.localizedDescription)"
+                errorMessage = NSLocalizedString("share_error_message", comment: "Failed to share invitation")
                 showError = true
             }
             
@@ -294,7 +294,8 @@ struct CalendarIntegrationCard: View {
         eventTypeCustom: nil,
         minParticipants: nil,
         maxParticipants: nil,
-        expectedParticipants: nil
+        expectedParticipants: nil,
+        heroImageUrl: nil
     )
     
     CalendarIntegrationCard(

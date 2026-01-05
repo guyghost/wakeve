@@ -61,7 +61,8 @@ struct AddToCalendarButton: View {
                 eventTypeCustom: nil,
                 minParticipants: nil,
                 maxParticipants: nil,
-                expectedParticipants: nil
+                expectedParticipants: nil,
+                heroImageUrl: nil
             ),
             isLoading: false,
             isEnabled: true,
@@ -85,7 +86,8 @@ struct AddToCalendarButton: View {
                 eventTypeCustom: nil,
                 minParticipants: nil,
                 maxParticipants: nil,
-                expectedParticipants: nil
+                expectedParticipants: nil,
+                heroImageUrl: nil
             ),
             isLoading: true,
             isEnabled: false,

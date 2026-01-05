@@ -12,6 +12,16 @@
 		F1E2D3C4B5A6970890123458 /* Shared.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A6970890123456 /* Shared.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		E48971802F0BC60F00BE8BF0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F0D6D265F3E11C2C38550635 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 26FA9A92B051534D6E7C900B;
+			remoteInfo = iosApp;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXCopyFilesBuildPhase section */
 		F1E2D3C4B5A6970890123459 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
@@ -29,6 +39,8 @@
 /* Begin PBXFileReference section */
 		DF63D8311F06A45A869FF8F2 /* Wakeve.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wakeve.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E47B48712ECC913300486797 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
+		E489717C2F0BC60F00BE8BF0 /* WakeveTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WakeveTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E48971852F0BC6B500BE8BF0 /* WakeveApp.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = WakeveApp.xctestplan; sourceTree = "<group>"; };
 		F1E2D3C4B5A6970890123456 /* Shared.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Shared.framework; path = Wakeve.app/Frameworks/Shared.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -56,6 +68,11 @@
 			path = Configuration;
 			sourceTree = "<group>";
 		};
+		E489717D2F0BC60F00BE8BF0 /* WakeveTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = WakeveTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,14 +85,23 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E48971792F0BC60F00BE8BF0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		0B567399E2368FBCAFB48E04 = {
 			isa = PBXGroup;
 			children = (
+				E48971852F0BC6B500BE8BF0 /* WakeveApp.xctestplan */,
 				7F633F392BE35FAC079A9AA1 /* Configuration */,
 				467D4A3F1360E73EE8C50DBE /* iosApp */,
+				E489717D2F0BC60F00BE8BF0 /* WakeveTests */,
 				E47B48702ECC913300486797 /* Frameworks */,
 				7C1E253D802399F7F0FA1DA8 /* Products */,
 			);
@@ -85,6 +111,7 @@
 			isa = PBXGroup;
 			children = (
 				DF63D8311F06A45A869FF8F2 /* Wakeve.app */,
+				E489717C2F0BC60F00BE8BF0 /* WakeveTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -125,6 +152,29 @@
 			productReference = DF63D8311F06A45A869FF8F2 /* Wakeve.app */;
 			productType = "com.apple.product-type.application";
 		};
+		E489717B2F0BC60F00BE8BF0 /* WakeveTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E48971822F0BC60F00BE8BF0 /* Build configuration list for PBXNativeTarget "WakeveTests" */;
+			buildPhases = (
+				E48971782F0BC60F00BE8BF0 /* Sources */,
+				E48971792F0BC60F00BE8BF0 /* Frameworks */,
+				E489717A2F0BC60F00BE8BF0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E48971812F0BC60F00BE8BF0 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				E489717D2F0BC60F00BE8BF0 /* WakeveTests */,
+			);
+			name = WakeveTests;
+			packageProductDependencies = (
+			);
+			productName = WakeveTests;
+			productReference = E489717C2F0BC60F00BE8BF0 /* WakeveTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -132,11 +182,15 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
+				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					26FA9A92B051534D6E7C900B = {
 						CreatedOnToolsVersion = 16.2;
+					};
+					E489717B2F0BC60F00BE8BF0 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 26FA9A92B051534D6E7C900B;
 					};
 				};
 			};
@@ -146,6 +200,8 @@
 			knownRegions = (
 				en,
 				Base,
+				fr,
+				es,
 			);
 			mainGroup = 0B567399E2368FBCAFB48E04;
 			minimizedProjectReferenceProxies = 1;
@@ -155,12 +211,20 @@
 			projectRoot = "";
 			targets = (
 				26FA9A92B051534D6E7C900B /* iosApp */,
+				E489717B2F0BC60F00BE8BF0 /* WakeveTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		68C9E80AEDB32F0686785FF2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E489717A2F0BC60F00BE8BF0 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -199,7 +263,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E48971782F0BC60F00BE8BF0 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E48971812F0BC60F00BE8BF0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 26FA9A92B051534D6E7C900B /* iosApp */;
+			targetProxy = E48971802F0BC60F00BE8BF0 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		07A678CF8917D0A2A14C30A0 /* Release */ = {
@@ -214,8 +293,8 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/iosApp",
-					"$(PROJECT_DIR)/../shared/build/bin/$(PLATFORM_NAME)/debugFramework",
-					"$(PROJECT_DIR)/../shared/build/bin/$(PLATFORM_NAME)/releaseFramework",
+					"$(PROJECT_DIR)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(PLATFORM_NAME)",
+					"$(PROJECT_DIR)/../shared/build/bin/$(PLATFORM_NAME)/$(CONFIGURATION)Framework",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -374,8 +453,8 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/iosApp",
-					"$(PROJECT_DIR)/../shared/build/bin/$(PLATFORM_NAME)/debugFramework",
-					"$(PROJECT_DIR)/../shared/build/bin/$(PLATFORM_NAME)/releaseFramework",
+					"$(PROJECT_DIR)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(PLATFORM_NAME)",
+					"$(PROJECT_DIR)/../shared/build/bin/$(PLATFORM_NAME)/$(CONFIGURATION)Framework",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iosApp/Info.plist;
@@ -395,6 +474,50 @@
 			};
 			name = Debug;
 		};
+		E48971832F0BC60F00BE8BF0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.njinga.app.WakeveTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Wakeve.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Wakeve";
+			};
+			name = Debug;
+		};
+		E48971842F0BC60F00BE8BF0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.njinga.app.WakeveTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Wakeve.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Wakeve";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -412,6 +535,15 @@
 			buildConfigurations = (
 				47D52F9D77F43E8BCB5341B4 /* Debug */,
 				2A7B3654866F9FC48C342CFC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E48971822F0BC60F00BE8BF0 /* Build configuration list for PBXNativeTarget "WakeveTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E48971832F0BC60F00BE8BF0 /* Debug */,
+				E48971842F0BC60F00BE8BF0 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

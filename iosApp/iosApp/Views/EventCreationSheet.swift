@@ -9,6 +9,7 @@ import Shared
 /// - Continuous corner radius (12pt/16pt)
 /// - 44pt minimum row heights
 /// - iOS system colors (blue, green, orange)
+@available(*, deprecated, message: "Use CreateEventView (DraftEventWizardView) instead. This will be removed in a future version.")
 struct EventCreationSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -339,7 +340,8 @@ struct EventCreationSheet: View {
                 eventTypeCustom: nil,
                 minParticipants: nil,
                 maxParticipants: nil,
-                expectedParticipants: nil
+                expectedParticipants: nil,
+                heroImageUrl: nil
             )
             
             let result = try await repository.createEvent(event: event)
@@ -495,6 +497,7 @@ struct DateTimeButtons: View {
 // MARK: - Quick Event Creation Sheet (Simplified with Liquid Glass)
 
 /// A simpler version for quick event creation from any context
+@available(*, deprecated, message: "Use CreateEventView (DraftEventWizardView) instead. This will be removed in a future version.")
 struct QuickEventCreationSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme

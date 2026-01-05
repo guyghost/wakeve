@@ -69,7 +69,7 @@ struct MeetingListView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.5)
-            Text("Chargement...")
+            Text(NSLocalizedString("loading_label", comment: "Loading text"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
@@ -83,11 +83,11 @@ struct MeetingListView: View {
                 .font(.system(size: 64))
                 .foregroundColor(.gray.opacity(0.5))
             
-            Text("Aucune réunion")
+            Text(NSLocalizedString("no_meetings_title", comment: "No meetings title"))
                 .font(.title3)
                 .fontWeight(.semibold)
             
-            Text("Planifiez des réunions virtuelles pour votre événement")
+            Text(NSLocalizedString("plan_meetings", comment: "Plan meetings text"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -96,7 +96,7 @@ struct MeetingListView: View {
             Button(action: onCreateMeeting) {
                 HStack {
                     Image(systemName: "plus")
-                    Text("Créer une réunion")
+                    Text(NSLocalizedString("create_meeting_button", comment: "Create meeting button"))
                 }
                 .font(.headline)
                 .foregroundColor(.white)

@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
  * Uses Material 3 styling with Google branding colors.
  */
 @Composable
-actual fun GoogleSignInButton(
+fun GoogleSignInButton(
     onClick: () -> Unit,
     enabled: Boolean,
     modifier: Modifier
@@ -88,7 +88,7 @@ actual fun GoogleSignInButton(
  * so this returns an empty composable.
  */
 @Composable
-actual fun AppleSignInButton(
+fun AppleSignInButton(
     onClick: () -> Unit,
     enabled: Boolean,
     modifier: Modifier
@@ -100,9 +100,9 @@ actual fun AppleSignInButton(
 /**
  * Google Sign-In is available on Android.
  */
-actual fun isGoogleSignInAvailable(): Boolean = true
+fun isGoogleSignInAvailable(): Boolean = true
 
 /**
  * Apple Sign-In is not available on Android.
  */
-actual fun isAppleSignInAvailable(): Boolean = false
+fun isAppleSignInAvailable(): Boolean = false
