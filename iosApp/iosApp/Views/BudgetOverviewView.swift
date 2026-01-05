@@ -595,7 +595,8 @@ struct BudgetOverviewView_Previews: PreviewProvider {
                 eventTypeCustom: nil,
                 minParticipants: nil,
                 maxParticipants: nil,
-                expectedParticipants: nil
+                expectedParticipants: nil,
+                heroImageUrl: nil
             ),
             repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
             onBack: {},

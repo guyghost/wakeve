@@ -1,8 +1,24 @@
 import SwiftUI
+import SwiftUI
 import Shared
 
+// MARK: - Event Filter Enum
+
+/// Filter options for events list (matches Android's TabRow filters)
+enum ModernEventFilter: String, CaseIterable {
+    case all = "Tous"
+    case upcoming = "À venir"
+    case past = "Passés"
+
+    var title: String {
+        return self.rawValue
+    }
+}
+
+// MARK: - Modern Home View
+
 /// Modern home view inspired by Apple Invites
-/// Features: Card-based event display, beautiful imagery, clean typography
+/// Features: Card-based event display, functional filters, clean typography
 struct ModernHomeView: View {
     let userId: String
     let repository: EventRepositoryInterface
@@ -11,6 +27,7 @@ struct ModernHomeView: View {
 
     @State private var events: [Event] = []
     @State private var isLoading = true
+    @State private var selectedFilter: ModernEventFilter = .upcoming
 
     var body: some View {
         ZStack {
@@ -19,22 +36,28 @@ struct ModernHomeView: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Header
-                AppleInvitesHeader(
-                    userId: userId,
-                    onCreateEvent: onCreateEvent
-                )
+                // Filter Picker
+                VStack(spacing: 0) {
+                    EventFilterPicker(
+                        selectedFilter: $selectedFilter
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+
+                    Divider()
+                }
+                .background(Color(.systemBackground))
 
                 // Content
                 if isLoading {
                     LoadingEventsView()
-                } else if events.isEmpty {
+                } else if filteredEvents.isEmpty {
                     AppleInvitesEmptyState(onCreateEvent: onCreateEvent)
                 } else {
                     ScrollView {
                         VStack(spacing: 16) {
                             // Event Cards
-                            ForEach(events, id: \.id) { event in
+                            ForEach(filteredEvents, id: \.id) { event in
                                 ModernEventCard(
                                     event: event,
                                     onTap: { onEventSelected(event) }
@@ -58,6 +81,58 @@ struct ModernHomeView: View {
         }
     }
 
+    // MARK: - Computed Properties
+
+    /// Filter events based on selected filter and dates
+    private var filteredEvents: [Event] {
+        let now = Date()
+
+        return events.filter { event in
+            // Get relevant date for filtering
+            let eventDate = getEventDate(event)
+
+            // Apply filter
+            switch selectedFilter {
+            case .all:
+                return true
+            case .upcoming:
+                return eventDate > now
+            case .past:
+                return eventDate <= now
+            }
+        }
+        // Sort by date (most recent first)
+        .sorted { event1, event2 in
+            let date1 = getEventDate(event1)
+            let date2 = getEventDate(event2)
+            return date1 < date2
+        }
+    }
+
+    /// Helper to get relevant date from an event for filtering
+    private func getEventDate(_ event: Event) -> Date {
+        let formatter = ISO8601DateFormatter()
+
+        // Prefer finalDate
+        if let finalDateStr = event.finalDate, let finalDate = formatter.date(from: finalDateStr) {
+            return finalDate
+        }
+
+        // Fall back to deadline
+        if let deadline = formatter.date(from: event.deadline) {
+            return deadline
+        }
+
+        // Final fallback to createdAt
+        if let createdAt = formatter.date(from: event.createdAt) {
+            return createdAt
+        }
+
+        return Date()
+    }
+
+    // MARK: - Data Loading
+
     private func loadEvents() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             events = repository.getAllEvents()
@@ -66,73 +141,32 @@ struct ModernHomeView: View {
     }
 }
 
-// MARK: - Apple Invites Header
+// MARK: - Event Filter Picker
 
-struct AppleInvitesHeader: View {
-    let userId: String
-    let onCreateEvent: () -> Void
-
-    private var userInitial: String {
-        String(userId.prefix(1).uppercased())
-    }
+/// Segmented control for filtering events (All, Upcoming, Past)
+/// Matches Android's TabRow filtering behavior
+struct EventFilterPicker: View {
+    @Binding var selectedFilter: ModernEventFilter
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            // "Upcoming" with dropdown
-            HStack(spacing: 4) {
-                Text("Upcoming")
-                    .font(.largeTitle.weight(.bold))
-                    .foregroundColor(.primary)
-
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.secondary)
-                    .opacity(0.6)
+        Picker("Filtre", selection: $selectedFilter) {
+            ForEach(ModernEventFilter.allCases, id: \.self) { filter in
+                Text(filter.title)
+                    .tag(filter)
             }
-
-            Spacer()
-
-            // Add button
-            Button(action: onCreateEvent) {
-                Image(systemName: "plus")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 36, height: 36)
-                    .background(
-                        Circle()
-                            .fill(Color.wakevPrimary.opacity(0.8))
-                    )
-            }
-            .accessibilityLabel("Créer un événement")
-
-            // Profile avatar
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [Color.wakevPrimary, Color.wakevAccent],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 36, height: 36)
-                .overlay(
-                    Text(userInitial)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                )
-                .accessibilityLabel("Profile: \(userInitial)")
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-        .padding(.bottom, 16)
+        .pickerStyle(.segmented)
+        .accessibilityLabel("Filtre d'événements")
+        .accessibilityValue(selectedFilter.title)
     }
 }
 
 // MARK: - Apple Invites Empty State
 
+/// Empty state when no events match the current filter
 struct AppleInvitesEmptyState: View {
     let onCreateEvent: () -> Void
-    
+
     @State private var isAnimating = false
 
     var body: some View {
@@ -160,11 +194,11 @@ struct AppleInvitesEmptyState: View {
 
                 // Text content
                 VStack(spacing: 12) {
-                    Text("Aucun événement prévu")
+                    Text("Aucun événement")
                         .font(.title2.weight(.bold))
                         .foregroundColor(.primary)
 
-                    Text("Les événements à venir apparaîtront ici")
+                    Text("Créez votre premier événement\npour commencer")
                         .font(.body)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -202,8 +236,10 @@ struct AppleInvitesEmptyState: View {
         }
     }
 }
+
 // MARK: - Modern Event Card
 
+/// Card displaying event information with gradient background
 struct ModernEventCard: View {
     let event: Event
     let onTap: () -> Void
@@ -212,7 +248,7 @@ struct ModernEventCard: View {
         Button(action: onTap) {
             LiquidGlassCard.thick(cornerRadius: 20, padding: 0) {
                 ZStack {
-                    // Background Image or Gradient
+                    // Background Gradient
                     RoundedRectangle(cornerRadius: 20)
                         .fill(
                             LinearGradient(
@@ -236,7 +272,6 @@ struct ModernEventCard: View {
                         // Top Bar with status badge
                         HStack {
                             EventStatusBadge(status: event.status)
-
                             Spacer()
                         }
                         .padding(20)
@@ -324,18 +359,20 @@ struct ModernEventCard: View {
         return dateString
     }
 
-    private func formatDeadline(_ deadlineString: String) -> String {
-        if let date = ISO8601DateFormatter().date(from: deadlineString) {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "Deadline: MMM d"
-            return formatter.string(from: date)
+    private func formatDeadline(_ deadlineString: String?) -> String {
+        guard let deadlineString = deadlineString,
+              let date = ISO8601DateFormatter().date(from: deadlineString) else {
+            return "No deadline set"
         }
-        return "Vote by: \(deadlineString)"
+        let formatter = DateFormatter()
+        formatter.dateFormat = "Deadline: MMM d"
+        return formatter.string(from: date)
     }
 }
 
 // MARK: - Add Event Card
 
+/// Card button to create a new event
 struct AddEventCard: View {
     let onTap: () -> Void
 
@@ -362,6 +399,7 @@ struct AddEventCard: View {
 
 // MARK: - Event Status Badge
 
+/// Badge displaying event status
 struct EventStatusBadge: View {
     let status: EventStatus
 
@@ -400,6 +438,7 @@ struct EventStatusBadge: View {
 
 // MARK: - Participant Avatar
 
+/// Avatar showing participant initial
 struct ParticipantAvatar: View {
     let participantId: String
 
@@ -436,6 +475,7 @@ struct ParticipantAvatar: View {
     }
 }
 
+/// Badge showing additional participants count
 struct AdditionalParticipantsCount: View {
     let count: Int
 
@@ -443,7 +483,7 @@ struct AdditionalParticipantsCount: View {
         ZStack {
             Circle()
                 .fill(.ultraThinMaterial)
-                
+
             Text("+\(count)")
                 .font(.caption.weight(.semibold))
                 .foregroundColor(.white)
@@ -458,6 +498,7 @@ struct AdditionalParticipantsCount: View {
 
 // MARK: - Loading View
 
+/// View shown while loading events
 struct LoadingEventsView: View {
     var body: some View {
         VStack(spacing: 20) {
@@ -475,6 +516,7 @@ struct LoadingEventsView: View {
 
 // MARK: - Button Styles
 
+/// Button style with scale animation on press
 struct ScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -483,3 +525,128 @@ struct ScaleButtonStyle: ButtonStyle {
     }
 }
 
+// MARK: - Preview
+
+#Preview("Modern Home View") {
+    ModernHomeView(
+        userId: "user123",
+        repository: MockEventRepository(),
+        onEventSelected: { event in
+            print("Selected: \(event.title)")
+        },
+        onCreateEvent: {
+            print("Create event")
+        }
+    )
+}
+
+// MARK: - Mock Repository for Preview
+
+/// Mock repository for SwiftUI Preview
+class MockEventRepository: EventRepositoryInterface {
+    func getAllEvents() -> [Event] {
+        let formatter = ISO8601DateFormatter()
+        let now = Date()
+
+        return [
+            Event(
+                id: "event-1",
+                title: "Réunion d'équipe",
+                description: "Planification du prochain sprint",
+                organizerId: "user1",
+                participants: ["user1", "user2", "user3"],
+                proposedSlots: [],
+                deadline: formatter.string(from: now.addingTimeInterval(86400)),
+                status: .polling,
+                finalDate: nil,
+                createdAt: formatter.string(from: now.addingTimeInterval(-86400)),
+                updatedAt: formatter.string(from: now),
+                eventType: .custom,
+                eventTypeCustom: "meeting",
+                minParticipants: 2,
+                maxParticipants: 10,
+                expectedParticipants: 3,
+                heroImageUrl: nil
+            ),
+            Event(
+                id: "event-2",
+                title: "Weekend de détente",
+                description: "Sortie à la montagne",
+                organizerId: "user1",
+                participants: ["user1", "user2", "user3", "user4", "user5", "user6"],
+                proposedSlots: [],
+                deadline: formatter.string(from: now.addingTimeInterval(-86400)),
+                status: .confirmed,
+                finalDate: formatter.string(from: now.addingTimeInterval(172800)),
+                createdAt: formatter.string(from: now.addingTimeInterval(-172800)),
+                updatedAt: formatter.string(from: now),
+                eventType: .custom,
+                eventTypeCustom: "social",
+                minParticipants: 3,
+                maxParticipants: 15,
+                expectedParticipants: 6,
+                heroImageUrl: nil
+            )
+        ]
+    }
+
+    func getEvent(id: String) -> Event? {
+        return getAllEvents().first { $0.id == id }
+    }
+
+    func createEvent(event: Event) async throws -> Any? {
+        return event
+    }
+
+    func updateEvent(event: Event) async throws -> Any? {
+        return event
+    }
+
+    func deleteEvent(id: String) async throws -> Bool {
+        return true
+    }
+
+    func getParticipants(eventId: String) -> [String]? {
+        return []
+    }
+
+    func addParticipant(eventId: String, participantId: String) async throws -> Any? {
+        return true
+    }
+
+    func removeParticipant(eventId: String, participantId: String) async throws -> Bool {
+        return true
+    }
+
+    func getPollVotes(eventId: String) -> [String : [String : Vote]] {
+        return [:]
+    }
+
+    func submitVote(eventId: String, slotId: String, participantId: String, response: Vote) async throws -> Bool {
+        return true
+    }
+
+    func addVote(eventId: String, participantId: String, slotId: String, vote: Vote) async throws -> Any? {
+        return true
+    }
+
+    func canModifyEvent(eventId: String, userId: String) -> Bool {
+        return true
+    }
+
+    func getPoll(eventId: String) -> Poll? {
+        return nil
+    }
+
+    func isDeadlinePassed(deadline: String) -> Bool {
+        return false
+    }
+
+    func isOrganizer(eventId: String, userId: String) -> Bool {
+        return true
+    }
+
+    func updateEventStatus(id: String, status: EventStatus, finalDate: String?) async throws -> Any? {
+        return true
+    }
+}

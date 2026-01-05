@@ -59,35 +59,6 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Loading View
-
-struct LoadingView: View {
-    var body: some View {
-        ZStack {
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.blue.opacity(0.1),
-                    Color.purple.opacity(0.1),
-                    Color.pink.opacity(0.1)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
-
-            VStack(spacing: 24) {
-                ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                    .scaleEffect(1.5)
-
-                Text("Loading...")
-                    .font(.headline)
-                    .foregroundColor(.white.opacity(0.9))
-            }
-        }
-    }
-}
-
 // MARK: - Error View
 
 struct ErrorView: View {
@@ -167,7 +138,7 @@ struct AuthenticatedView: View {
             profile: { profileTabContent }
         )
         .sheet(isPresented: $showEventCreationSheet) {
-            EventCreationSheet(
+            CreateEventView(
                 userId: userId,
                 repository: repository,
                 onEventCreated: { eventId in
@@ -202,7 +173,8 @@ struct AuthenticatedView: View {
             
         case .eventCreation:
             // Legacy full-screen creation (keep for backwards compatibility)
-            AppleInvitesEventCreationView(
+            // Using DraftEventWizardView wrapped in CreateEventView
+            CreateEventView(
                 userId: userId,
                 repository: repository,
                 onEventCreated: { eventId in
@@ -210,9 +182,6 @@ struct AuthenticatedView: View {
                         selectedEvent = event
                         currentView = .participantManagement
                     }
-                },
-                onBack: {
-                    currentView = .eventList
                 }
             )
             

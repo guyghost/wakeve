@@ -62,7 +62,12 @@ struct DraftEventWizardView: View {
     @State private var editingTimeSlot: Shared.TimeSlot?
     @State private var showTimeSlotSheet: Bool = false
     
-    private let steps = ["Basic Info", "Participants", "Locations", "Time Slots"]
+    private let steps = [
+        NSLocalizedString("step_basic_info", comment: "Wizard step 1"),
+        NSLocalizedString("step_participants", comment: "Wizard step 2"),
+        NSLocalizedString("step_locations", comment: "Wizard step 3"),
+        NSLocalizedString("step_time_slots", comment: "Wizard step 4")
+    ]
     
     // MARK: - Initialization
     
@@ -100,7 +105,7 @@ struct DraftEventWizardView: View {
                 
                 // Step Indicator
                 HStack {
-                    Text("Step \(currentStep + 1) of \(steps.count): \(steps[currentStep])")
+                    Text(String(format: NSLocalizedString("step_indicator", comment: "Step indicator format"), currentStep + 1, steps.count, steps[currentStep]))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                     
@@ -135,7 +140,7 @@ struct DraftEventWizardView: View {
                             HStack {
                                 Image(systemName: "chevron.left")
                                     .font(.system(size: 14, weight: .semibold))
-                                Text("Previous")
+                                Text(NSLocalizedString("previous", comment: "Previous button"))
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -155,7 +160,7 @@ struct DraftEventWizardView: View {
                             }
                         } label: {
                             HStack {
-                                Text("Next")
+                                Text(NSLocalizedString("next", comment: "Next button"))
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 14, weight: .semibold))
                             }
@@ -175,7 +180,7 @@ struct DraftEventWizardView: View {
                             HStack {
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 14, weight: .semibold))
-                                Text("Create Event")
+                                Text(NSLocalizedString("create_event", comment: "Create event button"))
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
@@ -189,11 +194,11 @@ struct DraftEventWizardView: View {
                 .padding()
                 .background(Color(.systemBackground))
             }
-            .navigationTitle("Create Event")
+            .navigationTitle(NSLocalizedString("create_event", comment: "Navigation title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button(NSLocalizedString("cancel", comment: "Cancel button")) {
                         onCancel()
                     }
                 }
@@ -206,17 +211,17 @@ struct DraftEventWizardView: View {
     private var step1BasicInfo: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Tell us about your event")
+                Text(NSLocalizedString("tell_us_about_event", comment: "Step 1 headline"))
                     .font(.title2.weight(.bold))
                     .padding(.horizontal)
                 
                 VStack(spacing: 16) {
                     // Title
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Event Title")
+                        Text(NSLocalizedString("event_title", comment: "Title label"))
                             .font(.subheadline.weight(.medium))
                         
-                        TextField("e.g., Team Building Weekend", text: $title)
+                        TextField(NSLocalizedString("event_title_hint", comment: "Title placeholder"), text: $title)
                             .padding(12)
                             .background(.ultraThinMaterial)
                             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -228,10 +233,10 @@ struct DraftEventWizardView: View {
                     
                     // Description
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Description")
+                        Text(NSLocalizedString("event_description", comment: "Description label"))
                             .font(.subheadline.weight(.medium))
                         
-                        TextField("Describe your event...", text: $description, axis: .vertical)
+                        TextField(NSLocalizedString("event_description_hint", comment: "Description placeholder"), text: $description, axis: .vertical)
                             .lineLimit(3...5)
                             .padding(12)
                             .background(.ultraThinMaterial)
@@ -260,7 +265,7 @@ struct DraftEventWizardView: View {
     private var step2Participants: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("How many people?")
+                Text(NSLocalizedString("how_many_people", comment: "Step 2 headline"))
                     .font(.title2.weight(.bold))
                     .padding(.horizontal)
                 
@@ -281,11 +286,11 @@ struct DraftEventWizardView: View {
     private var step3Locations: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Where could it be?")
+                Text(NSLocalizedString("where_could_it_be", comment: "Step 3 headline"))
                     .font(.title2.weight(.bold))
                     .padding(.horizontal)
                 
-                Text("Add potential locations (optional)")
+                Text(NSLocalizedString("add_potential_locations", comment: "Step 3 subtitle"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.horizontal)
@@ -323,11 +328,11 @@ struct DraftEventWizardView: View {
     private var step4TimeSlots: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("When should it happen?")
+                Text(NSLocalizedString("when_should_it_happen", comment: "Step 4 headline"))
                     .font(.title2.weight(.bold))
                     .padding(.horizontal)
                 
-                Text("Add at least one time slot")
+                Text(NSLocalizedString("add_at_least_one", comment: "Step 4 subtitle"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.horizontal)
@@ -339,7 +344,7 @@ struct DraftEventWizardView: View {
                             .font(.system(size: 48, weight: .light))
                             .foregroundColor(.secondary.opacity(0.4))
                         
-                        Text("No time slots yet")
+                        Text(NSLocalizedString("no_time_slots_yet", comment: "Empty state"))
                             .font(.body.weight(.medium))
                             .foregroundColor(.secondary)
                         
@@ -349,7 +354,7 @@ struct DraftEventWizardView: View {
                         } label: {
                             HStack {
                                 Image(systemName: "plus")
-                                Text("Add Time Slot")
+                                Text(NSLocalizedString("add_time_slot_button", comment: "Add time slot button"))
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -375,7 +380,7 @@ struct DraftEventWizardView: View {
                         } label: {
                             HStack {
                                 Image(systemName: "plus")
-                                Text("Add Another Time Slot")
+                                Text(NSLocalizedString("add_another_time_slot", comment: "Add another time slot"))
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -425,7 +430,8 @@ struct DraftEventWizardView: View {
             eventTypeCustom: eventType == .custom ? eventTypeCustom : nil,
             minParticipants: minParticipants.map { KotlinInt(value: Int32($0)) },
             maxParticipants: maxParticipants.map { KotlinInt(value: Int32($0)) },
-            expectedParticipants: expectedParticipants.map { KotlinInt(value: Int32($0)) }
+            expectedParticipants: expectedParticipants.map { KotlinInt(value: Int32($0)) },
+            heroImageUrl: nil
         )
     }
     

@@ -26,6 +26,7 @@ enum TitleFontStyle: String, CaseIterable, Hashable {
 
 /// Apple Invites-style event creation view
 /// Features: Gradient background, image picker, modern form design
+@available(*, deprecated, message: "Use CreateEventView (DraftEventWizardView) instead. This will be removed in a future version.")
 struct AppleInvitesEventCreationView: View {
     let userId: String
     let repository: EventRepositoryInterface
@@ -366,7 +367,8 @@ struct AppleInvitesEventCreationView: View {
                 eventTypeCustom: nil,
                 minParticipants: nil,
                 maxParticipants: nil,
-                expectedParticipants: nil
+                expectedParticipants: nil,
+                heroImageUrl: nil
             )
 
             let result = try await repository.createEvent(event: event)

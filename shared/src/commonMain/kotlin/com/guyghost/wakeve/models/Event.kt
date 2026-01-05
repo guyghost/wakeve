@@ -15,13 +15,16 @@ data class Event(
     val finalDate: String? = null, // ISO string (UTC)
     val createdAt: String, // ISO string (UTC)
     val updatedAt: String, // ISO string (UTC)
-    
+
     // Enhanced DRAFT phase fields (enhance-draft-phase)
     val eventType: EventType = EventType.OTHER,
     val eventTypeCustom: String? = null, // Required if eventType == CUSTOM
     val minParticipants: Int? = null,
     val maxParticipants: Int? = null,
-    val expectedParticipants: Int? = null
+    val expectedParticipants: Int? = null,
+
+    // Hero image field for feature parity with iOS
+    val heroImageUrl: String? = null
 ) {
     /**
      * Validate that the event data is consistent.

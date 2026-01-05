@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "9FF6D694-2394-4EF1-82B7-BE24E43905E4",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:iosApp.xcodeproj",
+      "identifier" : "26FA9A92B051534D6E7C900B",
+      "name" : "iosApp"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:iosApp.xcodeproj",
+        "identifier" : "E489717B2F0BC60F00BE8BF0",
+        "name" : "WakeveTests"
+      }
+    }
+  ],
+  "version" : 1
+}

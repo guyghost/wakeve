@@ -93,7 +93,7 @@ struct ScenarioListView: View {
             .padding(.top, 60)
             
             VStack(spacing: 8) {
-                Text("Choose a Scenario")
+                Text(NSLocalizedString("choose_scenario_title", comment: "Title for choosing a scenario"))
                     .font(.system(size: 34, weight: .bold))
                     .foregroundColor(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -116,7 +116,7 @@ struct ScenarioListView: View {
                 Image(systemName: "arrow.left.arrow.right")
                     .font(.system(size: 16, weight: .semibold))
                 
-                Text("Compare Scenarios")
+                Text(NSLocalizedString("compare", comment: "Compare button text"))
                     .font(.system(size: 17, weight: .semibold))
                 
                 Spacer()
@@ -138,7 +138,7 @@ struct ScenarioListView: View {
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle())
             
-            Text("Loading scenarios...")
+            Text(NSLocalizedString("loading_scenarios", comment: "Loading scenarios text"))
                 .font(.system(size: 17))
                 .foregroundColor(.secondary)
         }
@@ -160,11 +160,11 @@ struct ScenarioListView: View {
             }
             
             VStack(spacing: 8) {
-                Text("No Scenarios Yet")
+                Text(NSLocalizedString("no_scenarios_yet_title", comment: "No scenarios yet title"))
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.primary)
                 
-                Text("The organizer will add scenario options for this event.")
+                Text(NSLocalizedString("organizer_will_add", comment: "Organizer will add scenarios text"))
                     .font(.system(size: 17))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -211,13 +211,13 @@ struct ScenarioCard: View {
             }
             
             // Key details
-            VStack(spacing: 12) {
-                ScenarioInfoRow(label: "Date", value: scenario.dateOrPeriod, icon: "calendar")
-                ScenarioInfoRow(label: "Location", value: scenario.location, icon: "mappin.circle")
-                ScenarioInfoRow(label: "Duration", value: "\(scenario.duration) days", icon: "clock")
+            VStack(alignment: .leading, spacing: 12) {
+                ScenarioInfoRow(label: NSLocalizedString("date_label", comment: "Date label"), value: scenario.dateOrPeriod, icon: "calendar")
+                ScenarioInfoRow(label: NSLocalizedString("location_label", comment: "Location label"), value: scenario.location, icon: "mappin.circle")
+                ScenarioInfoRow(label: NSLocalizedString("duration_label_short", comment: "Duration label"), value: "\(scenario.duration) \(NSLocalizedString("days_label", comment: "Days label"))", icon: "clock")
                 ScenarioInfoRow(
-                    label: "Budget",
-                    value: String(format: "$%.0f per person", scenario.estimatedBudgetPerPerson),
+                    label: NSLocalizedString("budget_label", comment: "Budget label"),
+                    value: String(format: NSLocalizedString("budget_per_person_label", comment: "Budget per person format"), scenario.estimatedBudgetPerPerson),
                     icon: "dollarsign.circle"
                 )
             }
@@ -295,13 +295,13 @@ struct VotingResultsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Voting Results")
+                Text(NSLocalizedString("voting_results_label", comment: "Voting results label"))
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
-                Text("Score: \(result.score)")
+                Text("\(NSLocalizedString("score_label_short", comment: "Score label")): \(result.score)")
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
             }
