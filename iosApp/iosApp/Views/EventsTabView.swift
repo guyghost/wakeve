@@ -23,10 +23,23 @@ enum MockEventStatus {
 }
 
 // MARK: - Events Tab View
+/// Main view for displaying and managing user events.
+/// Uses Liquid Glass design system components for consistent UI.
+///
+/// ## Architecture
+/// - **Functional Core**: Filtering and sorting logic in `filteredAndSortedEvents`
+/// - **Imperative Shell**: UI state management and side effects
+///
+/// ## Components Used
+/// - `LiquidGlassCard` for event rows
+/// - `LiquidGlassBadge` for status indicators
+/// - `LiquidGlassButton` for primary actions
+/// - `LiquidGlassIconButton` for FAB
+/// - `LiquidGlassDivider` for visual separation
 struct EventsTabView: View {
     let userId: String
     
-    // State
+    // MARK: - State
     @State private var events: [MockEvent] = []
     @State private var selectedFilter: EventFilter = .upcoming
     @State private var isLoading = false
@@ -35,51 +48,20 @@ struct EventsTabView: View {
     // Use persistent database-backed repository instead of in-memory mock
     private let repository: EventRepositoryInterface = RepositoryProvider.shared.repository
     
+    // MARK: - Body
     var body: some View {
         NavigationStack {
             ZStack {
                 VStack(spacing: 0) {
                     // Filter Segmented Control
-                    Picker("Filtres", selection: $selectedFilter) {
-                        ForEach(EventFilter.allCases, id: \.self) { filter in
-                            Text(filter.title)
-                                .tag(filter)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 16)
-                    .background(Color(.systemBackground))
+                    filterSegmentedControl
                     
                     // Events List
-                    ScrollView {
-                        LazyVStack(spacing: 16) {
-                            ForEach(filteredAndSortedEvents, id: \.id) { event in
-                                EventRowView(event: event)
-                            }
-                            
-                            // Empty State
-                            if filteredAndSortedEvents.isEmpty && !isLoading {
-                                EventsEmptyStateView(onCreateEvent: {
-                                    showEventCreationSheet = true
-                                })
-                            }
-                        }
-                        .padding(.horizontal)
-                        .padding(.vertical, 16)
-                    }
+                    eventsListContent
                 }
                 
                 // Floating Action Button
-                VStack {
-                    Spacer()
-                    HStack {
-                        Spacer()
-                        floatingActionButton
-                    }
-                    .padding(.trailing, 20)
-                    .padding(.bottom, 20)
-                }
+                floatingActionButtonView
             }
             .background(Color(.systemBackground).ignoresSafeArea())
             .navigationTitle("Mes Événements")
@@ -103,39 +85,69 @@ struct EventsTabView: View {
         }
     }
     
-    // MARK: - Floating Action Button
-    
-    private var floatingActionButton: some View {
-        Button {
-            showEventCreationSheet = true
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(width: 56, height: 56)
-                .background(
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.wakevPrimary, Color.wakevAccent],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                )
-                .shadow(
-                    color: Color.wakevPrimary.opacity(0.3),
-                    radius: 12,
-                    x: 0,
-                    y: 6
-                )
+    // MARK: - Filter Segmented Control
+    /// Custom filter control with Liquid Glass styling
+    private var filterSegmentedControl: some View {
+        Picker("Filtres", selection: $selectedFilter) {
+            ForEach(EventFilter.allCases, id: \.self) { filter in
+                Text(filter.title)
+                    .tag(filter)
+            }
         }
-        .accessibilityLabel("Créer un événement")
-        .accessibilityHint("Ouvre la fenêtre de création d'événement")
+        .pickerStyle(.segmented)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
+        .background(Color(.systemBackground))
+    }
+    
+    // MARK: - Events List Content
+    @ViewBuilder
+    private var eventsListContent: some View {
+        ScrollView {
+            LazyVStack(spacing: 16) {
+                ForEach(filteredAndSortedEvents, id: \.id) { event in
+                    EventRowView(event: event)
+                }
+                
+                // Empty State
+                if filteredAndSortedEvents.isEmpty && !isLoading {
+                    EventsEmptyStateView(onCreateEvent: {
+                        showEventCreationSheet = true
+                    })
+                }
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 16)
+        }
+    }
+    
+    // MARK: - Floating Action Button
+    /// FAB using LiquidGlassIconButton component
+    private var floatingActionButtonView: some View {
+        VStack {
+            Spacer()
+            HStack {
+                Spacer()
+                LiquidGlassIconButton(
+                    icon: "plus",
+                    size: 56,
+                    gradientColors: [.wakevPrimary, .wakevAccent]
+                ) {
+                    showEventCreationSheet = true
+                }
+                .accessibilityLabel("Créer un événement")
+                .accessibilityHint("Ouvre la fenêtre de création d'événement")
+            }
+            .padding(.trailing, 20)
+            .padding(.bottom, 20)
+        }
     }
     
     // MARK: - Computed Properties
     
+    /// Filters and sorts events based on selected filter.
+    /// Pure function - no side effects.
+    /// - Returns: Filtered and sorted array of events
     private var filteredAndSortedEvents: [MockEvent] {
         let filteredEvents = events.filter { event in
             switch selectedFilter {
@@ -159,6 +171,8 @@ struct EventsTabView: View {
     
     // MARK: - Data Loading
     
+    /// Loads events from repository.
+    /// Updates local state with fetched events.
     private func loadEvents() {
         isLoading = true
         
@@ -172,6 +186,7 @@ struct EventsTabView: View {
         isLoading = false
     }
     
+    /// Refreshes events list.
     private func refreshEvents() {
         loadEvents()
     }
@@ -188,100 +203,86 @@ struct MockEvent: Identifiable {
 }
 
 // MARK: - Event Row View
+/// Displays a single event row with Liquid Glass styling.
+///
+/// ## Components Used
+/// - `LiquidGlassCard`: Main card container (replaces .glassCard)
+/// - `LiquidGlassBadge`: Status badge (replaces inline statusBadge)
+/// - Design system colors: .wakevPrimary, .wakevAccent
 struct EventRowView: View {
     let event: MockEvent
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Event Header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(event.title)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    if !event.description.isEmpty {
-                        Text(event.description)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
-                    }
-                }
+        LiquidGlassCard(cornerRadius: 16, padding: 16) {
+            VStack(alignment: .leading, spacing: 12) {
+                // Event Header
+                eventHeader
                 
-                Spacer()
+                // Divider
+                LiquidGlassDivider(style: .subtle)
+                    .padding(.vertical, 4)
                 
-                // Status Badge
-                statusBadge
-            }
-            
-            // Participants and Date
-            HStack(spacing: 16) {
-                HStack(spacing: 4) {
-                    Image(systemName: "person.2")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.secondary)
-                    
-                    Text("\(event.participantCount) participants")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                HStack(spacing: 4) {
-                    Image(systemName: "calendar")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.secondary)
-                    
-                    Text(formattedDate)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+                // Participants and Date
+                eventMetadata
             }
         }
-        .padding(16)
-        .glassCard(cornerRadius: 16, material: .regularMaterial)
         .accessibilityLabel("\(event.title)")
         .accessibilityHint("\(event.participantCount) participants, \(formattedDate)")
     }
     
-    private var statusBadge: some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(statusColor)
-                .frame(width: 8, height: 8)
+    // MARK: - Event Header
+    private var eventHeader: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.title)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                
+                if !event.description.isEmpty {
+                    Text(event.description)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+            }
             
-            Text(statusText)
-                .font(.caption2.weight(.medium))
-                .foregroundColor(statusColor)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .ultraThinGlass(cornerRadius: 12)
-    }
-    
-    private var statusText: String {
-        switch event.status {
-        case .draft: return "Brouillon"
-        case .polling: return "Sondage"
-        case .comparing: return "Comparaison"
-        case .confirmed: return "Confirmé"
-        case .organizing: return "Organisation"
-        case .finalized: return "Finalisé"
+            Spacer()
+            
+            // Status Badge using LiquidGlassBadge component
+            LiquidGlassBadge.from(status: event.status)
         }
     }
     
-    private var statusColor: Color {
-        switch event.status {
-        case .draft: return .orange
-        case .polling: return .blue
-        case .comparing: return .purple
-        case .confirmed: return .green
-        case .organizing: return .yellow
-        case .finalized: return .green
+    // MARK: - Event Metadata
+    private var eventMetadata: some View {
+        HStack(spacing: 16) {
+            // Participant count
+            HStack(spacing: 4) {
+                Image(systemName: "person.2")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.secondary)
+                
+                Text("\(event.participantCount) participants")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            // Date
+            HStack(spacing: 4) {
+                Image(systemName: "calendar")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.secondary)
+                
+                Text(formattedDate)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
     }
     
+    // MARK: - Formatted Date
     private var formattedDate: String {
         let formatter = DateFormatter()
         formatter.dateStyle = .short
@@ -290,6 +291,11 @@ struct EventRowView: View {
 }
 
 // MARK: - Events Empty State View
+/// Empty state displayed when no events are available.
+/// Uses LiquidGlassButton for the call-to-action.
+///
+/// ## Components Used
+/// - `LiquidGlassButton`: Primary action button
 private struct EventsEmptyStateView: View {
     let onCreateEvent: () -> Void
     
@@ -297,6 +303,7 @@ private struct EventsEmptyStateView: View {
     
     var body: some View {
         VStack(spacing: 24) {
+            // Animated icon
             Image(systemName: "calendar.badge.exclamationmark")
                 .font(.system(size: 54, weight: .light))
                 .foregroundColor(.wakevPrimary)
@@ -308,6 +315,7 @@ private struct EventsEmptyStateView: View {
                 )
                 .onAppear { isAnimating = true }
             
+            // Text content
             VStack(spacing: 8) {
                 Text("Aucun événement")
                     .font(.title2.weight(.semibold))
@@ -320,28 +328,12 @@ private struct EventsEmptyStateView: View {
                     .lineLimit(2)
             }
             
-            Button {
+            // Create event button using LiquidGlassButton
+            LiquidGlassButton(
+                title: "Créer un événement",
+                style: .primary
+            ) {
                 onCreateEvent()
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus.circle.fill")
-                    Text("Créer un événement")
-                }
-                .font(.subheadline.weight(.semibold))
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 44)
-                .background(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color.wakevPrimary,
-                            Color.wakevAccent
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .continuousCornerRadius(12)
             }
             .padding(.horizontal)
             .padding(.top, 8)

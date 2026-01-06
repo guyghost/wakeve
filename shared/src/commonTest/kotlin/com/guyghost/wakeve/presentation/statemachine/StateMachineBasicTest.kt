@@ -214,6 +214,16 @@ class StateMachineBasicTest {
             return Result.success(true)
         }
 
+        override suspend fun saveEvent(event: Event): Result<Event> {
+            val existingEvent = events[event.id]
+            if (existingEvent != null) {
+                events[event.id] = event
+            } else {
+                events[event.id] = event
+            }
+            return Result.success(event)
+        }
+
         override fun isDeadlinePassed(deadline: String): Boolean = false
 
         override fun isOrganizer(eventId: String, userId: String): Boolean = true

@@ -290,6 +290,75 @@ class DatabaseEventRepository(private val db: WakevDb, private val syncManager: 
         }
     }
 
+    /**
+     * Save an event (create if it doesn't exist, otherwise update).
+     * This is useful for auto-save functionality during draft wizard steps.
+     *
+     * When updating, this also syncs the time slots to ensure they match the event.
+     *
+     * @param event The event to save
+     * @return Result containing saved event, or an error
+     */
+    override suspend fun saveEvent(event: Event): Result<Event> {
+        return try {
+            val existingEvent = getEvent(event.id)
+            if (existingEvent != null) {
+                // Event exists, update it
+                updateEvent(event)
+
+                // Also update time slots
+                syncTimeSlots(event.id, event.proposedSlots)
+            } else {
+                // Event doesn't exist, create it (createEvent already handles time slots)
+                createEvent(event)
+            }
+            Result.success(event)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Synchronize time slots for an event by replacing all slots with the new list.
+     *
+     * @param eventId The event ID
+     * @param timeSlots The new list of time slots
+     */
+    private suspend fun syncTimeSlots(eventId: String, timeSlots: List<TimeSlot>) {
+        try {
+            // Delete existing time slots for this event
+            timeSlotQueries.deleteByEventId(eventId)
+
+            // Insert new time slots
+            val now = getCurrentUtcIsoString()
+            timeSlots.forEach { slot ->
+                timeSlotQueries.insertTimeSlot(
+                    id = slot.id,
+                    eventId = eventId,
+                    startTime = slot.start,
+                    endTime = slot.end,
+                    timezone = slot.timezone,
+                    proposedByParticipantId = null,
+                    createdAt = now,
+                    updatedAt = now,
+                    timeOfDay = slot.timeOfDay.name
+                )
+            }
+
+            // Record sync change
+            syncManager?.recordLocalChange(
+                table = "timeSlots",
+                operation = SyncOperation.UPDATE,
+                recordId = eventId,
+                data = """{"count":"${timeSlots.size}"}""",
+                userId = getEvent(eventId)?.organizerId ?: "unknown"
+            )
+        } catch (e: Exception) {
+            // Log error but don't fail the entire save operation
+            println("⚠️ Failed to sync time slots: ${e.message}")
+        }
+    }
+
     override suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean> {
         val event = getEvent(id) ?: return Result.failure(IllegalArgumentException("Event not found"))
 

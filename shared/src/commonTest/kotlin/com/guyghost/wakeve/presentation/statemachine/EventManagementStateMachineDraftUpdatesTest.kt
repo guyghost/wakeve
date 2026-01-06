@@ -112,6 +112,20 @@ class EventManagementStateMachineDraftUpdatesTest {
             return Result.success(true)
         }
 
+        override suspend fun saveEvent(event: Event): Result<Event> {
+            return if (shouldFailUpdateEvent) {
+                Result.failure(Exception("Failed to save event"))
+            } else {
+                val existingEvent = events[event.id]
+                if (existingEvent != null) {
+                    events[event.id] = event
+                } else {
+                    events[event.id] = event
+                }
+                Result.success(event)
+            }
+        }
+
         override fun isDeadlinePassed(deadline: String): Boolean = false
 
         override fun isOrganizer(eventId: String, userId: String): Boolean = true

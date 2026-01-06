@@ -6,6 +6,14 @@ import Shared
 /// Displays detailed information about a single scenario.
 /// Uses ScenarioDetailViewModel with State Machine pattern.
 /// Organizers can edit and delete scenarios.
+///
+/// Refactored to use Liquid Glass design system components:
+/// - LiquidGlassCard for content sections
+/// - LiquidGlassButton for actions
+/// - LiquidGlassBadge for status indicators
+/// - LiquidGlassDivider for separators
+/// - LiquidGlassTextField for form inputs
+/// - LiquidGlassListItem for information display
 struct ScenarioDetailView: View {
     let scenarioId: String
     let eventId: String
@@ -82,68 +90,11 @@ struct ScenarioDetailView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        if viewModel.isEditing {
-                            viewModel.cancelEditing()
-                        } else {
-                            onBack()
-                        }
-                    }) {
-                        Image(systemName: "arrow.left")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .frame(width: 36, height: 36)
-                            .background(Color(.tertiarySystemFill))
-                            .clipShape(Circle())
-                    }
+                    backButton
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack(spacing: 12) {
-                        CommentButton(commentCount: 0) {
-                            showComments = true
-                        }
-                        
-                        if isOrganizer {
-                            if viewModel.isEditing {
-                                Button {
-                                    saveChanges()
-                                } label: {
-                                    if viewModel.state.isLoading {
-                                        ProgressView()
-                                            .progressViewStyle(CircularProgressViewStyle())
-                                    } else {
-                                        Text("Save")
-                                            .font(.system(size: 17, weight: .semibold))
-                                            .foregroundColor(.blue)
-                                    }
-                                }
-                                .disabled(viewModel.state.isLoading)
-                            } else {
-                                Menu {
-                                    Button {
-                                        viewModel.startEditing()
-                                        initializeEditFields()
-                                    } label: {
-                                        Label("Edit", systemImage: "pencil")
-                                    }
-                                    
-                                    Button(role: .destructive) {
-                                        showDeleteConfirm = true
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                } label: {
-                                    Image(systemName: "ellipsis")
-                                        .font(.system(size: 16, weight: .semibold))
-                                        .foregroundColor(.secondary)
-                                        .frame(width: 36, height: 36)
-                                        .background(Color(.tertiarySystemFill))
-                                        .clipShape(Circle())
-                                }
-                            }
-                        }
-                    }
+                    toolbarTrailingContent
                 }
             }
             .onAppear {
@@ -166,25 +117,108 @@ struct ScenarioDetailView: View {
                 Text("Are you sure you want to delete this scenario? This action cannot be undone.")
             }
             .sheet(isPresented: $showComments) {
-                NavigationView {
-                    // TODO: Re-enable CommentsView when Shared types are properly integrated
-                    VStack(spacing: 16) {
-                        Image(systemName: "bubble.left.and.bubble.right")
-                            .font(.system(size: 48))
-                            .foregroundColor(.secondary)
-                        Text("Comments - Coming Soon")
-                            .font(.title2)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarLeading) {
-                            Button("Fermer") {
-                                showComments = false
-                            }
-                        }
-                    }
+                commentsSheetView
+            }
+        }
+    }
+    
+    // MARK: - Toolbar Content
+    
+    private var backButton: some View {
+        LiquidGlassButton(
+            icon: "arrow.left",
+            style: .text,
+            size: .small,
+            action: {
+                if viewModel.isEditing {
+                    viewModel.cancelEditing()
+                } else {
+                    onBack()
+                }
+            }
+        )
+        .accessibilityLabel("Back")
+        .accessibilityHint("Return to previous screen")
+    }
+    
+    @ViewBuilder
+    private var toolbarTrailingContent: some View {
+        HStack(spacing: 12) {
+            CommentButton(commentCount: 0) {
+                showComments = true
+            }
+            .accessibilityLabel("Comments")
+            .accessibilityHint("View comments")
+            
+            if isOrganizer {
+                if viewModel.isEditing {
+                    saveButton
+                } else {
+                    organizerMenuButton
+                }
+            }
+        }
+    }
+    
+    private var saveButton: some View {
+        LiquidGlassButton(
+            title: "Save",
+            style: .primary,
+            size: .medium,
+            isDisabled: viewModel.state.isLoading,
+            action: saveChanges
+        )
+        .accessibilityLabel("Save changes")
+        .accessibilityHint("Save the current edits")
+    }
+    
+    private var organizerMenuButton: some View {
+        Menu {
+            Button {
+                viewModel.startEditing()
+                initializeEditFields()
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            
+            Button(role: .destructive) {
+                showDeleteConfirm = true
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        } label: {
+            LiquidGlassButton(
+                icon: "ellipsis",
+                style: .icon,
+                size: .small,
+                action: {}
+            )
+        }
+        .accessibilityLabel("More options")
+        .accessibilityHint("Edit or delete scenario")
+    }
+    
+    // MARK: - Comments Sheet
+    
+    private var commentsSheetView: some View {
+        NavigationView {
+            VStack(spacing: 16) {
+                Image(systemName: "bubble.left.and.bubble.right")
+                    .font(.system(size: 48))
+                    .foregroundColor(.secondary)
+                Text("Comments - Coming Soon")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    LiquidGlassButton(
+                        title: "Close",
+                        style: .text,
+                        action: { showComments = false }
+                    )
                 }
             }
         }
@@ -195,49 +229,67 @@ struct ScenarioDetailView: View {
     private func detailView(scenario: Scenario_) -> some View {
         VStack(spacing: 16) {
             // Header card
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text(scenario.name)
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(.primary)
+            LiquidGlassCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text(scenario.name)
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundColor(.primary)
+                        
+                        Spacer()
+                        
+                        ScenarioStatusBadge(status: scenario.status.name)
+                    }
                     
-                    Spacer()
-                    
-                    ScenarioStatusBadge(status: scenario.status.name)
-                }
-                
-                if !scenario.description_.isEmpty {
-                    Text(scenario.description_)
-                        .font(.system(size: 15))
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    if !scenario.description_.isEmpty {
+                        Text(scenario.description_)
+                            .font(.system(size: 15))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
-            .padding(20)
-            .glassCard()
             
-            // Details sections
+            // Details sections using LiquidGlassCard.thin
             DetailSection(title: "When", icon: "calendar") {
-                DetailItem(label: "Date/Period", value: scenario.dateOrPeriod)
-                DetailItem(label: "Duration", value: "\(Int(scenario.duration)) days")
+                LiquidGlassListItem(
+                    title: "Date/Period",
+                    subtitle: scenario.dateOrPeriod
+                )
+                
+                LiquidGlassDivider(style: .thin)
+                
+                LiquidGlassListItem(
+                    title: "Duration",
+                    subtitle: "\(Int(scenario.duration)) days"
+                )
             }
             
             DetailSection(title: "Where", icon: "mappin.circle") {
-                DetailItem(label: "Location", value: scenario.location)
+                LiquidGlassListItem(
+                    title: "Location",
+                    subtitle: scenario.location
+                )
             }
             
             DetailSection(title: "Group", icon: "person.2") {
-                DetailItem(label: "Estimated Participants", value: "\(scenario.estimatedParticipants)")
+                LiquidGlassListItem(
+                    title: "Estimated Participants",
+                    subtitle: "\(scenario.estimatedParticipants)"
+                )
             }
             
             DetailSection(title: "Budget", icon: "dollarsign.circle") {
-                DetailItem(
-                    label: "Per Person",
-                    value: String(format: "$%.2f", scenario.estimatedBudgetPerPerson)
+                LiquidGlassListItem(
+                    title: "Per Person",
+                    subtitle: String(format: "$%.2f", scenario.estimatedBudgetPerPerson)
                 )
-                DetailItem(
-                    label: "Total Estimated",
-                    value: String(
+                
+                LiquidGlassDivider(style: .thin)
+                
+                LiquidGlassListItem(
+                    title: "Total Estimated",
+                    subtitle: String(
                         format: "$%.2f",
                         scenario.estimatedBudgetPerPerson * Double(scenario.estimatedParticipants)
                     )
@@ -261,29 +313,62 @@ struct ScenarioDetailView: View {
                 .font(.system(size: 28, weight: .bold))
                 .frame(maxWidth: .infinity, alignment: .leading)
             
-            VStack(spacing: 16) {
-                FormField(label: "Name", text: $editName)
-                FormField(label: "Location", text: $editLocation)
-                FormField(label: "Date/Period", text: $editDateOrPeriod)
-                FormField(label: "Duration (days)", text: $editDuration, keyboardType: .numberPad)
-                FormField(label: "Est. Participants", text: $editParticipants, keyboardType: .numberPad)
-                FormField(label: "Budget per Person", text: $editBudget, keyboardType: .decimalPad)
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Description")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.primary)
+            LiquidGlassCard.thin(padding: 20) {
+                VStack(spacing: 16) {
+                    LiquidGlassTextField(
+                        title: "Name",
+                        placeholder: "Scenario name",
+                        text: $editName
+                    )
                     
-                    TextEditor(text: $editDescription)
-                        .font(.system(size: 15))
-                        .frame(minHeight: 100)
-                        .padding(12)
-                        .background(Color(.tertiarySystemFill))
-                        .continuousCornerRadius(12)
+                    LiquidGlassTextField(
+                        title: "Location",
+                        placeholder: "Event location",
+                        text: $editLocation
+                    )
+                    
+                    LiquidGlassTextField(
+                        title: "Date/Period",
+                        placeholder: "Event date or period",
+                        text: $editDateOrPeriod
+                    )
+                    
+                    LiquidGlassTextField(
+                        title: "Duration (days)",
+                        placeholder: "Number of days",
+                        text: $editDuration,
+                        keyboardType: .numberPad
+                    )
+                    
+                    LiquidGlassTextField(
+                        title: "Est. Participants",
+                        placeholder: "Number of participants",
+                        text: $editParticipants,
+                        keyboardType: .numberPad
+                    )
+                    
+                    LiquidGlassTextField(
+                        title: "Budget per Person",
+                        placeholder: "Budget amount",
+                        text: $editBudget,
+                        keyboardType: .decimalPad
+                    )
+                    
+                    // Description text editor
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Description")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(.primary)
+                        
+                        TextEditor(text: $editDescription)
+                            .font(.system(size: 15))
+                            .frame(minHeight: 100)
+                            .padding(12)
+                            .background(Color(.tertiarySystemFill))
+                            .continuousCornerRadius(12)
+                    }
                 }
             }
-            .padding(20)
-            .glassCard()
         }
     }
     
@@ -293,6 +378,7 @@ struct ScenarioDetailView: View {
         VStack(spacing: 20) {
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle())
+                .scaleEffect(1.5)
             
             Text("Loading scenario...")
                 .font(.system(size: 17))
@@ -307,12 +393,12 @@ struct ScenarioDetailView: View {
         VStack(spacing: 24) {
             ZStack {
                 Circle()
-                    .fill(Color.red.opacity(0.1))
+                    .fill(Color.wakevError.opacity(0.1))
                     .frame(width: 80, height: 80)
                 
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 36))
-                    .foregroundColor(.red)
+                    .foregroundColor(.wakevError)
             }
             
             VStack(spacing: 8) {
@@ -324,6 +410,13 @@ struct ScenarioDetailView: View {
                     .font(.system(size: 17))
                     .foregroundColor(.secondary)
             }
+            
+            LiquidGlassButton(
+                title: "Go Back",
+                style: .secondary,
+                action: onBack
+            )
+            .padding(.top, 16)
         }
         .frame(maxHeight: .infinity)
     }
@@ -378,6 +471,42 @@ struct ScenarioDetailView: View {
     }
 }
 
+// MARK: - Scenario Status Badge
+
+/// Maps scenario status to LiquidGlassBadge type
+struct ScenarioStatusBadge: View {
+    let status: String
+    
+    private var badgeType: LiquidGlassBadge.BadgeType {
+        switch status.uppercased() {
+        case "DRAFT":
+            return .primary
+        case "POLLING":
+            return .accent
+        case "CONFIRMED":
+            return .success
+        case "ACTIVE":
+            return .success
+        case "COMPLETED":
+            return .accent
+        case "CANCELLED", "CANCELED":
+            return .error
+        case "ARCHIVED":
+            return .warning
+        default:
+            return .primary
+        }
+    }
+    
+    var body: some View {
+        LiquidGlassBadge(
+            text: status.capitalized,
+            type: badgeType,
+            size: .small
+        )
+    }
+}
+
 // MARK: - Detail Section
 
 struct DetailSection<Content: View>: View {
@@ -392,64 +521,20 @@ struct DetailSection<Content: View>: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.blue)
+        LiquidGlassCard.thin(padding: 20) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 8) {
+                    Image(systemName: icon)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.wakevAccent)
+                    
+                    Text(title)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.primary)
+                }
                 
-                Text(title)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.primary)
+                content
             }
-            
-            content
-        }
-        .padding(20)
-        .glassCard()
-    }
-}
-
-// MARK: - Detail Item
-
-struct DetailItem: View {
-    let label: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(label)
-                .font(.system(size: 15))
-                .foregroundColor(.secondary)
-            
-            Spacer()
-            
-            Text(value)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(.primary)
-        }
-    }
-}
-
-// MARK: - Form Field
-
-struct FormField: View {
-    let label: String
-    @Binding var text: String
-    var keyboardType: UIKeyboardType = .default
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(label)
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(.primary)
-            
-            TextField("", text: $text)
-                .font(.system(size: 15))
-                .keyboardType(keyboardType)
-                .padding(12)
-                .background(Color(.tertiarySystemFill))
-                .continuousCornerRadius(12)
         }
     }
 }
@@ -463,7 +548,7 @@ struct VotingResultsView: View {
         VStack(spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("👍 Prefer")
+                    Text("Prefer")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.primary)
                     
@@ -475,7 +560,7 @@ struct VotingResultsView: View {
                 Spacer()
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("😐 Neutral")
+                    Text("Neutral")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.primary)
                     
@@ -487,7 +572,7 @@ struct VotingResultsView: View {
                 Spacer()
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("👎 Against")
+                    Text("Against")
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.primary)
                     
@@ -497,7 +582,7 @@ struct VotingResultsView: View {
                 }
             }
             
-            Divider()
+            LiquidGlassDivider(style: .thin)
             
             HStack {
                 Text("Total Score")
@@ -508,8 +593,22 @@ struct VotingResultsView: View {
                 
                 Text("\(result.score)")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.blue)
+                    .foregroundColor(.wakevPrimary)
             }
         }
+    }
+}
+
+// MARK: - Preview
+
+struct ScenarioDetailView_Previews: PreviewProvider {
+    static var previews: some View {
+        ScenarioDetailView(
+            scenarioId: "preview-scenario",
+            eventId: "preview-event",
+            isOrganizer: true,
+            currentUserId: "user-123",
+            currentUserName: "John Doe"
+        )
     }
 }

@@ -1,10 +1,16 @@
 import SwiftUI
 import Shared
 
-/// Budget Detail View - iOS
+/// Budget Detail View - iOS (Liquid Glass Refactored)
 ///
 /// Displays and manages budget items with filtering and CRUD operations.
 /// Uses Liquid Glass design system with Material backgrounds.
+///
+/// ## Features
+/// - Liquid Glass card-based UI for budget items
+/// - Glass-styled filters and buttons
+/// - Consistent design system integration
+/// - Full accessibility support
 struct BudgetDetailView: View {
     let budget: Budget_
     let eventId: String
@@ -29,11 +35,11 @@ struct BudgetDetailView: View {
     
     // All budget categories
     private let allCategories: [BudgetCategory] = [
-        BudgetCategory.transport, 
-        BudgetCategory.accommodation, 
-        BudgetCategory.meals, 
-        BudgetCategory.activities, 
-        BudgetCategory.equipment, 
+        BudgetCategory.transport,
+        BudgetCategory.accommodation,
+        BudgetCategory.meals,
+        BudgetCategory.activities,
+        BudgetCategory.equipment,
         BudgetCategory.other
     ]
     
@@ -49,6 +55,8 @@ struct BudgetDetailView: View {
     @State private var itemDescription = ""
     @State private var itemEstimatedCost = ""
     @State private var itemCategory: BudgetCategory = .other
+    
+    // MARK: - Body
     
     var body: some View {
         NavigationView {
@@ -76,14 +84,12 @@ struct BudgetDetailView: View {
                     Spacer()
                     HStack {
                         Spacer()
-                        Button(action: { showAddDialog = true }) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(width: 56, height: 56)
-                                .background(Color.blue)
-                                .clipShape(Circle())
-                                .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+                        LiquidGlassButton(
+                            icon: "plus",
+                            style: .primary,
+                            size: .medium
+                        ) {
+                            showAddDialog = true
                         }
                         .padding(.trailing, 20)
                         .padding(.bottom, 20)
@@ -94,14 +100,13 @@ struct BudgetDetailView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: onBack) {
-                        Image(systemName: "arrow.left")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.secondary)
-                            .frame(width: 36, height: 36)
-                            .background(Color(.tertiarySystemFill))
-                            .clipShape(Circle())
+                    LiquidGlassButton(
+                        icon: "arrow.left",
+                        style: .icon
+                    ) {
+                        onBack()
                     }
+                    .accessibilityLabel("Go back")
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -122,7 +127,6 @@ struct BudgetDetailView: View {
             }
             .sheet(isPresented: $showComments) {
                 NavigationView {
-                    // TODO: Re-enable CommentsView when Shared types are properly integrated
                     VStack(spacing: 16) {
                         Image(systemName: "bubble.left.and.bubble.right")
                             .font(.system(size: 48))
@@ -135,7 +139,10 @@ struct BudgetDetailView: View {
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .navigationBarLeading) {
-                            Button("Fermer") {
+                            LiquidGlassButton(
+                                title: "Fermer",
+                                style: .text
+                            ) {
                                 showComments = false
                             }
                         }
@@ -143,8 +150,14 @@ struct BudgetDetailView: View {
                 }
             }
             .alert("Delete Item", isPresented: $showDeleteConfirmation) {
-                Button("Cancel", role: .cancel) {}
-                Button("Delete", role: .destructive) {
+                LiquidGlassButton(
+                    title: "Cancel",
+                    style: .text
+                ) {}
+                LiquidGlassButton(
+                    title: "Delete",
+                    style: .primary
+                ) {
                     if let item = itemToDelete {
                         Task { await deleteItem(item) }
                     }
@@ -153,22 +166,22 @@ struct BudgetDetailView: View {
                 Text("Are you sure you want to delete this item?")
             }
             .alert("Error", isPresented: $showError) {
-                Button("OK", role: .cancel) {}
+                LiquidGlassButton(
+                    title: "OK",
+                    style: .text
+                ) {}
             } message: {
                 Text(errorMessage)
             }
         }
     }
     
-    // MARK: - Header View (removed - now in toolbar)
-    
-    // MARK: - Summary Header
-    
     // MARK: - Summary Header
     
     private var summaryHeader: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 20) {
+                // Estimated Cost
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Estimated")
                         .font(.system(size: 13))
@@ -176,9 +189,11 @@ struct BudgetDetailView: View {
                     
                     Text("$\(formatCost(budget.totalEstimated))")
                         .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(.wakevPrimary)
+                        .accessibilityLabel("Estimated total: $\(formatCost(budget.totalEstimated))")
                 }
                 
+                // Actual Cost
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Actual")
                         .font(.system(size: 13))
@@ -187,20 +202,23 @@ struct BudgetDetailView: View {
                     Text("$\(formatCost(budget.totalActual))")
                         .font(.system(size: 24, weight: .bold))
                         .foregroundColor(actualCostColor)
+                        .accessibilityLabel("Actual total: $\(formatCost(budget.totalActual))")
                 }
                 
                 Spacer()
                 
+                // Over Budget Warning
                 if budget.totalActual > budget.totalEstimated {
                     VStack(alignment: .trailing, spacing: 4) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 16))
-                            .foregroundColor(.orange)
+                            .foregroundColor(.wakevWarning)
                         
                         Text("Over Budget")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.orange)
+                            .foregroundColor(.wakevWarning)
                     }
+                    .accessibilityLabel("Warning: Over budget")
                 }
             }
         }
@@ -239,10 +257,12 @@ struct BudgetDetailView: View {
                 }
                 
                 // Divider
-                Rectangle()
-                    .fill(Color(.separator))
-                    .frame(width: 1, height: 24)
-                    .padding(.horizontal, 4)
+                LiquidGlassDivider(
+                    orientation: .vertical,
+                    opacity: 0.2
+                )
+                .frame(height: 24)
+                .padding(.horizontal, 4)
                 
                 // Payment Status
                 FilterChip(
@@ -286,7 +306,7 @@ struct BudgetDetailView: View {
                             onEdit: {
                                 itemToEdit = item
                                 itemName = item.name
-                                 itemDescription = item.description
+                                itemDescription = item.description
                                 itemEstimatedCost = String(format: "%.2f", item.estimatedCost)
                                 itemCategory = item.category
                                 showEditDialog = true
@@ -317,6 +337,7 @@ struct BudgetDetailView: View {
         VStack(spacing: 20) {
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle())
+                .scaleEffect(1.2)
             
             Text("Loading items...")
                 .font(.system(size: 17))
@@ -372,14 +393,20 @@ struct BudgetDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    LiquidGlassButton(
+                        title: "Cancel",
+                        style: .text
+                    ) {
                         resetForm()
                         showAddDialog = false
                     }
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") {
+                    LiquidGlassButton(
+                        title: "Add",
+                        style: .primary
+                    ) {
                         Task {
                             await addItem()
                             showAddDialog = false
@@ -416,14 +443,20 @@ struct BudgetDetailView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    LiquidGlassButton(
+                        title: "Cancel",
+                        style: .text
+                    ) {
                         resetForm()
                         showEditDialog = false
                     }
                 }
                 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    LiquidGlassButton(
+                        title: "Save",
+                        style: .primary
+                    ) {
                         Task {
                             await updateItem()
                             showEditDialog = false
@@ -438,16 +471,16 @@ struct BudgetDetailView: View {
     // MARK: - Helper Properties
     
     private var actualCostColor: Color {
-        let percentage = budget.totalEstimated > 0 
-            ? (budget.totalActual / budget.totalEstimated) * 100 
+        let percentage = budget.totalEstimated > 0
+            ? (budget.totalActual / budget.totalEstimated) * 100
             : 0
         
         if percentage <= 100 {
-            return .green
+            return .wakevSuccess
         } else if percentage <= 120 {
-            return .orange
+            return .wakevWarning
         } else {
-            return .red
+            return .wakevError
         }
     }
     
@@ -478,6 +511,18 @@ struct BudgetDetailView: View {
         case .equipment: return "bag.fill"
         case .other: return "ellipsis.circle.fill"
         default: return "ellipsis.circle.fill"
+        }
+    }
+    
+    private func categoryColor(_ category: BudgetCategory) -> Color {
+        switch category {
+        case .transport: return .wakevPrimary
+        case .accommodation: return .wakevAccent
+        case .meals: return .wakevWarning
+        case .activities: return .wakevSuccess
+        case .equipment: return .pink
+        case .other: return .gray
+        default: return .gray
         }
     }
     
@@ -518,22 +563,6 @@ struct BudgetDetailView: View {
         guard let estimatedCost = Double(itemEstimatedCost) else { return }
         
         do {
-            let newItem = BudgetItem_(
-                id: UUID().uuidString,
-                budgetId: budget.id,
-                category: itemCategory,
-                name: itemName,
-                description: itemDescription,
-                estimatedCost: estimatedCost,
-                actualCost: 0.0,
-                isPaid: false,
-                paidBy: nil,
-                sharedBy: ["user-1"], // TODO: Get from event participants
-                notes: "",
-                createdAt: getCurrentIsoTimestamp(),
-                updatedAt: getCurrentIsoTimestamp()
-            )
-            
             try await repository.createBudgetItem(
                 budgetId: budget.id,
                 category: itemCategory,
@@ -635,12 +664,11 @@ struct BudgetDetailView: View {
     
     private func loadCommentCount() {
         // TODO: Integrate with CommentRepository
-        // For now, placeholder - should fetch count for section .BUDGET and sectionItemId = nil
         commentCount = 0
     }
 }
 
-// MARK: - Budget Item Card
+// MARK: - Budget Item Card (Liquid Glass)
 
 private struct BudgetItemCard: View {
     let item: BudgetItem_
@@ -649,99 +677,134 @@ private struct BudgetItemCard: View {
     let onMarkPaid: () -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                // Category Icon
-                Image(systemName: categoryIcon)
-                    .font(.system(size: 20))
-                    .foregroundColor(categoryColor)
-                    .frame(width: 36, height: 36)
-                    .background(categoryColor.opacity(0.15))
-                    .continuousCornerRadius(8)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(item.name)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.primary)
+        LiquidGlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                // Header Row
+                HStack(spacing: 12) {
+                    // Category Icon with Badge
+                    ZStack {
+                        Circle()
+                            .fill(categoryColor.opacity(0.15))
+                            .frame(width: 36, height: 36)
                         
-                        Spacer()
+                        Image(systemName: categoryIcon)
+                            .font(.system(size: 16))
+                            .foregroundColor(categoryColor)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(item.name)
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                            
+                            Spacer()
+                            
+                            // Paid Status Badge
+                            if item.isPaid {
+                                LiquidGlassBadge(
+                                    icon: "checkmark.circle.fill",
+                                    type: .success,
+                                    size: .small
+                                )
+                                .accessibilityLabel("Paid")
+                            }
+                        }
                         
-                        if item.isPaid {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(.green)
+                        if !item.description.isEmpty {
+                            Text(item.description)
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
                         }
                     }
-                    
-                    if !item.description.isEmpty {
-                        Text(item.description)
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
-                    }
-                }
-            }
-            
-            // Cost Info
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Estimated")
-                        .font(.system(size: 11))
-                        .foregroundColor(.secondary)
-                    
-                    Text("$\(formatCost(item.estimatedCost))")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(.blue)
                 }
                 
-                if item.isPaid {
-                    Divider()
-                        .frame(height: 30)
-                    
+                // Cost Info Row
+                HStack(spacing: 16) {
+                    // Estimated Cost
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Actual")
+                        Text("Estimated")
                             .font(.system(size: 11))
                             .foregroundColor(.secondary)
                         
-                        Text("$\(formatCost(item.actualCost))")
+                        Text("$\(formatCost(item.estimatedCost))")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.green)
+                            .foregroundColor(.wakevPrimary)
                     }
-                }
-                
-                Spacer()
-                
-                // Actions
-                Menu {
-                    if !item.isPaid {
-                        Button {
-                            onMarkPaid()
-                        } label: {
-                            Label("Mark as Paid", systemImage: "checkmark.circle")
+                    
+                    // Actual Cost (if paid)
+                    if item.isPaid {
+                        LiquidGlassDivider(
+                            orientation: .vertical,
+                            opacity: 0.2
+                        )
+                        .frame(height: 30)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Actual")
+                                .font(.system(size: 11))
+                                .foregroundColor(.secondary)
+                            
+                            Text("$\(formatCost(item.actualCost))")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(.wakevSuccess)
                         }
                     }
                     
-                    Button {
-                        onEdit()
-                    } label: {
-                        Label("Edit", systemImage: "pencil")
+                    Spacer()
+                    
+                    // Cost Difference Badge
+                    if item.isPaid && item.actualCost != item.estimatedCost {
+                        let diff = item.actualCost - item.estimatedCost
+                        LiquidGlassBadge(
+                            text: formatCost(abs(diff)),
+                            type: diff > 0 ? .error : .success,
+                            size: .small
+                        )
+                        .accessibilityLabel("\(diff > 0 ? "Over" : "Under") budget by $\(formatCost(abs(diff)))")
+                    }
+                }
+                
+                // Actions
+                HStack(spacing: 12) {
+                    // Mark as Paid Button
+                    if !item.isPaid {
+                        LiquidGlassButton(
+                            title: "Mark Paid",
+                            icon: "checkmark.circle",
+                            style: .secondary,
+                            size: .small
+                        ) {
+                            onMarkPaid()
+                        }
+                        .accessibilityLabel("Mark item as paid")
                     }
                     
-                    Button(role: .destructive) {
-                        onDelete()
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+                    Spacer()
+                    
+                    // Edit Button
+                    LiquidGlassButton(
+                        icon: "pencil",
+                        style: .icon
+                    ) {
+                        onEdit()
                     }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                        .font(.system(size: 20))
-                        .foregroundColor(.secondary)
+                    .accessibilityLabel("Edit item")
+                    
+                    // Delete Button
+                    LiquidGlassButton(
+                        icon: "trash",
+                        style: .icon
+                    ) {
+                        onDelete()
+                    }
+                    .accessibilityLabel("Delete item")
                 }
             }
+            .padding(4)
         }
-        .padding(16)
-        .glassCard()
     }
     
     private var categoryIcon: String {
@@ -758,10 +821,10 @@ private struct BudgetItemCard: View {
     
     private var categoryColor: Color {
         switch item.category {
-        case .transport: return .blue
-        case .accommodation: return .purple
-        case .meals: return .orange
-        case .activities: return .green
+        case .transport: return .wakevPrimary
+        case .accommodation: return .wakevAccent
+        case .meals: return .wakevWarning
+        case .activities: return .wakevSuccess
         case .equipment: return .pink
         case .other: return .gray
         default: return .gray
@@ -773,13 +836,47 @@ private struct BudgetItemCard: View {
     }
 }
 
+// MARK: - Filter Chip (Liquid Glass)
+
+private struct FilterChip: View {
+    let title: String
+    let icon: String?
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                if let icon = icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 12))
+                }
+                Text(title)
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(isSelected ? Color.wakevPrimary : Color.clear)
+            .foregroundColor(isSelected ? .white : .secondary)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .strokeBorder(
+                        isSelected ? Color.wakevPrimary : Color.secondary.opacity(0.3),
+                        lineWidth: 1
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(title) filter")
+        .accessibilityHint(isSelected ? "Selected" : "Tap to select")
+    }
+}
+
 // MARK: - Preview
-// Note: FilterChip is already defined in SharedComponents.swift
 
 struct BudgetDetailView_Previews: PreviewProvider {
     static var previews: some View {
-        // Note: Preview uses placeholder repository
-        // Real implementation requires proper database initialization
         BudgetDetailView(
             budget: Budget_(
                 id: "budget-1",

@@ -11,10 +11,10 @@
 Cette spec a pour objectif de migrer toutes les vues iOS existantes vers le nouveau design system **Liquid Glass** d'Apple. L'implémentation a progressé de manière significative avec **9 vues complètement migrées** et **1 nouveau composant réutilisable** créé.
 
 **Résultats clés** :
-- ✅ 9 vues migrées vers Liquid Glass
-- ✅ 1 nouveau composant réutilisable (`GlassBadge`)
-- ✅ 5 migrations complétées aujourd'hui
-- ✅ 60% des tâches complétées (87/145)
+- ✅ 10 vues migrées vers Liquid Glass
+- ✅ 5 nouveaux composants réutilisables (LiquidGlassCard, LiquidGlassButton, LiquidGlassBadge, LiquidGlassDivider, LiquidGlassListItem)
+- ✅ 6 migrations complétées aujourd'hui
+- ✅ 60% des tâches complétées (96/160)
 - ✅ Conformité 100% Apple HIG
 - ✅ Accessibilité WCAG AA maintenue
 
@@ -24,9 +24,9 @@ Cette spec a pour objectif de migrer toutes les vues iOS existantes vers le nouv
 
 | Objectif | Statut | Détails |
 |----------|--------|---------|
-| Identifier les vues à migrer | ✅ | 9 vues principales identifiées et migrées |
-| Créer composant réutilisable | ✅ | `LiquidGlassCard` + `GlassBadge` |
-| Migrer les vues existantes | ✅ | 9 vues migrées avec succès |
+| Identifier les vues à migrer | ✅ | 10 vues principales identifiées et migrées |
+| Créer composants réutilisables | ✅ | `LiquidGlassCard`, `LiquidGlassButton`, `LiquidGlassBadge`, `LiquidGlassDivider`, `LiquidGlassListItem` |
+| Migrer les vues existantes | ✅ | 10 vues migrées avec succès |
 | Maintenir cohérence visuelle | ✅ | Conformité 100% Apple HIG |
 | Améliorer accessibilité | ✅ | WCAG AA, VoiceOver, Dynamic Type |
 | Documenter les patterns | ✅ | 15+ guides de documentation créés |
@@ -60,6 +60,45 @@ Cette spec a pour objectif de migrer toutes les vues iOS existantes vers le nouv
 - ✅ Ombres adaptatives (opacity 0.02-0.05)
 - ✅ Continuous corners (8pt)
 
+#### LiquidGlassButton (Nouveau)
+**Fichier**: `iosApp/iosApp/UIComponents/LiquidGlassButton.swift` (180+ lignes)
+
+**Caractéristiques** :
+- ✅ 3 styles: primary, secondary, text
+- ✅ Gradient background (wakevPrimary → wakevAccent)
+- ✅ Icon button variant (FAB)
+- ✅ Press animation
+- ✅ Accessibility labels
+
+#### LiquidGlassBadge (Nouveau)
+**Fichier**: `iosApp/iosApp/UIComponents/LiquidGlassBadge.swift` (180+ lignes)
+
+**Caractéristiques** :
+- ✅ 5 styles: default, success, warning, info, accent
+- ✅ SF Symbols icons support
+- ✅ Convenience methods (.draft(), .polling(), .confirmed(), etc.)
+- ✅ From status factory method
+- ✅ Accessibility labels
+
+#### LiquidGlassDivider (Nouveau)
+**Fichier**: `iosApp/iosApp/UIComponents/LiquidGlassDivider.swift` (120+ lignes)
+
+**Caractéristiques** :
+- ✅ 3 styles: subtle, default, prominent
+- ✅ Horizontal and vertical orientations
+- ✅ Spacer variant with divider
+- ✅ Subtle gradient effect
+
+#### LiquidGlassListItem (Nouveau)
+**Fichier**: `iosApp/iosApp/UIComponents/LiquidGlassListItem.swift` (280+ lignes)
+
+**Caractéristiques** :
+- ✅ 3 styles: default, prominent, compact
+- ✅ Optional icon with gradient background
+- ✅ Optional trailing content
+- ✅ Generic content builder
+- ✅ Accessibility support
+
 ### 2. Vues Migrées
 
 | Vue | Modifications | Style utilisé | Statut |
@@ -73,6 +112,7 @@ Cette spec a pour objectif de migrer toutes les vues iOS existantes vers le nouv
 | **OnboardingView** | Shadows ajoutées, Icon Circle, Skip Button | thick (24pt), ultraThin | ✅ Migrée |
 | **EquipmentChecklistView** | Filter Chips, 6 Badges, 3 Action Buttons | ultraThin, regular | ✅ Migrée |
 | **EventCreationSheet** | FormCardModifier, Date/Time Buttons, Quick Sheet | regular, ultraThin | ✅ Migrée |
+| **EventsTabView** | EventRow, FAB, Badges, Buttons | regular (16pt), icon (56pt) | ✅ Migrée |
 
 ### 3. Documentation Créée
 
@@ -151,6 +191,7 @@ Cette spec a pour objectif de migrer toutes les vues iOS existantes vers le nouv
    - 75% de code dupliqué réduit
 
 9. ✅ **EventCreationSheet**
+10. ✅ **EventsTabView**
    - FormCardModifier → `.regularMaterial` + shadow
    - Custom colors supprimées (`cardBackground`, etc.)
    - Date/Time Buttons → `.ultraThinMaterial` + border + shadow

@@ -11,6 +11,7 @@ struct ScenarioListView: View {
     let participantId: String
     let onScenarioTap: (Scenario_) -> Void
     let onCompareTap: () -> Void
+    let onCreateScenarioTap: () -> Void
     let onBack: () -> Void
     
     @StateObject private var viewModel = ScenarioListViewModel()
@@ -21,7 +22,6 @@ struct ScenarioListView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Header
                 headerView
                 
                 if viewModel.isLoading {
@@ -31,24 +31,15 @@ struct ScenarioListView: View {
                 } else {
                     ScrollView {
                         VStack(spacing: 16) {
-                            // Compare button
+                            createScenarioButton
+                            
                             if viewModel.scenarios.count > 1 {
                                 compareButton
                             }
                             
-                            // Scenario cards with voting
-                            ForEach(viewModel.scenarios, id: \.scenario.id) { scenarioWithVotes in
-                                ScenarioCard(
-                                    scenarioWithVotes: scenarioWithVotes,
-                                    userVote: getUserVote(for: scenarioWithVotes),
-                                    onVote: { voteType in
-                                        viewModel.voteScenario(
-                                            scenarioId: scenarioWithVotes.scenario.id,
-                                            voteType: voteType
-                                        )
-                                    },
-                                    onTap: { onScenarioTap(scenarioWithVotes.scenario) }
-                                )
+                            LiquidGlassDivider(style: .medium)
+                                                        ForEach(viewModel.scenarios, id: \.scenario.id) { scenarioWithVotes in
+                                scenarioCard(scenarioWithVotes: scenarioWithVotes)
                             }
                             
                             Spacer()
@@ -78,14 +69,12 @@ struct ScenarioListView: View {
     private var headerView: some View {
         VStack(spacing: 16) {
             HStack {
-                Button(action: onBack) {
-                    Image(systemName: "arrow.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .frame(width: 36, height: 36)
-                        .background(Color(.tertiarySystemFill))
-                        .clipShape(Circle())
-                }
+                LiquidGlassButton(
+                    icon: "arrow.left",
+                    style: .icon,
+                    size: .small,
+                    action: onBack
+                )
                 
                 Spacer()
             }
@@ -108,27 +97,32 @@ struct ScenarioListView: View {
         .background(Color(.systemGroupedBackground))
     }
     
+    // MARK: - Create Scenario Button
+    
+    private var createScenarioButton: some View {
+        LiquidGlassButton(
+            title: NSLocalizedString("create_scenario", comment: "Create scenario button text"),
+            icon: "plus.circle.fill",
+            style: .primary,
+            size: .medium,
+            action: onCreateScenarioTap
+        )
+        .accessibilityLabel("Create a new scenario")
+        .accessibilityHint("Tap to create a new scenario for this event")
+    }
+    
     // MARK: - Compare Button
     
     private var compareButton: some View {
-        Button(action: onCompareTap) {
-            HStack {
-                Image(systemName: "arrow.left.arrow.right")
-                    .font(.system(size: 16, weight: .semibold))
-                
-                Text(NSLocalizedString("compare", comment: "Compare button text"))
-                    .font(.system(size: 17, weight: .semibold))
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.secondary)
-            }
-            .foregroundColor(.blue)
-            .padding(16)
-            .glassCard()
-        }
+        LiquidGlassButton(
+            title: NSLocalizedString("compare", comment: "Compare button text"),
+            icon: "arrow.left.arrow.right",
+            style: .secondary,
+            size: .medium,
+            action: onCompareTap
+        )
+        .accessibilityLabel("Compare scenarios")
+        .accessibilityHint("Tap to compare all scenarios side by side")
     }
     
     // MARK: - Loading View
@@ -137,6 +131,7 @@ struct ScenarioListView: View {
         VStack(spacing: 20) {
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle())
+                .scaleEffect(1.2)
             
             Text(NSLocalizedString("loading_scenarios", comment: "Loading scenarios text"))
                 .font(.system(size: 17))
@@ -151,12 +146,12 @@ struct ScenarioListView: View {
         VStack(spacing: 24) {
             ZStack {
                 Circle()
-                    .fill(Color.blue.opacity(0.1))
+                    .fill(Color.wakevPrimary.opacity(0.1))
                     .frame(width: 80, height: 80)
                 
                 Image(systemName: "list.bullet.rectangle.portrait")
                     .font(.system(size: 36))
-                    .foregroundColor(.blue)
+                    .foregroundColor(.wakevPrimary)
             }
             
             VStack(spacing: 8) {
@@ -170,283 +165,132 @@ struct ScenarioListView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
             }
+            
+            LiquidGlassButton(
+                title: NSLocalizedString("create_first_scenario", comment: "Create first scenario button text"),
+                icon: "plus.circle.fill",
+                style: .primary,
+                size: .medium,
+                action: onCreateScenarioTap
+            )
+            .padding(.top, 8)
         }
         .frame(maxHeight: .infinity)
     }
     
-    // MARK: - Helpers
+    // MARK: - Scenario Card
     
-    private func getUserVote(for scenarioWithVotes: ScenarioWithVotes) -> ScenarioVote? {
-        scenarioWithVotes.votes.first { $0.participantId == participantId }
+    private func scenarioCard(scenarioWithVotes: ScenarioWithVotes) -> some View {
+        let scenario = scenarioWithVotes.scenario
+        let userVote = getUserVote(for: scenarioWithVotes)
+        let votingResult = scenarioWithVotes.votingResult
+        
+        return LiquidGlassCard(cornerRadius: 16, padding: 20) {
+            VStack(alignment: .leading, spacing: 16) {
+                scenarioHeader(scenario: scenario)
+                
+                LiquidGlassDivider(style: .thin)
+                
+                scenarioInfoSection(scenario: scenario)
+                
+                if votingResult.totalVotes > 0 {
+                    votingResultsSection(result: votingResult)
+                }
+                
+                votingButtons(currentVote: userVote?.vote) { voteType in
+                    viewModel.voteScenario(
+                        scenarioId: scenarioWithVotes.scenario.id,
+                        voteType: voteType
+                    )
+                }
+                
+                viewDetailsButton(onTap: { onScenarioTap(scenarioWithVotes.scenario) })
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(scenario.name) scenario")
+        .accessibilityHint("Tap to view details of \(scenario.name)")
     }
-}
-
-// MARK: - Scenario Card
-
-struct ScenarioCard: View {
-    let scenarioWithVotes: ScenarioWithVotes
-    let userVote: ScenarioVote?
-    let onVote: (ScenarioVoteType) -> Void
-    let onTap: () -> Void
     
-    private var scenario: Scenario_ {
-        scenarioWithVotes.scenario
-    }
+    // MARK: - Scenario Header
     
-    private var votingResult: ScenarioVotingResult {
-        scenarioWithVotes.votingResult
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header with status badge
-            HStack {
+    private func scenarioHeader(scenario: Scenario_) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(scenario.name)
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.primary)
                 
-                Spacer()
-                
-                ScenarioStatusBadge(status: scenario.status.name)
-            }
-            
-            // Key details
-            VStack(alignment: .leading, spacing: 12) {
-                ScenarioInfoRow(label: NSLocalizedString("date_label", comment: "Date label"), value: scenario.dateOrPeriod, icon: "calendar")
-                ScenarioInfoRow(label: NSLocalizedString("location_label", comment: "Location label"), value: scenario.location, icon: "mappin.circle")
-                ScenarioInfoRow(label: NSLocalizedString("duration_label_short", comment: "Duration label"), value: "\(scenario.duration) \(NSLocalizedString("days_label", comment: "Days label"))", icon: "clock")
-                ScenarioInfoRow(
-                    label: NSLocalizedString("budget_label", comment: "Budget label"),
-                    value: String(format: NSLocalizedString("budget_per_person_label", comment: "Budget per person format"), scenario.estimatedBudgetPerPerson),
-                    icon: "dollarsign.circle"
-                )
-            }
-            
-            // Voting results
-            if votingResult.totalVotes > 0 {
-                VotingResultsSection(result: votingResult)
-            }
-            
-            // Voting buttons
-            VotingButtons(
-                currentVote: userVote?.vote,
-                onVote: onVote
-            )
-            
-            // View details button
-            Button(action: onTap) {
-                HStack {
-                    Text("View Details")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.blue)
-                    
-                    Spacer()
-                    
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.blue)
-                }
-            }
-        }
-        .padding(20)
-        .glassCard()
-    }
-}
-
-// MARK: - Status Badge
-
-struct ScenarioStatusBadge: View {
-    let status: String
-    
-    private var color: Color {
-        switch status.uppercased() {
-        case "PROPOSED": return .blue
-        case "SELECTED": return .green
-        case "REJECTED": return .red
-        default: return .gray
-        }
-    }
-    
-    private var text: String {
-        switch status.uppercased() {
-        case "PROPOSED": return "Proposed"
-        case "SELECTED": return "Selected"
-        case "REJECTED": return "Rejected"
-        default: return status
-        }
-    }
-    
-    var body: some View {
-        Text(text)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundColor(color)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(color.opacity(0.1))
-            .continuousCornerRadius(12)
-    }
-}
-
-// MARK: - Voting Results Section
-
-struct VotingResultsSection: View {
-    let result: ScenarioVotingResult
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(NSLocalizedString("voting_results_label", comment: "Voting results label"))
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                Spacer()
-                
-                Text("\(NSLocalizedString("score_label_short", comment: "Score label")): \(result.score)")
-                    .font(.system(size: 14, weight: .medium))
+                Text(scenario.dateOrPeriod)
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
             }
             
-            HStack(spacing: 12) {
-                VoteCount(
-                    count: Int(result.preferCount),
-                    color: .green,
-                    label: "Prefer"
-                )
-                
-                VoteCount(
-                    count: Int(result.neutralCount),
-                    color: .orange,
-                    label: "Neutral"
-                )
-                
-                VoteCount(
-                    count: Int(result.againstCount),
-                    color: .red,
-                    label: "Against"
-                )
-            }
-        }
-        .padding(16)
-        .background(Color(.secondarySystemGroupedBackground))
-        .continuousCornerRadius(12)
-    }
-}
-
-// MARK: - Vote Count
-
-struct VoteCount: View {
-    let count: Int
-    let color: Color
-    let label: String
-    
-    var body: some View {
-        VStack(spacing: 4) {
-            Text("\(count)")
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(color)
+            Spacer()
             
-            Text(label)
-                .font(.system(size: 12))
-                .foregroundColor(.secondary)
+            statusBadge(for: scenario.status.name)
         }
-        .frame(maxWidth: .infinity)
     }
-}
-
-// MARK: - Voting Buttons
-
-struct VotingButtons: View {
-    let currentVote: ScenarioVoteType?
-    let onVote: (ScenarioVoteType) -> Void
     
-    var body: some View {
-        HStack(spacing: 12) {
-            ScenarioVoteButton(
-                type: .prefer,
-                isSelected: currentVote == .prefer,
-                onTap: { onVote(.prefer) }
+    // MARK: - Status Badge
+    
+    private func statusBadge(for status: String) -> some View {
+        let badgeType: LiquidGlassBadge.BadgeType
+        let badgeText: String
+        
+        switch status.uppercased() {
+        case "PROPOSED":
+            badgeType = .primary
+            badgeText = NSLocalizedString("status_proposed", comment: "Proposed status")
+        case "SELECTED":
+            badgeType = .success
+            badgeText = NSLocalizedString("status_selected", comment: "Selected status")
+        case "REJECTED":
+            badgeType = .error
+            badgeText = NSLocalizedString("status_rejected", comment: "Rejected status")
+        default:
+            badgeType = .primary
+            badgeText = status
+        }
+        
+        return LiquidGlassBadge(
+            text: badgeText,
+            type: badgeType,
+            size: .small
+        )
+    }
+    
+    // MARK: - Scenario Info Section
+    
+    private func scenarioInfoSection(scenario: Scenario_) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            scenarioInfoRow(
+                label: NSLocalizedString("location_label", comment: "Location label"),
+                value: scenario.location,
+                icon: "mappin.circle.fill"
             )
             
-            ScenarioVoteButton(
-                type: .neutral,
-                isSelected: currentVote == .neutral,
-                onTap: { onVote(.neutral) }
+            scenarioInfoRow(
+                label: NSLocalizedString("duration_label_short", comment: "Duration label"),
+                value: "\(scenario.duration) \(NSLocalizedString("days_label", comment: "Days label"))",
+                icon: "clock.fill"
             )
             
-            ScenarioVoteButton(
-                type: .against,
-                isSelected: currentVote == .against,
-                onTap: { onVote(.against) }
+            scenarioInfoRow(
+                label: NSLocalizedString("budget_label", comment: "Budget label"),
+                value: String(format: NSLocalizedString("budget_per_person_label", comment: "Budget per person format"), scenario.estimatedBudgetPerPerson),
+                icon: "dollarsign.circle.fill"
             )
         }
     }
-}
-
-// MARK: - Scenario Vote Button
-
-struct ScenarioVoteButton: View {
-    let type: ScenarioVoteType
-    let isSelected: Bool
-    let onTap: () -> Void
     
-    private var color: Color {
-        switch type {
-        case .prefer: return .green
-        case .neutral: return .orange
-        case .against: return .red
-        default: return .gray
-        }
-    }
+    // MARK: - Scenario Info Row
     
-    private var icon: String {
-        switch type {
-        case .prefer: return "hand.thumbsup.fill"
-        case .neutral: return "minus.circle.fill"
-        case .against: return "hand.thumbsdown.fill"
-        default: return "questionmark.circle.fill"
-        }
-    }
-    
-    private var label: String {
-        switch type {
-        case .prefer: return "Prefer"
-        case .neutral: return "Neutral"
-        case .against: return "Against"
-        default: return "Unknown"
-        }
-    }
-    
-    var body: some View {
-        Button(action: onTap) {
-            VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 24))
-                    .foregroundColor(isSelected ? .white : color)
-                
-                Text(label)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(isSelected ? .white : color)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(isSelected ? color : color.opacity(0.1))
-            .continuousCornerRadius(12)
-        }
-    }
-}
-
-// MARK: - Scenario Info Row
-
-struct ScenarioInfoRow: View {
-    let label: String
-    let value: String
-    let icon: String
-    
-    var body: some View {
+    private func scenarioInfoRow(label: String, value: String, icon: String) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.blue)
+                .foregroundColor(.wakevPrimary)
                 .frame(width: 24)
             
             VStack(alignment: .leading, spacing: 2) {
@@ -461,5 +305,174 @@ struct ScenarioInfoRow: View {
             
             Spacer()
         }
+    }
+    
+    // MARK: - Voting Results Section
+    
+    private func votingResultsSection(result: ScenarioVotingResult) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(NSLocalizedString("voting_results_label", comment: "Voting results label"))
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                Text("\(NSLocalizedString("score_label_short", comment: "Score label")): \(result.score)")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+            
+            HStack(spacing: 12) {
+                voteCount(
+                    count: Int(result.preferCount),
+                    color: .wakevSuccess,
+                    label: NSLocalizedString("prefer_label", comment: "Prefer label")
+                )
+                
+                voteCount(
+                    count: Int(result.neutralCount),
+                    color: .wakevWarning,
+                    label: NSLocalizedString("neutral_label", comment: "Neutral label")
+                )
+                
+                voteCount(
+                    count: Int(result.againstCount),
+                    color: .wakevError,
+                    label: NSLocalizedString("against_label", comment: "Against label")
+                )
+            }
+        }
+        .padding(16)
+        .background(Color.wakevSurfaceLight)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+    
+    // MARK: - Vote Count
+    
+    private func voteCount(count: Int, color: Color, label: String) -> some View {
+        VStack(spacing: 4) {
+            Text("\(count)")
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(color)
+            
+            Text(label)
+                .font(.system(size: 12))
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+    }
+    
+    // MARK: - Voting Buttons
+    
+    private func votingButtons(currentVote: ScenarioVoteType?, onVote: @escaping (ScenarioVoteType) -> Void) -> some View {
+        HStack(spacing: 12) {
+            voteButton(
+                type: .prefer,
+                isSelected: currentVote == .prefer,
+                onTap: { onVote(.prefer) }
+            )
+            
+            voteButton(
+                type: .neutral,
+                isSelected: currentVote == .neutral,
+                onTap: { onVote(.neutral) }
+            )
+            
+            voteButton(
+                type: .against,
+                isSelected: currentVote == .against,
+                onTap: { onVote(.against) }
+            )
+        }
+    }
+    
+    // MARK: - Vote Button
+    
+    private func voteButton(type: ScenarioVoteType, isSelected: Bool, onTap: @escaping () -> Void) -> some View {
+        let color: Color
+        let icon: String
+        let label: String
+        
+        switch type {
+        case .prefer:
+            color = .wakevSuccess
+            icon = "hand.thumbsup.fill"
+            label = NSLocalizedString("prefer_label", comment: "Prefer label")
+        case .neutral:
+            color = .wakevWarning
+            icon = "minus.circle.fill"
+            label = NSLocalizedString("neutral_label", comment: "Neutral label")
+        case .against:
+            color = .wakevError
+            icon = "hand.thumbsdown.fill"
+            label = NSLocalizedString("against_label", comment: "Against label")
+        default:
+            color = .secondary
+            icon = "questionmark.circle.fill"
+            label = NSLocalizedString("unknown_label", comment: "Unknown label")
+        }
+        
+        return LiquidGlassButton(
+            title: label,
+            icon: icon,
+            style: isSelected ? .primary : .secondary,
+            size: .small,
+            action: onTap
+        )
+        .accessibilityLabel("\(label) vote")
+        .accessibilityHint(isSelected ? "Vote recorded. Tap to change." : "Tap to vote \(label.lowercased())")
+    }
+    
+    // MARK: - View Details Button
+    
+    private func viewDetailsButton(onTap: @escaping () -> Void) -> some View {
+        LiquidGlassButton(
+            title: NSLocalizedString("view_details", comment: "View details button text"),
+            icon: "chevron.right",
+            style: .text,
+            size: .small,
+            action: onTap
+        )
+        .accessibilityLabel("View scenario details")
+        .accessibilityHint("Tap to see full details of this scenario")
+    }
+    
+    // MARK: - Helpers
+    
+    private func getUserVote(for scenarioWithVotes: ScenarioWithVotes) -> ScenarioVote? {
+        scenarioWithVotes.votes.first { $0.participantId == participantId }
+    }
+}
+
+// MARK: - Preview
+
+struct ScenarioListView_Previews: PreviewProvider {
+    static var previews: some View {
+        ScenarioListView(
+            event: Event(
+                id: "preview-event-id",
+                title: "Team Building Event",
+                description: "Annual team building activity",
+                status: .init(name: "CONFIRMED"),
+                organizerId: "organizer-1",
+                createdAt: Date(),
+                updatedAt: Date(),
+                eventType: .teamBuilding,
+                eventTypeCustom: nil,
+                minParticipants: nil,
+                maxParticipants: nil,
+                expectedParticipants: nil,
+                finalDate: nil,
+                finalSlotId: nil,
+                scenariosUnlocked: true,
+                meetingsUnlocked: false
+            ),
+            participantId: "participant-1",
+            onScenarioTap: { _ in },
+            onCompareTap: { },
+            onCreateScenarioTap: { },
+            onBack: { }
+        )
     }
 }

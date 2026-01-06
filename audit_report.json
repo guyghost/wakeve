@@ -1,0 +1,460 @@
+{
+  "metadata": {
+    "audit_date": "2026-01-06",
+    "platform": "iOS",
+    "standard": "WCAG 2.1 AA",
+    "screens_audited": 8,
+    "framework": "SwiftUI",
+    "design_system": "Liquid Glass"
+  },
+  "summary": {
+    "overall_status": "NEEDS_FIXES",
+    "screens_approved": 1,
+    "screens_failing": 7,
+    "critical_issues": 10,
+    "major_issues": 23,
+    "estimated_fix_time_minutes": 195
+  },
+  "screens": [
+    {
+      "name": "ModernHomeView",
+      "file": "iosApp/iosApp/Views/ModernHomeView.swift",
+      "status": "NEEDS_FIXES",
+      "critical": 3,
+      "major": 3,
+      "issues": [
+        {
+          "id": "1.1",
+          "category": "Touch Targets",
+          "priority": "critical",
+          "description": "ParticipantAvatar is 40x40pt (needs 44x44pt minimum)",
+          "line": 465,
+          "wcag_criterion": "2.5.5 (Target Size)",
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "1.2",
+          "category": "Accessibility Labels",
+          "priority": "critical",
+          "description": "AdditionalParticipantsCount has no accessibility label",
+          "line": 487,
+          "wcag_criterion": "1.3.1 (Info and Relationships)",
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "1.3",
+          "category": "Contrast",
+          "priority": "critical",
+          "description": "Calendar icon on gradient: 2.5:1 contrast (needs 4.5:1)",
+          "line": 263,
+          "wcag_criterion": "1.4.11 (Non-text Contrast)",
+          "contrast_ratio": 2.5,
+          "required_ratio": 4.5,
+          "fix_time_minutes": 10
+        },
+        {
+          "id": "1.4",
+          "category": "Accessibility Labels",
+          "priority": "major",
+          "description": "Decorative icons not marked as hidden (EventStatusBadge)",
+          "line": 408,
+          "wcag_criterion": "1.1.1 (Non-text Content)",
+          "fix_time_minutes": 3
+        },
+        {
+          "id": "1.5",
+          "category": "VoiceOver Support",
+          "priority": "major",
+          "description": "EventCard not grouped for VoiceOver",
+          "line": 248,
+          "wcag_criterion": "2.4.3 (Focus Order)",
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "1.6",
+          "category": "Dynamic Type",
+          "priority": "major",
+          "description": "ParticipantAvatar fixed size, not adaptive",
+          "line": 465,
+          "wcag_criterion": "1.4.12 (Text Spacing)",
+          "fix_time_minutes": 5
+        }
+      ]
+    },
+    {
+      "name": "DraftEventWizardView",
+      "file": "iosApp/iosApp/Views/DraftEventWizardView.swift",
+      "status": "NEEDS_FIXES",
+      "critical": 3,
+      "major": 3,
+      "issues": [
+        {
+          "id": "2.1",
+          "category": "Accessibility Labels",
+          "priority": "critical",
+          "description": "TextField for title has no accessibility label",
+          "line": 224,
+          "wcag_criterion": "1.3.1 (Info and Relationships)",
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "2.2",
+          "category": "Accessibility Labels",
+          "priority": "critical",
+          "description": "TextField for description has no accessibility label",
+          "line": 239,
+          "wcag_criterion": "1.3.1 (Info and Relationships)",
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "2.3",
+          "category": "VoiceOver Support",
+          "priority": "critical",
+          "description": "Validation errors not announced for disabled 'Next' button",
+          "line": 169,
+          "wcag_criterion": "3.3.4 (Error Prevention)",
+          "fix_time_minutes": 10
+        },
+        {
+          "id": "2.4",
+          "category": "Contrast",
+          "priority": "critical",
+          "description": "Button 'Previous' with .secondary.opacity(0.1): 3.5:1 contrast",
+          "line": 147,
+          "wcag_criterion": "1.4.11 (Non-text Contrast)",
+          "contrast_ratio": 3.5,
+          "required_ratio": 4.5,
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "2.5",
+          "category": "Touch Targets",
+          "priority": "major",
+          "description": "TimeSlotRow delete button too small",
+          "line": 487,
+          "wcag_criterion": "2.5.5 (Target Size)",
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "2.6",
+          "category": "Accessibility Labels",
+          "priority": "major",
+          "description": "Step indicator not labelled for accessibility",
+          "line": 108,
+          "wcag_criterion": "2.4.3 (Focus Order)",
+          "fix_time_minutes": 5
+        }
+      ]
+    },
+    {
+      "name": "ModernEventDetailView",
+      "file": "iosApp/iosApp/Views/ModernEventDetailView.swift",
+      "status": "NEEDS_FIXES",
+      "critical": 2,
+      "major": 4,
+      "issues": [
+        {
+          "id": "3.1",
+          "category": "Contrast",
+          "priority": "critical",
+          "description": "White text on top of dark gradient: 2.5:1 contrast",
+          "line": 300,
+          "wcag_criterion": "1.4.3 (Contrast Minimum)",
+          "contrast_ratio": 2.5,
+          "required_ratio": 4.5,
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "3.2",
+          "category": "Accessibility Labels",
+          "priority": "critical",
+          "description": "Back button (xmark) has no accessibility label",
+          "line": 199,
+          "wcag_criterion": "1.1.1 (Non-text Content)",
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "3.3",
+          "category": "Accessibility Labels",
+          "priority": "major",
+          "description": "EventStatusBadge icons not marked as decorative",
+          "line": 408,
+          "wcag_criterion": "1.1.1 (Non-text Content)",
+          "fix_time_minutes": 3
+        },
+        {
+          "id": "3.4",
+          "category": "Dynamic Type",
+          "priority": "major",
+          "description": "Vote info text very small, cramping at large sizes",
+          "line": 119,
+          "wcag_criterion": "1.4.12 (Text Spacing)",
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "3.5",
+          "category": "Component Dependency",
+          "priority": "major",
+          "description": "ParticipantsSection accessibility not verified",
+          "line": 182,
+          "wcag_criterion": "Multiple",
+          "fix_time_minutes": 10
+        },
+        {
+          "id": "3.6",
+          "category": "Component Dependency",
+          "priority": "major",
+          "description": "CalendarIntegrationCard accessibility not verified",
+          "line": 149,
+          "wcag_criterion": "Multiple",
+          "fix_time_minutes": 10
+        }
+      ]
+    },
+    {
+      "name": "EventsTabView",
+      "file": "iosApp/iosApp/Views/EventsTabView.swift",
+      "status": "NEEDS_FIXES",
+      "critical": 0,
+      "major": 3,
+      "issues": [
+        {
+          "id": "4.1",
+          "category": "Component Dependency",
+          "priority": "major",
+          "description": "EventRowView accessibility not verified",
+          "line": 109,
+          "wcag_criterion": "Multiple",
+          "fix_time_minutes": 15
+        },
+        {
+          "id": "4.2",
+          "category": "Component Dependency",
+          "priority": "major",
+          "description": "Empty state screen accessibility not verified",
+          "line": 114,
+          "wcag_criterion": "Multiple",
+          "fix_time_minutes": 10
+        },
+        {
+          "id": "4.3",
+          "category": "VoiceOver Support",
+          "priority": "major",
+          "description": "No feedback after event creation",
+          "line": 79,
+          "wcag_criterion": "4.1.3 (Status Messages)",
+          "fix_time_minutes": 10
+        }
+      ]
+    },
+    {
+      "name": "ProfileScreen",
+      "file": "iosApp/iosApp/Views/ProfileScreen.swift",
+      "status": "NEEDS_FIXES",
+      "critical": 1,
+      "major": 4,
+      "issues": [
+        {
+          "id": "5.1",
+          "category": "Accessibility Labels",
+          "priority": "critical",
+          "description": "Colored circles alone signify state (no fallback for color-blind)",
+          "line": 120,
+          "wcag_criterion": "1.4.1 (Use of Color)",
+          "fix_time_minutes": 10
+        },
+        {
+          "id": "5.2",
+          "category": "VoiceOver Support",
+          "priority": "major",
+          "description": "PointBreakdownRow elements not grouped",
+          "line": 113,
+          "wcag_criterion": "2.4.3 (Focus Order)",
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "5.3",
+          "category": "Accessibility Labels",
+          "priority": "major",
+          "description": "Trophy icon in BadgesSection not marked decorative",
+          "line": 147,
+          "wcag_criterion": "1.1.1 (Non-text Content)",
+          "fix_time_minutes": 3
+        },
+        {
+          "id": "5.4",
+          "category": "Contrast",
+          "priority": "major",
+          "description": "Colored circles: warning 3.19:1, success 3.77:1 (need 4.5:1)",
+          "line": 104,
+          "wcag_criterion": "1.4.11 (Non-text Contrast)",
+          "contrast_ratio": "3.19-3.77",
+          "required_ratio": 4.5,
+          "fix_time_minutes": 10
+        },
+        {
+          "id": "5.5",
+          "category": "Component Dependency",
+          "priority": "major",
+          "description": "LeaderboardSection accessibility not verified",
+          "line": 31,
+          "wcag_criterion": "Multiple",
+          "fix_time_minutes": 15
+        }
+      ]
+    },
+    {
+      "name": "ExploreView",
+      "file": "iosApp/iosApp/Views/ExploreView.swift",
+      "status": "NEEDS_FIXES",
+      "critical": 0,
+      "major": 4,
+      "issues": [
+        {
+          "id": "6.1",
+          "category": "Component Dependency",
+          "priority": "major",
+          "description": "LiquidGlassTextField accessibility not verified",
+          "line": 29,
+          "wcag_criterion": "Multiple",
+          "fix_time_minutes": 15
+        },
+        {
+          "id": "6.2",
+          "category": "Component Dependency",
+          "priority": "major",
+          "description": "CategoryPicker accessibility not verified",
+          "line": 41,
+          "wcag_criterion": "Multiple",
+          "fix_time_minutes": 10
+        },
+        {
+          "id": "6.3",
+          "category": "VoiceOver Support",
+          "priority": "major",
+          "description": "ExploreEventCardContent elements not grouped",
+          "line": 132,
+          "wcag_criterion": "2.4.3 (Focus Order)",
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "6.4",
+          "category": "Component Dependency",
+          "priority": "major",
+          "description": "Cards with onTapGesture: VoiceOver interaction unclear",
+          "line": 53,
+          "wcag_criterion": "2.1.1 (Keyboard)",
+          "fix_time_minutes": 10
+        }
+      ]
+    },
+    {
+      "name": "SettingsView",
+      "file": "iosApp/iosApp/Views/SettingsView.swift",
+      "status": "APPROVED",
+      "critical": 0,
+      "major": 0,
+      "issues": []
+    },
+    {
+      "name": "CreateEventView",
+      "file": "iosApp/iosApp/Views/CreateEventView.swift",
+      "status": "NEEDS_FIXES",
+      "critical": 1,
+      "major": 2,
+      "issues": [
+        {
+          "id": "8.1",
+          "category": "VoiceOver Support",
+          "priority": "critical",
+          "description": "Saving overlay blocks VoiceOver navigation",
+          "line": 48,
+          "wcag_criterion": "2.1.1 (Keyboard)",
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "8.2",
+          "category": "Accessibility Labels",
+          "priority": "major",
+          "description": "ProgressView not announced during saving",
+          "line": 63,
+          "wcag_criterion": "4.1.3 (Status Messages)",
+          "fix_time_minutes": 5
+        },
+        {
+          "id": "8.3",
+          "category": "Inherited Issue",
+          "priority": "major",
+          "description": "Inherits issues from DraftEventWizardView",
+          "line": 18,
+          "wcag_criterion": "Multiple",
+          "fix_time_minutes": 0
+        }
+      ]
+    }
+  ],
+  "wcag_violations": {
+    "1.1.1": {
+      "criterion": "Non-text Content",
+      "violations": 12,
+      "description": "Alternative text for images, icons missing or incorrect"
+    },
+    "1.3.1": {
+      "criterion": "Info and Relationships",
+      "violations": 8,
+      "description": "Labels and instructions not properly associated with fields"
+    },
+    "1.4.1": {
+      "criterion": "Use of Color",
+      "violations": 2,
+      "description": "Color alone used to convey information"
+    },
+    "1.4.3": {
+      "criterion": "Contrast Minimum",
+      "violations": 4,
+      "description": "Text contrast does not meet WCAG AA minimum of 4.5:1"
+    },
+    "1.4.11": {
+      "criterion": "Non-text Contrast",
+      "violations": 3,
+      "description": "Graphics/UI components contrast does not meet 3:1"
+    },
+    "2.4.3": {
+      "criterion": "Focus Order",
+      "violations": 7,
+      "description": "Focus order not logical or elements not properly grouped"
+    },
+    "2.5.5": {
+      "criterion": "Target Size",
+      "violations": 4,
+      "description": "Touch targets smaller than 44x44pt"
+    },
+    "3.3.4": {
+      "criterion": "Error Prevention",
+      "violations": 2,
+      "description": "Form errors not announced or clearly labeled"
+    },
+    "4.1.3": {
+      "criterion": "Status Messages",
+      "violations": 3,
+      "description": "Important status updates not announced to screen readers"
+    }
+  },
+  "recommendations": {
+    "immediate": [
+      "Fix 10 critical WCAG violations blocking merge",
+      "Test all fixes with VoiceOver enabled",
+      "Verify contrast ratios using Stark or WAVE"
+    ],
+    "short_term": [
+      "Address 23 major issues within 1-2 weeks",
+      "Audit all reusable components",
+      "Document accessibility guidelines"
+    ],
+    "medium_term": [
+      "Integrate a11y testing into CI/CD pipeline",
+      "Create accessibility checklist in design system",
+      "Train team on WCAG 2.1 AA standards"
+    ]
+  }
+}

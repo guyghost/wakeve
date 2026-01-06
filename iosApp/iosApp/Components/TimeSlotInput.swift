@@ -73,26 +73,36 @@ struct TimeSlotInput: View {
     // MARK: - Body
     
     var body: some View {
-        LiquidGlassCard(style: .regular, padding: 20) {
+        LiquidGlassCard(cornerRadius: 20, padding: 20) {
             VStack(alignment: .leading, spacing: 16) {
-                // Header
+                // Header with badge
                 HStack(spacing: 8) {
                     Image(systemName: "clock.fill")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.blue)
+                        .foregroundColor(.wakevPrimary)
                     
                     Text("Time Preference")
                         .font(.headline)
                         .foregroundColor(.primary)
+                    
+                    Spacer()
+                    
+                    LiquidGlassBadge(
+                        text: timeOfDayDisplayName(timeOfDay),
+                        style: timeOfDayBadgeStyle
+                    )
                 }
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("Time Preference")
+                
+                LiquidGlassDivider(style: .subtle)
+                    .padding(.vertical, 4)
                 
                 // TimeOfDay Menu
                 VStack(alignment: .leading, spacing: 8) {
                     Text("When?")
                         .font(.subheadline.weight(.medium))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.secondary)
                     
                     Menu {
                         ForEach([Shared.TimeOfDay.allDay, .morning, .afternoon, .evening, .specific], id: \.hashValue) { tod in
@@ -102,14 +112,15 @@ struct TimeSlotInput: View {
                                     updateTimeSlot()
                                 }
                             } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    HStack {
-                                        Text(timeOfDayDisplayName(tod))
-                                        if tod.hashValue == timeOfDay.hashValue {
-                                            Spacer()
-                                            Image(systemName: "checkmark")
-                                                .foregroundColor(.blue)
-                                        }
+                                HStack {
+                                    Text(timeOfDayDisplayName(tod))
+                                        .font(.body)
+                                    
+                                    Spacer()
+                                    
+                                    if tod.hashValue == timeOfDay.hashValue {
+                                        Image(systemName: "checkmark")
+                                            .foregroundColor(.wakevPrimary)
                                     }
                                     
                                     if let subtitle = timeOfDaySubtitle(tod) {
@@ -122,6 +133,11 @@ struct TimeSlotInput: View {
                         }
                     } label: {
                         HStack {
+                            Image(systemName: "sun.horizon.fill")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.wakevAccent)
+                                .frame(width: 24)
+                            
                             Text(timeOfDayDisplayName(timeOfDay))
                                 .font(.body)
                                 .foregroundColor(.primary)
@@ -132,12 +148,12 @@ struct TimeSlotInput: View {
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.secondary)
                         }
-                        .padding(12)
+                        .padding(14)
                         .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Color.wakevPrimary.opacity(0.2), lineWidth: 1)
                         )
                     }
                     .disabled(!enabled)
@@ -148,21 +164,31 @@ struct TimeSlotInput: View {
                 
                 // Specific time pickers (conditional)
                 if timeOfDay == .specific {
-                    VStack(spacing: 12) {
+                    VStack(spacing: 16) {
+                        LiquidGlassDivider(style: .subtle)
+                        
                         // Start Time
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Start Time")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundColor(.primary)
+                            HStack {
+                                Image(systemName: "calendar.badge.clock")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.wakevSuccess)
+                                
+                                Text("Start Time")
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundColor(.secondary)
+                            }
                             
                             Button {
-                                showStartPicker.toggle()
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    showStartPicker.toggle()
+                                }
                             } label: {
                                 HStack {
-                                    Image(systemName: "calendar")
+                                    Image(systemName: "clock")
                                         .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                        .frame(width: 20)
+                                        .foregroundColor(.wakevPrimary)
+                                        .frame(width: 24)
                                     
                                     Text(formattedDate(startDate))
                                         .font(.body)
@@ -170,16 +196,17 @@ struct TimeSlotInput: View {
                                     
                                     Spacer()
                                     
-                                    Image(systemName: "chevron.right")
+                                    Image(systemName: showStartPicker ? "chevron.up" : "chevron.down")
                                         .font(.system(size: 12, weight: .medium))
                                         .foregroundColor(.secondary)
+                                        .rotationEffect(.degrees(showStartPicker ? 0 : 0))
                                 }
-                                .padding(12)
+                                .padding(14)
                                 .background(.ultraThinMaterial)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .stroke(Color.wakevPrimary.opacity(0.2), lineWidth: 1)
                                 )
                             }
                             .disabled(!enabled)
@@ -195,6 +222,9 @@ struct TimeSlotInput: View {
                                 )
                                 .datePickerStyle(.graphical)
                                 .padding(.vertical, 8)
+                                .padding(.leading, 8)
+                                .background(Color(.systemBackground).opacity(0.5))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                                 .onChange(of: startDate) { _ in
                                     updateTimeSlot()
                                 }
@@ -204,18 +234,26 @@ struct TimeSlotInput: View {
                         
                         // End Time
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("End Time")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundColor(.primary)
+                            HStack {
+                                Image(systemName: "clock.badge.checkmark")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.wakevAccent)
+                                
+                                Text("End Time")
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundColor(.secondary)
+                            }
                             
                             Button {
-                                showEndPicker.toggle()
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    showEndPicker.toggle()
+                                }
                             } label: {
                                 HStack {
-                                    Image(systemName: "calendar")
+                                    Image(systemName: "clock")
                                         .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                        .frame(width: 20)
+                                        .foregroundColor(.wakevPrimary)
+                                        .frame(width: 24)
                                     
                                     Text(formattedDate(endDate))
                                         .font(.body)
@@ -223,16 +261,16 @@ struct TimeSlotInput: View {
                                     
                                     Spacer()
                                     
-                                    Image(systemName: "chevron.right")
+                                    Image(systemName: showEndPicker ? "chevron.up" : "chevron.down")
                                         .font(.system(size: 12, weight: .medium))
                                         .foregroundColor(.secondary)
                                 }
-                                .padding(12)
+                                .padding(14)
                                 .background(.ultraThinMaterial)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .stroke(Color.wakevPrimary.opacity(0.2), lineWidth: 1)
                                 )
                             }
                             .disabled(!enabled)
@@ -248,6 +286,9 @@ struct TimeSlotInput: View {
                                 )
                                 .datePickerStyle(.graphical)
                                 .padding(.vertical, 8)
+                                .padding(.leading, 8)
+                                .background(Color(.systemBackground).opacity(0.5))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
                                 .onChange(of: endDate) { _ in
                                     updateTimeSlot()
                                 }
@@ -260,9 +301,15 @@ struct TimeSlotInput: View {
                 
                 // Timezone Selector
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Timezone")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundColor(.primary)
+                    HStack {
+                        Image(systemName: "globe")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.wakevAccent)
+                        
+                        Text("Timezone")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundColor(.secondary)
+                    }
                     
                     Menu {
                         ForEach(commonTimezones, id: \.self) { tz in
@@ -272,16 +319,24 @@ struct TimeSlotInput: View {
                             } label: {
                                 HStack {
                                     Text(tz)
+                                        .font(.body)
+                                    
+                                    Spacer()
+                                    
                                     if tz == timezone {
-                                        Spacer()
                                         Image(systemName: "checkmark")
-                                            .foregroundColor(.blue)
+                                            .foregroundColor(.wakevPrimary)
                                     }
                                 }
                             }
                         }
                     } label: {
                         HStack {
+                            Image(systemName: "globe")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.wakevAccent)
+                                .frame(width: 24)
+                            
                             Text(timezone)
                                 .font(.body)
                                 .foregroundColor(.primary)
@@ -292,12 +347,12 @@ struct TimeSlotInput: View {
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.secondary)
                         }
-                        .padding(12)
+                        .padding(14)
                         .background(.ultraThinMaterial)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(Color.primary.opacity(0.1), lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(Color.wakevPrimary.opacity(0.2), lineWidth: 1)
                         )
                     }
                     .disabled(!enabled)
@@ -306,25 +361,55 @@ struct TimeSlotInput: View {
                     .accessibilityHint("Select timezone for this event")
                 }
                 
-                // Helper Text
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "lightbulb.fill")
-                        .font(.system(size: 14))
-                        .foregroundColor(.yellow)
-                    
-                    Text(helpText)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                // Helper Info Card
+                LiquidGlassCard(
+                    cornerRadius: 12,
+                    padding: 12,
+                    opacity: 0.6,
+                    intensity: 0.8
+                ) {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "lightbulb.fill")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.wakevAccent)
+                            .frame(width: 20)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Tip")
+                                .font(.caption.weight(.semibold))
+                                .foregroundColor(.wakevAccent)
+                            
+                            Text(helpText)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
                 }
-                .padding(12)
-                .background(Color.blue.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
         }
         .animation(.easeInOut(duration: 0.25), value: timeOfDay.hashValue)
         .animation(.easeInOut(duration: 0.2), value: showStartPicker)
         .animation(.easeInOut(duration: 0.2), value: showEndPicker)
+    }
+    
+    // MARK: - Computed Properties
+    
+    private var timeOfDayBadgeStyle: LiquidGlassBadgeStyle {
+        switch timeOfDay {
+        case .allDay:
+            return .info
+        case .morning:
+            return .warning
+        case .afternoon:
+            return .accent
+        case .evening:
+            return .default
+        case .specific:
+            return .success
+        default:
+            return .default
+        }
     }
     
     // MARK: - Helpers
@@ -352,17 +437,17 @@ struct TimeSlotInput: View {
     private var helpText: String {
         switch timeOfDay {
         case Shared.TimeOfDay.allDay:
-            return "Flexible all-day event"
+            return "Flexible all-day event with no specific time constraints."
         case Shared.TimeOfDay.morning:
-            return "Morning event (8am-12pm)"
+            return "Morning event scheduled between 8am and 12pm."
         case Shared.TimeOfDay.afternoon:
-            return "Afternoon event (12pm-6pm)"
+            return "Afternoon event scheduled between 12pm and 6pm."
         case Shared.TimeOfDay.evening:
-            return "Evening event (6pm-12am)"
+            return "Evening event scheduled between 6pm and 12am."
         case Shared.TimeOfDay.specific:
-            return "Enter exact start and end times"
+            return "Enter exact start and end times for precise scheduling."
         default:
-            return "Select a time preference above"
+            return "Select a time preference above to continue."
         }
     }
     

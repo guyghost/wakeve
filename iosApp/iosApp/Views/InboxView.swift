@@ -2,12 +2,19 @@ import SwiftUI
 
 /**
  * InboxView - Notifications and invitations screen for iOS.
- * 
+ *
  * Displays:
  * - Notifications (event invites, poll updates, comments)
  * - Filter chips (All, Unread, Invitations)
  * - Liquid Glass design system
  * - Matches Android InboxScreen functionality
+ *
+ * Uses:
+ * - LiquidGlassCard for cards
+ * - LiquidGlassButton for actions
+ * - LiquidGlassBadge for status badges
+ * - LiquidGlassDivider for separators
+ * - LiquidGlassListItem for items
  */
 struct InboxView: View {
     let userId: String
@@ -20,11 +27,11 @@ struct InboxView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background gradient
+                // Background gradient using design system colors
                 LinearGradient(
                     gradient: Gradient(colors: [
-                        Color.blue.opacity(0.1),
-                        Color.purple.opacity(0.1)
+                        Color.wakevPrimary.opacity(0.08),
+                        Color.wakevAccent.opacity(0.08)
                     ]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -32,37 +39,8 @@ struct InboxView: View {
                 .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Filter chips
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            InboxFilterChip(
-                                title: "Tout",
-                                isSelected: selectedFilter == .all,
-                                count: items.count,
-                                action: { selectedFilter = .all }
-                            )
-                            InboxFilterChip(
-                                title: "Tâches",
-                                isSelected: selectedFilter == .tasks,
-                                count: items.filter { $0.requiresAction }.count,
-                                action: { selectedFilter = .tasks }
-                            )
-                            InboxFilterChip(
-                                title: "Messages",
-                                isSelected: selectedFilter == .messages,
-                                count: items.filter { $0.type == .comment }.count,
-                                action: { selectedFilter = .messages }
-                            )
-                            InboxFilterChip(
-                                title: "Notifications",
-                                isSelected: selectedFilter == .notifications,
-                                count: items.filter { !$0.requiresAction && $0.type != .comment }.count,
-                                action: { selectedFilter = .notifications }
-                            )
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
-                    }
+                    // Filter chips using LiquidGlassButton and LiquidGlassBadge
+                    filterChipsView
                     
                     // Content
                     if isLoading {
@@ -79,21 +57,66 @@ struct InboxView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: onBack) {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.primary)
+                    LiquidGlassIconButton(
+                        icon: "chevron.left",
+                        size: 44,
+                        gradientColors: [.wakevPrimary.opacity(0.3), .wakevAccent.opacity(0.3)]
+                    ) {
+                        onBack()
                     }
+                    .accessibilityLabel("Retour")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: markAllAsRead) {
-                        Image(systemName: "checkmark.circle")
-                            .foregroundColor(.primary)
+                    if hasUnreadItems {
+                        LiquidGlassIconButton(
+                            icon: "checkmark.circle",
+                            size: 44,
+                            gradientColors: [.wakevSuccess.opacity(0.3), .wakevSuccess.opacity(0.2)]
+                        ) {
+                            markAllAsRead()
+                        }
+                        .accessibilityLabel("Tout marquer comme lu")
                     }
                 }
             }
             #endif
         }
         .onAppear(perform: loadItems)
+    }
+    
+    // MARK: - Filter Chips View
+    
+    private var filterChipsView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                FilterChip(
+                    title: "Tout",
+                    isSelected: selectedFilter == .all,
+                    count: items.count,
+                    action: { selectedFilter = .all }
+                )
+                FilterChip(
+                    title: "Tâches",
+                    isSelected: selectedFilter == .tasks,
+                    count: items.filter { $0.requiresAction }.count,
+                    action: { selectedFilter = .tasks }
+                )
+                FilterChip(
+                    title: "Messages",
+                    isSelected: selectedFilter == .messages,
+                    count: items.filter { $0.type == .comment }.count,
+                    action: { selectedFilter = .messages }
+                )
+                FilterChip(
+                    title: "Notifications",
+                    isSelected: selectedFilter == .notifications,
+                    count: items.filter { !$0.requiresAction && $0.type != .comment }.count,
+                    action: { selectedFilter = .notifications }
+                )
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+        }
     }
     
     // MARK: - Filtered Items
@@ -111,12 +134,17 @@ struct InboxView: View {
         }
     }
     
+    private var hasUnreadItems: Bool {
+        items.contains { !$0.isRead }
+    }
+    
     // MARK: - Loading View
     
     private var loadingView: some View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.5)
+                .tint(.wakevPrimary)
             Text("Chargement...")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
@@ -130,11 +158,12 @@ struct InboxView: View {
         VStack(spacing: 20) {
             Image(systemName: emptyStateIcon)
                 .font(.system(size: 64))
-                .foregroundColor(.gray.opacity(0.5))
+                .foregroundColor(.wakevPrimary.opacity(0.3))
             
             Text(emptyStateTitle)
                 .font(.title3)
                 .fontWeight(.semibold)
+                .foregroundColor(.primary)
             
             Text(emptyStateSubtitle)
                 .font(.subheadline)
@@ -166,7 +195,7 @@ struct InboxView: View {
     private var emptyStateSubtitle: String {
         switch selectedFilter {
         case .all: return "Vos notifications apparaîtront ici"
-        case .tasks: return "Vous n'avez pas de tâches en attente"
+        case .tasks: return "Vous n'avez pas de tâches en pendiente"
         case .messages: return "Vous n'avez pas de nouveaux messages"
         case .notifications: return "Vous n'avez pas de notifications"
         }
@@ -178,7 +207,7 @@ struct InboxView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(filteredItems) { item in
-                    InboxItemCard(item: item)
+                    InboxItemRow(item: item)
                         .onTapGesture {
                             handleItemTap(item)
                         }
@@ -218,9 +247,9 @@ struct InboxView: View {
     }
 }
 
-// MARK: - Inbox Filter Chip
+// MARK: - Filter Chip Component
 
-struct InboxFilterChip: View {
+struct FilterChip: View {
     let title: String
     let isSelected: Bool
     let count: Int
@@ -235,70 +264,139 @@ struct InboxFilterChip: View {
                 
                 if count > 0 {
                     Text("\(count)")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(isSelected ? Color.white.opacity(0.3) : Color.gray.opacity(0.2))
-                        .cornerRadius(10)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(isSelected ? Color.white.opacity(0.25) : Color.wakevBorderLight.opacity(0.3))
+                        )
                 }
             }
-            .foregroundColor(isSelected ? .white : .primary)
+            .foregroundColor(isSelected ? .white : .wakevTextPrimary)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .background(
-                isSelected
-                    ? Color.blue
-                    : Color.gray.opacity(0.1)
+                Group {
+                    if isSelected {
+                        LinearGradient(
+                            gradient: Gradient(colors: [.wakevPrimary, .wakevAccent]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    } else {
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.white.opacity(0.7),
+                                Color.white.opacity(0.5)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    }
+                }
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(
+                        isSelected
+                            ? LinearGradient(
+                                gradient: Gradient(colors: [.white.opacity(0.3), .white.opacity(0.1)]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            : LinearGradient(
+                                gradient: Gradient(colors: [.wakevBorderLight.opacity(0.3)]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ),
+                        lineWidth: 1
+                    )
             )
             .cornerRadius(20)
         }
+        .buttonStyle(PlainButtonStyle())
+        .accessibilityLabel("\(title), \(count) éléments")
     }
 }
 
-// MARK: - Inbox Item Card
+// MARK: - Inbox Item Row
 
-struct InboxItemCard: View {
+struct InboxItemRow: View {
     let item: InboxItemModel
     
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            // Icon
-            Image(systemName: item.icon)
-                .font(.system(size: 24))
-                .foregroundColor(item.iconColor)
-                .frame(width: 40, height: 40)
-                .background(item.iconColor.opacity(0.1))
-                .cornerRadius(20)
+        HStack(spacing: 12) {
+            // Icon with Liquid Glass effect
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                item.iconColor.opacity(0.2),
+                                item.iconColor.opacity(0.1)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 44, height: 44)
+                
+                Image(systemName: item.icon)
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(item.iconColor)
+            }
+            .accessibilityHidden(true)
             
             // Content
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.title)
                     .font(.subheadline)
                     .fontWeight(item.isRead ? .regular : .semibold)
+                    .foregroundColor(.primary)
                 
                 Text(item.message)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(2)
                 
-                Text(item.timeAgo)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                HStack(spacing: 8) {
+                    Text(item.timeAgo)
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                    
+                    // Badge for item type
+                    itemTypeBadge
+                }
             }
             
             Spacer()
             
-            // Unread indicator
+            // Unread indicator using LiquidGlassBadge
             if !item.isRead {
-                Circle()
-                    .fill(Color.blue)
-                    .frame(width: 8, height: 8)
+                LiquidGlassBadge(text: "Nouveau", style: .info)
+                    .accessibilityLabel("Non lu")
             }
         }
         .padding(16)
-        .background(.ultraThinMaterial)
-        .cornerRadius(16)
+        .liquidGlass(cornerRadius: 16, opacity: 0.85, intensity: 0.9)
+        .opacity(item.isRead ? 0.85 : 1.0)
+        .accessibilityLabel(item.accessibilityLabel)
+        .accessibilityHint(item.accessibilityHint)
+    }
+    
+    @ViewBuilder
+    private var itemTypeBadge: some View {
+        switch item.type {
+        case .invitation:
+            LiquidGlassBadge(text: "Invitation", icon: "envelope.fill", style: .info)
+        case .pollUpdate:
+            LiquidGlassBadge(text: "Sondage", icon: "chart.bar.fill", style: .accent)
+        case .comment:
+            LiquidGlassBadge(text: "Commentaire", icon: "bubble.left.fill", style: .success)
+        case .eventUpdate:
+            LiquidGlassBadge(text: "Mise à jour", icon: "calendar", style: .warning)
+        }
     }
 }
 
@@ -337,10 +435,34 @@ struct InboxItemModel: Identifiable {
     
     var iconColor: Color {
         switch type {
-        case .invitation: return .blue
-        case .pollUpdate: return .purple
-        case .comment: return .green
-        case .eventUpdate: return .orange
+        case .invitation: return .wakevPrimary
+        case .pollUpdate: return .wakevAccent
+        case .comment: return .wakevSuccess
+        case .eventUpdate: return .wakevWarning
+        }
+    }
+    
+    var accessibilityLabel: String {
+        let typeLabel: String
+        switch type {
+        case .invitation: typeLabel = "Invitation"
+        case .pollUpdate: typeLabel = "Mise à jour du sondage"
+        case .comment: typeLabel = "Commentaire"
+        case .eventUpdate: typeLabel = "Mise à jour de l'événement"
+        }
+        return "\(typeLabel): \(title)"
+    }
+    
+    var accessibilityHint: String {
+        switch type {
+        case .invitation:
+            return "Appuyez pour voir les détails de l'invitation"
+        case .pollUpdate:
+            return "Appuyez pour voter ou voir les résultats"
+        case .comment:
+            return "Appuyez pour lire le commentaire"
+        case .eventUpdate:
+            return "Appuyez pour voir les détails de l'événement"
         }
     }
 }
@@ -385,3 +507,20 @@ private let sampleInboxItems: [InboxItemModel] = [
         isRead: true
     )
 ]
+
+// MARK: - Preview
+
+#Preview("InboxView - Default") {
+    InboxView(userId: "preview-user") {
+        print("Back tapped")
+    }
+}
+
+#Preview("InboxView - Empty") {
+    InboxView(userId: "preview-user") {
+        print("Back tapped")
+    }
+    .onAppear {
+        // Simulate empty state
+    }
+}

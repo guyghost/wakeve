@@ -52,6 +52,7 @@ struct AccommodationView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Fermer") { dismiss() }
+                        .foregroundColor(.wakevPrimary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 12) {
@@ -65,6 +66,7 @@ struct AccommodationView: View {
                         } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
+                                .foregroundColor(.wakevPrimary)
                         }
                     }
                 }
@@ -97,6 +99,7 @@ struct AccommodationView: View {
                         Button("Fermer") {
                             showComments = false
                         }
+                        .foregroundColor(.wakevPrimary)
                     }
                 }
             }
@@ -104,6 +107,7 @@ struct AccommodationView: View {
                 Button("Annuler", role: .cancel) {
                     accommodationToDelete = nil
                 }
+                .foregroundColor(.wakevPrimary)
                 Button("Supprimer", role: .destructive) {
                     accommodations.removeAll { $0.id == accommodation.id }
                     accommodationToDelete = nil
@@ -122,7 +126,7 @@ struct AccommodationView: View {
         VStack(spacing: 24) {
             Image(systemName: "bed.double.fill")
                 .font(.system(size: 64))
-                .foregroundColor(.blue)
+                .foregroundColor(.wakevPrimary)
             
             Text("Aucun hébergement")
                 .font(.title2)
@@ -134,15 +138,14 @@ struct AccommodationView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
             
-            Button {
-                showAddSheet = true
-            } label: {
-                Label("Ajouter", systemImage: "plus")
-                    .font(.headline)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-            }
-            .buttonStyle(.borderedProminent)
+            LiquidGlassButton(
+                title: "Ajouter",
+                icon: "plus",
+                style: .primary,
+                action: {
+                    showAddSheet = true
+                }
+            )
         }
     }
     
@@ -159,6 +162,13 @@ struct AccommodationView: View {
                         onDelete: {
                             accommodationToDelete = accommodation
                             showDeleteAlert = true
+                        },
+                        onBook: {
+                            // Handle booking action
+                            if let urlString = accommodation.bookingUrl,
+                               let url = URL(string: urlString) {
+                                UIApplication.shared.open(url)
+                            }
                         }
                     )
                 }
@@ -185,15 +195,9 @@ struct AccommodationCard: View {
     let accommodation: AccommodationModel
     let onEdit: () -> Void
     let onDelete: () -> Void
+    let onBook: () -> Void
     
     var body: some View {
-        liquidBody
-    }
-}
-
-// MARK: - Modified AccommodationCard with LiquidGlassCard
-extension AccommodationCard {
-    var liquidBody: some View {
         LiquidGlassCard(cornerRadius: 16, padding: 20) {
             VStack(alignment: .leading, spacing: 16) {
                 // Header
@@ -206,6 +210,7 @@ extension AccommodationCard {
                         HStack(spacing: 6) {
                             Image(systemName: accommodation.typeIcon)
                                 .font(.caption)
+                                .foregroundColor(.wakevPrimary)
                             Text(accommodation.typeLabel)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -217,7 +222,7 @@ extension AccommodationCard {
                     BookingStatusBadge(status: accommodation.bookingStatus)
                 }
                 
-                Divider()
+                LiquidGlassDivider(style: .medium)
                 
                 // Details
                 VStack(spacing: 12) {
@@ -254,49 +259,116 @@ extension AccommodationCard {
                 }
                 
                 // Actions
-                HStack {
+                HStack(spacing: 12) {
+                    // Book button - primary action
+                    if accommodation.bookingStatus != "CONFIRMED" {
+                        LiquidGlassButton(
+                            title: "Réserver",
+                            icon: "safari.fill",
+                            style: .primary,
+                            size: .medium,
+                            action: onBook
+                        )
+                    }
+                    
                     Spacer()
                     
-                    Button(action: onEdit) {
-                        Label("Modifier", systemImage: "pencil")
-                            .font(.subheadline)
-                    }
-                    .buttonStyle(.bordered)
+                    LiquidGlassButton(
+                        title: "Modifier",
+                        icon: "pencil",
+                        style: .secondary,
+                        size: .small,
+                        action: onEdit
+                    )
                     
-                    Button(action: onDelete) {
-                        Label("Supprimer", systemImage: "trash")
-                            .font(.subheadline)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.red)
+                    LiquidGlassButton(
+                        title: "Supprimer",
+                        icon: "trash",
+                        style: .secondary,
+                        size: .small,
+                        action: onDelete
+                    )
                 }
             }
         }
     }
 }
 
+// MARK: - Booking Status Badge
+
 struct BookingStatusBadge: View {
     let status: String
     
-    var statusInfo: (color: Color, label: String) {
+    private var statusInfo: (colorType: LiquidGlassBadge.BadgeType, label: String) {
         switch status {
-        case "SEARCHING": return (.gray, "Recherche")
-        case "RESERVED": return (.orange, "Réservé")
-        case "CONFIRMED": return (.green, "Confirmé")
-        case "CANCELLED": return (.red, "Annulé")
-        default: return (.gray, "Inconnu")
+        case "SEARCHING": return (.primary, "Recherche")
+        case "RESERVED": return (.warning, "Réservé")
+        case "CONFIRMED": return (.success, "Confirmé")
+        case "CANCELLED": return (.error, "Annulé")
+        default: return (.primary, "Inconnu")
         }
     }
     
     var body: some View {
-        Text(statusInfo.label)
-            .font(.caption)
-            .fontWeight(.medium)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(statusInfo.color.opacity(0.15))
-            .foregroundColor(statusInfo.color)
-            .continuousCornerRadius(8)
+        LiquidGlassBadge(
+            text: statusInfo.label,
+            type: statusInfo.colorType,
+            size: .small
+        )
+    }
+}
+
+// MARK: - Info Row
+
+struct InfoRow: View {
+    let label: String
+    let value: String
+    let icon: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.wakevPrimary)
+                .frame(width: 20)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                Text(value)
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+            }
+        }
+    }
+}
+
+// MARK: - Comment Button
+
+struct CommentButton: View {
+    let commentCount: Int
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "bubble.right.fill")
+                    .font(.title3)
+                
+                if commentCount > 0 {
+                    Text("\(commentCount)")
+                        .font(.caption2.weight(.bold))
+                        .foregroundColor(.white)
+                        .padding(4)
+                        .background(Color.wakevError)
+                        .clipShape(Circle())
+                        .offset(x: 8, y: -8)
+                }
+            }
+        }
+        .foregroundColor(.wakevPrimary)
     }
 }
 
@@ -400,6 +472,7 @@ struct AccommodationFormSheet: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Annuler") { dismiss() }
+                        .foregroundColor(.wakevPrimary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Enregistrer") {
@@ -407,6 +480,7 @@ struct AccommodationFormSheet: View {
                     }
                     .disabled(!isFormValid)
                     .fontWeight(.semibold)
+                    .foregroundColor(.wakevPrimary)
                 }
             }
         }

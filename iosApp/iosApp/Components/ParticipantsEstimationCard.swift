@@ -97,92 +97,196 @@ struct ParticipantsEstimationCard: View {
         LiquidGlassCard(style: .regular, padding: 20) {
             VStack(alignment: .leading, spacing: 16) {
                 // Header
-                HStack(spacing: 8) {
-                    Image(systemName: "person.2.fill")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.blue)
-                    
-                    Text("Participants Estimation")
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("Participants Estimation")
+                headerSection
                 
                 // Description
-                Text("Help us plan better by estimating participant counts")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                descriptionSection
                 
                 // Input Fields
-                VStack(spacing: 12) {
-                    // Minimum Participants
-                    participantTextField(
-                        label: "Minimum Participants",
-                        placeholder: "e.g., 5",
-                        text: $minText,
-                        icon: "person.3.fill",
-                        isError: minValue != nil && (minValue! < 1),
-                        errorMessage: nil,
-                        accessibilityLabel: "Minimum Participants",
-                        accessibilityHint: "Enter the minimum number of expected participants"
-                    ) { newValue in
-                        minParticipants = Int(newValue).flatMap { $0 > 0 ? $0 : nil }
-                    }
-                    
-                    // Maximum Participants
-                    participantTextField(
-                        label: "Maximum Participants",
-                        placeholder: "e.g., 50",
-                        text: $maxText,
-                        icon: "person.2.fill",
-                        isError: !isMaxValid || (maxValue != nil && maxValue! < 1),
-                        errorMessage: !isMaxValid ? "Maximum must be ≥ minimum" : nil,
-                        accessibilityLabel: "Maximum Participants",
-                        accessibilityHint: "Enter the maximum number of participants allowed"
-                    ) { newValue in
-                        maxParticipants = Int(newValue).flatMap { $0 > 0 ? $0 : nil }
-                    }
-                    
-                    // Expected Participants
-                    participantTextField(
-                        label: "Expected Participants",
-                        placeholder: "e.g., 20",
-                        text: $expectedText,
-                        icon: "chart.line.uptrend.xyaxis",
-                        isError: expectedValue != nil && expectedValue! < 1,
-                        errorMessage: expectedValue != nil && expectedValue! < 1 ? "Expected must be at least 1" : nil,
-                        warningMessage: expectedOutOfRange ? "Expected is outside min-max range" : nil,
-                        accessibilityLabel: "Expected Participants",
-                        accessibilityHint: "Enter the most likely number of participants"
-                    ) { newValue in
-                        expectedParticipants = Int(newValue).flatMap { $0 > 0 ? $0 : nil }
-                    }
-                }
+                inputFieldsSection
                 
-                // Helper Info Box
+                // Helper Info Section
                 if minValue != nil || maxValue != nil || expectedValue != nil {
-                    HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: "lightbulb.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(.yellow)
-                        
-                        Text(helperText)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(12)
-                    .background(Color.blue.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    helperInfoSection
                 }
             }
         }
         .animation(.easeInOut(duration: 0.2), value: minValue != nil ? minValue! : 0)
         .animation(.easeInOut(duration: 0.2), value: maxValue != nil ? maxValue! : 0)
         .animation(.easeInOut(duration: 0.2), value: expectedValue != nil ? expectedValue! : 0)
+    }
+    
+    // MARK: - Header Section
+    
+    private var headerSection: some View {
+        HStack(spacing: 12) {
+            // Icon badge using LiquidGlassBadge API
+            LiquidGlassBadge(
+                text: "Participants",
+                icon: "person.2.fill",
+                type: .primary,
+                size: .medium
+            )
+            
+            Spacer()
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Participants Estimation")
+    }
+    
+    // MARK: - Description Section
+    
+    private var descriptionSection: some View {
+        Text("Help us plan better by estimating participant counts")
+            .font(.subheadline)
+            .foregroundColor(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+    
+    // MARK: - Input Fields Section
+    
+    private var inputFieldsSection: some View {
+        VStack(spacing: 16) {
+            // Minimum Participants
+            minimumParticipantField
+            
+            // Divider
+            LiquidGlassDivider(style: .thin)
+            
+            // Maximum Participants
+            maximumParticipantField
+            
+            // Divider
+            LiquidGlassDivider(style: .thin)
+            
+            // Expected Participants
+            expectedParticipantField
+        }
+    }
+    
+    // MARK: - Minimum Participant Field
+    
+    private var minimumParticipantField: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "person.3.fill")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.wakevPrimary)
+                
+                Text("Minimum Participants")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.primary)
+            }
+            
+            participantTextField(
+                label: "Minimum Participants",
+                placeholder: "e.g., 5",
+                text: $minText,
+                icon: "person.3.fill",
+                isError: minValue != nil && (minValue! < 1),
+                errorMessage: minValue != nil && (minValue! < 1) ? "Must be at least 1" : nil,
+                accessibilityLabel: "Minimum Participants",
+                accessibilityHint: "Enter the minimum number of expected participants"
+            ) { newValue in
+                minParticipants = Int(newValue).flatMap { $0 > 0 ? $0 : nil }
+            }
+        }
+    }
+    
+    // MARK: - Maximum Participant Field
+    
+    private var maximumParticipantField: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "person.2.fill")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.wakevAccent)
+                
+                Text("Maximum Participants")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.primary)
+            }
+            
+            participantTextField(
+                label: "Maximum Participants",
+                placeholder: "e.g., 50",
+                text: $maxText,
+                icon: "person.2.fill",
+                isError: !isMaxValid || (maxValue != nil && maxValue! < 1),
+                errorMessage: !isMaxValid ? "Maximum must be ≥ minimum" : (maxValue != nil && maxValue! < 1 ? "Must be at least 1" : nil),
+                accessibilityLabel: "Maximum Participants",
+                accessibilityHint: "Enter the maximum number of participants allowed"
+            ) { newValue in
+                maxParticipants = Int(newValue).flatMap { $0 > 0 ? $0 : nil }
+            }
+        }
+    }
+    
+    // MARK: - Expected Participant Field
+    
+    private var expectedParticipantField: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.wakevSuccess)
+                
+                Text("Expected Participants")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                // Warning badge if out of range
+                if expectedOutOfRange {
+                    LiquidGlassBadge(
+                        text: "Outside range",
+                        icon: "exclamationmark.triangle.fill",
+                        type: .warning,
+                        size: .small
+                    )
+                }
+            }
+            
+            participantTextField(
+                label: "Expected Participants",
+                placeholder: "e.g., 20",
+                text: $expectedText,
+                icon: "chart.line.uptrend.xyaxis",
+                isError: expectedValue != nil && expectedValue! < 1,
+                errorMessage: expectedValue != nil && expectedValue! < 1 ? "Must be at least 1" : nil,
+                warningMessage: expectedOutOfRange ? "Expected is outside min-max range" : nil,
+                accessibilityLabel: "Expected Participants",
+                accessibilityHint: "Enter the most likely number of participants"
+            ) { newValue in
+                expectedParticipants = Int(newValue).flatMap { $0 > 0 ? $0 : nil }
+            }
+        }
+    }
+    
+    // MARK: - Helper Info Section
+    
+    private var helperInfoSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Divider
+            LiquidGlassDivider(style: .thin)
+            
+            HStack(alignment: .top, spacing: 12) {
+                // Info icon with badge
+                LiquidGlassBadge(
+                    text: "Tip",
+                    icon: "lightbulb.fill",
+                    type: .primary,
+                    size: .small
+                )
+                
+                Text(helperText)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .transition(.opacity.combined(with: .scale(scale: 0.95)))
     }
     
     // MARK: - Helper Text
@@ -198,6 +302,7 @@ struct ParticipantsEstimationCard: View {
     // MARK: - Subviews
     
     /// Reusable text field for participant count input
+    /// Uses design system colors and Liquid Glass styling
     @ViewBuilder
     private func participantTextField(
         label: String,
@@ -217,7 +322,7 @@ struct ParticipantsEstimationCard: View {
                 .font(.subheadline.weight(.medium))
                 .foregroundColor(.primary)
             
-            // Text Field
+            // Text Field with Liquid Glass styling
             HStack(spacing: 12) {
                 Image(systemName: icon)
                     .font(.system(size: 16, weight: .medium))
@@ -256,12 +361,18 @@ struct ParticipantsEstimationCard: View {
                     .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
             
-            // Warning Message
+            // Warning Message with design system color
             if let warningMessage = warningMessage, errorMessage == nil {
-                Label(warningMessage, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundColor(.orange)
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.wakevWarning)
+                    
+                    Text(warningMessage)
+                        .font(.caption)
+                        .foregroundColor(.wakevWarning)
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
         }
     }

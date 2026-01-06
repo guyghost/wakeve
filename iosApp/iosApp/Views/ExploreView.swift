@@ -26,51 +26,49 @@ struct ExploreView: View {
                 ScrollView {
                     VStack(spacing: 20) {
                         // Search Bar
-                        SearchBar(text: $searchText, onSearchChanged: performSearch)
+                        LiquidGlassTextField(
+                            title: nil,
+                            placeholder: "Rechercher...",
+                            text: $searchText,
+                            leftIcon: "magnifyingglass",
+                            leftIconAction: {}
+                        )
+                        .onChange(of: searchText) { _, newValue in
+                            performSearch(newValue)
+                        }
 
                         // Category Filter
                         CategoryPicker(selectedCategory: $selectedCategory)
 
                         // Featured Events
-                        if !isLoading && !events.isEmpty {
+                        if !isLoading && !events.isEmpty() {
                             VStack(spacing: 16) {
                                 SectionHeader(title: "Événements en vedette")
 
                                 LazyVStack(spacing: 16) {
                                     ForEach(events.prefix(3), id: \.id) { event in
-                                        ExploreEventCard(
-                                            event: event,
-                                            onTap: {
-                                                // Navigate to event detail
-                                            }
-                                        )
+                                        LiquidGlassCard {
+                                            ExploreEventCardContent(event: event)
+                                        }
+                                        .onTapGesture {
+                                            // Navigate to event detail
+                                        }
                                     }
                                 }
 
                                 // See More Button
-                                Button(action: {
-                                    // Show all events
-                                }) {
-                                    HStack {
-                                        Text("Voir plus")
-                                            .font(.subheadline.weight(.medium))
-                                            .foregroundColor(.wakevPrimary)
-
-                                        Spacer()
-
-                                        Image(systemName: "chevron.right")
-                                            .font(.system(size: 14, weight: .semibold))
-                                            .foregroundColor(.wakevPrimary)
+                                LiquidGlassButton(
+                                    title: "Voir plus",
+                                    style: .text,
+                                    icon: "chevron.right",
+                                    action: {
+                                        // Show all events
                                     }
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 12)
-                                    .background(Color.wakevPrimary.opacity(0.1))
-                                    .cornerRadius(12)
-                                }
+                                )
                             }
                             .padding(.horizontal, 16)
 
-                            Divider()
+                            LiquidGlassDivider(style: .thin)
                                 .padding(.leading, 16)
 
                             // Recommended Events
@@ -79,12 +77,12 @@ struct ExploreView: View {
 
                                 LazyVStack(spacing: 16) {
                                     ForEach(events.suffix(from: events.count > 3 ? 3 : 0), id: \.id) { event in
-                                        ExploreEventCard(
-                                            event: event,
-                                            onTap: {
-                                                // Navigate to event detail
-                                            }
-                                        )
+                                        LiquidGlassCard {
+                                            ExploreEventCardContent(event: event)
+                                        }
+                                        .onTapGesture {
+                                            // Navigate to event detail
+                                        }
                                     }
                                 }
                             }
@@ -128,38 +126,126 @@ struct ExploreView: View {
     }
 }
 
-// MARK: - Search Bar
+// MARK: - Explore Event Card Content
 
-struct SearchBar: View {
-    @Binding var text: String
-    let onSearchChanged: (String) -> Void
+/// Content for event cards inside LiquidGlassCard
+struct ExploreEventCardContent: View {
+    let event: Event
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 16))
-                .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 12) {
+            // Hero Image
+            Group {
+                if let heroImage = event.heroImageUrl {
+                    AsyncImage(url: URL(string: heroImage)) { image in
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } placeholder: {
+                        Rectangle()
+                            .fill(Color.wakevSurfaceLight)
+                    }
+                } else {
+                    // Fallback gradient
+                    Rectangle()
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.wakevPrimary,
+                                    Color.wakevAccent
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                }
+            }
+            .frame(height: 160)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-            TextField("Rechercher...", text: $text)
-                .textFieldStyle(.plain)
-                .onChange(of: text) { _, newValue in
-                    onSearchChanged(newValue)
+            // Event Info
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    EventStatusBadge(status: event.status)
+
+                    Spacer()
+
+                    if !event.participants.isEmpty() {
+                        HStack(spacing: 4) {
+                            Image(systemName: "person.2")
+                                .font(.system(size: 14))
+                                .foregroundColor(.secondary)
+
+                            Text("\(event.participants.count)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
 
-            if !text.isEmpty {
-                Button(action: {
-                    text = ""
-                    onSearchChanged("")
-                }) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
+                Text(event.title)
+                    .font(.headline.weight(.semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+
+                if !event.description.isEmpty() {
+                    Text(event.description)
+                        .font(.body)
                         .foregroundColor(.secondary)
+                        .lineLimit(2)
                 }
             }
         }
-        .padding(16)
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
+        .accessibilityLabel(event.title)
+    }
+}
+
+// MARK: - Event Status Badge
+
+/// Badge displaying event status using LiquidGlassBadge
+struct EventStatusBadge: View {
+    let status: EventStatus
+
+    var body: some View {
+        LiquidGlassBadge(
+            text: statusText,
+            icon: statusIcon,
+            type: statusBadgeType,
+            size: .small
+        )
+    }
+
+    private var statusText: String {
+        switch status {
+        case .draft: return "Brouillon"
+        case .polling: return "Sondage"
+        case .comparing: return "Comparaison"
+        case .confirmed: return "Confirmé"
+        case .organizing: return "Organisation"
+        case .finalized: return "Finalisé"
+        }
+    }
+
+    private var statusIcon: String {
+        switch status {
+        case .draft: return "doc.fill"
+        case .polling: return "chart.bar.fill"
+        case .comparing: return "arrow.left.arrow.right"
+        case .confirmed: return "checkmark.circle.fill"
+        case .organizing: return "calendar.badge.clock"
+        case .finalized: return "checkmark.seal.fill"
+        }
+    }
+
+    private var statusBadgeType: LiquidGlassBadge.BadgeType {
+        switch status {
+        case .draft: return .primary
+        case .polling: return .accent
+        case .comparing: return .warning
+        case .confirmed: return .success
+        case .organizing: return .primary
+        case .finalized: return .success
+        }
     }
 }
 
@@ -194,120 +280,22 @@ struct CategoryPicker: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 12) {
                 ForEach(ExploreCategory.allCases, id: \.self) { category in
-                    CategoryButton(
-                        category: category,
-                        isSelected: selectedCategory == category
+                    LiquidGlassButton(
+                        title: category.title,
+                        icon: category.iconName,
+                        style: selectedCategory == category ? .primary : .secondary,
+                        size: .small,
+                        action: {
+                            // Toggle category
+                        }
                     )
+                    .accessibilityLabel(category.title)
+                    .accessibilityAddTraits(selectedCategory == category ? .isSelected : [])
                 }
             }
             .padding(.horizontal, 16)
         }
         .padding(.vertical, 12)
-    }
-}
-
-struct CategoryButton: View {
-    let category: ExploreCategory
-    let isSelected: Bool
-
-    var body: some View {
-        Button(action: {
-            // Toggle category
-        }) {
-            HStack(spacing: 8) {
-                Image(systemName: category.iconName)
-                    .font(.system(size: 16, weight: .medium))
-
-                Text(category.title)
-                    .font(.subheadline.weight(.medium))
-            }
-            .foregroundColor(isSelected ? .white : .primary)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(isSelected ? Color.wakevPrimary : Color(.systemGray6))
-            )
-        }
-        .accessibilityLabel(category.title)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
-// MARK: - Explore Event Card
-
-struct ExploreEventCard: View {
-    let event: Event
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            VStack(alignment: .leading, spacing: 12) {
-                // Hero Image
-                Group {
-                    if let heroImage = event.heroImageUrl {
-                        AsyncImage(url: URL(string: heroImage)) { image in
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        } placeholder: {
-                            Rectangle()
-                                .fill(Color(.systemGray5))
-                        }
-                    } else {
-                        // Fallback gradient
-                        Rectangle()
-                            .fill(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color.wakevPrimary,
-                                        Color.wakevAccent
-                                    ]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                    }
-                }
-                .frame(height: 160)
-                .cornerRadius(12)
-
-                // Event Info
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 8) {
-                        EventStatusBadge(status: event.status)
-
-                        Spacer()
-
-                        if !event.participants.isEmpty {
-                            HStack(spacing: 4) {
-                                Image(systemName: "person.2")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.secondary)
-
-                                Text("\(event.participants.count)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-
-                    Text(event.title)
-                        .font(.headline.weight(.semibold))
-                        .foregroundColor(.primary)
-                        .lineLimit(2)
-
-                    if !event.description.isEmpty {
-                        Text(event.description)
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
-                    }
-                }
-            }
-        }
-        .buttonStyle(PlainButtonStyle())
-        .accessibilityLabel(event.title)
     }
 }
 
@@ -372,4 +360,89 @@ struct EmptyStateView: View {
         userId: "user123",
         repository: MockEventRepository()
     )
+}
+
+// MARK: - Mock Repository for Preview
+
+struct MockEventRepository: EventRepositoryInterface {
+    func getAllEvents() -> [Event] {
+        return [
+            Event(
+                id: "1",
+                title: "Week-end à la montagne",
+                description: "Un week-end détente entre amis dans les Alpes",
+                status: .confirmed,
+                organizerId: "user1",
+                createdAt: "2024-01-15T10:00:00Z",
+                finalDate: nil,
+                minParticipants: nil,
+                maxParticipants: nil,
+                expectedParticipants: 8,
+                heroImageUrl: nil,
+                eventType: .OTHER,
+                eventTypeCustom: nil,
+                potentialLocations: [],
+                proposedSlots: [],
+                participants: [],
+                scenarios: [],
+                budgets: [],
+                syncStatus: .synced
+            ),
+            Event(
+                id: "2",
+                title: "Conférence Tech 2024",
+                description: "La plus grande conférence tech de l'année",
+                status: .polling,
+                organizerId: "user2",
+                createdAt: "2024-01-10T09:00:00Z",
+                finalDate: nil,
+                minParticipants: nil,
+                maxParticipants: nil,
+                expectedParticipants: 50,
+                heroImageUrl: nil,
+                eventType: .CONFERENCE,
+                eventTypeCustom: nil,
+                potentialLocations: [],
+                proposedSlots: [],
+                participants: [],
+                scenarios: [],
+                budgets: [],
+                syncStatus: .synced
+            )
+        ]
+    }
+
+    func getEvent(id: String) -> Event? {
+        return getAllEvents().first { $0.id == id }
+    }
+
+    func createEvent(event: Event) -> Event {
+        return event
+    }
+
+    func updateEvent(event: Event) -> Event {
+        return event
+    }
+
+    func deleteEvent(id: String) {}
+
+    func getParticipants(eventId: String) -> [Participant] {
+        return []
+    }
+
+    func addParticipant(eventId: String, participant: Participant) -> Participant {
+        return participant
+    }
+
+    func getProposedSlots(eventId: String) -> [ProposedSlot] {
+        return []
+    }
+
+    func addProposedSlot(eventId: String, slot: ProposedSlot) -> ProposedSlot {
+        return slot
+    }
+
+    func vote(slotId: String, participantId: String, voteType: VoteType) -> Vote {
+        return Vote(id: UUID().uuidString, participantId: participantId, slotId: slotId, voteType: voteType, timestamp: Date().ISO8601String())
+    }
 }
