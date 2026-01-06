@@ -120,6 +120,7 @@ struct MessagesTabBar: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                 }
+                .accessibilityLabel(tab.title)
             }
         }
         .overlay(
@@ -160,51 +161,55 @@ struct NotificationCard: View {
     let notification: Notification
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Icon
-            ZStack {
-                Circle()
-                    .fill(notification.type.backgroundColor)
+        LiquidGlassCard(cornerRadius: 16, padding: 16) {
+            HStack(spacing: 12) {
+                // Icon
+                ZStack {
+                    Circle()
+                        .fill(notification.type.gradientColors)
+                        .frame(width: 40, height: 40)
 
-                Image(systemName: notification.type.iconName)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-            }
-            .frame(width: 40, height: 40)
+                    Image(systemName: notification.type.iconName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white)
+                }
 
-            // Content
-            VStack(alignment: .leading, spacing: 4) {
-                Text(notification.title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.primary)
+                // Content
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(notification.title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.primary)
 
-                Text(notification.message)
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
+                    Text(notification.message)
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
 
-                Text(formatTimestamp(notification.timestamp))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(formatTimestamp(notification.timestamp))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Unread indicator
-            if !notification.isRead {
-                Circle()
-                    .fill(Color.red)
+                // Unread indicator badge
+                if !notification.isRead {
+                    LiquidGlassBadge(
+                        text: "",
+                        icon: "circle.fill",
+                        style: notification.type.badgeStyle
+                    )
                     .frame(width: 8, height: 8)
+                    .padding(4)
+                }
             }
         }
-        .padding(16)
-        .background(notification.isRead ? Color(.systemGray6) : Color(.systemGray5))
-        .cornerRadius(12)
         .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(notification.title): \(notification.message)")
     }
 
     private func formatTimestamp(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
+        formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
@@ -214,7 +219,7 @@ struct NotificationCard: View {
 struct ConversationsList: View {
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: 12) {
                 // Mock conversations
                 ConversationRow(
                     name: "Alice Martin",
@@ -250,57 +255,34 @@ struct ConversationRow: View {
     let unreadCount: Int
 
     var body: some View {
-        HStack(spacing: 12) {
-            // Avatar
-            Circle()
-                .fill(Color.wakevPrimary)
-                .frame(width: 48, height: 48)
-                .overlay(
-                    Text(String(name.prefix(1)).uppercased())
-                        .font(.headline.weight(.semibold))
-                        .foregroundColor(.white)
-                )
-
-            // Content
-            VStack(alignment: .leading, spacing: 4) {
-                Text(name)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.primary)
-
-                Text(lastMessage)
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            // Metadata
-            VStack(spacing: 4) {
+        LiquidGlassListItem(
+            title: name,
+            subtitle: lastMessage,
+            icon: "person.circle.fill",
+            iconColor: .wakevPrimary,
+            style: .default
+        ) {
+            EmptyView()
+        } trailing: {
+            VStack(alignment: .trailing, spacing: 4) {
                 Text(formatTimestamp(timestamp))
                     .font(.caption)
                     .foregroundColor(.secondary)
 
                 if unreadCount > 0 {
-                    ZStack {
-                        Circle()
-                            .fill(Color.red)
-
-                        Text("\(unreadCount)")
-                            .font(.caption2.weight(.bold))
-                            .foregroundColor(.white)
-                    }
-                    .frame(minWidth: 20, minHeight: 20)
+                    LiquidGlassBadge(
+                        text: "\(unreadCount)",
+                        style: .warning
+                    )
                 }
             }
         }
-        .padding(16)
-        .background(Color(.systemGray6))
-        .cornerRadius(12)
+        .accessibilityLabel("\(name), \(lastMessage). \(unreadCount) messages non lus")
     }
 
     private func formatTimestamp(_ date: Date) -> String {
         let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
+        formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
     }
 }
@@ -362,11 +344,34 @@ enum NotificationType {
     case confirmation
     case reminder
 
-    var backgroundColor: Color {
+    var badgeStyle: LiquidGlassBadgeStyle {
         switch self {
-        case .poll: return Color.wakevPrimary
-        case .confirmation: return Color.wakevSuccess
-        case .reminder: return Color.wakevWarning
+        case .poll: return .info
+        case .confirmation: return .success
+        case .reminder: return .warning
+        }
+    }
+
+    var gradientColors: LinearGradient {
+        switch self {
+        case .poll:
+            return LinearGradient(
+                gradient: Gradient(colors: [.wakevPrimary, .wakevAccent]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .confirmation:
+            return LinearGradient(
+                gradient: Gradient(colors: [.wakevSuccess, .wakevSuccessLight]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .reminder:
+            return LinearGradient(
+                gradient: Gradient(colors: [.wakevWarning, .wakevWarningLight]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         }
     }
 

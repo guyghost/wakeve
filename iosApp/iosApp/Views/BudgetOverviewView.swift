@@ -1,17 +1,21 @@
 import SwiftUI
 import Shared
 
-// Helper struct for category breakdown
+// MARK: - Helper Structs
+
+/// Helper struct for category breakdown
 struct BudgetCategoryDetails {
     let category: BudgetCategory
     let estimatedCost: Double
     let actualCost: Double
 }
 
+// MARK: - Budget Overview View
+
 /// Budget Overview View - iOS
 ///
 /// Displays budget summary with category breakdown and per-person costs.
-/// Uses Liquid Glass design system with Material backgrounds.
+/// Uses Liquid Glass design system with standardized components.
 struct BudgetOverviewView: View {
     let event: Event
     let repository: BudgetRepository
@@ -88,14 +92,7 @@ struct BudgetOverviewView: View {
     private var headerView: some View {
         VStack(spacing: 16) {
             HStack {
-                Button(action: onBack) {
-                    Image(systemName: "arrow.left")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .frame(width: 36, height: 36)
-                        .background(Color(.tertiarySystemFill))
-                        .clipShape(Circle())
-                }
+                backButton
                 
                 Spacer()
             }
@@ -107,6 +104,7 @@ struct BudgetOverviewView: View {
                     .font(.system(size: 34, weight: .bold))
                     .foregroundColor(.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityAddTraits(.isHeader)
                 
                 Text(event.title)
                     .font(.system(size: 20, weight: .medium))
@@ -118,160 +116,254 @@ struct BudgetOverviewView: View {
         .background(Color(.systemGroupedBackground))
     }
     
+    private var backButton: some View {
+        Button(action: onBack) {
+            Image(systemName: "arrow.left")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.secondary)
+                .frame(width: 36, height: 36)
+                .background(Color(.tertiarySystemFill))
+                .clipShape(Circle())
+        }
+        .accessibilityLabel("Go back")
+        .accessibilityHint("Returns to the previous screen")
+    }
+    
     // MARK: - Summary Card
     
     private var summaryCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "chart.bar.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(.blue)
-                
-                Text("Budget Summary")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.primary)
-            }
-            
-            if let budget = budget {
-                // Estimated vs Actual
-                HStack(alignment: .top, spacing: 20) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Estimated")
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                        
-                        Text("$\(formatCost(budget.totalEstimated))")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(.blue)
-                    }
+        LiquidGlassCard(cornerRadius: 16, padding: 20) {
+            VStack(alignment: .leading, spacing: 16) {
+                // Header with icon
+                HStack {
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.wakevPrimary)
                     
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Actual")
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                        
-                        Text("$\(formatCost(budget.totalActual))")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(actualCostColor)
-                    }
+                    Text("Budget Summary")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.primary)
                     
                     Spacer()
                 }
                 
-                // Progress Bar
-                if budget.totalEstimated > 0 {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Usage")
-                                .font(.system(size: 13))
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            Text("\(Int(usagePercentage))%")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(usagePercentage > 100 ? .red : .secondary)
-                        }
-                        
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                // Background
-                                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                    .fill(Color(.tertiarySystemFill))
-                                    .frame(height: 8)
-                                
-                                // Progress
-                                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                    .fill(progressBarColor)
-                                    .frame(
-                                        width: min(geometry.size.width * CGFloat(usagePercentage / 100.0), geometry.size.width),
-                                        height: 8
-                                    )
-                            }
-                        }
-                        .frame(height: 8)
+                if let budget = budget {
+                    // Estimated vs Actual
+                    HStack(alignment: .top, spacing: 20) {
+                        estimatedColumn(budget: budget)
+                        actualColumn(budget: budget)
+                        Spacer()
+                    }
+                    
+                    // Progress Bar
+                    if budget.totalEstimated > 0 {
+                        progressSection(budget: budget)
                     }
                 }
             }
         }
-        .padding(20)
-        .glassCard()
+    }
+    
+    private func estimatedColumn(budget: Budget_) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Estimated")
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+            
+            HStack(spacing: 4) {
+                Text("$")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.wakevPrimary)
+                Text(formatCost(budget.totalEstimated))
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(.wakevPrimary)
+            }
+        }
+        .accessibilityLabel("Estimated budget: \(formatCost(budget.totalEstimated)) dollars")
+    }
+    
+    private func actualColumn(budget: Budget_) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Actual")
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+            
+            HStack(spacing: 4) {
+                Text("$")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(actualCostColor)
+                Text(formatCost(budget.totalActual))
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(actualCostColor)
+            }
+        }
+        .accessibilityLabel("Actual spending: \(formatCost(budget.totalActual)) dollars")
+    }
+    
+    private func progressSection(budget: Budget_) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Usage")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                
+                Spacer()
+                
+                LiquidGlassBadge(
+                    text: "\(Int(usagePercentage))%",
+                    style: usagePercentageBadgeStyle
+                )
+            }
+            
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    // Background
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(Color(.tertiarySystemFill))
+                        .frame(height: 8)
+                    
+                    // Progress
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(progressBarGradient)
+                        .frame(
+                            width: min(geometry.size.width * CGFloat(usagePercentage / 100.0), geometry.size.width),
+                            height: 8
+                        )
+                }
+            }
+            .frame(height: 8)
+        }
+        .accessibilityValue("\(Int(usagePercentage))% of budget used")
+    }
+    
+    private var usagePercentageBadgeStyle: LiquidGlassBadgeStyle {
+        if usagePercentage <= 80 {
+            return .success
+        } else if usagePercentage <= 100 {
+            return .info
+        } else if usagePercentage <= 120 {
+            return .warning
+        } else {
+            return .error
+        }
+    }
+    
+    private var progressBarGradient: LinearGradient {
+        LinearGradient(
+            gradient: Gradient(colors: progressBarColors),
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+    
+    private var progressBarColors: [Color] {
+        if usagePercentage <= 80 {
+            return [.wakevSuccess, .wakevSuccessLight]
+        } else if usagePercentage <= 100 {
+            return [.wakevPrimary, .wakevAccent]
+        } else if usagePercentage <= 120 {
+            return [.wakevWarning, .wakevWarningLight]
+        } else {
+            return [.wakevError, .wakevErrorLight]
+        }
     }
     
     // MARK: - Per Person Card
     
     private var perPersonCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Image(systemName: "person.2.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(.purple)
-                
-                Text("Cost Per Person")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundColor(.primary)
-            }
-            
-            if let budget = budget {
-                HStack(alignment: .top, spacing: 20) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Estimated")
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                        
-                        Text("$\(formatCost(budget.totalEstimated / Double(participantCount)))")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.blue)
-                    }
+        LiquidGlassCard(cornerRadius: 16, padding: 20) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.wakevAccent)
                     
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Actual")
-                            .font(.system(size: 13))
-                            .foregroundColor(.secondary)
-                        
-                        Text("$\(formatCost(budget.totalActual / Double(participantCount)))")
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(actualCostColor)
-                    }
+                    Text("Cost Per Person")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.primary)
                     
                     Spacer()
                 }
                 
-                HStack(spacing: 8) {
-                    Image(systemName: "info.circle")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
+                if let budget = budget {
+                    HStack(alignment: .top, spacing: 20) {
+                        perPersonEstimatedColumn(budget: budget)
+                        perPersonActualColumn(budget: budget)
+                        Spacer()
+                    }
                     
-                    Text("Based on \(participantCount) participants")
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                    LiquidGlassDivider(style: .subtle)
+                    
+                    HStack(spacing: 8) {
+                        Image(systemName: "info.circle")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                        
+                        Text("Based on \(participantCount) participants")
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                    }
                 }
             }
         }
-        .padding(20)
-        .glassCard()
+    }
+    
+    private func perPersonEstimatedColumn(budget: Budget_) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Estimated")
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+            
+            HStack(spacing: 4) {
+                Text("$")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.wakevPrimary)
+                Text(formatCost(budget.totalEstimated / Double(participantCount)))
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.wakevPrimary)
+            }
+        }
+        .accessibilityLabel("Estimated cost per person: \(formatCost(budget.totalEstimated / Double(participantCount))) dollars")
+    }
+    
+    private func perPersonActualColumn(budget: Budget_) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Actual")
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+            
+            HStack(spacing: 4) {
+                Text("$")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(actualCostColor)
+                Text(formatCost(budget.totalActual / Double(participantCount)))
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(actualCostColor)
+            }
+        }
+        .accessibilityLabel("Actual cost per person: \(formatCost(budget.totalActual / Double(participantCount))) dollars")
     }
     
     // MARK: - Status Card
     
     private var statusCard: some View {
-        HStack(spacing: 12) {
-            statusIcon
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(statusTitle)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.primary)
+        LiquidGlassCard(cornerRadius: 16, padding: 16) {
+            HStack(spacing: 12) {
+                statusIcon
                 
-                Text(statusMessage)
-                    .font(.system(size: 14))
-                    .foregroundColor(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(statusTitle)
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    Text(statusMessage)
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
             }
-            
-            Spacer()
         }
-        .padding(16)
-        .glassCard()
     }
     
     private var statusIcon: some View {
@@ -279,17 +371,18 @@ struct BudgetOverviewView: View {
             if usagePercentage <= 100 {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 28))
-                    .foregroundColor(.green)
+                    .foregroundColor(.wakevSuccess)
             } else if usagePercentage <= 120 {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 28))
-                    .foregroundColor(.orange)
+                    .foregroundColor(.wakevWarning)
             } else {
                 Image(systemName: "xmark.octagon.fill")
                     .font(.system(size: 28))
-                    .foregroundColor(.red)
+                    .foregroundColor(.wakevError)
             }
         }
+        .accessibilityHidden(true)
     }
     
     private var statusTitle: String {
@@ -321,7 +414,7 @@ struct BudgetOverviewView: View {
             HStack {
                 Image(systemName: "square.grid.2x2.fill")
                     .font(.system(size: 20))
-                    .foregroundColor(.orange)
+                    .foregroundColor(.wakevWarning)
                 
                 Text("Category Breakdown")
                     .font(.system(size: 20, weight: .semibold))
@@ -338,27 +431,20 @@ struct BudgetOverviewView: View {
             }
         }
         .padding(20)
-        .glassCard()
+        .liquidGlass(cornerRadius: 16, opacity: 0.85, intensity: 0.9)
     }
     
     // MARK: - View Details Button
     
     private var viewDetailsButton: some View {
-        Button(action: onViewDetails) {
-            HStack {
-                Text("View All Items")
-                    .font(.system(size: 17, weight: .semibold))
-                
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.secondary)
-            }
-            .foregroundColor(.blue)
-            .padding(16)
-            .glassCard()
+        LiquidGlassButton(
+            title: "View All Items",
+            style: .secondary
+        ) {
+            onViewDetails()
         }
+        .accessibilityLabel("View all budget items")
+        .accessibilityHint("Shows complete list of budget items")
     }
     
     // MARK: - Loading View
@@ -367,6 +453,7 @@ struct BudgetOverviewView: View {
         VStack(spacing: 20) {
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle())
+                .scaleEffect(1.2)
             
             Text("Loading budget...")
                 .font(.system(size: 17))
@@ -382,6 +469,7 @@ struct BudgetOverviewView: View {
             Image(systemName: "chart.bar.doc.horizontal")
                 .font(.system(size: 60))
                 .foregroundColor(.secondary)
+                .opacity(0.6)
             
             VStack(spacing: 12) {
                 Text("No Budget Yet")
@@ -395,18 +483,14 @@ struct BudgetOverviewView: View {
                     .padding(.horizontal, 40)
             }
             
-            Button(action: {
+            LiquidGlassButton(
+                title: "Create Budget",
+                style: .primary
+            ) {
                 Task { await createBudget() }
-            }) {
-                Text("Create Budget")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.blue)
-                    .continuousCornerRadius(12)
             }
             .padding(.horizontal, 40)
+            .accessibilityLabel("Create a new budget")
         }
         .frame(maxHeight: .infinity)
     }
@@ -420,23 +504,11 @@ struct BudgetOverviewView: View {
     
     private var actualCostColor: Color {
         if usagePercentage <= 100 {
-            return .green
+            return .wakevSuccess
         } else if usagePercentage <= 120 {
-            return .orange
+            return .wakevWarning
         } else {
-            return .red
-        }
-    }
-    
-    private var progressBarColor: Color {
-        if usagePercentage <= 80 {
-            return .green
-        } else if usagePercentage <= 100 {
-            return .blue
-        } else if usagePercentage <= 120 {
-            return .orange
-        } else {
-            return .red
+            return .wakevError
         }
     }
     
@@ -504,33 +576,22 @@ private struct CategoryRow: View {
     let details: BudgetCategoryDetails
     
     var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: categoryIcon)
-                .font(.system(size: 20))
-                .foregroundColor(categoryColor)
-                .frame(width: 28, height: 28)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(categoryName)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(.primary)
-                
-                Text("$\(formatCost(details.actualCost)) of $\(formatCost(details.estimatedCost))")
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            // Progress indicator
+        LiquidGlassListItem(
+            title: categoryName,
+            subtitle: "$\(formatCost(details.actualCost)) of $\(formatCost(details.estimatedCost))",
+            icon: categoryIcon,
+            iconColor: categoryColor,
+            style: .compact
+        ) {
             if details.estimatedCost > 0 {
                 let percentage = (details.actualCost / details.estimatedCost) * 100
-                Text("\(Int(percentage))%")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(percentage > 100 ? .red : .secondary)
+                LiquidGlassBadge(
+                    text: "\(Int(percentage))%",
+                    style: percentageBadgeStyle(percentage: percentage)
+                )
             }
         }
-        .padding(.vertical, 8)
+        .accessibilityLabel("\(categoryName): \(formatCost(details.actualCost)) of \(formatCost(details.estimatedCost))")
     }
     
     private var categoryIcon: String {
@@ -547,13 +608,13 @@ private struct CategoryRow: View {
     
     private var categoryColor: Color {
         switch category {
-        case .transport: return .blue
-        case .accommodation: return .purple
-        case .meals: return .orange
-        case .activities: return .green
+        case .transport: return .wakevPrimary
+        case .accommodation: return .wakevAccent
+        case .meals: return .wakevWarning
+        case .activities: return .wakevSuccess
         case .equipment: return .pink
-        case .other: return .gray
-        default: return .gray
+        case .other: return .secondary
+        default: return .secondary
         }
     }
     
@@ -569,6 +630,18 @@ private struct CategoryRow: View {
         }
     }
     
+    private func percentageBadgeStyle(percentage: Double) -> LiquidGlassBadgeStyle {
+        if percentage <= 80 {
+            return .success
+        } else if percentage <= 100 {
+            return .info
+        } else if percentage <= 120 {
+            return .warning
+        } else {
+            return .error
+        }
+    }
+    
     private func formatCost(_ cost: Double) -> String {
         String(format: "%.2f", cost)
     }
@@ -576,31 +649,83 @@ private struct CategoryRow: View {
 
 // MARK: - Preview
 
-struct BudgetOverviewView_Previews: PreviewProvider {
-    static var previews: some View {
-        BudgetOverviewView(
-            event: Event(
-                id: "event-1",
-                title: "Team Retreat",
-                description: "Annual team building",
-                organizerId: "user-1",
-                participants: [],
-                proposedSlots: [],
-                deadline: "2025-12-31T23:59:59Z",
-                status: .organizing,
-                finalDate: nil,
-                createdAt: "2025-12-01T00:00:00Z",
-                updatedAt: "2025-12-01T00:00:00Z",
-                eventType: .teamBuilding,
-                eventTypeCustom: nil,
-                minParticipants: nil,
-                maxParticipants: nil,
-                expectedParticipants: nil,
-                heroImageUrl: nil
-            ),
-            repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
-            onBack: {},
-            onViewDetails: {}
-        )
-    }
+#Preview("Budget Overview View - With Data") {
+    BudgetOverviewView(
+        event: Event(
+            id: "event-1",
+            title: "Team Retreat",
+            description: "Annual team building",
+            organizerId: "user-1",
+            participants: [],
+            proposedSlots: [],
+            deadline: "2025-12-31T23:59:59Z",
+            status: .organizing,
+            finalDate: nil,
+            createdAt: "2025-12-01T00:00:00Z",
+            updatedAt: "2025-12-01T00:00:00Z",
+            eventType: .teamBuilding,
+            eventTypeCustom: nil,
+            minParticipants: nil,
+            maxParticipants: nil,
+            expectedParticipants: nil,
+            heroImageUrl: nil
+        ),
+        repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
+        onBack: {},
+        onViewDetails: {}
+    )
+}
+
+#Preview("Budget Overview View - Empty State") {
+    BudgetOverviewView(
+        event: Event(
+            id: "event-2",
+            title: "Birthday Party",
+            description: "John's birthday",
+            organizerId: "user-1",
+            participants: [],
+            proposedSlots: [],
+            deadline: "2025-12-31T23:59:59Z",
+            status: .draft,
+            finalDate: nil,
+            createdAt: "2025-12-01T00:00:00Z",
+            updatedAt: "2025-12-01T00:00:00Z",
+            eventType: .birthday,
+            eventTypeCustom: nil,
+            minParticipants: nil,
+            maxParticipants: nil,
+            expectedParticipants: nil,
+            heroImageUrl: nil
+        ),
+        repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
+        onBack: {},
+        onViewDetails: {}
+    )
+}
+
+#Preview("Budget Overview View - Over Budget") {
+    BudgetOverviewView(
+        event: Event(
+            id: "event-3",
+            title: "Conference",
+            description: "Annual conference",
+            organizerId: "user-1",
+            participants: [],
+            proposedSlots: [],
+            deadline: "2025-12-31T23:59:59Z",
+            status: .organizing,
+            finalDate: nil,
+            createdAt: "2025-12-01T00:00:00Z",
+            updatedAt: "2025-12-01T00:00:00Z",
+            eventType: .conference,
+            eventTypeCustom: nil,
+            minParticipants: nil,
+            maxParticipants: nil,
+            expectedParticipants: nil,
+            heroImageUrl: nil
+        ),
+        repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
+        onBack: {},
+        onViewDetails: {}
+    )
 }

@@ -2,29 +2,7 @@ import SwiftUI
 import Shared
 import PhotosUI
 
-// MARK: - Font Styles
-
-enum TitleFontStyle: String, CaseIterable, Hashable {
-    case sanFrancisco = "SF Pro Display"
-    case rounded = "SF Pro Rounded"
-    case serif = "New York"
-    case monospaced = "SF Mono"
-
-    var font: Font {
-        switch self {
-        case .sanFrancisco:
-            return .system(size: 32, weight: .bold, design: .default)
-        case .rounded:
-            return .system(size: 32, weight: .bold, design: .rounded)
-        case .serif:
-            return .system(size: 32, weight: .bold, design: .serif)
-        case .monospaced:
-            return .system(size: 32, weight: .bold, design: .monospaced)
-        }
-    }
-}
-
-/// Apple Invites-style event creation view
+/// Apple Invites-style event creation view using Liquid Glass components
 /// Features: Gradient background, image picker, modern form design
 @available(*, deprecated, message: "Use CreateEventView (DraftEventWizardView) instead. This will be removed in a future version.")
 struct AppleInvitesEventCreationView: View {
@@ -32,7 +10,7 @@ struct AppleInvitesEventCreationView: View {
     let repository: EventRepositoryInterface
     let onEventCreated: (String) -> Void
     let onBack: () -> Void
-
+    
     @State private var eventTitle = ""
     @State private var eventDescription = ""
     @State private var selectedDate = Date()
@@ -49,7 +27,7 @@ struct AppleInvitesEventCreationView: View {
     @State private var dominantColor: Color = Color.clear
     @State private var selectedFontStyle: TitleFontStyle = .sanFrancisco
     @FocusState private var isTitleFieldFocused: Bool
-
+    
     var body: some View {
         ZStack {
             // Background - either selected image or gradient
@@ -62,7 +40,7 @@ struct AppleInvitesEventCreationView: View {
                         .aspectRatio(contentMode: .fill)
                         .ignoresSafeArea()
                         .blur(radius: 20)
-
+                    
                     // Bottom: Dominant color extracted from image
                     LinearGradient(
                         colors: [
@@ -76,7 +54,7 @@ struct AppleInvitesEventCreationView: View {
                         endPoint: .bottom
                     )
                     .ignoresSafeArea()
-
+                    
                     // Subtle dark overlay for better text readability
                     LinearGradient(
                         colors: [
@@ -92,239 +70,122 @@ struct AppleInvitesEventCreationView: View {
                     .ignoresSafeArea()
                 }
             } else {
-                // Beautiful gradient background (Orange → Pink → Purple → Dark Blue)
+                // Design system gradient background (Primary → Accent)
                 LinearGradient(
                     colors: [
-                        Color(red: 1.0, green: 0.38, blue: 0.27),  // Orange-red
-                        Color(red: 0.95, green: 0.26, blue: 0.42), // Pink-red
-                        Color(red: 0.65, green: 0.22, blue: 0.68), // Purple
-                        Color(red: 0.35, green: 0.20, blue: 0.60), // Deep purple
-                        Color(red: 0.15, green: 0.15, blue: 0.35)  // Dark blue
+                        Color.wakevPrimary,
+                        Color.wakevAccent
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
                 .ignoresSafeArea()
             }
-
+            
             VStack(spacing: 0) {
                 // Header
-                HStack {
-                    Button(action: onBack) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 44, height: 44)
-                    }
-
-                    Spacer()
-
-                    Button(action: { showPreview = true }) {
-                        Text("Preview")
-                            .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 8)
-                            .background(Color.white.opacity(0.2))
-                            .continuousCornerRadius(20)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 60)
-
+                headerView
+                
                 ScrollView {
                     VStack(spacing: 24) {
                         // Edit Background Button (overlay on background)
                         if backgroundImage != nil {
-                            PhotosPicker(selection: $selectedBackgroundImage, matching: .images) {
-                                Text("Edit Background")
-                                    .font(.system(size: 17, weight: .semibold))
+                            editBackgroundView
+                        } else {
+                            addBackgroundView
+                        }
+                        
+                        // Event Title Card with Liquid Glass
+                        LiquidGlassCard(cornerRadius: 20, padding: 0) {
+                            VStack(spacing: 0) {
+                                TextField("Event Title", text: $eventTitle)
+                                    .font(selectedFontStyle.font)
                                     .foregroundColor(.white)
-                                    .padding(.horizontal, 24)
-                                    .padding(.vertical, 12)
-                                    .background(Color.black.opacity(0.4))
-                                    .background(.ultraThinMaterial)
-                                    .continuousCornerRadius(24)
-                            }
-                            .padding(.top, 60)
-                            .onChange(of: selectedBackgroundImage) { _, newValue in
-                                Task {
-                                    if let data = try? await newValue?.loadTransferable(type: Data.self),
-                                       let uiImage = UIImage(data: data) {
-                                        backgroundImage = Image(uiImage: uiImage)
-                                        backgroundUIImage = uiImage
-                                        dominantColor = extractDominantColor(from: uiImage)
-                                    }
+                                    .multilineTextAlignment(.center)
+                                    .padding(.vertical, 32)
+                                    .padding(.horizontal, 20)
+                                    .focused($isTitleFieldFocused)
+                                
+                                // Font Style Picker (appears when editing)
+                                if isTitleFieldFocused {
+                                    FontStylePicker(selectedStyle: $selectedFontStyle)
+                                        .padding(.horizontal, 20)
+                                        .padding(.bottom, 20)
+                                        .transition(.move(edge: .top).combined(with: .opacity))
                                 }
                             }
-                        } else {
-                            // Add Background Section (when no background)
-                            PhotosPicker(selection: $selectedBackgroundImage, matching: .images) {
-                                VStack(spacing: 16) {
-                                    ZStack {
-                                        Circle()
-                                            .fill(Color.white.opacity(0.2))
-                                            .frame(width: 80, height: 80)
-
-                                        Image(systemName: "photo")
-                                            .font(.system(size: 36))
-                                            .foregroundColor(.white.opacity(0.7))
-                                    }
-
-                                    Text("Add Background")
-                                        .font(.system(size: 20, weight: .semibold))
+                        }
+                        .animation(.spring(response: 0.3), value: isTitleFieldFocused)
+                        
+                        // Date and Location Card with Liquid Glass
+                        LiquidGlassCard(cornerRadius: 20, padding: 24) {
+                            VStack(spacing: 20) {
+                                DateButton(
+                                    icon: "calendar.badge.clock",
+                                    label: "Date and Time",
+                                    date: selectedDate
+                                )
+                                
+                                LiquidGlassDivider(style: .subtle)
+                                
+                                // Location
+                                HStack(spacing: 12) {
+                                    Image(systemName: "mappin.circle")
+                                        .font(.system(size: 24))
+                                        .foregroundColor(.white.opacity(0.7))
+                                    
+                                    LiquidGlassTextField(
+                                        title: nil,
+                                        placeholder: "Location",
+                                        text: $location,
+                                        leftIcon: nil
+                                    )
+                                    .foregroundColor(.white)
+                                    
+                                    Spacer()
+                                }
+                            }
+                        }
+                        
+                        // Hosted By Card with Liquid Glass
+                        LiquidGlassCard(cornerRadius: 20, padding: 24) {
+                            VStack(spacing: 16) {
+                                // Avatar and name
+                                VStack(spacing: 12) {
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [Color.wakevPrimary, Color.wakevAccent],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(width: 56, height: 56)
+                                        .overlay(
+                                            Text(String(userId.prefix(1).uppercased()))
+                                                .font(.system(size: 24, weight: .semibold))
+                                                .foregroundColor(.white)
+                                        )
+                                    
+                                    Text("Hosted by \(userId)")
+                                        .font(.system(size: 17, weight: .semibold))
                                         .foregroundColor(.white)
                                 }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 40)
-                            }
-                            .onChange(of: selectedBackgroundImage) { _, newValue in
-                                Task {
-                                    if let data = try? await newValue?.loadTransferable(type: Data.self),
-                                       let uiImage = UIImage(data: data) {
-                                        backgroundImage = Image(uiImage: uiImage)
-                                        backgroundUIImage = uiImage
-                                        dominantColor = extractDominantColor(from: uiImage)
-                                    }
-                                }
+                                
+                                // Description
+                                descriptionEditor
                             }
                         }
-
-                        // Event Title Card with glassmorphism
-                        VStack(spacing: 0) {
-                            TextField("Event Title", text: $eventTitle)
-                                .font(selectedFontStyle.font)
-                                .foregroundColor(.white)
-                                .multilineTextAlignment(.center)
-                                .padding(.vertical, 32)
-                                .padding(.horizontal, 20)
-                                .focused($isTitleFieldFocused)
-
-                            // Font Style Picker (appears when editing)
-                            if isTitleFieldFocused {
-                                FontStylePicker(selectedStyle: $selectedFontStyle)
-                                    .padding(.horizontal, 20)
-                                    .padding(.bottom, 20)
-                                    .transition(.move(edge: .top).combined(with: .opacity))
-                            }
-                        }
-                        .background(.ultraThinMaterial)
-                        .background(Color.white.opacity(0.1))
-                        .continuousCornerRadius(20)
-                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
-                        .animation(.spring(response: 0.3), value: isTitleFieldFocused)
-
-                        // Date and Location Card with glassmorphism
-                        VStack(spacing: 20) {
-                            DateButton(
-                                icon: "calendar.badge.clock",
-                                label: "Date and Time",
-                                date: selectedDate
-                            )
-
-                            Divider()
-                                .background(Color.white.opacity(0.2))
-
-                            // Location
-                            HStack(spacing: 12) {
-                                Image(systemName: "mappin.circle")
-                                    .font(.system(size: 24))
-                                    .foregroundColor(.white.opacity(0.7))
-
-                                TextField("Location", text: $location)
-                                    .font(.system(size: 17))
-                                    .foregroundColor(.white)
-
-                                Spacer()
-                            }
-                        }
-                        .padding(24)
-                        .background(.ultraThinMaterial)
-                        .background(Color.white.opacity(0.1))
-                        .continuousCornerRadius(20)
-                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
-
-                        // Hosted By Card with glassmorphism
-                        VStack(spacing: 16) {
-                            // Avatar and name
-                            VStack(spacing: 12) {
-                                Circle()
-                                    .fill(
-                                        LinearGradient(
-                                            colors: [Color.blue, Color.purple],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .frame(width: 56, height: 56)
-                                    .overlay(
-                                        Text(String(userId.prefix(1).uppercased()))
-                                            .font(.system(size: 24, weight: .semibold))
-                                            .foregroundColor(.white)
-                                    )
-
-                                Text("Hosted by \(userId)")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.white)
-                            }
-
-                            // Description
-                            TextEditor(text: $eventDescription)
-                                .font(.system(size: 17))
-                                .foregroundColor(.white)
-                                .frame(height: 100)
-                                .scrollContentBackground(.hidden)
-                                .background(Color.clear)
-                                .overlay(
-                                    Group {
-                                        if eventDescription.isEmpty {
-                                            Text("Add a description.")
-                                                .font(.system(size: 17))
-                                                .foregroundColor(.white.opacity(0.5))
-                                                .allowsHitTesting(false)
-                                        }
-                                    }
-                                )
-                        }
-                        .padding(24)
-                        .background(.ultraThinMaterial)
-                        .background(Color.white.opacity(0.1))
-                        .continuousCornerRadius(20)
-                        .shadow(color: Color.black.opacity(0.1), radius: 10, x: 0, y: 5)
-
+                        
                         Spacer()
                             .frame(height: 40)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 32)
                 }
-
+                
                 // Bottom Bar
-                HStack {
-                    Button(action: {}) {
-                        Image(systemName: "photo.on.rectangle")
-                            .font(.system(size: 24))
-                            .foregroundColor(.white.opacity(0.7))
-                            .frame(width: 44, height: 44)
-                    }
-
-                    Spacer()
-
-                    Button(action: {
-                        Task {
-                            await createEvent()
-                        }
-                    }) {
-                        Image(systemName: isLoading ? "circle" : "checkmark")
-                            .font(.system(size: 24, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 44, height: 44)
-                    }
-                    .disabled(eventTitle.isEmpty || isLoading)
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(.ultraThinMaterial)
+                bottomBarView
             }
         }
         .alert("Error", isPresented: $showError) {
@@ -333,15 +194,162 @@ struct AppleInvitesEventCreationView: View {
             Text(errorMessage)
         }
     }
-
+    
+    // MARK: - Header View
+    private var headerView: some View {
+        HStack {
+            LiquidGlassIconButton(
+                icon: "xmark",
+                size: 44,
+                gradientColors: [.white.opacity(0.2), .white.opacity(0.1)]
+            ) {
+                onBack()
+            }
+            
+            Spacer()
+            
+            LiquidGlassButton(title: "Preview", style: .text) {
+                showPreview = true
+            }
+            .frame(width: 100)
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 60)
+    }
+    
+    // MARK: - Edit Background View
+    private var editBackgroundView: some View {
+        PhotosPicker(selection: $selectedBackgroundImage, matching: .images) {
+            Text("Edit Background")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(Color.black.opacity(0.4))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 24)
+                                .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        )
+                )
+        }
+        .padding(.top, 60)
+        .onChange(of: selectedBackgroundImage) { _, newValue in
+            Task {
+                if let data = try? await newValue?.loadTransferable(type: Data.self),
+                   let uiImage = UIImage(data: data) {
+                    backgroundImage = Image(uiImage: uiImage)
+                    backgroundUIImage = uiImage
+                    dominantColor = extractDominantColor(from: uiImage)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Add Background View
+    private var addBackgroundView: some View {
+        PhotosPicker(selection: $selectedBackgroundImage, matching: .images) {
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.2))
+                        .frame(width: 80, height: 80)
+                    
+                    Image(systemName: "photo")
+                        .font(.system(size: 36))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                
+                Text("Add Background")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.white)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 40)
+        }
+        .onChange(of: selectedBackgroundImage) { _, newValue in
+            Task {
+                if let data = try? await newValue?.loadTransferable(type: Data.self),
+                   let uiImage = UIImage(data: data) {
+                    backgroundImage = Image(uiImage: uiImage)
+                    backgroundUIImage = uiImage
+                    dominantColor = extractDominantColor(from: uiImage)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Description Editor
+    private var descriptionEditor: some View {
+        TextEditor(text: $eventDescription)
+            .font(.system(size: 17))
+            .foregroundColor(.white)
+            .frame(height: 100)
+            .scrollContentBackground(.hidden)
+            .background(Color.clear)
+            .overlay(
+                Group {
+                    if eventDescription.isEmpty {
+                        Text("Add a description.")
+                            .font(.system(size: 17))
+                            .foregroundColor(.white.opacity(0.5))
+                            .allowsHitTesting(false)
+                    }
+                }
+            )
+            .padding(12)
+            .background(Color.white.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+            )
+    }
+    
+    // MARK: - Bottom Bar View
+    private var bottomBarView: some View {
+        HStack {
+            LiquidGlassIconButton(
+                icon: "photo.on.rectangle",
+                size: 44,
+                gradientColors: [.white.opacity(0.15), .white.opacity(0.1)]
+            ) {
+                // Photo action
+            }
+            
+            Spacer()
+            
+            LiquidGlassIconButton(
+                icon: isLoading ? "circle" : "checkmark",
+                size: 44,
+                gradientColors: isLoading || eventTitle.isEmpty
+                    ? [.gray.opacity(0.3), .gray.opacity(0.2)]
+                    : [Color.wakevPrimary, Color.wakevAccent]
+            ) {
+                Task {
+                    await createEvent()
+                }
+            }
+            .disabled(eventTitle.isEmpty || isLoading)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(
+            Rectangle()
+                .fill(Color.white.opacity(0.05))
+                .blur(radius: 10)
+        )
+    }
+    
     private func createEvent() async {
         guard !eventTitle.isEmpty else { return }
-
+        
         isLoading = true
-
+        
         do {
             let now = ISO8601DateFormatter().string(from: Date())
-
+            
             // Create a default time slot based on selected date
             let timeSlot = TimeSlot(
                 id: UUID().uuidString,
@@ -350,7 +358,7 @@ struct AppleInvitesEventCreationView: View {
                 timezone: TimeZone.current.identifier,
                 timeOfDay: .specific
             )
-
+            
             let event = Event(
                 id: UUID().uuidString,
                 title: eventTitle,
@@ -370,9 +378,9 @@ struct AppleInvitesEventCreationView: View {
                 expectedParticipants: nil,
                 heroImageUrl: nil
             )
-
+            
             let result = try await repository.createEvent(event: event)
-
+            
             if let createdEvent = result as? Event {
                 isLoading = false
                 onEventCreated(createdEvent.id)
@@ -389,37 +397,59 @@ struct AppleInvitesEventCreationView: View {
     }
 }
 
+// MARK: - Font Styles
+
+enum TitleFontStyle: String, CaseIterable, Hashable {
+    case sanFrancisco = "SF Pro Display"
+    case rounded = "SF Pro Rounded"
+    case serif = "New York"
+    case monospaced = "SF Mono"
+    
+    var font: Font {
+        switch self {
+        case .sanFrancisco:
+            return .system(size: 32, weight: .bold, design: .default)
+        case .rounded:
+            return .system(size: 32, weight: .bold, design: .rounded)
+        case .serif:
+            return .system(size: 32, weight: .bold, design: .serif)
+        case .monospaced:
+            return .system(size: 32, weight: .bold, design: .monospaced)
+        }
+    }
+}
+
 // MARK: - Date Button Component
 
 struct DateButton: View {
     let icon: String
     let label: String
     let date: Date
-
+    
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 24))
                 .foregroundColor(.white.opacity(0.7))
-
+            
             VStack(alignment: .leading, spacing: 2) {
                 Text(label)
                     .font(.system(size: 17))
                     .foregroundColor(.white)
-
+                
                 Text(formattedDate)
                     .font(.system(size: 15))
                     .foregroundColor(.white.opacity(0.6))
             }
-
+            
             Spacer()
-
+            
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.white.opacity(0.4))
         }
     }
-
+    
     private var formattedDate: String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM d, yyyy • h:mm a"
@@ -431,7 +461,7 @@ struct DateButton: View {
 
 struct FontStylePicker: View {
     @Binding var selectedStyle: TitleFontStyle
-
+    
     var body: some View {
         HStack(spacing: 12) {
             ForEach(TitleFontStyle.allCases, id: \.self) { style in
@@ -452,7 +482,7 @@ struct FontStyleButton: View {
     let style: TitleFontStyle
     let isSelected: Bool
     let action: () -> Void
-
+    
     var body: some View {
         Button(action: action) {
             Text("Aa")
@@ -460,21 +490,21 @@ struct FontStyleButton: View {
                 .foregroundColor(.white)
                 .frame(width: 60, height: 44)
                 .background(
-                    isSelected ?
-                    Color.white.opacity(0.3) :
-                    Color.white.opacity(0.1)
+                    isSelected
+                    ? Color.white.opacity(0.3)
+                    : Color.white.opacity(0.1)
                 )
-                .continuousCornerRadius(8)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
                         .stroke(
-                            isSelected ? Color.blue : Color.clear,
+                            isSelected ? Color.wakevPrimary : Color.clear,
                             lineWidth: 2
                         )
                 )
         }
     }
-
+    
     private var fontForButton: Font {
         switch style {
         case .sanFrancisco:
@@ -494,31 +524,31 @@ struct FontStyleButton: View {
 /// Extracts the dominant/average color from an image
 func extractDominantColor(from image: UIImage) -> Color {
     guard let cgImage = image.cgImage else {
-        return Color.blue.opacity(0.7) // Fallback color
+        return Color.wakevPrimary.opacity(0.7) // Fallback color
     }
-
+    
     // Resize to small size for performance
     let size = CGSize(width: 50, height: 50)
     UIGraphicsBeginImageContext(size)
     image.draw(in: CGRect(origin: .zero, size: size))
     guard let resizedImage = UIGraphicsGetImageFromCurrentImageContext()?.cgImage else {
         UIGraphicsEndImageContext()
-        return Color.blue.opacity(0.7)
+        return Color.wakevPrimary.opacity(0.7)
     }
     UIGraphicsEndImageContext()
-
+    
     // Get pixel data
     guard let dataProvider = resizedImage.dataProvider,
           let pixelData = dataProvider.data,
           let data = CFDataGetBytePtr(pixelData) else {
-        return Color.blue.opacity(0.7)
+        return Color.wakevPrimary.opacity(0.7)
     }
-
+    
     var totalRed: Int = 0
     var totalGreen: Int = 0
     var totalBlue: Int = 0
     let pixelCount = Int(size.width * size.height)
-
+    
     // Calculate average color from bottom half (where the gradient will be)
     let startY = Int(size.height * 0.5)
     for y in startY..<Int(size.height) {
@@ -529,12 +559,12 @@ func extractDominantColor(from image: UIImage) -> Color {
             totalBlue += Int(data[pixelIndex + 2])
         }
     }
-
+    
     let bottomPixelCount = Int(size.width * size.height * 0.5)
     let avgRed = Double(totalRed) / Double(bottomPixelCount) / 255.0
     let avgGreen = Double(totalGreen) / Double(bottomPixelCount) / 255.0
     let avgBlue = Double(totalBlue) / Double(bottomPixelCount) / 255.0
-
+    
     // Make the color slightly darker and more saturated for better effect
     return Color(
         red: avgRed * 0.8,

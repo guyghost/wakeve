@@ -1,5 +1,60 @@
 import SwiftUI
 
+// MARK: - Shared Models Import
+
+// ParticipantModel defined locally for EquipmentChecklistView
+// (Copied from SharedModels.swift to avoid module dependency)
+struct ParticipantModel: Identifiable, Codable {
+    let id: String
+    var name: String
+    var email: String?
+    var avatarUrl: String?
+    var role: String
+    var status: String
+    var joinedAt: String?
+    
+    var initials: String {
+        let components = name.components(separatedBy: " ")
+        let first = components.first?.first.map(String.init) ?? ""
+        let last = components.last?.first.map(String.init) ?? ""
+        return (first + last).uppercased()
+    }
+}
+
+extension ParticipantModel {
+    static var samples: [ParticipantModel] {
+        [
+            ParticipantModel(
+                id: "user-1",
+                name: "Jean Dupont",
+                email: "jean@example.com",
+                avatarUrl: nil,
+                role: "ORGANIZER",
+                status: "CONFIRMED",
+                joinedAt: ISO8601DateFormatter().string(from: Date())
+            ),
+            ParticipantModel(
+                id: "user-2",
+                name: "Marie Martin",
+                email: "marie@example.com",
+                avatarUrl: nil,
+                role: "PARTICIPANT",
+                status: "CONFIRMED",
+                joinedAt: ISO8601DateFormatter().string(from: Date())
+            ),
+            ParticipantModel(
+                id: "user-3",
+                name: "Pierre Durand",
+                email: "pierre@example.com",
+                avatarUrl: nil,
+                role: "PARTICIPANT",
+                status: "PENDING",
+                joinedAt: nil
+            )
+        ]
+    }
+}
+
 // MARK: - Models
 
 struct EquipmentItemModel: Identifiable {
@@ -43,6 +98,21 @@ enum EquipmentCategory: String, CaseIterable {
         case .other: return "Autre"
         }
     }
+    
+    var icon: String {
+        switch self {
+        case .camping: return "tent.fill"
+        case .cooking: return "fork.knife"
+        case .clothing: return "tshirt.fill"
+        case .sport: return "sportscourt.fill"
+        case .entertainment: return "gamecontroller.fill"
+        case .hygiene: return "hands.sparkles.fill"
+        case .medical: return "cross.case.fill"
+        case .safety: return "shield.checkered"
+        case .electronics: return "bolt.fill"
+        case .other: return "square.grid.2x2.fill"
+        }
+    }
 }
 
 enum ItemStatus: String, CaseIterable {
@@ -62,13 +132,13 @@ enum ItemStatus: String, CaseIterable {
         }
     }
     
-    var color: Color {
+    var badgeStyle: LiquidGlassBadgeStyle {
         switch self {
-        case .needed: return .gray
-        case .assigned: return .blue
-        case .confirmed: return .purple
-        case .packed: return .green
-        case .cancelled: return .red
+        case .needed: return .info
+        case .assigned: return .accent
+        case .confirmed: return .info
+        case .packed: return .success
+        case .cancelled: return .warning
         }
     }
 }
@@ -112,6 +182,47 @@ enum ItemStatusFilter: String, CaseIterable {
         case .packed: return "checkmark.circle.fill"
         case .cancelled: return "xmark.circle"
         }
+    }
+    
+    var badgeStyle: LiquidGlassBadgeStyle {
+        switch self {
+        case .all: return .default
+        case .needed: return .info
+        case .assigned: return .accent
+        case .confirmed: return .info
+        case .packed: return .success
+        case .cancelled: return .warning
+        }
+    }
+}
+
+// MARK: - Comment Button
+
+struct CommentButton: View {
+    let commentCount: Int
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "bubble.right.fill")
+                    .foregroundColor(.primary)
+                    .font(.system(size: 20))
+
+                if commentCount > 0 {
+                    Text("\(commentCount)")
+                        .font(.caption2.bold())
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.red)
+                        .clipShape(Capsule())
+                        .offset(x: 8, y: -8)
+                }
+            }
+        }
+        .accessibilityLabel("Commentaires")
+        .accessibilityHint(commentCount == 0 ? "Aucun commentaire" : "\(commentCount) commentaires")
     }
 }
 
@@ -214,14 +325,18 @@ struct EquipmentItemFormSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }
+                    LiquidGlassButton(title: "Annuler", style: .secondary) {
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(item == nil ? "Ajouter" : "Modifier") {
+                    LiquidGlassButton(
+                        title: item == nil ? "Ajouter" : "Modifier",
+                        style: item == nil ? .primary : .primary
+                    ) {
                         saveItem()
                     }
                     .disabled(!isValid)
-                    .fontWeight(.semibold)
                 }
             }
         }
@@ -269,36 +384,22 @@ struct AssignItemSheet: View {
         NavigationView {
             List {
                 Section {
-                    Button {
+                    LiquidGlassButton(title: "Non assigné", style: .secondary) {
                         selectedParticipant = nil
-                    } label: {
-                        HStack {
-                            Text("Non assigné")
-                                .foregroundColor(.primary)
-                            Spacer()
-                            if selectedParticipant == nil {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.blue)
-                            }
-                        }
                     }
+                    .accessibilityLabel("Non assigné")
                 }
                 
                 Section {
                     ForEach(participants) { participant in
-                        Button {
+                        LiquidGlassButton(
+                            title: participant.name,
+                            style: selectedParticipant == participant.id ? .primary : .secondary
+                        ) {
                             selectedParticipant = participant.id
-                        } label: {
-                            HStack {
-                                Text(participant.name)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if selectedParticipant == participant.id {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
-                                }
-                            }
                         }
+                        .accessibilityLabel(participant.name)
+                        .accessibilityHint(selectedParticipant == participant.id ? "Sélectionné" : "Appuyer pour assigner")
                     }
                 }
             }
@@ -306,13 +407,14 @@ struct AssignItemSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }
+                    LiquidGlassButton(title: "Annuler", style: .secondary) {
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Confirmer") {
+                    LiquidGlassButton(title: "Confirmer", style: .primary) {
                         onAssign(selectedParticipant)
                     }
-                    .fontWeight(.semibold)
                 }
             }
         }
@@ -348,35 +450,27 @@ struct AutoGenerateEquipmentSheet: View {
                     .padding(.top)
                 
                 List(eventTypes, id: \.key) { type in
-                    Button {
+                    LiquidGlassButton(
+                        title: type.label,
+                        style: selectedType == type.key ? .primary : .secondary
+                    ) {
                         selectedType = type.key
-                    } label: {
-                        HStack {
-                            Text(type.label)
-                                .foregroundColor(.primary)
-                            Spacer()
-                            if selectedType == type.key {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.blue)
-                            } else {
-                                Image(systemName: "circle")
-                                    .foregroundColor(.gray)
-                            }
-                        }
                     }
+                    .accessibilityLabel(type.label)
                 }
             }
             .navigationTitle("Générer une liste")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }
+                    LiquidGlassButton(title: "Annuler", style: .secondary) {
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Générer") {
+                    LiquidGlassButton(title: "Générer", style: .primary) {
                         generateItems()
                     }
-                    .fontWeight(.semibold)
                 }
             }
         }
@@ -468,7 +562,9 @@ struct EquipmentChecklistView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Fermer") { dismiss() }
+                    LiquidGlassButton(title: "Fermer", style: .secondary) {
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 12) {
@@ -558,7 +654,7 @@ struct EquipmentChecklistView: View {
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .navigationBarLeading) {
-                            Button("Fermer") {
+                            LiquidGlassButton(title: "Fermer", style: .secondary) {
                                 showComments = false
                             }
                         }
@@ -566,13 +662,11 @@ struct EquipmentChecklistView: View {
                 }
             }
             .alert("Supprimer l'équipement", isPresented: $showDeleteAlert, presenting: itemToDelete) { item in
-                Button("Supprimer", role: .destructive) {
+                LiquidGlassButton(title: "Supprimer", style: .primary) {
                     equipmentItems.removeAll { $0.id == item.id }
                     itemToDelete = nil
                 }
-                Button("Annuler", role: .cancel) {
-                    itemToDelete = nil
-                }
+                .foregroundColor(.red)
             } message: { item in
                 Text("Voulez-vous vraiment supprimer « \(item.name) » ?")
             }
@@ -593,6 +687,9 @@ struct EquipmentChecklistView: View {
                 // Filter Chips
                 filterChips
                 
+                // Add Item Button
+                addItemButton
+                
                 // Equipment List by Category
                 if filteredItems.isEmpty {
                     emptyStateCard
@@ -607,6 +704,19 @@ struct EquipmentChecklistView: View {
     }
     
     @ViewBuilder
+    private var addItemButton: some View {
+        LiquidGlassButton(
+            title: "Ajouter un équipement",
+            style: .primary
+        ) {
+            selectedItem = nil
+            showAddItemSheet = true
+        }
+        .accessibilityLabel("Ajouter un équipement")
+        .accessibilityHint("Appuyez pour ajouter un nouvel équipement à la liste")
+    }
+    
+    @ViewBuilder
     private var statsCard: some View {
         VStack(spacing: 12) {
             Text("Progression")
@@ -616,12 +726,14 @@ struct EquipmentChecklistView: View {
             // Progress Bar
             VStack(alignment: .leading, spacing: 4) {
                 ProgressView(value: stats.progress)
-                    .tint(Color.blue)
+                    .tint(Color.wakevPrimary)
                 
                 Text("\(stats.packedItems) / \(stats.totalItems) équipements emballés (\(Int(stats.progress * 100))%)")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
+            
+            LiquidGlassDivider()
             
             // Status Summary
             HStack(spacing: 20) {
@@ -629,6 +741,7 @@ struct EquipmentChecklistView: View {
                     Text("\(stats.neededItems)")
                         .font(.title2)
                         .fontWeight(.bold)
+                        .foregroundColor(.wakevPrimary)
                     Text("Requis")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -638,7 +751,7 @@ struct EquipmentChecklistView: View {
                     Text("\(stats.assignedItems)")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.blue)
+                        .foregroundColor(.wakevAccent)
                     Text("Assignés")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -648,7 +761,7 @@ struct EquipmentChecklistView: View {
                     Text("\(stats.confirmedItems)")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.purple)
+                        .foregroundColor(.wakevSuccess)
                     Text("Confirmés")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -656,7 +769,7 @@ struct EquipmentChecklistView: View {
             }
             .frame(maxWidth: .infinity)
             
-            Divider()
+            LiquidGlassDivider()
             
             // Cost Summary
             HStack {
@@ -678,7 +791,7 @@ struct EquipmentChecklistView: View {
                     Text("\(stats.costPerPerson / 100)€")
                         .font(.title3)
                         .fontWeight(.bold)
-                        .foregroundColor(.blue)
+                        .foregroundColor(.wakevAccent)
                 }
             }
         }
@@ -686,71 +799,55 @@ struct EquipmentChecklistView: View {
         .glassCard()
     }
     
-     @ViewBuilder
-     private var filterChips: some View {
-         ScrollView(.horizontal, showsIndicators: false) {
-             HStack(spacing: 8) {
-                 ForEach(ItemStatusFilter.allCases, id: \.self) { filter in
-                     filterChipButton(for: filter)
-                 }
-             }
-         }
-     }
+    @ViewBuilder
+    private var filterChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(ItemStatusFilter.allCases, id: \.self) { filter in
+                    filterChipButton(for: filter)
+                }
+            }
+        }
+    }
     
     @ViewBuilder
     private func filterChipButton(for filter: ItemStatusFilter) -> some View {
         let isSelected = selectedStatusFilter == filter
-        let backgroundColor = isSelected ? Color.blue.opacity(0.15) : Color.clear
-        let foregroundColor = isSelected ? Color.blue : Color.primary
-        let shadowOpacity = isSelected ? 0.08 : 0.03
-        let shadowRadius: CGFloat = isSelected ? 4 : 2
         
-        Button {
+        LiquidGlassButton(
+            title: filter.label,
+            style: isSelected ? .primary : .secondary
+        ) {
             selectedStatusFilter = filter
-        } label: {
-            HStack(spacing: 4) {
-                Image(systemName: filter.icon)
-                    .font(.caption)
-                Text(filter.label)
-                    .font(.caption)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(backgroundColor)
-            .background(.ultraThinMaterial)
-            .foregroundColor(foregroundColor)
-            .continuousCornerRadius(12)
-            .shadow(
-                color: .black.opacity(shadowOpacity),
-                radius: shadowRadius,
-                x: 0,
-                y: 2
-            )
         }
+        .accessibilityLabel(filter.label)
+        .accessibilityHint(isSelected ? "Filtre sélectionné" : "Appuyer pour filtrer par \(filter.label)")
     }
     
-     @ViewBuilder
-     private func categorySection(category: EquipmentCategory, items: [EquipmentItemModel]) -> some View {
-         VStack(alignment: .leading, spacing: 12) {
-             HStack {
-                 Text(category.label)
-                     .font(.headline)
-                 
-                 Spacer()
-                 
-                 GlassBadge(
-                     text: "\(items.count)",
-                     icon: nil,
-                     color: .blue,
-                     style: .filled
-                 )
-             }
+    @ViewBuilder
+    private func categorySection(category: EquipmentCategory, items: [EquipmentItemModel]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                HStack(spacing: 8) {
+                    Image(systemName: category.icon)
+                        .foregroundColor(.wakevPrimary)
+                    Text(category.label)
+                        .font(.headline)
+                }
+                
+                Spacer()
+                
+                LiquidGlassBadge(
+                    text: "\(items.count)",
+                    style: .info
+                )
+            }
             
             ForEach(items) { item in
                 itemRow(item: item)
                 
                 if item.id != items.last?.id {
-                    Divider()
+                    LiquidGlassDivider(style: .subtle)
                 }
             }
         }
@@ -761,7 +858,7 @@ struct EquipmentChecklistView: View {
     @ViewBuilder
     private func itemRow(item: EquipmentItemModel) -> some View {
         HStack(alignment: .top, spacing: 12) {
-            // Status Checkbox
+            // Status Checkbox Button
             Button {
                 togglePacked(item: item)
             } label: {
@@ -769,8 +866,10 @@ struct EquipmentChecklistView: View {
                     .font(.title2)
                     .foregroundColor(item.status == .packed ? .green : .secondary)
             }
+            .accessibilityLabel(item.status == .packed ? "Marquer comme non emballé" : "Marquer comme emballé")
+            .accessibilityHint("Appuyez pour changer le statut d'emballage de \(item.name)")
             
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(item.name)
                         .font(.body)
@@ -789,75 +888,75 @@ struct EquipmentChecklistView: View {
                         .foregroundColor(.secondary)
                 }
                 
-                 HStack(spacing: 8) {
-                     // Status Badge
-                     GlassBadge(
-                         text: item.status.label,
-                         icon: nil,
-                         color: item.status.color,
-                         style: .filled
-                     )
-                     
-                     // Assigned Person
-                     if let assignedId = item.assignedTo,
-                        let participant = participants.first(where: { $0.id == assignedId }) {
-                         Button {
-                             itemToAssign = item
-                         } label: {
-                             GlassBadge(
-                                 text: participant.name,
-                                 icon: "person.fill",
-                                 color: .blue,
-                                 style: .filled
-                             )
-                         }
-                     } else {
-                         Button {
-                             itemToAssign = item
-                         } label: {
-                             GlassBadge(
-                                 text: "Assigner",
-                                 icon: "person.badge.plus",
-                                 color: .secondary,
-                                 style: .glass
-                             )
-                         }
-                     }
+                HStack(spacing: 8) {
+                    // Status Badge
+                    LiquidGlassBadge(
+                        text: item.status.label,
+                        style: item.status.badgeStyle
+                    )
+                    
+                    // Assigned Person
+                    if let assignedId = item.assignedTo,
+                       let participant = participants.first(where: { $0.id == assignedId }) {
+                        Button {
+                            itemToAssign = item
+                        } label: {
+                            LiquidGlassBadge(
+                                text: participant.name,
+                                icon: "person.fill",
+                                style: .accent
+                            )
+                        }
+                        .accessibilityLabel("Assigné à \(participant.name)")
+                        .accessibilityHint("Appuyez pour réassigner cet équipement")
+                    } else {
+                        Button {
+                            itemToAssign = item
+                        } label: {
+                            LiquidGlassBadge(
+                                text: "Assigner",
+                                icon: "person.badge.plus",
+                                style: .default
+                            )
+                        }
+                        .accessibilityLabel("Assigner cet équipement")
+                        .accessibilityHint("Appuyez pour assigner cet équipement à un participant")
+                    }
                     
                     // Cost
                     if item.estimatedCost > 0 {
                         Text("\(item.estimatedCost / 100)€")
                             .font(.caption)
-                            .foregroundColor(.blue)
+                            .foregroundColor(.wakevAccent)
                     }
                 }
                 
-                 // Edit and Delete buttons
-                 HStack(spacing: 8) {
-                     Button {
-                         selectedItem = item
-                         showAddItemSheet = true
-                     } label: {
-                         GlassBadge(
-                             text: "Modifier",
-                             icon: "pencil",
-                             color: .blue,
-                             style: .glass
-                         )
-                     }
-                     
-                     Button {
-                         itemToDelete = item
-                         showDeleteAlert = true
-                     } label: {
-                         GlassBadge(
-                             text: "Supprimer",
-                             icon: "trash",
-                             color: .red,
-                             style: .filled
-                         )
-                     }
-                 }
+                // Action Buttons
+                HStack(spacing: 8) {
+                    Button {
+                        selectedItem = item
+                        showAddItemSheet = true
+                    } label: {
+                        LiquidGlassBadge(
+                            text: "Modifier",
+                            icon: "pencil",
+                            style: .default
+                        )
+                    }
+                    .accessibilityLabel("Modifier \(item.name)")
+                    
+                    Button {
+                        itemToDelete = item
+                        showDeleteAlert = true
+                    } label: {
+                        LiquidGlassBadge(
+                            text: "Supprimer",
+                            icon: "trash",
+                            style: .warning
+                        )
+                    }
+                    .accessibilityLabel("Supprimer \(item.name)")
+                }
             }
             
             Spacer()
@@ -874,12 +973,16 @@ struct EquipmentChecklistView: View {
             Text(equipmentItems.isEmpty ? "Aucun équipement ajouté" : "Aucun équipement avec ce statut")
                 .font(.body)
                 .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
             
             if equipmentItems.isEmpty {
-                Button("Générer une liste") {
+                LiquidGlassButton(
+                    title: "Générer une liste",
+                    style: .primary
+                ) {
                     showAutoGenerateSheet = true
                 }
-                .buttonStyle(.borderedProminent)
+                .accessibilityLabel("Générer automatiquement une liste d'équipement")
             }
         }
         .frame(maxWidth: .infinity)

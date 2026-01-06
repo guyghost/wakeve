@@ -28,6 +28,280 @@ struct ActivityModel: Identifiable {
     var updatedAt: String
 }
 
+// MARK: - Color Extension
+
+extension Color {
+    init(hex: String) {
+        let scanner = Scanner(string: hex)
+        var rgbValue: UInt64 = 0
+        scanner.scanHexInt64(&rgbValue)
+        
+        let r = Double((rgbValue & 0xFF0000) >> 16) / 255.0
+        let g = Double((rgbValue & 0x00FF00) >> 8) / 255.0
+        let b = Double(rgbValue & 0x0000FF) / 255.0
+        
+        self.init(red: r, green: g, blue: b)
+    }
+    
+    static let wakevPrimary = Color(hex: "2563EB")
+    static let wakevAccent = Color(hex: "7C3AED")
+    static let wakevSuccess = Color(hex: "059669")
+    static let wakevWarning = Color(hex: "D97706")
+    static let wakevError = Color(hex: "DC2626")
+}
+
+// MARK: - Liquid Glass Components
+
+struct LiquidGlassCard<Content: View>: View {
+    let cornerRadius: CGFloat
+    let padding: CGFloat
+    let content: Content
+    
+    init(
+        cornerRadius: CGFloat = 16,
+        padding: CGFloat = 16,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.cornerRadius = cornerRadius
+        self.padding = padding
+        self.content = content()
+    }
+    
+    var body: some View {
+        content
+            .padding(padding)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(.white.opacity(0.2), lineWidth: 1)
+            )
+    }
+}
+
+enum LiquidGlassBadgeType {
+    case primary, accent, success, warning, error
+}
+
+enum LiquidGlassBadgeSize {
+    case small, medium, large
+}
+
+struct LiquidGlassBadge: View {
+    let text: String?
+    let icon: String?
+    let type: LiquidGlassBadgeType
+    let size: LiquidGlassBadgeSize
+    
+    init(
+        text: String? = nil,
+        icon: String? = nil,
+        type: LiquidGlassBadgeType = .primary,
+        size: LiquidGlassBadgeSize = .medium
+    ) {
+        self.text = text
+        self.icon = icon
+        self.type = type
+        self.size = size
+    }
+    
+    private var badgeColor: Color {
+        switch type {
+        case .primary: return .wakevPrimary
+        case .accent: return .wakevAccent
+        case .success: return .wakevSuccess
+        case .warning: return .wakevWarning
+        case .error: return .wakevError
+        }
+    }
+    
+    private var badgePadding: EdgeInsets {
+        switch size {
+        case .small: return EdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8)
+        case .medium: return EdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
+        case .large: return EdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
+        }
+    }
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            if let icon = icon {
+                Image(systemName: icon)
+                    .font(.caption2.weight(.medium))
+            }
+            if let text = text {
+                Text(text)
+                    .font(.caption2.weight(.medium))
+            }
+        }
+        .padding(badgePadding)
+        .foregroundColor(badgeColor)
+        .background(badgeColor.opacity(0.15))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+enum LiquidGlassDividerStyle {
+    case thin, medium, thick
+}
+
+enum LiquidGlassDividerOrientation {
+    case horizontal, vertical
+}
+
+struct LiquidGlassDivider: View {
+    var style: LiquidGlassDividerStyle = .medium
+    var opacity: Double = 0.15
+    var color: Color? = nil
+    var orientation: LiquidGlassDividerOrientation = .horizontal
+    
+    private var lineHeight: CGFloat {
+        switch style {
+        case .thin: return 0.5
+        case .medium: return 1.0
+        case .thick: return 1.5
+        }
+    }
+    
+    private var dividerColor: Color {
+        color ?? .secondary.opacity(opacity)
+    }
+    
+    var body: some View {
+        if orientation == .horizontal {
+            Rectangle()
+                .fill(dividerColor)
+                .frame(height: lineHeight)
+                .frame(maxWidth: .infinity)
+        } else {
+            Rectangle()
+                .fill(dividerColor)
+                .frame(width: lineHeight)
+                .frame(maxHeight: .infinity)
+        }
+    }
+}
+
+enum LiquidGlassButtonStyle {
+    case primary, secondary, text, icon
+}
+
+enum LiquidGlassButtonSize {
+    case small, medium, large
+}
+
+struct LiquidGlassButton: View {
+    let title: String?
+    let icon: String?
+    let style: LiquidGlassButtonStyle
+    let size: LiquidGlassButtonSize
+    let isDisabled: Bool
+    let action: () -> Void
+    
+    init(
+        title: String? = nil,
+        icon: String? = nil,
+        style: LiquidGlassButtonStyle = .primary,
+        size: LiquidGlassButtonSize = .medium,
+        isDisabled: Bool = false,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.icon = icon
+        self.style = style
+        self.size = size
+        self.isDisabled = isDisabled
+        self.action = action
+    }
+    
+    private var buttonHeight: CGFloat {
+        switch size {
+        case .small: return 36
+        case .medium: return 44
+        case .large: return 52
+        }
+    }
+    
+    private var foregroundColor: Color {
+        switch style {
+        case .primary: return .white
+        case .secondary: return .wakevPrimary
+        case .text: return .wakevPrimary
+        case .icon: return .white
+        }
+    }
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if let icon = icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                if let title = title {
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: buttonHeight)
+            .foregroundColor(isDisabled ? .gray : foregroundColor)
+            .background(buttonBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.6 : 1.0)
+    }
+    
+    @ViewBuilder
+    private var buttonBackground: some View {
+        if isDisabled {
+            Color.gray.opacity(0.1)
+        } else if style == .primary {
+            LinearGradient(
+                gradient: Gradient(colors: [.wakevPrimary, .wakevAccent]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            Color.clear
+        }
+    }
+}
+
+// MARK: - CommentButton Component
+
+struct CommentButton: View {
+    let commentCount: Int
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "bubble.right.fill")
+                    .foregroundColor(.primary)
+                    .font(.system(size: 20))
+                
+                if commentCount > 0 {
+                    Text("\(commentCount)")
+                        .font(.caption2.bold())
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.red)
+                        .clipShape(Capsule())
+                        .offset(x: 8, y: -8)
+                }
+            }
+        }
+        .accessibilityLabel("Commentaires")
+        .accessibilityHint(commentCount == 0 ? "Aucun commentaire" : "\(commentCount) commentaires")
+    }
+}
+
 // MARK: - Form Sheets
 
 struct ActivityFormSheet: View {
@@ -188,13 +462,11 @@ struct ManageParticipantsSheet: View {
                             .font(.headline)
                         Spacer()
                         if !canRegisterMore {
-                            Text("Complet")
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.red.opacity(0.2))
-                                .foregroundColor(.red)
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            LiquidGlassBadge(
+                                text: "Complet",
+                                type: .warning,
+                                size: .small
+                            )
                         }
                     }
                     .padding()
@@ -210,10 +482,10 @@ struct ManageParticipantsSheet: View {
                             Spacer()
                             if registeredIds.contains(participant.id) {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.wakevSuccess)
                             } else {
                                 Image(systemName: "circle")
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(.secondary)
                             }
                         }
                     }
@@ -253,7 +525,7 @@ struct ManageParticipantsSheet: View {
 // MARK: - Main View
 
 /**
- * Activity Planning View (iOS)
+ * Activity Planning View (iOS) - Refactorisé avec Liquid Glass Design System
  *
  * Features:
  * - List activities grouped by date
@@ -318,9 +590,9 @@ struct ActivityPlanningView: View {
     var body: some View {
         NavigationView {
             ZStack {
-            // Background
-            Color.primary.opacity(0.05)
-                .ignoresSafeArea()
+                // Background
+                Color.primary.opacity(0.05)
+                    .ignoresSafeArea()
                 
                 if isLoading {
                     ProgressView()
@@ -416,6 +688,9 @@ struct ActivityPlanningView: View {
                 // Summary Card
                 summaryCard
                 
+                // Create Activity Button
+                createActivityButton
+                
                 // Date Filter
                 if !uniqueDates.isEmpty {
                     dateFilterRow
@@ -434,25 +709,30 @@ struct ActivityPlanningView: View {
         }
     }
     
+    // MARK: - Summary Card
+    
     @ViewBuilder
     private var summaryCard: some View {
         LiquidGlassCard(cornerRadius: 16, padding: 16) {
             HStack(spacing: 40) {
-                VStack {
+                // Activities Count
+                VStack(spacing: 4) {
                     Text("\(activities.count)")
                         .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(.wakevPrimary)
                     Text("Activités")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 
-                Divider()
+                LiquidGlassDivider(style: .medium, opacity: 0.2)
                     .frame(height: 48)
                 
-                VStack {
+                // Total Cost
+                VStack(spacing: 4) {
                     Text("\(totalCost / 100)€")
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.blue)
+                        .foregroundColor(.wakevSuccess)
                     Text("Coût total")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -460,207 +740,259 @@ struct ActivityPlanningView: View {
             }
             .frame(maxWidth: .infinity)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(activities.count) activités, \(totalCost / 100) euros de coût total")
     }
+    
+    // MARK: - Create Activity Button
+    
+    @ViewBuilder
+    private var createActivityButton: some View {
+        LiquidGlassButton(
+            title: "Créer une activité",
+            style: .primary,
+            size: .medium
+        ) {
+            selectedActivity = nil
+            showAddActivitySheet = true
+        }
+        .accessibilityLabel("Créer une nouvelle activité")
+        .accessibilityHint("Ajoute une nouvelle activité à l'événement")
+    }
+    
+    // MARK: - Date Filter Row
     
     @ViewBuilder
     private var dateFilterRow: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 // All dates chip
-                Button {
+                dateFilterChip(
+                    title: "Toutes",
+                    isSelected: selectedDate == nil
+                ) {
                     selectedDate = nil
-                } label: {
-                    Text("Toutes")
-                        .font(.caption)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(
-                            selectedDate == nil
-                                ? Color.blue.opacity(0.2)
-                                : Color.gray.opacity(0.2)
-                        )
-                        .foregroundColor(
-                            selectedDate == nil ? .blue : .primary
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 
                 ForEach(uniqueDates, id: \.self) { date in
-                    Button {
+                    dateFilterChip(
+                        title: formatDateShort(date),
+                        isSelected: Calendar.current.isDate(date, inSameDayAs: selectedDate ?? Date.distantPast)
+                    ) {
                         selectedDate = date
-                    } label: {
-                        Text(formatDateShort(date))
-                            .font(.caption)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(
-                                Calendar.current.isDate(date, inSameDayAs: selectedDate ?? Date.distantPast)
-                                    ? Color.blue.opacity(0.2)
-                                    : Color.gray.opacity(0.15)
-                            )
-                            .foregroundColor(
-                                Calendar.current.isDate(date, inSameDayAs: selectedDate ?? Date.distantPast)
-                                    ? .blue : .primary
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                 }
             }
         }
     }
+    
+    @ViewBuilder
+    private func dateFilterChip(title: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    isSelected
+                        ? Color.wakevPrimary.opacity(0.2)
+                        : Color.gray.opacity(0.1)
+                )
+                .foregroundColor(
+                    isSelected ? .wakevPrimary : .primary
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(PlainButtonStyle())
+        .accessibilityLabel(isSelected ? "\(title) (sélectionné)" : title)
+    }
+    
+    // MARK: - Date Section
     
     @ViewBuilder
     private func dateSection(date: Date, activities: [ActivityModel]) -> some View {
-        LiquidGlassCard(cornerRadius: 16, padding: 16) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text(formatDate(date))
-                        .font(.headline)
-                    
-                    Spacer()
-                    
-                    Text("\(activities.count)")
-                        .font(.caption)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.blue.opacity(0.2))
-                        .foregroundColor(.blue)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                }
+        VStack(alignment: .leading, spacing: 12) {
+            // Date Header with Badge
+            HStack {
+                Text(formatDate(date))
+                    .font(.headline)
+                    .foregroundColor(.primary)
                 
-                ForEach(activities) { activity in
-                    activityRow(activity: activity)
-                    
-                    if activity.id != activities.last?.id {
-                        Divider()
-                    }
+                Spacer()
+                
+                LiquidGlassBadge(
+                    text: "\(activities.count)",
+                    type: .primary,
+                    size: .small
+                )
+            }
+            
+            // Activities Cards
+            ForEach(activities) { activity in
+                activityCard(activity: activity)
+                
+                if activity.id != activities.last?.id {
+                    LiquidGlassDivider(style: .thin, opacity: 0.1)
                 }
             }
         }
     }
     
+    // MARK: - Activity Card
+    
     @ViewBuilder
-    private func activityRow(activity: ActivityModel) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(activity.name)
-                .font(.body)
-                .fontWeight(.medium)
-            
-            if !activity.description.isEmpty {
-                Text(activity.description)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            HStack(spacing: 12) {
-                // Time and Duration
-                if let time = activity.time {
-                    HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text("\(time) (\(activity.durationMinutes)min)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+    private func activityCard(activity: ActivityModel) -> some View {
+        LiquidGlassCard(cornerRadius: 12, padding: 12) {
+            VStack(alignment: .leading, spacing: 8) {
+                // Activity Header
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(activity.name)
+                            .font(.body)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                        
+                        if !activity.description.isEmpty {
+                            Text(activity.description)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
+                        }
                     }
-                }
-                
-                // Location
-                if !activity.location.isEmpty {
-                    HStack(spacing: 4) {
-                        Image(systemName: "mappin.circle")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Text(activity.location)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                // Cost
-                if activity.costPerPerson > 0 {
-                    Text("\(activity.costPerPerson / 100)€/pers")
-                        .font(.caption)
-                        .foregroundColor(.blue)
-                }
-            }
-            
-            // Participants
-            Button {
-                activityForParticipants = activity
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: "person.2.fill")
-                        .font(.caption2)
                     
-                    if let maxP = activity.maxParticipants {
-                        Text("\(activity.registeredCount) / \(maxP) inscrits")
-                            .font(.caption2)
-                    } else {
-                        Text("\(activity.registeredCount) inscrits")
-                            .font(.caption2)
+                    Spacer()
+                    
+                    // Full indicator
+                    if activity.isFull {
+                        LiquidGlassBadge(
+                            text: "Complet",
+                            type: .warning,
+                            size: .small
+                        )
                     }
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.blue.opacity(0.2))
-                .foregroundColor(.blue)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            }
-            
-            // Full indicator
-            if activity.isFull {
-                HStack(spacing: 4) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.caption2)
-                    Text("Complet")
-                        .font(.caption2)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.red.opacity(0.2))
-                .foregroundColor(.red)
-                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            }
-            
-            // Action Buttons
-            HStack(spacing: 8) {
-                Button {
-                    selectedActivity = activity
-                    showAddActivitySheet = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "pencil")
-                            .font(.caption2)
-                        Text("Modifier")
-                            .font(.caption2)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.gray.opacity(0.15))
-                    .foregroundColor(.primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
                 
-                Button {
-                    activityToDelete = activity
-                    showDeleteAlert = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "trash")
-                            .font(.caption2)
-                        Text("Supprimer")
-                            .font(.caption2)
+                LiquidGlassDivider(style: .thin, opacity: 0.1)
+                
+                // Activity Details
+                VStack(alignment: .leading, spacing: 8) {
+                    // Time, Duration, Location
+                    HStack(spacing: 16) {
+                        if let time = activity.time {
+                            detailItem(
+                                icon: "clock",
+                                text: "\(time) (\(activity.durationMinutes)min)"
+                            )
+                        }
+                        
+                        if !activity.location.isEmpty {
+                            detailItem(
+                                icon: "mappin.circle",
+                                text: activity.location
+                            )
+                        }
+                        
+                        if activity.costPerPerson > 0 {
+                            detailItem(
+                                icon: "creditcard",
+                                text: "\(activity.costPerPerson / 100)€/pers",
+                                color: .wakevSuccess
+                            )
+                        }
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(Color.red.opacity(0.1))
-                    .foregroundColor(.red)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    
+                    // Participants and Actions
+                    HStack(spacing: 12) {
+                        // Participants Button
+                        Button {
+                            activityForParticipants = activity
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "person.2.fill")
+                                    .font(.caption2)
+                                
+                                if let maxP = activity.maxParticipants {
+                                    Text("\(activity.registeredCount)/\(maxP)")
+                                        .font(.caption2)
+                                } else {
+                                    Text("\(activity.registeredCount)")
+                                        .font(.caption2)
+                                }
+                            }
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(Color.wakevPrimary.opacity(0.15))
+                            .foregroundColor(.wakevPrimary)
+                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .accessibilityLabel("Gérer les participants")
+                        
+                        Spacer()
+                        
+                        // Action Buttons
+                        HStack(spacing: 8) {
+                            // Edit Button
+                            Button {
+                                selectedActivity = activity
+                                showAddActivitySheet = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "pencil")
+                                        .font(.caption2)
+                                    Text("Modifier")
+                                        .font(.caption2)
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.gray.opacity(0.1))
+                                .foregroundColor(.primary)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .accessibilityLabel("Modifier l'activité")
+                            
+                            // Delete Button
+                            Button {
+                                activityToDelete = activity
+                                showDeleteAlert = true
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "trash")
+                                        .font(.caption2)
+                                    Text("Supprimer")
+                                        .font(.caption2)
+                                }
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.wakevError.opacity(0.1))
+                                .foregroundColor(.wakevError)
+                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .accessibilityLabel("Supprimer l'activité")
+                        }
+                    }
                 }
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(activity.name), \(activity.registeredCount) participants")
     }
+    
+    @ViewBuilder
+    private func detailItem(icon: String, text: String, color: Color = .secondary) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundColor(color)
+            Text(text)
+                .font(.caption)
+                .foregroundColor(color)
+        }
+    }
+    
+    // MARK: - Empty State Card
     
     @ViewBuilder
     private var emptyStateCard: some View {
@@ -668,14 +1000,28 @@ struct ActivityPlanningView: View {
             VStack(spacing: 16) {
                 Image(systemName: "calendar.badge.plus")
                     .font(.system(size: 64))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.wakevPrimary.opacity(0.6))
                 
                 Text(activities.isEmpty ? "Aucune activité planifiée" : "Aucune activité à cette date")
                     .font(.body)
                     .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                
+                if activities.isEmpty {
+                    LiquidGlassButton(
+                        title: "Créer la première activité",
+                        style: .primary,
+                        size: .medium
+                    ) {
+                        selectedActivity = nil
+                        showAddActivitySheet = true
+                    }
+                    .padding(.top, 8)
+                }
             }
             .frame(maxWidth: .infinity)
         }
+        .accessibilityLabel(activities.isEmpty ? "Aucune activité" : "Aucune activité pour cette date")
     }
     
     // MARK: - Helper Methods
