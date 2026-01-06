@@ -263,6 +263,7 @@ struct ModernEventCard: View {
                                 Image(systemName: "calendar")
                                     .font(.system(size: 200))
                                     .foregroundColor(.white.opacity(0.05))
+                                    .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)  // WCAG 1.4.3 (Contrast)
                                     .offset(x: geometry.size.width * 0.6, y: -50)
                             }
                         )
@@ -462,7 +463,7 @@ struct ParticipantAvatar: View {
     var body: some View {
         Circle()
             .fill(avatarColor)
-            .frame(width: 40, height: 40)
+            .frame(width: 44, height: 44)
             .overlay(
                 Text(initials)
                     .font(.system(size: 16, weight: .semibold))
@@ -488,11 +489,12 @@ struct AdditionalParticipantsCount: View {
                 .font(.caption.weight(.semibold))
                 .foregroundColor(.white)
         }
-        .frame(width: 40, height: 40)
+        .frame(width: 44, height: 44)
         .overlay(
             Circle()
                 .stroke(Color.white, lineWidth: 2)
         )
+        .accessibilityLabel(String.localizedStringWithFormat(NSLocalizedString("%d_more_participants", comment: ""), count))  // WCAG 1.1.1 (Non-text Content)
     }
 }
 
@@ -544,6 +546,10 @@ struct ScaleButtonStyle: ButtonStyle {
 
 /// Mock repository for SwiftUI Preview
 class MockEventRepository: EventRepositoryInterface {
+    func saveEvent(event: Event) async throws -> Any? {
+        return event
+    }
+
     func getAllEvents() -> [Event] {
         let formatter = ISO8601DateFormatter()
         let now = Date()

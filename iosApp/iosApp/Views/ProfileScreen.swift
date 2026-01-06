@@ -63,54 +63,50 @@ struct PointsSummaryCard: View {
     let participationPoints: Int
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Header with total points
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Points Totaux")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+        LiquidGlassCard {
+            VStack(alignment: .leading, spacing: 16) {
+                // Header with total points
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Points Totaux")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Text(formatPoints(totalPoints))
+                            .font(.system(size: 36, weight: .bold))
+                            .foregroundColor(.primary)
+                    }
                     
-                    Text(formatPoints(totalPoints))
-                        .font(.system(size: 36, weight: .bold))
-                        .foregroundColor(.primary)
-                }
-                
-                Spacer()
-                
-                // Star icon
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                gradient: Gradient(colors: [.blue, .purple]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                    Spacer()
+                    
+                    // Star icon
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [.wakevPrimary, .wakevAccent],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
-                        )
-                        .frame(width: 56, height: 56)
-                    
-                    Image(systemName: "star.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.white)
+                            .frame(width: 56, height: 56)
+                        
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.white)
+                    }
                 }
+                
+                LiquidGlassDivider(style: .thin)
+                    .padding(.vertical, 4)
+                
+                // Points breakdown
+                PointBreakdownRow(label: "Création d'événements", points: eventCreationPoints, color: .wakevWarning)
+                PointBreakdownRow(label: "Votes", points: votingPoints, color: .wakevSuccess)
+                PointBreakdownRow(label: "Commentaires", points: commentPoints, color: .wakevAccent)
+                PointBreakdownRow(label: "Participation", points: participationPoints, color: .wakevPrimary)
             }
-            
-            Divider()
-                .opacity(0.5)
-            
-            // Points breakdown
-            PointBreakdownRow(label: "Création d'événements", points: eventCreationPoints, color: Color(hex: "FF6B6B"))
-            PointBreakdownRow(label: "Votes", points: votingPoints, color: Color(hex: "4ECDC4"))
-            PointBreakdownRow(label: "Commentaires", points: commentPoints, color: Color(hex: "FFE66D"))
-            PointBreakdownRow(label: "Participation", points: participationPoints, color: Color(hex: "95E1D3"))
         }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.regularMaterial)
-                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
-        )
     }
 }
 
@@ -124,6 +120,7 @@ struct PointBreakdownRow: View {
             Circle()
                 .fill(color)
                 .frame(width: 12, height: 12)
+                .accessibilityHidden(true)  // Color indicator, label is provided by Text
             
             Text(label)
                 .font(.subheadline)
@@ -149,7 +146,7 @@ struct BadgesSection: View {
             // Section header
             HStack {
                 Image(systemName: "trophy.fill")
-                    .foregroundColor(.yellow)
+                    .foregroundColor(.wakevWarning)
                 
                 Text("Succès")
                     .font(.title2)
@@ -202,31 +199,34 @@ struct BadgeItemView: View {
     let badge: ProfileBadge
     
     var body: some View {
-        VStack(spacing: 8) {
-            // Badge icon
-            Text(badge.icon)
-                .font(.system(size: 40))
-            
-            // Badge name
-            Text(badge.name)
-                .font(.caption)
-                .fontWeight(.medium)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-                .foregroundColor(.primary)
-                .frame(width: 100)
-            
-            // Rarity
-            Text(badge.rarity.displayName)
-                .font(.caption2)
-                .fontWeight(.medium)
-                .foregroundColor(rarityColor)
+        LiquidGlassCard(
+            style: .thin,
+            cornerRadius: 12,
+            padding: 12
+        ) {
+            VStack(spacing: 8) {
+                // Badge icon
+                Text(badge.icon)
+                    .font(.system(size: 40))
+                
+                // Badge name
+                Text(badge.name)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .foregroundColor(.primary)
+                    .frame(width: 100)
+                
+                // Rarity badge
+                LiquidGlassBadge(
+                    text: badge.rarity.displayName,
+                    type: rarityBadgeType,
+                    size: .small
+                )
+            }
+            .frame(width: 110, height: 130)
         }
-        .frame(width: 110, height: 130)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(rarityColor.opacity(0.15))
-        )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(rarityColor.opacity(0.5), lineWidth: 1)
@@ -238,11 +238,24 @@ struct BadgeItemView: View {
         case .common:
             return .gray
         case .rare:
-            return .blue
+            return .wakevPrimary
         case .epic:
-            return .purple
+            return .wakevAccent
         case .legendary:
-            return .orange
+            return .wakevWarning
+        }
+    }
+    
+    private var rarityBadgeType: LiquidGlassBadge.BadgeType {
+        switch badge.rarity {
+        case .common:
+            return .primary
+        case .rare:
+            return .primary
+        case .epic:
+            return .accent
+        case .legendary:
+            return .warning
         }
     }
 }
@@ -260,7 +273,7 @@ struct LeaderboardSection: View {
             // Section header
             HStack {
                 Image(systemName: "chart.bar.fill")
-                    .foregroundColor(.blue)
+                    .foregroundColor(.wakevPrimary)
                 
                 Text("Classement")
                     .font(.title2)
@@ -294,42 +307,16 @@ struct LeaderboardTabs: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(LeaderboardType.allCases, id: \.self) { tab in
-                    TabButton(
+                    LiquidGlassButton(
                         title: tab.displayName,
-                        isSelected: selectedTab == tab
-                    ) {
-                        onTabSelected(tab)
-                    }
+                        style: selectedTab == tab ? .primary : .text,
+                        size: .small,
+                        action: { onTabSelected(tab) }
+                    )
                 }
             }
             .padding(.horizontal)
         }
-    }
-}
-
-struct TabButton: View {
-    let title: String
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(isSelected ? Color.blue.opacity(0.2) : Color.clear)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 20)
-                        .stroke(isSelected ? Color.blue : Color.gray.opacity(0.3), lineWidth: 1)
-                )
-                .foregroundColor(isSelected ? .blue : .secondary)
-        }
-        .buttonStyle(.plain)
     }
 }
 
@@ -338,67 +325,70 @@ struct LeaderboardItemView: View {
     let isCurrentUser: Bool
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Rank
-            Text("#\(entry.rank)")
-                .font(.headline)
-                .fontWeight(.bold)
-                .foregroundColor(rankColor)
-                .frame(width: 40, alignment: .leading)
-            
-            // User info
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text(entry.username)
-                        .font(.subheadline)
-                        .fontWeight(isCurrentUser ? .bold : .medium)
-                        .foregroundColor(.primary)
-                    
-                    if entry.isFriend {
-                        Text("👥")
-                            .font(.caption)
+        LiquidGlassCard(
+            style: isCurrentUser ? .regular : .thin,
+            cornerRadius: 12,
+            padding: 12
+        ) {
+            HStack(spacing: 12) {
+                // Rank badge
+                LiquidGlassBadge(
+                    text: "#\(entry.rank)",
+                    type: rankBadgeType,
+                    size: .medium
+                )
+                .frame(width: 50, alignment: .leading)
+                
+                // User info
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text(entry.username)
+                            .font(.subheadline)
+                            .fontWeight(isCurrentUser ? .bold : .medium)
+                            .foregroundColor(.primary)
+                        
+                        if entry.isFriend {
+                            LiquidGlassBadge(
+                                text: "Ami",
+                                type: .accent,
+                                size: .small
+                            )
+                        }
                     }
+                    
+                    Text("\(entry.badgesCount) badges")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 
-                Text("\(entry.badgesCount) badges")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            
-            Spacer()
-            
-            // Points
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(formatPoints(entry.totalPoints))
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundColor(.blue)
+                Spacer()
                 
-                Text("points")
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                // Points
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(formatPoints(entry.totalPoints))
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.wakevPrimary)
+                    
+                    Text("points")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
             }
         }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isCurrentUser ? Color.blue.opacity(0.1) : Color(.systemBackground).opacity(0.8))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(isCurrentUser ? Color.blue.opacity(0.3) : Color.gray.opacity(0.2), lineWidth: 1)
-        )
-        .shadow(color: isCurrentUser ? Color.blue.opacity(0.1) : .clear, radius: 4, x: 0, y: 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(entry.username), rang #\(entry.rank), \(entry.totalPoints) points")
+        .accessibilityHint(isCurrentUser ? "C'est vous" : "")
     }
     
-    private var rankColor: Color {
+    private var rankBadgeType: LiquidGlassBadge.BadgeType {
         switch entry.rank {
         case 1:
-            return .yellow
+            return .warning
         case 2:
-            return .gray
+            return .primary
         case 3:
-            return .orange
+            return .accent
         default:
             return .primary
         }

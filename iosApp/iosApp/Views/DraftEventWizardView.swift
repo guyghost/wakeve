@@ -144,7 +144,7 @@ struct DraftEventWizardView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(Color.secondary.opacity(0.1))
+                            .background(.wakevPrimary.opacity(0.15))
                             .foregroundColor(.primary)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
@@ -229,6 +229,7 @@ struct DraftEventWizardView: View {
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                                     .stroke(title.isEmpty ? Color.red.opacity(0.3) : Color.clear, lineWidth: 1)
                             )
+                            .accessibilityLabel(NSLocalizedString("event_title", comment: "Title field"))  // WCAG 1.1.1
                     }
                     
                     // Description
@@ -245,6 +246,7 @@ struct DraftEventWizardView: View {
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                                     .stroke(description.isEmpty ? Color.red.opacity(0.3) : Color.clear, lineWidth: 1)
                             )
+                            .accessibilityLabel(NSLocalizedString("event_description", comment: "Description field"))  // WCAG 1.1.1
                     }
                     
                     // Event Type
