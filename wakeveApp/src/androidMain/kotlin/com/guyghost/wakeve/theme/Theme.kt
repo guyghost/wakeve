@@ -1,0 +1,118 @@
+package com.guyghost.wakeve.theme
+
+import android.app.Activity
+import android.os.Build
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
+
+private val LightColorScheme = lightColorScheme(
+    primary = WakevePrimary,
+    onPrimary = Color.White,
+    primaryContainer = WakevePrimaryLight,
+    onPrimaryContainer = WakevePrimaryDark,
+    secondary = WakeveAccent,
+    onSecondary = Color.White,
+    secondaryContainer = WakeveAccentLight,
+    onSecondaryContainer = WakeveAccentDark,
+    tertiary = WakeveSuccess,
+    onTertiary = Color.White,
+    tertiaryContainer = WakeveSuccessLight,
+    onTertiaryContainer = WakeveSuccessDark,
+    error = WakeveError,
+    onError = Color.White,
+    errorContainer = WakeveErrorLight,
+    onErrorContainer = WakeveErrorDark,
+    background = WakeveBackgroundLight,
+    onBackground = WakeveTextPrimaryLight,
+    surface = WakeveSurfaceLight,
+    onSurface = WakeveTextPrimaryLight,
+    surfaceVariant = Color(0xFFE2E8F0),
+    onSurfaceVariant = WakeveTextSecondaryLight,
+    outline = WakeveBorderLight
+)
+
+private val DarkColorScheme = darkColorScheme(
+    primary = WakevePrimaryLight,
+    onPrimary = WakevePrimaryDark,
+    primaryContainer = WakevePrimary,
+    onPrimaryContainer = WakevePrimaryLight,
+    secondary = WakeveAccentLight,
+    onSecondary = WakeveAccentDark,
+    secondaryContainer = WakeveAccent,
+    onSecondaryContainer = WakeveAccentLight,
+    tertiary = WakeveSuccessLight,
+    onTertiary = WakeveSuccessDark,
+    tertiaryContainer = WakeveSuccess,
+    onTertiaryContainer = WakeveSuccessLight,
+    error = WakeveErrorLight,
+    onError = WakeveErrorDark,
+    errorContainer = WakeveError,
+    onErrorContainer = WakeveErrorLight,
+    background = WakeveBackgroundDark,
+    onBackground = WakeveTextPrimaryDark,
+    surface = WakeveSurfaceDark,
+    onSurface = WakeveTextPrimaryDark,
+    surfaceVariant = Color(0xFF2C2C2E),
+    onSurfaceVariant = WakeveTextSecondaryDark,
+    outline = WakeveBorderDark
+)
+
+/**
+ * Spacing values for consistent layout throughout the app.
+ */
+object WakevSpacing {
+    val small = 8.dp
+    val medium = 16.dp
+    val large = 24.dp
+    val extraLarge = 32.dp
+}
+
+/**
+ * Theme object providing access to spacing and other design tokens.
+ */
+object WakevTheme {
+    val spacing: WakevSpacing = WakevSpacing
+}
+
+@Composable
+fun WakeveTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    val colorScheme = when {
+        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+            val context = LocalContext.current
+            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+        }
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            window.statusBarColor = colorScheme.surface.toArgb()
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+        }
+    }
+
+    MaterialTheme(
+        colorScheme = colorScheme,
+        typography = Typography,
+        content = content
+    )
+}
