@@ -73,6 +73,7 @@ struct CreateEventView: View {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(.ultraThinMaterial)
             )
+        .accessibilityViewIsModal(true)  // WCAG 4.1.3: Mark overlay as modal for VoiceOver
         }
     }
     
@@ -82,10 +83,10 @@ struct CreateEventView: View {
     private func autoSaveEvent(_ event: Shared.Event) {
         Task {
             do {
-                // Update the event in the repository
+                // Save the event in the repository (create if doesn't exist, otherwise update)
                 // This is a background save, so we don't block the UI
-                let result = try await repository.updateEvent(event: event)
-                
+                let result = try await repository.saveEvent(event: event)
+
                 // Log success (optional)
                 print("✅ Event auto-saved: \(event.id)")
             } catch {
@@ -99,18 +100,19 @@ struct CreateEventView: View {
     /// Create event in repository and notify parent
     private func createEvent(_ event: Shared.Event) {
         isSaving = true
-        
+
         Task {
             do {
-                // Create the event in the repository
-                let result = try await repository.createEvent(event: event)
-                
+                // Save the event in the repository (create if doesn't exist, otherwise update)
+                // This handles the case where the event was already auto-saved during wizard steps
+                let result = try await repository.saveEvent(event: event)
+
                 // Extract event ID from result
-                if let createdEvent = result as? Shared.Event {
+                if let savedEvent = result as? Shared.Event {
                     // Success - notify parent and dismiss
                     await MainActor.run {
                         isSaving = false
-                        onEventCreated(createdEvent.id)
+                        onEventCreated(savedEvent.id)
                         dismiss()
                     }
                 } else {
@@ -118,7 +120,7 @@ struct CreateEventView: View {
                     throw NSError(
                         domain: "CreateEventView",
                         code: -1,
-                        userInfo: [NSLocalizedDescriptionKey: "Unexpected result type from createEvent"]
+                        userInfo: [NSLocalizedDescriptionKey: "Unexpected result type from saveEvent"]
                     )
                 }
             } catch {
