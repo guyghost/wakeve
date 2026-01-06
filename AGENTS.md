@@ -182,9 +182,9 @@ Ce projet utilise plusieurs agents IA spécialisés. L'**orchestrator** (agent p
 | SQLDelight schema | `@codegen` | `shared/src/commonMain/sqldelight/**/*.sq` |
 | Tests unitaires | `@tests` | `shared/src/commonTest/kotlin/**/*.kt` |
 | **Android (Jetpack Compose)** |
-| Composables UI | `@codegen` | `composeApp/src/commonMain/kotlin/**/*.kt` |
-| ViewModels | `@codegen` | `composeApp/src/commonMain/kotlin/viewmodel/*.kt` |
-| Material Theme | `@codegen` | `composeApp/src/commonMain/kotlin/theme/*.kt` |
+| Composables UI | `@codegen` | `wakeveApp/src/commonMain/kotlin/**/*.kt` |
+| ViewModels | `@codegen` | `wakeveApp/src/commonMain/kotlin/viewmodel/*.kt` |
+| Material Theme | `@codegen` | `wakeveApp/src/commonMain/kotlin/theme/*.kt` |
 | **iOS (SwiftUI)** |
 | Views SwiftUI | `@codegen` | `iosApp/iosApp/Views/*.swift` |
 | Services iOS | `@codegen` | `iosApp/iosApp/Services/*.swift` |
@@ -225,14 +225,14 @@ Orchestrateur:
 3. Délègue à @codegen: "Implémente TransportService dans shared"
    - shared/src/commonMain/kotlin/services/TransportService.kt
    - shared/src/commonMain/kotlin/providers/TransportProvider.kt
-   - shared/src/androidMain/kotlin/platform/AndroidTransportProvider.kt
-   - shared/src/iosMain/kotlin/platform/IosTransportProvider.kt
+    - shared/src/androidMain/kotlin/platform/AndroidTransportProvider.kt
+    - shared/src/iosMain/kotlin/platform/IosTransportProvider.kt
 
-4. Délègue à @codegen: "Crée l'UI Android pour afficher les options de transport"
-   - composeApp/src/commonMain/kotlin/ui/TransportOptionsScreen.kt
+    4. Délègue à @codegen: "Crée l'UI Android pour afficher les options de transport"
+    - wakeveApp/src/commonMain/kotlin/ui/TransportOptionsScreen.kt
 
-5. Délègue à @codegen: "Crée l'UI iOS pour afficher les options de transport"
-   - iosApp/iosApp/Views/TransportOptionsView.swift
+    5. Délègue à @codegen: "Crée l'UI iOS pour afficher les options de transport"
+    - iosApp/iosApp/Views/TransportOptionsView.swift
 
 6. Délègue à @tests: "Ajoute les tests offline pour TransportService"
    - shared/src/commonTest/kotlin/offline/OfflineTransportTest.kt
@@ -1059,7 +1059,7 @@ Avant de merger dans `main`, vérifier :
 
 #### Android (Jetpack Compose + Material You)
 ```kotlin
-// composeApp/src/commonMain/kotlin/theme/
+// wakeveApp/src/commonMain/kotlin/theme/
 Color.kt           // Palette de couleurs unifiée
 Typography.kt      // Système typographique
 Theme.kt           // Configuration Material Theme 3
@@ -1134,10 +1134,10 @@ POST   /api/events/{id}/poll/votes
 ./gradlew server:run
 
 # Build Android
-./gradlew composeApp:assembleDebug
+./gradlew wakeveApp:assembleDebug
 
 # Build iOS (macOS uniquement)
-open iosApp/iosApp.xcodeproj
+open wakeveApp/wakeveApp.xcodeproj
 
 # Format du code Kotlin
 ./gradlew spotlessApply

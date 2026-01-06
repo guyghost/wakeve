@@ -33,7 +33,7 @@ wakeve/
 │   ├── iosMain/        # Implémentations iOS-specific
 │   ├── jvmMain/        # Implémentations JVM-specific
 │   └── sqldelight/     # Schéma de base de données
-├── composeApp/         # Application Android (Jetpack Compose)
+├── wakeveApp/          # Application Android (Jetpack Compose)
 ├── iosApp/             # Application iOS (SwiftUI)
 ├── server/             # Backend Ktor REST API
 ├── openspec/           # Spécifications et propositions
