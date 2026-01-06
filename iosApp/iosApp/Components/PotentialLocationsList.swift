@@ -7,9 +7,9 @@ import Shared
 /// Features:
 /// - Empty state when no locations
 /// - List of locations with type-specific SF Symbols icons
-/// - Add button in header
+/// - Add button in header using LiquidGlassButton
+/// - Count badge using LiquidGlassBadge
 /// - Swipe-to-delete for each location
-/// - Count badge showing number of locations
 /// - VoiceOver accessibility
 ///
 /// Example:
@@ -35,100 +35,138 @@ struct PotentialLocationsList: View {
         LiquidGlassCard(style: .regular, padding: 20) {
             VStack(alignment: .leading, spacing: 16) {
                 // Header
-                HStack {
-                    HStack(spacing: 8) {
-                        Image(systemName: "mappin.and.ellipse")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(.blue)
-                        
-                        Text("Potential Locations")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        // Count badge
-                        if !locations.isEmpty {
-                            Text("\(locations.count)")
-                                .font(.caption.weight(.semibold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(Color.blue)
-                                .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
-                        }
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Potential Locations, \(locations.count) added")
-                    
-                    Spacer()
-                    
-                    // Add button
-                    Button(action: onAddLocation) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 14, weight: .semibold))
-                            Text("Add")
-                                .font(.subheadline.weight(.medium))
-                        }
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.blue.opacity(0.12))
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    }
-                    .disabled(!enabled)
-                    .accessibilityLabel("Add location")
-                    .accessibilityHint("Tap to add a new potential location")
-                }
+                headerView
+                
+                // Divider
+                LiquidGlassDivider(style: .subtle)
+                    .padding(.vertical, 8)
                 
                 // Content
                 if locations.isEmpty {
-                    // Empty state
-                    VStack(spacing: 12) {
-                        Image(systemName: "mappin.slash")
-                            .font(.system(size: 48, weight: .light))
-                            .foregroundColor(.secondary.opacity(0.4))
-                        
-                        VStack(spacing: 4) {
-                            Text("No locations yet")
-                                .font(.body.weight(.medium))
-                                .foregroundColor(.secondary.opacity(0.8))
-                            
-                            Text("Add potential venues, cities, or regions")
-                                .font(.caption)
-                                .foregroundColor(.secondary.opacity(0.6))
-                                .multilineTextAlignment(.center)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 24)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("No locations yet. Add potential venues, cities, or regions")
-                    .transition(.opacity.combined(with: .scale(scale: 0.95)))
+                    emptyStateView
                 } else {
-                    // Locations list
-                    VStack(spacing: 8) {
-                        ForEach(locations, id: \.id) { location in
-                            LocationListItem(
-                                location: location,
-                                onRemove: {
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                        onRemoveLocation(location.id)
-                                    }
-                                },
-                                enabled: enabled
-                            )
-                            .transition(.asymmetric(
-                                insertion: .scale.combined(with: .opacity),
-                                removal: .scale.combined(with: .opacity)
-                            ))
-                        }
-                    }
-                    .transition(.opacity)
+                    locationsListView
                 }
             }
         }
         .animation(.easeInOut(duration: 0.25), value: locations.isEmpty)
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: locations.count)
+    }
+    
+    // MARK: - Subviews
+    
+    private var headerView: some View {
+        HStack {
+            // Icon and Title
+            HStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.wakevPrimary.opacity(0.2),
+                                    Color.wakevAccent.opacity(0.15)
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 32, height: 32)
+                    
+                    Image(systemName: "mappin.and.ellipse")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.wakevPrimary)
+                }
+                
+                Text("Potential Locations")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                
+                // Count badge using LiquidGlassBadge
+                if !locations.isEmpty {
+                    LiquidGlassBadge(
+                        text: "\(locations.count)",
+                        style: .info
+                    )
+                }
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Potential Locations, \(locations.count) added")
+            
+            Spacer()
+            
+            // Add button using LiquidGlassButton
+            LiquidGlassButton(
+                title: "Add",
+                style: .secondary
+            ) {
+                onAddLocation()
+            }
+            .frame(width: 80, height: 36)
+            .disabled(!enabled)
+            .accessibilityLabel("Add location")
+            .accessibilityHint("Tap to add a new potential location")
+        }
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.wakevPrimary.opacity(0.1),
+                                Color.wakevAccent.opacity(0.05)
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 80, height: 80)
+                
+                Image(systemName: "mappin.slash")
+                    .font(.system(size: 32, weight: .light))
+                    .foregroundColor(.wakevPrimary.opacity(0.5))
+            }
+            
+            VStack(spacing: 4) {
+                Text("No locations yet")
+                    .font(.body.weight(.medium))
+                    .foregroundColor(.primary)
+                
+                Text("Add potential venues, cities, or regions")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("No locations yet. Add potential venues, cities, or regions")
+        .transition(.opacity.combined(with: .scale(scale: 0.95)))
+    }
+    
+    private var locationsListView: some View {
+        VStack(spacing: 12) {
+            ForEach(locations, id: \.id) { location in
+                LocationListItem(
+                    location: location,
+                    onRemove: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            onRemoveLocation(location.id)
+                        }
+                    },
+                    enabled: enabled
+                )
+                .transition(.asymmetric(
+                    insertion: .scale.combined(with: .opacity),
+                    removal: .scale.combined(with: .opacity)
+                ))
+            }
+        }
+        .transition(.opacity)
     }
 }
 
@@ -141,63 +179,51 @@ private struct LocationListItem: View {
     let enabled: Bool
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Type icon
-            Image(systemName: locationIcon)
-                .font(.system(size: 20, weight: .medium))
-                .foregroundColor(.blue)
-                .frame(width: 24)
-            
-            // Location info
-            VStack(alignment: .leading, spacing: 4) {
-                Text(location.name)
-                    .font(.body.weight(.medium))
-                    .foregroundColor(.primary)
-                
-                HStack(spacing: 4) {
-                    Text(locationTypeText)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    if let address = location.address, !address.isEmpty {
-                        Text("•")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Text(address)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-            }
-            
-            Spacer()
-            
-            // Delete button
-            Button(action: onRemove) {
-                Image(systemName: "trash.fill")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.red)
-                    .frame(width: 32, height: 32)
-            }
-            .disabled(!enabled)
-            .accessibilityLabel("Remove \(location.name)")
-            .accessibilityHint("Double tap to remove this location")
+        LiquidGlassListItem(
+            title: location.name,
+            subtitle: locationTypeSubtitle,
+            icon: locationIcon,
+            iconColor: iconColor,
+            style: .default
+        ) {
+            EmptyView()
+        } trailing: {
+            removeButton
         }
-        .padding(12)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-        )
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(location.name), \(locationTypeText)")
         .accessibilityValue(location.address ?? "No address")
     }
     
+    // MARK: - Subviews
+    
+    private var removeButton: some View {
+        Button(action: onRemove) {
+            Image(systemName: "trash.fill")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.wakevError)
+                .frame(width: 32, height: 32)
+                .background(
+                    Circle()
+                        .fill(Color.wakevError.opacity(0.1))
+                )
+        }
+        .disabled(!enabled)
+        .accessibilityLabel("Remove \(location.name)")
+        .accessibilityHint("Double tap to remove this location")
+    }
+    
     // MARK: - Helpers
+    
+    private var locationTypeSubtitle: String {
+        var parts: [String] = [locationTypeText]
+        
+        if let address = location.address, !address.isEmpty {
+            parts.append(address)
+        }
+        
+        return parts.joined(separator: " • ")
+    }
     
     private var locationIcon: String {
         switch location.locationType {
@@ -211,6 +237,21 @@ private struct LocationListItem: View {
             return "video.fill"
         default:
             return "mappin.and.ellipse"
+        }
+    }
+    
+    private var iconColor: Color {
+        switch location.locationType {
+        case Shared.LocationType.city:
+            return .wakevPrimary
+        case Shared.LocationType.region:
+            return .cyan
+        case Shared.LocationType.specificVenue:
+            return .orange
+        case Shared.LocationType.online:
+            return .purple
+        default:
+            return .wakevAccent
         }
     }
     
