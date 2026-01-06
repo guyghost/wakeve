@@ -289,7 +289,7 @@ curl http://localhost:8080/api/events
 ### 5. Build iOS App
 ```bash
 # Open in Xcode
-open iosApp/iosApp.xcodeproj
+open wakeveApp/wakeveApp.xcodeproj
 
 # Build in Xcode (Cmd+B)
 # Run in Simulator (Cmd+R)

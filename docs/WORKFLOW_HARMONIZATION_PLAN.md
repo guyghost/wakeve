@@ -492,8 +492,8 @@ Après implémentation, les métriques suivantes devraient être atteintes:
 
 ## 🔗 Ressources
 
-- [WORKFLOW_ANALYSIS_REPORT.md](./WORKFLOW_ANALYSIS_REPORT.md) - Rapport d'analyse complet
-- [AGENTS.md](./AGENTS.md) - Guide des agents IA
+- [WORKFLOW_ANALYSIS_REPORT.md](WORKFLOW_ANALYSIS_REPORT.md) - Rapport d'analyse complet
+- [AGENTS.md](../AGENTS.md) - Guide des agents IA
 - [openspec/specs/](./openspec/specs/) - Spécifications OpenSpec
 
 ---
