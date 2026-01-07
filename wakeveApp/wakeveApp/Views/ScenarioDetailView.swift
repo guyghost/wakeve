@@ -257,7 +257,7 @@ struct ScenarioDetailView: View {
                     subtitle: scenario.dateOrPeriod
                 )
                 
-                LiquidGlassDivider(style: .thin)
+                LiquidGlassDivider(style: .subtle)
                 
                 LiquidGlassListItem(
                     title: "Duration",
@@ -285,7 +285,7 @@ struct ScenarioDetailView: View {
                     subtitle: String(format: "$%.2f", scenario.estimatedBudgetPerPerson)
                 )
                 
-                LiquidGlassDivider(style: .thin)
+                LiquidGlassDivider(style: .subtle)
                 
                 LiquidGlassListItem(
                     title: "Total Estimated",
@@ -313,7 +313,7 @@ struct ScenarioDetailView: View {
                 .font(.system(size: 28, weight: .bold))
                 .frame(maxWidth: .infinity, alignment: .leading)
             
-            LiquidGlassCard.thin(padding: 20) {
+            LiquidGlassCard(cornerRadius: 12, padding: 20, opacity: 0.9, intensity: 0.8) {
                 VStack(spacing: 16) {
                     LiquidGlassTextField(
                         title: "Name",
@@ -520,7 +520,7 @@ struct DetailSection<Content: View>: View {
     }
     
     var body: some View {
-        LiquidGlassCard.thin(padding: 20) {
+        LiquidGlassCard(cornerRadius: 12, padding: 20, opacity: 0.9, intensity: 0.8) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 8) {
                     Image(systemName: icon)
@@ -581,7 +581,7 @@ struct VotingResultsView: View {
                 }
             }
             
-            LiquidGlassDivider(style: .thin)
+            LiquidGlassDivider(style: .subtle)
             
             HStack {
                 Text("Total Score")

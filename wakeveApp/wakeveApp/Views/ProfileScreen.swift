@@ -97,7 +97,7 @@ struct PointsSummaryCard: View {
                     }
                 }
                 
-                LiquidGlassDivider(style: .thin)
+                LiquidGlassDivider(style: .subtle)
                     .padding(.vertical, 4)
                 
                 // Points breakdown
@@ -200,7 +200,6 @@ struct BadgeItemView: View {
     
     var body: some View {
         LiquidGlassCard(
-            style: .thin,
             cornerRadius: 12,
             padding: 12
         ) {
@@ -325,7 +324,6 @@ struct LeaderboardItemView: View {
     
     var body: some View {
         LiquidGlassCard(
-            style: isCurrentUser ? .regular : .thin,
             cornerRadius: 12,
             padding: 12
         ) {
@@ -348,8 +346,7 @@ struct LeaderboardItemView: View {
                         if entry.isFriend {
                             LiquidGlassBadge(
                                 text: "Ami",
-                                type: .accent,
-                                size: .small
+                                style: .accent
                             )
                         }
                     }

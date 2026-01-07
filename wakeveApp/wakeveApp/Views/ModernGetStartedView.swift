@@ -1,4 +1,5 @@
 import SwiftUI
+import Shared
 
 /**
  * ModernGetStartedView - Welcome screen for iOS
@@ -429,7 +430,8 @@ struct ScaleEffectOnPress: ViewModifier {
 
 struct ModernGetStartedView_Previews: PreviewProvider {
     static var previews: some View {
+        let authService = AuthenticationService()
         ModernGetStartedView(onGetStarted: {})
-            .environmentObject(AuthStateManager())
+            .environmentObject(AuthStateManager(authService: authService, enableOAuth: false))
     }
 }

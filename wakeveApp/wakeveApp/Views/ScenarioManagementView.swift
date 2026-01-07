@@ -125,7 +125,7 @@ struct ScenarioManagementView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "exclamationmark.circle.fill")
-                    .foregroundColor(DesignSystemColors.error)
+                    .foregroundColor(.wakevError)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Error")
@@ -144,7 +144,7 @@ struct ScenarioManagementView: View {
             }
         }
         .padding(16)
-        .background(DesignSystemColors.error.opacity(0.1))
+        .background(Color.wakevError.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .padding(16)
         .frame(maxHeight: .infinity, alignment: .top)
@@ -166,13 +166,13 @@ struct ScenarioManagementView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.2)
-                .tint(DesignSystemColors.primary)
+                .tint(Color.wakevPrimary)
             Text("Loading scenarios...")
                 .font(.body)
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(DesignSystemColors.surface)
+        .background(Color.wakevSurfaceDark)
     }
 
     @ViewBuilder
@@ -205,7 +205,7 @@ struct ScenarioManagementView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 100)
         }
-        .background(DesignSystemColors.surface)
+        .background(Color.wakevSurfaceDark)
         .refreshable {
             isRefreshing = true
             viewModel.loadScenarios()
@@ -219,7 +219,7 @@ struct ScenarioManagementView: View {
         VStack(spacing: 24) {
             Image(systemName: "calendar.badge.exclamationmark")
                 .font(.system(size: 56))
-                .foregroundColor(DesignSystemColors.textSecondary)
+                .foregroundColor(Color.wakevTextSecondaryDark)
 
             VStack(spacing: 8) {
                 Text("No Scenarios Yet")
@@ -241,7 +241,7 @@ struct ScenarioManagementView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(24)
-        .background(DesignSystemColors.surface)
+        .background(Color.wakevSurfaceDark)
     }
     
     private var createScenarioButton: some View {
@@ -254,7 +254,7 @@ struct ScenarioManagementView: View {
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(DesignSystemColors.primary)
+            .background(Color.wakevPrimary)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
@@ -301,7 +301,6 @@ struct ScenarioRowView: View {
 
     var body: some View {
         LiquidGlassCard(
-            style: isSelected ? .thick : .regular,
             cornerRadius: 16,
             padding: 0
         ) {
@@ -309,17 +308,17 @@ struct ScenarioRowView: View {
                 headerSection
                     .padding(16)
 
-                LiquidGlassDivider(style: .thin)
+                LiquidGlassDivider(style: .subtle)
 
                 detailsSection
                     .padding(.horizontal, 16)
 
-                LiquidGlassDivider(style: .thin)
+                LiquidGlassDivider(style: .subtle)
 
                 votingSection
                     .padding(.horizontal, 16)
 
-                LiquidGlassDivider(style: .thin)
+                LiquidGlassDivider(style: .subtle)
 
                 votingButtonsSection
                     .padding(.horizontal, 16)
@@ -340,7 +339,7 @@ struct ScenarioRowView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .stroke(
-                    isSelected ? DesignSystemColors.primary : Color.clear,
+                    isSelected ? Color.wakevPrimary : Color.clear,
                     lineWidth: 2
                 )
         )
@@ -360,8 +359,7 @@ struct ScenarioRowView: View {
                     if scenario.status == "SELECTED" {
                         LiquidGlassBadge(
                             text: "Selected",
-                            type: .success,
-                            size: .small
+                            style: .success
                         )
                     }
                 }
@@ -386,9 +384,9 @@ struct ScenarioRowView: View {
         Button(action: onEdit) {
             Image(systemName: "pencil")
                 .font(.body)
-                .foregroundColor(DesignSystemColors.primary)
+                .foregroundColor(Color.wakevPrimary)
                 .frame(width: 32, height: 32)
-                .background(DesignSystemColors.primary.opacity(0.1))
+                .background(Color.wakevPrimary.opacity(0.1))
                 .clipShape(Circle())
         }
         .buttonStyle(.plain)
@@ -398,9 +396,9 @@ struct ScenarioRowView: View {
         Button(action: onDelete) {
             Image(systemName: "trash")
                 .font(.body)
-                .foregroundColor(DesignSystemColors.error)
+                .foregroundColor(Color.wakevError)
                 .frame(width: 32, height: 32)
-                .background(DesignSystemColors.error.opacity(0.1))
+                .background(Color.wakevError.opacity(0.1))
                 .clipShape(Circle())
         }
         .buttonStyle(.plain)
@@ -413,36 +411,33 @@ struct ScenarioRowView: View {
             HStack(spacing: 12) {
                 LiquidGlassListItem(
                     title: scenario.dateOrPeriod,
-                    icon: "calendar",
-                    trailingContent: AnyView(
-                        Text("Date")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    )
-                )
+                    icon: "calendar"
+                ) {
+                    Text("Date")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
 
             HStack(spacing: 12) {
                 LiquidGlassListItem(
                     title: "\(scenario.estimatedParticipants) people",
-                    icon: "person.2",
-                    trailingContent: AnyView(
-                        Text("Participants")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    )
-                )
+                    icon: "person.2"
+                ) {
+                    Text("Participants")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
 
             LiquidGlassListItem(
                 title: scenario.location,
-                icon: "mappin.circle",
-                trailingContent: AnyView(
-                    Text("Location")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                )
-            )
+                icon: "mappin.circle"
+            ) {
+                Text("Location")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
 
             HStack(spacing: 12) {
                 LiquidGlassListItem(
@@ -486,21 +481,21 @@ struct ScenarioRowView: View {
                         label: "Prefer",
                         count: scenario.votingResult.preferCount,
                         percentage: scenario.votingResult.preferPercentage,
-                        color: DesignSystemColors.primary
+                        color: Color.wakevPrimary
                     )
 
                     VoteBreakdownRow(
                         label: "Neutral",
                         count: scenario.votingResult.neutralCount,
                         percentage: scenario.votingResult.neutralPercentage,
-                        color: DesignSystemColors.warning
+                        color: Color.wakevWarning
                     )
 
                     VoteBreakdownRow(
                         label: "Against",
                         count: scenario.votingResult.againstCount,
                         percentage: scenario.votingResult.againstPercentage,
-                        color: DesignSystemColors.error
+                        color: Color.wakevError
                     )
 
                     Text("Total: \(scenario.votingResult.totalVotes) votes")
@@ -515,9 +510,9 @@ struct ScenarioRowView: View {
 
     private var scoreColor: Color {
         if scenario.votingResult.score > 0 {
-            return DesignSystemColors.success
+            return Color.wakevSuccess
         } else if scenario.votingResult.score < 0 {
-            return DesignSystemColors.error
+            return Color.wakevError
         } else {
             return .secondary
         }
@@ -532,7 +527,7 @@ struct ScenarioRowView: View {
                 label: "Prefer",
                 action: { onVote(scenario.id, "PREFER") },
                 disabled: isLocked,
-                color: DesignSystemColors.success
+                color: Color.wakevSuccess
             )
 
             VotingButton(
@@ -540,7 +535,7 @@ struct ScenarioRowView: View {
                 label: "Neutral",
                 action: { onVote(scenario.id, "NEUTRAL") },
                 disabled: isLocked,
-                color: DesignSystemColors.warning
+                color: Color.wakevWarning
             )
 
             VotingButton(
@@ -548,7 +543,7 @@ struct ScenarioRowView: View {
                 label: "Against",
                 action: { onVote(scenario.id, "AGAINST") },
                 disabled: isLocked,
-                color: DesignSystemColors.error
+                color: Color.wakevError
             )
         }
     }
@@ -558,11 +553,11 @@ struct ScenarioRowView: View {
     private var lockWarning: some View {
         HStack {
             Image(systemName: "lock.fill")
-                .foregroundColor(DesignSystemColors.warning)
+                .foregroundColor(Color.wakevWarning)
             Text("Voting locked")
                 .font(.caption)
                 .fontWeight(.medium)
-                .foregroundColor(DesignSystemColors.warning)
+                .foregroundColor(Color.wakevWarning)
         }
         .padding(.vertical, 4)
     }
@@ -574,7 +569,7 @@ struct ScenarioRowView: View {
             HStack(spacing: 12) {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundColor(isSelected ? DesignSystemColors.primary : .secondary)
+                    .foregroundColor(isSelected ? Color.wakevPrimary : .secondary)
 
                 Text("Select for comparison")
                     .font(.subheadline)
@@ -583,7 +578,7 @@ struct ScenarioRowView: View {
                 Spacer()
             }
             .padding(12)
-            .background(isSelected ? DesignSystemColors.primary.opacity(0.1) : Color.clear)
+            .background(isSelected ? Color.wakevPrimary.opacity(0.1) : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -646,8 +641,8 @@ struct VotingButton: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
-            .background(disabled ? DesignSystemColors.textSecondary.opacity(0.1) : color.opacity(0.1))
-            .foregroundColor(disabled ? DesignSystemColors.textSecondary.opacity(0.5) : color)
+            .background(disabled ? Color.wakevTextSecondaryDark.opacity(0.1) : color.opacity(0.1))
+            .foregroundColor(disabled ? Color.wakevTextSecondaryDark.opacity(0.5) : color)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)

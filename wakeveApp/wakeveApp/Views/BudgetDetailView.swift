@@ -258,8 +258,8 @@ struct BudgetDetailView: View {
                 
                 // Divider
                 LiquidGlassDivider(
-                    orientation: .vertical,
-                    opacity: 0.2
+                    style: .subtle,
+                    orientation: .vertical
                 )
                 .frame(height: 24)
                 .padding(.horizontal, 4)
@@ -704,9 +704,9 @@ private struct BudgetItemCard: View {
                             // Paid Status Badge
                             if item.isPaid {
                                 LiquidGlassBadge(
+                                    text: "",
                                     icon: "checkmark.circle.fill",
-                                    type: .success,
-                                    size: .small
+                                    style: .success
                                 )
                                 .accessibilityLabel("Paid")
                             }
@@ -737,8 +737,8 @@ private struct BudgetItemCard: View {
                     // Actual Cost (if paid)
                     if item.isPaid {
                         LiquidGlassDivider(
-                            orientation: .vertical,
-                            opacity: 0.2
+                            style: .subtle,
+                            orientation: .vertical
                         )
                         .frame(height: 30)
                         
@@ -760,8 +760,7 @@ private struct BudgetItemCard: View {
                         let diff = item.actualCost - item.estimatedCost
                         LiquidGlassBadge(
                             text: formatCost(abs(diff)),
-                            type: diff > 0 ? .error : .success,
-                            size: .small
+                            style: diff > 0 ? .default : .success
                         )
                         .accessibilityLabel("\(diff > 0 ? "Over" : "Under") budget by $\(formatCost(abs(diff)))")
                     }

@@ -64,7 +64,34 @@ struct LiquidGlassTextField: View {
     let rightIconAction: (() -> Void)?
     
     @FocusState private var isFocused: Bool
-    
+
+    // Convenience initializer with defaults
+    init(
+        title: String? = nil,
+        placeholder: String,
+        text: Binding<String>,
+        isSecure: Bool? = nil,
+        isDisabled: Bool? = nil,
+        keyboardType: UIKeyboardType? = nil,
+        errorMessage: String? = nil,
+        leftIcon: String? = nil,
+        rightIcon: String? = nil,
+        leftIconAction: (() -> Void)? = nil,
+        rightIconAction: (() -> Void)? = nil
+    ) {
+        self.title = title
+        self.placeholder = placeholder
+        self._text = text
+        self.isSecure = isSecure
+        self.isDisabled = isDisabled
+        self.keyboardType = keyboardType
+        self.errorMessage = errorMessage
+        self.leftIcon = leftIcon
+        self.rightIcon = rightIcon
+        self.leftIconAction = leftIconAction
+        self.rightIconAction = rightIconAction
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             // Title
@@ -92,32 +119,13 @@ struct LiquidGlassTextField: View {
                     if text.isEmpty {
                         Text(placeholder)
                             .font(.body)
-                            .foregroundColor(isDisabled == true ? .secondary : .tertiary)
+                            .foregroundColor(isDisabled == true ? .secondary : Color.secondary.opacity(0.6))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 12)
                     }
-                    
-                    if !text.isEmpty {
-                        if isSecure == true {
-                            SecureField("", text: $text)
-                                .font(.body)
-                                .foregroundColor(isDisabled == true ? .secondary : .primary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 12)
-                                .disabled(isDisabled == true)
-                                .autocapitalization(.none)
-                        } else {
-                            TextField("", text: $text)
-                                .font(.body)
-                                .foregroundColor(isDisabled == true ? .secondary : .primary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 12)
-                                .disabled(isDisabled == true)
-                                .autocapitalization(.none)
-                                .keyboardType(keyboardType ?? .default)
-                        }
-                    }
-                    
+
+                    textFieldContent
+
                     // Focus indicator
                     if isFocused {
                         RoundedRectangle(cornerRadius: 2)
@@ -178,14 +186,42 @@ struct LiquidGlassTextField: View {
         .accessibilityHint(isSecure == true ? "Password field" : "Text field")
     }
     
+    // MARK: - Helper Views
+
+    @ViewBuilder
+    private var textFieldContent: some View {
+        if !text.isEmpty {
+            if isSecure == true {
+                SecureField("", text: $text)
+                    .font(.body)
+                    .foregroundColor(isDisabled == true ? .secondary : .primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .disabled(isDisabled == true)
+                    .autocapitalization(.none)
+                    .focused($isFocused)
+            } else {
+                TextField("", text: $text)
+                    .font(.body)
+                    .foregroundColor(isDisabled == true ? .secondary : .primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
+                    .disabled(isDisabled == true)
+                    .autocapitalization(.none)
+                    .keyboardType(keyboardType ?? .default)
+                    .focused($isFocused)
+            }
+        }
+    }
+
     // MARK: - Focus State Management
-    
+
     private var backgroundColor: Material {
         isFocused ? .thinMaterial : .ultraThinMaterial
     }
-    
+
     // MARK: - Validation Helper
-    
+
     private var borderColor: Color {
         if let errorMessage = errorMessage, !errorMessage.isEmpty {
             return .red

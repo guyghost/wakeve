@@ -123,7 +123,7 @@ struct CalendarIntegrationCard: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(NSLocalizedString("calendar", comment: "Calendar label"))
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(.wakevTextPrimary)
+                .foregroundColor(Color.wakevTextPrimaryDark)
             
             LiquidGlassBadge(
                 text: calendarStatus.badgeText,
@@ -253,10 +253,10 @@ struct CalendarIntegrationCard: View {
     
     private func handleShareInvitation() {
         isShareInvitationLoading = true
-        
+
         Task {
             do {
-                let icsContent = generateICSContent()
+                let icsContent = generateICSContent(event: event)
                 let fileURL = try await createICSFile(icsContent: icsContent)
                 try await presentShareSheet(fileURL: fileURL)
                 onShareInvitation()
@@ -264,7 +264,7 @@ struct CalendarIntegrationCard: View {
                 errorMessage = NSLocalizedString("share_error_message", comment: "Failed to share invitation")
                 showError = true
             }
-            
+
             isShareInvitationLoading = false
         }
     }

@@ -456,23 +456,23 @@ struct HostActionButton: View {
     }
 }
 
-// MARK: - Modified HostActionButton with LiquidGlassCard.thin
+// MARK: - Modified HostActionButton with LiquidGlassCard
 extension HostActionButton {
     var liquidBody: some View {
         Button(action: action) {
-            LiquidGlassCard.thin(cornerRadius: 12, padding: 0) {
+            LiquidGlassCard(cornerRadius: 12, padding: 0) {
                 HStack {
                     Image(systemName: icon)
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(color)
                         .frame(width: 28)
-                    
+
                     Text(title)
                         .font(.system(size: 17, weight: .medium))
                         .foregroundColor(.primary)
-                    
+
                     Spacer()
-                    
+
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)

@@ -46,7 +46,7 @@ struct CommentButton: View {
                 )
                 
                 // Badge du compteur de commentaires
-                LiquidGlassBadge.comments(count: commentCount)
+                LiquidGlassBadge(text: "\(commentCount)", style: .info)
             }
             .padding(.horizontal, 4)
             .padding(.vertical, 4)

@@ -32,7 +32,7 @@ struct PotentialLocationsList: View {
     // MARK: - Body
     
     var body: some View {
-        LiquidGlassCard(style: .regular, padding: 20) {
+        LiquidGlassCard(cornerRadius: 16, padding: 20) {
             VStack(alignment: .leading, spacing: 16) {
                 // Header
                 headerView
@@ -186,8 +186,6 @@ private struct LocationListItem: View {
             iconColor: iconColor,
             style: .default
         ) {
-            EmptyView()
-        } trailing: {
             removeButton
         }
         .accessibilityElement(children: .contain)

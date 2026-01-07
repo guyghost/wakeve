@@ -244,7 +244,7 @@ struct BudgetOverviewView: View {
         } else if usagePercentage <= 120 {
             return .warning
         } else {
-            return .error
+            return .default
         }
     }
     
@@ -638,7 +638,7 @@ private struct CategoryRow: View {
         } else if percentage <= 120 {
             return .warning
         } else {
-            return .error
+            return .default
         }
     }
     

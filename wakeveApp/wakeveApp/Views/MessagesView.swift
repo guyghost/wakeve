@@ -262,8 +262,6 @@ struct ConversationRow: View {
             iconColor: .wakevPrimary,
             style: .default
         ) {
-            EmptyView()
-        } trailing: {
             VStack(alignment: .trailing, spacing: 4) {
                 Text(formatTimestamp(timestamp))
                     .font(.caption)
