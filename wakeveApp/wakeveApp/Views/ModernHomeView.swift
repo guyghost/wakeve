@@ -246,7 +246,7 @@ struct ModernEventCard: View {
 
     var body: some View {
         Button(action: onTap) {
-            LiquidGlassCard.thick(cornerRadius: 20, padding: 0) {
+            LiquidGlassCard(cornerRadius: 20, padding: 0) {
                 ZStack {
                     // Background Gradient
                     RoundedRectangle(cornerRadius: 20)

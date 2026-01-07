@@ -74,12 +74,12 @@ struct ExploreView: View {
                             }
                             .padding(.horizontal, 16)
 
-                            LiquidGlassDivider(style: .thin)
+                            LiquidGlassDivider(style: .subtle)
                                 .padding(.leading, 16)
 
                             // Recommended Events
                             VStack(spacing: 16) {
-                                SectionHeader(title: "Recommandés pour vous")
+                                SectionHeader("Recommandés pour vous")
 
                                 LazyVStack(spacing: 16) {
                                     ForEach(events.suffix(from: events.count > 3 ? 3 : 0), id: \.id) { event in
@@ -94,9 +94,13 @@ struct ExploreView: View {
                             }
                             .padding(.horizontal, 16)
                         } else if isLoading {
-                            LoadingView()
+                            LoadingView(message: "Chargement des événements...")
                         } else {
-                            EmptyStateView()
+                            EmptyStateView(
+                                icon: "calendar.badge.exclamationmark",
+                                title: "Aucun événement",
+                                message: "Créez votre premier événement pour commencer !"
+                            )
                         }
                     }
                     .padding(.top, 12)

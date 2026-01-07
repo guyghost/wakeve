@@ -94,7 +94,7 @@ struct ParticipantsEstimationCard: View {
     // MARK: - Body
     
     var body: some View {
-        LiquidGlassCard(style: .regular, padding: 20) {
+        LiquidGlassCard(cornerRadius: 16, padding: 20) {
             VStack(alignment: .leading, spacing: 16) {
                 // Header
                 headerSection
@@ -124,8 +124,7 @@ struct ParticipantsEstimationCard: View {
             LiquidGlassBadge(
                 text: "Participants",
                 icon: "person.2.fill",
-                type: .primary,
-                size: .medium
+                style: .info
             )
             
             Spacer()
@@ -151,13 +150,13 @@ struct ParticipantsEstimationCard: View {
             minimumParticipantField
             
             // Divider
-            LiquidGlassDivider(style: .thin)
+            LiquidGlassDivider(style: .subtle)
             
             // Maximum Participants
             maximumParticipantField
             
             // Divider
-            LiquidGlassDivider(style: .thin)
+            LiquidGlassDivider(style: .subtle)
             
             // Expected Participants
             expectedParticipantField
@@ -242,8 +241,7 @@ struct ParticipantsEstimationCard: View {
                     LiquidGlassBadge(
                         text: "Outside range",
                         icon: "exclamationmark.triangle.fill",
-                        type: .warning,
-                        size: .small
+                        style: .warning
                     )
                 }
             }
@@ -269,15 +267,14 @@ struct ParticipantsEstimationCard: View {
     private var helperInfoSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Divider
-            LiquidGlassDivider(style: .thin)
+            LiquidGlassDivider(style: .subtle)
             
             HStack(alignment: .top, spacing: 12) {
                 // Info icon with badge
                 LiquidGlassBadge(
                     text: "Tip",
                     icon: "lightbulb.fill",
-                    type: .primary,
-                    size: .small
+                    style: .info
                 )
                 
                 Text(helperText)

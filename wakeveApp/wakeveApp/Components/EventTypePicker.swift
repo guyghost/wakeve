@@ -116,7 +116,7 @@ struct EventTypePicker: View {
                 if customTypeValue.isEmpty {
                     Text("Describe your event type")
                         .font(.body)
-                        .foregroundColor(.tertiary)
+                        .foregroundColor(Color.secondary.opacity(0.6))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 16)
                 }
@@ -133,7 +133,7 @@ struct EventTypePicker: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(UIColor.ultraThinMaterial))
+                .fill(.ultraThinMaterial)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -170,10 +170,7 @@ private struct EventTypeButton: View {
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(isSelected ? .white : typeColor)
                     .frame(width: 32, height: 32)
-                    .background(
-                        Circle()
-                            .fill(isSelected ? typeGradient : typeColor.opacity(0.15))
-                    )
+                    .background(iconBackground)
                 
                 // Type Name
                 Text(type.displayName)
@@ -195,17 +192,7 @@ private struct EventTypeButton: View {
                 }
             }
             .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(isSelected ? selectedBackground : Color.clear)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .stroke(
-                                isSelected ? selectedBorder : Color.primary.opacity(0.1),
-                                lineWidth: isSelected ? 1.5 : 0.5
-                            )
-                    )
-            )
+            .background(buttonBackground)
             .liquidGlass(
                 cornerRadius: 16,
                 opacity: isSelected ? 0.8 : 0.4,
@@ -226,29 +213,41 @@ private struct EventTypeButton: View {
     
     private var typeColor: Color {
         switch type {
-        case .birthday:
+        case Shared.EventType.birthday:
             return .pink
-        case .wedding:
+        case Shared.EventType.wedding:
             return .pink.opacity(0.8)
-        case .anniversary:
-            return .red.opacity(0.8)
-        case .teamBuilding:
+        case Shared.EventType.teamBuilding:
             return .blue
-        case .conference:
+        case Shared.EventType.conference:
             return .purple
-        case .workshop:
+        case Shared.EventType.workshop:
             return .orange
-        case .dinner:
+        case Shared.EventType.party:
             return .green
-        case .vacation:
-            return .teal
-        case .holiday:
-            return .indigo
-        case .meeting:
+        case Shared.EventType.sportsEvent:
             return .cyan
-        case .custom:
+        case Shared.EventType.culturalEvent:
+            return .indigo
+        case Shared.EventType.familyGathering:
+            return .orange.opacity(0.8)
+        case Shared.EventType.sportEvent:
+            return .cyan.opacity(0.8)
+        case Shared.EventType.outdoorActivity:
+            return .teal
+        case Shared.EventType.foodTasting:
+            return .orange.opacity(0.6)
+        case Shared.EventType.techMeetup:
+            return .blue.opacity(0.8)
+        case Shared.EventType.wellnessEvent:
+            return .mint
+        case Shared.EventType.creativeWorkshop:
+            return .purple.opacity(0.8)
+        case Shared.EventType.other:
             return .gray
-        @unknown default:
+        case Shared.EventType.custom:
+            return .gray
+        default:
             return .blue
         }
     }
@@ -263,8 +262,27 @@ private struct EventTypeButton: View {
             endPoint: .bottomTrailing
         )
     }
-    
-    private var selectedBackground: some View {
+
+    @ViewBuilder
+    private var iconBackground: some View {
+        Circle()
+            .fill(isSelected ? AnyShapeStyle(typeGradient) : AnyShapeStyle(typeColor.opacity(0.15)))
+    }
+
+    @ViewBuilder
+    private var buttonBackground: some View {
+        RoundedRectangle(cornerRadius: 16, style: .continuous)
+            .fill(isSelected ? AnyShapeStyle(selectedBackgroundGradient) : AnyShapeStyle(Color.clear))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(
+                        isSelected ? AnyShapeStyle(selectedBorder) : AnyShapeStyle(Color.primary.opacity(0.1)),
+                        lineWidth: isSelected ? 1.5 : 0.5
+                    )
+            )
+    }
+
+    private var selectedBackgroundGradient: LinearGradient {
         LinearGradient(
             gradient: Gradient(colors: [
                 Color.wakevPrimary,
@@ -274,7 +292,7 @@ private struct EventTypeButton: View {
             endPoint: .bottomTrailing
         )
     }
-    
+
     private var selectedBorder: LinearGradient {
         LinearGradient(
             gradient: Gradient(colors: [
@@ -292,29 +310,41 @@ private struct EventTypeButton: View {
 private extension Shared.EventType {
     var iconName: String {
         switch self {
-        case .birthday:
+        case Shared.EventType.birthday:
             return "cake.fill"
-        case .wedding:
+        case Shared.EventType.wedding:
             return "heart.fill"
-        case .anniversary:
-            return "calendar.badge.clock"
-        case .teamBuilding:
+        case Shared.EventType.teamBuilding:
             return "person.3.fill"
-        case .conference:
+        case Shared.EventType.conference:
             return "mic.fill"
-        case .workshop:
+        case Shared.EventType.workshop:
             return "hammer.fill"
-        case .dinner:
+        case Shared.EventType.party:
+            return "party.popper.fill"
+        case Shared.EventType.sportsEvent:
+            return "figure.run"
+        case Shared.EventType.culturalEvent:
+            return "theatermasks.fill"
+        case Shared.EventType.familyGathering:
+            return "house.fill"
+        case Shared.EventType.sportEvent:
+            return "sportscourt.fill"
+        case Shared.EventType.outdoorActivity:
+            return "mountain.2.fill"
+        case Shared.EventType.foodTasting:
             return "fork.knife"
-        case .vacation:
-            return "sun.max.fill"
-        case .holiday:
-            return "gift.fill"
-        case .meeting:
-            return "bubble.left.and.bubble.right.fill"
-        case .custom:
+        case Shared.EventType.techMeetup:
+            return "laptopcomputer"
+        case Shared.EventType.wellnessEvent:
+            return "heart.circle.fill"
+        case Shared.EventType.creativeWorkshop:
+            return "paintpalette.fill"
+        case Shared.EventType.other:
+            return "star.fill"
+        case Shared.EventType.custom:
             return "sparkles"
-        @unknown default:
+        default:
             return "star.fill"
         }
     }

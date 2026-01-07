@@ -19,7 +19,8 @@
       "Bash(xcrun simctl:*)",
       "Bash(plutil -lint:*)",
       "Bash(xxd:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []

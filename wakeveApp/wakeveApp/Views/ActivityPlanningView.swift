@@ -454,7 +454,7 @@ struct ActivityPlanningView: View {
                         .foregroundColor(.secondary)
                 }
                 
-                LiquidGlassDivider(style: .medium, opacity: 0.2)
+                LiquidGlassDivider(style: .default, orientation: .vertical)
                     .frame(height: 48)
                 
                 // Total Cost
@@ -551,8 +551,7 @@ struct ActivityPlanningView: View {
                 
                 LiquidGlassBadge(
                     text: "\(activities.count)",
-                    type: .primary,
-                    size: .small
+                    style: .success
                 )
             }
             
@@ -561,7 +560,7 @@ struct ActivityPlanningView: View {
                 activityCard(activity: activity)
                 
                 if activity.id != activities.last?.id {
-                    LiquidGlassDivider(style: .thin, opacity: 0.1)
+                    LiquidGlassDivider(style: .subtle)
                 }
             }
         }
@@ -595,13 +594,12 @@ struct ActivityPlanningView: View {
                     if activity.isFull {
                         LiquidGlassBadge(
                             text: "Complet",
-                            type: .warning,
-                            size: .small
+                            style: .warning
                         )
                     }
                 }
                 
-                LiquidGlassDivider(style: .thin, opacity: 0.1)
+                LiquidGlassDivider(style: .subtle)
                 
                 // Activity Details
                 VStack(alignment: .leading, spacing: 8) {

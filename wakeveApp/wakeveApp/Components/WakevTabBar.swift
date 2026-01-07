@@ -146,11 +146,11 @@ struct LiquidGlassTabButton: View {
     // MARK: - Computed Properties
     
     private var iconColor: Color {
-        isSelected ? Color.wakevPrimary : Color.wakevTextSecondary
+        isSelected ? Color.wakevPrimary : Color.wakevTextSecondaryDark
     }
     
     private var titleColor: Color {
-        isSelected ? Color.wakevPrimary : Color.wakevTextSecondary
+        isSelected ? Color.wakevPrimary : Color.wakevTextSecondaryDark
     }
     
     private var iconBackground: some View {
@@ -199,7 +199,7 @@ struct LiquidGlassTabButton: View {
         case .success: return Color.wakevSuccess
         case .warning: return Color.wakevWarning
         case .error: return Color.wakevError
-        case .neutral: return Color.wakevTextPrimary
+        case .neutral: return Color.wakevTextPrimaryDark
         }
     }
     
@@ -317,33 +317,21 @@ struct WakevTabBarContainer<Home: View, Inbox: View, Explore: View, Profile: Vie
                     Label(WakevTab.inbox.title, systemImage: WakevTab.inbox.icon)
                 }
                 .tag(WakevTab.inbox)
-                .badge {
-                    if inboxBadge.isVisible {
-                        badgeView(for: inboxBadge)
-                    }
-                }
-            
+                .badge(inboxBadge.isVisible ? String(inboxBadge.count) : nil)
+
             exploreContent
                 .tabItem {
                     Label(WakevTab.explore.title, systemImage: WakevTab.explore.icon)
                 }
                 .tag(WakevTab.explore)
-                .badge {
-                    if exploreBadge.isVisible {
-                        badgeView(for: exploreBadge)
-                    }
-                }
+                .badge(exploreBadge.isVisible ? String(exploreBadge.count) : nil)
             
             profileContent
                 .tabItem {
                     Label(WakevTab.profile.title, systemImage: WakevTab.profile.icon)
                 }
                 .tag(WakevTab.profile)
-                .badge {
-                    if profileBadge.isVisible {
-                        badgeView(for: profileBadge)
-                    }
-                }
+                .badge(profileBadge.isVisible ? String(profileBadge.count) : nil)
         }
         .tint(Color.wakevPrimary)
         .onAppear {
@@ -376,7 +364,7 @@ struct WakevTabBarContainer<Home: View, Inbox: View, Explore: View, Profile: Vie
         case .success: return Color.wakevSuccess
         case .warning: return Color.wakevWarning
         case .error: return Color.wakevError
-        case .neutral: return Color.wakevTextPrimary
+        case .neutral: return Color.wakevTextPrimaryDark
         }
     }
     
@@ -528,7 +516,7 @@ struct WakevTabBarSimpleContainer<Content: View>: View {
         case .success: return Color.wakevSuccess
         case .warning: return Color.wakevWarning
         case .error: return Color.wakevError
-        case .neutral: return Color.wakevTextPrimary
+        case .neutral: return Color.wakevTextPrimaryDark
         }
     }
     
@@ -732,8 +720,8 @@ struct LiquidGlassTabButtonsPreview: View {
                     .background(
                         LinearGradient(
                             gradient: Gradient(colors: [
-                                Color.wakevBorder.opacity(0.15),
-                                Color.wakevBorder.opacity(0)
+                                Color.wakevBorderDark.opacity(0.15),
+                                Color.wakevBorderDark.opacity(0)
                             ]),
                             startPoint: .leading,
                             endPoint: .trailing
@@ -820,8 +808,8 @@ struct LiquidGlassTabButtonsPreview: View {
             .background(
                 LinearGradient(
                     gradient: Gradient(colors: [
-                        Color.wakevBorder.opacity(0.15),
-                        Color.wakevBorder.opacity(0)
+                        Color.wakevBorderDark.opacity(0.15),
+                        Color.wakevBorderDark.opacity(0)
                     ]),
                     startPoint: .top,
                     endPoint: .bottom
@@ -888,9 +876,9 @@ struct GlassComponentsPreview: View {
                 }
                 
                 HStack(spacing: 16) {
-                    LiquidGlassBadge(count: 5, style: .primary)
-                    LiquidGlassBadge(count: 12, style: .accent)
-                    LiquidGlassBadge(count: 3, style: .success)
+                    LiquidGlassBadge(text: "5", style: .default)
+                    LiquidGlassBadge(text: "12", style: .accent)
+                    LiquidGlassBadge(text: "3", style: .success)
                 }
             }
         }

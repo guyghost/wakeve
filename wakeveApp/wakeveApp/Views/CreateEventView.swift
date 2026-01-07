@@ -73,7 +73,7 @@ struct CreateEventView: View {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
                     .fill(.ultraThinMaterial)
             )
-        .accessibilityViewIsModal(true)  // WCAG 4.1.3: Mark overlay as modal for VoiceOver
+        .accessibilityAddTraits(.isModal)  // WCAG 4.1.3: Mark overlay as modal for VoiceOver
         }
     }
     

@@ -144,7 +144,7 @@ struct DraftEventWizardView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(.wakevPrimary.opacity(0.15))
+                            .background(Color.wakevPrimary.opacity(0.15))
                             .foregroundColor(.primary)
                             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }

@@ -37,7 +37,7 @@ struct ScenarioListView: View {
                                 compareButton
                             }
                             
-                            LiquidGlassDivider(style: .medium)
+                            LiquidGlassDivider(style: .default)
                                                         ForEach(viewModel.scenarios, id: \.scenario.id) { scenarioWithVotes in
                                 scenarioCard(scenarioWithVotes: scenarioWithVotes)
                             }
@@ -189,7 +189,7 @@ struct ScenarioListView: View {
             VStack(alignment: .leading, spacing: 16) {
                 scenarioHeader(scenario: scenario)
                 
-                LiquidGlassDivider(style: .thin)
+                LiquidGlassDivider(style: .subtle)
                 
                 scenarioInfoSection(scenario: scenario)
                 
@@ -235,28 +235,27 @@ struct ScenarioListView: View {
     // MARK: - Status Badge
     
     private func statusBadge(for status: String) -> some View {
-        let badgeType: LiquidGlassBadge.BadgeType
+        let badgeType: LiquidGlassBadgeStyle
         let badgeText: String
         
         switch status.uppercased() {
         case "PROPOSED":
-            badgeType = .primary
+            badgeType = .success
             badgeText = NSLocalizedString("status_proposed", comment: "Proposed status")
         case "SELECTED":
             badgeType = .success
             badgeText = NSLocalizedString("status_selected", comment: "Selected status")
         case "REJECTED":
-            badgeType = .error
+            badgeType = .warning
             badgeText = NSLocalizedString("status_rejected", comment: "Rejected status")
         default:
-            badgeType = .primary
+            badgeType = .success
             badgeText = status
         }
         
         return LiquidGlassBadge(
             text: badgeText,
-            type: badgeType,
-            size: .small
+            style: badgeType
         )
     }
     
@@ -449,24 +448,29 @@ struct ScenarioListView: View {
 
 struct ScenarioListView_Previews: PreviewProvider {
     static var previews: some View {
+        // Note: This preview is disabled because the Event type is from the Shared module
+        // and requires proper initialization with all required parameters.
+        // Uncomment and update when Shared module is properly linked.
+        /*
         ScenarioListView(
             event: Event(
                 id: "preview-event-id",
                 title: "Team Building Event",
                 description: "Annual team building activity",
-                status: .init(name: "CONFIRMED"),
+                status: EventStatus.confirmed,
                 organizerId: "organizer-1",
-                createdAt: Date(),
-                updatedAt: Date(),
+                participants: ["participant-1"],
+                proposedSlots: [],
+                deadline: ISO8601DateFormatter().string(from: Date()),
+                createdAt: ISO8601DateFormatter().string(from: Date()),
+                updatedAt: ISO8601DateFormatter().string(from: Date()),
                 eventType: .teamBuilding,
                 eventTypeCustom: nil,
                 minParticipants: nil,
                 maxParticipants: nil,
                 expectedParticipants: nil,
                 finalDate: nil,
-                finalSlotId: nil,
-                scenariosUnlocked: true,
-                meetingsUnlocked: false
+                heroImageUrl: nil
             ),
             participantId: "participant-1",
             onScenarioTap: { _ in },
@@ -474,5 +478,7 @@ struct ScenarioListView_Previews: PreviewProvider {
             onCreateScenarioTap: { },
             onBack: { }
         )
+        */
+        EmptyView()
     }
 }
