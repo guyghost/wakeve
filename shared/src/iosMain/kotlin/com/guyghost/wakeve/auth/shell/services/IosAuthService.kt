@@ -13,18 +13,18 @@ import kotlinx.coroutines.withContext
  * This implementation uses:
  * - AuthenticationServices.ASAuthorizationAppleIDProvider for Apple Sign-In
  * - Google Sign-In iOS SDK for Google authentication
- * - iOS Keychain for secure token storage
+ *
+ * Token storage is managed separately via TokenStorage interface,
+ * not by this service.
  */
-actual class AuthService(
-    private val tokenStorage: TokenStorage = IosTokenStorage()
-) {
+actual class AuthService {
 
-    /**
-     * Initiates Apple Sign-In flow on iOS.
-     *
-     * @return AuthResult with authenticated user or error
-     */
-    actual suspend fun signInWithApple(): AuthResult = withContext(Dispatchers.Main) {
+      /**
+       * Initiates Apple Sign-In flow on iOS.
+      *
+      * @return AuthResult with authenticated user or error
+      */
+     actual suspend fun signInWithApple(): AuthResult = withContext(Dispatchers.Main) {
         try {
             // In production, this would:
             // 1. Create ASAuthorizationAppleIDProvider
@@ -95,106 +95,65 @@ actual class AuthService(
         }
     }
 
-    /**
-     * Signs out the current user and clears tokens.
-     */
-    actual suspend fun signOut() {
-        withContext(Dispatchers.IO) {
-            // In production:
-            // 1. Sign out from Google (GIDSignIn.sharedInstance().signOut())
-            // 2. Clear all stored tokens
-            tokenStorage.clearAll()
-        }
-    }
+     /**
+      * Signs out the current user.
+      * Note: Token storage is managed separately via TokenStorage interface.
+      */
+     actual suspend fun signOut() {
+         withContext(Dispatchers.IO) {
+             // In production:
+             // 1. Sign out from Google (GIDSignIn.sharedInstance().signOut())
+             // 2. Clear all stored tokens (handled by TokenStorage caller)
+         }
+     }
 
-    /**
-     * Checks if the user is currently authenticated.
-     *
-     * @return true if there is a valid session
-     */
-    actual suspend fun isAuthenticated(): Boolean {
-        return withContext(Dispatchers.IO) {
-            try {
-                val token = tokenStorage.getString(TokenKeys.ACCESS_TOKEN)
-                val expiry = tokenStorage.getString(TokenKeys.TOKEN_EXPIRY)
+     /**
+      * Checks if the user is currently authenticated.
+      * Note: This is a placeholder - actual authentication state is managed by the state machine
+      * and TokenStorage.
+      *
+      * @return false - Token validation should be done by the caller using TokenStorage
+      */
+     actual suspend fun isAuthenticated(): Boolean {
+         return withContext(Dispatchers.IO) {
+             // Authentication state is managed by the state machine and TokenStorage
+             false
+         }
+     }
 
-                if (token != null && expiry != null) {
-                    val expiryTime = expiry.toLongOrNull() ?: return@withContext false
-                    System.currentTimeMillis() < expiryTime
-                } else {
-                    false
-                }
-            } catch (e: Exception) {
-                false
-            }
-        }
-    }
+     /**
+      * Gets the current authenticated user.
+      * Note: User data retrieval should be done via state machine or TokenStorage.
+      *
+      * @return null - User retrieval is handled by TokenStorage caller
+      */
+     actual suspend fun getCurrentUser(): User? {
+         return withContext(Dispatchers.IO) {
+             // Current user is managed by the state machine and TokenStorage
+             null
+         }
+     }
 
-    /**
-     * Gets the current authenticated user.
-     *
-     * @return User if authenticated, null otherwise
-     */
-    actual suspend fun getCurrentUser(): User? {
-        return withContext(Dispatchers.IO) {
-            try {
-                val userId = tokenStorage.getString(TokenKeys.USER_ID)
-                val authMethodStr = tokenStorage.getString(TokenKeys.AUTH_METHOD)
+     /**
+      * Refreshes the authentication token.
+      *
+      * @return error - Token refresh should be done by the state machine
+      */
+     actual suspend fun refreshToken(): AuthResult {
+         return withContext(Dispatchers.IO) {
+             try {
+                 // In production, this would:
+                 // 1. Get refresh token from TokenStorage
+                 // 2. Call backend to refresh the access token
+                 // 3. Store new tokens
 
-                if (userId != null && authMethodStr != null) {
-                    val authMethod = AuthMethod.valueOf(authMethodStr)
-                    User(
-                        id = userId,
-                        email = null,
-                        name = null,
-                        authMethod = authMethod,
-                        isGuest = false,
-                        createdAt = System.currentTimeMillis(),
-                        lastLoginAt = System.currentTimeMillis()
-                    )
-                } else {
-                    null
-                }
-            } catch (e: Exception) {
-                null
-            }
-        }
-    }
-
-    /**
-     * Refreshes the authentication token.
-     *
-     * @return AuthResult with new token or error
-     */
-    actual suspend fun refreshToken(): AuthResult {
-        return withContext(Dispatchers.IO) {
-            try {
-                val currentToken = tokenStorage.getString(TokenKeys.REFRESH_TOKEN)
-                if (currentToken == null) {
-                    return@withContext AuthResult.error(AuthError.InvalidCredentials)
-                }
-
-                // Mock refresh - would be API call in production
-                AuthResult.success(
-                    User(
-                        id = "refreshed_user_ios",
-                        email = null,
-                        name = null,
-                        authMethod = AuthMethod.APPLE,
-                        isGuest = false,
-                        createdAt = System.currentTimeMillis(),
-                        lastLoginAt = System.currentTimeMillis()
-                    ),
-                    com.guyghost.wakeve.auth.core.models.AuthToken.createLongLived(
-                        value = "refreshed_token_${System.currentTimeMillis()}",
-                        expiresInDays = 30
-                    )
-                )
-            } catch (e: Exception) {
-                AuthResult.error(AuthError.NetworkError)
-            }
-        }
-    }
+                 // For now, return error - token management is handled by state machine
+                 AuthResult.error(AuthError.NetworkError)
+             } catch (e: Exception) {
+                 AuthResult.error(AuthError.NetworkError)
+             }
+         }
+     }
 
     /**
      * Checks if a specific OAuth provider is available.

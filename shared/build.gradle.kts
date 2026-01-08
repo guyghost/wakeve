@@ -44,6 +44,8 @@ kotlin {
             // ML Kit Vision for on-device photo recognition
             implementation("com.google.android.gms:play-services-mlkit-image-labeling:16.0.8")
             implementation("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
+            // Android Security - EncryptedSharedPreferences
+            implementation("androidx.security:security-crypto:1.1.0-alpha06")
         }
         iosMain.dependencies {
             implementation(libs.sqldelight.iosDriver)

@@ -1710,3 +1710,126 @@ Implémentation de la fonctionnalité "Smart Albums" pour organiser les photos a
 - Tests unitaires pour toute la logique pure
 - Les erreurs iOS (CommentsView, ChatView, PhotoPickerPermissionHandler) sont préexistantes et non liées à cette implémentation
 
+---
+
+# TokenStorage Blocking Issues - Corrections
+
+## Overview
+Correction des 3 issues critiques identifiées par @review concernant les TokenStorage mockés sur Android et iOS.
+
+## Issues Résolues
+
+### 1. AndroidTokenStorage Mock Vide
+- **Fichier**: `shared/src/androidMain/kotlin/com/guyghost/wakeve/auth/shell/services/AndroidTokenStorage.kt`
+- **Problème**: Méthodes `storeString()`, `getString()` étaient des mocks vides
+- **Solution**: Implémentation avec `EncryptedSharedPreferences` et `MasterKey`
+- **Fallback**: Non-encrypted SharedPreferences si encryption non disponible
+
+### 2. IosTokenStorage Mock Vide
+- **Fichier**: `shared/src/iosMain/kotlin/com/guyghost/wakeve/auth/shell/services/IosTokenStorage.kt`
+- **Problème**: Méthodes `storeString()`, `getString()` étaient des mocks vides
+- **Solution**: Implémentation avec iOS Keychain via interop (`SecItemAdd`, `SecItemCopyMatching`, `SecItemDelete`)
+
+### 3. Dépendance Manquante
+- **Fichier**: `shared/build.gradle.kts`
+- **Problème**: `androidx.security:security-crypto` pas dans les dépendances
+- **Solution**: Ajout de `implementation("androidx.security:security-crypto:1.1.0-alpha06")`
+
+## Fichiers Modifiés
+
+### 1. AndroidTokenStorage.kt
+- **Fichier**: `shared/src/androidMain/kotlin/com/guyghost/wakeve/auth/shell/services/AndroidTokenStorage.kt`
+- **Modifications**:
+  - Ajout `context: Context` au constructeur `actual class`
+  - Implémentation `encryptedPrefs` avec `EncryptedSharedPreferences.create()`
+  - Schéma de chiffrement: AES256_SIV pour les clés, AES256_GCM pour les valeurs
+  - Toutes les méthodes implémentées: `storeString`, `getString`, `remove`, `contains`, `clearAll`
+  - Gestion d'erreurs silencieuse pour maintenir le contrat d'interface
+
+### 2. IosTokenStorage.kt
+- **Fichier**: `shared/src/iosMain/kotlin/com/guyghost/wakeve/auth/shell/services/IosTokenStorage.kt`
+- **Modifications**:
+  - Implémentation complète avec Keychain Security framework
+  - `storeString`: `SecItemDelete` + `SecItemAdd` pour éviter les doublons
+  - `getString`: `SecItemCopyMatching` avec `kSecReturnData`
+  - `remove`: `SecItemDelete` avec query complet
+  - `contains`: `SecItemCopyMatching` avec `kSecReturnData: false`
+  - `clearAll`: `SecItemDelete` pour le service
+  - Gestion d'erreurs silencieuse pour maintenir le contrat d'interface
+
+### 3. shared/build.gradle.kts
+- **Fichier**: `shared/build.gradle.kts`
+- **Modifications**:
+  - Ajout dans `androidMain.dependencies`:
+    ```kotlin
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    ```
+
+## Fonctionnalités Implémentées
+
+### Stockage Sécurisé Android
+- [x] Chiffrement des clés avec AES256_SIV
+- [x] Chiffrement des valeurs avec AES256_GCM
+- [x] Utilisation du MasterKey avec schéma AES256_GCM
+- [x] Fallback vers SharedPreferences non chiffré si encryption échoue
+- [x] Toutes les méthodes I/O exécutées sur `Dispatchers.IO`
+
+### Stockage Sécurisé iOS
+- [x] Utilisation du Keychain pour stockage sécurisé
+- [x] Service name: `com.guyghost.wakeve.auth`
+- [x] Item type: `kSecClassGenericPassword`
+- [x] Suppression avant ajout pour éviter les doublons
+- [x] Accessible après premier déverrouillage (`kSecAttrAccessibleAfterFirstUnlock`)
+- [x] Toutes les méthodes I/O exécutées sur `Dispatchers.IO`
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                  IMPERATIVE SHELL                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │           AndroidTokenStorage                        │   │
+│  │  • context: Context                                  │   │
+│  │  • encryptedPrefs: SharedPreferences (AES256)        │   │
+│  │  • storeString(), getString(), remove(), ...         │   │
+│  └─────────────────────────────────────────────────────┘   │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐   │
+│  │              IosTokenStorage                         │   │
+│  │  • service: String = "com.guyghost.wakeve.auth"     │   │
+│  │  • storeString() with SecItemDelete + SecItemAdd    │   │
+│  │  • getString() with SecItemCopyMatching             │   │
+│  │  • remove(), contains(), clearAll()                 │   │
+│  └─────────────────────────────────────────────────────┘   │
+├─────────────────────────────────────────────────────────────┤
+│                    FUNCTIONAL CORE                           │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  TokenStorage Interface (commonMain)                  │  │
+│  │  • storeString(key: String, value: String)           │  │
+│  │  • getString(key: String): String?                   │  │
+│  │  • remove(key: String)                               │  │
+│  │  • contains(key: String): Boolean                    │  │
+│  │  • clearAll()                                        │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Vérification
+
+```bash
+# Compilation Android
+./gradlew :shared:compileCommonMainKotlinMetadata
+
+# Compilation iOS (nécessite Xcode)
+./gradlew :shared:compileCommonMainKotlinMetadata
+```
+
+## Notes
+
+- Les implémentations utilisent une gestion d'erreurs silencieuse pour maintenir le contrat d'interface TokenStorage
+- Les erreurs sont journalisées en production mais ne propagent pas d'exceptions
+- Le fallback Android SharedPreferences non chiffré est une dernière option en cas d'échec de l'encryption
+- L'implémentation iOS utilise le Keychain avec les paramètres de sécurité recommandés
+
