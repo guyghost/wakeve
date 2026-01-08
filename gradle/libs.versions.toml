@@ -26,6 +26,7 @@ kotlinx-serialization = "1.7.3"
 koin = "3.5.0"
 ktor = "3.3.1"
 logback = "1.5.20"
+mockk = "1.13.13"
 sqldelight = "2.0.2"
 jwt = "4.4.0"
 micrometer = "1.14.4"
@@ -36,6 +37,8 @@ google-ml-kit-face-detection = "16.1.6"
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
+mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 junit = { module = "junit:junit", version.ref = "junit" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidx-core" }
 androidx-testExt-junit = { module = "androidx.test.ext:junit", version.ref = "androidx-testExt" }

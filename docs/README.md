@@ -10,7 +10,7 @@ Bienvenue dans la documentation technique du projet Wakeve, une application mobi
 - [Contribuer au projet](../CONTRIBUTING.md) - Guidelines de développement
 
 ### Architecture
-- [Architecture Overview](ARCHITECTURE.md) - Vue d'ensemble de l'architecture
+- [Architecture Overview](architecture/ARCHITECTURE.md) - Vue d'ensemble de l'architecture
 - [KMP State Machine](architecture/kmp/kmp-state-machine.md) - Machine à états Kotlin Multiplatform
 - [ViewModels](architecture/viewmodels/viewmodel-implementation-summary.md) - Implémentation des ViewModels
 - [Android Integration](architecture/kmp/android-integration.md) - Intégration Android

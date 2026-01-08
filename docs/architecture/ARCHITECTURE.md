@@ -803,8 +803,8 @@ java -jar server/build/libs/server-1.0.0-all.jar
 
 ### Documentation
 
-- [User Guide](USER_GUIDE.md)
-- [API Documentation](API.md)
+- [User Guide](../USER_GUIDE.md)
+- [API Documentation](../API.md)
 - [OpenSpec Specs](../openspec/specs/)
 
 ### External Resources
