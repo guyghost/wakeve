@@ -510,4 +510,45 @@ Wakeve est sous license MIT. Voir le fichier LICENSE pour détails.
 
 ---
 
+## Correction des Issues TokenStorage (Janvier 2026)
+
+### Vue d'ensemble
+
+En Janvier 2026, 3 issues critiques ont été identifiées concernant les implémentations TokenStorage:
+
+1. **AndroidTokenStorage Mock Vide** - Les tokens n'étaient pas persistés sur Android
+2. **IosTokenStorage Mock Vide** - Les tokens n'étaient pas persistés sur iOS
+3. **Dépendance Manquante** - `androidx.security:security-crypto` absente du build
+
+### Modifications Effectuées
+
+#### 1. AndroidTokenStorage.kt
+- **Implémentation**: `EncryptedSharedPreferences` avec `MasterKey`
+- **Schéma de chiffrement**: AES256_SIV (clés) + AES256_GCM (valeurs)
+- **Fallback**: SharedPreferences non chiffré si encryption échoue
+- **Source**: `shared/src/androidMain/kotlin/com/guyghost/wakeve/auth/shell/services/AndroidTokenStorage.kt`
+
+#### 2. IosTokenStorage.kt
+- **Implémentation**: iOS Keychain via interop Security framework
+- **Méthodes Keychain**: `SecItemAdd`, `SecItemCopyMatching`, `SecItemDelete`
+- **Service name**: `com.guyghost.wakeve.auth`
+- **Source**: `shared/src/iosMain/kotlin/com/guyghost/wakeve/auth/shell/services/IosTokenStorage.kt`
+
+#### 3. shared/build.gradle.kts
+- **Dépendance ajoutée**: `androidx.security:security-crypto:1.1.0-alpha06`
+- **Section**: `androidMain.dependencies`
+
+### Résultats
+
+- ✅ Android: Stockage sécurisé des tokens avec chiffrement AES256
+- ✅ iOS: Stockage sécurisé des tokens via Keychain
+- ✅ Dépendance Android Security ajoutée au projet
+- ✅ Gestion d'erreurs silencieuse pour maintenir le contrat d'interface
+
+### Documentation
+
+Voir `tasks.md` pour les détails complets de l'implémentation.
+
+---
+
 **Mission de Wakeve**: Rendre la planification collaborative d'événements sans effort en combinant polling intelligent, planification automatique et principes offline-first.

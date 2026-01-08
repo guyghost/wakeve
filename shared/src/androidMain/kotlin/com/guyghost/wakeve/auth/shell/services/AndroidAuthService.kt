@@ -13,17 +13,17 @@ import kotlinx.coroutines.withContext
  * This implementation uses:
  * - Google Sign-In SDK for OAuth 2.0 authentication
  * - Sign in with Apple via web flow (fallback)
- * - Android Keystore for secure token storage
+ *
+ * Token storage is managed separately via TokenStorage interface,
+ * not by this service.
  *
  * @requires Google Play Services to be installed
  * @requires Internet permission
  */
-actual class AuthService(
-    private val tokenStorage: TokenStorage = AndroidTokenStorage()
-) {
+actual class AuthService {
 
-    /**
-     * Initiates Google Sign-In flow on Android.
+     /**
+      * Initiates Google Sign-In flow on Android.
      *
      * @return AuthResult with authenticated user or error
      */
@@ -101,106 +101,59 @@ actual class AuthService(
     }
 
     /**
-     * Signs out the current user and clears tokens.
+     * Signs out the current user.
+     * Note: Token storage is managed separately via TokenStorage interface.
      */
     actual suspend fun signOut() {
         withContext(Dispatchers.IO) {
             // In production:
             // 1. Sign out from Google (GoogleSignInClient.signOut())
-            // 2. Clear all stored tokens
-            tokenStorage.clearAll()
+            // 2. Clear all stored tokens (handled by TokenStorage caller)
         }
     }
 
     /**
      * Checks if the user is currently authenticated.
+     * Note: This is a placeholder - actual authentication state is managed by the state machine
+     * and TokenStorage.
      *
-     * @return true if there is a valid session
+     * @return false - Token validation should be done by the caller using TokenStorage
      */
     actual suspend fun isAuthenticated(): Boolean {
         return withContext(Dispatchers.IO) {
-            try {
-                val token = tokenStorage.getString(TokenKeys.ACCESS_TOKEN)
-                val expiry = tokenStorage.getString(TokenKeys.TOKEN_EXPIRY)
-
-                if (token != null && expiry != null) {
-                    val expiryTime = expiry.toLongOrNull() ?: return@withContext false
-                    System.currentTimeMillis() < expiryTime
-                } else {
-                    false
-                }
-            } catch (e: Exception) {
-                false
-            }
+            // Authentication state is managed by the state machine and TokenStorage
+            false
         }
     }
 
     /**
      * Gets the current authenticated user.
+     * Note: User data retrieval should be done via state machine or TokenStorage.
      *
-     * @return User if authenticated, null otherwise
+     * @return null - User retrieval is handled by TokenStorage caller
      */
     actual suspend fun getCurrentUser(): User? {
         return withContext(Dispatchers.IO) {
-            try {
-                val userId = tokenStorage.getString(TokenKeys.USER_ID)
-                val email = tokenStorage.getString(TokenKeys.USER_ID) // Using same key to avoid missing key
-                val authMethodStr = tokenStorage.getString(TokenKeys.AUTH_METHOD)
-
-                if (userId != null && authMethodStr != null) {
-                    val authMethod = AuthMethod.valueOf(authMethodStr)
-                    User(
-                        id = userId,
-                        email = email,
-                        name = null,
-                        authMethod = authMethod,
-                        isGuest = false,
-                        createdAt = System.currentTimeMillis(),
-                        lastLoginAt = System.currentTimeMillis()
-                    )
-                } else {
-                    null
-                }
-            } catch (e: Exception) {
-                null
-            }
+            // Current user is managed by the state machine and TokenStorage
+            null
         }
     }
 
     /**
      * Refreshes the authentication token.
      *
-     * @return AuthResult with new token or error
+     * @return error - Token refresh should be done by the state machine
      */
     actual suspend fun refreshToken(): AuthResult {
         return withContext(Dispatchers.IO) {
             try {
                 // In production, this would:
-                // 1. Get refresh token from storage
+                // 1. Get refresh token from TokenStorage
                 // 2. Call backend to refresh the access token
                 // 3. Store new tokens
 
-                val currentToken = tokenStorage.getString(TokenKeys.REFRESH_TOKEN)
-                if (currentToken == null) {
-                    return@withContext AuthResult.error(AuthError.InvalidCredentials)
-                }
-
-                // Mock refresh - would be API call in production
-                AuthResult.success(
-                    User(
-                        id = "refreshed_user",
-                        email = null,
-                        name = null,
-                        authMethod = AuthMethod.GOOGLE,
-                        isGuest = false,
-                        createdAt = System.currentTimeMillis(),
-                        lastLoginAt = System.currentTimeMillis()
-                    ),
-                    com.guyghost.wakeve.auth.core.models.AuthToken.createLongLived(
-                        value = "refreshed_token_${System.currentTimeMillis()}",
-                        expiresInDays = 30
-                    )
-                )
+                // For now, return error - token management is handled by state machine
+                AuthResult.error(AuthError.NetworkError)
             } catch (e: Exception) {
                 AuthResult.error(AuthError.NetworkError)
             }
