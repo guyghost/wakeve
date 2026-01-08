@@ -425,20 +425,33 @@ Orchestrateur:
 **Interactions:**
 - ↔ Tous les agents : Persistance, sync, résolution de conflits
 
-#### Agent Sécurité & Auth (Phase 3 - Planifié)
+#### Agent Sécurité & Auth (Phase 3 - Implémenté)
 **Responsabilités:**
-- Auth via OAuth (Apple/Google)
-- Tokens stockés de manière sécurisée
-- Permissions pour localisation
+- Auth via OAuth (Apple, Google) et Email (OTP)
+- Tokens stockés de manière sécurisée (Keychain iOS, Keystore Android)
+- Mode invité (guest mode) avec fonctionnalités limitées
 - Minimisation des données, droit à l'effacement (RGPD)
+- Gestion des sessions et restoration automatique
 
-**Implémentation prévue:**
-- `shared/src/commonMain/kotlin/services/AuthService.kt`
-- `shared/src/androidMain/kotlin/platform/AndroidAuthService.kt`
-- `shared/src/iosMain/kotlin/platform/IosAuthService.kt`
+**Implémentation:**
+- `shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/core/` - Functional Core (modèles, validateurs purs)
+- `shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/shell/statemachine/AuthStateMachine.kt` - State Machine pour le flux d'auth
+- `shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/shell/services/` - Services OAuth, Email, Guest, TokenStorage
+- `shared/src/commonMain/kotlin/com/guyghost/wakeve/app/AppState.kt` - Intégration avec l'état global de l'app
+- `server/src/main/kotlin/com/guyghost/wakeve/routes/AuthRoutes.kt` - API endpoints backend
+
+**Tests:**
+- Tests unitaires Core: 36 tests (validators, models)
+- Tests unitaires Shell: 33 tests (services)
+- Tests State Machine: 14 tests
+- Tests API endpoints: 10 tests
+- Tests offline: 9 tests
+- Tests RGPD: 10 tests
 
 **Interactions:**
 - → Tous : Gestion de l'authentification et des permissions
+- → Agent Notifications : Déclenchement des rappels après auth
+- → Agent Sync : Mode sync (online) vs mode offline (guest)
 
 ---
 

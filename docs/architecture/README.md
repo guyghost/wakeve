@@ -47,7 +47,7 @@ Wakeve utilise une architecture Kotlin Multiplatform (KMP) avec une séparation 
 - [Implementation Summary](viewmodels/viewmodel-implementation-summary.md) - Implémentation des ViewModels
 
 ### Architecture Détaillée
-- [ARCHITECTURE.md](../ARCHITECTURE.md) - Documentation d'architecture complète
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Documentation d'architecture complète
 
 ## Principes Architecturaux
 
@@ -126,6 +126,6 @@ Backend Ktor :
 
 ## Liens Utiles
 
-- [ARCHITECTURE.md](../ARCHITECTURE.md) - Documentation complète
+- [ARCHITECTURE.md](ARCHITECTURE.md) - Documentation complète
 - [API Documentation](../API.md) - Endpoints REST
 - [Testing](../testing/README.md) - Stratégie de tests
