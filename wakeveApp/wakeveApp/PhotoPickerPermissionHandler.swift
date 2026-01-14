@@ -142,7 +142,7 @@ final class PhotoPickerPermissionHandler {
                     }
                 }
                 
-            case .authorized:
+            case .authorized, .limited:
                 completion(true)
                 
             case .denied, .restricted:

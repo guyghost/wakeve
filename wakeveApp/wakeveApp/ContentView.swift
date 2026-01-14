@@ -131,6 +131,7 @@ struct AuthenticatedView: View {
     @State private var showActivityPlanning = false
     @State private var selectedScenario: Scenario_?
     @State private var selectedMeetingId: String?
+    @State private var selectedBudget: Budget_?
 
     var body: some View {
         // Using native iOS TabView which automatically adopts Liquid Glass on iOS 26+
@@ -357,12 +358,27 @@ struct AuthenticatedView: View {
             }
             
         case .budgetDetail:
-            if let event = selectedEvent {
+            if let event = selectedEvent, let budget = selectedBudget {
                 BudgetDetailView(
+                    budget: budget,
+                    eventId: event.id,
+                    repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
+                    currentUserId: userId,
+                    currentUserName: "Current User", // TODO: Get actual user name
+                    onBack: {
+                        currentView = .budgetOverview
+                    }
+                )
+            } else if let event = selectedEvent {
+                // Fallback: navigate to budget overview if no budget selected
+                BudgetOverviewView(
                     event: event,
                     repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
                     onBack: {
-                        currentView = .budgetOverview
+                        currentView = .eventDetail
+                    },
+                    onViewDetails: {
+                        // TODO: Navigate to budget detail with selected budget
                     }
                 )
             }

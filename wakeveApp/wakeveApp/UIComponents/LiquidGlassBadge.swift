@@ -110,24 +110,6 @@ extension LiquidGlassBadge {
     static func finalized(text: String = "Finalisé") -> LiquidGlassBadge {
         LiquidGlassBadge(text: text, icon: "checkmark.seal.fill", style: .success)
     }
-    
-    /// Creates a badge based on MockEventStatus
-    static func from(status: MockEventStatus, customText: String? = nil) -> LiquidGlassBadge {
-        switch status {
-        case .draft:
-            return .draft(text: customText ?? "Brouillon")
-        case .polling:
-            return .polling(text: customText ?? "Sondage")
-        case .comparing:
-            return .comparing(text: customText ?? "Comparaison")
-        case .confirmed:
-            return .confirmed(text: customText ?? "Confirmé")
-        case .organizing:
-            return .organizing(text: customText ?? "Organisation")
-        case .finalized:
-            return .finalized(text: customText ?? "Finalisé")
-        }
-    }
 }
 
 // MARK: - Previews

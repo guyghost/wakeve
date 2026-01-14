@@ -213,6 +213,144 @@ struct ModernPollResultsView: View {
 
 // MARK: - Best Slot Card
 
+struct BestSlotCard: View {
+    let slot: TimeSlot
+    
+    var body: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 20))
+                    .foregroundColor(.yellow)
+                
+                Text("Best Time")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.primary)
+                
+                Spacer()
+            }
+            
+            VStack(spacing: 8) {
+                Text(formatDate(slot.start ?? ""))
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.primary)
+                
+                HStack(spacing: 6) {
+                    Image(systemName: "clock")
+                        .font(.system(size: 14))
+                        .foregroundColor(.secondary)
+                    
+                    Text("\(formatTime(slot.start ?? "")) - \(formatTime(slot.end ?? ""))")
+                        .font(.system(size: 17))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity)
+        .glassCard(cornerRadius: 20, material: .regularMaterial)
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(Color.yellow.opacity(0.3), lineWidth: 2)
+        )
+    }
+    
+    private func formatDate(_ dateString: String) -> String {
+        if let date = ISO8601DateFormatter().date(from: dateString) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "EEEE, MMM d"
+            return formatter.string(from: date)
+        }
+        return dateString
+    }
+    
+    private func formatTime(_ dateString: String) -> String {
+        if let date = ISO8601DateFormatter().date(from: dateString) {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        }
+        return dateString
+    }
+}
+
+// MARK: - Confirmed Date Card
+
+struct ConfirmedDateCard: View {
+    let event: Event
+    let finalSlot: TimeSlot?
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            // Success Icon
+            ZStack {
+                Circle()
+                    .fill(Color.green.opacity(0.15))
+                    .frame(width: 64, height: 64)
+                
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 40))
+                    .foregroundColor(.green)
+            }
+            
+            // Title
+            VStack(spacing: 8) {
+                Text("Date Confirmed!")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(.primary)
+                
+                Text("The event date has been finalized")
+                    .font(.system(size: 15))
+                    .foregroundColor(.secondary)
+            }
+            
+            // Confirmed Date
+            if let slot = finalSlot {
+                VStack(spacing: 8) {
+                    Text(formatDate(slot.start ?? ""))
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.primary)
+                    
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                        
+                        Text("\(formatTime(slot.start ?? "")) - \(formatTime(slot.end ?? ""))")
+                            .font(.system(size: 15))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity)
+                .background(Color(.tertiarySystemFill))
+                .continuousCornerRadius(12)
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity)
+        .glassCard(cornerRadius: 20, material: .regularMaterial)
+    }
+    
+    private func formatDate(_ dateString: String) -> String {
+        if let date = ISO8601DateFormatter().date(from: dateString) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "EEEE, MMM d, yyyy"
+            return formatter.string(from: date)
+        }
+        return dateString
+    }
+    
+    private func formatTime(_ dateString: String) -> String {
+        if let date = ISO8601DateFormatter().date(from: dateString) {
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        }
+        return dateString
+    }
+}
+
 // MARK: - Modern Slot Result Card
 
 struct ModernSlotResultCard: View {
