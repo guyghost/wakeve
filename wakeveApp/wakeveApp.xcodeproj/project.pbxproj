@@ -194,7 +194,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 130D2E2F7BBD969051F5423F /* Build configuration list for PBXProject "iosApp" */;
+			buildConfigurationList = 130D2E2F7BBD969051F5423F /* Build configuration list for PBXProject "wakeveApp" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
