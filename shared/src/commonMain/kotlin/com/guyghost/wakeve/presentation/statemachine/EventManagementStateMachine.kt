@@ -190,7 +190,7 @@ class EventManagementStateMachine(
         loadPollResults(eventId)
 
         // Emit navigation side effect
-        emitSideEffect(EventManagementContract.SideEffect.NavigateTo("detail/$eventId"))
+        emitSideEffect(EventManagementContract.SideEffect.NavigateTo("event/$eventId"))
     }
 
     /**
@@ -743,7 +743,7 @@ class EventManagementStateMachine(
                 loadEvents()
                 updateState { it.copy(scenariosUnlocked = true) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Date confirmed successfully"))
-                emitSideEffect(EventManagementContract.SideEffect.NavigateTo("scenarios/$eventId"))
+                emitSideEffect(EventManagementContract.SideEffect.NavigateTo("event/$eventId/scenarios"))
             },
             onFailure = { error ->
                 val errorMessage = error.message ?: "Failed to confirm date"
@@ -817,7 +817,7 @@ class EventManagementStateMachine(
                 loadEvents()
                 updateState { it.copy(meetingsUnlocked = true) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Transitioned to organizing phase"))
-                emitSideEffect(EventManagementContract.SideEffect.NavigateTo("meetings/$eventId"))
+                emitSideEffect(EventManagementContract.SideEffect.NavigateTo("event/$eventId/meetings"))
             },
             onFailure = { error ->
                 val errorMessage = error.message ?: "Failed to transition to organizing"
