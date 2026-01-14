@@ -3,6 +3,8 @@ package com.guyghost.wakeve.auth.shell.services
 import com.guyghost.wakeve.auth.core.models.AuthError
 import com.guyghost.wakeve.auth.core.models.AuthResult
 import com.guyghost.wakeve.auth.core.models.User
+import com.guyghost.wakeve.auth.core.logic.currentTimeMillis
+import kotlin.random.Random
 
 /**
  * Service for handling email-based authentication with OTP.
@@ -70,7 +72,7 @@ class EmailAuthService(
             return AuthResult.error(AuthError.OTPExpired)
         }
 
-        val currentTime = System.currentTimeMillis()
+        val currentTime = currentTimeMillis()
         
         // Check if OTP has expired
         if (currentTime >= otpData.expiryTimestamp) {
@@ -137,7 +139,7 @@ class EmailAuthService(
      */
     fun hasPendingOTP(email: String): Boolean {
         val otpData = otpStore[email.lowercase()] ?: return false
-        return System.currentTimeMillis() < otpData.expiryTimestamp
+        return currentTimeMillis() < otpData.expiryTimestamp
     }
 
     /**
@@ -148,7 +150,7 @@ class EmailAuthService(
      */
     fun getRemainingOTPTime(email: String): Long {
         val otpData = otpStore[email.lowercase()] ?: return 0
-        val remaining = otpData.expiryTimestamp - System.currentTimeMillis()
+        val remaining = otpData.expiryTimestamp - currentTimeMillis()
         return (remaining / 1000).coerceAtLeast(0)
     }
 
@@ -170,7 +172,7 @@ class EmailAuthService(
 
     // Import pure functions from core logic
     private fun generateOTP(): String {
-        val random = java.security.SecureRandom()
+        val random = Random
         val digits = StringBuilder(6)
         repeat(6) {
             digits.append(random.nextInt(10))
@@ -179,11 +181,11 @@ class EmailAuthService(
     }
 
     private fun calculateOTPExpiry(validityMinutes: Int): Long {
-        return System.currentTimeMillis() + (validityMinutes * 60 * 1000L)
+        return currentTimeMillis() + (validityMinutes * 60 * 1000L)
     }
 
     private fun generateSessionToken(): com.guyghost.wakeve.auth.core.models.AuthToken {
-        val tokenValue = "session_${System.currentTimeMillis()}_${java.security.SecureRandom().nextInt(1000000)}"
+        val tokenValue = "session_${currentTimeMillis()}_${Random.nextInt(1000000)}"
         return com.guyghost.wakeve.auth.core.models.AuthToken.createLongLived(
             value = tokenValue,
             expiresInDays = 30

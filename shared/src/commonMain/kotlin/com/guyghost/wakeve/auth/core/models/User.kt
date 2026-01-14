@@ -4,6 +4,7 @@ import com.guyghost.wakeve.auth.core.models.AuthMethod.GOOGLE
 import com.guyghost.wakeve.auth.core.models.AuthMethod.APPLE
 import com.guyghost.wakeve.auth.core.models.AuthMethod.EMAIL
 import com.guyghost.wakeve.auth.core.models.AuthMethod.GUEST
+import com.guyghost.wakeve.auth.core.logic.currentTimeMillis
 
 /**
  * Represents an authenticated user or guest user in the Wakeve application.
@@ -41,8 +42,8 @@ data class User(
             name = null,
             authMethod = GUEST,
             isGuest = true,
-            createdAt = System.currentTimeMillis(),
-            lastLoginAt = System.currentTimeMillis()
+            createdAt = currentTimeMillis(),
+            lastLoginAt = currentTimeMillis()
         )
 
         /**
@@ -65,8 +66,8 @@ data class User(
             name = name,
             authMethod = authMethod,
             isGuest = false,
-            createdAt = System.currentTimeMillis(),
-            lastLoginAt = System.currentTimeMillis()
+            createdAt = currentTimeMillis(),
+            lastLoginAt = currentTimeMillis()
         )
     }
 

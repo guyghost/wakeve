@@ -4,6 +4,7 @@ import com.guyghost.wakeve.auth.core.models.AuthError
 import com.guyghost.wakeve.auth.core.models.AuthMethod
 import com.guyghost.wakeve.auth.core.models.AuthResult
 import com.guyghost.wakeve.auth.core.models.User
+import com.guyghost.wakeve.auth.core.logic.currentTimeMillis
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -39,8 +40,8 @@ actual class AuthService {
                     name = "Apple User",
                     authMethod = AuthMethod.APPLE,
                     isGuest = false,
-                    createdAt = System.currentTimeMillis(),
-                    lastLoginAt = System.currentTimeMillis()
+                    createdAt = currentTimeMillis(),
+                    lastLoginAt = currentTimeMillis()
                 ),
                 com.guyghost.wakeve.auth.core.models.AuthToken.createLongLived(
                     value = "apple_identity_token_ios",
@@ -77,8 +78,8 @@ actual class AuthService {
                     name = "Google User",
                     authMethod = AuthMethod.GOOGLE,
                     isGuest = false,
-                    createdAt = System.currentTimeMillis(),
-                    lastLoginAt = System.currentTimeMillis()
+                    createdAt = currentTimeMillis(),
+                    lastLoginAt = currentTimeMillis()
                 ),
                 com.guyghost.wakeve.auth.core.models.AuthToken.createLongLived(
                     value = "google_id_token_ios",
@@ -100,7 +101,7 @@ actual class AuthService {
       * Note: Token storage is managed separately via TokenStorage interface.
       */
      actual suspend fun signOut() {
-         withContext(Dispatchers.IO) {
+         withContext(Dispatchers.Default) {
              // In production:
              // 1. Sign out from Google (GIDSignIn.sharedInstance().signOut())
              // 2. Clear all stored tokens (handled by TokenStorage caller)
@@ -115,7 +116,7 @@ actual class AuthService {
       * @return false - Token validation should be done by the caller using TokenStorage
       */
      actual suspend fun isAuthenticated(): Boolean {
-         return withContext(Dispatchers.IO) {
+         return withContext(Dispatchers.Default) {
              // Authentication state is managed by the state machine and TokenStorage
              false
          }
@@ -128,7 +129,7 @@ actual class AuthService {
       * @return null - User retrieval is handled by TokenStorage caller
       */
      actual suspend fun getCurrentUser(): User? {
-         return withContext(Dispatchers.IO) {
+         return withContext(Dispatchers.Default) {
              // Current user is managed by the state machine and TokenStorage
              null
          }
@@ -140,7 +141,7 @@ actual class AuthService {
       * @return error - Token refresh should be done by the state machine
       */
      actual suspend fun refreshToken(): AuthResult {
-         return withContext(Dispatchers.IO) {
+         return withContext(Dispatchers.Default) {
              try {
                  // In production, this would:
                  // 1. Get refresh token from TokenStorage

@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.auth.core.logic
 
 import com.guyghost.wakeve.auth.core.models.AuthError
+import kotlin.random.Random
 
 /**
  * Validates a One-Time Password (OTP) code.
@@ -32,7 +33,7 @@ fun validateOTP(
     currentAttempt: Int = 1
 ): OTPAttemptResult {
     // Check if OTP has expired
-    val currentTime = System.currentTimeMillis()
+    val currentTime = currentTimeMillis()
     if (currentTime >= otpExpiryTimestamp) {
         return OTPAttemptResult.Expired
     }
@@ -78,10 +79,9 @@ fun validateOTP(
  * ```
  */
 fun generateOTP(): String {
-    val random = java.security.SecureRandom()
     val digits = StringBuilder(6)
     repeat(6) {
-        digits.append(random.nextInt(10))
+        digits.append(Random.nextInt(10))
     }
     return digits.toString()
 }
@@ -99,7 +99,7 @@ fun generateOTP(): String {
  * ```
  */
 fun calculateOTPExpiry(validityMinutes: Int = 5): Long {
-    return System.currentTimeMillis() + (validityMinutes * 60 * 1000L)
+    return currentTimeMillis() + (validityMinutes * 60 * 1000L)
 }
 
 /**

@@ -1,5 +1,7 @@
 package com.guyghost.wakeve.auth.core.models
 
+import com.guyghost.wakeve.auth.core.logic.currentTimeMillis
+
 /**
  * Represents an authentication token (JWT or session token).
  * This is a value object that encapsulates token data with validation.
@@ -16,10 +18,10 @@ data class AuthToken(
     /**
      * Returns true if the token is expired.
      * 
-     * @param currentTime The current time in milliseconds (defaults to System.currentTimeMillis())
+     * @param currentTime The current time in milliseconds (defaults to currentTimeMillis())
      * @return True if the token is expired
      */
-    fun isExpired(currentTime: Long = System.currentTimeMillis()): Boolean =
+    fun isExpired(currentTime: Long = currentTimeMillis()): Boolean =
         currentTime >= expiresAt
 
     /**
@@ -29,7 +31,7 @@ data class AuthToken(
      * @param currentTime The current time
      * @return True if the token expires within the window
      */
-    fun expiresWithin(windowMs: Long, currentTime: Long = System.currentTimeMillis()): Boolean =
+    fun expiresWithin(windowMs: Long, currentTime: Long = currentTimeMillis()): Boolean =
         expiresAt - currentTime <= windowMs
 
     /**
@@ -38,7 +40,7 @@ data class AuthToken(
      * @param currentTime The current time
      * @return Time remaining, or 0 if already expired
      */
-    fun timeUntilExpiry(currentTime: Long = System.currentTimeMillis()): Long =
+    fun timeUntilExpiry(currentTime: Long = currentTimeMillis()): Long =
         (expiresAt - currentTime).coerceAtLeast(0)
 
     /**
@@ -47,7 +49,7 @@ data class AuthToken(
      * @param currentTime The current time
      * @return True if the token is valid
      */
-    fun isValid(currentTime: Long = System.currentTimeMillis()): Boolean =
+    fun isValid(currentTime: Long = currentTimeMillis()): Boolean =
         value.isNotBlank() && !isExpired(currentTime)
 
     companion object {
@@ -66,7 +68,7 @@ data class AuthToken(
         ): AuthToken = AuthToken(
             value = value,
             type = type,
-            expiresAt = System.currentTimeMillis() + (expiresInSeconds * 1000)
+            expiresAt = currentTimeMillis() + (expiresInSeconds * 1000)
         )
 
         /**
@@ -84,7 +86,7 @@ data class AuthToken(
         ): AuthToken = AuthToken(
             value = value,
             type = type,
-            expiresAt = System.currentTimeMillis() + (expiresInDays * 24 * 60 * 60 * 1000)
+            expiresAt = currentTimeMillis() + (expiresInDays * 24 * 60 * 60 * 1000)
         )
     }
 }

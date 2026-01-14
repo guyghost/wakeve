@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import com.guyghost.wakeve.auth.core.logic.currentTimeMillis
 
 /**
  * Tests for JWT parsing logic.
@@ -144,7 +145,7 @@ class ParseJWTTest {
     @Test
     fun `JWTPayload isExpired returns false for valid token`() {
         // Given - JWT with future expiration
-        val futureTime = (System.currentTimeMillis() / 1000) + 3600 // 1 hour from now
+        val futureTime = (currentTimeMillis() / 1000) + 3600 // 1 hour from now
         val token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOj$futureTime.test"
         
         // When

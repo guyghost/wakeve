@@ -1,5 +1,8 @@
 import SwiftUI
 import Shared
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - UserDefaults Helpers
 
@@ -127,6 +130,7 @@ struct AuthenticatedView: View {
     @State private var showEquipmentChecklist = false
     @State private var showActivityPlanning = false
     @State private var selectedScenario: Scenario_?
+    @State private var selectedMeetingId: String?
 
     var body: some View {
         // Using native iOS TabView which automatically adopts Liquid Glass on iOS 26+
@@ -333,6 +337,76 @@ struct AuthenticatedView: View {
                     currentUserName: "Current User" // TODO: Get actual user name
                 )
             }
+            
+        case .scenarioDetail:
+            if let event = selectedEvent, let scenario = selectedScenario {
+                ScenarioDetailView(
+                    scenarioId: scenario.id,
+                    eventId: event.id,
+                    isOrganizer: event.organizerId == userId,
+                    currentUserId: userId,
+                    currentUserName: "Current User", // TODO: Get actual user name
+                    onBack: {
+                        currentView = .scenarioList
+                    },
+                    onDeleted: {
+                        selectedScenario = nil
+                        currentView = .scenarioList
+                    }
+                )
+            }
+            
+        case .budgetDetail:
+            if let event = selectedEvent {
+                BudgetDetailView(
+                    event: event,
+                    repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
+                    onBack: {
+                        currentView = .budgetOverview
+                    }
+                )
+            }
+            
+        case .meetingList:
+            MeetingListView(
+                userId: userId,
+                onMeetingTap: { meetingId in
+                    // Store meeting ID and navigate to detail
+                    selectedMeetingId = meetingId
+                    currentView = .meetingDetail
+                },
+                onCreateMeeting: {
+                    // TODO: Show create meeting sheet
+                },
+                onBack: {
+                    currentView = .eventDetail
+                }
+            )
+            
+        case .meetingDetail:
+            if let meetingId = selectedMeetingId {
+                MeetingDetailView(
+                    meetingId: meetingId,
+                    userId: userId,
+                    onBack: {
+                        currentView = .meetingList
+                    },
+                    onJoinMeeting: { link in
+                        // Open meeting link
+                        if let url = URL(string: link) {
+                            #if canImport(UIKit)
+                            UIApplication.shared.open(url)
+                            #endif
+                        }
+                    }
+                )
+            }
+            
+        case .inbox:
+            InboxView(
+                userId: userId,
+                onBack: { /* Inbox handled by tab */ }
+            )
             
         default:
             // Fallback to event list

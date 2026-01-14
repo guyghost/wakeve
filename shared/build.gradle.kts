@@ -37,6 +37,7 @@ kotlin {
             implementation(libs.ktor.clientContentNegotiation)
             implementation(libs.ktor.clientCio)
             implementation(libs.ktor.clientWebsocket)
+            implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.1")
             implementation(libs.androidx.core.ktx)
             // Activity Result API for image picker
             implementation("androidx.activity:activity-ktx:1.9.3")
@@ -44,6 +45,9 @@ kotlin {
             // ML Kit Vision for on-device photo recognition
             implementation("com.google.android.gms:play-services-mlkit-image-labeling:16.0.8")
             implementation("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
+            // Google Play Services Auth for OAuth (Google Sign-In)
+            implementation("com.google.android.gms:play-services-auth:20.7.0")
+            implementation("com.google.android.gms:play-services-base:18.5.0")
             // Android Security - EncryptedSharedPreferences
             implementation("androidx.security:security-crypto:1.1.0-alpha06")
         }
@@ -65,7 +69,20 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+        }
+        jvmTest.dependencies {
             implementation(libs.mockk)
+        }
+        androidUnitTest.dependencies {
+            implementation(libs.mockk)
+        }
+        androidInstrumentedTest.dependencies {
+            implementation(libs.mockk)
+            implementation(libs.androidx.testExt.junit)
+            implementation(libs.androidx.espresso.core)
+            implementation(libs.kotlin.test)
+            // Add androidx.test:core directly for ApplicationProvider
+            implementation("androidx.test:core:1.5.0")
         }
     }
 }

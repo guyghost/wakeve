@@ -551,4 +551,70 @@ Voir `tasks.md` pour les détails complets de l'implémentation.
 
 ---
 
+## Correction IosTokenStorage.kt (Janvier 2026)
+
+### Vue d'ensemble
+
+En Janvier 2026, les erreurs de compilation iOS dans `IosTokenStorage.kt` ont été corrigées:
+
+- **50+ erreurs de compilation** résolues
+- **Imports manquants** ajoutés
+- **Dispatchers.IO** remplacé par `Dispatchers.Default`
+- **Annotations @OptIn** ajoutées
+- **Extension helper** `utf8ToCFData()` ajoutée
+
+### Modifications Effectuées
+
+#### Fichier: `shared/src/iosMain/kotlin/com/guyghost/wakeve/auth/shell/services/IosTokenStorage.kt`
+
+**Imports ajoutés:**
+```kotlin
+import kotlinx.cinterop.*
+import platform.CoreFoundation.*
+import platform.Foundation.*
+import platform.Security.*
+import kotlin.experimental.ExperimentalNativeApi
+```
+
+**Annotations ajoutées:**
+```kotlin
+@OptIn(ExperimentalForeignApi::class, ExperimentalNativeApi::class)
+class IosTokenStorage : TokenStorage {
+```
+
+**Dispatchers corrigés:**
+```kotlin
+// AVANT: withContext(Dispatchers.IO) { ... }
+// APRÈS: withContext(Dispatchers.Default) { ... }
+```
+
+**Syntaxe CInterop corrigée:**
+```kotlin
+// AVANT: val status = SecItemCopyMatching(query, cValueOf(&result))
+// APRÈS: val result = alloc<CFTypeRefVar>(); val status = SecItemCopyMatching(query, result.ptr)
+```
+
+**Extension helper ajoutée:**
+```kotlin
+@OptIn(ExperimentalForeignApi::class)
+private fun String.utf8ToCFData(): CFDataRef? {
+    val bytes = this.encodeToByteArray()
+    val uBytes = bytes.map { it.toUByte() }.toUByteArray()
+    return uBytes.usePinned { pinned ->
+        CFDataCreate(
+            allocator = null,
+            bytes = pinned.addressOf(0),
+            length = uBytes.size.convert()
+        )
+    }
+}
+```
+
+### Résultats
+
+- ✅ `IosTokenStorage.kt` compile sans erreurs
+- ⚠️ D'autres fichiers auth nécessitent des corrections (`parseJWT.kt`, `validateOTP.kt`, etc.) - APIs Java non disponibles sur iOS/Native
+
+---
+
 **Mission de Wakeve**: Rendre la planification collaborative d'événements sans effort en combinant polling intelligent, planification automatique et principes offline-first.

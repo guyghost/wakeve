@@ -2,21 +2,22 @@ package com.guyghost.wakeve.auth.shell.services
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import platform.Foundation.CFDataCreate
-import platform.Foundation.CFDataGetBytePtr
-import platform.Foundation.CFDataGetLength
-import platform.Foundation.CFStringCreateWithCString
+import kotlinx.cinterop.*
+import platform.CoreFoundation.*
+import platform.Foundation.*
 import platform.Security.*
+import kotlin.experimental.ExperimentalNativeApi
 
 /**
  * iOS implementation of TokenStorage using iOS Keychain for secure storage.
  */
+@OptIn(ExperimentalForeignApi::class, ExperimentalNativeApi::class)
 class IosTokenStorage : TokenStorage {
 
     private val service = "com.guyghost.wakeve.auth"
 
     override suspend fun storeString(key: String, value: String) {
-        withContext(Dispatchers.IO) {
+        withContext(Dispatchers.Default) {
             try {
                 memScoped {
                     val query = CFDictionaryCreateMutable(null, 0, null, null)
@@ -36,7 +37,7 @@ class IosTokenStorage : TokenStorage {
                     SecItemDelete(query)
 
                     // Add new entry
-                    val valueData = value.encodeToByteArray().toCFData()
+                    val valueData = value.utf8ToCFData()
                     CFDictionarySetValue(query, kSecValueData, valueData)
                     CFDictionarySetValue(query, kSecAttrAccessible, kSecAttrAccessibleAfterFirstUnlock)
 
@@ -49,7 +50,7 @@ class IosTokenStorage : TokenStorage {
     }
 
     override suspend fun getString(key: String): String? {
-        return withContext(Dispatchers.IO) {
+        return withContext(Dispatchers.Default) {
             try {
                 memScoped {
                     val query = CFDictionaryCreateMutable(null, 0, null, null)
@@ -67,11 +68,11 @@ class IosTokenStorage : TokenStorage {
                     CFDictionarySetValue(query, kSecReturnData, kCFBooleanTrue)
                     CFDictionarySetValue(query, kSecMatchLimit, kSecMatchLimitOne)
 
-                    var result: CFTypeRef? = null
-                    val status = SecItemCopyMatching(query, cValueOf(&result))
+                    val result = alloc<CFTypeRefVar>()
+                    val status = SecItemCopyMatching(query, result.ptr)
 
-                    if (status == errSecSuccess && result != null) {
-                        val data = result as CFDataRef
+                    if (status == errSecSuccess && result.value != null) {
+                        val data = result.value as CFDataRef
                         val bytes = CFDataGetBytePtr(data)
                         val length = CFDataGetLength(data)
                         val value = ByteArray(length.toInt()) { bytes!![it].toByte() }
@@ -88,7 +89,7 @@ class IosTokenStorage : TokenStorage {
     }
 
     override suspend fun remove(key: String) {
-        withContext(Dispatchers.IO) {
+        withContext(Dispatchers.Default) {
             try {
                 memScoped {
                     val query = CFDictionaryCreateMutable(null, 0, null, null)
@@ -113,7 +114,7 @@ class IosTokenStorage : TokenStorage {
     }
 
     override suspend fun contains(key: String): Boolean {
-        return withContext(Dispatchers.IO) {
+        return withContext(Dispatchers.Default) {
             try {
                 memScoped {
                     val query = CFDictionaryCreateMutable(null, 0, null, null)
@@ -142,7 +143,7 @@ class IosTokenStorage : TokenStorage {
     }
 
     override suspend fun clearAll() {
-        withContext(Dispatchers.IO) {
+        withContext(Dispatchers.Default) {
             try {
                 memScoped {
                     val query = CFDictionaryCreateMutable(null, 0, null, null)
@@ -159,5 +160,18 @@ class IosTokenStorage : TokenStorage {
                 // Log error in production, but don't throw to maintain interface contract
             }
         }
+    }
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private fun String.utf8ToCFData(): CFDataRef? {
+    val bytes = this.encodeToByteArray()
+    val uBytes = bytes.map { it.toUByte() }.toUByteArray()
+    return uBytes.usePinned { pinned ->
+        CFDataCreate(
+            allocator = null,
+            bytes = pinned.addressOf(0),
+            length = uBytes.size.convert()
+        )
     }
 }

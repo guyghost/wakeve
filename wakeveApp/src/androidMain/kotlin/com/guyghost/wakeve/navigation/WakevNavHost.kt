@@ -23,6 +23,21 @@ import com.guyghost.wakeve.SplashScreen
 import com.guyghost.wakeve.ui.meeting.MeetingListScreen
 import com.guyghost.wakeve.ui.scenario.ScenarioComparisonScreen
 import com.guyghost.wakeve.ui.scenario.ScenarioDetailScreen
+import com.guyghost.wakeve.ui.scenario.ScenarioManagementScreen
+import com.guyghost.wakeve.ui.budget.BudgetOverviewScreen
+import com.guyghost.wakeve.ui.budget.BudgetDetailScreen
+import com.guyghost.wakeve.ui.accommodation.AccommodationScreen
+import com.guyghost.wakeve.ui.meal.MealPlanningScreen
+import com.guyghost.wakeve.ui.equipment.EquipmentChecklistScreen
+import com.guyghost.wakeve.ui.activity.ActivityPlanningScreen
+import com.guyghost.wakeve.ui.activity.ParticipantInfo
+import com.guyghost.wakeve.ui.comment.CommentsScreen
+import com.guyghost.wakeve.budget.BudgetRepository
+import com.guyghost.wakeve.comment.CommentRepository
+import com.guyghost.wakeve.meal.MealRepository
+import com.guyghost.wakeve.equipment.EquipmentRepository
+import com.guyghost.wakeve.activity.ActivityRepository
+import com.guyghost.wakeve.models.CommentSection
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
 import com.guyghost.wakeve.viewmodel.MeetingManagementViewModel
 import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
@@ -254,10 +269,16 @@ fun WakevNavHost(
         ) { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
             val viewModel: ScenarioManagementViewModel = koinInject()
+            val eventViewModel: EventManagementViewModel = koinInject()
             
-            // Scenario list is handled by ScenarioManagementScreen
-            // This route is for navigation completeness
-            navController.navigateUp()
+            ScenarioManagementScreen(
+                state = viewModel.state.value,
+                onDispatch = { intent -> viewModel.dispatch(intent) },
+                onNavigate = { route -> navController.navigate(route) },
+                eventId = eventId,
+                participantId = userId,
+                isOrganizer = userId == eventViewModel.state.value.selectedEvent?.organizerId
+            )
         }
         
         composable(
@@ -405,6 +426,199 @@ fun WakevNavHost(
                 onBack = {
                     navController.navigateUp()
                 }
+            )
+        }
+        
+        // ========================================
+        // BUDGET MANAGEMENT
+        // ========================================
+        
+        composable(
+            route = Screen.BudgetOverview.route,
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val budgetRepository: BudgetRepository = koinInject()
+            
+            BudgetOverviewScreen(
+                eventId = eventId,
+                budgetRepository = budgetRepository,
+                onNavigateToDetail = { budgetItemId ->
+                    navController.navigate(Screen.BudgetDetail.createRoute(eventId, budgetItemId))
+                },
+                onNavigateBack = {
+                    navController.navigateUp()
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.BudgetDetail.route,
+            arguments = listOf(
+                navArgument("eventId") { type = NavType.StringType },
+                navArgument("budgetItemId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val budgetItemId = backStackEntry.arguments?.getString("budgetItemId") ?: ""
+            val budgetRepository: BudgetRepository = koinInject()
+            val commentRepository: CommentRepository = koinInject()
+            
+            BudgetDetailScreen(
+                budgetId = budgetItemId,
+                budgetRepository = budgetRepository,
+                commentRepository = commentRepository,
+                onNavigateBack = {
+                    navController.navigateUp()
+                },
+                onNavigateToComments = { evtId, section, itemId ->
+                    navController.navigate(Screen.Comments.createRoute(evtId))
+                }
+            )
+        }
+        
+        // ========================================
+        // LOGISTICS & PLANNING
+        // ========================================
+        
+        composable(
+            route = Screen.Accommodation.route,
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val commentRepository: CommentRepository = koinInject()
+            
+            AccommodationScreen(
+                eventId = eventId,
+                commentRepository = commentRepository,
+                onNavigateBack = {
+                    navController.navigateUp()
+                },
+                onNavigateToComments = { evtId, section, itemId ->
+                    navController.navigate(Screen.Comments.createRoute(evtId))
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.MealPlanning.route,
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val mealRepository: MealRepository = koinInject()
+            val commentRepository: CommentRepository = koinInject()
+            
+            MealPlanningScreen(
+                eventId = eventId,
+                mealRepository = mealRepository,
+                commentRepository = commentRepository,
+                onNavigateBack = {
+                    navController.navigateUp()
+                },
+                onNavigateToComments = { evtId, section, itemId ->
+                    navController.navigate(Screen.Comments.createRoute(evtId))
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.EquipmentChecklist.route,
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val equipmentRepository: EquipmentRepository = koinInject()
+            val commentRepository: CommentRepository = koinInject()
+            val eventViewModel: EventManagementViewModel = koinInject()
+            
+            // Get participants from event state
+            val participants = eventViewModel.state.value.selectedEvent?.participants?.map { participantId ->
+                ParticipantInfo(id = participantId, name = participantId)
+            } ?: emptyList()
+            
+            EquipmentChecklistScreen(
+                eventId = eventId,
+                participants = participants,
+                equipmentRepository = equipmentRepository,
+                commentRepository = commentRepository,
+                onNavigateBack = {
+                    navController.navigateUp()
+                },
+                onNavigateToComments = { evtId, section, itemId ->
+                    navController.navigate(Screen.Comments.createRoute(evtId))
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.ActivityPlanning.route,
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val activityRepository: ActivityRepository = koinInject()
+            val commentRepository: CommentRepository = koinInject()
+            val eventViewModel: EventManagementViewModel = koinInject()
+            
+            // Get participants and organizer from event state
+            val event = eventViewModel.state.value.selectedEvent
+            val organizerId = event?.organizerId ?: userId
+            val participants = event?.participants?.map { participantId ->
+                ParticipantInfo(id = participantId, name = participantId)
+            } ?: emptyList()
+            
+            ActivityPlanningScreen(
+                eventId = eventId,
+                organizerId = organizerId,
+                participants = participants,
+                activityRepository = activityRepository,
+                commentRepository = commentRepository,
+                onNavigateBack = {
+                    navController.navigateUp()
+                },
+                onNavigateToComments = { evtId, section, itemId ->
+                    navController.navigate(Screen.Comments.createRoute(evtId))
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.Comments.route,
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val commentRepository: CommentRepository = koinInject()
+            
+            CommentsScreen(
+                eventId = eventId,
+                commentRepository = commentRepository,
+                section = null, // Show all sections
+                sectionItemId = null,
+                currentUserId = userId,
+                currentUserName = "User", // TODO: Get actual user name
+                onBack = {
+                    navController.navigateUp()
+                }
+            )
+        }
+        
+        // ========================================
+        // SCENARIO MANAGEMENT (Additional)
+        // ========================================
+        
+        composable(
+            route = Screen.ScenarioManagement.route,
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val viewModel: ScenarioManagementViewModel = koinInject()
+            val eventViewModel: EventManagementViewModel = koinInject()
+            
+            ScenarioManagementScreen(
+                state = viewModel.state.value,
+                onDispatch = { intent -> viewModel.dispatch(intent) },
+                onNavigate = { route -> navController.navigate(route) },
+                eventId = eventId,
+                participantId = userId,
+                isOrganizer = userId == eventViewModel.state.value.selectedEvent?.organizerId
             )
         }
     }

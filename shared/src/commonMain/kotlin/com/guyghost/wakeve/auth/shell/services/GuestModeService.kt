@@ -3,6 +3,8 @@ package com.guyghost.wakeve.auth.shell.services
 import com.guyghost.wakeve.auth.core.models.AuthResult
 import com.guyghost.wakeve.auth.core.models.User
 import com.guyghost.wakeve.auth.core.models.User.Companion.createGuest
+import com.guyghost.wakeve.auth.core.logic.currentTimeMillis
+import kotlin.random.Random
 
 /**
  * Service for managing guest mode operations.
@@ -95,8 +97,8 @@ class GuestModeService(
      * Generates a unique guest ID.
      */
     private fun generateGuestId(): String {
-        val timestamp = System.currentTimeMillis()
-        val random = java.security.SecureRandom().nextInt(1000000)
+        val timestamp = currentTimeMillis()
+        val random = Random.nextInt(1000000)
         return "guest_${timestamp}_$random"
     }
 

@@ -70,6 +70,12 @@ kotlin {
             implementation("androidx.test:core:1.5.0")
             // Compose UI testing
             implementation("androidx.compose.ui:ui-test-junit4:1.6.0")
+            // MockK for Android instrumented tests
+            implementation(libs.mockk)
+            // Ktor for testing Apple Sign-In
+            implementation("io.ktor:ktor-client-mock:2.3.12")
+            // Google Play Services for testing
+            implementation(libs.google.auth)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
