@@ -131,7 +131,16 @@
     <string name="step_participants_locations">Participants &amp; Lieux</string>
     <string name="step_locations">Lieux</string>
     <string name="step_time_slots">Créneaux</string>
+    <string name="step_preview">Aperçu</string>
     <string name="step_indicator">Étape %1$d sur %2$d : %3$s</string>
+
+    <!-- Preview Step -->
+    <string name="preview_title">Aperçu de votre événement</string>
+    <string name="preview_subtitle">Vérifiez les informations avant de créer l\'événement</string>
+    <string name="preview_participants_count">%1$s personnes</string>
+    <string name="preview_locations">Lieux potentiels</string>
+    <string name="preview_time_slots">Créneaux proposés</string>
+    <string name="preview_edit_hint">Vous pouvez revenir en arrière pour modifier les informations</string>
 
     <!-- Participants -->
     <string name="participants">Participants</string>
@@ -190,6 +199,8 @@
     <string name="when_should_it_happen">Quand cela devrait-il avoir lieu ?</string>
     <string name="add_at_least_one">Ajoutez au moins un créneau</string>
     <string name="time_preference">Préférence de temps</string>
+    <string name="select_date">Sélectionner une date</string>
+    <string name="select_time">Sélectionner une heure</string>
 
     <!-- Time of Day -->
     <string name="time_of_day_all_day">Toute la journée</string>
@@ -216,6 +227,16 @@
     <string name="event_type_lunch">Déjeuner</string>
     <string name="event_type_happy_hour">Happy Hour</string>
     <string name="event_type_workshop">Atelier</string>
+    <string name="event_type_party">Fête</string>
+    <string name="event_type_sports_event">Événement sportif</string>
+    <string name="event_type_cultural_event">Événement culturel</string>
+    <string name="event_type_family_gathering">Réunion de famille</string>
+    <string name="event_type_sport_event">Compétition sportive</string>
+    <string name="event_type_outdoor_activity">Activité de plein air</string>
+    <string name="event_type_food_tasting">Dégustation</string>
+    <string name="event_type_tech_meetup">Meetup Tech</string>
+    <string name="event_type_wellness_event">Bien-être</string>
+    <string name="event_type_creative_workshop">Atelier créatif</string>
     <string name="event_type_other">Autre</string>
 
     <!-- Validation -->
