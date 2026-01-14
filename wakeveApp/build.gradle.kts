@@ -72,8 +72,10 @@ kotlin {
             implementation("androidx.compose.ui:ui-test-junit4:1.6.0")
             // MockK for Android instrumented tests
             implementation(libs.mockk)
-            // Ktor for testing Apple Sign-In
+            // Ktor for testing Apple Sign-In (mock engine + content negotiation + JSON serialization)
             implementation("io.ktor:ktor-client-mock:2.3.12")
+            implementation("io.ktor:ktor-client-content-negotiation:2.3.12")
+            implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.12")
             // Google Play Services for testing
             implementation(libs.google.auth)
         }
