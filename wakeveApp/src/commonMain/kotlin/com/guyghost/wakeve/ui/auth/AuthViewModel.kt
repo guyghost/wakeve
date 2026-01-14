@@ -2,223 +2,207 @@ package com.guyghost.wakeve.ui.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.guyghost.wakeve.auth.shell.services.AuthService
-import com.guyghost.wakeve.auth.shell.services.EmailAuthService
-import com.guyghost.wakeve.auth.shell.services.GuestModeService
-import com.guyghost.wakeve.auth.shell.services.TokenStorage
+import com.guyghost.wakeve.auth.core.models.AuthError
+import com.guyghost.wakeve.auth.core.models.User
 import com.guyghost.wakeve.auth.shell.statemachine.AuthContract
 import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel for the Authentication screens.
+ * ViewModel for the AuthScreen.
  * 
- * This ViewModel:
- * - Manages auth state using AuthStateMachine
- * - Provides UI state for Compose screens
- * - Handles navigation based on auth results
+ * Wraps the AuthStateMachine and exposes:
+ * - UI state for Compose observation
+ * - Side effects for one-shot events (navigation, toasts)
+ * - Methods for user actions
  * 
- * @param authService Service for OAuth authentication
- * @param emailAuthService Service for email OTP flow
- * @param guestModeService Service for guest mode
- * @param tokenStorage Secure token storage
+ * Architecture: Imperative Shell (orchestrates auth flow)
  */
 class AuthViewModel(
-    private val authService: AuthService,
-    private val emailAuthService: EmailAuthService,
-    private val guestModeService: GuestModeService,
-    private val tokenStorage: TokenStorage
+    private val authStateMachine: AuthStateMachine
 ) : ViewModel() {
-
-    private val stateMachine = AuthStateMachine(
-        authService = authService,
-        emailAuthService = emailAuthService,
-        guestModeService = guestModeService,
-        tokenStorage = tokenStorage,
-        scope = viewModelScope
-    )
-
+    
     private val _uiState = MutableStateFlow(AuthUiState())
     val uiState: StateFlow<AuthUiState> = _uiState.asStateFlow()
-
+    
+    private val _sideEffects = MutableSharedFlow<AuthSideEffect>()
+    val sideEffects: SharedFlow<AuthSideEffect> = _sideEffects.asSharedFlow()
+    
     init {
-        // Observe state machine state
+        observeAuthState()
+        observeAuthSideEffects()
+    }
+    
+    /**
+     * Observe state changes from AuthStateMachine.
+     */
+    private fun observeAuthState() {
         viewModelScope.launch {
-            stateMachine.state.collect { state ->
-                _uiState.value = AuthUiState(
-                    isLoading = state.isLoading,
-                    isAuthenticated = state.isAuthenticated,
-                    isGuest = state.isGuest,
-                    currentUser = state.currentUser,
-                    errorMessage = state.lastError?.userMessage,
-                    showEmailInput = state.showEmailInput,
-                    showOTPInput = state.showOTPInput,
-                    pendingEmail = state.pendingEmail,
-                    remainingOTPTime = state.remainingOTPTime,
-                    otpAttemptsRemaining = state.otpAttemptsRemaining,
-                    authMethod = state.authMethod
-                )
+            authStateMachine.state.collect { authState ->
+                _uiState.update { current ->
+                    current.copy(
+                        isLoading = authState.isLoading,
+                        isAuthenticated = authState.isAuthenticated,
+                        isGuest = authState.isGuest,
+                        currentUser = authState.currentUser,
+                        errorMessage = authState.lastError?.userMessage,
+                        showEmailInput = authState.showEmailInput,
+                        showOTPInput = authState.showOTPInput,
+                        pendingEmail = authState.pendingEmail,
+                        remainingOTPTime = authState.remainingOTPTime,
+                        otpAttemptsRemaining = authState.otpAttemptsRemaining
+                    )
+                }
             }
         }
-
-        // Observe side effects
+    }
+    
+    /**
+     * Observe side effects from AuthStateMachine and forward to UI.
+     */
+    private fun observeAuthSideEffects() {
         viewModelScope.launch {
-            stateMachine.sideEffect.collect { effect ->
-                handleSideEffect(effect)
+            authStateMachine.sideEffect.collect { effect ->
+                val uiEffect = when (effect) {
+                    is AuthContract.SideEffect.NavigateToMain -> AuthSideEffect.NavigateToHome
+                    is AuthContract.SideEffect.NavigateToOnboarding -> AuthSideEffect.NavigateToOnboarding
+                    is AuthContract.SideEffect.ShowError -> AuthSideEffect.ShowError(effect.message)
+                    is AuthContract.SideEffect.ShowSuccess -> AuthSideEffect.ShowSuccess(effect.message)
+                    is AuthContract.SideEffect.NavigateToEmailInput -> AuthSideEffect.NavigateToEmailAuth
+                    is AuthContract.SideEffect.NavigateBack -> AuthSideEffect.NavigateBack
+                    is AuthContract.SideEffect.ShowOTPInput -> AuthSideEffect.ShowOTPInput(effect.email, effect.remainingSeconds)
+                    is AuthContract.SideEffect.HapticFeedback -> AuthSideEffect.HapticFeedback
+                    is AuthContract.SideEffect.AnimateSuccess -> AuthSideEffect.AnimateSuccess
+                }
+                _sideEffects.emit(uiEffect)
             }
         }
     }
-
+    
+    // ========================================================================
+    // User Actions
+    // ========================================================================
+    
     /**
-     * Handles side effects from the state machine.
+     * User taps "Sign in with Google" button.
+     * Note: The actual OAuth flow is triggered via AuthCallbacks (Activity-level).
      */
-    private fun handleSideEffect(effect: AuthContract.SideEffect) {
-        when (effect) {
-            is AuthContract.SideEffect.NavigateToMain -> {
-                _uiState.value = _uiState.value.copy(
-                    navigationEvent = NavigationEvent.NavigateToMain
-                )
-            }
-            is AuthContract.SideEffect.NavigateToOnboarding -> {
-                _uiState.value = _uiState.value.copy(
-                    navigationEvent = NavigationEvent.NavigateToOnboarding
-                )
-            }
-            is AuthContract.SideEffect.ShowError -> {
-                _uiState.value = _uiState.value.copy(
-                    snackbarMessage = effect.message
-                )
-            }
-            is AuthContract.SideEffect.ShowSuccess -> {
-                _uiState.value = _uiState.value.copy(
-                    snackbarMessage = effect.message
-                )
-            }
-            is AuthContract.SideEffect.ShowOTPInput -> {
-                _uiState.value = _uiState.value.copy(
-                    pendingEmail = effect.email,
-                    remainingOTPTime = effect.remainingSeconds,
-                    showEmailInput = false,
-                    showOTPInput = true
-                )
-            }
-            else -> {
-                // Other effects can be handled if needed
-            }
-        }
+    fun onGoogleSignInRequested() {
+        authStateMachine.handleIntent(AuthContract.Intent.SignInWithGoogle)
     }
-
+    
     /**
-     * Processes Google Sign-In intent.
+     * User taps "Sign in with Apple" button.
      */
-    fun onGoogleSignIn() {
-        stateMachine.handleIntent(AuthContract.Intent.SignInWithGoogle)
+    fun onAppleSignInRequested() {
+        authStateMachine.handleIntent(AuthContract.Intent.SignInWithApple)
     }
-
+    
     /**
-     * Processes Apple Sign-In intent.
+     * User taps "Sign in with Email" button.
      */
-    fun onAppleSignIn() {
-        stateMachine.handleIntent(AuthContract.Intent.SignInWithApple)
+    fun onEmailSignInRequested() {
+        authStateMachine.handleIntent(AuthContract.Intent.SignInWithEmail)
     }
-
+    
     /**
-     * Processes Email Sign-In intent.
+     * User taps "Skip" button to enter guest mode.
      */
-    fun onEmailSignIn() {
-        stateMachine.handleIntent(AuthContract.Intent.SignInWithEmail)
+    fun onSkipAuth() {
+        authStateMachine.handleIntent(AuthContract.Intent.SkipToGuest)
     }
-
+    
     /**
-     * Processes email submission.
+     * User submits email address.
      */
     fun onSubmitEmail(email: String) {
-        stateMachine.handleIntent(AuthContract.Intent.SubmitEmail(email))
+        authStateMachine.handleIntent(AuthContract.Intent.SubmitEmail(email))
     }
-
+    
     /**
-     * Processes OTP submission.
+     * User submits OTP code.
      */
     fun onSubmitOTP(otp: String) {
-        stateMachine.handleIntent(AuthContract.Intent.SubmitOTP(otp))
+        authStateMachine.handleIntent(AuthContract.Intent.SubmitOTP(otp))
     }
-
+    
     /**
-     * Processes Skip to Guest intent.
-     */
-    fun onSkipToGuest() {
-        stateMachine.handleIntent(AuthContract.Intent.SkipToGuest)
-    }
-
-    /**
-     * Processes OTP resend request.
+     * User requests a new OTP code.
      */
     fun onResendOTP() {
-        stateMachine.handleIntent(AuthContract.Intent.ResendOTP)
+        authStateMachine.handleIntent(AuthContract.Intent.ResendOTP)
     }
-
+    
     /**
-     * Processes back navigation.
+     * User goes back from email/OTP input.
      */
-    fun onBack() {
-        stateMachine.handleIntent(AuthContract.Intent.GoBack)
+    fun onGoBack() {
+        authStateMachine.handleIntent(AuthContract.Intent.GoBack)
     }
-
+    
     /**
-     * Processes error dismissal.
+     * Clear error message.
      */
-    fun onClearError() {
-        stateMachine.handleIntent(AuthContract.Intent.ClearError)
+    fun clearError() {
+        authStateMachine.handleIntent(AuthContract.Intent.ClearError)
+        _uiState.update { it.copy(errorMessage = null) }
     }
-
+    
     /**
-     * Clears the navigation event after it's been handled.
+     * User signs out.
      */
-    fun onNavigationHandled() {
-        _uiState.value = _uiState.value.copy(navigationEvent = null)
-    }
-
-    /**
-     * Clears the snackbar message after it's been shown.
-     */
-    fun onSnackbarShown() {
-        _uiState.value = _uiState.value.copy(snackbarMessage = null)
-    }
-
-    /**
-     * Check existing session on app start.
-     */
-    fun checkExistingSession() {
-        stateMachine.handleIntent(AuthContract.Intent.CheckExistingSession)
+    fun signOut() {
+        authStateMachine.handleIntent(AuthContract.Intent.SignOut)
     }
 }
 
 /**
- * UI State for authentication screens.
+ * UI State for the AuthScreen.
  */
 data class AuthUiState(
     val isLoading: Boolean = false,
     val isAuthenticated: Boolean = false,
     val isGuest: Boolean = false,
-    val currentUser: com.guyghost.wakeve.auth.core.models.User? = null,
+    val currentUser: User? = null,
     val errorMessage: String? = null,
     val showEmailInput: Boolean = false,
     val showOTPInput: Boolean = false,
     val pendingEmail: String? = null,
     val remainingOTPTime: Int = 0,
-    val otpAttemptsRemaining: Int = 0,
-    val authMethod: com.guyghost.wakeve.auth.core.models.AuthMethod? = null,
-    val navigationEvent: NavigationEvent? = null,
-    val snackbarMessage: String? = null
-)
+    val otpAttemptsRemaining: Int = 3
+) {
+    val displayName: String
+        get() = currentUser?.displayName ?: "Invité"
+    
+    val canSubmitEmail: Boolean
+        get() = !isLoading && showEmailInput
+    
+    val canSubmitOTP: Boolean
+        get() = !isLoading && showOTPInput && otpAttemptsRemaining > 0
+    
+    val canResendOTP: Boolean
+        get() = !isLoading && showOTPInput && remainingOTPTime <= 0
+}
 
 /**
- * Navigation events from auth flow.
+ * Side effects for the AuthScreen.
+ * One-shot events that should be handled once by the UI.
  */
-sealed class NavigationEvent {
-    data object NavigateToMain : NavigationEvent()
-    data object NavigateToOnboarding : NavigationEvent()
+sealed class AuthSideEffect {
+    data object NavigateToHome : AuthSideEffect()
+    data object NavigateToOnboarding : AuthSideEffect()
+    data object NavigateToEmailAuth : AuthSideEffect()
+    data object NavigateBack : AuthSideEffect()
+    data class ShowError(val message: String) : AuthSideEffect()
+    data class ShowSuccess(val message: String) : AuthSideEffect()
+    data class ShowOTPInput(val email: String, val remainingSeconds: Int) : AuthSideEffect()
+    data object HapticFeedback : AuthSideEffect()
+    data object AnimateSuccess : AuthSideEffect()
 }

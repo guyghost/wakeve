@@ -2,6 +2,9 @@ package com.guyghost.wakeve.navigation
 
 import android.widget.Toast
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
@@ -15,11 +18,14 @@ import com.guyghost.wakeve.ExploreTabScreen
 import com.guyghost.wakeve.GetStartedScreen
 import com.guyghost.wakeve.HomeScreen
 import com.guyghost.wakeve.InboxScreen
-import com.guyghost.wakeve.LoginScreen
 import com.guyghost.wakeve.OnboardingScreen
 import com.guyghost.wakeve.ProfileTabScreen
 import com.guyghost.wakeve.SettingsScreen
 import com.guyghost.wakeve.SplashScreen
+import com.guyghost.wakeve.ui.auth.AuthScreen
+import com.guyghost.wakeve.ui.auth.AuthSideEffect
+import com.guyghost.wakeve.ui.auth.AuthViewModel
+import com.guyghost.wakeve.ui.auth.EmailAuthScreen
 import com.guyghost.wakeve.ui.meeting.MeetingListScreen
 import com.guyghost.wakeve.ui.scenario.ScenarioComparisonScreen
 import com.guyghost.wakeve.ui.scenario.ScenarioDetailScreen
@@ -97,8 +103,15 @@ fun WakevNavHost(
         }
         
         composable(Screen.Profile.route) {
+            val authViewModel: AuthViewModel = koinInject()
+            val authState by authViewModel.uiState.collectAsState()
+            
             ProfileTabScreen(
                 userId = userId,
+                isGuest = authState.isGuest,
+                isAuthenticated = authState.isAuthenticated,
+                userEmail = authState.currentUser?.email,
+                userName = authState.currentUser?.displayName,
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
                 },
@@ -106,10 +119,13 @@ fun WakevNavHost(
                     navController.navigate(Screen.Inbox.route)
                 },
                 onSignOut = {
-                    // Clear back stack and navigate to login
-                    navController.navigate(Screen.Login.route) {
+                    authViewModel.signOut()
+                    navController.navigate(Screen.Auth.route) {
                         popUpTo(0) { inclusive = true }
                     }
+                },
+                onCreateAccount = {
+                    navController.navigate(Screen.Auth.route)
                 }
             )
         }
@@ -129,22 +145,148 @@ fun WakevNavHost(
         composable(Screen.GetStarted.route) {
             GetStartedScreen(
                 onGetStarted = {
-                    navController.navigate(Screen.Login.route) {
+                    navController.navigate(Screen.Auth.route) {
                         popUpTo(Screen.GetStarted.route) { inclusive = true }
                     }
                 }
             )
         }
         
-        composable(Screen.Login.route) {
-            LoginScreen(
+        // ========================================
+        // AUTHENTICATION (NEW)
+        // ========================================
+        
+        composable(Screen.Auth.route) {
+            val authViewModel: AuthViewModel = koinInject()
+            val uiState by authViewModel.uiState.collectAsState()
+            val authCallbacks = LocalAuthCallbacks.current
+            val context = LocalContext.current
+            
+            // Handle side effects (navigation, toasts)
+            LaunchedEffect(Unit) {
+                authViewModel.sideEffects.collect { effect ->
+                    when (effect) {
+                        is AuthSideEffect.NavigateToHome -> {
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Auth.route) { inclusive = true }
+                            }
+                        }
+                        is AuthSideEffect.NavigateToOnboarding -> {
+                            navController.navigate(Screen.Onboarding.route) {
+                                popUpTo(Screen.Auth.route) { inclusive = true }
+                            }
+                        }
+                        is AuthSideEffect.NavigateToEmailAuth -> {
+                            navController.navigate(Screen.EmailAuth.route)
+                        }
+                        is AuthSideEffect.ShowError -> {
+                            Toast.makeText(context, effect.message, Toast.LENGTH_LONG).show()
+                        }
+                        is AuthSideEffect.ShowSuccess -> {
+                            Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+                        }
+                        is AuthSideEffect.NavigateBack -> {
+                            navController.navigateUp()
+                        }
+                        is AuthSideEffect.ShowOTPInput,
+                        is AuthSideEffect.HapticFeedback,
+                        is AuthSideEffect.AnimateSuccess -> {
+                            // Handled by EmailAuthScreen or ignored
+                        }
+                    }
+                }
+            }
+            
+            AuthScreen(
                 onGoogleSignIn = {
-                    // TODO: Implement Google Sign-In
+                    authViewModel.onGoogleSignInRequested()
+                    authCallbacks.launchGoogleSignIn()
                 },
                 onAppleSignIn = {
-                    // Not available on Android
+                    // Apple Sign-In not natively available on Android
+                    Toast.makeText(context, "Apple Sign-In non disponible sur Android", Toast.LENGTH_SHORT).show()
+                },
+                onEmailSignIn = {
+                    authViewModel.onEmailSignInRequested()
+                },
+                onSkip = {
+                    authViewModel.onSkipAuth()
+                },
+                isLoading = uiState.isLoading,
+                errorMessage = uiState.errorMessage
+            )
+        }
+        
+        composable(Screen.EmailAuth.route) {
+            val authViewModel: AuthViewModel = koinInject()
+            val uiState by authViewModel.uiState.collectAsState()
+            val context = LocalContext.current
+            
+            // Handle side effects for EmailAuth
+            LaunchedEffect(Unit) {
+                authViewModel.sideEffects.collect { effect ->
+                    when (effect) {
+                        is AuthSideEffect.NavigateToHome -> {
+                            navController.navigate(Screen.Home.route) {
+                                popUpTo(Screen.Auth.route) { inclusive = true }
+                            }
+                        }
+                        is AuthSideEffect.NavigateToOnboarding -> {
+                            navController.navigate(Screen.Onboarding.route) {
+                                popUpTo(Screen.Auth.route) { inclusive = true }
+                            }
+                        }
+                        is AuthSideEffect.NavigateBack -> {
+                            navController.navigateUp()
+                        }
+                        is AuthSideEffect.ShowError -> {
+                            Toast.makeText(context, effect.message, Toast.LENGTH_LONG).show()
+                        }
+                        is AuthSideEffect.ShowSuccess -> {
+                            Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+                        }
+                        else -> {
+                            // Other effects not handled here
+                        }
+                    }
+                }
+            }
+            
+            EmailAuthScreen(
+                email = uiState.pendingEmail ?: "",
+                isLoading = uiState.isLoading,
+                isOTPStage = uiState.showOTPInput,
+                remainingTime = uiState.remainingOTPTime,
+                attemptsRemaining = uiState.otpAttemptsRemaining,
+                errorMessage = uiState.errorMessage,
+                onSubmitEmail = { email ->
+                    authViewModel.onSubmitEmail(email)
+                },
+                onSubmitOTP = { otp ->
+                    authViewModel.onSubmitOTP(otp)
+                },
+                onResendOTP = {
+                    authViewModel.onResendOTP()
+                },
+                onBack = {
+                    authViewModel.onGoBack()
+                },
+                onClearError = {
+                    authViewModel.clearError()
                 }
             )
+        }
+        
+        // Deprecated: Keep Login route for backward compatibility
+        // but redirect to Auth
+        @Suppress("DEPRECATION")
+        composable(Screen.Login.route) {
+            // Redirect to new Auth screen
+            LaunchedEffect(Unit) {
+                navController.navigate(Screen.Auth.route) {
+                    popUpTo(Screen.Login.route) { inclusive = true }
+                }
+            }
         }
         
         composable(Screen.Onboarding.route) {
@@ -415,13 +557,24 @@ fun WakevNavHost(
         // ========================================
         
         composable(Screen.Settings.route) {
+            val authViewModel: AuthViewModel = koinInject()
+            val authState by authViewModel.uiState.collectAsState()
+            
             SettingsScreen(
                 userId = userId,
                 currentSessionId = "", // TODO: Get from auth state
+                isGuest = authState.isGuest,
+                isAuthenticated = authState.isAuthenticated,
+                userEmail = authState.currentUser?.email,
+                userName = authState.currentUser?.displayName,
                 onLogout = {
-                    navController.navigate(Screen.Login.route) {
+                    authViewModel.signOut()
+                    navController.navigate(Screen.Auth.route) {
                         popUpTo(0) { inclusive = true }
                     }
+                },
+                onCreateAccount = {
+                    navController.navigate(Screen.Auth.route)
                 },
                 onBack = {
                     navController.navigateUp()

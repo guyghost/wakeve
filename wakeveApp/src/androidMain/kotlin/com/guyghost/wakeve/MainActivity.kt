@@ -8,13 +8,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.lifecycleScope
 import com.guyghost.wakeve.auth.AndroidAuthenticationService
 import com.guyghost.wakeve.di.appModule
 import com.guyghost.wakeve.di.platformModule
+import com.guyghost.wakeve.navigation.AuthCallbacks
+import com.guyghost.wakeve.navigation.LocalAuthCallbacks
 import com.guyghost.wakeve.security.AndroidSecureTokenStorage
 import com.guyghost.wakeve.auth.shell.services.AuthService
 import com.guyghost.wakeve.auth.shell.services.GoogleSignInProvider
@@ -27,7 +29,7 @@ import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
 
-class MainActivity : ComponentActivity() {
+class MainActivity : ComponentActivity(), AuthCallbacks {
 
     // OAuth Configuration - TODO: Move to BuildConfig or environment variables
     companion object {
@@ -79,11 +81,40 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             Log.d("MainActivity", "setContent called")
-            App()
+            // Provide AuthCallbacks to the composition tree
+            CompositionLocalProvider(LocalAuthCallbacks provides this) {
+                App()
+            }
         }
 
         // Check for existing session after content is set
         checkExistingSession()
+    }
+    
+    // ========================================================================
+    // AuthCallbacks Implementation
+    // ========================================================================
+    
+    /**
+     * Launch Google Sign-In flow.
+     * 
+     * Implements AuthCallbacks.launchGoogleSignIn().
+     * This creates the GoogleSignInClient and launches the sign-in intent.
+     */
+    override fun launchGoogleSignIn() {
+        Log.d("MainActivity", "launchGoogleSignIn() called via AuthCallbacks")
+        onGoogleSignInClick()
+    }
+    
+    /**
+     * Launch Apple Sign-In flow (web-based on Android).
+     * 
+     * Implements AuthCallbacks.launchAppleSignIn().
+     * Note: Apple Sign-In is not natively available on Android.
+     */
+    override fun launchAppleSignIn() {
+        Log.d("MainActivity", "launchAppleSignIn() called via AuthCallbacks")
+        onAppleSignInClick()
     }
 
     /**

@@ -19,7 +19,10 @@ import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -42,24 +45,35 @@ import androidx.compose.ui.unit.dp
  * 
  * Displays:
  * - User profile information (avatar, name, email)
+ * - Guest mode badge if applicable
  * - Quick links (Inbox, Settings)
- * - Account actions (Sign out)
+ * - Account actions (Sign out or Create Account)
  * - App information
  * 
  * Matches iOS ProfileTabView with Material You design.
  * 
- * @param userId The current authenticated user ID
+ * @param userId The current user ID (may be "guest" for guest users)
+ * @param isGuest Whether the user is in guest mode
+ * @param isAuthenticated Whether the user is authenticated
+ * @param userEmail The user's email (if authenticated)
+ * @param userName The user's display name (if authenticated)
  * @param onNavigateToSettings Callback when user taps Settings
  * @param onNavigateToInbox Callback when user taps Inbox
  * @param onSignOut Callback when user signs out
+ * @param onCreateAccount Callback when guest taps "Create Account"
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileTabScreen(
     userId: String,
+    isGuest: Boolean = false,
+    isAuthenticated: Boolean = false,
+    userEmail: String? = null,
+    userName: String? = null,
     onNavigateToSettings: () -> Unit,
     onNavigateToInbox: () -> Unit,
-    onSignOut: () -> Unit
+    onSignOut: () -> Unit,
+    onCreateAccount: () -> Unit = {}
 ) {
     Scaffold(
         topBar = {
@@ -91,7 +105,11 @@ fun ProfileTabScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                        containerColor = if (isGuest) {
+                            MaterialTheme.colorScheme.tertiaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.primaryContainer
+                        }
                     )
                 ) {
                     Row(
@@ -105,35 +123,90 @@ fun ProfileTabScreen(
                             modifier = Modifier
                                 .size(64.dp)
                                 .clip(CircleShape),
-                            color = MaterialTheme.colorScheme.primary
+                            color = if (isGuest) {
+                                MaterialTheme.colorScheme.tertiary
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            }
                         ) {
                             Box(
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.Person,
-                                    contentDescription = "Avatar",
-                                    modifier = Modifier.size(36.dp),
-                                    tint = MaterialTheme.colorScheme.onPrimary
-                                )
+                                // Show initials if authenticated with name, otherwise default icon
+                                if (isAuthenticated && !isGuest && userName != null && userName.isNotBlank()) {
+                                    Text(
+                                        text = getInitials(userName),
+                                        style = MaterialTheme.typography.headlineSmall.copy(
+                                            fontWeight = FontWeight.Bold
+                                        ),
+                                        color = MaterialTheme.colorScheme.onPrimary
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.Person,
+                                        contentDescription = "Avatar",
+                                        modifier = Modifier.size(36.dp),
+                                        tint = if (isGuest) {
+                                            MaterialTheme.colorScheme.onTertiary
+                                        } else {
+                                            MaterialTheme.colorScheme.onPrimary
+                                        }
+                                    )
+                                }
                             }
                         }
                         
                         Spacer(modifier = Modifier.width(16.dp))
                         
                         // User info
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = when {
+                                        isGuest -> "Invité"
+                                        userName != null -> userName
+                                        else -> "Utilisateur"
+                                    },
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = if (isGuest) {
+                                        MaterialTheme.colorScheme.onTertiaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    }
+                                )
+                                
+                                if (isGuest) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    AssistChip(
+                                        onClick = {},
+                                        label = { 
+                                            Text(
+                                                "Mode invité",
+                                                style = MaterialTheme.typography.labelSmall
+                                            )
+                                        },
+                                        colors = AssistChipDefaults.assistChipColors(
+                                            containerColor = MaterialTheme.colorScheme.tertiary,
+                                            labelColor = MaterialTheme.colorScheme.onTertiary
+                                        )
+                                    )
+                                }
+                            }
+                            
                             Text(
-                                text = "Utilisateur", // TODO: Get real user name
-                                style = MaterialTheme.typography.titleLarge.copy(
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Text(
-                                text = userId,
+                                text = when {
+                                    isGuest -> "Fonctionnalités limitées"
+                                    userEmail != null -> userEmail
+                                    else -> userId
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                color = if (isGuest) {
+                                    MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                                } else {
+                                    MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                }
                             )
                         }
                     }
@@ -180,14 +253,30 @@ fun ProfileTabScreen(
                 )
             }
             
-            item {
-                ProfileActionItem(
-                    icon = Icons.Default.ExitToApp,
-                    title = "Se déconnecter",
-                    subtitle = "Quitter votre compte",
-                    onClick = onSignOut,
-                    destructive = true
-                )
+            // Sign Out (only for authenticated users)
+            if (isAuthenticated && !isGuest) {
+                item {
+                    ProfileActionItem(
+                        icon = Icons.Default.ExitToApp,
+                        title = "Se déconnecter",
+                        subtitle = "Quitter votre compte",
+                        onClick = onSignOut,
+                        destructive = true
+                    )
+                }
+            }
+            
+            // Create Account (only for guest users)
+            if (isGuest) {
+                item {
+                    ProfileActionItem(
+                        icon = Icons.Default.PersonAdd,
+                        title = "Créer un compte",
+                        subtitle = "Sauvegarder vos données",
+                        onClick = onCreateAccount,
+                        highlight = true
+                    )
+                }
             }
             
             // App Info Section
@@ -248,16 +337,17 @@ private fun ProfileActionItem(
     title: String,
     subtitle: String,
     onClick: () -> Unit,
-    destructive: Boolean = false
+    destructive: Boolean = false,
+    highlight: Boolean = false
 ) {
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = if (destructive) {
-                MaterialTheme.colorScheme.errorContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
+            containerColor = when {
+                destructive -> MaterialTheme.colorScheme.errorContainer
+                highlight -> MaterialTheme.colorScheme.primaryContainer
+                else -> MaterialTheme.colorScheme.surfaceVariant
             }
         )
     ) {
@@ -271,10 +361,10 @@ private fun ProfileActionItem(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(24.dp),
-                tint = if (destructive) {
-                    MaterialTheme.colorScheme.onErrorContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                tint = when {
+                    destructive -> MaterialTheme.colorScheme.onErrorContainer
+                    highlight -> MaterialTheme.colorScheme.onPrimaryContainer
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
             )
             Spacer(modifier = Modifier.width(16.dp))
@@ -284,31 +374,44 @@ private fun ProfileActionItem(
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = if (destructive) {
-                        MaterialTheme.colorScheme.onErrorContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
+                    color = when {
+                        destructive -> MaterialTheme.colorScheme.onErrorContainer
+                        highlight -> MaterialTheme.colorScheme.onPrimaryContainer
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
                 )
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (destructive) {
-                        MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    color = when {
+                        destructive -> MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f)
+                        highlight -> MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     }
                 )
             }
             Icon(
                 imageVector = Icons.Default.ArrowForward,
                 contentDescription = "Accéder",
-                tint = if (destructive) {
-                    MaterialTheme.colorScheme.onErrorContainer
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+                tint = when {
+                    destructive -> MaterialTheme.colorScheme.onErrorContainer
+                    highlight -> MaterialTheme.colorScheme.onPrimaryContainer
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
                 }
             )
         }
     }
+}
+
+/**
+ * Get initials from a user name.
+ */
+private fun getInitials(name: String): String {
+    return name
+        .split(" ")
+        .filter { it.isNotBlank() }
+        .take(2)
+        .mapNotNull { it.firstOrNull()?.uppercaseChar() }
+        .joinToString("")
+        .ifEmpty { "?" }
 }
