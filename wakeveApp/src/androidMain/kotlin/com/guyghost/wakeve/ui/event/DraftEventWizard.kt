@@ -813,6 +813,9 @@ fun DraftEventWizard(
     
     // Time slot input dialog
     if (showTimeSlotInput) {
+        // Track the current slot being created/edited
+        var pendingTimeSlot by remember(editingTimeSlot) { mutableStateOf(editingTimeSlot) }
+        
         AlertDialog(
             onDismissRequest = { 
                 showTimeSlotInput = false
@@ -823,17 +826,22 @@ fun DraftEventWizard(
                 TimeSlotInputAndroid(
                     timeSlot = editingTimeSlot,
                     onTimeSlotChanged = { slot ->
-                        if (editingTimeSlot != null) {
-                            timeSlots = timeSlots.map { if (it.id == editingTimeSlot?.id) slot else it }
-                        } else {
-                            timeSlots = timeSlots + slot
-                        }
+                        // Only store the pending slot, don't add to list yet
+                        pendingTimeSlot = slot
                     }
                 )
             },
             confirmButton = {
                 TextButton(
                     onClick = {
+                        // Only add/update the slot when user confirms
+                        pendingTimeSlot?.let { slot ->
+                            if (editingTimeSlot != null) {
+                                timeSlots = timeSlots.map { if (it.id == editingTimeSlot?.id) slot else it }
+                            } else {
+                                timeSlots = timeSlots + slot
+                            }
+                        }
                         showTimeSlotInput = false
                         editingTimeSlot = null
                     }
