@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.People
 import androidx.compose.material.icons.outlined.Preview
+import androidx.compose.material.icons.outlined.Save
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -301,7 +302,9 @@ fun DraftEventWizard(
                             .padding(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                     ) {
-                        if (currentStep > 0) {
+                        // Show "Previous" on steps 1-2, "Save Draft" on preview step (3)
+                        if (currentStep > 0 && currentStep < steps.size - 1) {
+                            // Steps 1-2: Show Previous button
                             OutlinedButton(
                                 onClick = { currentStep-- }
                             ) {
@@ -312,6 +315,22 @@ fun DraftEventWizard(
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(stringResource(R.string.previous))
+                            }
+                        } else if (currentStep == steps.size - 1) {
+                            // Preview step: Show Save Draft button
+                            OutlinedButton(
+                                onClick = {
+                                    onSaveStep(buildEvent())
+                                    onCancel() // Return to main page
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Save,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(stringResource(R.string.save_draft))
                             }
                         }
                         
