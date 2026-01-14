@@ -57,7 +57,6 @@ import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.ui.components.EventTypeSelector
 import com.guyghost.wakeve.ui.components.LocationInputDialog
-import com.guyghost.wakeve.ui.components.ParticipantsEstimationCard
 import com.guyghost.wakeve.ui.components.PotentialLocationsList
 import com.guyghost.wakeve.ui.components.TimeSlotInput
 import kotlinx.datetime.Clock
@@ -67,9 +66,8 @@ import kotlinx.datetime.Clock
  * 
  * Steps:
  * 1. Basic Info (title, description, type)
- * 2. Participants Estimation (min/max/expected)
- * 3. Potential Locations
- * 4. Time Slots
+ * 2. Participants + Potential Locations
+ * 3. Time Slots
  * 
  * Features:
  * - Auto-save on each step
@@ -100,29 +98,27 @@ fun DraftEventWizard(
     var eventType by remember(initialEvent) { mutableStateOf(initialEvent?.eventType ?: EventType.OTHER) }
     var eventTypeCustom by remember(initialEvent) { mutableStateOf(initialEvent?.eventTypeCustom ?: "") }
     
-    // State for Step 2: Participants
-    var minParticipants by remember(initialEvent) { mutableStateOf(initialEvent?.minParticipants) }
-    var maxParticipants by remember(initialEvent) { mutableStateOf(initialEvent?.maxParticipants) }
-    var expectedParticipants by remember(initialEvent) { mutableStateOf(initialEvent?.expectedParticipants) }
+    // State for Step 2: Participants (single field)
+    var participantCount by remember(initialEvent) { mutableStateOf(initialEvent?.expectedParticipants?.toString() ?: "") }
     
-    // State for Step 3: Locations
+    // State for Step 2: Locations
     var locations by remember { mutableStateOf<List<PotentialLocation>>(emptyList()) }
     var showLocationDialog by remember { mutableStateOf(false) }
     
-    // State for Step 4: Time Slots
+    // State for Step 3: Time Slots
     var timeSlots by remember(initialEvent) { mutableStateOf(initialEvent?.proposedSlots ?: emptyList()) }
     var editingTimeSlot by remember { mutableStateOf<TimeSlot?>(null) }
     var showTimeSlotInput by remember { mutableStateOf(false) }
     
     val steps = listOf(
         stringResource(R.string.step_basic_info),
-        stringResource(R.string.step_participants),
-        stringResource(R.string.step_locations),
+        stringResource(R.string.step_participants_locations),
         stringResource(R.string.step_time_slots)
     )
     
     // Build current event
     fun buildEvent(): Event {
+        val participantCountInt = participantCount.toIntOrNull()
         return Event(
             id = initialEvent?.id ?: "event-${Clock.System.now().toEpochMilliseconds()}",
             title = title,
@@ -137,9 +133,9 @@ fun DraftEventWizard(
             finalDate = null,
             eventType = eventType,
             eventTypeCustom = if (eventType == EventType.CUSTOM) eventTypeCustom else null,
-            minParticipants = minParticipants,
-            maxParticipants = maxParticipants,
-            expectedParticipants = expectedParticipants
+            minParticipants = null,
+            maxParticipants = null,
+            expectedParticipants = participantCountInt
         )
     }
     
@@ -149,14 +145,11 @@ fun DraftEventWizard(
             0 -> title.isNotBlank() && description.isNotBlank() && 
                  (eventType != EventType.CUSTOM || eventTypeCustom.isNotBlank())
             1 -> {
-                val minOk = minParticipants == null || minParticipants!! > 0
-                val maxOk = maxParticipants == null || maxParticipants!! > 0
-                val rangeOk = minParticipants == null || maxParticipants == null || maxParticipants!! >= minParticipants!!
-                val expectedOk = expectedParticipants == null || expectedParticipants!! > 0
-                minOk && maxOk && rangeOk && expectedOk
+                // Participant count is optional, but if provided must be positive
+                val count = participantCount.toIntOrNull()
+                participantCount.isBlank() || (count != null && count > 0)
             }
-            2 -> true // Locations are optional
-            3 -> timeSlots.isNotEmpty()
+            2 -> timeSlots.isNotEmpty()
             else -> false
         }
     }
@@ -330,7 +323,7 @@ fun DraftEventWizard(
                         )
                     }
                     
-                    // Step 2: Participants
+                    // Step 2: Participants + Locations
                     1 -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text(
                             text = stringResource(R.string.how_many_people),
@@ -343,21 +336,26 @@ fun DraftEventWizard(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         
-                        ParticipantsEstimationCard(
-                            minParticipants = minParticipants,
-                            maxParticipants = maxParticipants,
-                            expectedParticipants = expectedParticipants,
-                            onMinChanged = { minParticipants = it },
-                            onMaxChanged = { maxParticipants = it },
-                            onExpectedChanged = { expectedParticipants = it }
+                        OutlinedTextField(
+                            value = participantCount,
+                            onValueChange = { newValue ->
+                                // Only allow digits
+                                if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                    participantCount = newValue
+                                }
+                            },
+                            label = { Text(stringResource(R.string.participant_count)) },
+                            placeholder = { Text(stringResource(R.string.participant_count_hint)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            isError = participantCount.isNotEmpty() && (participantCount.toIntOrNull() ?: 0) <= 0
                         )
-                    }
-                    
-                    // Step 3: Locations
-                    2 -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        
+                        // Locations section
                         Text(
                             text = stringResource(R.string.where_could_this_happen),
-                            style = MaterialTheme.typography.headlineMedium
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(top = 16.dp)
                         )
                         
                         Text(
@@ -375,8 +373,8 @@ fun DraftEventWizard(
                         )
                     }
                     
-                    // Step 4: Time Slots
-                    3 -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Step 3: Time Slots
+                    2 -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text(
                             text = stringResource(R.string.when_should_it_happen),
                             style = MaterialTheme.typography.headlineMedium
