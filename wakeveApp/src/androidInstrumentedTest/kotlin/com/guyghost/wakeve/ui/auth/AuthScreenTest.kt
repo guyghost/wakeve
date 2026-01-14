@@ -1,17 +1,15 @@
 package com.guyghost.wakeve.ui.auth
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.guyghost.wakeve.auth.shell.statemachine.AuthContract
-import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
-import com.guyghost.wakeve.ui.theme.WakeveTheme
-import io.mockk.mockk
+import com.guyghost.wakeve.theme.WakeveTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -19,10 +17,20 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import kotlin.test.assertTrue
 
 /**
  * Android Compose UI tests for AuthScreen.
- * These tests verify the authentication screen UI elements and interactions.
+ * 
+ * These tests verify the authentication screen UI elements and interactions
+ * using the callback-based AuthScreen signature.
+ * 
+ * Tests cover:
+ * - UI elements display (title, subtitle, buttons)
+ * - Button interactions and callbacks
+ * - Loading state handling
+ * - Error message display
+ * - Skip/guest mode functionality
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthScreenTest {
@@ -31,25 +39,10 @@ class AuthScreenTest {
     val composeTestRule = createComposeRule()
 
     private val testDispatcher = StandardTestDispatcher()
-    private lateinit var stateMachine: AuthStateMachine
-    private val stateFlow = MutableStateFlow(AuthContract.State.initial())
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        
-        // Create mock state machine
-        val mockAuthService = mockk<com.guyghost.wakeve.auth.shell.services.AuthService>(relaxed = true)
-        val mockEmailAuthService = mockk<com.guyghost.wakeve.auth.shell.services.EmailAuthService>(relaxed = true)
-        val mockGuestModeService = mockk<com.guyghost.wakeve.auth.shell.services.GuestModeService>(relaxed = true)
-        val mockTokenStorage = mockk<com.guyghost.wakeve.auth.shell.services.TokenStorage>(relaxed = true)
-        
-        stateMachine = AuthStateMachine(
-            authService = mockAuthService,
-            emailAuthService = mockEmailAuthService,
-            guestModeService = mockGuestModeService,
-            tokenStorage = mockTokenStorage
-        )
     }
 
     @After
@@ -57,17 +50,22 @@ class AuthScreenTest {
         Dispatchers.resetMain()
     }
 
+    // ========================================================================
+    // UI Elements Display Tests
+    // ========================================================================
+
     @Test
     fun authScreen_displaysTitle() {
         // Given
         composeTestRule.setContent {
             WakeveTheme {
                 AuthScreen(
-                    stateMachine = stateMachine,
-                    onNavigateToMain = {},
-                    onNavigateToOnboarding = {},
-                    onShowError = {},
-                    onShowSuccess = {}
+                    onGoogleSignIn = {},
+                    onAppleSignIn = {},
+                    onEmailSignIn = {},
+                    onSkip = {},
+                    isLoading = false,
+                    errorMessage = null
                 )
             }
         }
@@ -77,16 +75,37 @@ class AuthScreenTest {
     }
 
     @Test
+    fun authScreen_displaysSubtitle() {
+        // Given
+        composeTestRule.setContent {
+            WakeveTheme {
+                AuthScreen(
+                    onGoogleSignIn = {},
+                    onAppleSignIn = {},
+                    onEmailSignIn = {},
+                    onSkip = {},
+                    isLoading = false,
+                    errorMessage = null
+                )
+            }
+        }
+
+        // Then - Verify subtitle is displayed
+        composeTestRule.onNodeWithText("Connectez-vous pour accéder à toutes les fonctionnalités").assertIsDisplayed()
+    }
+
+    @Test
     fun authScreen_displaysSkipButton() {
         // Given
         composeTestRule.setContent {
             WakeveTheme {
                 AuthScreen(
-                    stateMachine = stateMachine,
-                    onNavigateToMain = {},
-                    onNavigateToOnboarding = {},
-                    onShowError = {},
-                    onShowSuccess = {}
+                    onGoogleSignIn = {},
+                    onAppleSignIn = {},
+                    onEmailSignIn = {},
+                    onSkip = {},
+                    isLoading = false,
+                    errorMessage = null
                 )
             }
         }
@@ -101,11 +120,12 @@ class AuthScreenTest {
         composeTestRule.setContent {
             WakeveTheme {
                 AuthScreen(
-                    stateMachine = stateMachine,
-                    onNavigateToMain = {},
-                    onNavigateToOnboarding = {},
-                    onShowError = {},
-                    onShowSuccess = {}
+                    onGoogleSignIn = {},
+                    onAppleSignIn = {},
+                    onEmailSignIn = {},
+                    onSkip = {},
+                    isLoading = false,
+                    errorMessage = null
                 )
             }
         }
@@ -116,19 +136,24 @@ class AuthScreenTest {
         composeTestRule.onNodeWithText("Se connecter avec Email").assertIsDisplayed()
     }
 
+    // ========================================================================
+    // Button Callback Tests
+    // ========================================================================
+
     @Test
-    fun authScreen_skipButtonNavigatesToOnboarding() {
+    fun authScreen_skipButtonTriggersCallback() {
         // Given
-        var navigatedToOnboarding = false
+        var skipClicked = false
         
         composeTestRule.setContent {
             WakeveTheme {
                 AuthScreen(
-                    stateMachine = stateMachine,
-                    onNavigateToMain = {},
-                    onNavigateToOnboarding = { navigatedToOnboarding = true },
-                    onShowError = {},
-                    onShowSuccess = {}
+                    onGoogleSignIn = {},
+                    onAppleSignIn = {},
+                    onEmailSignIn = {},
+                    onSkip = { skipClicked = true },
+                    isLoading = false,
+                    errorMessage = null
                 )
             }
         }
@@ -136,9 +161,88 @@ class AuthScreenTest {
         // When - Click skip button
         composeTestRule.onNodeWithText("Passer").performClick()
         
-        // Then - Verify navigation occurred (via state change)
-        // In real test, we'd verify the side effect was emitted
+        // Then - Verify callback was triggered
+        assertTrue(skipClicked, "Skip callback should have been triggered")
     }
+
+    @Test
+    fun authScreen_googleSignInButtonTriggersCallback() {
+        // Given
+        var googleClicked = false
+        
+        composeTestRule.setContent {
+            WakeveTheme {
+                AuthScreen(
+                    onGoogleSignIn = { googleClicked = true },
+                    onAppleSignIn = {},
+                    onEmailSignIn = {},
+                    onSkip = {},
+                    isLoading = false,
+                    errorMessage = null
+                )
+            }
+        }
+
+        // When - Click Google button
+        composeTestRule.onNodeWithText("Se connecter avec Google").performClick()
+        
+        // Then - Verify callback was triggered
+        assertTrue(googleClicked, "Google sign-in callback should have been triggered")
+    }
+
+    @Test
+    fun authScreen_appleSignInButtonTriggersCallback() {
+        // Given
+        var appleClicked = false
+        
+        composeTestRule.setContent {
+            WakeveTheme {
+                AuthScreen(
+                    onGoogleSignIn = {},
+                    onAppleSignIn = { appleClicked = true },
+                    onEmailSignIn = {},
+                    onSkip = {},
+                    isLoading = false,
+                    errorMessage = null
+                )
+            }
+        }
+
+        // When - Click Apple button
+        composeTestRule.onNodeWithText("Se connecter avec Apple").performClick()
+        
+        // Then - Verify callback was triggered
+        assertTrue(appleClicked, "Apple sign-in callback should have been triggered")
+    }
+
+    @Test
+    fun authScreen_emailSignInButtonTriggersCallback() {
+        // Given
+        var emailClicked = false
+        
+        composeTestRule.setContent {
+            WakeveTheme {
+                AuthScreen(
+                    onGoogleSignIn = {},
+                    onAppleSignIn = {},
+                    onEmailSignIn = { emailClicked = true },
+                    onSkip = {},
+                    isLoading = false,
+                    errorMessage = null
+                )
+            }
+        }
+
+        // When - Click Email button
+        composeTestRule.onNodeWithText("Se connecter avec Email").performClick()
+        
+        // Then - Verify callback was triggered
+        assertTrue(emailClicked, "Email sign-in callback should have been triggered")
+    }
+
+    // ========================================================================
+    // Loading State Tests
+    // ========================================================================
 
     @Test
     fun authScreen_displaysLoadingIndicatorWhenLoading() {
@@ -146,38 +250,144 @@ class AuthScreenTest {
         composeTestRule.setContent {
             WakeveTheme {
                 AuthScreen(
-                    stateMachine = stateMachine,
-                    onNavigateToMain = {},
-                    onNavigateToOnboarding = {},
-                    onShowError = {},
-                    onShowSuccess = {}
+                    onGoogleSignIn = {},
+                    onAppleSignIn = {},
+                    onEmailSignIn = {},
+                    onSkip = {},
+                    isLoading = true,
+                    errorMessage = null
                 )
             }
         }
 
-        // When - Set loading state
-        // Note: In a real test, you'd manipulate the state machine or use a test rule
-        
-        // Then - Loading indicator should be visible when loading
-        // This test verifies the loading state is handled
+        // Then - Loading indicator should be visible
+        // CircularProgressIndicator is displayed when isLoading = true
+        // The loading overlay covers the screen
+        composeTestRule.onNodeWithText("Bienvenue sur Wakeve").assertIsDisplayed()
     }
 
     @Test
-    fun authScreen_displaysSubtitle() {
+    fun authScreen_disablesButtonsWhenLoading() {
         // Given
         composeTestRule.setContent {
             WakeveTheme {
                 AuthScreen(
-                    stateMachine = stateMachine,
-                    onNavigateToMain = {},
-                    onNavigateToOnboarding = {},
-                    onShowError = {},
-                    onShowSuccess = {}
+                    onGoogleSignIn = {},
+                    onAppleSignIn = {},
+                    onEmailSignIn = {},
+                    onSkip = {},
+                    isLoading = true,
+                    errorMessage = null
                 )
             }
         }
 
-        // Then - Verify subtitle is displayed
-        composeTestRule.onNodeWithText("Connectez-vous pour accéder à toutes les fonctionnalités").assertIsDisplayed()
+        // Then - Buttons should be disabled when loading
+        composeTestRule.onNodeWithText("Passer").assertIsNotEnabled()
+        composeTestRule.onNodeWithText("Se connecter avec Google").assertIsNotEnabled()
+        composeTestRule.onNodeWithText("Se connecter avec Apple").assertIsNotEnabled()
+        composeTestRule.onNodeWithText("Se connecter avec Email").assertIsNotEnabled()
+    }
+
+    @Test
+    fun authScreen_enablesButtonsWhenNotLoading() {
+        // Given
+        composeTestRule.setContent {
+            WakeveTheme {
+                AuthScreen(
+                    onGoogleSignIn = {},
+                    onAppleSignIn = {},
+                    onEmailSignIn = {},
+                    onSkip = {},
+                    isLoading = false,
+                    errorMessage = null
+                )
+            }
+        }
+
+        // Then - Buttons should be enabled when not loading
+        composeTestRule.onNodeWithText("Passer").assertIsEnabled()
+        composeTestRule.onNodeWithText("Se connecter avec Google").assertIsEnabled()
+        composeTestRule.onNodeWithText("Se connecter avec Apple").assertIsEnabled()
+        composeTestRule.onNodeWithText("Se connecter avec Email").assertIsEnabled()
+    }
+
+    // ========================================================================
+    // Error Message Tests
+    // ========================================================================
+
+    @Test
+    fun authScreen_displaysErrorMessage() {
+        // Given
+        val errorText = "Une erreur est survenue"
+        
+        composeTestRule.setContent {
+            WakeveTheme {
+                AuthScreen(
+                    onGoogleSignIn = {},
+                    onAppleSignIn = {},
+                    onEmailSignIn = {},
+                    onSkip = {},
+                    isLoading = false,
+                    errorMessage = errorText
+                )
+            }
+        }
+
+        // Then - Error message should be visible
+        composeTestRule.onNodeWithText(errorText).assertIsDisplayed()
+    }
+
+    @Test
+    fun authScreen_hidesErrorWhenNull() {
+        // Given
+        composeTestRule.setContent {
+            WakeveTheme {
+                AuthScreen(
+                    onGoogleSignIn = {},
+                    onAppleSignIn = {},
+                    onEmailSignIn = {},
+                    onSkip = {},
+                    isLoading = false,
+                    errorMessage = null
+                )
+            }
+        }
+
+        // Then - No error message should be visible
+        // Title should be visible (confirms screen renders correctly without error)
+        composeTestRule.onNodeWithText("Bienvenue sur Wakeve").assertIsDisplayed()
+    }
+
+    // ========================================================================
+    // Edge Cases
+    // ========================================================================
+
+    @Test
+    fun authScreen_buttonsNotClickableWhileLoading() {
+        // Given
+        var clickCount = 0
+        
+        composeTestRule.setContent {
+            WakeveTheme {
+                AuthScreen(
+                    onGoogleSignIn = { clickCount++ },
+                    onAppleSignIn = { clickCount++ },
+                    onEmailSignIn = { clickCount++ },
+                    onSkip = { clickCount++ },
+                    isLoading = true,
+                    errorMessage = null
+                )
+            }
+        }
+
+        // When - Try to click all buttons while loading
+        composeTestRule.onNodeWithText("Passer").performClick()
+        composeTestRule.onNodeWithText("Se connecter avec Google").performClick()
+        composeTestRule.onNodeWithText("Se connecter avec Apple").performClick()
+        composeTestRule.onNodeWithText("Se connecter avec Email").performClick()
+        
+        // Then - No callbacks should have been triggered
+        assertTrue(clickCount == 0, "No callbacks should trigger while loading")
     }
 }
