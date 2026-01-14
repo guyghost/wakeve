@@ -11,18 +11,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
-import com.guyghost.wakeve.auth.AndroidAuthenticationService
-import com.guyghost.wakeve.auth.AuthState
-import com.guyghost.wakeve.auth.AuthStateManager
+import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
 import com.guyghost.wakeve.navigation.Screen
 import com.guyghost.wakeve.navigation.WakevBottomBar
 import com.guyghost.wakeve.navigation.WakevNavHost
-import com.guyghost.wakeve.security.AndroidSecureTokenStorage
+import org.koin.compose.koinInject
 
 // SharedPreferences constants
 private const val PREFS_NAME = "wakeve_prefs"
@@ -56,65 +54,53 @@ fun markOnboardingComplete(context: Context) {
  * - NavController for navigation management
  * - Scaffold with Bottom Navigation Bar
  * - WakevNavHost for all navigation destinations
+ * - Reactive navigation based on AuthStateMachine state
  * 
  * Flow:
- * 1. Splash → GetStarted → Login → Onboarding → Home (with bottom nav)
- * 2. Bottom Navigation: Home | Events | Explore | Profile
+ * 1. Splash → GetStarted → Auth → Onboarding → Home (with bottom nav)
+ * 2. Bottom Navigation: Home | Inbox | Explore | Profile
  */
 @Composable
 @Preview
 fun App() {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     
-    // Authentication state
-    var authState by remember { mutableStateOf<AuthState>(AuthState.Loading) }
-    var userId by remember { mutableStateOf<String?>(null) }
+    // Get AuthStateMachine from Koin
+    val authStateMachine: AuthStateMachine = koinInject()
+    val authState by authStateMachine.state.collectAsState()
+    
+    // Onboarding status
     var hasOnboarded by remember { mutableStateOf(false) }
     
     // Navigation controller
     val navController = rememberNavController()
     
-    // Initialize authentication and check onboarding status
+    // Check onboarding status on first composition
     LaunchedEffect(Unit) {
-        // Check onboarding status
         hasOnboarded = hasCompletedOnboarding(context)
-        
-        // Initialize authentication
-        val authService = AndroidAuthenticationService(context)
-        val authStateManager = AuthStateManager(
-            secureStorage = AndroidSecureTokenStorage(context),
-            authService = authService,
-            enableOAuth = false // TODO: Enable OAuth when configured
-        )
-        // AuthStateManager initializes automatically in init block
-        
-        // Observe authentication state
-        authStateManager.authState.collect { state ->
-            authState = state
-            when (state) {
-                is AuthState.Authenticated -> {
-                    userId = state.userId
-                }
-                is AuthState.Unauthenticated -> {
-                    userId = null
-                }
-                else -> {
-                    // Loading or Error
-                }
-            }
+    }
+    
+    // Determine start destination based on auth state
+    val startDestination = remember(authState.isAuthenticated, authState.isGuest, hasOnboarded) {
+        when {
+            // Loading state - show splash
+            authState.isLoading -> Screen.Splash.route
+            // Authenticated and has onboarded - go to home
+            authState.isAuthenticated && hasOnboarded -> Screen.Home.route
+            // Authenticated but not onboarded - show onboarding
+            authState.isAuthenticated && !hasOnboarded -> Screen.Onboarding.route
+            // Guest mode and has onboarded - go to home
+            authState.isGuest && hasOnboarded -> Screen.Home.route
+            // Guest mode but not onboarded - show onboarding
+            authState.isGuest && !hasOnboarded -> Screen.Onboarding.route
+            // Not authenticated - show get started (leads to auth)
+            else -> Screen.GetStarted.route
         }
     }
     
-    // Determine start destination based on auth and onboarding state
-    val startDestination = remember(authState, hasOnboarded) {
-        when {
-            authState is AuthState.Loading -> Screen.Splash.route
-            authState is AuthState.Unauthenticated -> Screen.GetStarted.route
-            authState is AuthState.Authenticated && !hasOnboarded -> Screen.Onboarding.route
-            authState is AuthState.Authenticated && hasOnboarded -> Screen.Home.route
-            else -> Screen.Splash.route
-        }
+    // Derive userId from auth state
+    val userId = remember(authState) {
+        authState.currentUser?.id ?: ""
     }
     
     // Determine if bottom bar should be visible
@@ -138,9 +124,9 @@ fun App() {
         ) { paddingValues ->
             WakevNavHost(
                 navController = navController,
-                modifier = androidx.compose.ui.Modifier.padding(paddingValues),
+                modifier = Modifier.padding(paddingValues),
                 startDestination = startDestination,
-                userId = userId ?: ""
+                userId = userId
             )
         }
     }

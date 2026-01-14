@@ -16,7 +16,10 @@ sealed class Screen(val route: String) {
     // Auth & Onboarding
     data object Splash : Screen("splash")
     data object GetStarted : Screen("get_started")
-    data object Login : Screen("login")
+    data object Auth : Screen("auth")  // NEW - Main auth screen
+    data object EmailAuth : Screen("auth/email")  // NEW - Email OTP screen
+    @Deprecated("Use Auth instead", ReplaceWith("Auth"))
+    data object Login : Screen("login")  // Keep for backward compatibility
     data object Onboarding : Screen("onboarding")
     
     // Event Management
