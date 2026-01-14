@@ -12,7 +12,6 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.guyghost.wakeve.EventCreationScreen
 import com.guyghost.wakeve.EventDetailScreen
 import com.guyghost.wakeve.ExploreTabScreen
 import com.guyghost.wakeve.GetStartedScreen
@@ -26,6 +25,7 @@ import com.guyghost.wakeve.ui.auth.AuthScreen
 import com.guyghost.wakeve.ui.auth.AuthSideEffect
 import com.guyghost.wakeve.ui.auth.AuthViewModel
 import com.guyghost.wakeve.ui.auth.EmailAuthScreen
+import com.guyghost.wakeve.ui.event.DraftEventWizard
 import com.guyghost.wakeve.ui.meeting.MeetingListScreen
 import com.guyghost.wakeve.ui.scenario.ScenarioComparisonScreen
 import com.guyghost.wakeve.ui.scenario.ScenarioDetailScreen
@@ -304,14 +304,27 @@ fun WakevNavHost(
         // ========================================
         
         composable(Screen.EventCreation.route) {
-            EventCreationScreen(
+            val viewModel: EventManagementViewModel = koinInject()
+            
+            DraftEventWizard(
+                initialEvent = null,
                 userId = userId,
-                onEventCreated = { event ->
+                onSaveStep = { event ->
+                    // Auto-save draft event on each step
+                    viewModel.dispatch(
+                        com.guyghost.wakeve.presentation.state.EventManagementContract.Intent.CreateEvent(event)
+                    )
+                },
+                onComplete = { event ->
+                    // Create the event and navigate to participant management
+                    viewModel.dispatch(
+                        com.guyghost.wakeve.presentation.state.EventManagementContract.Intent.CreateEvent(event)
+                    )
                     navController.navigate(Screen.ParticipantManagement.createRoute(event.id)) {
                         popUpTo(Screen.EventCreation.route) { inclusive = true }
                     }
                 },
-                onBack = {
+                onCancel = {
                     navController.navigateUp()
                 }
             )

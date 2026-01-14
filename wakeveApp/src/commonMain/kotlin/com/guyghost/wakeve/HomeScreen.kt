@@ -126,7 +126,7 @@ fun HomeScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { onNavigateTo("create_event") },
+                onClick = { onNavigateTo("event_creation") },
                 containerColor = MaterialTheme.colorScheme.primary
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Créer un événement")
@@ -181,7 +181,7 @@ fun HomeScreen(
                 } else if (filteredEvents.isEmpty()) {
                     EmptyState(
                         tab = selectedTab,
-                        onCreateEvent = { onNavigateTo("create_event") }
+                        onCreateEvent = { onNavigateTo("event_creation") }
                     )
                 } else {
                     LazyColumn(

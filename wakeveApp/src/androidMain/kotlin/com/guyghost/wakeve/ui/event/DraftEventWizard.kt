@@ -49,7 +49,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.R
-import com.guyghost.wakeve.auth.AuthStateManager
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
@@ -78,6 +77,7 @@ import kotlinx.datetime.Clock
  * - Material You design with progress indicator
  * 
  * @param initialEvent Initial event data (for editing)
+ * @param userId The current user ID (organizer)
  * @param onSaveStep Callback when moving between steps (for auto-save)
  * @param onComplete Callback when wizard is complete
  * @param onCancel Callback when wizard is cancelled
@@ -86,6 +86,7 @@ import kotlinx.datetime.Clock
 @Composable
 fun DraftEventWizard(
     initialEvent: Event?,
+    userId: String,
     onSaveStep: (Event) -> Unit,
     onComplete: (Event) -> Unit,
     onCancel: () -> Unit,
@@ -122,18 +123,11 @@ fun DraftEventWizard(
     
     // Build current event
     fun buildEvent(): Event {
-        val authStateManager = AuthStateManager.getInstance()
-        val authState = authStateManager.authState.value
-        val currentUserId = if (authState is com.guyghost.wakeve.auth.AuthState.Authenticated) {
-            authState.userId
-        } else {
-            "anonymous"
-        }
         return Event(
             id = initialEvent?.id ?: "event-${Clock.System.now().toEpochMilliseconds()}",
             title = title,
             description = description,
-            organizerId = initialEvent?.organizerId ?: currentUserId,
+            organizerId = initialEvent?.organizerId ?: userId,
             participants = initialEvent?.participants ?: emptyList(),
             proposedSlots = timeSlots,
             deadline = initialEvent?.deadline ?: Clock.System.now().toString(), // TODO: Set proper deadline
