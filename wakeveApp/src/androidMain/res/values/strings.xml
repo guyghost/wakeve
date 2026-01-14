@@ -128,12 +128,15 @@
     <!-- Wizard Steps -->
     <string name="step_basic_info">Informations de base</string>
     <string name="step_participants">Participants</string>
+    <string name="step_participants_locations">Participants &amp; Lieux</string>
     <string name="step_locations">Lieux</string>
     <string name="step_time_slots">Créneaux</string>
     <string name="step_indicator">Étape %1$d sur %2$d : %3$s</string>
 
     <!-- Participants -->
     <string name="participants">Participants</string>
+    <string name="participant_count">Nombre de participants</string>
+    <string name="participant_count_hint">Ex: 10</string>
     <string name="min_participants">Participants minimum</string>
     <string name="max_participants">Participants maximum</string>
     <string name="expected_participants">Participants attendus</string>
