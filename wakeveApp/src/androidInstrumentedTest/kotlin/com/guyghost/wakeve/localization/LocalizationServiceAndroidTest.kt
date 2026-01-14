@@ -308,7 +308,7 @@ class LocalizationServiceAndroidTest {
      * THEN everything works together
      */
     @Test
-    fun `complete flow: initialize, set locale, get string`() {
+    fun `complete flow - initialize, set locale, get string`() {
         // Set to French
         localizationService.setLocale(AppLocale.FRENCH)
         

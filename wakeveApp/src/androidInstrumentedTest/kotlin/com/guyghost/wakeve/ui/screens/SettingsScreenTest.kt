@@ -37,7 +37,7 @@ class SettingsScreenTest {
         android.content.Context.MODE_PRIVATE
         
         // Initialize LocalizationService with default locale
-        LocalizationService.setLocale(AppLocale.ENGLISH)
+        LocalizationService.getInstance().setLocale(AppLocale.ENGLISH)
     }
 
     @After

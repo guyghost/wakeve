@@ -256,7 +256,7 @@ class CalendarIntegrationTest {
     fun addToCalendarButton_triggersCallback_onMultipleClicks() {
         // Arrange
         var callCount = 0
-        val mockCallback = { callCount++ }
+        val mockCallback: () -> Unit = { callCount++ }
 
         composeTestRule.setContent {
             MaterialTheme {
@@ -525,7 +525,7 @@ class CalendarIntegrationTest {
         // Assert: Calendar Integration Card should not be visible in DRAFT mode
         // The CalendarIntegrationCard displays "Calendrier & Invitations" title
         composeTestRule.onNodeWithText("Calendrier & Invitations")
-            .assertDoesNotExist("Calendar Integration Card should not be displayed in DRAFT mode")
+            .assertDoesNotExist()
     }
 
     /**

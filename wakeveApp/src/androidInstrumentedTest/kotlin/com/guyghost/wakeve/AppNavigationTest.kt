@@ -2,6 +2,7 @@ package com.guyghost.wakeve
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.guyghost.wakeve.navigation.Screen
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -15,7 +16,7 @@ import kotlin.test.assertEquals
  * - Onboarding completion status
  *
  * Navigation Logic:
- * - Unauthenticated → LOGIN route
+ * - Unauthenticated → GetStarted route (leads to Auth)
  * - Authenticated + Not onboarded → ONBOARDING route
  * - Authenticated + Onboarded → HOME route
  */
@@ -56,15 +57,15 @@ class AppNavigationTest {
 
         // Act: Determine navigation route based on app logic
         val expectedRoute = when {
-            !isAuthenticated -> AppRoute.LOGIN
-            isAuthenticated && !hasOnboarded -> AppRoute.ONBOARDING
-            isAuthenticated && hasOnboarded -> AppRoute.HOME
-            else -> AppRoute.HOME
+            !isAuthenticated -> Screen.GetStarted.route
+            isAuthenticated && !hasOnboarded -> Screen.Onboarding.route
+            isAuthenticated && hasOnboarded -> Screen.Home.route
+            else -> Screen.Home.route
         }
 
         // Assert: Should navigate to ONBOARDING for first authenticated launch
         assertEquals(
-            AppRoute.ONBOARDING,
+            Screen.Onboarding.route,
             expectedRoute,
             "First authenticated launch should navigate to ONBOARDING"
         )
@@ -92,60 +93,60 @@ class AppNavigationTest {
 
         // Act: Determine navigation route based on app logic
         val expectedRoute = when {
-            !isAuthenticated -> AppRoute.LOGIN
-            isAuthenticated && !hasOnboarded -> AppRoute.ONBOARDING
-            isAuthenticated && hasOnboarded -> AppRoute.HOME
-            else -> AppRoute.HOME
+            !isAuthenticated -> Screen.GetStarted.route
+            isAuthenticated && !hasOnboarded -> Screen.Onboarding.route
+            isAuthenticated && hasOnboarded -> Screen.Home.route
+            else -> Screen.Home.route
         }
 
         // Assert: Should navigate to HOME for returning authenticated user
         assertEquals(
-            AppRoute.HOME,
+            Screen.Home.route,
             expectedRoute,
             "Returning authenticated user should skip onboarding and go to HOME"
         )
     }
 
     /**
-     * Test 3: Unauthenticated user goes to login
+     * Test 3: Unauthenticated user goes to get started
      *
      * Scenario:
      * Given: User is not authenticated (no auth token/session)
      * When: App is launched (splash screen completes)
-     * Then: Should navigate to LOGIN route
+     * Then: Should navigate to GetStarted route (which leads to Auth)
      */
     @Test
-    fun `unauthenticated user goes to login`() {
+    fun `unauthenticated user goes to get started`() {
         // Arrange: Simulate unauthenticated user
         val isAuthenticated = false
         val hasOnboarded = hasCompletedOnboarding(context)
 
         // Act: Determine navigation route based on app logic
         val expectedRoute = when {
-            !isAuthenticated -> AppRoute.LOGIN
-            isAuthenticated && !hasOnboarded -> AppRoute.ONBOARDING
-            isAuthenticated && hasOnboarded -> AppRoute.HOME
-            else -> AppRoute.HOME
+            !isAuthenticated -> Screen.GetStarted.route
+            isAuthenticated && !hasOnboarded -> Screen.Onboarding.route
+            isAuthenticated && hasOnboarded -> Screen.Home.route
+            else -> Screen.Home.route
         }
 
-        // Assert: Should navigate to LOGIN for unauthenticated user
+        // Assert: Should navigate to GetStarted for unauthenticated user
         assertEquals(
-            AppRoute.LOGIN,
+            Screen.GetStarted.route,
             expectedRoute,
-            "Unauthenticated user should be directed to LOGIN"
+            "Unauthenticated user should be directed to GetStarted"
         )
     }
 
     /**
-     * Test 4: Unauthenticated user still goes to login even if onboarded
+     * Test 4: Unauthenticated user still goes to get started even if onboarded
      *
      * Scenario:
      * Given: User has completed onboarding but is NOT authenticated
      * When: App is launched
-     * Then: Should navigate to LOGIN (auth check takes precedence)
+     * Then: Should navigate to GetStarted (auth check takes precedence)
      */
     @Test
-    fun `unauthenticated user goes to login even if onboarded`() {
+    fun `unauthenticated user goes to get started even if onboarded`() {
         // Arrange: Mark onboarding as complete but not authenticated
         markOnboardingComplete(context)
         val isAuthenticated = false
@@ -157,17 +158,17 @@ class AppNavigationTest {
 
         // Act: Determine navigation route based on app logic
         val expectedRoute = when {
-            !isAuthenticated -> AppRoute.LOGIN
-            isAuthenticated && !hasOnboarded -> AppRoute.ONBOARDING
-            isAuthenticated && hasOnboarded -> AppRoute.HOME
-            else -> AppRoute.HOME
+            !isAuthenticated -> Screen.GetStarted.route
+            isAuthenticated && !hasOnboarded -> Screen.Onboarding.route
+            isAuthenticated && hasOnboarded -> Screen.Home.route
+            else -> Screen.Home.route
         }
 
-        // Assert: Should navigate to LOGIN (auth has priority)
+        // Assert: Should navigate to GetStarted (auth has priority)
         assertEquals(
-            AppRoute.LOGIN,
+            Screen.GetStarted.route,
             expectedRoute,
-            "Unauthenticated user should go to LOGIN regardless of onboarding status"
+            "Unauthenticated user should go to GetStarted regardless of onboarding status"
         )
     }
 
@@ -182,10 +183,10 @@ class AppNavigationTest {
     fun `navigation correctly prioritizes auth check over onboarding`() {
         // Test matrix: [isAuthenticated][hasOnboarded] → expected route
         val navigationMatrix = listOf(
-            Triple(false, false, AppRoute.LOGIN),      // No auth, no onboard
-            Triple(false, true, AppRoute.LOGIN),       // No auth, but onboarded (still login)
-            Triple(true, false, AppRoute.ONBOARDING),  // Auth, no onboard
-            Triple(true, true, AppRoute.HOME),         // Auth, onboarded
+            Triple(false, false, Screen.GetStarted.route),  // No auth, no onboard
+            Triple(false, true, Screen.GetStarted.route),   // No auth, but onboarded (still get started)
+            Triple(true, false, Screen.Onboarding.route),   // Auth, no onboard
+            Triple(true, true, Screen.Home.route),          // Auth, onboarded
         )
 
         navigationMatrix.forEach { (isAuth, hasOnboard, expectedRoute) ->
@@ -197,10 +198,10 @@ class AppNavigationTest {
             }
 
             val actualRoute = when {
-                !isAuth -> AppRoute.LOGIN
-                isAuth && !hasOnboard -> AppRoute.ONBOARDING
-                isAuth && hasOnboard -> AppRoute.HOME
-                else -> AppRoute.HOME
+                !isAuth -> Screen.GetStarted.route
+                isAuth && !hasOnboard -> Screen.Onboarding.route
+                isAuth && hasOnboard -> Screen.Home.route
+                else -> Screen.Home.route
             }
 
             // Assert: Each combination should produce correct route
@@ -224,14 +225,14 @@ class AppNavigationTest {
         // Arrange: Simulate authenticated user before onboarding
         val isAuthenticated = true
         val beforeOnboarding = when {
-            !isAuthenticated -> AppRoute.LOGIN
-            isAuthenticated && !hasCompletedOnboarding(context) -> AppRoute.ONBOARDING
-            else -> AppRoute.HOME
+            !isAuthenticated -> Screen.GetStarted.route
+            isAuthenticated && !hasCompletedOnboarding(context) -> Screen.Onboarding.route
+            else -> Screen.Home.route
         }
 
         // Assert: Should navigate to ONBOARDING first
         assertEquals(
-            AppRoute.ONBOARDING,
+            Screen.Onboarding.route,
             beforeOnboarding,
             "Before onboarding, should navigate to ONBOARDING"
         )
@@ -241,14 +242,14 @@ class AppNavigationTest {
 
         // Act: Check navigation after onboarding
         val afterOnboarding = when {
-            !isAuthenticated -> AppRoute.LOGIN
-            isAuthenticated && !hasCompletedOnboarding(context) -> AppRoute.ONBOARDING
-            else -> AppRoute.HOME
+            !isAuthenticated -> Screen.GetStarted.route
+            isAuthenticated && !hasCompletedOnboarding(context) -> Screen.Onboarding.route
+            else -> Screen.Home.route
         }
 
         // Assert: Should navigate to HOME after onboarding
         assertEquals(
-            AppRoute.HOME,
+            Screen.Home.route,
             afterOnboarding,
             "After onboarding, should navigate to HOME"
         )
