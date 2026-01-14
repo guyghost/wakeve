@@ -12,14 +12,24 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.Description
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.People
+import androidx.compose.material.icons.outlined.Preview
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -27,6 +37,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -47,6 +58,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.R
 import com.guyghost.wakeve.models.Event
@@ -58,8 +71,14 @@ import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.ui.components.EventTypeSelector
 import com.guyghost.wakeve.ui.components.LocationInputDialog
 import com.guyghost.wakeve.ui.components.PotentialLocationsList
-import com.guyghost.wakeve.ui.components.TimeSlotInput
+import com.guyghost.wakeve.ui.components.TimeSlotInputAndroid
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import java.util.Locale
 
 /**
  * Multi-step wizard for creating an event in DRAFT phase.
@@ -68,11 +87,13 @@ import kotlinx.datetime.Clock
  * 1. Basic Info (title, description, type)
  * 2. Participants + Potential Locations
  * 3. Time Slots
+ * 4. Preview (summary of all information)
  * 
  * Features:
  * - Auto-save on each step
  * - Validation before proceeding
  * - Material You design with progress indicator
+ * - Preview step before final creation
  * 
  * @param initialEvent Initial event data (for editing)
  * @param userId The current user ID (organizer)
@@ -113,8 +134,17 @@ fun DraftEventWizard(
     val steps = listOf(
         stringResource(R.string.step_basic_info),
         stringResource(R.string.step_participants_locations),
-        stringResource(R.string.step_time_slots)
+        stringResource(R.string.step_time_slots),
+        stringResource(R.string.step_preview)
     )
+    
+    // Formatters for preview
+    val dateFormatter = remember { 
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault())
+    }
+    val timeFormatter = remember {
+        DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.getDefault())
+    }
     
     // Build current event
     fun buildEvent(): Event {
@@ -150,8 +180,69 @@ fun DraftEventWizard(
                 participantCount.isBlank() || (count != null && count > 0)
             }
             2 -> timeSlots.isNotEmpty()
+            3 -> true // Preview is always valid if we got here
             else -> false
         }
+    }
+    
+    // Helper to get event type display name
+    @Composable
+    fun getEventTypeDisplayName(type: EventType, customName: String?): String {
+        return when (type) {
+            EventType.BIRTHDAY -> stringResource(R.string.event_type_birthday)
+            EventType.WEDDING -> stringResource(R.string.event_type_wedding)
+            EventType.TEAM_BUILDING -> stringResource(R.string.event_type_team_building)
+            EventType.CONFERENCE -> stringResource(R.string.event_type_conference)
+            EventType.WORKSHOP -> stringResource(R.string.event_type_workshop)
+            EventType.PARTY -> stringResource(R.string.event_type_party)
+            EventType.SPORTS_EVENT -> stringResource(R.string.event_type_sports_event)
+            EventType.CULTURAL_EVENT -> stringResource(R.string.event_type_cultural_event)
+            EventType.FAMILY_GATHERING -> stringResource(R.string.event_type_family_gathering)
+            EventType.SPORT_EVENT -> stringResource(R.string.event_type_sport_event)
+            EventType.OUTDOOR_ACTIVITY -> stringResource(R.string.event_type_outdoor_activity)
+            EventType.FOOD_TASTING -> stringResource(R.string.event_type_food_tasting)
+            EventType.TECH_MEETUP -> stringResource(R.string.event_type_tech_meetup)
+            EventType.WELLNESS_EVENT -> stringResource(R.string.event_type_wellness_event)
+            EventType.CREATIVE_WORKSHOP -> stringResource(R.string.event_type_creative_workshop)
+            EventType.CUSTOM -> customName ?: stringResource(R.string.event_type_other)
+            EventType.OTHER -> stringResource(R.string.event_type_other)
+        }
+    }
+    
+    // Helper to format time slot for preview
+    fun formatTimeSlotForPreview(slot: TimeSlot): Pair<String, String> {
+        val dateStr = slot.start?.let { startIso ->
+            try {
+                val instant = Instant.parse(startIso)
+                val localDate = instant.toLocalDateTime(TimeZone.of(slot.timezone)).date
+                val javaDate = java.time.LocalDate.of(localDate.year, localDate.monthNumber, localDate.dayOfMonth)
+                javaDate.format(dateFormatter)
+            } catch (e: Exception) {
+                startIso
+            }
+        } ?: ""
+        
+        val timeStr = when (slot.timeOfDay) {
+            TimeOfDay.ALL_DAY -> "Toute la journée"
+            TimeOfDay.MORNING -> "Matin (8h-12h)"
+            TimeOfDay.AFTERNOON -> "Après-midi (12h-18h)"
+            TimeOfDay.EVENING -> "Soir (18h-minuit)"
+            TimeOfDay.SPECIFIC -> {
+                try {
+                    val startInstant = Instant.parse(slot.start!!)
+                    val endInstant = Instant.parse(slot.end!!)
+                    val startLocalTime = startInstant.toLocalDateTime(TimeZone.of(slot.timezone)).time
+                    val endLocalTime = endInstant.toLocalDateTime(TimeZone.of(slot.timezone)).time
+                    val javaStartTime = java.time.LocalTime.of(startLocalTime.hour, startLocalTime.minute)
+                    val javaEndTime = java.time.LocalTime.of(endLocalTime.hour, endLocalTime.minute)
+                    "${javaStartTime.format(timeFormatter)} - ${javaEndTime.format(timeFormatter)}"
+                } catch (e: Exception) {
+                    "Heure spécifique"
+                }
+            }
+        }
+        
+        return dateStr to timeStr
     }
     
     Scaffold(
@@ -374,14 +465,17 @@ fun DraftEventWizard(
                     }
                     
                     // Step 3: Time Slots
-                    2 -> Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    2 -> Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
                         Text(
                             text = stringResource(R.string.when_should_it_happen),
                             style = MaterialTheme.typography.headlineMedium
                         )
                         
                         Text(
-                            text = stringResource(R.string.add_another_time_slot),
+                            text = stringResource(R.string.add_at_least_one),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -423,24 +517,51 @@ fun DraftEventWizard(
                                             .padding(16.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Column {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            // Display formatted date
+                                            val formattedDate = slot.start?.let { startIso ->
+                                                try {
+                                                    val instant = Instant.parse(startIso)
+                                                    val localDate = instant.toLocalDateTime(TimeZone.of(slot.timezone)).date
+                                                    val javaDate = java.time.LocalDate.of(localDate.year, localDate.monthNumber, localDate.dayOfMonth)
+                                                    val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault())
+                                                    javaDate.format(dateFormatter)
+                                                } catch (e: Exception) {
+                                                    startIso
+                                                }
+                                            } ?: ""
+                                            
+                                            Text(
+                                                text = formattedDate,
+                                                style = MaterialTheme.typography.titleMedium
+                                            )
+                                            
                                             Text(
                                                 text = when (slot.timeOfDay) {
                                                     TimeOfDay.ALL_DAY -> stringResource(R.string.time_of_day_all_day)
                                                     TimeOfDay.MORNING -> stringResource(R.string.time_of_day_morning)
                                                     TimeOfDay.AFTERNOON -> stringResource(R.string.time_of_day_afternoon)
                                                     TimeOfDay.EVENING -> stringResource(R.string.time_of_day_evening)
-                                                    TimeOfDay.SPECIFIC -> stringResource(R.string.time_of_day_specific)
+                                                    TimeOfDay.SPECIFIC -> {
+                                                        // Display start-end times for SPECIFIC
+                                                        try {
+                                                            val startInstant = Instant.parse(slot.start!!)
+                                                            val endInstant = Instant.parse(slot.end!!)
+                                                            val startLocalTime = startInstant.toLocalDateTime(TimeZone.of(slot.timezone)).time
+                                                            val endLocalTime = endInstant.toLocalDateTime(TimeZone.of(slot.timezone)).time
+                                                            val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.getDefault())
+                                                            val javaStartTime = java.time.LocalTime.of(startLocalTime.hour, startLocalTime.minute)
+                                                            val javaEndTime = java.time.LocalTime.of(endLocalTime.hour, endLocalTime.minute)
+                                                            "${javaStartTime.format(timeFormatter)} - ${javaEndTime.format(timeFormatter)}"
+                                                        } catch (e: Exception) {
+                                                            stringResource(R.string.time_of_day_specific)
+                                                        }
+                                                    }
                                                 },
-                                                style = MaterialTheme.typography.titleMedium
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
-                                            if (slot.start != null && slot.end != null) {
-                                                Text(
-                                                    text = "${slot.start} - ${slot.end}",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
-                                            }
+                                            
                                             Text(
                                                 text = slot.timezone,
                                                 style = MaterialTheme.typography.bodySmall,
@@ -463,6 +584,215 @@ fun DraftEventWizard(
                                 }
                             }
                         }
+                    }
+                    
+                    // Step 4: Preview
+                    3 -> Column(
+                        modifier = Modifier.verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Header
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Preview,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = stringResource(R.string.preview_title),
+                                style = MaterialTheme.typography.headlineMedium
+                            )
+                        }
+                        
+                        Text(
+                            text = stringResource(R.string.preview_subtitle),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        
+                        // Event Preview Card
+                        ElevatedCard(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                // Title Section
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                
+                                HorizontalDivider()
+                                
+                                // Description Section
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Description,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = stringResource(R.string.event_description),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = description,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            maxLines = 4,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                                
+                                // Event Type Section
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Category,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = stringResource(R.string.event_type),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = getEventTypeDisplayName(eventType, eventTypeCustom.takeIf { it.isNotBlank() }),
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                }
+                                
+                                // Participants Section
+                                if (participantCount.isNotBlank()) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.People,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Column {
+                                            Text(
+                                                text = stringResource(R.string.participant_count),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = stringResource(R.string.preview_participants_count, participantCount),
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                        }
+                                    }
+                                }
+                                
+                                // Locations Section
+                                if (locations.isNotEmpty()) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.LocationOn,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Column {
+                                            Text(
+                                                text = stringResource(R.string.preview_locations),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            locations.forEach { location ->
+                                                Text(
+                                                    text = "• ${location.name}",
+                                                    style = MaterialTheme.typography.bodyMedium
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                
+                                // Time Slots Section
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.CalendarMonth,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = stringResource(R.string.preview_time_slots),
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        timeSlots.forEach { slot ->
+                                            val (dateStr, timeStr) = formatTimeSlotForPreview(slot)
+                                            Text(
+                                                text = "• $dateStr - $timeStr",
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Edit hint
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Edit,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    text = stringResource(R.string.preview_edit_hint),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
@@ -490,7 +820,7 @@ fun DraftEventWizard(
             },
             title = { Text(if (editingTimeSlot != null) stringResource(R.string.edit_time_slot_title) else stringResource(R.string.add_time_slot_title)) },
             text = {
-                TimeSlotInput(
+                TimeSlotInputAndroid(
                     timeSlot = editingTimeSlot,
                     onTimeSlotChanged = { slot ->
                         if (editingTimeSlot != null) {
