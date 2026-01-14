@@ -1,0 +1,749 @@
+import SwiftUI
+import Shared
+import Photos
+import PhotosUI
+import UIKit
+
+/**
+ * ChatView - SwiftUI view for real-time messaging with Liquid Glass design.
+ * 
+ * Features:
+ * - Real-time message bubbles with Liquid Glass effect
+ * - Typing indicators with animation
+ * - Emoji reactions (add/remove)
+ * - Threaded conversations with indentation
+ * - Section-based message organization
+ * - Offline support with connection status
+ * 
+ * ## Usage
+ * 
+ * ```swift
+ * struct EventChatView: View {
+ *     let eventId: String
+ *     let eventTitle: String
+ *     @StateObject private var viewModel = ChatViewModel()
+ *     
+ *     var body: some View {
+ *         ChatView(
+ *             eventId: eventId,
+ *             eventTitle: eventTitle,
+ *             viewModel: viewModel
+ *         )
+ *     }
+ * }
+ * ```
+ */
+struct ChatView: View {
+    let eventId: String
+    let eventTitle: String
+    @ObservedObject var viewModel: ChatViewModelSwiftUI
+    @State private var messageText: String = ""
+    @State private var showAttachmentMenu: Bool = false
+    @State private var showEmojiPicker: Bool = false
+    @FocusState private var isInputFocused: Bool
+    
+    init(eventId: String, eventTitle: String, viewModel: ChatViewModelSwiftUI) {
+        self.eventId = eventId
+        self.eventTitle = eventTitle
+        self._viewModel = StateObject(wrappedValue: viewModel)
+    }
+    
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Connection status banner
+                if !viewModel.isConnected {
+                    connectionStatusBanner
+                }
+                
+                // Typing indicators
+                if !viewModel.typingUsers.isEmpty {
+                    typingIndicatorRow
+                }
+                
+                // Messages list
+                messagesScrollView
+                
+                // Action bubbles (when no messages)
+                if viewModel.messages.isEmpty {
+                    actionBubblesRow
+                }
+                
+                // Input bar
+                messageInputBar
+            }
+            .navigationTitle(eventTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { /* Navigate back */ }) {
+                        Image(systemName: "chevron.left")
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button(action: { /* Participants */ }) {
+                            Label("Participants", systemImage: "person.2")
+                        }
+                        Button(action: { /* Media */ }) {
+                            Label("Médias partagés", systemImage: "photo")
+                        }
+                        Button(action: { /* Settings */ }) {
+                            Label("Paramètres", systemImage: "gear")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
+            .onAppear {
+                viewModel.connectToChat(eventId: eventId)
+            }
+            .onDisappear {
+                viewModel.disconnect()
+            }
+        }
+    }
+    
+    // MARK: - Connection Status Banner
+    
+    private var connectionStatusBanner: some View {
+        HStack {
+            Image(systemName: "wifi.slash")
+            Text("Hors ligne - Les messages seront synchronisés")
+        }
+        .font(.caption)
+        .foregroundColor(.white)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity)
+        .background(Color.red.opacity(0.8))
+    }
+    
+    // MARK: - Typing Indicators
+    
+    private var typingIndicatorRow: some View {
+        HStack(spacing: 8) {
+            TypingDotsView()
+            
+            Text(typingText)
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+    
+    private var typingText: String {
+        let users = viewModel.typingUsers
+        switch users.count {
+        case 0: return ""
+        case 1: return "\(users[0].userName) est en train d'écrire..."
+        case 2: return "\(users[0].userName) et \(users[1].userName) sont en train d'écrire..."
+        default: return "\(users[0].userName), \(users[1].userName) et \(users.count - 2) autres sont en train d'écrire..."
+        }
+    }
+    
+    // MARK: - Messages List
+    
+    private var messagesScrollView: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 4) {
+                    ForEach(viewModel.messages, id: \.id) { message in
+                        MessageBubbleView(
+                            message: message,
+                            isCurrentUser: message.senderId == viewModel.currentUserId,
+                            onReactionTap: { emoji in
+                                viewModel.toggleReaction(messageId: message.id, emoji: emoji)
+                            },
+                            onReactionLongPress: { emoji in
+                                viewModel.removeReaction(messageId: message.id, emoji: emoji)
+                            },
+                            onReplyTap: {
+                                // TODO: Open reply flow
+                            }
+                        )
+                        .id(message.id)
+                    }
+                }
+                .padding(.vertical, 8)
+            }
+            .onChange(of: viewModel.messages.count) { _, _ in
+                if let lastMessage = viewModel.messages.last {
+                    withAnimation {
+                        proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                    }
+                }
+            }
+        }
+    }
+    
+    // MARK: - Action Bubbles
+    
+    private var actionBubblesRow: some View {
+        HStack(spacing: 12) {
+            ActionBubbleView(
+                label: "Créer un scénario",
+                emoji: "📋",
+                action: { /* TODO: Navigate to scenario creation */ }
+            )
+            
+            ActionBubbleView(
+                label: "Sondage rapide",
+                emoji: "📊",
+                action: { /* TODO: Open quick poll */ }
+            )
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+    
+    // MARK: - Message Input Bar
+    
+    private var messageInputBar: some View {
+        VStack(spacing: 8) {
+            // Section selector
+            sectionSelector
+            
+            // Input row
+            HStack(spacing: 8) {
+                // Attachment button
+                Button(action: { showAttachmentMenu = true }) {
+                    Image(systemName: "paperclip")
+                        .foregroundColor(.secondary)
+                }
+                .confirmationDialog("Ajouter", isPresented: $showAttachmentMenu) {
+                    Button("Image") {
+                        Task {
+                            await handleImagePicker()
+                        }
+                    }
+                    Button("Fichier") { /* TODO: File picker */ }
+                    Button("Annuler", role: .cancel) { }
+                }
+                
+                // Text field
+                TextField("Écrivez votre message...", text: $messageText, axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .lineLimit(1...4)
+                    .focused($isInputFocused)
+                    .onChange(of: messageText) { _, newValue in
+                        if newValue.isEmpty {
+                            viewModel.stopTyping()
+                        } else {
+                            viewModel.startTyping()
+                        }
+                    }
+                
+                // Emoji button
+                Button(action: { showEmojiPicker.toggle() }) {
+                    Image(systemName: "face.smiling")
+                        .foregroundColor(showEmojiPicker ? .blue : .secondary)
+                }
+                
+                // Send button
+                if !messageText.isEmpty {
+                    Button(action: sendMessage) {
+                        Image(systemName: "arrow.up.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                    }
+                } else {
+                    Button(action: { /* TODO: Voice recording */ }) {
+                        Image(systemName: "mic")
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color(.systemGray6))
+            )
+            
+            // Emoji picker
+            if showEmojiPicker {
+                emojiPickerView
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .background(.ultraThinMaterial)
+    }
+    
+    private var sectionSelector: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                SectionChipView(
+                    label: "Général",
+                    isSelected: viewModel.selectedSection == nil,
+                    action: { viewModel.setSectionFilter(nil) }
+                )
+                
+                ForEach(CommentSection.entries, id: \.rawValue) { section in
+                    SectionChipView(
+                        label: sectionLabel(section),
+                        isSelected: viewModel.selectedSection == section,
+                        action: { viewModel.setSectionFilter(section) }
+                    )
+                }
+            }
+            .padding(.horizontal, 8)
+        }
+    }
+    
+    private func sectionLabel(_ section: CommentSection) -> String {
+        switch section {
+        case .TRANSPORT: return "🚗 Transport"
+        case .ACCOMMODATION: return "🏠 Logement"
+        case .FOOD: return "🍕 Repas"
+        case .EQUIPMENT: return "🎒 Équipement"
+        case .ACTIVITIES: return "🎯 Activités"
+        default: return "Autre"
+        }
+    }
+    
+    private var emojiPickerView: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 4) {
+                ForEach(["😀", "😂", "🥰", "😍", "🤔", "😎", "🙌", "👍", "❤️", "🔥",
+                         "🎉", "👏", "🙏", "💪", "🤝", "👀", "✅", "❌", "💯", "✨",
+                         "🎸", "🍕", "🍺", "☕", "🍷", "🥂", "🎁", "🎈", "🏆", "💡"], id: \.self) { emoji in
+                    Text(emoji)
+                        .font(.title2)
+                        .onTapGesture {
+                            messageText += emoji
+                            showEmojiPicker = false
+                            viewModel.startTyping()
+                        }
+                        .padding(4)
+                }
+            }
+            .padding(.horizontal, 12)
+        }
+        .frame(height: 120)
+        .background(Color(.systemGray6))
+    }
+    
+    private func sendMessage() {
+        guard !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        viewModel.sendMessage(content: messageText, section: viewModel.selectedSection)
+        messageText = ""
+        viewModel.stopTyping()
+    }
+    
+    // MARK: - Image Picker Integration
+    
+    /// Handles the image picker flow with proper permission handling
+    @MainActor
+    private func handleImagePicker() async {
+        // Check permission status
+        if PhotoPickerPermissionHandler.isDenied() {
+            // Show settings alert
+            await showSettingsAlert()
+            return
+        }
+        
+        // Create picker configuration
+        let configuration = PHPickerConfiguration(photoLibrary: .shared())
+        configuration.selectionLimit = 1
+        configuration.filter = .images
+        
+        // Create picker
+        let picker = PHPickerViewController(configuration: configuration)
+        
+        // Present with permission handling
+        PhotoPickerPermissionHandler.presentImagePicker(
+            picker,
+            from: getHostingController()
+        ) { [weak self] result in
+            self?.processPickedImage(result)
+        } onCancel: {
+            // User cancelled, no action needed
+        }
+    }
+    
+    /// Gets the hosting view controller for presenting the picker
+    private func getHostingController() -> UIViewController {
+        // Find the UIWindowScene and return its root view controller
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            return UIViewController()
+        }
+        
+        // Traverse to find the topmost view controller
+        var topController = rootViewController
+        while let presented = topController.presentedViewController {
+            topController = presented
+        }
+        
+        return topController
+    }
+    
+    /// Processes the picked image result
+    private func processPickedImage(_ result: PHPickerResult) {
+        guard let assetIdentifier = result.assetIdentifier else {
+            print("Image picker: No asset identifier")
+            return
+        }
+        
+        // Get the asset from the photo library
+        let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: [assetIdentifier], options: nil)
+        
+        guard let asset = fetchResult.firstObject else {
+            print("Image picker: Could not find asset")
+            return
+        }
+        
+        // Request the image
+        let manager = PHImageManager.default()
+        let options = PHImageRequestOptions()
+        options.deliveryMode = .highQualityFormat
+        options.isNetworkAccessAllowed = true
+        
+        let targetSize = CGSize(width: 800, height: 800)
+        
+        manager.requestImage(
+            for: asset,
+            targetSize: targetSize,
+            contentMode: .aspectFit,
+            options: options
+        ) { [weak self] image, info in
+            guard let image = image else {
+                print("Image picker: Could not load image")
+                return
+            }
+            
+            // Convert to data for sending
+            if let imageData = image.jpegData(compressionQuality: 0.8) {
+                // Create image URI (using asset identifier as pseudo-URI)
+                let imageURI = "ph://\(assetIdentifier)"
+                
+                // Send as image message through view model
+                self?.viewModel.sendImageMessage(imageURI, imageData)
+            }
+        }
+    }
+    
+    /// Shows an alert directing user to settings
+    @MainActor
+    private func showSettingsAlert() async {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let rootViewController = windowScene.windows.first?.rootViewController else {
+            return
+        }
+        
+        var topController = rootViewController
+        while let presented = topController.presentedViewController {
+            topController = presented
+        }
+        
+        let alert = UIAlertController(
+            title: "Accès aux photos désactivé",
+            message: "Pour envoyer des images, activez l'accès aux photos dans les paramètres.",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Annuler", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Paramètres", style: .default) { _ in
+            if let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+        })
+        
+        topController.present(alert, animated: true)
+    }
+}
+
+// MARK: - Message Bubble View
+
+struct MessageBubbleView: View {
+    let message: ChatMessage
+    let isCurrentUser: Bool
+    let onReactionTap: (String) -> Void
+    let onReactionLongPress: (String) -> Void
+    let onReplyTap: () -> Void
+    
+    var body: some View {
+        HStack {
+            if isCurrentUser { Spacer(minLength: 48) }
+            
+            VStack(alignment: isCurrentUser ? .trailing : .leading, spacing: 4) {
+                // Sender name (if not current user and not a reply)
+                if !isCurrentUser && message.parentId == nil {
+                    Text(message.senderName)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 4)
+                }
+                
+                // Reply reference (if this is a reply)
+                if let parentId = message.parentId {
+                    ReplyReferenceView(message: message)
+                        .padding(.bottom, 4)
+                }
+                
+                // Message bubble with Liquid Glass effect
+                VStack(alignment: .leading, spacing: 4) {
+                    // Message content
+                    Text(message.content)
+                        .font(.body)
+                        .foregroundColor(isCurrentUser ? .white : .primary)
+                    
+                    // Reactions
+                    if !message.reactions.isEmpty {
+                        ReactionBarView(
+                            reactions: groupedReactions(),
+                            onReactionTap: onReactionTap,
+                            onReactionLongPress: onReactionLongPress,
+                            currentUserId: message.senderId
+                        )
+                    }
+                    
+                    // Timestamp and status
+                    HStack {
+                        Text(formatTimestamp(message.timestamp))
+                            .font(.caption2)
+                            .foregroundColor(isCurrentUser ? .white.opacity(0.6) : .secondary)
+                        
+                        Spacer()
+                        
+                        if isCurrentUser {
+                            messageStatusIcon(message.status)
+                        }
+                    }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(isCurrentUser ? Color.blue : Color(.systemGray5))
+                        .opacity(isCurrentUser ? 1 : 0.8)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(isCurrentUser ? Color.blue.opacity(0.3) : Color.clear, lineWidth: 1)
+                )
+            }
+            
+            if !isCurrentUser { Spacer(minLength: 48) }
+        }
+        .padding(.horizontal, 8)
+    }
+    
+    private func groupedReactions() -> [(emoji: String, count: Int)] {
+        let grouped = Dictionary(grouping: message.reactions, by: { $0.emoji })
+        return grouped.map { ($0.key, $0.value.count) }.sorted { $0.count > $1.count }
+    }
+    
+    private func formatTimestamp(_ timestamp: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        guard let date = formatter.date(from: timestamp) else { return timestamp }
+        let timeFormatter = DateFormatter()
+        timeFormatter.timeStyle = .short
+        return timeFormatter.string(from: date)
+    }
+    
+    @ViewBuilder
+    private func messageStatusIcon(_ status: MessageStatus) -> some View {
+        switch status {
+        case .SENT:
+            Image(systemName: "checkmark")
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.6))
+        case .DELIVERED:
+            Image(systemName: "checkmark.all")
+                .font(.caption2)
+                .foregroundColor(.white.opacity(0.6))
+        case .READ:
+            Image(systemName: "checkmark.all")
+                .font(.caption2)
+                .foregroundColor(.white)
+        case .FAILED:
+            Image(systemName: "exclamationmark.circle")
+                .font(.caption2)
+                .foregroundColor(.red)
+        }
+    }
+}
+
+// MARK: - Reply Reference View
+
+struct ReplyReferenceView: View {
+    let message: ChatMessage
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(Color.blue)
+                .frame(width: 4, height: 4)
+            
+            Text(message.senderName)
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.blue)
+            
+            Text(": \(message.content.prefix(30))\(message.content.count > 30 ? "..." : "")")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(
+            Capsule()
+                .fill(Color(.systemGray5))
+        )
+    }
+}
+
+// MARK: - Reaction Bar View
+
+struct ReactionBarView: View {
+    let reactions: [(emoji: String, count: Int)]
+    let onReactionTap: (String) -> Void
+    let onReactionLongPress: (String) -> Void
+    let currentUserId: String
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(reactions, id: \.emoji) { reaction in
+                HStack(spacing: 2) {
+                    Text(reaction.emoji)
+                    Text("\(reaction.count)")
+                        .font(.caption2)
+                }
+                .font(.caption)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.2))
+                )
+                .onTapGesture {
+                    onReactionTap(reaction.emoji)
+                }
+                .onLongPressGesture {
+                    onReactionLongPress(reaction.emoji)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Section Chip View
+
+struct SectionChipView: View {
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(label)
+                .font(.caption)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? Color.blue : Color(.systemGray5))
+                )
+                .foregroundColor(isSelected ? .white : .primary)
+        }
+    }
+}
+
+// MARK: - Action Bubble View
+
+struct ActionBubbleView: View {
+    let label: String
+    let emoji: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Text(emoji)
+                Text(label)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.systemGray5))
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Typing Dots View
+
+struct TypingDotsView: View {
+    @State private var dot1Opacity: Double = 0.3
+    @State private var dot2Opacity: Double = 0.3
+    @State private var dot3Opacity: Double = 0.3
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(Color.blue)
+                .frame(width: 6, height: 6)
+                .opacity(dot1Opacity)
+            
+            Circle()
+                .fill(Color.blue)
+                .frame(width: 6, height: 6)
+                .opacity(dot2Opacity)
+            
+            Circle()
+                .fill(Color.blue)
+                .frame(width: 6, height: 6)
+                .opacity(dot3Opacity)
+        }
+        .task {
+            animateDots()
+        }
+    }
+    
+    private func animateDots() async {
+        while true {
+            withAnimation(.easeInOut(duration: 0.3).delay(0)) {
+                dot1Opacity = 1.0
+            }
+            withAnimation(.easeInOut(duration: 0.3).delay(0.15)) {
+                dot2Opacity = 1.0
+            }
+            withAnimation(.easeInOut(duration: 0.3).delay(0.3)) {
+                dot3Opacity = 1.0
+            }
+            
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            
+            withAnimation(.easeInOut(duration: 0.3)) {
+                dot1Opacity = 0.3
+                dot2Opacity = 0.3
+                dot3Opacity = 0.3
+            }
+            
+            try? await Task.sleep(nanoseconds: 300_000_000)
+        }
+    }
+}
+
+// MARK: - Preview
+// NOTE: ChatView preview is temporarily disabled because ChatViewModelSwiftUI
+// requires ChatService implementation (Phase 4). Re-enable when chat functionality is complete.
+//
+//#Preview {
+//    ChatView(
+//        eventId: "event-123",
+//        eventTitle: "Week-end ski",
+//        viewModel: ChatViewModelSwiftUI()
+//    )
+//}

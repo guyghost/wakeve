@@ -1,0 +1,2 @@
+{"ts": "2026-01-13T00:50:00Z", "seq": 1, "agent": "@orchestrator", "type": "init", "feature": "implement-oauth-providers-activity-integration", "objective": "Complete OAuth integration into MainActivity, AuthViewModel, and AuthStateMachine", "constraints": {"platform": "android", "offline": true, "designSystem": "Material You"}}
+{"ts": "2026-01-13T00:50:00Z", "seq": 2, "agent": "@orchestrator", "type": "checkpoint", "run": 1, "phase": "activity_integration_start"}

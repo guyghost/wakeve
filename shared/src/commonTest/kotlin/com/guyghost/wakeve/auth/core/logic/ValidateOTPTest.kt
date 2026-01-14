@@ -3,6 +3,7 @@ package com.guyghost.wakeve.auth.core.logic
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import com.guyghost.wakeve.auth.core.logic.currentTimeMillis
 
 /**
  * Tests for OTP validation and generation logic.
@@ -15,7 +16,7 @@ class ValidateOTPTest {
         // Given
         val otp = "123456"
         val expectedOTP = "123456"
-        val expiry = System.currentTimeMillis() + 300000 // 5 minutes from now
+        val expiry = currentTimeMillis() + 300000 // 5 minutes from now
         
         // When
         val result = validateOTP(otp, expectedOTP, expiry, 3, 1)
@@ -29,7 +30,7 @@ class ValidateOTPTest {
         // Given
         val otp = "123456"
         val expectedOTP = "654321"
-        val expiry = System.currentTimeMillis() + 300000
+        val expiry = currentTimeMillis() + 300000
         
         // When
         val result = validateOTP(otp, expectedOTP, expiry, 3, 1)
@@ -44,7 +45,7 @@ class ValidateOTPTest {
         // Given
         val otp = "123456"
         val expectedOTP = "123456"
-        val expiry = System.currentTimeMillis() - 1000 // Already expired
+        val expiry = currentTimeMillis() - 1000 // Already expired
         
         // When
         val result = validateOTP(otp, expectedOTP, expiry, 3, 1)
@@ -58,7 +59,7 @@ class ValidateOTPTest {
         // Given
         val otp = "12345" // Only 5 digits
         val expectedOTP = "123456"
-        val expiry = System.currentTimeMillis() + 300000
+        val expiry = currentTimeMillis() + 300000
         
         // When
         val result = validateOTP(otp, expectedOTP, expiry, 3, 1)
@@ -72,7 +73,7 @@ class ValidateOTPTest {
         // Given
         val otp = "12a456"
         val expectedOTP = "123456"
-        val expiry = System.currentTimeMillis() + 300000
+        val expiry = currentTimeMillis() + 300000
         
         // When
         val result = validateOTP(otp, expectedOTP, expiry, 3, 1)
@@ -86,7 +87,7 @@ class ValidateOTPTest {
         // Given
         val otp = "123456"
         val expectedOTP = "654321"
-        val expiry = System.currentTimeMillis() + 300000
+        val expiry = currentTimeMillis() + 300000
         
         // When - Try 3 times with wrong OTP
         val result1 = validateOTP(otp, expectedOTP, expiry, 3, 1)
@@ -102,7 +103,7 @@ class ValidateOTPTest {
         // Given
         val otp = "  123456  "
         val expectedOTP = "123456"
-        val expiry = System.currentTimeMillis() + 300000
+        val expiry = currentTimeMillis() + 300000
         
         // When
         val result = validateOTP(otp, expectedOTP, expiry, 3, 1)
@@ -142,7 +143,7 @@ class ValidateOTPTest {
         
         // When
         val expiry = calculateOTPExpiry(validityMinutes)
-        val now = System.currentTimeMillis()
+        val now = currentTimeMillis()
         
         // Then
         assertTrue(expiry > now, "Expiry should be in the future")

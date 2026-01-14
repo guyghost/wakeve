@@ -2,9 +2,12 @@ package com.guyghost.wakeve.services
 
 import com.guyghost.wakeve.ml.Language
 import kotlinx.coroutines.test.runTest
-import org.junit.Assert.*
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertTrue
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertEquals
+import kotlin.test.BeforeTest
 
 /**
  * Unit tests for TextToSpeechService.
@@ -17,7 +20,7 @@ class TextToSpeechServiceTest {
     
     private lateinit var mockTTSService: MockTextToSpeechService
     
-    @Before
+    @BeforeTest
     fun setup() {
         mockTTSService = MockTextToSpeechService()
     }
@@ -43,9 +46,9 @@ class TextToSpeechServiceTest {
         for (language in languages) {
             // When
             val result = mockTTSService.speak("Test", language, QueueMode.ADD)
-            
+
             // Then
-            assertTrue("Should support language: $language", result is TTSResult.Success)
+            assertTrue(result is TTSResult.Success, "Should support language: $language")
         }
     }
     

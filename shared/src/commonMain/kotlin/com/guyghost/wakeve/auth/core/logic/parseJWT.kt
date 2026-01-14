@@ -99,11 +99,16 @@ private fun base64UrlDecode(input: String): String {
         .padEnd((input.length + 3) / 4 * 4, '=')
 
     return try {
-        String(java.util.Base64.getDecoder().decode(base64), Charsets.UTF_8)
+        decodeBase64ToString(base64)
     } catch (e: Exception) {
         ""
     }
 }
+
+/**
+ * Platform-specific Base64 decoding.
+ */
+internal expect fun decodeBase64ToString(input: String): String
 
 /**
  * Represents the parsed payload of a JWT token.
@@ -162,7 +167,7 @@ data class JWTPayload(
     /**
      * Returns true if the token is expired based on the exp claim.
      */
-    fun isExpired(currentTime: Long = System.currentTimeMillis()): Boolean {
+    fun isExpired(currentTime: Long = currentTimeMillis()): Boolean {
         val exp = expirationTime ?: return false
         return currentTime >= exp * 1000 // Convert Unix timestamp to milliseconds
     }
@@ -170,8 +175,13 @@ data class JWTPayload(
     /**
      * Returns true if the token is not yet valid based on the nbf claim.
      */
-    fun isNotYetValid(currentTime: Long = System.currentTimeMillis()): Boolean {
+    fun isNotYetValid(currentTime: Long = currentTimeMillis()): Boolean {
         val nbf = notBefore ?: return false
         return currentTime < nbf * 1000 // Convert Unix timestamp to milliseconds
     }
 }
+
+/**
+ * Platform-specific current time in milliseconds.
+ */
+internal expect fun currentTimeMillis(): Long

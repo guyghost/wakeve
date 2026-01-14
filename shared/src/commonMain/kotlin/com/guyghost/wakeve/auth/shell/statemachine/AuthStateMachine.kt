@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.auth.shell.statemachine
 
 import com.guyghost.wakeve.auth.core.logic.validateEmail
+import com.guyghost.wakeve.auth.core.logic.currentTimeMillis
 import com.guyghost.wakeve.auth.core.models.AuthError
 import com.guyghost.wakeve.auth.core.models.AuthResult
 import com.guyghost.wakeve.auth.core.models.AuthMethod
@@ -166,13 +167,13 @@ class AuthStateMachine(
                 otp = otp,
                 userCreator = { email ->
                     com.guyghost.wakeve.auth.core.models.User(
-                        id = "email_user_${System.currentTimeMillis()}",
+                        id = "email_user_${currentTimeMillis()}",
                         email = email,
                         name = null,
                         authMethod = AuthMethod.EMAIL,
                         isGuest = false,
-                        createdAt = System.currentTimeMillis(),
-                        lastLoginAt = System.currentTimeMillis()
+                        createdAt = currentTimeMillis(),
+                        lastLoginAt = currentTimeMillis()
                     )
                 }
             )

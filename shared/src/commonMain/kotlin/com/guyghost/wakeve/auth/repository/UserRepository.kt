@@ -83,37 +83,37 @@ class InMemoryUserRepository : UserRepository {
 
     private val users = mutableMapOf<String, User>()
 
-    override suspend fun getUserById(id: String): User? = withContext(Dispatchers.IO) {
+    override suspend fun getUserById(id: String): User? = withContext(Dispatchers.Default) {
         users[id]
     }
 
-    override suspend fun getUserByEmail(email: String): User? = withContext(Dispatchers.IO) {
+    override suspend fun getUserByEmail(email: String): User? = withContext(Dispatchers.Default) {
         users.values.find { it.email == email }
     }
 
     override suspend fun insertUser(user: User) {
-        withContext(Dispatchers.IO) {
+        withContext(Dispatchers.Default) {
             users[user.id] = user
         }
     }
 
     override suspend fun updateUser(user: User) {
-        withContext(Dispatchers.IO) {
+        withContext(Dispatchers.Default) {
             users[user.id] = user
         }
     }
 
     override suspend fun deleteUser(id: String) {
-        withContext(Dispatchers.IO) {
+        withContext(Dispatchers.Default) {
             users.remove(id)
         }
     }
 
-    override suspend fun getAllUsers(): List<User> = withContext(Dispatchers.IO) {
+    override suspend fun getAllUsers(): List<User> = withContext(Dispatchers.Default) {
         users.values.toList()
     }
 
-    override suspend fun searchUsersByName(namePart: String): List<User> = withContext(Dispatchers.IO) {
+    override suspend fun searchUsersByName(namePart: String): List<User> = withContext(Dispatchers.Default) {
         users.values
             .filter { it.name?.contains(namePart, ignoreCase = true) == true }
             .toList()

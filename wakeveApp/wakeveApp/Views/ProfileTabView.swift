@@ -134,6 +134,8 @@ struct AppearanceSection: View {
 // MARK: - About Section
 
 struct AboutSection: View {
+    @State private var showSettings = false
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("À propos")
@@ -142,6 +144,17 @@ struct AboutSection: View {
 
             ProfileCard {
                 VStack(spacing: 0) {
+                    // Settings Link
+                    AboutLinkRow(
+                        icon: "gearshape.fill",
+                        title: "Paramètres",
+                        action: {
+                            showSettings = true
+                        }
+                    )
+                    
+                    Divider()
+                    
                     // Version
                     AboutRow(
                         icon: "info.circle.fill",
@@ -182,6 +195,9 @@ struct AboutSection: View {
                     )
                 }
             }
+        }
+        .sheet(isPresented: $showSettings) {
+            SettingsView()
         }
     }
 }

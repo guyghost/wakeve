@@ -6,6 +6,7 @@ import com.guyghost.wakeve.models.BadgeType
 import com.guyghost.wakeve.models.createDeepLink
 import com.guyghost.wakeve.models.getDefaultMessage
 import com.guyghost.wakeve.models.getNotificationTitle
+import com.guyghost.wakeve.auth.core.logic.currentTimeMillis
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -75,14 +76,14 @@ class BadgeNotificationServiceTest {
 
     @Test
     fun `BadgeCount isUpdatedSince returns true for recent updates`() {
-        val badgeCount = BadgeCount(count = 5, lastUpdated = System.currentTimeMillis())
+        val badgeCount = BadgeCount(count = 5, lastUpdated = currentTimeMillis())
         assertTrue(badgeCount.isUpdatedSince(0))
     }
 
     @Test
     fun `BadgeCount isUpdatedSince returns false for old updates`() {
-        val badgeCount = BadgeCount(count = 5, lastUpdated = System.currentTimeMillis() - 10000)
-        assertFalse(badgeCount.isUpdatedSince(System.currentTimeMillis()))
+        val badgeCount = BadgeCount(count = 5, lastUpdated = currentTimeMillis() - 10000)
+        assertFalse(badgeCount.isUpdatedSince(currentTimeMillis()))
     }
 
     // ========== BadgeNotification Tests ==========

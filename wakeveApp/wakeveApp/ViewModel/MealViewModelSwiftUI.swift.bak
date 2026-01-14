@@ -1,0 +1,249 @@
+import SwiftUI
+import Combine
+import Shared
+
+/**
+ * MealViewModelSwiftUI - SwiftUI wrapper for MealRepository.
+ * 
+ * This class bridges the Kotlin MealRepository with SwiftUI by:
+ * - Converting Kotlin suspend functions to async/await
+ * - Providing @Published properties for SwiftUI state
+ * - Managing meal CRUD operations
+ */
+@MainActor
+class MealViewModelSwiftUI: ObservableObject {
+    // MARK: - Published Properties
+    
+    @Published var meals: [Meal] = []
+    @Published var isLoading: Bool = false
+    @Published var errorMessage: String? = nil
+    
+    // MARK: - Properties
+    
+    private var mealRepository: MealRepository?
+    private let eventId: String
+    private let currentUserId: String
+    private let currentUserName: String
+    
+    // MARK: - Initialization
+    
+    init(eventId: String, currentUserId: String = "user-1", currentUserName: String = "Jean") {
+        self.eventId = eventId
+        self.currentUserId = currentUserId
+        self.currentUserName = currentUserName
+        
+        // Initialize the meal repository
+        let database = RepositoryProvider.shared.database
+        self.mealRepository = IosFactory().createMealRepository(database: database)
+        
+        // Load initial data
+        Task {
+            await loadMeals()
+        }
+    }
+    
+    // MARK: - Public Methods
+    
+    /**
+     * Load all meals for the event.
+     */
+    func loadMeals() async {
+        guard let repository = mealRepository else {
+            errorMessage = "Repository not initialized"
+            return
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let kotlinMeals = try await withCheckedThrowingContinuation { continuation in
+                repository.getMealsByEvent(eventId: eventId) { result in
+                    continuation.resume(returning: result)
+                }
+            }
+            meals = kotlinMeals
+        } catch {
+            errorMessage = "Failed to load meals: \(error.localizedDescription)"
+        }
+        
+        isLoading = false
+    }
+    
+    /**
+     * Create a new meal.
+     */
+    func createMeal(
+        name: String,
+        type: MealType,
+        date: Date,
+        time: Date,
+        location: String?,
+        estimatedCost: Double?,
+        servings: Int?,
+        notes: String?,
+        responsibleParticipantIds: [String]
+    ) async -> Bool {
+        guard let repository = mealRepository else {
+            errorMessage = "Repository not initialized"
+            return false
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            let timeFormatter = DateFormatter()
+            timeFormatter.dateFormat = "HH:mm"
+            
+            let request = MealRequest(
+                eventId: eventId,
+                type: type,
+                name: name,
+                date: dateFormatter.string(from: date),
+                time: timeFormatter.string(from: time),
+                location: location,
+                responsibleParticipantIds: responsibleParticipantIds,
+                estimatedCost: estimatedCost != nil ? Int64(estimatedCost! * 100) : nil,
+                actualCost: nil,
+                servings: servings ?? 0,
+                status: MealStatus.PLANNED,
+                notes: notes
+            )
+            
+            let newMeal = try await withCheckedThrowingContinuation { continuation in
+                repository.createMeal(request: request) { result in
+                    continuation.resume(returning: result)
+                }
+            }
+            
+            meals.append(newMeal)
+            isLoading = false
+            return true
+        } catch {
+            errorMessage = "Failed to create meal: \(error.localizedDescription)"
+            isLoading = false
+            return false
+        }
+    }
+    
+    /**
+     * Update an existing meal.
+     */
+    func updateMeal(_ meal: Meal, updatedData: MealUpdateData) async -> Bool {
+        guard let repository = mealRepository else {
+            errorMessage = "Repository not initialized"
+            return false
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let updatedMeal = try await withCheckedThrowingContinuation { continuation in
+                repository.updateMeal(
+                    mealId: meal.id,
+                    request: MealUpdateRequest(
+                        type: updatedData.type ?? meal.type,
+                        name: updatedData.name ?? meal.name,
+                        date: updatedData.date ?? meal.date,
+                        time: updatedData.time ?? meal.time,
+                        location: updatedData.location ?? meal.location,
+                        estimatedCost: updatedData.estimatedCost ?? meal.estimatedCost,
+                        actualCost: updatedData.actualCost ?? meal.actualCost,
+                        servings: updatedData.servings ?? meal.servings,
+                        status: updatedData.status ?? meal.status,
+                        notes: updatedData.notes ?? meal.notes,
+                        responsibleParticipantIds: updatedData.responsibleParticipantIds ?? meal.responsibleParticipantIds
+                    )
+                ) { result in
+                    continuation.resume(returning: result)
+                }
+            }
+            
+            // Update the meal in the list
+            if let index = meals.firstIndex(where: { $0.id == meal.id }) {
+                meals[index] = updatedMeal
+            }
+            
+            isLoading = false
+            return true
+        } catch {
+            errorMessage = "Failed to update meal: \(error.localizedDescription)"
+            isLoading = false
+            return false
+        }
+    }
+    
+    /**
+     * Delete a meal.
+     */
+    func deleteMeal(_ meal: Meal) async -> Bool {
+        guard let repository = mealRepository else {
+            errorMessage = "Repository not initialized"
+            return false
+        }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+                repository.deleteMeal(mealId: meal.id) { result in
+                    switch result {
+                    case .success:
+                        continuation.resume()
+                    case .failure(let error):
+                        continuation.resume(throwing: error)
+                    }
+                }
+            }
+            
+            meals.removeAll { $0.id == meal.id }
+            isLoading = false
+            return true
+        } catch {
+            errorMessage = "Failed to delete meal: \(error.localizedDescription)"
+            isLoading = false
+            return false
+        }
+    }
+    
+    /**
+     * Get meals filtered by type.
+     */
+    func getMealsByType(_ type: MealType) -> [Meal] {
+        return meals.filter { $0.type == type }
+    }
+    
+    /**
+     * Get meals for a specific date.
+     */
+    func getMealsForDate(_ date: Date) -> [Meal] {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let dateString = dateFormatter.string(from: date)
+        
+        return meals.filter { meal in
+            return meal.date == dateString
+        }
+    }
+}
+
+// MARK: - Helper Types
+
+struct MealUpdateData {
+    var type: MealType?
+    var name: String?
+    var date: String?
+    var time: String?
+    var location: String?
+    var estimatedCost: Int64?
+    var actualCost: Int64?
+    var servings: Int?
+    var status: MealStatus?
+    var notes: String?
+    var responsibleParticipantIds: [String]?
+}

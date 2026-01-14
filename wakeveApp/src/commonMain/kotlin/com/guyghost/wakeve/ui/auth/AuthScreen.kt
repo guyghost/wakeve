@@ -28,7 +28,6 @@ import com.guyghost.wakeve.R
 import com.guyghost.wakeve.ui.auth.components.AppleSignInButton
 import com.guyghost.wakeve.ui.auth.components.GoogleSignInButton
 import com.guyghost.wakeve.ui.auth.components.SkipButton
-import com.guyghost.wakeve.ui.theme.*
 
 /**
  * Main authentication screen for Wakeve.
