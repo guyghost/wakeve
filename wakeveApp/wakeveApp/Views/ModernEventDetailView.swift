@@ -19,8 +19,22 @@ struct ModernEventDetailView: View {
     var onEquipmentChecklist: (() -> Void)?
     var onActivityPlanning: (() -> Void)?
     
+    // Delete callback (organizer only)
+    var onDelete: (() -> Void)?
+    
     @State private var userResponse: RSVPResponse = .maybe
     @State private var showingHostOptions = false
+    @State private var showingDeleteConfirmation = false
+    
+    /// Whether the current user is the organizer
+    private var isOrganizer: Bool {
+        event.organizerId == userId
+    }
+    
+    /// Whether delete is allowed (organizer AND not FINALIZED)
+    private var canDelete: Bool {
+        isOrganizer && event.status != .finalized
+    }
     
     var body: some View {
         ZStack {
@@ -132,6 +146,17 @@ struct ModernEventDetailView: View {
                                 onManageParticipants: onManageParticipants,
                                 onViewResults: onVote
                             )
+                            
+                            // Delete Button (only if canDelete)
+                            if canDelete {
+                                HostActionButton(
+                                    title: NSLocalizedString("delete_event", comment: "Delete event button"),
+                                    icon: "trash.fill",
+                                    color: .red,
+                                    action: { showingDeleteConfirmation = true }
+                                )
+                                .padding(.top, 8)
+                            }
                         }
                         
                         // PRD Feature Buttons based on event status
@@ -228,6 +253,35 @@ struct ModernEventDetailView: View {
             }
         }
         .background(Color(.systemGroupedBackground))
+        .confirmationDialog(
+            NSLocalizedString("event_options", comment: "Event options title"),
+            isPresented: $showingHostOptions,
+            titleVisibility: .visible
+        ) {
+            if canDelete {
+                Button(
+                    NSLocalizedString("delete_event", comment: "Delete event button"),
+                    role: .destructive
+                ) {
+                    showingDeleteConfirmation = true
+                }
+            }
+            Button(NSLocalizedString("cancel", comment: "Cancel button"), role: .cancel) {}
+        }
+        .alert(
+            NSLocalizedString("delete_event_title", comment: "Delete event confirmation title"),
+            isPresented: $showingDeleteConfirmation
+        ) {
+            Button(NSLocalizedString("cancel", comment: "Cancel button"), role: .cancel) {}
+            Button(
+                NSLocalizedString("delete", comment: "Delete button"),
+                role: .destructive
+            ) {
+                onDelete?()
+            }
+        } message: {
+            Text(NSLocalizedString("delete_event_message", comment: "Delete event confirmation message"))
+        }
     }
     
     private func formatEventDate(_ dateString: String) -> String {

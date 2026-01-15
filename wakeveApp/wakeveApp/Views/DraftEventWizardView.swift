@@ -131,16 +131,17 @@ struct DraftEventWizardView: View {
                 
                 // Navigation Buttons
                 HStack(spacing: 12) {
+                    // Show "Save Draft" button on all steps after step 0
+                    // (user can go back via top navigation bar)
                     if currentStep > 0 {
                         Button {
-                            withAnimation {
-                                currentStep -= 1
-                            }
+                            onSaveStep(buildEvent())
+                            onCancel() // Return to home page
                         } label: {
                             HStack {
-                                Image(systemName: "chevron.left")
+                                Image(systemName: "square.and.arrow.down")
                                     .font(.system(size: 14, weight: .semibold))
-                                Text(NSLocalizedString("previous", comment: "Previous button"))
+                                Text(NSLocalizedString("save_draft", tableName: nil, bundle: .main, value: "Enregistrer le brouillon", comment: "Save draft button"))
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)

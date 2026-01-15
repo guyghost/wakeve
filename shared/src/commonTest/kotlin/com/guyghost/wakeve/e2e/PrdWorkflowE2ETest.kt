@@ -140,6 +140,18 @@ class PrdWorkflowE2ETest {
         override fun canModifyEvent(eventId: String, userId: String): Boolean = true
         override fun getAllEvents(): List<Event> = events.values.toList()
 
+        override suspend fun deleteEvent(eventId: String): Result<Unit> {
+            events.remove(eventId)
+            polls.remove(eventId)
+            participants.remove(eventId)
+            scenarios.remove(eventId)
+            comments.remove(eventId)
+            potentialLocations.remove(eventId)
+            userVotes.remove(eventId)
+            scenarioVotes.remove(eventId)
+            return Result.success(Unit)
+        }
+
         // Helper methods
         fun addPotentialLocation(eventId: String, location: PotentialLocation) {
             val current = potentialLocations[eventId] ?: emptyList()

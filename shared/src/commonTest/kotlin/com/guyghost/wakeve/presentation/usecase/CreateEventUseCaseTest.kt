@@ -73,6 +73,11 @@ class CreateEventUseCaseTest {
         override fun canModifyEvent(eventId: String, userId: String): Boolean = true
 
         override fun getAllEvents(): List<Event> = events.values.toList()
+
+        override suspend fun deleteEvent(eventId: String): Result<Unit> {
+            events.remove(eventId)
+            return Result.success(Unit)
+        }
     }
 
     // ========================================================================

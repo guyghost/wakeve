@@ -101,7 +101,7 @@ class EventManagementStateMachine(
             is EventManagementContract.Intent.SelectEvent -> selectEvent(intent.eventId)
             is EventManagementContract.Intent.CreateEvent -> createEvent(intent.event)
             is EventManagementContract.Intent.UpdateEvent -> updateEvent(intent.event)
-            is EventManagementContract.Intent.DeleteEvent -> deleteEvent(intent.eventId)
+            is EventManagementContract.Intent.DeleteEvent -> deleteEvent(intent.eventId, intent.userId)
             is EventManagementContract.Intent.LoadParticipants -> loadParticipants(intent.eventId)
             is EventManagementContract.Intent.AddParticipant -> addParticipant(intent.eventId, intent.participantId)
             is EventManagementContract.Intent.LoadPollResults -> loadPollResults(intent.eventId)
@@ -265,14 +265,73 @@ class EventManagementStateMachine(
     /**
      * Delete an event.
      *
-     * Currently a placeholder - deletion logic would be similar to create/update.
+     * Flow:
+     * 1. Validate repository is available
+     * 2. Load the event
+     * 3. Validate user is organizer
+     * 4. Validate event status is not FINALIZED
+     * 5. Call repository.deleteEvent()
+     * 6. Remove from state
+     * 7. Emit ShowToast and NavigateBack
      *
      * @param eventId The ID of the event to delete
+     * @param userId The ID of the user attempting to delete (must be organizer)
      */
-    private suspend fun deleteEvent(eventId: String) {
-        // TODO: Implement deletion in Phase 2
-        updateState { it.copy(error = "Delete not yet implemented") }
-        emitSideEffect(EventManagementContract.SideEffect.ShowToast("Delete not yet implemented"))
+    private suspend fun deleteEvent(eventId: String, userId: String) {
+        if (eventRepository == null) {
+            updateState { it.copy(error = "Repository not available") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Repository not available"))
+            return
+        }
+
+        updateState { it.copy(isLoading = true, error = null) }
+
+        val event = eventRepository.getEvent(eventId)
+
+        // Guard: Event must exist
+        if (event == null) {
+            updateState { it.copy(isLoading = false, error = "Event not found") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event not found"))
+            return
+        }
+
+        // Guard: Only organizer can delete
+        if (!validateOrganizerPermission(event, userId)) {
+            emitUnauthorizedError("Only event organizer can delete this event")
+            return
+        }
+
+        // Guard: FINALIZED events cannot be deleted
+        if (event.status == EventStatus.FINALIZED) {
+            val errorMsg = "Cannot delete a finalized event"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        // Perform deletion
+        val result = eventRepository.deleteEvent(eventId)
+
+        result.fold(
+            onSuccess = {
+                // Remove from state
+                val updatedEvents = currentState.events.filter { it.id != eventId }
+                updateState { 
+                    it.copy(
+                        isLoading = false, 
+                        events = updatedEvents,
+                        selectedEvent = if (it.selectedEvent?.id == eventId) null else it.selectedEvent
+                    ) 
+                }
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event deleted successfully"))
+                emitSideEffect(EventManagementContract.SideEffect.NavigateBack)
+            },
+            onFailure = { error ->
+                val errorMessage = error.message ?: "Failed to delete event"
+                updateState { it.copy(isLoading = false, error = errorMessage) }
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
+            }
+        )
     }
 
     /**

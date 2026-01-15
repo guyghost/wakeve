@@ -430,4 +430,84 @@ class DatabaseEventRepository(private val db: WakevDb, private val syncManager: 
             getEvent(eventRow.id)
         }
     }
+
+    /**
+     * Delete an event and all its related data.
+     *
+     * This method performs cascade deletion in the following order:
+     * 1. Votes (depends on participants and time slots)
+     * 2. Participants
+     * 3. Time slots
+     * 4. Potential locations
+     * 5. Scenarios (cascade deletes scenario votes)
+     * 6. Confirmed date
+     * 7. Sync metadata for this event
+     * 8. Event itself
+     *
+     * A tombstone record is created in syncMetadata for offline sync.
+     *
+     * Note: SQLite foreign keys with ON DELETE CASCADE would handle most of this,
+     * but we explicitly delete to ensure proper ordering and to record sync metadata.
+     *
+     * @param eventId The ID of the event to delete
+     * @return Result<Unit> success if deleted, failure with error message
+     */
+    override suspend fun deleteEvent(eventId: String): Result<Unit> {
+        return try {
+            val event = getEvent(eventId)
+                ?: return Result.failure(IllegalArgumentException("Event not found"))
+
+            val now = getCurrentUtcIsoString()
+
+            // Use a transaction to ensure atomicity
+            db.transaction {
+                // 1. Delete votes (they reference participants and time slots)
+                voteQueries.deleteByEventId(eventId)
+
+                // 2. Delete participants
+                participantQueries.deleteByEventId(eventId)
+
+                // 3. Delete time slots
+                timeSlotQueries.deleteByEventId(eventId)
+
+                // 4. Delete potential locations
+                db.potentialLocationQueries.deleteByEventId(eventId)
+
+                // 5. Delete scenarios (cascade will delete scenario votes)
+                db.scenarioQueries.deleteByEventId(eventId)
+
+                // 6. Delete confirmed date
+                confirmedDateQueries.deleteByEventId(eventId)
+
+                // 7. Delete all sync metadata related to this event
+                syncMetadataQueries.deleteByEntity("event", eventId)
+
+                // 8. Delete the event itself
+                eventQueries.deleteEvent(eventId)
+            }
+
+            // Record tombstone for offline sync (outside transaction to avoid conflicts)
+            syncManager?.recordLocalChange(
+                table = "events",
+                operation = SyncOperation.DELETE,
+                recordId = eventId,
+                data = """{"id":"$eventId","deletedAt":"$now"}""",
+                userId = event.organizerId
+            )
+
+            // Record sync metadata for the delete operation
+            syncMetadataQueries.insertSyncMetadata(
+                id = "sync_delete_${eventId}_$now",
+                entityType = "event",
+                entityId = eventId,
+                operation = "DELETE",
+                timestamp = now,
+                synced = 0
+            )
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

@@ -47,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.ui.components.HeroImageSection
@@ -68,7 +69,15 @@ import kotlinx.datetime.toLocalDateTime
  * - Intents: Dispatched via `viewModel.dispatch(intent)` for user actions
  * - Side Effects: Collected in LaunchedEffect for navigation and toasts
  *
+ * ## Delete Functionality
+ *
+ * - Delete button is only visible if user is the organizer
+ * - Delete is disabled for FINALIZED events (business rule)
+ * - Shows confirmation dialog before deletion
+ * - On deletion: removes event from repository, navigates back, shows toast
+ *
  * @param eventId The ID of the event to display
+ * @param userId The current user's ID (used for organizer check and delete permission)
  * @param viewModel The EventManagementViewModel providing state and intent handling
  * @param onNavigateTo Callback for navigation to other screens
  * @param onShowToast Callback for showing toast messages
@@ -79,6 +88,7 @@ import kotlinx.datetime.toLocalDateTime
 @Composable
 fun EventDetailScreen(
     eventId: String,
+    userId: String,
     viewModel: EventManagementViewModel,
     onNavigateTo: (String) -> Unit = {},
     onShowToast: (String) -> Unit = {},
@@ -109,6 +119,10 @@ fun EventDetailScreen(
     val selectedEvent = state.selectedEvent
     val participants = state.participantIds
     val pollVotes = state.pollVotes[eventId] ?: emptyMap()
+    
+    // Determine if user can delete: must be organizer and event not FINALIZED
+    val isOrganizer = selectedEvent?.organizerId == userId
+    val canDelete = isOrganizer && selectedEvent?.status != EventStatus.FINALIZED
 
     Scaffold(
         topBar = {
@@ -120,11 +134,15 @@ fun EventDetailScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { onNavigateTo("edit_event/$eventId") }) {
-                        Icon(Icons.Default.Edit, contentDescription = "Éditer")
+                    if (isOrganizer) {
+                        IconButton(onClick = { onNavigateTo("edit_event/$eventId") }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Éditer")
+                        }
                     }
-                    IconButton(onClick = { showDeleteConfirmation = true }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Supprimer")
+                    if (canDelete) {
+                        IconButton(onClick = { showDeleteConfirmation = true }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Supprimer")
+                        }
                     }
                 }
             )
@@ -187,29 +205,33 @@ fun EventDetailScreen(
                     }
                 }
 
-                // Action buttons
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = { onNavigateTo("edit_event/$eventId") },
+                // Action buttons (only for organizer)
+                if (isOrganizer) {
+                    item {
+                        Row(
                             modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Text("Éditer")
-                        }
-                        FilledTonalButton(
-                            onClick = { showDeleteConfirmation = true },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(48.dp)
-                        ) {
-                            Text("Supprimer")
+                            Button(
+                                onClick = { onNavigateTo("edit_event/$eventId") },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp)
+                            ) {
+                                Text("Éditer")
+                            }
+                            if (canDelete) {
+                                FilledTonalButton(
+                                    onClick = { showDeleteConfirmation = true },
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(48.dp)
+                                ) {
+                                    Text("Supprimer")
+                                }
+                            }
                         }
                     }
                 }
@@ -225,7 +247,7 @@ fun EventDetailScreen(
             text = { Text("Êtes-vous sûr de vouloir supprimer cet événement ? Cette action est irréversible.") },
             confirmButton = {
                 Button(onClick = {
-                    viewModel.dispatch(EventManagementContract.Intent.DeleteEvent(eventId))
+                    viewModel.dispatch(EventManagementContract.Intent.DeleteEvent(eventId, userId))
                     showDeleteConfirmation = false
                 }) {
                     Text("Supprimer")

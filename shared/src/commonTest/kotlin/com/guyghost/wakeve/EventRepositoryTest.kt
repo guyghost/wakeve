@@ -159,4 +159,58 @@ class EventRepositoryTest {
         assertEquals(EventStatus.CONFIRMED, updatedEvent.status)
         assertEquals("2025-12-01T10:00:00Z", updatedEvent.finalDate)
     }
+
+    // ========================================================================
+    // Delete Event Tests
+    // ========================================================================
+
+    @Test
+    fun deleteEventSuccess() = runBlocking {
+        repository.createEvent(event)
+        
+        val result = repository.deleteEvent("event-1")
+        
+        assertTrue(result.isSuccess)
+        val deletedEvent = repository.getEvent("event-1")
+        assertEquals(null, deletedEvent)
+    }
+
+    @Test
+    fun deleteEventAlsoRemovesPoll() = runBlocking {
+        repository.createEvent(event)
+        
+        // Verify poll exists before deletion
+        val pollBefore = repository.getPoll("event-1")
+        assertNotNull(pollBefore)
+        
+        repository.deleteEvent("event-1")
+        
+        // Poll should also be removed
+        val pollAfter = repository.getPoll("event-1")
+        assertEquals(null, pollAfter)
+    }
+
+    @Test
+    fun deleteNonExistentEventFails() = runBlocking {
+        val result = repository.deleteEvent("non-existent-event")
+        
+        assertFalse(result.isSuccess)
+        assertTrue(result.exceptionOrNull() is IllegalArgumentException)
+    }
+
+    @Test
+    fun deleteEventRemovesFromAllEvents() = runBlocking {
+        repository.createEvent(event)
+        
+        val event2 = event.copy(id = "event-2", title = "Second Event")
+        repository.createEvent(event2)
+        
+        assertEquals(2, repository.getAllEvents().size)
+        
+        repository.deleteEvent("event-1")
+        
+        val allEvents = repository.getAllEvents()
+        assertEquals(1, allEvents.size)
+        assertEquals("event-2", allEvents[0].id)
+    }
 }

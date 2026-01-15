@@ -15,6 +15,25 @@ interface EventRepositoryInterface {
     suspend fun updateEvent(event: Event): Result<Event>
     suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean>
     suspend fun saveEvent(event: Event): Result<Event>
+    
+    /**
+     * Delete an event and all its related data.
+     *
+     * Only the organizer can delete an event, and FINALIZED events cannot be deleted.
+     * This method performs cascade deletion of all related entities:
+     * - Participants
+     * - Votes
+     * - Time slots
+     * - Potential locations
+     * - Scenarios
+     * - Confirmed dates
+     * - Sync metadata
+     *
+     * @param eventId The ID of the event to delete
+     * @return Result<Unit> success if deleted, failure with error message
+     */
+    suspend fun deleteEvent(eventId: String): Result<Unit>
+    
     fun isDeadlinePassed(deadline: String): Boolean
     fun isOrganizer(eventId: String, userId: String): Boolean
     fun canModifyEvent(eventId: String, userId: String): Boolean
@@ -148,4 +167,19 @@ class EventRepository : EventRepositoryInterface {
     }
 
     override fun getAllEvents(): List<Event> = events.values.toList()
+
+    override suspend fun deleteEvent(eventId: String): Result<Unit> {
+        return try {
+            val event = events[eventId]
+                ?: return Result.failure(IllegalArgumentException("Event not found"))
+
+            // Remove event and associated poll
+            events.remove(eventId)
+            polls.remove(eventId)
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

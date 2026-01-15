@@ -9,7 +9,7 @@ import Shared
 /// ## Usage
 ///
 /// ```swift
-/// @StateObject private var viewModel = EventDetailViewModel(eventId: "event-123")
+/// @StateObject private var viewModel = EventDetailViewModel(eventId: "event-123", userId: "user-456")
 ///
 /// if let event = viewModel.selectedEvent {
 ///     VStack {
@@ -42,6 +42,9 @@ class EventDetailViewModel: ObservableObject {
     /// The event ID passed to this view model
     private let eventId: String
     
+    /// The current user ID (for organizer checks and delete permission)
+    private let userId: String
+    
     /// The observable state machine wrapper
     private let stateMachineWrapper: ObservableStateMachine<
         EventManagementContract.State,
@@ -49,11 +52,27 @@ class EventDetailViewModel: ObservableObject {
         EventManagementContractSideEffect
     >
     
+    // MARK: - Computed Properties
+    
+    /// Whether the current user is the organizer of this event
+    var isOrganizer: Bool {
+        selectedEvent?.organizerId == userId
+    }
+    
+    /// Whether the user can delete this event (organizer AND not FINALIZED)
+    var canDelete: Bool {
+        isOrganizer && selectedEvent?.status != .finalized
+    }
+    
     // MARK: - Initialization
     
-    /// Initialize the ViewModel with a specific event ID.
-    init(eventId: String) {
+    /// Initialize the ViewModel with a specific event ID and user ID.
+    /// - Parameters:
+    ///   - eventId: The ID of the event to display
+    ///   - userId: The current user's ID (used for organizer check and delete permission)
+    init(eventId: String, userId: String) {
         self.eventId = eventId
+        self.userId = userId
         
         // Get the shared database from RepositoryProvider
         let database = RepositoryProvider.shared.database
@@ -105,9 +124,9 @@ class EventDetailViewModel: ObservableObject {
         dispatch(EventManagementContractIntentLoadPollResults(eventId: eventId))
     }
     
-    /// Delete the event
+    /// Delete the event (requires organizer permission)
     func deleteEvent() {
-        dispatch(EventManagementContractIntentDeleteEvent(eventId: eventId))
+        dispatch(EventManagementContractIntentDeleteEvent(eventId: eventId, userId: userId))
     }
     
     /// Update the event
