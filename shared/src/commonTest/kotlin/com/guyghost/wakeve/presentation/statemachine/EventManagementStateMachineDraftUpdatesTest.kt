@@ -139,6 +139,18 @@ class EventManagementStateMachineDraftUpdatesTest {
             return events.values.toList()
         }
 
+        override suspend fun deleteEvent(eventId: String): Result<Unit> {
+            val event = events[eventId]
+                ?: return Result.failure(IllegalArgumentException("Event not found"))
+            
+            events.remove(eventId)
+            polls.remove(eventId)
+            potentialLocations.remove(eventId)
+            participants.remove(eventId)
+            
+            return Result.success(Unit)
+        }
+
         /**
          * Get all potential locations for an event.
          */
@@ -887,5 +899,253 @@ class EventManagementStateMachineDraftUpdatesTest {
         assertEquals(30, updatedEvent?.maxParticipants)
         assertNull(state.error)
         assertFalse(state.isLoading)
+    }
+
+    // ========================================================================
+    // Tests: DeleteEvent Intent
+    // ========================================================================
+
+    @Test
+    fun testDeleteEvent_Success() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        // ARRANGE: Create event in DRAFT status
+        val event = createDraftEvent("evt-1", "Team Retreat")
+        repository.events[event.id] = event
+
+        // Also add to state machine's events list
+        stateMachine.dispatch(EventManagementContract.Intent.LoadEvents)
+        advanceUntilIdle()
+
+        // ACT: Dispatch DeleteEvent intent
+        stateMachine.dispatch(
+            EventManagementContract.Intent.DeleteEvent(
+                eventId = "evt-1",
+                userId = "org-1" // organizer
+            )
+        )
+        advanceUntilIdle()
+
+        // ASSERT: Verify event was deleted
+        val state = stateMachine.state.value
+
+        assertNull(repository.getEvent("evt-1"))
+        assertFalse(state.events.any { it.id == "evt-1" })
+        assertNull(state.error)
+        assertFalse(state.isLoading)
+    }
+
+    @Test
+    fun testDeleteEvent_FailsIfNotOrganizer() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        // ARRANGE: Create event with specific organizer
+        val event = createDraftEvent("evt-1", "Team Retreat")
+        repository.events[event.id] = event
+
+        // ACT: Dispatch DeleteEvent with wrong userId
+        stateMachine.dispatch(
+            EventManagementContract.Intent.DeleteEvent(
+                eventId = "evt-1",
+                userId = "wrong-user" // not the organizer
+            )
+        )
+        advanceUntilIdle()
+
+        // ASSERT: Verify error and event still exists
+        val state = stateMachine.state.value
+
+        assertNotNull(state.error)
+        assertTrue(state.error!!.contains("organizer"))
+        assertNotNull(repository.getEvent("evt-1"))
+    }
+
+    @Test
+    fun testDeleteEvent_FailsIfFinalized() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        // ARRANGE: Create event in FINALIZED status
+        val event = createDraftEvent("evt-1", "Team Retreat").copy(status = EventStatus.FINALIZED)
+        repository.events[event.id] = event
+
+        // ACT: Dispatch DeleteEvent
+        stateMachine.dispatch(
+            EventManagementContract.Intent.DeleteEvent(
+                eventId = "evt-1",
+                userId = "org-1" // organizer
+            )
+        )
+        advanceUntilIdle()
+
+        // ASSERT: Verify error and event still exists
+        val state = stateMachine.state.value
+
+        assertNotNull(state.error)
+        assertTrue(state.error!!.contains("finalized"))
+        assertNotNull(repository.getEvent("evt-1"))
+    }
+
+    @Test
+    fun testDeleteEvent_FailsIfEventNotFound() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        // ACT: Dispatch DeleteEvent for non-existent event
+        stateMachine.dispatch(
+            EventManagementContract.Intent.DeleteEvent(
+                eventId = "non-existent",
+                userId = "org-1"
+            )
+        )
+        advanceUntilIdle()
+
+        // ASSERT: Verify error
+        val state = stateMachine.state.value
+
+        assertNotNull(state.error)
+        assertTrue(state.error!!.contains("not found"))
+    }
+
+    @Test
+    fun testDeleteEvent_ClearsSelectedEvent() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+        val repository = MockEventRepository()
+
+        val loadEventsUseCase = LoadEventsUseCase(repository)
+        val createEventUseCase = CreateEventUseCase(repository)
+
+        val stateMachine = EventManagementStateMachine(
+            loadEventsUseCase = loadEventsUseCase,
+            createEventUseCase = createEventUseCase,
+            eventRepository = repository,
+            scope = scope
+        )
+
+        // ARRANGE: Create event and select it
+        val event = createDraftEvent("evt-1", "Team Retreat")
+        repository.events[event.id] = event
+
+        // Load events to populate state
+        stateMachine.dispatch(EventManagementContract.Intent.LoadEvents)
+        advanceUntilIdle()
+
+        // Select the event
+        stateMachine.dispatch(EventManagementContract.Intent.SelectEvent("evt-1"))
+        advanceUntilIdle()
+
+        // Verify event is selected
+        var state = stateMachine.state.value
+        assertNotNull(state.selectedEvent)
+        assertEquals("evt-1", state.selectedEvent?.id)
+
+        // ACT: Delete the selected event
+        stateMachine.dispatch(
+            EventManagementContract.Intent.DeleteEvent(
+                eventId = "evt-1",
+                userId = "org-1"
+            )
+        )
+        advanceUntilIdle()
+
+        // ASSERT: Verify selectedEvent is cleared
+        state = stateMachine.state.value
+
+        assertNull(state.selectedEvent)
+        assertFalse(state.events.any { it.id == "evt-1" })
+    }
+
+    @Test
+    fun testDeleteEvent_AllowedStatuses() = runTest {
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val scope = CoroutineScope(testDispatcher + SupervisorJob())
+
+        // Test that deletion is allowed for DRAFT, POLLING, CONFIRMED, COMPARING, ORGANIZING
+        val allowedStatuses = listOf(
+            EventStatus.DRAFT,
+            EventStatus.POLLING,
+            EventStatus.CONFIRMED,
+            EventStatus.COMPARING,
+            EventStatus.ORGANIZING
+        )
+
+        for (status in allowedStatuses) {
+            val repository = MockEventRepository()
+            val loadEventsUseCase = LoadEventsUseCase(repository)
+            val createEventUseCase = CreateEventUseCase(repository)
+
+            val stateMachine = EventManagementStateMachine(
+                loadEventsUseCase = loadEventsUseCase,
+                createEventUseCase = createEventUseCase,
+                eventRepository = repository,
+                scope = scope
+            )
+
+            // ARRANGE: Create event with specific status
+            val event = createDraftEvent("evt-${status.name}").copy(status = status)
+            repository.events[event.id] = event
+
+            // ACT: Dispatch DeleteEvent
+            stateMachine.dispatch(
+                EventManagementContract.Intent.DeleteEvent(
+                    eventId = event.id,
+                    userId = "org-1"
+                )
+            )
+            advanceUntilIdle()
+
+            // ASSERT: Verify event was deleted
+            val state = stateMachine.state.value
+
+            assertNull(repository.getEvent(event.id), "Event with status $status should be deleted")
+            assertNull(state.error, "No error should occur for status $status")
+        }
     }
 }

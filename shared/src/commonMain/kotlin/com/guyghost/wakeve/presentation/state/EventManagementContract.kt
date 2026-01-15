@@ -149,11 +149,14 @@ object EventManagementContract {
          * Delete an event.
          *
          * Only the organizer can delete.
+         * FINALIZED events cannot be deleted.
          * Removes from repository and updates local state.
+         * Cascade deletes all related data (participants, votes, time slots, etc.).
          *
          * @property eventId The ID of the event to delete
+         * @property userId The ID of the user attempting to delete (must be organizer)
          */
-        data class DeleteEvent(val eventId: String) : Intent
+        data class DeleteEvent(val eventId: String, val userId: String) : Intent
 
         /**
          * Start polling on time slots.

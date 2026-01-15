@@ -146,6 +146,14 @@ class DraftPhaseIntegrationTest {
 
         override fun getAllEvents(): List<Event> = events.values.toList()
 
+        override suspend fun deleteEvent(eventId: String): Result<Unit> {
+            events.remove(eventId)
+            polls.remove(eventId)
+            participants.remove(eventId)
+            locations.remove(eventId)
+            return Result.success(Unit)
+        }
+
         // Location management (for Test 10)
         suspend fun addLocation(eventId: String, location: PotentialLocation): Result<Boolean> {
             val current = locations[eventId] ?: emptyList()

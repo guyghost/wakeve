@@ -147,6 +147,14 @@ class DraftWorkflowIntegrationTest {
 
         override fun getAllEvents(): List<Event> = events.values.toList()
 
+        override suspend fun deleteEvent(eventId: String): Result<Unit> {
+            events.remove(eventId)
+            polls.remove(eventId)
+            participants.remove(eventId)
+            potentialLocations.remove(eventId)
+            return Result.success(Unit)
+        }
+
         // Location management
         fun getLocationsByEvent(eventId: String): List<PotentialLocation> =
             potentialLocations[eventId] ?: emptyList()

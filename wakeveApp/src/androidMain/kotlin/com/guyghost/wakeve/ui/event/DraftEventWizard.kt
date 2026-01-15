@@ -302,26 +302,12 @@ fun DraftEventWizard(
                             .padding(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                     ) {
-                        // Show "Previous" on steps 1-2, "Save Draft" on preview step (3)
-                        if (currentStep > 0 && currentStep < steps.size - 1) {
-                            // Steps 1-2: Show Previous button
-                            OutlinedButton(
-                                onClick = { currentStep-- }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(stringResource(R.string.previous))
-                            }
-                        } else if (currentStep == steps.size - 1) {
-                            // Preview step: Show Save Draft button
+                        // Show "Save Draft" button on all steps (user can go back via top bar)
+                        if (currentStep > 0) {
                             OutlinedButton(
                                 onClick = {
                                     onSaveStep(buildEvent())
-                                    onCancel() // Return to main page
+                                    onCancel() // Return to home page
                                 }
                             ) {
                                 Icon(

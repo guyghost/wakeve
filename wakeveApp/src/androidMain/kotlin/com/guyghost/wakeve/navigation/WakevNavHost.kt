@@ -5,6 +5,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
@@ -305,21 +308,40 @@ fun WakevNavHost(
         
         composable(Screen.EventCreation.route) {
             val viewModel: EventManagementViewModel = koinInject()
+            // Track if the event has been created to avoid duplicates
+            var eventCreated by remember { mutableStateOf(false) }
             
             DraftEventWizard(
                 initialEvent = null,
                 userId = userId,
                 onSaveStep = { event ->
                     // Auto-save draft event on each step
-                    viewModel.dispatch(
-                        com.guyghost.wakeve.presentation.state.EventManagementContract.Intent.CreateEvent(event)
-                    )
+                    if (!eventCreated) {
+                        // First save: create the event
+                        viewModel.dispatch(
+                            com.guyghost.wakeve.presentation.state.EventManagementContract.Intent.CreateEvent(event)
+                        )
+                        eventCreated = true
+                    } else {
+                        // Subsequent saves: update the event
+                        viewModel.dispatch(
+                            com.guyghost.wakeve.presentation.state.EventManagementContract.Intent.UpdateEvent(event)
+                        )
+                    }
                 },
                 onComplete = { event ->
-                    // Create the event and navigate to participant management
-                    viewModel.dispatch(
-                        com.guyghost.wakeve.presentation.state.EventManagementContract.Intent.CreateEvent(event)
-                    )
+                    // Final save and navigate to participant management
+                    // The event should already exist from onSaveStep, so just update it
+                    if (!eventCreated) {
+                        // Edge case: direct completion without intermediate saves
+                        viewModel.dispatch(
+                            com.guyghost.wakeve.presentation.state.EventManagementContract.Intent.CreateEvent(event)
+                        )
+                    } else {
+                        viewModel.dispatch(
+                            com.guyghost.wakeve.presentation.state.EventManagementContract.Intent.UpdateEvent(event)
+                        )
+                    }
                     navController.navigate(Screen.ParticipantManagement.createRoute(event.id)) {
                         popUpTo(Screen.EventCreation.route) { inclusive = true }
                     }
@@ -339,6 +361,7 @@ fun WakevNavHost(
             
             EventDetailScreen(
                 eventId = eventId,
+                userId = userId,
                 viewModel = viewModel,
                 onNavigateTo = { route ->
                     navController.navigate(route)
