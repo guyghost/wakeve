@@ -38,20 +38,20 @@
 - [x] **4.2** Implémenter alert de confirmation SwiftUI
 - [x] **4.3** Gérer le loading state pendant la suppression
 - [x] **4.4** Navigation vers l'accueil après suppression réussie
-- [ ] **4.5** Feedback haptique et visuel
+- [x] **4.5** Feedback haptique et visuel
 
 ## Phase 5: Intégration
 
-- [ ] **5.1** Vérifier la synchronisation offline (suppression en mode offline)
-- [ ] **5.2** Tests E2E Android
-- [ ] **5.3** Tests E2E iOS
-- [ ] **5.4** Revue de code et accessibilité
+- [x] **5.1** Vérifier la synchronisation offline (suppression en mode offline)
+- [x] **5.2** Tests E2E Android
+- [x] **5.3** Tests E2E iOS
+- [x] **5.4** Revue de code et accessibilité
 
 ## Definition of Done
 
-- Tous les tests passent
-- L'organisateur peut supprimer ses événements
-- Les participants ne peuvent PAS supprimer les événements
-- Les données liées sont supprimées en cascade
-- UI conforme au design system (Material You / Liquid Glass)
-- Accessibilité validée (VoiceOver/TalkBack)
+- [x] Tous les tests passent
+- [x] L'organisateur peut supprimer ses événements
+- [x] Les participants ne peuvent PAS supprimer les événements
+- [x] Les données liées sont supprimées en cascade
+- [x] UI conforme au design system (Material You / Liquid Glass)
+- [x] Accessibilité validée (VoiceOver/TalkBack)
