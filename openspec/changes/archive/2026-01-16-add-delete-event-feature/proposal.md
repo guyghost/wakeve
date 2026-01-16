@@ -1,5 +1,31 @@
 # Proposal: Suppression d'événements
 
+## Why
+
+Currently, users can create events in DRAFT mode but cannot delete them. The `DeleteEvent` intent exists in the contract but its implementation is a placeholder (`TODO: Implement deletion in Phase 2`).
+
+Users need to be able to:
+1. Delete drafts they no longer want to finalize
+2. Cancel events they created (with notification to participants)
+
+Without this feature, users accumulate unwanted draft events with no way to clean up their event list.
+
+## What Changes
+
+### Core Changes
+1. **EventRepositoryInterface** - Add `deleteEvent(eventId: String): Result<Unit>` method
+2. **DatabaseEventRepository** - Implement cascade delete with SQLite transaction
+3. **EventManagementStateMachine** - Implement `DeleteEvent` intent handler with authorization check
+
+### UI Changes
+4. **Android (EventDetailScreen)** - Add delete button with Material You confirmation dialog
+5. **iOS (ModernEventDetailView)** - Add delete button with SwiftUI alert and haptic feedback
+
+### Test Coverage
+6. **Unit tests** - Repository delete and cascade verification
+7. **Integration tests** - State machine authorization and side effects
+8. **E2E tests** - Full delete workflow on both platforms
+
 ## Contexte
 
 Actuellement, les utilisateurs peuvent créer des événements en mode DRAFT mais ne peuvent pas les supprimer. L'intent `DeleteEvent` existe dans le contrat mais son implémentation est un placeholder (`TODO: Implement deletion in Phase 2`).
@@ -67,9 +93,9 @@ Les utilisateurs ont besoin de pouvoir :
 
 ## Métriques de succès
 
-- [ ] L'organisateur peut supprimer un événement DRAFT
-- [ ] L'organisateur peut supprimer un événement POLLING/CONFIRMED avec confirmation
-- [ ] Les données liées sont supprimées (participants, votes, time slots)
-- [ ] La liste d'événements est mise à jour après suppression
-- [ ] L'utilisateur est redirigé vers l'accueil après suppression
-- [ ] Tests unitaires et d'intégration passent (couverture > 80%)
+- [x] L'organisateur peut supprimer un événement DRAFT
+- [x] L'organisateur peut supprimer un événement POLLING/CONFIRMED avec confirmation
+- [x] Les données liées sont supprimées (participants, votes, time slots)
+- [x] La liste d'événements est mise à jour après suppression
+- [x] L'utilisateur est redirigé vers l'accueil après suppression
+- [x] Tests unitaires et d'intégration passent (couverture > 80%)
