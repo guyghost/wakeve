@@ -45,6 +45,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
@@ -140,8 +144,14 @@ fun EventDetailScreen(
                         }
                     }
                     if (canDelete) {
-                        IconButton(onClick = { showDeleteConfirmation = true }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Supprimer")
+                        IconButton(
+                            onClick = { showDeleteConfirmation = true },
+                            modifier = Modifier.semantics {
+                                contentDescription = "Supprimer l'événement. Action irréversible."
+                                role = Role.Button
+                            }
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = null)
                         }
                     }
                 }
@@ -228,6 +238,10 @@ fun EventDetailScreen(
                                     modifier = Modifier
                                         .weight(1f)
                                         .height(48.dp)
+                                        .semantics {
+                                            contentDescription = "Supprimer l'événement. Action irréversible."
+                                            role = Role.Button
+                                        }
                                 ) {
                                     Text("Supprimer")
                                 }
@@ -246,15 +260,31 @@ fun EventDetailScreen(
             title = { Text("Supprimer l'événement") },
             text = { Text("Êtes-vous sûr de vouloir supprimer cet événement ? Cette action est irréversible.") },
             confirmButton = {
-                Button(onClick = {
-                    viewModel.dispatch(EventManagementContract.Intent.DeleteEvent(eventId, userId))
-                    showDeleteConfirmation = false
-                }) {
+                Button(
+                    onClick = {
+                        viewModel.dispatch(EventManagementContract.Intent.DeleteEvent(eventId, userId))
+                        showDeleteConfirmation = false
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    ),
+                    modifier = Modifier.semantics {
+                        contentDescription = "Confirmer la suppression définitive de l'événement"
+                        role = Role.Button
+                    }
+                ) {
                     Text("Supprimer")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteConfirmation = false }) {
+                TextButton(
+                    onClick = { showDeleteConfirmation = false },
+                    modifier = Modifier.semantics {
+                        contentDescription = "Annuler et garder l'événement"
+                        role = Role.Button
+                    }
+                ) {
                     Text("Annuler")
                 }
             }

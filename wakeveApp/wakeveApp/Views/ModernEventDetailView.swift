@@ -1,5 +1,6 @@
 import SwiftUI
 import Shared
+import UIKit
 
 /// Modern event detail view inspired by Apple Invites
 /// Features: Large hero image, Going/Not Going/Maybe buttons, participant list
@@ -25,6 +26,7 @@ struct ModernEventDetailView: View {
     @State private var userResponse: RSVPResponse = .maybe
     @State private var showingHostOptions = false
     @State private var showingDeleteConfirmation = false
+    @State private var isDeleting = false
     
     /// Whether the current user is the organizer
     private var isOrganizer: Bool {
@@ -265,6 +267,8 @@ struct ModernEventDetailView: View {
                 ) {
                     showingDeleteConfirmation = true
                 }
+                .accessibilityLabel(NSLocalizedString("delete_event", comment: "Delete event button"))
+                .accessibilityHint(NSLocalizedString("delete_event_hint", comment: "This action is irreversible"))
             }
             Button(NSLocalizedString("cancel", comment: "Cancel button"), role: .cancel) {}
         }
@@ -273,14 +277,51 @@ struct ModernEventDetailView: View {
             isPresented: $showingDeleteConfirmation
         ) {
             Button(NSLocalizedString("cancel", comment: "Cancel button"), role: .cancel) {}
+                .accessibilityLabel(NSLocalizedString("cancel_keep_event", comment: "Cancel and keep the event"))
             Button(
                 NSLocalizedString("delete", comment: "Delete button"),
                 role: .destructive
             ) {
-                onDelete?()
+                performDelete()
             }
+            .accessibilityLabel(NSLocalizedString("confirm_delete_event", comment: "Confirm permanent deletion"))
         } message: {
             Text(NSLocalizedString("delete_event_message", comment: "Delete event confirmation message"))
+        }
+        .opacity(isDeleting ? 0 : 1)
+        .animation(.easeOut(duration: 0.3), value: isDeleting)
+    }
+    
+    // MARK: - Haptic Feedback & Delete Action
+    
+    /// Triggers heavy impact haptic feedback when delete is initiated
+    private func triggerDeleteHaptic() {
+        let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+        impactFeedback.prepare()
+        impactFeedback.impactOccurred()
+    }
+    
+    /// Triggers success notification haptic feedback after deletion
+    private func triggerSuccessHaptic() {
+        let notificationFeedback = UINotificationFeedbackGenerator()
+        notificationFeedback.prepare()
+        notificationFeedback.notificationOccurred(.success)
+    }
+    
+    /// Performs the delete action with haptic feedback and animation
+    private func performDelete() {
+        // Trigger heavy haptic on delete confirmation
+        triggerDeleteHaptic()
+        
+        // Start fade-out animation
+        withAnimation(.easeOut(duration: 0.3)) {
+            isDeleting = true
+        }
+        
+        // After animation, trigger success haptic and call onDelete
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            triggerSuccessHaptic()
+            onDelete?()
         }
     }
     
