@@ -1,10 +1,10 @@
-# Event Management Specification - Delete Event Delta
+# Event Organization Specification - Delete Event Delta
 
 ## ADDED Requirements
 
 ### Requirement: Delete Event
 
-L'organisateur d'un événement DOIT pouvoir supprimer cet événement.
+The organizer of an event MUST be able to delete that event.
 
 #### Règles métier
 
@@ -65,7 +65,7 @@ L'organisateur d'un événement DOIT pouvoir supprimer cet événement.
 
 ### Requirement: Cascade Delete
 
-Lors de la suppression d'un événement, toutes les données liées DOIVENT être supprimées.
+When deleting an event, all related data MUST be deleted in cascade.
 
 #### Données à supprimer en cascade
 
@@ -89,7 +89,7 @@ Lors de la suppression d'un événement, toutes les données liées DOIVENT êtr
 
 ### Requirement: UI Confirmation Dialog
 
-L'interface utilisateur DOIT afficher un dialog de confirmation avant la suppression.
+The user interface MUST display a confirmation dialog before deletion.
 
 #### Android (Material You)
 
@@ -113,22 +113,20 @@ Alert(
 )
 ```
 
-#### Accessibilité
+#### Scenario: Confirmation dialog accessibility
 
-- Le bouton de suppression DOIT avoir un label accessible ("Supprimer cet événement")
-- Le dialog DOIT être focusable par VoiceOver/TalkBack
-- L'action destructive DOIT être clairement identifiée (couleur rouge, semantic role)
+- **GIVEN** the delete button is visible on screen
+- **WHEN** the user activates it with VoiceOver/TalkBack
+- **THEN** the accessibility label announces "Delete this event"
+- **AND** the confirmation dialog is announced as a modal
+- **AND** the destructive action is identified by its semantic role
 
-## MODIFIED Requirements
+### Requirement: Delete Event Repository Method
 
-### Requirement: EventRepositoryInterface
-
-**Modification**: Ajouter la méthode `deleteEvent`
+The EventRepositoryInterface MUST include a deleteEvent method for cascade deletion.
 
 ```kotlin
 interface EventRepositoryInterface {
-    // ... existing methods ...
-    
     /**
      * Delete an event and all related data.
      *
@@ -139,51 +137,27 @@ interface EventRepositoryInterface {
 }
 ```
 
-### Requirement: Intent.DeleteEvent
+#### Scenario: Delete event via repository
 
-**Modification**: Ajouter le paramètre `userId` pour la vérification d'autorisation
+- **GIVEN** an event exists in the repository
+- **WHEN** deleteEvent is called with the event ID
+- **THEN** the event is removed from the repository
+- **AND** Result.success is returned
+
+### Requirement: DeleteEvent Intent Authorization
+
+The DeleteEvent intent MUST include userId for authorization verification.
 
 ```kotlin
 data class DeleteEvent(
     val eventId: String,
-    val userId: String  // ADDED: Pour vérifier que c'est l'organisateur
+    val userId: String  // For authorization verification
 ) : Intent
 ```
 
-## Technical Notes
+#### Scenario: DeleteEvent intent with userId
 
-### Transaction SQLite
-
-La suppression DOIT être effectuée dans une transaction pour garantir l'atomicité :
-
-```kotlin
-db.transaction {
-    // 1. Delete related data first (foreign key constraints)
-    voteQueries.deleteByEventId(eventId)
-    participantQueries.deleteByEventId(eventId)
-    timeSlotQueries.deleteByEventId(eventId)
-    potentialLocationQueries.deleteByEventId(eventId)
-    scenarioVoteQueries.deleteByEventId(eventId) // via subquery
-    scenarioQueries.deleteByEventId(eventId)
-    confirmedDateQueries.deleteByEventId(eventId)
-    syncMetadataQueries.deleteByEntityId(eventId)
-    
-    // 2. Delete the event itself
-    eventQueries.deleteEvent(eventId)
-}
-```
-
-### Offline Sync
-
-Pour la synchronisation offline, enregistrer un tombstone dans `sync_metadata` :
-
-```kotlin
-syncMetadataQueries.insertSyncMetadata(
-    id = "sync_delete_$eventId",
-    entityType = "event",
-    entityId = eventId,
-    operation = "DELETE",
-    timestamp = now,
-    synced = 0
-)
-```
+- **GIVEN** a DeleteEvent intent with eventId and userId
+- **WHEN** the state machine processes it
+- **THEN** it verifies userId matches the event's organizerId
+- **AND** proceeds with deletion only if authorized
