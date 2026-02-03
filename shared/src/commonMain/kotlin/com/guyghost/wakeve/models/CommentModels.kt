@@ -20,21 +20,25 @@ enum class CommentSection {
 
 /**
  * Comment on an event section
- * 
- * Represents a comment or discussion thread on any section of the event.
+ *
+ * Represents a comment or discussion thread on any section of event.
  * Supports nested comments (replies) via parentCommentId.
- * 
+ * Supports @mentions, pinning, and soft deletion.
+ *
  * @property id Unique identifier
  * @property eventId Event this comment belongs to
- * @property section Section of the event
+ * @property section Section of event
  * @property sectionItemId Optional ID of specific item within section (e.g., scenario ID, meal ID)
- * @property authorId Participant ID who wrote the comment
- * @property authorName Name of the author (denormalized for display)
+ * @property authorId Participant ID who wrote comment
+ * @property authorName Name of author (denormalized for display)
  * @property content Comment text content
  * @property parentCommentId ID of parent comment (null if top-level comment)
+ * @property mentions List of user IDs mentioned in this comment
+ * @property isDeleted Whether comment has been soft deleted
+ * @property isPinned Whether comment is pinned by organizer
  * @property createdAt Creation timestamp (ISO 8601 UTC)
  * @property updatedAt Last update timestamp (ISO 8601 UTC, null if never edited)
- * @property isEdited Whether the comment has been edited
+ * @property isEdited Whether comment has been edited
  * @property replyCount Number of direct replies to this comment
  */
 @Serializable
@@ -47,6 +51,9 @@ data class Comment(
     val authorName: String,
     val content: String,
     val parentCommentId: String? = null,
+    val mentions: List<String> = emptyList(),  // List of mentioned user IDs
+    val isDeleted: Boolean = false,  // Soft delete flag
+    val isPinned: Boolean = false,  // Pinned by organizer
     val createdAt: String,  // ISO 8601 UTC timestamp
     val updatedAt: String? = null,  // ISO 8601 UTC timestamp, null if never edited
     val isEdited: Boolean = false,
@@ -57,6 +64,27 @@ data class Comment(
         require(content.length <= 2000) { "Comment content cannot exceed 2000 characters" }
         require(authorName.isNotBlank()) { "Author name cannot be blank" }
     }
+
+    /**
+     * Check if user can edit this comment.
+     * User can edit if they are the author and comment is not deleted.
+     */
+    fun canEdit(userId: String): Boolean =
+        authorId == userId && !isDeleted
+
+    /**
+     * Check if user can delete this comment.
+     * User can delete if they are the author or if they are the organizer.
+     */
+    fun canDelete(userId: String, isOrganizer: Boolean): Boolean =
+        !isDeleted && (authorId == userId || isOrganizer)
+
+    /**
+     * Check if user can pin/unpin this comment.
+     * Only organizers can pin comments.
+     */
+    fun canPin(userId: String, isOrganizer: Boolean): Boolean =
+        !isDeleted && isOrganizer
 }
 
 /**
@@ -219,3 +247,59 @@ enum class CommentNotificationType {
     REPLY,           // Someone replied to your comment
     MENTION          // You were mentioned in a comment
 }
+
+/**
+ * Mention of a user in a comment
+ *
+ * Represents a @username mention in a comment content with position information.
+ *
+ * @property id Unique identifier
+ * @property commentId Comment ID containing the mention
+ * @property mentionedUserId User ID who was mentioned
+ * @property startIndex Start index of @username in content
+ * @property endIndex End index of @username in content
+ */
+@Serializable
+data class Mention(
+    val id: String,
+    val commentId: String,
+    val mentionedUserId: String,
+    val startIndex: Int,
+    val endIndex: Int
+)
+
+/**
+ * Comment with author information
+ *
+ * Combines comment with author details for display in UI.
+ *
+ * @property comment The comment
+ * @property author Summary of the author
+ * @property replyCount Number of replies to this comment
+ * @property isLiked Whether current user liked this comment (future feature)
+ */
+@Serializable
+data class CommentWithAuthor(
+    val comment: Comment,
+    val author: UserSummary,
+    val replyCount: Int = 0,
+    val isLiked: Boolean = false
+)
+
+/**
+ * User summary for comment display
+ *
+ * Lightweight user info for comment author display.
+ *
+ * @property id User ID
+ * @property name Display name
+ * @property avatarUrl Optional avatar URL
+ * @property username Username for @mentions
+ */
+@Serializable
+data class UserSummary(
+    val id: String,
+    val name: String,
+    val avatarUrl: String? = null,
+    val username: String? = null
+)

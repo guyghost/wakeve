@@ -277,13 +277,13 @@ curl http://localhost:8080/api/events
 ### 4. Build Android App
 ```bash
 # Build debug APK
-./gradlew composeApp:assembleDebug
+./gradlew wakeveApp:assembleDebug
 
 # Build release APK
-./gradlew composeApp:assembleRelease
+./gradlew wakeveApp:assembleRelease
 
 # Run on emulator
-./gradlew composeApp:installDebug
+./gradlew wakeveApp:installDebug
 ```
 
 ### 5. Build iOS App
@@ -307,9 +307,9 @@ open wakeveApp/wakeveApp.xcodeproj
 - `shared/src/commonMain/sqldelight/` - Database schema
 
 ### Implementation - iOS
-- `iosApp/iosApp/Views/` - SwiftUI views (EventsTabView, ExploreTabView, ProfileTabView)
-- `iosApp/iosApp/Components/` - Reusable components (WakevTabBar, SharedComponents)
-- `iosApp/iosApp/Theme/` - Design system (WakevColors, LiquidGlassModifier)
+- `wakeveApp/wakeveApp/Views/` - SwiftUI views (EventsTabView, ExploreTabView, ProfileTabView)
+- `wakeveApp/wakeveApp/Components/` - Reusable components (WakevTabBar, SharedComponents)
+- `wakeveApp/wakeveApp/Theme/` - Design system (WakevColors, LiquidGlassModifier)
 
 ### Testing
 - `shared/src/commonTest/kotlin/com/guyghost/wakeve/EventRepositoryTest.kt` - Domain tests
@@ -319,7 +319,7 @@ open wakeveApp/wakeveApp.xcodeproj
 ### Configuration
 - `gradle/libs.versions.toml` - Dependency versions
 - `shared/build.gradle.kts` - Shared module config
-- `iosApp/iosApp.xcodeproj/project.pbxproj` - Xcode project config
+- `wakeveApp/wakeveApp.xcodeproj/project.pbxproj` - Xcode project config
 
 ## Understanding the Architecture
 
@@ -412,11 +412,11 @@ curl http://localhost:8080/api/events/event-1/poll
 ### Run on Android Device
 1. Connect Android device via USB
 2. Enable USB debugging
-3. Run: `./gradlew composeApp:installDebug`
+3. Run: `./gradlew wakeveApp:installDebug`
 4. App appears in launcher as "Wakeve"
 
 ### Run on iOS Simulator
-1. Open project: `open iosApp/iosApp.xcodeproj`
+1. Open project: `open wakeveApp/wakeveApp.xcodeproj`
 2. Select simulator (e.g., iPhone 15)
 3. Press Cmd+R to run
 
@@ -492,7 +492,7 @@ rm wakev_server.db
 ### iOS Build Errors
 ```bash
 # Clean Xcode build
-cd iosApp
+cd wakeveApp
 xcodebuild clean
 
 # Rebuild Kotlin Shared framework
@@ -500,7 +500,7 @@ cd ..
 ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
 
 # Reopen Xcode
-open iosApp/iosApp.xcodeproj
+open wakeveApp/wakeveApp.xcodeproj
 ```
 
 ## Next Steps
@@ -528,8 +528,8 @@ open iosApp/iosApp.xcodeproj
 
 ### Architecture
 - `shared/src/commonMain/kotlin/` - Domain models and business logic
-- `iosApp/iosApp/Views/` - SwiftUI view implementations
-- `composeApp/src/commonMain/kotlin/` - Android UI implementation
+- `wakeveApp/wakeveApp/Views/` - SwiftUI view implementations
+- `wakeveApp/src/commonMain/kotlin/` - Android UI implementation
 - `server/src/main/kotlin/` - API implementation
 
 ### Testing Examples
@@ -540,7 +540,7 @@ open iosApp/iosApp.xcodeproj
 ### Documentation
 - `openspec/specs/event-organization/spec.md` - Requirements
 - `openspec/changes/implement-tabs-content/IMPLEMENTATION_SUMMARY.md` - iOS tabs summary
-- `iosApp/LIQUID_GLASS_GUIDELINES.md` - Liquid Glass design guidelines
+- `docs/migration/README.md` - Liquid Glass migration and iOS design references
 - `CONTRIBUTING.md` - Development guidelines
 
 ## Getting Help
@@ -574,8 +574,8 @@ git checkout -b change/your-feature      # Create feature branch
 ./gradlew server:run                     # Run server
 
 # iOS
-open iosApp/iosApp.xcodeproj            # Open in Xcode
-xcodebuild -project iosApp.xcodeproj -scheme iosApp build  # Build from CLI
+open wakeveApp/wakeveApp.xcodeproj            # Open in Xcode
+xcodebuild -project wakeveApp/wakeveApp.xcodeproj -scheme WakeveApp build  # Build from CLI
 
 # Testing
 ./gradlew shared:test --tests "TestName" # Run specific test
@@ -587,8 +587,8 @@ xcodebuild -project iosApp.xcodeproj -scheme iosApp build  # Build from CLI
 ./gradlew detekt                         # Check code style
 
 # Android
-./gradlew composeApp:build               # Build Android app
-./gradlew composeApp:installDebug        # Install on device
+./gradlew wakeveApp:build               # Build Android app
+./gradlew wakeveApp:installDebug        # Install on device
 
 # Git
 git status                               # Check changes

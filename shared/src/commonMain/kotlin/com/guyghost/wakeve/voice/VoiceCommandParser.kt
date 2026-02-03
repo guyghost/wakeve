@@ -8,6 +8,12 @@ import com.guyghost.wakeve.ml.VoiceIntent
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.TimeOfDay
 import kotlinx.datetime.Clock
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.plus
 
 /**
  * Parser for voice commands that extracts intents and parameters from natural language transcripts.
@@ -91,10 +97,16 @@ class VoiceCommandParser {
         )
 
         private val numberWords = mapOf(
-            Language.EN to mapOf("one" to 1, "two" to 2, "three" to 3, "four" to 4, "five" to 5, "a few" to 3, "several" to 5),
-            Language.FR to mapOf("un" to 1, "une" to 1, "deux" to 2, "trois" to 3, "quatre" to 4, "cinq" to 5, "quelques" to 3),
-            Language.ES to mapOf("uno" to 1, "una" to 1, "dos" to 2, "tres" to 3, "cuatro" to 4, "cinco" to 5),
-            Language.DE to mapOf("eins" to 1, "eine" to 1, "zwei" to 2, "drei" to 3, "vier" to 4, "fünf" to 5)
+            Language.EN to mapOf(
+                "one" to 1, "two" to 2, "three" to 3, "four" to 4, "five" to 5,
+                "ten" to 10, "twenty" to 20, "a few" to 3, "several" to 5
+            ),
+            Language.FR to mapOf(
+                "un" to 1, "une" to 1, "deux" to 2, "trois" to 3, "quatre" to 4,
+                "cinq" to 5, "dix" to 10, "vingt" to 20, "quelques" to 3
+            ),
+            Language.ES to mapOf("uno" to 1, "una" to 1, "dos" to 2, "tres" to 3, "cuatro" to 4, "cinco" to 5, "diez" to 10, "veinte" to 20),
+            Language.DE to mapOf("eins" to 1, "eine" to 1, "zwei" to 2, "drei" to 3, "vier" to 4, "fünf" to 5, "zehn" to 10, "zwanzig" to 20)
         )
     }
 
@@ -192,29 +204,57 @@ class VoiceCommandParser {
 
     private fun extractDate(transcript: String, language: Language): String? {
         val lowerTranscript = transcript.lowercase()
-        return when (language) {
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+        val relativeDate = when (language) {
             Language.EN -> when {
-                lowerTranscript.contains("today") -> "2026-01-02"
-                lowerTranscript.contains("tomorrow") -> "2026-01-03"
+                lowerTranscript.contains("today") -> today
+                lowerTranscript.contains("tomorrow") -> today.plus(1, DateTimeUnit.DAY)
                 else -> null
             }
             Language.FR -> when {
-                lowerTranscript.contains("aujourd'hui") -> "2026-01-02"
-                lowerTranscript.contains("demain") -> "2026-01-03"
+                lowerTranscript.contains("aujourd'hui") -> today
+                lowerTranscript.contains("demain") -> today.plus(1, DateTimeUnit.DAY)
                 else -> null
             }
             Language.ES -> when {
-                lowerTranscript.contains("hoy") -> "2026-01-02"
-                lowerTranscript.contains("mañana") -> "2026-01-03"
+                lowerTranscript.contains("hoy") -> today
+                lowerTranscript.contains("mañana") -> today.plus(1, DateTimeUnit.DAY)
                 else -> null
             }
             Language.DE -> when {
-                lowerTranscript.contains("heute") -> "2026-01-02"
-                lowerTranscript.contains("morgen") -> "2026-01-03"
+                lowerTranscript.contains("heute") -> today
+                lowerTranscript.contains("morgen") -> today.plus(1, DateTimeUnit.DAY)
                 else -> null
             }
-            else -> null
+            Language.IT -> null
         }
+        if (relativeDate != null) {
+            return relativeDate.toString()
+        }
+
+        val weekdayByLanguage = mapOf(
+            Language.EN to mapOf(
+                "monday" to DayOfWeek.MONDAY, "tuesday" to DayOfWeek.TUESDAY, "wednesday" to DayOfWeek.WEDNESDAY,
+                "thursday" to DayOfWeek.THURSDAY, "friday" to DayOfWeek.FRIDAY, "saturday" to DayOfWeek.SATURDAY, "sunday" to DayOfWeek.SUNDAY
+            ),
+            Language.FR to mapOf(
+                "lundi" to DayOfWeek.MONDAY, "mardi" to DayOfWeek.TUESDAY, "mercredi" to DayOfWeek.WEDNESDAY,
+                "jeudi" to DayOfWeek.THURSDAY, "vendredi" to DayOfWeek.FRIDAY, "samedi" to DayOfWeek.SATURDAY, "dimanche" to DayOfWeek.SUNDAY
+            ),
+            Language.ES to mapOf(
+                "lunes" to DayOfWeek.MONDAY, "martes" to DayOfWeek.TUESDAY, "miércoles" to DayOfWeek.WEDNESDAY, "miercoles" to DayOfWeek.WEDNESDAY,
+                "jueves" to DayOfWeek.THURSDAY, "viernes" to DayOfWeek.FRIDAY, "sábado" to DayOfWeek.SATURDAY, "sabado" to DayOfWeek.SATURDAY, "domingo" to DayOfWeek.SUNDAY
+            ),
+            Language.DE to mapOf(
+                "montag" to DayOfWeek.MONDAY, "dienstag" to DayOfWeek.TUESDAY, "mittwoch" to DayOfWeek.WEDNESDAY,
+                "donnerstag" to DayOfWeek.THURSDAY, "freitag" to DayOfWeek.FRIDAY, "samstag" to DayOfWeek.SATURDAY, "sonntag" to DayOfWeek.SUNDAY
+            )
+        )
+
+        val days = weekdayByLanguage[language] ?: weekdayByLanguage[Language.EN].orEmpty()
+        val targetDay = days.entries.firstOrNull { (keyword, _) -> lowerTranscript.contains(keyword) }?.value
+        return targetDay?.let { nextWeekday(today, it).toString() }
     }
 
     private fun extractTimeOfDay(transcript: String, language: Language): TimeOfDay? {
@@ -233,7 +273,18 @@ class VoiceCommandParser {
         }
         val words = numberWords[language] ?: numberWords[Language.EN]!!
         val lowerTranscript = transcript.lowercase()
-        return words.entries.firstOrNull { (word, _) -> lowerTranscript.contains(word) }?.value
+        return words.entries.firstOrNull { (word, _) ->
+            Regex("""\b${Regex.escape(word)}\b""").containsMatchIn(lowerTranscript)
+        }?.value
+    }
+
+    private fun nextWeekday(from: LocalDate, target: DayOfWeek): LocalDate {
+        var date = from
+        repeat(7) {
+            date = date.plus(1, DateTimeUnit.DAY)
+            if (date.dayOfWeek == target) return date
+        }
+        return from.plus(1, DateTimeUnit.DAY)
     }
 
     private fun calculateConfidence(transcript: String, language: Language, intent: VoiceIntent): Double {

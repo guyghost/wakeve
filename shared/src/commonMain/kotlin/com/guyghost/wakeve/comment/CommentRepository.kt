@@ -2,6 +2,7 @@ package com.guyghost.wakeve.comment
 
 import com.guyghost.wakeve.EventRepositoryInterface
 import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.collaboration.MentionParser
 import com.guyghost.wakeve.models.Comment
 import com.guyghost.wakeve.models.CommentRequest
 import com.guyghost.wakeve.models.CommentSection
@@ -9,9 +10,13 @@ import com.guyghost.wakeve.models.CommentStatistics
 import com.guyghost.wakeve.models.CommentThread
 import com.guyghost.wakeve.models.CommentsBySection
 import com.guyghost.wakeve.models.ParticipantCommentActivity
+import com.guyghost.wakeve.models.Mention
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
+import kotlinx.serialization.json.Json
 import kotlin.random.Random
 
 /**
@@ -47,28 +52,46 @@ class CommentRepository(
     
     /**
      * Create a new comment.
-     * 
+     *
      * @param eventId Event ID
      * @param authorId Author participant ID
      * @param authorName Author display name
      * @param request Comment creation request
+     * @param usernameToUserIdMap Map of username to user ID for mention resolution
      * @return Created Comment
      */
     suspend fun createComment(
         eventId: String,
         authorId: String,
         authorName: String,
-        request: CommentRequest
+        request: CommentRequest,
+        usernameToUserIdMap: Map<String, String> = emptyMap()
     ): Comment {
         val now = getCurrentUtcIsoString()
         val commentId = generateId()
-        
+
         // Validate parent comment exists if specified
         if (request.parentCommentId != null) {
             val parentCount = commentQueries.commentExists(request.parentCommentId).executeAsOne()
             require(parentCount > 0) { "Parent comment not found: ${request.parentCommentId}" }
         }
-        
+
+        // Parse mentions from content
+        val mentionParseResult = MentionParser.parseMentions(
+            commentId = commentId,
+            content = request.content,
+            usernameToUserIdMap = usernameToUserIdMap
+        )
+
+        val mentionsJson = if (mentionParseResult.mentionedUserIds.isNotEmpty()) {
+            Json.encodeToString(
+                ListSerializer(String.serializer()),
+                mentionParseResult.mentionedUserIds
+            )
+        } else {
+            null
+        }
+
         val comment = Comment(
             id = commentId,
             eventId = eventId,
@@ -78,12 +101,15 @@ class CommentRepository(
             authorName = authorName,
             content = request.content,
             parentCommentId = request.parentCommentId,
+            mentions = mentionParseResult.mentionedUserIds,
+            isDeleted = false,
+            isPinned = false,
             createdAt = now,
             updatedAt = null,
             isEdited = false,
             replyCount = 0
         )
-        
+
         commentQueries.insertComment(
             id = comment.id,
             event_id = comment.eventId,
@@ -93,19 +119,46 @@ class CommentRepository(
             author_name = comment.authorName,
             content = comment.content,
             parent_comment_id = comment.parentCommentId,
+            mentions = mentionsJson,
+            is_deleted = 0L,
+            is_pinned = 0L,
             created_at = comment.createdAt,
             updated_at = comment.updatedAt,
             is_edited = if (comment.isEdited) 1L else 0L,
             reply_count = comment.replyCount.toLong()
         )
-        
+
+        // Store mentions in separate table for efficient lookup
+        mentionParseResult.mentions.forEach { mention ->
+            commentQueries.insertMention(
+                id = mention.id,
+                comment_id = mention.commentId,
+                mentioned_user_id = mention.mentionedUserId,
+                start_index = mention.startIndex.toLong(),
+                end_index = mention.endIndex.toLong()
+            )
+        }
+
         // Increment parent's reply count if this is a reply
         if (request.parentCommentId != null) {
             commentQueries.incrementReplyCount(request.parentCommentId)
         }
-        
+
         // Send notifications if services are available
         if (commentNotificationService != null && eventRepository != null) {
+            // Send mention notifications
+            mentionParseResult.mentionedUserIds.forEach { mentionedUserId ->
+                commentNotificationService.notifyMention(
+                    eventId = eventId,
+                    mentionedUserId = mentionedUserId,
+                    authorId = authorId,
+                    authorName = authorName,
+                    content = request.content,
+                    commentId = commentId,
+                    excludeRecipient = authorId
+                )
+            }
+
             if (request.parentCommentId == null) {
                 // New top-level comment
                 commentNotificationService.notifyCommentPosted(
@@ -131,10 +184,10 @@ class CommentRepository(
                 }
             }
         }
-        
+
         // Invalidate cache for the event
         invalidateEventCache(eventId)
-        
+
         return comment
     }
     
@@ -748,11 +801,100 @@ class CommentRepository(
             if (comment.parentCommentId != null) {
                 commentQueries.decrementReplyCount(comment.parentCommentId)
             }
-            
+
             commentQueries.deleteComment(commentId)
             invalidateEventCache(comment.eventId)
             invalidateCommentCache(commentId)
         }
+    }
+
+    /**
+     * Soft delete a comment.
+     *
+     * Marks comment as deleted without actually removing it from database.
+     * Display shows "[Deleted]" placeholder.
+     *
+     * @param commentId Comment ID to soft delete
+     * @return Updated comment or null if not found
+     */
+    fun softDeleteComment(commentId: String): Comment? {
+        val comment = getCommentById(commentId) ?: return null
+        val now = getCurrentUtcIsoString()
+
+        commentQueries.softDeleteComment(now, commentId)
+
+        // Invalidate caches
+        invalidateEventCache(comment.eventId)
+        invalidateCommentCache(commentId)
+
+        // Return updated comment
+        return comment.copy(
+            isDeleted = true,
+            content = "[Deleted]",
+            updatedAt = now
+        )
+    }
+
+    /**
+     * Restore a soft-deleted comment.
+     *
+     * @param commentId Comment ID to restore
+     * @return Restored comment or null if not found
+     */
+    fun restoreComment(commentId: String): Comment? {
+        val comment = getCommentById(commentId) ?: return null
+        val now = getCurrentUtcIsoString()
+
+        commentQueries.restoreComment(now, commentId)
+
+        // Invalidate caches
+        invalidateEventCache(comment.eventId)
+        invalidateCommentCache(commentId)
+
+        // Return restored comment (original content would need to be stored separately)
+        return comment.copy(
+            isDeleted = false,
+            updatedAt = now
+        )
+    }
+
+    /**
+     * Pin a comment.
+     *
+     * Only organizers can pin comments.
+     * Pinned comments appear first in the list.
+     *
+     * @param commentId Comment ID to pin
+     * @return Updated comment or null if not found
+     */
+    fun pinComment(commentId: String): Comment? {
+        val comment = getCommentById(commentId) ?: return null
+
+        commentQueries.pinComment(commentId)
+
+        // Invalidate caches
+        invalidateEventCache(comment.eventId)
+        invalidateCommentCache(commentId)
+
+        return comment.copy(isPinned = true)
+    }
+
+    /**
+     * Unpin a comment.
+     *
+     * @param commentId Comment ID to unpin
+     * @return Updated comment or null if not found
+     */
+    fun unpinComment(commentId: String): Comment? {
+        val comment = getCommentById(commentId) ?: return null
+
+        commentQueries.unpinComment(commentId)
+
+        // Invalidate caches
+        invalidateEventCache(comment.eventId)
+        invalidateCommentCache(commentId)
+
+        return comment.copy(isPinned = false)
     }
 
     /**
@@ -787,6 +929,15 @@ class CommentRepository(
      * Convert SQL Comment entity to Kotlin model.
      */
     private fun com.guyghost.wakeve.Comment.toModel(): Comment {
+        // Parse mentions JSON if present
+        val mentions = this.mentions?.let { mentionsJson ->
+            try {
+                Json.decodeFromString<List<String>>(mentionsJson)
+            } catch (e: Exception) {
+                emptyList()
+            }
+        } ?: emptyList()
+
         return Comment(
             id = this.id,
             eventId = this.event_id,
@@ -796,6 +947,9 @@ class CommentRepository(
             authorName = this.author_name,
             content = this.content,
             parentCommentId = this.parent_comment_id,
+            mentions = mentions,
+            isDeleted = (this.is_deleted ?: 0L) == 1L,
+            isPinned = (this.is_pinned ?: 0L) == 1L,
             createdAt = this.created_at,
             updatedAt = this.updated_at,
             isEdited = this.is_edited == 1L,

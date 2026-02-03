@@ -186,9 +186,9 @@ Ce projet utilise plusieurs agents IA spécialisés. L'**orchestrator** (agent p
 | ViewModels | `@codegen` | `wakeveApp/src/commonMain/kotlin/viewmodel/*.kt` |
 | Material Theme | `@codegen` | `wakeveApp/src/commonMain/kotlin/theme/*.kt` |
 | **iOS (SwiftUI)** |
-| Views SwiftUI | `@codegen` | `iosApp/iosApp/Views/*.swift` |
-| Services iOS | `@codegen` | `iosApp/iosApp/Services/*.swift` |
-| Liquid Glass theme | `@codegen` | `iosApp/iosApp/Theme/*.swift` |
+| Views SwiftUI | `@codegen` | `wakeveApp/wakeveApp/Views/*.swift` |
+| Services iOS | `@codegen` | `wakeveApp/wakeveApp/Services/*.swift` |
+| Liquid Glass theme | `@codegen` | `wakeveApp/wakeveApp/Theme/*.swift` |
 | **Backend (Ktor)** |
 | Routes API | `@codegen` | `server/src/main/kotlin/**/*.kt` |
 | Tests API | `@tests` | `server/src/test/kotlin/**/*.kt` |
@@ -232,7 +232,7 @@ Orchestrateur:
     - wakeveApp/src/commonMain/kotlin/ui/TransportOptionsScreen.kt
 
     5. Délègue à @codegen: "Crée l'UI iOS pour afficher les options de transport"
-    - iosApp/iosApp/Views/TransportOptionsView.swift
+    - wakeveApp/wakeveApp/Views/TransportOptionsView.swift
 
 6. Délègue à @tests: "Ajoute les tests offline pour TransportService"
    - shared/src/commonTest/kotlin/offline/OfflineTransportTest.kt
@@ -323,14 +323,14 @@ Orchestrateur:
 - `shared/src/commonMain/kotlin/com/guyghost/wakeve/calendar/Models.kt` — CalendarEvent, ICSDocument, MeetingReminderTiming
 - `shared/src/androidMain/kotlin/com/guyghost/wakeve/calendar/PlatformCalendarService.android.kt` — Android actual implementation (CalendarContract, runtime permission checks)
 - `shared/src/iosMain/kotlin/com/guyghost/wakeve/calendar/PlatformCalendarService.ios.kt` — iOS actual implementation bridging to EventKit
-- `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationCard.kt` — Compose UI card exposing `onAddToCalendar` and `onShareInvite`
-- `iosApp/iosApp/Views/CalendarIntegrationCard.swift` — SwiftUI card calling the shared CalendarService via Kotlin/Native interop
+- `wakeveApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationCard.kt` — Compose UI card exposing `onAddToCalendar` and `onShareInvite`
+- `wakeveApp/wakeveApp/Views/CalendarIntegrationCard.swift` — SwiftUI card calling the shared CalendarService via Kotlin/Native interop
 - `server/src/main/kotlin/com/guyghost/wakeve/routes/CalendarRoutes.kt` — server endpoints for ICS generation and download
 
 **Tests:**
 - Shared unit tests: `shared/src/commonTest/kotlin/com/guyghost/wakeve/calendar/CalendarServiceTest.kt` (ICS content, timezone, platform result handling)
-- Android instrumented tests: `composeApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationInstrumentedTest.kt` (runtime permission and add/update/delete flows)
-- iOS XCTest: `iosApp/iosApp/Tests/CalendarIntegrationTests.swift` (permission prompts and UI wiring)
+- Android instrumented tests: `wakeveApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationInstrumentedTest.kt` (runtime permission and add/update/delete flows)
+- iOS XCTest: `wakeveApp/wakeveApp/Tests/CalendarIntegrationTests.swift` (permission prompts and UI wiring)
 
 **Interactions:**
 - ← Agent Sondage : Créneau confirmé
@@ -1084,7 +1084,7 @@ WakevButton.kt, WakevCard.kt, WakevTextField.kt
 
 #### iOS (SwiftUI + Liquid Glass)
 ```swift
-// iosApp/iosApp/Theme/
+// wakeveApp/wakeveApp/Theme/
 WakevColors.swift           // Palette de couleurs
 WakevTypography.swift       // Système typographique
 LiquidGlassModifier.swift   // Extensions Liquid Glass

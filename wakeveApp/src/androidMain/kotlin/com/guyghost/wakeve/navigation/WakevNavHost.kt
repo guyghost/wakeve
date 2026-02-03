@@ -202,12 +202,14 @@ fun WakevNavHost(
             
             AuthScreen(
                 onGoogleSignIn = {
-                    authViewModel.onGoogleSignInRequested()
+                    // Launch OAuth flow from Activity (via AuthCallbacks)
+                    // The result will be handled in MainActivity and propagated to AuthViewModel
                     authCallbacks.launchGoogleSignIn()
                 },
                 onAppleSignIn = {
-                    // Apple Sign-In not natively available on Android
-                    Toast.makeText(context, "Apple Sign-In non disponible sur Android", Toast.LENGTH_SHORT).show()
+                    // Launch Apple Sign-In web flow from Activity
+                    // The result will be handled in MainActivity and propagated to AuthViewModel
+                    authCallbacks.launchAppleSignIn()
                 },
                 onEmailSignIn = {
                     authViewModel.onEmailSignInRequested()

@@ -302,6 +302,150 @@ fun io.ktor.server.routing.Route.commentRoutes(repository: CommentRepository) {
             }
         }
 
+        // POST /api/events/{eventId}/comments/{commentId}/pin - Pin comment (organizer only)
+        post("/{commentId}/pin") {
+            try {
+                val eventId = call.parameters["eventId"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+
+                val commentId = call.parameters["commentId"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Comment ID required")
+                )
+
+                val existingComment = repository.getCommentById(commentId)
+
+                if (existingComment == null) {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Comment not found")
+                    )
+                    return@post
+                }
+
+                if (existingComment.eventId != eventId) {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Comment not found in this event")
+                    )
+                    return@post
+                }
+
+                // TODO: Check if user is organizer (requires auth context)
+                // For now, allow pinning for demo purposes
+
+                val pinnedComment = repository.pinComment(commentId)
+                if (pinnedComment != null) {
+                    call.respond(HttpStatusCode.OK, pinnedComment)
+                } else {
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Comment not found"))
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to e.message.orEmpty())
+                )
+            }
+        }
+
+        // DELETE /api/events/{eventId}/comments/{commentId}/pin - Unpin comment (organizer only)
+        delete("/{commentId}/pin") {
+            try {
+                val eventId = call.parameters["eventId"] ?: return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+
+                val commentId = call.parameters["commentId"] ?: return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Comment ID required")
+                )
+
+                val existingComment = repository.getCommentById(commentId)
+
+                if (existingComment == null) {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Comment not found")
+                    )
+                    return@delete
+                }
+
+                if (existingComment.eventId != eventId) {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Comment not found in this event")
+                    )
+                    return@delete
+                }
+
+                // TODO: Check if user is organizer (requires auth context)
+                // For now, allow unpinning for demo purposes
+
+                val unpinnedComment = repository.unpinComment(commentId)
+                if (unpinnedComment != null) {
+                    call.respond(HttpStatusCode.OK, unpinnedComment)
+                } else {
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Comment not found"))
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to e.message.orEmpty())
+                )
+            }
+        }
+
+        // POST /api/events/{eventId}/comments/{commentId}/restore - Restore soft-deleted comment
+        post("/{commentId}/restore") {
+            try {
+                val eventId = call.parameters["eventId"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+
+                val commentId = call.parameters["commentId"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Comment ID required")
+                )
+
+                val existingComment = repository.getCommentById(commentId)
+
+                if (existingComment == null) {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Comment not found")
+                    )
+                    return@post
+                }
+
+                if (existingComment.eventId != eventId) {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Comment not found in this event")
+                    )
+                    return@post
+                }
+
+                // TODO: Check if user is organizer or comment author (requires auth context)
+                // For now, allow restoring for demo purposes
+
+                val restoredComment = repository.restoreComment(commentId)
+                if (restoredComment != null) {
+                    call.respond(HttpStatusCode.OK, restoredComment)
+                } else {
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Comment not found"))
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to e.message.orEmpty())
+                )
+            }
+        }
+
         // GET /api/events/{eventId}/comments/sections - Get statistics by section
         get("/sections") {
             try {

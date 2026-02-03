@@ -153,6 +153,9 @@ fun platformModule(): Module = module {
      * ```
      */
     factory {
-        AuthViewModel(authStateMachine = get())
+        AuthViewModel(
+            authStateMachine = get(),
+            tokenStorage = get()
+        )
     }
 }

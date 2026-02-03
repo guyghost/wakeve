@@ -8,6 +8,9 @@ import com.guyghost.wakeve.models.SyncMetadata
 import com.guyghost.wakeve.models.SyncOperation
 import com.guyghost.wakeve.models.User
 import com.guyghost.wakeve.models.UserToken
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 class UserRepository(private val db: WakevDb) {
 
@@ -218,45 +221,48 @@ class UserRepository(private val db: WakevDb) {
     // Notification preferences operations
     private suspend fun createDefaultNotificationPreferences(userId: String): Result<NotificationPreferences> = runCatching {
         val now = getCurrentUtcIsoString()
-        val prefsId = "prefs_${userId.hashCode()}_${now.hashCode()}"
+        val enabledTypes = setOf("DEADLINE_REMINDER", "EVENT_UPDATE", "VOTE_CLOSE_REMINDER")
+        val enabledTypesJson = Json.encodeToString(enabledTypes.toList())
+        val updatedAtMillis = currentTimeMillis()
 
         userQueries.insertPreferences(
-            id = prefsId,
             user_id = userId,
-            deadline_reminder = 1L,
-            event_update = 1L,
-            vote_close_reminder = 1L,
-            timezone = "UTC",
-            created_at = now,
-            updated_at = now
+            enabled_types = enabledTypesJson,
+            quiet_hours_start = null,
+            quiet_hours_end = null,
+            sound_enabled = 1L,
+            vibration_enabled = 1L,
+            updated_at = updatedAtMillis
         )
 
         // Return the created preferences
         userQueries.selectPreferencesByUserId(userId).executeAsOne().let { row ->
+            val parsedEnabled = parseEnabledTypes(row.enabled_types)
             NotificationPreferences(
-                id = row.id,
+                id = "prefs_${row.user_id}",
                 userId = row.user_id,
-                deadlineReminder = row.deadline_reminder == 1L,
-                eventUpdate = row.event_update == 1L,
-                voteCloseReminder = row.vote_close_reminder == 1L,
-                timezone = row.timezone,
-                createdAt = row.created_at,
-                updatedAt = row.updated_at
+                deadlineReminder = "DEADLINE_REMINDER" in parsedEnabled,
+                eventUpdate = "EVENT_UPDATE" in parsedEnabled,
+                voteCloseReminder = "VOTE_CLOSE_REMINDER" in parsedEnabled,
+                timezone = "UTC",
+                createdAt = now,
+                updatedAt = row.updated_at.toString()
             )
         }
     }
 
     suspend fun getNotificationPreferences(userId: String): NotificationPreferences? = runCatching {
         userQueries.selectPreferencesByUserId(userId).executeAsOneOrNull()?.let { row ->
+            val parsedEnabled = parseEnabledTypes(row.enabled_types)
             NotificationPreferences(
-                id = row.id,
+                id = "prefs_${row.user_id}",
                 userId = row.user_id,
-                deadlineReminder = row.deadline_reminder == 1L,
-                eventUpdate = row.event_update == 1L,
-                voteCloseReminder = row.vote_close_reminder == 1L,
-                timezone = row.timezone,
-                createdAt = row.created_at,
-                updatedAt = row.updated_at
+                deadlineReminder = "DEADLINE_REMINDER" in parsedEnabled,
+                eventUpdate = "EVENT_UPDATE" in parsedEnabled,
+                voteCloseReminder = "VOTE_CLOSE_REMINDER" in parsedEnabled,
+                timezone = "UTC",
+                createdAt = row.updated_at.toString(),
+                updatedAt = row.updated_at.toString()
             )
         }
     }.getOrNull()
@@ -268,12 +274,19 @@ class UserRepository(private val db: WakevDb) {
         voteCloseReminder: Boolean,
         timezone: String
     ): Result<NotificationPreferences> = runCatching {
-        val now = getCurrentUtcIsoString()
+        val now = currentTimeMillis()
+        val enabledTypes = buildSet {
+            if (deadlineReminder) add("DEADLINE_REMINDER")
+            if (eventUpdate) add("EVENT_UPDATE")
+            if (voteCloseReminder) add("VOTE_CLOSE_REMINDER")
+        }
+
         userQueries.updatePreferences(
-            deadline_reminder = if (deadlineReminder) 1L else 0L,
-            event_update = if (eventUpdate) 1L else 0L,
-            vote_close_reminder = if (voteCloseReminder) 1L else 0L,
-            timezone = timezone,
+            enabled_types = Json.encodeToString(enabledTypes.toList()),
+            quiet_hours_start = null,
+            quiet_hours_end = null,
+            sound_enabled = 1L,
+            vibration_enabled = 1L,
             updated_at = now,
             user_id = userId
         )
@@ -345,5 +358,11 @@ class UserRepository(private val db: WakevDb) {
         // For Phase 3 Sprint 1, we use a fixed test date
         // In Phase 4, integrate with kotlinx.datetime for full timezone support
         return "2025-11-12T10:00:00Z"
+    }
+
+    private fun parseEnabledTypes(enabledTypesJson: String?): Set<String> {
+        if (enabledTypesJson.isNullOrBlank()) return emptySet()
+        return runCatching { Json.decodeFromString<List<String>>(enabledTypesJson).toSet() }
+            .getOrDefault(emptySet())
     }
 }

@@ -1,5 +1,7 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -8,6 +10,15 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.buildconfig)
+    // Google Services plugin for Firebase
+    id("com.google.gms.google-services")
+}
+
+// Load local.properties file
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
 }
 
 kotlin {
@@ -16,9 +27,9 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
-    
+
     jvm()
-    
+
     sourceSets {
         androidMain.dependencies {
             implementation(compose.preview)
@@ -31,10 +42,14 @@ kotlin {
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.security.crypto)
             implementation(libs.androidx.workmanager)
+            // Chrome Custom Tabs for Apple Sign-In web flow
+            implementation("androidx.browser:browser:1.8.0")
             // Ktor client for HTTP requests
             implementation(libs.ktor.clientCore)
             implementation(libs.ktor.clientCio)
             implementation(libs.ktor.clientContentNegotiation)
+            // Firebase Cloud Messaging
+            implementation("com.google.firebase:firebase-messaging:24.1.0")
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -140,13 +155,40 @@ buildConfig {
     packageName("com.guyghost.wakeve")
 
     // Feature flag for progressive OAuth rollout
-    // Set to false initially for safe migration
-    buildConfigField("Boolean", "ENABLE_OAUTH", "false")
+    // Enabled for production use
+    buildConfigField("Boolean", "ENABLE_OAUTH", "true")
 
     // Server URL for OAuth endpoints
     buildConfigField("String", "SERVER_URL", "\"http://10.0.2.2:8080\"")
 
-    // Google OAuth Client ID - Replace with your actual client ID
+    // Google OAuth Client ID - Read from local.properties
     // Get this from Google Cloud Console: https://console.cloud.google.com/
-    buildConfigField("String", "GOOGLE_CLIENT_ID", "\"YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com\"")
+    // Add to local.properties: google.web.client.id=YOUR_ACTUAL_CLIENT_ID
+    buildConfigField(
+        "String",
+        "GOOGLE_WEB_CLIENT_ID",
+        "\"${localProperties["google.web.client.id"] as? String ?: "YOUR_GOOGLE_WEB_CLIENT_ID"}\""
+    )
+
+    // Apple OAuth Client ID - Read from local.properties
+    // Add to local.properties: apple.client.id=com.yourcompany.wakeve
+    buildConfigField(
+        "String",
+        "APPLE_CLIENT_ID",
+        "\"${localProperties["apple.client.id"] as? String ?: "com.yourcompany.wakeve"}\""
+    )
+
+    // Apple OAuth Redirect URI - Read from local.properties
+    // Add to local.properties: apple.redirect.uri=wakeve://apple-auth-callback
+    buildConfigField(
+        "String",
+        "APPLE_REDIRECT_URI",
+        "\"${localProperties["apple.redirect.uri"] as? String ?: "wakeve://apple-auth-callback"}\""
+    )
+}
+
+// Allow local builds without Firebase config checked into the repo.
+val googleServicesJson = project.file("google-services.json")
+tasks.matching { it.name.matches(Regex("process\\w+GoogleServices")) }.configureEach {
+    onlyIf { googleServicesJson.exists() }
 }

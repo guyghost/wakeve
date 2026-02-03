@@ -1,5 +1,6 @@
 -- Comment Table
 -- Stores comments and discussion threads for event sections
+-- Supports mentions, pinning, and soft deletion
 
 CREATE TABLE IF NOT EXISTS comment (
     id TEXT PRIMARY KEY NOT NULL,
@@ -10,6 +11,9 @@ CREATE TABLE IF NOT EXISTS comment (
     author_name TEXT NOT NULL,
     content TEXT NOT NULL,
     parent_comment_id TEXT, -- NULL for top-level comments, comment_id for replies
+    mentions TEXT, -- JSON array of mentioned user IDs
+    is_deleted INTEGER NOT NULL DEFAULT 0, -- 0 = false, 1 = true (soft delete)
+    is_pinned INTEGER NOT NULL DEFAULT 0, -- 0 = false, 1 = true (pinned by organizer)
     created_at TEXT NOT NULL, -- ISO 8601 UTC timestamp
     updated_at TEXT, -- ISO 8601 UTC timestamp, NULL if never edited
     is_edited INTEGER NOT NULL DEFAULT 0, -- 0 = false, 1 = true
@@ -34,105 +38,107 @@ CREATE INDEX IF NOT EXISTS idx_comment_event_created_paging ON comment(event_id,
 
 -- ==================== QUERIES ====================
 
--- Create
+-- Create comment (with mentions, is_deleted, is_pinned)
 insertComment:
 INSERT INTO comment (
     id, event_id, section, section_item_id, author_id, author_name,
-    content, parent_comment_id, created_at, updated_at, is_edited, reply_count
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    content, parent_comment_id, mentions, is_deleted, is_pinned,
+    created_at, updated_at, is_edited, reply_count
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
--- Read
+-- Read comment (filtering deleted)
 selectCommentById:
-SELECT * FROM comment WHERE id = ?;
+SELECT * FROM comment
+WHERE id = ? AND is_deleted = 0;
 
 selectCommentsByEvent:
-SELECT * FROM comment 
-WHERE event_id = ? 
-ORDER BY created_at DESC;
+SELECT * FROM comment
+WHERE event_id = ? AND is_deleted = 0
+ORDER BY is_pinned DESC, created_at DESC;
 
 selectCommentsByEventAndSection:
-SELECT * FROM comment 
-WHERE event_id = ? AND section = ?
-ORDER BY created_at DESC;
+SELECT * FROM comment
+WHERE event_id = ? AND section = ? AND is_deleted = 0
+ORDER BY is_pinned DESC, created_at DESC;
 
 selectCommentsByEventSectionAndItem:
-SELECT * FROM comment 
-WHERE event_id = ? AND section = ? AND section_item_id = ?
-ORDER BY created_at DESC;
+SELECT * FROM comment
+WHERE event_id = ? AND section = ? AND section_item_id = ? AND is_deleted = 0
+ORDER BY is_pinned DESC, created_at DESC;
 
 selectTopLevelCommentsByEvent:
-SELECT * FROM comment 
-WHERE event_id = ? AND parent_comment_id IS NULL
-ORDER BY created_at DESC;
+SELECT * FROM comment
+WHERE event_id = ? AND parent_comment_id IS NULL AND is_deleted = 0
+ORDER BY is_pinned DESC, created_at DESC;
 
 selectTopLevelCommentsBySection:
-SELECT * FROM comment 
-WHERE event_id = ? AND section = ? AND parent_comment_id IS NULL
-ORDER BY created_at DESC;
+SELECT * FROM comment
+WHERE event_id = ? AND section = ? AND parent_comment_id IS NULL AND is_deleted = 0
+ORDER BY is_pinned DESC, created_at DESC;
 
 selectTopLevelCommentsBySectionAndItem:
-SELECT * FROM comment 
-WHERE event_id = ? AND section = ? AND section_item_id = ? AND parent_comment_id IS NULL
-ORDER BY created_at DESC;
+SELECT * FROM comment
+WHERE event_id = ? AND section = ? AND section_item_id = ? AND parent_comment_id IS NULL AND is_deleted = 0
+ORDER BY is_pinned DESC, created_at DESC;
 
 selectRepliesByParentComment:
-SELECT * FROM comment 
-WHERE parent_comment_id = ?
+SELECT * FROM comment
+WHERE parent_comment_id = ? AND is_deleted = 0
 ORDER BY created_at ASC;
 
 selectCommentsByAuthor:
-SELECT * FROM comment 
-WHERE event_id = ? AND author_id = ?
+SELECT * FROM comment
+WHERE event_id = ? AND author_id = ? AND is_deleted = 0
 ORDER BY created_at DESC;
 
 selectRecentComments:
-SELECT * FROM comment 
-WHERE event_id = ? AND created_at > ?
+SELECT * FROM comment
+WHERE event_id = ? AND created_at > ? AND is_deleted = 0
 ORDER BY created_at DESC
 LIMIT ?;
 
 -- ==================== PAGINATED QUERIES ====================
 
 selectTopLevelCommentsByEventPaginated:
-SELECT * FROM comment 
-WHERE event_id = ? AND parent_comment_id IS NULL
-ORDER BY created_at DESC
+SELECT * FROM comment
+WHERE event_id = ? AND parent_comment_id IS NULL AND is_deleted = 0
+ORDER BY is_pinned DESC, created_at DESC
 LIMIT ? OFFSET ?;
 
 selectTopLevelCommentsBySectionPaginated:
-SELECT * FROM comment 
-WHERE event_id = ? AND section = ? AND parent_comment_id IS NULL
-ORDER BY created_at DESC
+SELECT * FROM comment
+WHERE event_id = ? AND section = ? AND parent_comment_id IS NULL AND is_deleted = 0
+ORDER BY is_pinned DESC, created_at DESC
 LIMIT ? OFFSET ?;
 
 selectTopLevelCommentsBySectionAndItemPaginated:
-SELECT * FROM comment 
-WHERE event_id = ? AND section = ? AND section_item_id = ? AND parent_comment_id IS NULL
-ORDER BY created_at DESC
+SELECT * FROM comment
+WHERE event_id = ? AND section = ? AND section_item_id = ? AND parent_comment_id IS NULL AND is_deleted = 0
+ORDER BY is_pinned DESC, created_at DESC
 LIMIT ? OFFSET ?;
 
--- Update
+-- Update comment
 updateComment:
-UPDATE comment 
+UPDATE comment
 SET content = ?, updated_at = ?, is_edited = 1
 WHERE id = ?;
 
 updateReplyCount:
-UPDATE comment 
+UPDATE comment
 SET reply_count = ?
 WHERE id = ?;
 
 incrementReplyCount:
-UPDATE comment 
+UPDATE comment
 SET reply_count = reply_count + 1
 WHERE id = ?;
 
 decrementReplyCount:
-UPDATE comment 
+UPDATE comment
 SET reply_count = reply_count - 1
 WHERE id = ? AND reply_count > 0;
 
--- Delete
+-- Delete comment (hard delete - use softDeleteComment for soft delete)
 deleteComment:
 DELETE FROM comment WHERE id = ?;
 
@@ -148,88 +154,89 @@ DELETE FROM comment WHERE event_id = ? AND section = ? AND section_item_id = ?;
 -- ==================== AGGREGATIONS ====================
 
 countCommentsByEvent:
-SELECT COUNT(*) AS commentCount 
-FROM comment 
-WHERE event_id = ?;
+SELECT COUNT(*) AS commentCount
+FROM comment
+WHERE event_id = ? AND is_deleted = 0;
 
 countCommentsBySection:
-SELECT COUNT(*) AS commentCount 
-FROM comment 
-WHERE event_id = ? AND section = ?;
+SELECT COUNT(*) AS commentCount
+FROM comment
+WHERE event_id = ? AND section = ? AND is_deleted = 0;
 
 countCommentsBySectionItem:
-SELECT COUNT(*) AS commentCount 
-FROM comment 
-WHERE event_id = ? AND section = ? AND section_item_id = ?;
+SELECT COUNT(*) AS commentCount
+FROM comment
+WHERE event_id = ? AND section = ? AND section_item_id = ? AND is_deleted = 0;
 
 countCommentsByAuthor:
-SELECT COUNT(*) AS commentCount 
-FROM comment 
-WHERE event_id = ? AND author_id = ?;
+SELECT COUNT(*) AS commentCount
+FROM comment
+WHERE event_id = ? AND author_id = ? AND is_deleted = 0;
 
 countRepliesByParent:
-SELECT COUNT(*) AS replyCount 
-FROM comment 
-WHERE parent_comment_id = ?;
+SELECT COUNT(*) AS replyCount
+FROM comment
+WHERE parent_comment_id = ? AND is_deleted = 0;
 
 -- Comments by section statistics
 selectCommentStatsBySection:
-SELECT 
+SELECT
     section,
     COUNT(*) AS commentCount,
     COUNT(DISTINCT author_id) AS uniqueAuthors
-FROM comment 
-WHERE event_id = ?
+FROM comment
+WHERE event_id = ? AND is_deleted = 0
 GROUP BY section
 ORDER BY commentCount DESC;
 
 -- Top contributors
 selectTopContributors:
-SELECT 
+SELECT
     author_id,
     author_name,
     COUNT(*) AS commentCount
-FROM comment 
-WHERE event_id = ?
+FROM comment
+WHERE event_id = ? AND is_deleted = 0
 GROUP BY author_id, author_name
 ORDER BY commentCount DESC
 LIMIT ?;
 
 -- Recent activity (last 24 hours)
 countRecentActivity:
-SELECT COUNT(*) AS recentCount 
-FROM comment 
-WHERE event_id = ? AND created_at > ?;
+SELECT COUNT(*) AS recentCount
+FROM comment
+WHERE event_id = ? AND created_at > ? AND is_deleted = 0;
 
 -- Participant activity
 selectParticipantActivity:
-SELECT 
+SELECT
     author_id,
     author_name,
     COUNT(*) AS totalComments,
     COUNT(CASE WHEN parent_comment_id IS NOT NULL THEN 1 END) AS replyCount,
     MAX(created_at) AS lastCommentAt
-FROM comment 
-WHERE event_id = ? AND author_id = ?
+FROM comment
+WHERE event_id = ? AND author_id = ? AND is_deleted = 0
 GROUP BY author_id, author_name;
 
 -- Check if comment exists
 commentExists:
 SELECT COUNT(*) AS count
-FROM comment 
+FROM comment
 WHERE id = ?;
 
 -- ==================== PRE-CALCULATED VIEWS ====================
 
 -- Pre-calculated comment statistics by section for performance
 CREATE VIEW IF NOT EXISTS comment_section_stats AS
-SELECT 
+SELECT
     event_id,
     section,
     COUNT(*) AS comment_count,
     COUNT(DISTINCT author_id) AS unique_authors,
     MAX(created_at) AS last_comment_at
 FROM comment
+WHERE is_deleted = 0
 GROUP BY event_id, section;
 
 -- Query for section statistics
@@ -237,3 +244,67 @@ selectCommentSectionStats:
 SELECT * FROM comment_section_stats
 WHERE event_id = ?
 ORDER BY comment_count DESC;
+
+-- ==================== MENTION TABLE ====================
+
+-- Mentions Table
+-- Stores @username mentions in comments for efficient lookup
+
+CREATE TABLE IF NOT EXISTS mention (
+    id TEXT PRIMARY KEY NOT NULL,
+    comment_id TEXT NOT NULL,
+    mentioned_user_id TEXT NOT NULL,
+    start_index INTEGER NOT NULL,
+    end_index INTEGER NOT NULL,
+    FOREIGN KEY(comment_id) REFERENCES comment(id) ON DELETE CASCADE,
+    FOREIGN KEY(mentioned_user_id) REFERENCES user(id) ON DELETE CASCADE
+);
+
+-- Indexes for mention lookups
+CREATE INDEX IF NOT EXISTS idx_mention_user ON mention(mentioned_user_id);
+CREATE INDEX IF NOT EXISTS idx_mention_comment ON mention(comment_id);
+CREATE INDEX IF NOT EXISTS idx_mention_user_comment ON mention(mentioned_user_id, comment_id);
+
+-- ==================== MENTION QUERIES ====================
+
+-- Insert mention
+insertMention:
+INSERT INTO mention (id, comment_id, mentioned_user_id, start_index, end_index)
+VALUES (?, ?, ?, ?, ?);
+
+-- Select mentions by comment
+selectMentionsByComment:
+SELECT * FROM mention
+WHERE comment_id = ?;
+
+-- Delete mentions by comment (cascade handled by FK, but explicit for clarity)
+deleteMentionsByComment:
+DELETE FROM mention WHERE comment_id = ?;
+
+-- ==================== PIN/UNPIN QUERIES ====================
+
+-- Pin comment
+pinComment:
+UPDATE comment
+SET is_pinned = 1
+WHERE id = ?;
+
+-- Unpin comment
+unpinComment:
+UPDATE comment
+SET is_pinned = 0
+WHERE id = ?;
+
+-- ==================== SOFT DELETE QUERIES ====================
+
+-- Soft delete comment
+softDeleteComment:
+UPDATE comment
+SET is_deleted = 1, content = '[Deleted]', updated_at = ?
+WHERE id = ?;
+
+-- Restore soft deleted comment
+restoreComment:
+UPDATE comment
+SET is_deleted = 0, updated_at = ?
+WHERE id = ?;

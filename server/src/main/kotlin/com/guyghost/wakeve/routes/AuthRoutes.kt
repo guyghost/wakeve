@@ -1,9 +1,7 @@
 package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.auth.AuthenticationService
-import com.guyghost.wakeve.auth.OAuthProvider
 import com.guyghost.wakeve.models.AppleAuthRequest
-import com.guyghost.wakeve.models.AuthResponse
 import com.guyghost.wakeve.models.AuthErrorResponse
 import com.guyghost.wakeve.models.EmailOTPRequest
 import com.guyghost.wakeve.models.EmailOTPVerifyRequest
@@ -11,8 +9,9 @@ import com.guyghost.wakeve.models.GuestSessionRequest
 import com.guyghost.wakeve.models.GoogleAuthRequest
 import com.guyghost.wakeve.models.OAuthLoginRequest
 import com.guyghost.wakeve.models.OTPRequestResponse
+import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.TokenRefreshRequest
-import com.guyghost.wakeve.models.UserDTO
+import io.ktor.server.application.ApplicationCall
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -53,12 +52,17 @@ fun Route.authRoutes(authService: AuthenticationService) {
                 }
                 
                 // Process Google OAuth
-                val response = authService.loginWithGoogle(request.idToken, request.email, request.name)
+                val response = authService.loginWithOAuth(
+                    OAuthLoginRequest(
+                        provider = OAuthProvider.GOOGLE.name.lowercase(),
+                        idToken = request.idToken
+                    )
+                )
                     .getOrThrow()
                 
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
-                handleAuthError(e)
+                call.handleAuthError(e)
             }
         }
         
@@ -77,15 +81,16 @@ fun Route.authRoutes(authService: AuthenticationService) {
                 }
                 
                 // Process Apple OAuth
-                val response = authService.loginWithApple(
-                    idToken = request.idToken,
-                    email = request.email,
-                    name = request.name
+                val response = authService.loginWithOAuth(
+                    OAuthLoginRequest(
+                        provider = OAuthProvider.APPLE.name.lowercase(),
+                        idToken = request.idToken
+                    )
                 ).getOrThrow()
                 
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
-                handleAuthError(e)
+                call.handleAuthError(e)
             }
         }
         
@@ -105,26 +110,17 @@ fun Route.authRoutes(authService: AuthenticationService) {
                     return@post
                 }
                 
-                // Send OTP
-                val result = authService.sendOTP(request.email)
-                
-                if (result.isSuccess) {
-                    call.respond(
-                        HttpStatusCode.OK,
-                        OTPRequestResponse(
-                            success = true,
-                            message = "OTP sent successfully",
-                            expiresInSeconds = 300
-                        )
+                // TODO(auth): wire Email OTP service in backend.
+                call.respond(
+                    HttpStatusCode.NotImplemented,
+                    OTPRequestResponse(
+                        success = false,
+                        message = "Email OTP flow is not enabled on this server",
+                        expiresInSeconds = 0
                     )
-                } else {
-                    call.respond(
-                        HttpStatusCode.InternalServerError,
-                        AuthErrorResponse("SEND_FAILED", "Failed to send OTP")
-                    )
-                }
+                )
             } catch (e: Exception) {
-                handleAuthError(e)
+                call.handleAuthError(e)
             }
         }
         
@@ -142,13 +138,13 @@ fun Route.authRoutes(authService: AuthenticationService) {
                     return@post
                 }
                 
-                // Verify OTP and authenticate
-                val response = authService.verifyOTP(request.email, request.otp)
-                    .getOrThrow()
-                
-                call.respond(HttpStatusCode.OK, response)
+                // TODO(auth): wire Email OTP service in backend.
+                call.respond(
+                    HttpStatusCode.NotImplemented,
+                    AuthErrorResponse("NOT_IMPLEMENTED", "Email OTP verification is not enabled")
+                )
             } catch (e: Exception) {
-                handleAuthError(e)
+                call.handleAuthError(e)
             }
         }
         
@@ -157,16 +153,13 @@ fun Route.authRoutes(authService: AuthenticationService) {
         // Create guest session
         post("/guest") {
             try {
-                val request = call.receive<GuestSessionRequest>()
-                val deviceId = request.deviceId ?: generateDeviceId()
-                
-                // Create guest session
-                val response = authService.createGuestSession(deviceId)
-                    .getOrThrow()
-                
-                call.respond(HttpStatusCode.OK, response)
+                call.receive<GuestSessionRequest>() // Keep request contract for clients.
+                call.respond(
+                    HttpStatusCode.NotImplemented,
+                    AuthErrorResponse("NOT_IMPLEMENTED", "Guest sessions are not enabled")
+                )
             } catch (e: Exception) {
-                handleAuthError(e)
+                call.handleAuthError(e)
             }
         }
         
@@ -188,7 +181,7 @@ fun Route.authRoutes(authService: AuthenticationService) {
                 val response = authService.refreshToken(request.refreshToken).getOrThrow()
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
-                handleAuthError(e)
+                call.handleAuthError(e)
             }
         }
         
@@ -243,22 +236,22 @@ private fun generateDeviceId(): String {
  * @param e The exception that occurred
  * @param call The route call context
  */
-private suspend fun Route.handleAuthError(e: Exception) {
+private suspend fun ApplicationCall.handleAuthError(e: Exception) {
     when (e) {
         is IllegalArgumentException -> {
-            call.respond(
+            respond(
                 HttpStatusCode.BadRequest,
                 AuthErrorResponse("INVALID_REQUEST", e.message ?: "Invalid request")
             )
         }
         is com.guyghost.wakeve.auth.OAuth2Exception -> {
-            call.respond(
+            respond(
                 HttpStatusCode.Unauthorized,
                 AuthErrorResponse("AUTH_FAILED", e.message ?: "Authentication failed")
             )
         }
         else -> {
-            call.respond(
+            respond(
                 HttpStatusCode.InternalServerError,
                 AuthErrorResponse("INTERNAL_ERROR", "An unexpected error occurred")
             )

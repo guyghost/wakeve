@@ -1,0 +1,100 @@
+-- Notification Tokens
+CREATE TABLE notification_token (
+    user_id TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    token TEXT NOT NULL,
+    updated_at INTEGER NOT NULL,
+    PRIMARY KEY (user_id, platform)
+);
+
+-- Notifications
+CREATE TABLE notification (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    data TEXT, -- JSON
+    is_read INTEGER DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    sent_at INTEGER, -- ISO 8601 timestamp
+    read_at INTEGER, -- ISO 8601 timestamp
+    FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_notification_user ON notification(user_id);
+CREATE INDEX idx_notification_read ON notification(user_id, is_read);
+CREATE INDEX idx_notification_created ON notification(created_at);
+
+-- ==================== NOTIFICATION TOKEN QUERIES ====================
+
+-- Register or update token
+upsertToken:
+INSERT OR REPLACE INTO notification_token(user_id, platform, token, updated_at)
+VALUES (?, ?, ?, ?);
+
+-- Get tokens for a user
+getTokensByUser:
+SELECT * FROM notification_token WHERE user_id = ?;
+
+-- Get specific token
+getToken:
+SELECT * FROM notification_token WHERE user_id = ? AND platform = ?;
+
+-- Delete token
+deleteToken:
+DELETE FROM notification_token WHERE user_id = ? AND platform = ?;
+
+-- Delete all tokens for user
+deleteAllTokens:
+DELETE FROM notification_token WHERE user_id = ?;
+
+-- ==================== NOTIFICATION QUERIES ====================
+
+-- Insert notification
+insertNotification:
+INSERT INTO notification(id, user_id, type, title, body, data, created_at, sent_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+-- Get notifications for user
+getNotifications:
+SELECT * FROM notification
+WHERE user_id = ?
+ORDER BY created_at DESC
+LIMIT ?;
+
+-- Get unread notifications
+getUnreadNotifications:
+SELECT * FROM notification
+WHERE user_id = ? AND is_read = 0
+ORDER BY created_at DESC;
+
+-- Get notification by ID
+getNotificationById:
+SELECT * FROM notification WHERE id = ?;
+
+-- Mark as read
+markAsRead:
+UPDATE notification
+SET is_read = 1, read_at = ?
+WHERE id = ?;
+
+-- Mark all as read for user
+markAllAsRead:
+UPDATE notification
+SET is_read = 1, read_at = ?
+WHERE user_id = ? AND is_read = 0;
+
+-- Delete notification
+deleteNotification:
+DELETE FROM notification WHERE id = ?;
+
+-- Delete all notifications for user
+deleteAllNotifications:
+DELETE FROM notification WHERE user_id = ?;
+
+-- Get notification count
+countUnreadNotifications:
+SELECT COUNT(*) AS count
+FROM notification
+WHERE user_id = ? AND is_read = 0;
