@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.accommodation.AccommodationService
+import com.guyghost.wakeve.accommodation.AccommodationRepository
 import com.guyghost.wakeve.models.Accommodation
 import com.guyghost.wakeve.models.AccommodationRequest
 import com.guyghost.wakeve.models.RoomAssignment
@@ -8,6 +9,7 @@ import com.guyghost.wakeve.models.RoomAssignmentRequest
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -17,7 +19,7 @@ import java.util.UUID
 
 /**
  * Accommodation API Routes
- * 
+ *
  * Provides RESTful endpoints for accommodation management including:
  * - Accommodation CRUD operations
  * - Room assignment management
@@ -25,9 +27,9 @@ import java.util.UUID
  * - Booking status tracking
  * - Statistics and summaries
  */
-fun io.ktor.server.routing.Route.accommodationRoutes() {
+fun Route.accommodationRoutes(repository: AccommodationRepository) {
     route("/events/{eventId}/accommodation") {
-        
+
         // GET /api/events/{eventId}/accommodation - Get all accommodations for event
         get {
             try {
@@ -35,10 +37,8 @@ fun io.ktor.server.routing.Route.accommodationRoutes() {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
-                
-                // TODO: Get from repository
-                // val accommodations = repository.getAccommodationsByEventId(eventId)
-                val accommodations = emptyList<Accommodation>()
+
+                val accommodations = repository.getAccommodationsByEventId(eventId)
                 call.respond(HttpStatusCode.OK, accommodations)
                 
             } catch (e: Exception) {
@@ -101,11 +101,9 @@ fun io.ktor.server.routing.Route.accommodationRoutes() {
                     createdAt = AccommodationService.getCurrentUtcIsoString(),
                     updatedAt = AccommodationService.getCurrentUtcIsoString()
                 )
-                
-                // TODO: Save to repository
-                // repository.createAccommodation(accommodation)
-                
-                call.respond(HttpStatusCode.Created, accommodation)
+
+                val created = repository.createAccommodation(accommodation)
+                call.respond(HttpStatusCode.Created, created)
                 
             } catch (e: Exception) {
                 call.respond(
@@ -122,14 +120,17 @@ fun io.ktor.server.routing.Route.accommodationRoutes() {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Accommodation ID required")
                 )
-                
-                // TODO: Get from repository
-                // val accommodation = repository.getAccommodationById(accommodationId)
-                
-                call.respond(
-                    HttpStatusCode.NotFound,
-                    mapOf("error" to "Accommodation not found")
-                )
+
+                val accommodation = repository.getAccommodationById(accommodationId)
+
+                if (accommodation != null) {
+                    call.respond(HttpStatusCode.OK, accommodation)
+                } else {
+                    call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Accommodation not found")
+                    )
+                }
                 
             } catch (e: Exception) {
                 call.respond(
@@ -171,11 +172,17 @@ fun io.ktor.server.routing.Route.accommodationRoutes() {
                     request.pricePerNight,
                     request.totalNights
                 )
-                
-                // TODO: Get existing accommodation and update
-                // val existing = repository.getAccommodationById(accommodationId)
-                // if (existing == null) return@put call.respond(HttpStatusCode.NotFound)
-                
+
+                // Get existing accommodation
+                val existing = repository.getAccommodationById(accommodationId)
+
+                if (existing == null) {
+                    return@put call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Accommodation not found")
+                    )
+                }
+
                 val accommodation = Accommodation(
                     id = accommodationId,
                     eventId = request.eventId,
@@ -191,14 +198,12 @@ fun io.ktor.server.routing.Route.accommodationRoutes() {
                     checkInDate = request.checkInDate,
                     checkOutDate = request.checkOutDate,
                     notes = request.notes,
-                    createdAt = "", // existing.createdAt
+                    createdAt = existing.createdAt,
                     updatedAt = AccommodationService.getCurrentUtcIsoString()
                 )
-                
-                // TODO: Save to repository
-                // repository.updateAccommodation(accommodation)
-                
-                call.respond(HttpStatusCode.OK, accommodation)
+
+                val updated = repository.updateAccommodation(accommodation)
+                call.respond(HttpStatusCode.OK, updated)
                 
             } catch (e: Exception) {
                 call.respond(
@@ -215,10 +220,10 @@ fun io.ktor.server.routing.Route.accommodationRoutes() {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Accommodation ID required")
                 )
-                
-                // TODO: Delete from repository (will cascade to room assignments)
-                // repository.deleteAccommodation(accommodationId)
-                
+
+                // Delete from repository (will cascade to room assignments via foreign key)
+                repository.deleteAccommodation(accommodationId)
+
                 call.respond(HttpStatusCode.NoContent)
                 
             } catch (e: Exception) {
@@ -236,11 +241,9 @@ fun io.ktor.server.routing.Route.accommodationRoutes() {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Accommodation ID required")
                 )
-                
-                // TODO: Get from repository
-                // val rooms = repository.getRoomAssignmentsByAccommodationId(accommodationId)
-                val rooms = emptyList<RoomAssignment>()
-                
+
+                val rooms = repository.getRoomAssignmentsByAccommodationId(accommodationId)
+
                 call.respond(HttpStatusCode.OK, rooms)
                 
             } catch (e: Exception) {
@@ -274,14 +277,24 @@ fun io.ktor.server.routing.Route.accommodationRoutes() {
                         mapOf("error" to validationError)
                     )
                 }
-                
-                // TODO: Get accommodation to calculate price share
-                // val accommodation = repository.getAccommodationById(accommodationId)
-                // if (accommodation == null) return@post call.respond(HttpStatusCode.NotFound)
-                
-                // For now, use placeholder price share
-                val priceShare = 0L
-                
+
+                // Get accommodation to calculate price share
+                val accommodation = repository.getAccommodationById(accommodationId)
+                if (accommodation == null) {
+                    return@post call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Accommodation not found")
+                    )
+                }
+
+                // Calculate price share per person
+                val priceShare = AccommodationService.calculateRoomPriceShare(
+                    accommodationTotalCost = accommodation.totalCost,
+                    roomCapacity = request.capacity,
+                    totalAccommodationCapacity = accommodation.capacity,
+                    assignedParticipants = request.assignedParticipants.size
+                )
+
                 val roomAssignment = RoomAssignment(
                     id = UUID.randomUUID().toString(),
                     accommodationId = accommodationId,
@@ -292,11 +305,9 @@ fun io.ktor.server.routing.Route.accommodationRoutes() {
                     createdAt = AccommodationService.getCurrentUtcIsoString(),
                     updatedAt = AccommodationService.getCurrentUtcIsoString()
                 )
-                
-                // TODO: Save to repository
-                // repository.createRoomAssignment(roomAssignment)
-                
-                call.respond(HttpStatusCode.Created, roomAssignment)
+
+                val created = repository.createRoomAssignment(roomAssignment)
+                call.respond(HttpStatusCode.Created, created)
                 
             } catch (e: Exception) {
                 call.respond(
@@ -329,9 +340,47 @@ fun io.ktor.server.routing.Route.accommodationRoutes() {
                         mapOf("error" to validationError)
                     )
                 }
-                
-                // TODO: Update in repository
-                call.respond(HttpStatusCode.OK, mapOf("message" to "Room assignment updated"))
+
+                // Get existing room assignment
+                val existing = repository.getRoomAssignmentById(roomId)
+
+                if (existing == null) {
+                    return@put call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Room assignment not found")
+                    )
+                }
+
+                // Get accommodation for price share calculation
+                val accommodation = repository.getAccommodationById(existing.accommodationId)
+                if (accommodation == null) {
+                    return@put call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Accommodation not found")
+                    )
+                }
+
+                // Calculate price share per person
+                val priceShare = AccommodationService.calculateRoomPriceShare(
+                    accommodationTotalCost = accommodation.totalCost,
+                    roomCapacity = request.capacity,
+                    totalAccommodationCapacity = accommodation.capacity,
+                    assignedParticipants = request.assignedParticipants.size
+                )
+
+                val updated = RoomAssignment(
+                    id = roomId,
+                    accommodationId = existing.accommodationId,
+                    roomNumber = request.roomNumber,
+                    capacity = request.capacity,
+                    assignedParticipants = request.assignedParticipants,
+                    priceShare = priceShare,
+                    createdAt = existing.createdAt,
+                    updatedAt = AccommodationService.getCurrentUtcIsoString()
+                )
+
+                repository.updateRoomAssignment(updated)
+                call.respond(HttpStatusCode.OK, updated)
                 
             } catch (e: Exception) {
                 call.respond(
@@ -348,10 +397,9 @@ fun io.ktor.server.routing.Route.accommodationRoutes() {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Room ID required")
                 )
-                
-                // TODO: Delete from repository
-                // repository.deleteRoomAssignment(roomId)
-                
+
+                repository.deleteRoomAssignment(roomId)
+
                 call.respond(HttpStatusCode.NoContent)
                 
             } catch (e: Exception) {
@@ -369,16 +417,9 @@ fun io.ktor.server.routing.Route.accommodationRoutes() {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
-                
-                // TODO: Calculate statistics from repository
-                val stats = mapOf(
-                    "totalAccommodations" to 0,
-                    "totalCapacity" to 0,
-                    "totalAssigned" to 0,
-                    "totalCost" to 0,
-                    "averageCostPerPerson" to 0
-                )
-                
+
+                val stats = repository.getStatistics(eventId)
+
                 call.respond(HttpStatusCode.OK, stats)
                 
             } catch (e: Exception) {

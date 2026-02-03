@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.guyghost.wakeve.auth.core.models.AuthError
 import com.guyghost.wakeve.auth.core.models.User
+import com.guyghost.wakeve.auth.shell.services.TokenStorage
+import com.guyghost.wakeve.auth.shell.services.TokenKeys
 import com.guyghost.wakeve.auth.shell.statemachine.AuthContract
 import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -26,7 +28,8 @@ import kotlinx.coroutines.launch
  * Architecture: Imperative Shell (orchestrates auth flow)
  */
 class AuthViewModel(
-    private val authStateMachine: AuthStateMachine
+    private val authStateMachine: AuthStateMachine,
+    private val tokenStorage: TokenStorage
 ) : ViewModel() {
     
     private val _uiState = MutableStateFlow(AuthUiState())
@@ -160,6 +163,76 @@ class AuthViewModel(
      */
     fun signOut() {
         authStateMachine.handleIntent(AuthContract.Intent.SignOut)
+    }
+
+    /**
+     * Handle successful OAuth authentication from MainActivity.
+     *
+     * This method is called after MainActivity receives the OAuth result
+     * from Google or Apple sign-in flow. It updates the state machine
+     * with the authenticated user and token.
+     *
+     * @param user The authenticated user
+     * @param token The authentication token
+     */
+    fun handleOAuthSuccess(
+        user: com.guyghost.wakeve.auth.core.models.User,
+        token: com.guyghost.wakeve.auth.core.models.AuthToken
+    ) {
+        viewModelScope.launch {
+            // Store tokens securely
+            tokenStorage.storeString(
+                TokenKeys.ACCESS_TOKEN,
+                token.value
+            )
+            tokenStorage.storeString(
+                TokenKeys.TOKEN_EXPIRY,
+                token.expiresAt.toString()
+            )
+            tokenStorage.storeString(
+                TokenKeys.USER_ID,
+                user.id
+            )
+            tokenStorage.storeString(
+                TokenKeys.AUTH_METHOD,
+                user.authMethod.name
+            )
+
+            // Update state machine directly (bypass the intent-based flow)
+            // This is necessary because OAuth is handled at Activity level
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    isAuthenticated = true,
+                    isGuest = false,
+                    currentUser = user,
+                    errorMessage = null
+                )
+            }
+
+            // Emit side effect for navigation
+            _sideEffects.emit(AuthSideEffect.NavigateToHome)
+        }
+    }
+
+    /**
+     * Handle OAuth authentication error from MainActivity.
+     *
+     * This method is called when OAuth flow fails.
+     *
+     * @param errorMessage The error message to display
+     */
+    fun handleOAuthError(errorMessage: String) {
+        _uiState.update {
+            it.copy(
+                isLoading = false,
+                errorMessage = errorMessage
+            )
+        }
+
+        viewModelScope.launch {
+            _sideEffects.emit(AuthSideEffect.ShowError(errorMessage))
+        }
     }
 }
 

@@ -17,6 +17,7 @@ import com.guyghost.wakeve.routes.chatRoutes
 import com.guyghost.wakeve.routes.chatWebSocketRoute
 import com.guyghost.wakeve.routes.commentRoutes
 import com.guyghost.wakeve.routes.eventRoutes
+import com.guyghost.wakeve.routes.accommodationRoutes
 import com.guyghost.wakeve.routes.mealRoutes
 import com.guyghost.wakeve.routes.participantRoutes
 import com.guyghost.wakeve.routes.potentialLocationRoutes
@@ -181,6 +182,7 @@ fun main() {
     val mealRepository = com.guyghost.wakeve.meal.MealRepository(database)
     val commentRepository = com.guyghost.wakeve.comment.CommentRepository(database)
     val locationRepository = PotentialLocationRepository(eventRepository)
+    val accommodationRepository = com.guyghost.wakeve.accommodation.AccommodationRepository(database)
     
     // Initialize Calendar Service
     val platformCalendarService = PlatformCalendarServiceImpl()
@@ -191,15 +193,16 @@ fun main() {
 
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = {
         module(
-            database, 
-            eventRepository, 
-            scenarioRepository, 
-            budgetRepository, 
-            mealRepository, 
+            database,
+            eventRepository,
+            scenarioRepository,
+            budgetRepository,
+            mealRepository,
             commentRepository,
             locationRepository,
             calendarService,
-            chatService
+            chatService,
+            accommodationRepository
         )
     }).start(wait = true)
 }
@@ -213,7 +216,8 @@ fun Application.module(
     commentRepository: com.guyghost.wakeve.comment.CommentRepository = com.guyghost.wakeve.comment.CommentRepository(database),
     locationRepository: PotentialLocationRepositoryInterface = PotentialLocationRepository(eventRepository),
     calendarService: CalendarService = CalendarService(database, PlatformCalendarServiceImpl()),
-    chatService: ChatService = ChatService(database)
+    chatService: ChatService = ChatService(database),
+    accommodationRepository: com.guyghost.wakeve.accommodation.AccommodationRepository = com.guyghost.wakeve.accommodation.AccommodationRepository(database)
 ) {
     // Initialize metrics
     val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -354,6 +358,7 @@ fun Application.module(
                         commentRoutes(commentRepository)
                         potentialLocationRoutes(locationRepository)
                         syncRoutes(syncService)
+                        accommodationRoutes(accommodationRepository)
                         sessionRoutes(sessionManager)
                         calendarRoutes(calendarService)
                         chatRoutes(chatService)

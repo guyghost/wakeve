@@ -15,11 +15,11 @@ wakeve/
 │   ├── src/commonTest/       # Cross-platform tests
 │   ├── src/jvmTest/          # JVM-specific tests
 │   └── src/commonMain/sqldelight/  # Database schema
-├── composeApp/               # Android app with Jetpack Compose
+├── wakeveApp/               # Android app with Jetpack Compose
 │   └── src/commonMain/       # Shared Compose UI
 ├── server/                   # Ktor REST backend
 │   └── src/main/kotlin/      # Server API endpoints
-├── iosApp/                   # iOS app (Xcode project)
+├── wakeveApp/wakeveApp/      # iOS app (Xcode project)
 └── openspec/                 # Specification documents
     ├── changes/              # Change proposals
     └── specs/                # Capability specifications
@@ -66,7 +66,7 @@ Wakeve follows the OpenSpec process for structured feature development:
 ./gradlew shared:test --tests "EventRepositoryTest"
 
 # Build Android app
-./gradlew composeApp:build
+./gradlew wakeveApp:build
 
 # Run Ktor server
 ./gradlew server:run
@@ -136,7 +136,7 @@ com.guyghost.wakeve/
 ├── repositories/     // Data access layer
 ├── services/         // Business logic
 ├── routes/           // API endpoints (server only)
-├── ui/              // UI screens (composeApp only)
+├── ui/              // UI screens (wakeveApp only)
 └── database/        // SQLDelight factories
 ```
 

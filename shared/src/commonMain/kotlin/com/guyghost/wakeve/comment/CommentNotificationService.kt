@@ -98,7 +98,7 @@ class CommentNotificationService(
         replyComment: Comment,
         excludeRecipient: String = replyComment.authorId
     ) {
-        // Only notify the parent comment author, unless it's the same as the reply author
+        // Only notify parent comment author, unless it's the same as the reply author
         if (parentComment.authorId == excludeRecipient) {
             return // Don't notify the author about their own reply
         }
@@ -127,6 +127,53 @@ class CommentNotificationService(
     }
 
     /**
+     * Sends a notification when a user is mentioned in a comment.
+     *
+     * Notifies each mentioned user.
+     *
+     * @param eventId Event ID
+     * @param mentionedUserId User ID who was mentioned
+     * @param authorId ID of the user who created the comment
+     * @param authorName Name of the user who created the comment
+     * @param content Content of the comment
+     * @param commentId ID of the comment
+     * @param excludeRecipient ID to exclude from notifications (usually the comment author)
+     */
+    suspend fun notifyMention(
+        eventId: String,
+        mentionedUserId: String,
+        authorId: String,
+        authorName: String,
+        content: String,
+        commentId: String,
+        excludeRecipient: String = authorId
+    ) {
+        // Don't notify if the mentioned user is the comment author
+        if (mentionedUserId == excludeRecipient) {
+            return
+        }
+
+        val title = formatMentionTitle(authorName)
+        val body = formatNotificationBody(content)
+
+        val notification = NotificationMessage(
+            id = generateNotificationId(),
+            userId = mentionedUserId,
+            type = NotificationType.MENTION,
+            title = title,
+            body = body,
+            data = mapOf(
+                "eventId" to eventId,
+                "commentId" to commentId,
+                "authorId" to authorId,
+                "authorName" to authorName
+            )
+        )
+
+        notificationService.sendNotification(notification)
+    }
+
+    /**
      * Formats the title for a comment posted notification.
      */
     internal fun formatCommentPostedTitle(authorName: String, section: CommentSection): String {
@@ -144,10 +191,17 @@ class CommentNotificationService(
     }
     
     /**
-     * Formats the title for a comment reply notification.
+     * Formats title for a comment reply notification.
      */
     internal fun formatCommentReplyTitle(authorName: String, parentAuthorName: String): String {
         return "$authorName a répondu à $parentAuthorName"
+    }
+
+    /**
+     * Formats title for a mention notification.
+     */
+    internal fun formatMentionTitle(authorName: String): String {
+        return "$authorName vous a mentionné"
     }
     
     /**

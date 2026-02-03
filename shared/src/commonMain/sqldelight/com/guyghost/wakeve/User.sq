@@ -25,15 +25,14 @@ CREATE TABLE user_token (
 );
 
 -- Notification preferences table: user notification settings
-CREATE TABLE notification_preference (
-    id TEXT PRIMARY KEY NOT NULL,
-    user_id TEXT UNIQUE NOT NULL REFERENCES user(id) ON DELETE CASCADE,
-    deadline_reminder INTEGER NOT NULL DEFAULT 1,
-    event_update INTEGER NOT NULL DEFAULT 1,
-    vote_close_reminder INTEGER NOT NULL DEFAULT 1,
-    timezone TEXT NOT NULL DEFAULT 'UTC',
-    created_at TEXT NOT NULL,  -- ISO 8601 UTC timestamp
-    updated_at TEXT NOT NULL   -- ISO 8601 UTC timestamp
+CREATE TABLE notification_preferences (
+    user_id TEXT PRIMARY KEY NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    enabled_types TEXT,  -- JSON array of enabled NotificationType
+    quiet_hours_start TEXT,  -- HH:MM
+    quiet_hours_end TEXT,  -- HH:MM
+    sound_enabled INTEGER DEFAULT 1,
+    vibration_enabled INTEGER DEFAULT 1,
+    updated_at INTEGER NOT NULL  -- ISO 8601 UTC timestamp
 );
 
 -- Queries for users
@@ -98,16 +97,19 @@ DELETE FROM user_token WHERE expires_at < ?;
 
 -- Queries for notification preferences
 selectPreferencesByUserId:
-SELECT * FROM notification_preference WHERE user_id = ?;
+SELECT * FROM notification_preferences WHERE user_id = ?;
 
 insertPreferences:
-INSERT INTO notification_preference(id, user_id, deadline_reminder, event_update, vote_close_reminder, timezone, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO notification_preferences(user_id, enabled_types, quiet_hours_start, quiet_hours_end, sound_enabled, vibration_enabled, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 updatePreferences:
-UPDATE notification_preference
-SET deadline_reminder = ?, event_update = ?, vote_close_reminder = ?, timezone = ?, updated_at = ?
+UPDATE notification_preferences
+SET enabled_types = ?, quiet_hours_start = ?, quiet_hours_end = ?, sound_enabled = ?, vibration_enabled = ?, updated_at = ?
 WHERE user_id = ?;
+
+deletePreferences:
+DELETE FROM notification_preferences WHERE user_id = ?;
 
 -- Sync metadata table for offline change tracking
 CREATE TABLE sync_metadata (

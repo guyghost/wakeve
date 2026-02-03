@@ -2,6 +2,7 @@ package com.guyghost.wakeve.ml
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlin.math.round
 
 /**
  * Interface for collecting and querying ML performance metrics.
@@ -229,7 +230,7 @@ class DefaultMLMetricsCollector : MLMetricsCollector {
             val filtered = metricsList.filter {
                 it.operation == operation && it.platform == platform
             }
-            if (filtered.isEmpty()) null
+            if (filtered.isEmpty()) return null
             else filtered.map { it.durationMs }.average()
         } finally {
             metricsLock.unlock()
@@ -245,7 +246,7 @@ class DefaultMLMetricsCollector : MLMetricsCollector {
             val filtered = metricsList.filter {
                 it.operation == operation && it.platform == platform
             }
-            if (filtered.isEmpty()) null
+            if (filtered.isEmpty()) return null
             else (filtered.count { it.success }.toDouble() / filtered.size) * 100.0
         } finally {
             metricsLock.unlock()
@@ -263,7 +264,7 @@ class DefaultMLMetricsCollector : MLMetricsCollector {
                 (platform == null || event.platform == platform)
             }
             
-            if (filtered.isEmpty()) null
+            if (filtered.isEmpty()) return null
             
             val latencies = filtered.map { it.durationMs }
             val confidenceScores = filtered.mapNotNull { it.confidenceScore }
@@ -277,8 +278,8 @@ class DefaultMLMetricsCollector : MLMetricsCollector {
                 averageLatencyMs = latencies.average(),
                 minLatencyMs = latencies.minOrNull() ?: 0,
                 maxLatencyMs = latencies.maxOrNull() ?: 0,
-                averageConfidenceScore = confidenceScores.takeIf { it.isNotEmpty() }?.average(),
-                averageMemoryUsageMB = memoryUsage.takeIf { it.isNotEmpty() }?.average()
+                averageConfidenceScore = confidenceScores.takeIf { it.isNotEmpty() }?.average()?.roundTo(3),
+                averageMemoryUsageMB = memoryUsage.takeIf { it.isNotEmpty() }?.average()?.roundTo(3)
             )
         } finally {
             metricsLock.unlock()
@@ -316,5 +317,16 @@ class DefaultMLMetricsCollector : MLMetricsCollector {
             kotlinx.serialization.serializer<List<MLMetricsEvent>>(),
             events
         )
+    }
+
+    private fun Double.roundTo(decimals: Int): Double {
+        val factor = 10.0.pow(decimals)
+        return round(this * factor) / factor
+    }
+
+    private fun Double.pow(exponent: Int): Double {
+        var result = 1.0
+        repeat(exponent) { result *= this }
+        return result
     }
 }

@@ -1,6 +1,7 @@
 package com.guyghost.wakeve
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -8,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.tooling.preview.Preview
@@ -22,7 +24,9 @@ import com.guyghost.wakeve.auth.shell.services.AuthService
 import com.guyghost.wakeve.auth.shell.services.GoogleSignInProvider
 import com.guyghost.wakeve.auth.shell.services.AppleSignInProvider
 import com.guyghost.wakeve.auth.shell.services.AppleSignInWebFlow
+import com.guyghost.wakeve.ui.auth.AuthViewModel
 import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.GlobalContext
@@ -31,12 +35,22 @@ import org.koin.core.logger.Level
 
 class MainActivity : ComponentActivity(), AuthCallbacks {
 
-    // OAuth Configuration - TODO: Move to BuildConfig or environment variables
-    companion object {
-        private const val GOOGLE_WEB_CLIENT_ID = "YOUR_GOOGLE_WEB_CLIENT_ID"
-        private const val APPLE_CLIENT_ID = "com.yourcompany.wakeve"
-        private const val APPLE_REDIRECT_URI = "wakeve://apple-auth-callback"
-    }
+    /**
+     * OAuth Configuration
+     *
+     * Read from BuildConfig which is populated from local.properties (not in version control).
+     *
+     * Developers must configure these values in local.properties:
+     * - google.web.client.id=YOUR_ACTUAL_CLIENT_ID (from Google Cloud Console)
+     * - apple.client.id=com.yourcompany.wakeve (your Apple App ID)
+     * - apple.redirect.uri=wakeve://apple-auth-callback (your custom scheme)
+     *
+     * See https://developers.google.com/identity/sign-in/android for Google setup.
+     * See https://developer.apple.com/sign-in-with-apple/ for Apple setup.
+     */
+
+    // AuthViewModel for propagating OAuth results to the state machine
+    private val authViewModel: AuthViewModel by inject()
 
     // OAuth Providers (will be initialized in setupOAuthProviders)
     private var googleProvider: GoogleSignInProvider? = null
@@ -44,6 +58,9 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
 
     // Google Sign-In Client
     private var googleSignInClient: com.google.android.gms.auth.api.signin.GoogleSignInClient? = null
+
+    // Store Apple OAuth state parameter for CSRF validation
+    private var appleOAuthState: String? = null
 
     // Activity Result Launcher for Google Sign-In
     private val googleSignInLauncher = registerForActivityResult(
@@ -121,10 +138,9 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
      * Setup OAuth providers for Google and Apple sign-in.
      *
      * This method initializes the OAuth providers that will be used by the AuthService.
-     * Currently using a placeholder approach - in production, these should be injected via Koin DI.
+     * OAuth configuration is now read from BuildConfig (populated from local.properties).
      *
      * TODO: Integrate with Koin DI for provider injection
-     * TODO: Move OAuth configuration to BuildConfig or environment variables
      */
     private fun setupOAuthProviders() {
         try {
@@ -210,7 +226,7 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
                 // Create Google Sign-In Client
                 googleSignInClient = authService.createGoogleSignInClient(
                     this@MainActivity,
-                    GOOGLE_WEB_CLIENT_ID
+                    com.guyghost.wakeve.BuildConfig.GOOGLE_WEB_CLIENT_ID
                 )
 
                 if (googleSignInClient != null) {
@@ -235,13 +251,13 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
      * Handle Apple Sign-In click from AuthScreen.
      *
      * This method triggers the Apple Sign-In web flow using OAuth 2.0.
-     * In the current placeholder implementation, it shows a toast message.
+     * Opens a Chrome Custom Tab with the Apple authorization page.
      *
-     * TODO: Replace with actual OAuth integration:
-     * - Generate secure state string to prevent CSRF
-     * - Get Apple auth URL using getAppleAuthUrl()
-     * - Open URL in browser or Custom Tab
-     * - Handle callback in onNewIntent()
+     * Implementation steps:
+     * 1. Generate secure state string to prevent CSRF
+     * 2. Get Apple auth URL using getAppleAuthUrl()
+     * 3. Open URL in Chrome Custom Tab
+     * 4. Handle callback in onNewIntent() via deep link
      */
     fun onAppleSignInClick() {
         Log.d("MainActivity", "Apple Sign-In clicked")
@@ -251,20 +267,18 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
                 val authService = createAuthService()
 
                 // Generate secure random state string for CSRF protection
-                val state = generateSecureState()
+                appleOAuthState = generateSecureState()
 
                 // Get Apple authorization URL
                 val authUrl = authService.getAppleAuthUrl(
-                    clientId = APPLE_CLIENT_ID,
-                    redirectUri = APPLE_REDIRECT_URI,
-                    state = state
+                    clientId = com.guyghost.wakeve.BuildConfig.APPLE_CLIENT_ID,
+                    redirectUri = com.guyghost.wakeve.BuildConfig.APPLE_REDIRECT_URI,
+                    state = appleOAuthState!!
                 )
 
                 if (authUrl != null) {
-                    // TODO: Store state for validation in callback
-                    // TODO: Open URL in Custom Tab or browser
-                    showToast("Apple Sign-In URL générée (en cours de configuration)")
-                    Log.d("MainActivity", "Apple auth URL: $authUrl")
+                    // Open URL in Chrome Custom Tab
+                    openCustomTab(authUrl)
                 } else {
                     showToast("Apple Sign-In non configuré - OAuth provider non initialisé")
                 }
@@ -272,6 +286,34 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
                 Log.e("MainActivity", "Error launching Apple Sign-In", e)
                 showToast("Erreur: ${e.message}")
             }
+        }
+    }
+
+    /**
+     * Opens a URL in a Chrome Custom Tab.
+     *
+     * Custom Tabs provide a better user experience than external browsers:
+     * - Faster loading (Chrome pre-fetching)
+     * - Seamless transition back to the app
+     * - Shared cookies with Chrome browser
+     *
+     * @param url The URL to open
+     */
+    private fun openCustomTab(url: String) {
+        try {
+            val builder = CustomTabsIntent.Builder()
+            builder.setShowTitle(true)
+            builder.setToolbarColor(android.graphics.Color.parseColor("#FFFFFF"))
+
+            val customTabsIntent = builder.build()
+            customTabsIntent.launchUrl(this, Uri.parse(url))
+
+            Log.d("MainActivity", "Opened Custom Tab with URL: $url")
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error opening Custom Tab", e)
+            // Fallback: Open in default browser
+            val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+            startActivity(browserIntent)
         }
     }
 
@@ -304,37 +346,44 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
      *
      * @param uri The callback URI containing the authorization code and state
      */
-    private fun handleAppleAuthCallback(uri: android.net.Uri) {
+    private fun handleAppleAuthCallback(uri: Uri) {
         lifecycleScope.launch {
             try {
                 val code = uri.getQueryParameter("code")
                 val state = uri.getQueryParameter("state")
                 val error = uri.getQueryParameter("error")
+                val user = uri.getQueryParameter("user") // JSON string for Apple
 
                 when {
                     error != null -> {
                         // User denied or error occurred
                         val errorDesc = uri.getQueryParameter("error_description") ?: error
                         Log.e("MainActivity", "Apple Sign-In error: $error - $errorDesc")
-                        showToast("Erreur Apple Sign-In: $errorDesc")
+                        authViewModel.handleOAuthError("Erreur Apple Sign-In: $errorDesc")
                     }
 
                     code == null -> {
                         // No authorization code
                         Log.e("MainActivity", "Apple Sign-In callback missing authorization code")
-                        showToast("Erreur: Code d'autorisation manquant")
+                        authViewModel.handleOAuthError("Erreur: Code d'autorisation manquant")
+                    }
+
+                    state != appleOAuthState -> {
+                        // State mismatch - possible CSRF attack
+                        Log.e("MainActivity", "Apple Sign-In state mismatch: expected $appleOAuthState, got $state")
+                        authViewModel.handleOAuthError("Erreur: État de sécurité invalide")
                     }
 
                     else -> {
                         // Process authorization code
                         val authService = createAuthService()
 
-                        // TODO: Validate state parameter against stored value
+                        // Exchange code for tokens
                         val authResult = authService.handleAppleAuthCallback(
                             code = code,
-                            clientId = APPLE_CLIENT_ID,
-                            clientSecret = null, // TODO: Configure client secret or use backend proxy
-                            redirectUri = APPLE_REDIRECT_URI
+                            clientId = com.guyghost.wakeve.BuildConfig.APPLE_CLIENT_ID,
+                            clientSecret = null, // Using backend proxy (no client secret needed on client)
+                            redirectUri = com.guyghost.wakeve.BuildConfig.APPLE_REDIRECT_URI
                         )
 
                         handleAuthResult(authResult)
@@ -342,7 +391,7 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
                 }
             } catch (e: Exception) {
                 Log.e("MainActivity", "Error handling Apple auth callback", e)
-                showToast("Erreur lors de la connexion Apple: ${e.message}")
+                authViewModel.handleOAuthError("Erreur lors de la connexion Apple: ${e.message}")
             }
         }
     }
@@ -351,6 +400,8 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
      * Handle authentication result from Google or Apple sign-in.
      *
      * This method processes the AuthResult and updates the app state accordingly.
+     * The result is propagated to AuthViewModel, which will update the StateMachine
+     * and trigger navigation.
      *
      * @param authResult The authentication result from the OAuth provider
      */
@@ -362,50 +413,41 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
 
                 Log.d("MainActivity", "Authentication successful: ${user.displayName} (${user.email})")
 
-                // Store token securely
-                try {
-                    val secureStorage = AndroidSecureTokenStorage(this)
-                    kotlinx.coroutines.runBlocking {
-                        secureStorage.storeAccessToken(token.value)
-                        secureStorage.storeTokenExpiry(token.expiresAt)
-                    }
+                // Propagate result to AuthViewModel
+                // This will update the StateMachine and trigger navigation
+                authViewModel.handleOAuthSuccess(user, token)
 
-                    // TODO: Update app state and navigate to home
-                    showToast("Connexion réussie!")
-                } catch (e: Exception) {
-                    Log.e("MainActivity", "Error storing token", e)
-                    showToast("Erreur lors de la sauvegarde du token")
-                }
+                showToast("Connexion réussie!")
             }
 
             is com.guyghost.wakeve.auth.core.models.AuthResult.Guest -> {
                 val guestUser = authResult.guestUser
                 Log.d("MainActivity", "Guest mode activated: ${guestUser.displayName}")
+                // Guest mode is handled by AuthViewModel when user taps "Skip"
                 showToast("Mode invité activé")
-                // TODO: Navigate to home in guest mode
             }
 
             is com.guyghost.wakeve.auth.core.models.AuthResult.Error -> {
                 val error = authResult.error
                 Log.e("MainActivity", "Authentication error: ${error::class.simpleName}")
 
-                when (error) {
+                val errorMessage = when (error) {
                     is com.guyghost.wakeve.auth.core.models.AuthError.OAuthCancelled -> {
-                        showToast("Connexion annulée")
+                        "Connexion annulée"
                     }
-
                     is com.guyghost.wakeve.auth.core.models.AuthError.OAuthError -> {
-                        showToast("Erreur OAuth: ${error.message}")
+                        "Erreur OAuth: ${error.message}"
                     }
-
                     is com.guyghost.wakeve.auth.core.models.AuthError.NetworkError -> {
-                        showToast("Erreur réseau: Vérifiez votre connexion")
+                        "Erreur réseau: Vérifiez votre connexion"
                     }
-
                     else -> {
-                        showToast("Erreur d'authentification")
+                        "Erreur d'authentification"
                     }
                 }
+
+                // Propagate error to AuthViewModel
+                authViewModel.handleOAuthError(errorMessage)
             }
         }
     }

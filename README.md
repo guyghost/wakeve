@@ -51,7 +51,7 @@ cd wakeve
 ./gradlew server:run   # http://localhost:8080
 
 # Build Android app
-./gradlew composeApp:assembleDebug
+./gradlew wakeveApp:assembleDebug
 ```
 
 See [QUICK_START.md](./QUICK_START.md) for detailed setup instructions.
@@ -64,9 +64,9 @@ wakeve/
 │   ├── src/commonMain/  # Cross-platform models & logic
 │   ├── src/jvmTest/     # JVM-specific tests
 │   └── sqldelight/      # Type-safe database schema
-├── composeApp/          # Android app with Jetpack Compose
+├── wakeveApp/          # Android app with Jetpack Compose
 ├── server/              # Ktor REST backend server
-├── iosApp/              # iOS app entry point (SwiftUI)
+├── wakeveApp/wakeveApp/ # iOS app entry point (SwiftUI)
 ├── openspec/            # Specification documents
 └── docs/                # Documentation
 ```
@@ -145,7 +145,7 @@ For comprehensive documentation, visit **[docs/](./docs/)**:
 ./gradlew shared:test --tests "EventRepositoryTest"
 
 # Build Android app
-./gradlew composeApp:assembleDebug
+./gradlew wakeveApp:assembleDebug
 
 # Start server
 ./gradlew server:run
@@ -227,7 +227,7 @@ curl -X POST http://localhost:8080/api/events \
 ### Android
 - **UI Framework**: Jetpack Compose
 - **Target**: API 24+
-- **Build**: `./gradlew composeApp:assembleDebug`
+- **Build**: `./gradlew wakeveApp:assembleDebug`
 
 ### iOS
 - **Framework**: Swift/SwiftUI (planned Phase 2)

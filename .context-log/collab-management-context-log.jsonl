@@ -1,0 +1,16 @@
+{"ts": "2026-02-03T12:00:00Z", "seq": 1, "agent": "@codegen", "type": "decision", "content": "Updated Comment model to include mentions, isDeleted, isPinned fields for collaboration management features", "reason": "Spec requires mention support, soft delete, and pinning functionality"}
+{"ts": "2026-02-03T12:01:00Z", "seq": 2, "agent": "@codegen", "type": "artifact", "action": "created", "file": "shared/src/commonMain/kotlin/com/guyghost/wakeve/collaboration/MentionParser.kt"}
+{"ts": "2026-02-03T12:02:00Z", "seq": 3, "agent": "@codegen", "type": "artifact", "action": "modified", "file": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/Comment.sq"}
+{"ts": "2026-02-03T12:03:00Z", "seq": 4, "agent": "@codegen", "type": "artifact", "action": "modified", "file": "shared/src/commonMain/kotlin/com/guyghost/wakeve/comment/CommentRepository.kt"}
+{"ts": "2026-02-03T12:04:00Z", "seq": 5, "agent": "@codegen", "type": "artifact", "action": "modified", "file": "shared/src/commonMain/kotlin/com/guyghost/wakeve/comment/CommentNotificationService.kt"}
+{"ts": "2026-02-03T12:05:00Z", "seq": 6, "agent": "@codegen", "type": "artifact", "action": "modified", "file": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/NotificationModels.kt"}
+{"ts": "2026-02-03T12:06:00Z", "seq": 7, "agent": "@codegen", "type": "artifact", "action": "modified", "file": "server/src/main/kotlin/com/guyghost/wakeve/routes/CommentRoutes.kt"}
+{"ts": "2026-02-03T12:07:00Z", "seq": 8, "agent": "@codegen", "type": "artifact", "action": "created", "file": "shared/src/commonTest/kotlin/com/guyghost/wakeve/collaboration/MentionParserTest.kt"}
+{"ts": "2026-02-03T12:08:00Z", "seq": 9, "agent": "@codegen", "type": "artifact", "action": "created", "file": "wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentListScreen.kt"}
+{"ts": "2026-02-03T12:09:00Z", "seq": 10, "agent": "@codegen", "type": "artifact", "action": "created", "file": "wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentItem.kt"}
+{"ts": "2026-02-03T12:10:00Z", "seq": 11, "agent": "@codegen", "type": "artifact", "action": "created", "file": "wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/collaboration/CommentInput.kt"}
+{"ts": "2026-02-03T12:11:00Z", "seq": 12, "agent": "@codegen", "type": "artifact", "action": "created", "file": "iosApp/iosApp/Views/Collaboration/CommentListView.swift"}
+{"ts": "2026-02-03T12:12:00Z", "seq": 13, "agent": "@codegen", "type": "artifact", "action": "created", "file": "iosApp/iosApp/Views/Collaboration/CommentItemView.swift"}
+{"ts": "2026-02-03T12:13:00Z", "seq": 14, "agent": "@codegen", "type": "artifact", "action": "modified", "file": "shared/src/commonMain/kotlin/com/guyghost/wakeve/models/CommentModels.kt"}
+{"ts": "2026-02-03T12:14:00Z", "seq": 15, "agent": "@codegen", "type": "artifact", "action": "modified", "file": "openspec/changes/complete-phase3-final/tasks.md"}
+{"ts": "2026-02-03T12:15:00Z", "seq": 16, "agent": "@codegen", "type": "checkpoint", "run": 1}

@@ -11,7 +11,8 @@ enum class NotificationType {
     PARTICIPANT_JOINED,
     VOTE_SUBMITTED,
     COMMENT_POSTED,        // Nouveau commentaire sur une section
-    COMMENT_REPLY           // Réponse à un commentaire
+    COMMENT_REPLY,          // Réponse à un commentaire
+    MENTION                // Utilisateur mentionné dans un commentaire
 }
 
 @Serializable

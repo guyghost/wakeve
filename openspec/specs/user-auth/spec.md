@@ -1,7 +1,13 @@
-# user-auth Specification
+# User Authentication Specification
+
+## Version
+**Version**: 1.0.0
+**Status**: ✅ Implémenté
+**Date**: 3 février 2026
 
 ## Purpose
-TBD - created by archiving change add-optional-authentication. Update Purpose after archive.
+
+Provides a flexible authentication system supporting multiple sign-in methods (Google OAuth, Apple Sign-In, Email/OTP) and a guest mode with limited functionality. The system ensures secure token storage, RGPD compliance, and offline support for both authenticated and guest users.
 ## Requirements
 ### Requirement: Optional Authentication Screen
 The application SHALL present an optional authentication screen as the first step after app installation, before accessing the main application features.

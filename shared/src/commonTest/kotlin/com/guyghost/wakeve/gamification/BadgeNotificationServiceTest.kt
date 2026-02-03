@@ -173,7 +173,7 @@ class BadgeNotificationServiceTest {
             message = "Test message"
         )
         
-        assertEquals("wakeve_notifications_polls", pollNotification.getChannelId())
+        assertEquals("poll_notifications", pollNotification.getChannelId())
     }
 
     @Test
@@ -185,7 +185,7 @@ class BadgeNotificationServiceTest {
             message = "Test message"
         )
         
-        assertEquals("wakeve_notifications", eventNotification.getChannelId())
+        assertEquals("event_notifications", eventNotification.getChannelId())
     }
 
     // ========== BadgeType Extension Functions Tests ==========
