@@ -19,6 +19,7 @@ import com.guyghost.wakeve.routes.commentRoutes
 import com.guyghost.wakeve.routes.eventRoutes
 import com.guyghost.wakeve.routes.accommodationRoutes
 import com.guyghost.wakeve.routes.mealRoutes
+import com.guyghost.wakeve.routes.meetingProxyRoutes
 import com.guyghost.wakeve.routes.participantRoutes
 import com.guyghost.wakeve.routes.potentialLocationRoutes
 import com.guyghost.wakeve.routes.scenarioRoutes
@@ -44,6 +45,7 @@ import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.ratelimit.rateLimit
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
+import io.ktor.server.request.host
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
@@ -93,7 +95,12 @@ val JWTBlacklistPlugin = createRouteScopedPlugin(
             // TODO: Consider using a cache layer to reduce database lookups
             val isBlacklisted = runBlocking {
                 sessionRepository.isTokenBlacklisted(token)
-                    .getOrElse { false } // On error, allow through (fail open)
+                    .getOrElse {
+                        // SECURITY: Fail closed - if we can't verify the token status,
+                        // assume it's revoked to be safe. Log the error for debugging.
+                        call.application.log.error("Failed to check token blacklist", it)
+                        true // Fail closed for security
+                    }
             }
 
             if (isBlacklisted) {
@@ -230,7 +237,14 @@ fun Application.module(
     ProcessorMetrics().bindTo(meterRegistry)
 
     // Initialize authentication services
-    val jwtSecret = System.getenv("JWT_SECRET") ?: "default-secret-key-change-in-production"
+    // SECURITY: JWT_SECRET must be set in production - fail fast if not configured
+    val jwtSecret = System.getenv("JWT_SECRET")
+        ?: if (System.getenv("ENVIRONMENT") == "production") {
+            throw IllegalStateException("JWT_SECRET must be set in production")
+        } else {
+            // Only allow default for development
+            "default-secret-key-change-in-production"
+        }
     val jwtIssuer = System.getenv("JWT_ISSUER") ?: "wakev-api"
     val jwtAudience = System.getenv("JWT_AUDIENCE") ?: "wakev-client"
 
@@ -287,6 +301,9 @@ fun Application.module(
         register(RateLimitName("auth")) {
             rateLimiter(limit = 10, refillPeriod = 1.minutes)
         }
+        register(RateLimitName("api")) {
+            rateLimiter(limit = 100, refillPeriod = 1.minutes)
+        }
     }
 
     // Install WebSocket support for real-time chat
@@ -331,8 +348,30 @@ fun Application.module(
         // WebSocket endpoint for real-time chat
         chatWebSocketRoute()
 
-        // Metrics endpoint (Prometheus format)
+        // Metrics endpoint (Prometheus format) - protected by IP whitelist
         get("/metrics") {
+            // Get whitelisted IPs from environment variable (comma-separated)
+            val whitelistIps = System.getenv("METRICS_WHITELIST_IPS")?.split(",")?.map { it.trim() } ?: emptyList()
+
+            // Get client IP - check X-Forwarded-For header first (for proxy/reverse proxy setups)
+            val clientIp = call.request.headers["X-Forwarded-For"]?.split(",")?.firstOrNull()?.trim()
+                ?: call.request.headers["X-Real-IP"]
+                ?: call.request.host
+
+            // Log all metrics access attempts
+            this@module.environment.log.info("Metrics access attempt from IP: $clientIp")
+
+            // Check if IP is whitelisted (or if whitelist is empty - fail open in dev, fail closed in prod)
+            val isProduction = System.getenv("ENVIRONMENT") == "production"
+            val isAllowed = whitelistIps.isEmpty() && !isProduction || whitelistIps.any { it == clientIp || it == "*" }
+
+            if (!isAllowed) {
+                this@module.environment.log.warn("Metrics access denied for IP: $clientIp (not in whitelist)")
+                call.respond(HttpStatusCode.Forbidden, mapOf("error" to "access_denied", "message" to "Your IP is not authorized to access metrics"))
+                return@get
+            }
+
+            this@module.environment.log.info("Metrics access granted to IP: $clientIp")
             call.respondText(meterRegistry.scrape(), io.ktor.http.ContentType.parse("text/plain; version=0.0.4"))
         }
 
@@ -343,25 +382,28 @@ fun Application.module(
 
                 // API endpoints (protected by JWT authentication + blacklist check)
                 authenticate("auth-jwt") {
-                    route("/api") {
-                        // Install JWT blacklist checking for all API routes
-                        install(JWTBlacklistPlugin) {
-                            this.sessionRepository = sessionRepository
-                        }
+                    rateLimit(RateLimitName("api")) {
+                        route("/api") {
+                            // Install JWT blacklist checking for all API routes
+                            install(JWTBlacklistPlugin) {
+                                this.sessionRepository = sessionRepository
+                            }
 
-                        eventRoutes(eventRepository)
-                        participantRoutes(eventRepository)
-                        voteRoutes(eventRepository)
-                        scenarioRoutes(scenarioRepository)
-                        budgetRoutes(budgetRepository)
-                        mealRoutes(mealRepository)
-                        commentRoutes(commentRepository)
-                        potentialLocationRoutes(locationRepository)
-                        syncRoutes(syncService)
-                        accommodationRoutes(accommodationRepository)
-                        sessionRoutes(sessionManager)
-                        calendarRoutes(calendarService)
-                        chatRoutes(chatService)
+                            eventRoutes(eventRepository)
+                            participantRoutes(eventRepository)
+                            voteRoutes(eventRepository)
+                            scenarioRoutes(scenarioRepository)
+                            budgetRoutes(budgetRepository, eventRepository)
+                            mealRoutes(mealRepository)
+                            commentRoutes(commentRepository)
+                            potentialLocationRoutes(locationRepository)
+                            syncRoutes(syncService)
+                            accommodationRoutes(accommodationRepository)
+                            sessionRoutes(sessionManager)
+                            calendarRoutes(calendarService)
+                            chatRoutes(chatService)
+                            meetingProxyRoutes()
+                        }
                     }
                 }
 

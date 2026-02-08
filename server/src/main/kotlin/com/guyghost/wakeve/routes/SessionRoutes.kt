@@ -44,12 +44,19 @@ data class RevokeSessionResponse(
     val message: String
 )
 
+@Serializable
+data class RevokeAllOthersResponse(
+    val success: Boolean,
+    val message: String,
+    val revokedCount: Int
+)
+
 /**
  * Session management routes
  */
 fun Route.sessionRoutes(sessionManager: SessionManager) {
 
-    route("/api/sessions") {
+    route("/sessions") {
 
         // Get all active sessions for the authenticated user
         authenticate("auth-jwt") {
@@ -85,9 +92,9 @@ fun Route.sessionRoutes(sessionManager: SessionManager) {
                     )
                 } catch (e: Exception) {
                     call.application.log.error("Error fetching sessions", e)
-                    call.respond(
-                        HttpStatusCode.InternalServerError,
-                        mapOf("error" to "Failed to fetch sessions: ${e.message}")
+                    call.respondError(
+                        ErrorResponse.internal("Failed to fetch sessions"),
+                        HttpStatusCode.InternalServerError
                     )
                 }
             }
@@ -178,10 +185,10 @@ fun Route.sessionRoutes(sessionManager: SessionManager) {
 
                     call.respond(
                         HttpStatusCode.OK,
-                        mapOf(
-                            "success" to true,
-                            "message" to "Revoked $revokedCount session(s)",
-                            "revokedCount" to revokedCount
+                        RevokeAllOthersResponse(
+                            success = true,
+                            message = "Revoked $revokedCount session(s)",
+                            revokedCount = revokedCount
                         )
                     )
                 } catch (e: Exception) {
