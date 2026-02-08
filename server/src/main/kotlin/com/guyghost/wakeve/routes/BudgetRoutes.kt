@@ -1,11 +1,15 @@
 package com.guyghost.wakeve.routes
 
+import com.guyghost.wakeve.auth.userId
 import com.guyghost.wakeve.budget.BudgetCalculator
 import com.guyghost.wakeve.budget.BudgetRepository
 import com.guyghost.wakeve.models.Budget
 import com.guyghost.wakeve.models.BudgetCategory
 import com.guyghost.wakeve.models.BudgetItem
+import com.guyghost.wakeve.EventRepositoryInterface
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.principal
+import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.delete
@@ -13,28 +17,45 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
+import io.ktor.server.auth.authenticate
 import kotlinx.serialization.Serializable
 
 /**
  * Budget API Routes
- * 
+ *
  * Provides RESTful endpoints for budget management including:
  * - Budget CRUD operations
  * - Budget item management
  * - Category filtering
  * - Payment status tracking
  * - Settlement suggestions
+ *
+ * **SECURITY**: All routes require JWT authentication via "auth-jwt"
  */
-fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
-    route("/events/{eventId}/budget") {
+fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, eventRepository: EventRepositoryInterface) {
+    authenticate("auth-jwt") {
+        route("/events/{eventId}/budget") {
         
         // GET /api/events/{eventId}/budget - Get budget for event
         get {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
                 val eventId = call.parameters["eventId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+
+                val userId = principal.userId
+
+                // Check if user has access to the event
+                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 val budget = repository.getBudgetByEventId(eventId)
                 if (budget != null) {
@@ -56,13 +77,26 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
         // PUT /api/events/{eventId}/budget - Update or create budget
         put {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
                 val eventId = call.parameters["eventId"] ?: return@put call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
 
+                val userId = principal.userId
+
+                // Check if user has access to the event
+                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                    return@put call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
+
                 val budget = call.receive<Budget>()
-                
+
                 // Ensure eventId matches
                 if (budget.eventId != eventId) {
                     return@put call.respond(
@@ -73,7 +107,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
 
                 // Check if budget exists
                 val existing = repository.getBudgetByEventId(eventId)
-                
+
                 val savedBudget = if (existing != null) {
                     // Update existing budget
                     val updated = budget.copy(
@@ -99,10 +133,23 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
         // GET /api/events/{eventId}/budget/items - Get all budget items (with optional filters)
         get("/items") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
                 val eventId = call.parameters["eventId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+
+                val userId = principal.userId
+
+                // Check if user has access to the event
+                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 // Get budget for event
                 val budget = repository.getBudgetByEventId(eventId) ?: return@get call.respond(
@@ -159,10 +206,23 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
         // POST /api/events/{eventId}/budget/items - Add new budget item
         post("/items") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
                 val eventId = call.parameters["eventId"] ?: return@post call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+
+                val userId = principal.userId
+
+                // Check if user has access to the event
+                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 // Get budget for event
                 val budget = repository.getBudgetByEventId(eventId) ?: return@post call.respond(
@@ -180,7 +240,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
                 )
 
                 val request = call.receive<CreateItemRequest>()
-                
+
                 // Parse category
                 val category = try {
                     BudgetCategory.valueOf(request.category.uppercase())
@@ -205,7 +265,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
                     description = request.description,
                     category = category,
                     estimatedCost = request.estimatedCost,
-                    sharedBy = request.sharedBy.ifEmpty { listOf("user-1") }
+                    sharedBy = request.sharedBy.ifEmpty { listOf(userId) }
                 )
 
                 call.respond(HttpStatusCode.Created, item)
@@ -220,10 +280,23 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
         // GET /api/events/{eventId}/budget/items/{itemId} - Get specific item
         get("/items/{itemId}") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
                 val eventId = call.parameters["eventId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+
+                val userId = principal.userId
+
+                // Check if user has access to the event
+                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 val itemId = call.parameters["itemId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
@@ -256,10 +329,23 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
         // PUT /api/events/{eventId}/budget/items/{itemId} - Update budget item
         put("/items/{itemId}") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
                 val eventId = call.parameters["eventId"] ?: return@put call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+
+                val userId = principal.userId
+
+                // Check if user has access to the event
+                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                    return@put call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 val itemId = call.parameters["itemId"] ?: return@put call.respond(
                     HttpStatusCode.BadRequest,
@@ -286,7 +372,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
                 }
 
                 val item = call.receive<BudgetItem>()
-                
+
                 // Validate item
                 val validation = BudgetCalculator.validateBudgetItem(item)
                 if (validation.isNotEmpty()) {
@@ -316,10 +402,23 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
         // DELETE /api/events/{eventId}/budget/items/{itemId} - Delete budget item
         delete("/items/{itemId}") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
                 val eventId = call.parameters["eventId"] ?: return@delete call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+
+                val userId = principal.userId
+
+                // Check if user has access to the event
+                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 val itemId = call.parameters["itemId"] ?: return@delete call.respond(
                     HttpStatusCode.BadRequest,
@@ -361,21 +460,46 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
         // GET /api/events/{eventId}/budget/summary - Get budget summary with statistics
         get("/summary") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
                 val eventId = call.parameters["eventId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+
+                val userId = principal.userId
+
+                // Check if user has access to the event
+                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 val budget = repository.getBudgetByEventId(eventId) ?: return@get call.respond(
                     HttpStatusCode.NotFound,
                     mapOf("error" to "Budget not found for event")
                 )
 
+                // Get event to retrieve participant count
+                val event = eventRepository.getEvent(eventId)
+                if (event == null) {
+                    return@get call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Event not found")
+                    )
+                }
+
+                // Use actual participant count (prefer expectedParticipants if set, otherwise use participants list size)
+                val participantCount = event.expectedParticipants ?: event.participants.size
+
                 val items = repository.getBudgetItems(budget.id)
                 val summary = BudgetCalculator.generateBudgetSummary(
                     budget = budget,
                     items = items,
-                    participantCount = 3 // TODO: Get from event
+                    participantCount = participantCount
                 )
 
                 call.respond(HttpStatusCode.OK, mapOf(
@@ -394,10 +518,23 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
         // GET /api/events/{eventId}/budget/settlements - Get settlement suggestions
         get("/settlements") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
                 val eventId = call.parameters["eventId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+
+                val userId = principal.userId
+
+                // Check if user has access to the event
+                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 val budget = repository.getBudgetByEventId(eventId) ?: return@get call.respond(
                     HttpStatusCode.NotFound,
@@ -427,10 +564,23 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
         // GET /api/events/{eventId}/budget/participants/{participantId} - Get participant's budget info
         get("/participants/{participantId}") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
                 val eventId = call.parameters["eventId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+
+                val userId = principal.userId
+
+                // Check if user has access to the event
+                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 val participantId = call.parameters["participantId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
@@ -467,10 +617,23 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
         // GET /api/events/{eventId}/budget/statistics - Get budget statistics
         get("/statistics") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
                 val eventId = call.parameters["eventId"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+
+                val userId = principal.userId
+
+                // Check if user has access to the event
+                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this event")
+                    )
+                }
 
                 val budget = repository.getBudgetByEventId(eventId) ?: return@get call.respond(
                     HttpStatusCode.NotFound,
@@ -505,6 +668,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
             }
         }
     }
+    } // End authenticate("auth-jwt")
 }
 
 /**
@@ -512,4 +676,17 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository) {
  */
 private fun getCurrentIsoTimestamp(): String {
     return java.time.Instant.now().toString()
+}
+
+/**
+ * Check if the authenticated user has access to the event.
+ * User has access if they are the organizer or a participant.
+ */
+private fun hasEventAccess(
+    eventRepository: EventRepositoryInterface,
+    eventId: String,
+    userId: String
+): Boolean {
+    val event = eventRepository.getEvent(eventId) ?: return false
+    return event.organizerId == userId || event.participants.contains(userId)
 }
