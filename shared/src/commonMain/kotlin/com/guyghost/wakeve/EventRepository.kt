@@ -4,6 +4,9 @@ import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.repository.OrderBy
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 interface EventRepositoryInterface {
     suspend fun createEvent(event: Event): Result<Event>
@@ -38,6 +41,11 @@ interface EventRepositoryInterface {
     fun isOrganizer(eventId: String, userId: String): Boolean
     fun canModifyEvent(eventId: String, userId: String): Boolean
     fun getAllEvents(): List<Event>
+    fun getEventsPaginated(
+        page: Int,
+        pageSize: Int,
+        orderBy: OrderBy = OrderBy.CREATED_AT_DESC
+    ): kotlinx.coroutines.flow.Flow<List<Event>>
 }
 
 class EventRepository : EventRepositoryInterface {
@@ -167,6 +175,35 @@ class EventRepository : EventRepositoryInterface {
     }
 
     override fun getAllEvents(): List<Event> = events.values.toList()
+
+    override fun getEventsPaginated(
+        page: Int,
+        pageSize: Int,
+        orderBy: OrderBy
+    ): Flow<List<Event>> {
+        // Handle invalid parameters
+        if (page < 0 || pageSize <= 0) {
+            return flowOf(emptyList())
+        }
+
+        // Sort events based on orderBy
+        val sortedEvents = when (orderBy) {
+            OrderBy.CREATED_AT_DESC -> events.values.sortedByDescending { it.createdAt }
+            OrderBy.CREATED_AT_ASC -> events.values.sortedBy { it.createdAt }
+            OrderBy.TITLE_ASC -> events.values.sortedBy { it.title }
+            OrderBy.TITLE_DESC -> events.values.sortedByDescending { it.title }
+            OrderBy.STATUS_ASC -> events.values.sortedBy { it.status.name }
+            OrderBy.STATUS_DESC -> events.values.sortedByDescending { it.status.name }
+        }
+
+        // Calculate offset and limit
+        val offset = page * pageSize
+        return flowOf(
+            sortedEvents
+                .drop(offset)
+                .take(pageSize)
+        )
+    }
 
     override suspend fun deleteEvent(eventId: String): Result<Unit> {
         return try {

@@ -7,7 +7,10 @@ import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.SyncOperation
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.repository.OrderBy
 import com.guyghost.wakeve.sync.SyncManager
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * Database-backed event repository using SQLDelight for persistence.
@@ -428,6 +431,32 @@ class DatabaseEventRepository(private val db: WakevDb, private val syncManager: 
     override fun getAllEvents(): List<Event> {
         return eventQueries.selectAll().executeAsList().mapNotNull { eventRow ->
             getEvent(eventRow.id)
+        }
+    }
+
+    override fun getEventsPaginated(
+        page: Int,
+        pageSize: Int,
+        orderBy: OrderBy
+    ): Flow<List<Event>> {
+        // Handle invalid parameters
+        if (page < 0 || pageSize <= 0) {
+            return flowOf(emptyList())
+        }
+
+        return try {
+            val offset = page * pageSize
+            val events = eventQueries.selectPaginated(
+                orderBy = orderBy.name,
+                limit = pageSize.toLong(),
+                offset = offset.toLong()
+            ).executeAsList().mapNotNull { eventRow ->
+                getEvent(eventRow.id)
+            }
+            flowOf(events)
+        } catch (e: Exception) {
+            println("⚠️ Error getting paginated events: ${e.message}")
+            flowOf(emptyList())
         }
     }
 
