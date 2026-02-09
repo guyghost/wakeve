@@ -145,6 +145,10 @@ class DraftPhaseIntegrationTest {
         override fun canModifyEvent(eventId: String, userId: String): Boolean = true
 
         override fun getAllEvents(): List<Event> = events.values.toList()
+        override fun getEventsPaginated(page: Int, pageSize: Int, orderBy: com.guyghost.wakeve.repository.OrderBy): kotlinx.coroutines.flow.Flow<List<Event>> =
+            kotlinx.coroutines.flow.flowOf(
+                events.values.toList().drop(page * pageSize).take(pageSize)
+            )
 
         override suspend fun deleteEvent(eventId: String): Result<Unit> {
             events.remove(eventId)
@@ -339,7 +343,7 @@ class DraftPhaseIntegrationTest {
         assertEquals(2, repository.getLocations("evt-test-1").size)
 
         // Step 5: Start poll (DRAFT → POLLING)
-        stateMachine.dispatch(EventManagementContract.Intent.StartPoll("evt-test-1"))
+        stateMachine.dispatch(EventManagementContract.Intent.StartPoll("evt-test-1", "org-1"))
         advanceUntilIdle()
 
         storedEvent = repository.getEvent("evt-test-1")

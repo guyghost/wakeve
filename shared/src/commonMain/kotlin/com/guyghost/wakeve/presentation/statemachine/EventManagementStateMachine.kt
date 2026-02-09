@@ -105,7 +105,7 @@ class EventManagementStateMachine(
             is EventManagementContract.Intent.LoadParticipants -> loadParticipants(intent.eventId)
             is EventManagementContract.Intent.AddParticipant -> addParticipant(intent.eventId, intent.participantId)
             is EventManagementContract.Intent.LoadPollResults -> loadPollResults(intent.eventId)
-            is EventManagementContract.Intent.StartPoll -> startPoll(intent.eventId)
+            is EventManagementContract.Intent.StartPoll -> startPoll(intent.eventId, intent.userId)
             is EventManagementContract.Intent.ConfirmDate -> confirmDate(intent.eventId, intent.slotId, intent.userId)
             is EventManagementContract.Intent.TransitionToOrganizing -> transitionToOrganizing(intent.eventId, intent.userId)
             is EventManagementContract.Intent.MarkAsFinalized -> markAsFinalized(intent.eventId, intent.userId)
@@ -665,14 +665,15 @@ class EventManagementStateMachine(
      * 1. Validate repository is available
      * 2. Load the event
      * 3. Validate event status is DRAFT
-     * 4. Validate user is organizer (TODO: add userId parameter)
+     * 4. Validate user is organizer
      * 5. Update event status to POLLING
      * 6. Update state
      * 7. Emit ShowToast
      *
      * @param eventId The ID of the event to start polling for
+     * @param userId The ID of the user attempting to start poll (must be organizer)
      */
-    private suspend fun startPoll(eventId: String) {
+    private suspend fun startPoll(eventId: String, userId: String) {
         if (eventRepository == null) {
             updateState { it.copy(error = "Repository not available") }
             emitSideEffect(EventManagementContract.SideEffect.ShowToast("Repository not available"))
@@ -685,6 +686,12 @@ class EventManagementStateMachine(
         if (event == null) {
             updateState { it.copy(isLoading = false, error = "Event not found") }
             emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event not found"))
+            return
+        }
+
+        // Guard: Only organizer can start poll
+        if (!validateOrganizerPermission(event, userId)) {
+            emitUnauthorizedError("Only event organizer can start poll")
             return
         }
 
@@ -728,7 +735,7 @@ class EventManagementStateMachine(
      * 1. Validate repository is available
      * 2. Load the event
      * 3. Validate event status is POLLING
-     * 4. Validate user is organizer (TODO: add userId parameter)
+     * 4. Validate user is organizer
      * 5. Validate at least one vote exists
      * 6. Find the selected time slot
      * 7. Update event status to CONFIRMED with finalDate
@@ -823,7 +830,7 @@ class EventManagementStateMachine(
      * 1. Validate repository is available
      * 2. Load the event
      * 3. Validate event status is CONFIRMED
-     * 4. Validate user is organizer (TODO: add userId parameter)
+     * 4. Validate user is organizer
      * 5. Update event status to ORGANIZING
      * 6. Update state with meetingsUnlocked = true
      * 7. Emit NavigateTo meetings screen
@@ -897,7 +904,7 @@ class EventManagementStateMachine(
      * 1. Validate repository is available
      * 2. Load the event
      * 3. Validate event status is ORGANIZING
-     * 4. Validate user is organizer (TODO: add userId parameter)
+     * 4. Validate user is organizer
      * 5. Update event status to FINALIZED
      * 6. Update state
      * 7. Emit ShowToast

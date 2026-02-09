@@ -68,7 +68,6 @@ object SecurityConfig {
                 val allowedIps = whitelist.split(",").map { it.trim() }
                 allowedIps.any { allowedIp ->
                     when {
-                        allowedIp == "0.0.0.0/0" || allowedIp == "::/0" -> true // Allow all (use with caution)
                         allowedIp.contains("/") -> ipInRange(clientIp, allowedIp) // CIDR notation
                         else -> clientIp == allowedIp // Exact match
                     }

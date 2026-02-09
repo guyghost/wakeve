@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class TimeSlotValidationTest {
     
@@ -32,7 +33,7 @@ class TimeSlotValidationTest {
         
         val error = slot.validate()
         assertNotNull(error, "Should have validation error")
-        assert(error.contains("specific", ignoreCase = true))
+        assertTrue(error.contains("specific", ignoreCase = true))
     }
     
     @Test
@@ -137,10 +138,10 @@ class CoordinatesTest {
         val coords = Coordinates(48.8566, 2.3522)
         val json = coords.toJson()
         
-        assert(json.contains("48.8566"))
-        assert(json.contains("2.3522"))
-        assert(json.contains("latitude"))
-        assert(json.contains("longitude"))
+        assertTrue(json.contains("48.8566"))
+        assertTrue(json.contains("2.3522"))
+        assertTrue(json.contains("latitude"))
+        assertTrue(json.contains("longitude"))
     }
     
     @Test

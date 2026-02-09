@@ -8,9 +8,11 @@ import com.guyghost.wakeve.ml.VoiceCommand
 import com.guyghost.wakeve.ml.VoiceContext
 import com.guyghost.wakeve.ml.VoiceIntent
 import com.guyghost.wakeve.ml.VoiceStep
-import org.junit.Assert.*
-import org.junit.Before
-import org.junit.Test
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 /**
  * Unit tests for voice assistant accessibility features and command parsing.
@@ -40,7 +42,7 @@ class VoiceAccessibilityTest {
         unlockedAt = null
     )
 
-    @Before
+    @BeforeTest
     fun setup() {
         voiceCommandParser = VoiceCommandParser()
         voiceAssistantFAB = VoiceAssistantFAB()
@@ -56,7 +58,7 @@ class VoiceAccessibilityTest {
      * VoiceOver (iOS) and TalkBack (Android) support
      */
     @Test
-    fun `given voice assistant FAB, when accessibility enabled, then provides proper labels`() {
+    fun givenVoiceAssistantFabWhenAccessibilityEnabledThenProvidesProperLabels() {
         // Given - FAB is in listening state
         val isListening = true
 
@@ -79,7 +81,7 @@ class VoiceAccessibilityTest {
      * Tests that non-listening state also has proper accessibility labels.
      */
     @Test
-    fun `given voice assistant FAB not listening, when accessibility enabled, then provides proper labels`() {
+    fun givenVoiceAssistantFabNotListeningWhenAccessibilityEnabledThenProvidesProperLabels() {
         // Given - FAB is not listening
         val isListening = false
 
@@ -102,7 +104,7 @@ class VoiceAccessibilityTest {
      * Tests that the FAB announces state changes to screen readers.
      */
     @Test
-    fun `given voice assistant FAB state changes, when accessibility enabled, then announces change`() {
+    fun givenVoiceAssistantFabStateChangesWhenAccessibilityEnabledThenAnnouncesChange() {
         // Given - Initial state
         val initialState = VoiceAssistantState.IDLE
 
@@ -129,7 +131,7 @@ class VoiceAccessibilityTest {
      * Alternative text input always available
      */
     @Test
-    fun `given voice command fails, when fallback to text input, then same functionality available`() {
+    fun givenVoiceCommandFailsWhenFallbackToTextInputThenSameFunctionalityAvailable() {
         // Given - Voice command with low confidence
         val command = "Crée un mariage pour juin"
         val language = Language.FR
@@ -150,8 +152,8 @@ class VoiceAccessibilityTest {
         // When confidence is low, text input fallback should be offered
         val shouldOfferFallback = voiceCommand.confidenceScore < 0.5
         assertTrue(
-            "Low confidence command should offer text input fallback",
-            shouldOfferFallback || voiceCommand.confidenceScore >= 0.5
+            shouldOfferFallback || voiceCommand.confidenceScore >= 0.5,
+            "Low confidence command should offer text input fallback"
         )
     }
 
@@ -159,7 +161,7 @@ class VoiceAccessibilityTest {
      * Tests that text input mode provides identical parsing results to voice.
      */
     @Test
-    fun `given text input mode, when parsing same command, then identical results`() {
+    fun givenTextInputModeWhenParsingSameCommandThenIdenticalResults() {
         // Given
         val command = "Crée un anniversaire pour samedi prochain"
         val language = Language.FR
@@ -182,7 +184,7 @@ class VoiceAccessibilityTest {
      * Tests that the system gracefully handles recognition errors.
      */
     @Test
-    fun `given speech recognition error, when fallback to text, then user can complete action`() {
+    fun givenSpeechRecognitionErrorWhenFallbackToTextThenUserCanCompleteAction() {
         // Given - Simulated recognition error with null transcript
         val errorTranscript: String? = null
         val errorMessage = "Speech recognition not available"
@@ -212,7 +214,7 @@ class VoiceAccessibilityTest {
      * Multi-language support (FR, EN, ES, DE)
      */
     @Test
-    fun `given commands in different languages, when parse, then correctly interpreted`() {
+    fun givenCommandsInDifferentLanguagesWhenParseThenCorrectlyInterpreted() {
         // Given - Context for event creation
         val context = VoiceContext(
             eventId = null,
@@ -228,9 +230,9 @@ class VoiceAccessibilityTest {
             context.copy(language = Language.FR)
         )
         assertEquals(
-            "French CREATE_EVENT intent not recognized",
             VoiceIntent.CREATE_EVENT,
-            frCommand.intent
+            frCommand.intent,
+            "French CREATE_EVENT intent not recognized"
         )
 
         // English command
@@ -240,9 +242,9 @@ class VoiceAccessibilityTest {
             context.copy(language = Language.EN)
         )
         assertEquals(
-            "English CREATE_EVENT intent not recognized",
             VoiceIntent.CREATE_EVENT,
-            enCommand.intent
+            enCommand.intent,
+            "English CREATE_EVENT intent not recognized"
         )
 
         // Spanish command
@@ -252,9 +254,9 @@ class VoiceAccessibilityTest {
             context.copy(language = Language.ES)
         )
         assertEquals(
-            "Spanish CREATE_EVENT intent not recognized",
             VoiceIntent.CREATE_EVENT,
-            esCommand.intent
+            esCommand.intent,
+            "Spanish CREATE_EVENT intent not recognized"
         )
 
         // German command
@@ -264,9 +266,9 @@ class VoiceAccessibilityTest {
             context.copy(language = Language.DE)
         )
         assertEquals(
-            "German CREATE_EVENT intent not recognized",
             VoiceIntent.CREATE_EVENT,
-            deCommand.intent
+            deCommand.intent,
+            "German CREATE_EVENT intent not recognized"
         )
     }
 
@@ -274,7 +276,7 @@ class VoiceAccessibilityTest {
      * Tests that event type detection works across languages.
      */
     @Test
-    fun `given event types in different languages, when parse, then detects correctly`() {
+    fun givenEventTypesInDifferentLanguagesWhenParseThenDetectsCorrectly() {
         // Given
         val context = VoiceContext(
             eventId = null,
@@ -318,7 +320,7 @@ class VoiceAccessibilityTest {
      * Tests that language switching during a session works correctly.
      */
     @Test
-    fun `given language switch during session, when parse, then uses new language`() {
+    fun givenLanguageSwitchDuringSessionWhenParseThenUsesNewLanguage() {
         // Given - Start session in French
         var currentLanguage = Language.FR
         val context = VoiceContext(
@@ -351,7 +353,7 @@ class VoiceAccessibilityTest {
      * Natural language parsing for dates
      */
     @Test
-    fun `given natural language date, when parse, then extracts correct date`() {
+    fun givenNaturalLanguageDateWhenParseThenExtractsCorrectDate() {
         // Given
         val context = VoiceContext(
             eventId = null,
@@ -366,10 +368,7 @@ class VoiceAccessibilityTest {
             Language.FR,
             context
         )
-        assertNotNull(
-            "Today should be parsed",
-            todayCommand.parameters["date"]
-        )
+        assertNotNull(todayCommand.parameters["date"], "Today should be parsed")
 
         // Test "demain" (tomorrow)
         val tomorrowCommand = voiceCommandParser.parse(
@@ -377,10 +376,7 @@ class VoiceAccessibilityTest {
             Language.FR,
             context
         )
-        assertNotNull(
-            "Tomorrow should be parsed",
-            tomorrowCommand.parameters["date"]
-        )
+        assertNotNull(tomorrowCommand.parameters["date"], "Tomorrow should be parsed")
 
         // Test "samedi prochain" (next Saturday)
         val saturdayCommand = voiceCommandParser.parse(
@@ -388,17 +384,14 @@ class VoiceAccessibilityTest {
             Language.FR,
             context
         )
-        assertNotNull(
-            "Saturday should be parsed",
-            saturdayCommand.parameters["date"]
-        )
+        assertNotNull(saturdayCommand.parameters["date"], "Saturday should be parsed")
     }
 
     /**
      * Tests that English date expressions are parsed correctly.
      */
     @Test
-    fun `given English natural language date, when parse, then extracts correct date`() {
+    fun givenEnglishNaturalLanguageDateWhenParseThenExtractsCorrectDate() {
         // Given
         val context = VoiceContext(
             eventId = null,
@@ -413,10 +406,7 @@ class VoiceAccessibilityTest {
             Language.EN,
             context
         )
-        assertNotNull(
-            "Today should be parsed",
-            todayCommand.parameters["date"]
-        )
+        assertNotNull(todayCommand.parameters["date"], "Today should be parsed")
 
         // Test "tomorrow"
         val tomorrowCommand = voiceCommandParser.parse(
@@ -424,17 +414,14 @@ class VoiceAccessibilityTest {
             Language.EN,
             context
         )
-        assertNotNull(
-            "Tomorrow should be parsed",
-            tomorrowCommand.parameters["date"]
-        )
+        assertNotNull(tomorrowCommand.parameters["date"], "Tomorrow should be parsed")
     }
 
     /**
      * Tests that date with time of day is correctly extracted.
      */
     @Test
-    fun `given date with time of day, when parse, then extracts both`() {
+    fun givenDateWithTimeOfDayWhenParseThenExtractsBoth() {
         // Given
         val context = VoiceContext(
             eventId = null,
@@ -450,11 +437,11 @@ class VoiceAccessibilityTest {
             context
         )
 
-        assertNotNull("Date should be extracted", command.parameters["date"])
+        assertNotNull(command.parameters["date"], "Date should be extracted")
         assertEquals(
-            "Time of day should be AFTERNOON",
             "AFTERNOON",
-            command.parameters["timeOfDay"]
+            command.parameters["timeOfDay"],
+            "Time of day should be AFTERNOON"
         )
     }
 
@@ -467,7 +454,7 @@ class VoiceAccessibilityTest {
      * Natural language parsing for numbers and counts
      */
     @Test
-    fun `given natural language number, when parse, then extracts correct count`() {
+    fun givenNaturalLanguageNumberWhenParseThenExtractsCorrectCount() {
         // Given
         val context = VoiceContext(
             eventId = null,
@@ -483,9 +470,9 @@ class VoiceAccessibilityTest {
             context
         )
         assertEquals(
-            "Numeric word 'twenty' should be parsed",
             "20",
-            numericCommand.parameters["participantCount"]
+            numericCommand.parameters["participantCount"],
+            "Numeric word 'twenty' should be parsed"
         )
 
         // Test "quelques" (a few)
@@ -495,9 +482,9 @@ class VoiceAccessibilityTest {
             context
         )
         assertEquals(
-            "Word 'quelques' should map to 3",
             "3",
-            fewCommand.parameters["participantCount"]
+            fewCommand.parameters["participantCount"],
+            "Word 'quelques' should map to 3"
         )
     }
 
@@ -505,7 +492,7 @@ class VoiceAccessibilityTest {
      * Tests that English number words are parsed correctly.
      */
     @Test
-    fun `given English number words, when parse, then extracts correct count`() {
+    fun givenEnglishNumberWordsWhenParseThenExtractsCorrectCount() {
         // Given
         val context = VoiceContext(
             eventId = null,
@@ -521,9 +508,9 @@ class VoiceAccessibilityTest {
             context
         )
         assertEquals(
-            "Word 'ten' should be parsed as 10",
             "10",
-            tenCommand.parameters["participantCount"]
+            tenCommand.parameters["participantCount"],
+            "Word 'ten' should be parsed as 10"
         )
 
         // Test "a few"
@@ -533,9 +520,9 @@ class VoiceAccessibilityTest {
             context
         )
         assertEquals(
-            "Word 'a few' should map to 3",
             "3",
-            fewCommand.parameters["participantCount"]
+            fewCommand.parameters["participantCount"],
+            "Word 'a few' should map to 3"
         )
     }
 
@@ -543,7 +530,7 @@ class VoiceAccessibilityTest {
      * Tests that numeric digits are parsed correctly.
      */
     @Test
-    fun `given numeric digits, when parse, then extracts correct number`() {
+    fun givenNumericDigitsWhenParseThenExtractsCorrectNumber() {
         // Given
         val context = VoiceContext(
             eventId = null,
@@ -559,9 +546,9 @@ class VoiceAccessibilityTest {
             context
         )
         assertEquals(
-            "Numeric digit should be parsed",
             "15",
-            command.parameters["participantCount"]
+            command.parameters["participantCount"],
+            "Numeric digit should be parsed"
         )
     }
 
@@ -569,7 +556,7 @@ class VoiceAccessibilityTest {
      * Tests that Spanish number words are parsed correctly.
      */
     @Test
-    fun `given Spanish number words, when parse, then extracts correct count`() {
+    fun givenSpanishNumberWordsWhenParseThenExtractsCorrectCount() {
         // Given
         val context = VoiceContext(
             eventId = null,
@@ -585,9 +572,9 @@ class VoiceAccessibilityTest {
             context
         )
         assertEquals(
-            "Spanish 'cinco' should be parsed as 5",
             "5",
-            command.parameters["participantCount"]
+            command.parameters["participantCount"],
+            "Spanish 'cinco' should be parsed as 5"
         )
     }
 }

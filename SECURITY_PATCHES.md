@@ -32,26 +32,29 @@ fun Route.budgetRoutes(...) {
 
 ---
 
-### 2. JWT Secret Security
-**File**: `server/src/main/kotlin/com/guyghost/wakeve/Application.kt:234`
+### 2. JWT Secret Security (Updated 2026-02-09)
+**File**: `server/src/main/kotlin/com/guyghost/wakeve/Application.kt:241`
 
-**Issue**: Hardcoded fallback secret could be used in production.
+**Issue**: Hardcoded fallback secret could be used in production or development environments.
 
 **Fix Applied**:
 ```kotlin
-// Before:
-val jwtSecret = System.getenv("JWT_SECRET") ?: "default-secret-key-change-in-production"
-
-// After:
+// Before (Phase 1):
 val jwtSecret = System.getenv("JWT_SECRET")
     ?: if (System.getenv("ENVIRONMENT") == "production") {
         throw IllegalStateException("JWT_SECRET must be set in production")
     } else {
         "default-secret-key-change-in-production"
     }
+
+// After (Phase 2 - Stricter):
+val jwtSecret = System.getenv("JWT_SECRET")
+    ?: throw IllegalStateException("JWT_SECRET environment variable is required. Please set a secure random string.")
 ```
 
-**Status**: ✅ Applied
+**Rationale**: Removing the development fallback prevents accidental deployment with weak secrets and ensures consistent security posture across all environments.
+
+**Status**: ✅ Applied (2026-02-09)
 
 ---
 
@@ -326,10 +329,15 @@ done
 curl http://localhost:8080/metrics
 ```
 
-### 5. JWT Secret in Production
+### 5. JWT Secret Required in All Environments
 ```bash
-# Should fail with IllegalStateException
-ENVIRONMENT=production java -jar server.jar
+# Should fail with IllegalStateException in any environment
+java -jar server.jar
+# Error: "JWT_SECRET environment variable is required. Please set a secure random string."
+
+# To run successfully:
+export JWT_SECRET="your-secure-random-secret-at-least-32-characters"
+java -jar server.jar
 ```
 
 ---
@@ -339,7 +347,7 @@ ENVIRONMENT=production java -jar server.jar
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `ENVIRONMENT` | No | development | "production", "staging", or "development" |
-| `JWT_SECRET` | Yes (prod) | - | Secret for JWT signing |
+| `JWT_SECRET` | **Yes** | - | **Secret for JWT signing (Required in all environments)** |
 | `JWT_ISSUER` | No | "wakev-api" | JWT issuer claim |
 | `JWT_AUDIENCE` | No | "wakev-client" | JWT audience claim |
 | `METRICS_WHITELIST_IPS` | No | - | Comma-separated IPs allowed to access /metrics |
@@ -370,7 +378,7 @@ ENVIRONMENT=production java -jar server.jar
 ## 🚀 Deployment Checklist
 
 - [ ] Set `ENVIRONMENT=production` in production
-- [ ] Set strong `JWT_SECRET` (at least 32 characters, random)
+- [ ] Set strong `JWT_SECRET` (at least 32 characters, random) - **Required in all environments**
 - [ ] Configure `METRICS_WHITELIST_IPS` for monitoring
 - [ ] Review and adjust `RATE_LIMIT_*` values based on traffic
 - [ ] Set up log aggregation for audit logs

@@ -18,6 +18,13 @@ Wakeve is a modern, collaborative event planning application that solves the sch
 - Automatic best-time calculation
 - Offline-first database persistence
 
+✅ **Virtual Meetings**
+- MeetingService with support for Zoom, Google Meet, FaceTime
+- Secure meeting link generation via backend proxy
+- Meeting invitation and reminder scheduling
+- Integration with native calendar
+- Meeting lifecycle management (create, update, cancel, start, end)
+
 ✅ **Multiplatform Support**
 - Android with Jetpack Compose UI
 - iOS with native database driver (UI in Phase 2)
@@ -27,13 +34,14 @@ Wakeve is a modern, collaborative event planning application that solves the sch
 ✅ **Backend Infrastructure**
 - Production-ready Ktor REST API
 - SQLDelight type-safe database
-- 8 comprehensive endpoints
+- 8 comprehensive endpoints + 4 MeetingProxy endpoints
 - Role-based access control
+- Secure API key management for external platforms
 
 ### Planned (Phase 3 🚀)
-⏳ **User Authentication** - OAuth2 with Google/Apple  
-⏳ **Offline Sync** - Automatic change synchronization  
-⏳ **Push Notifications** - Deadline reminders and updates  
+⏳ **User Authentication** - OAuth2 with Google/Apple
+⏳ **Offline Sync** - Automatic change synchronization
+⏳ **Push Notifications** - Deadline reminders and updates
 ✅ **Calendar Integration** - Native calendar app support (Android & iOS), ICS export and share  
 
 ## 🚀 Quick Start
@@ -86,6 +94,41 @@ wakeve/
 └─────────────────────────────────────┘
 ```
 
+### Architecture Pattern: Functional Core & Imperative Shell (FC&IS)
+
+Wakeve follows the **Functional Core, Imperative Shell** pattern to ensure testability and separation of concerns:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    IMPERATIVE SHELL                  │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │  Services (MeetingService, EventRepository)      │  │
+│  │  State Machines (MVI FSM)                      │  │
+│  │  External APIs (MeetingProxyRoutes)              │  │
+│  └───────────────────────────────────────────────────┘  │
+│  Handles side effects: I/O, async, state mutations   │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│                     FUNCTIONAL CORE                   │
+│  ┌───────────────────────────────────────────────────┐  │
+│  │  Pure Functions (logic, validators, transforms)  │  │
+│  │  Domain Models (Event, Meeting, Vote)           │  │
+│  │  Business Rules (scoring, eligibility)           │  │
+│  └───────────────────────────────────────────────────┘  │
+│  No side effects, 100% testable                      │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Key Principles:**
+- ✅ Shell CAN call Core
+- ✅ Core CANNOT call Shell
+- ✅ Core ignores Shell's existence
+- ✅ Pure functions in Core are easily testable
+- ✅ Side effects isolated in Shell (database, network, API)
+
+See [docs/architecture/meeting-service.md](./docs/architecture/meeting-service.md) for detailed MeetingService architecture.
+
 ### Key Technologies
 - **Language**: Kotlin 2.2.20 with Multiplatform support
 - **UI**: Jetpack Compose (Android), SwiftUI (iOS)
@@ -99,11 +142,13 @@ wakeve/
 | Metric | Value |
 |--------|-------|
 | Phase Status | 2 Complete, 3 Planning |
-| Tests Passing | 36/36 (100%) ✅ |
-| Lines of Code | ~3,500 |
-| Files Created | 30+ |
-| API Endpoints | 8 |
-| Database Tables | 6 |
+| Tests Passing | 71/71 (100%) ✅ |
+| Unit Tests | 36 tests |
+| E2E Tests | 35 tests |
+| Lines of Code | ~4,500 |
+| Files Created | 40+ |
+| API Endpoints | 12 (8 event + 4 meeting proxy) |
+| Database Tables | 8 |
 | Supported Platforms | 3 (Android, iOS, JVM) |
 
 ## 📖 Documentation
@@ -161,10 +206,20 @@ Wakeve has comprehensive test coverage:
 ```
 EventRepositoryTest          10 tests
 PollLogicTest               6 tests
-DatabaseEventRepositoryTest 13 tests  
+DatabaseEventRepositoryTest 13 tests
 OfflineScenarioTest         7 tests
-────────────────────────────────────
-TOTAL                       36 tests ✅
+───────────────────────────────────
+Unit Tests                  36 tests ✅
+
+PrdWorkflowE2ETest          6 tests
+ServiceIntegrationE2ETest    5 tests
+MultiUserCollaborationTest   10 tests
+DeleteEventE2ETest           6 tests
+AuthFlowE2ETest              4 tests
+───────────────────────────────────
+E2E Tests                  35 tests ✅
+
+TOTAL                      71 tests ✅
 ```
 
 All tests cover:
@@ -174,10 +229,14 @@ All tests cover:
 - ✅ Database persistence
 - ✅ Offline data recovery
 - ✅ API endpoints
+- ✅ Complete PRD workflow (DRAFT → FINALIZED)
+- ✅ Multi-user collaboration scenarios
+- ✅ Virtual meeting link generation
+- ✅ Service integration (Budget, Transport, Meeting, Suggestion)
 
 ## 📡 REST API
 
-### Available Endpoints
+### Event Endpoints
 ```
 GET    /health                    # Health check
 GET    /api/events                # List all events
@@ -189,6 +248,18 @@ POST   /api/events/{id}/participants   # Add participant
 GET    /api/events/{id}/poll      # Get poll results
 POST   /api/events/{id}/poll/votes    # Submit vote
 ```
+
+### Meeting Proxy Endpoints (Secure)
+```
+POST   /api/meetings/proxy/zoom/create              # Create Zoom meeting
+POST   /api/meetings/proxy/google-meet/create       # Create Google Meet meeting
+POST   /api/meetings/proxy/zoom/{id}/cancel        # Cancel Zoom meeting
+GET    /api/meetings/proxy/zoom/{id}/status        # Get Zoom meeting status
+```
+
+**Security Note:** Meeting proxy endpoints secure external API keys (Zoom, Google Meet) by handling all external API calls server-side.
+
+See [docs/api/meeting-api.md](./docs/api/meeting-api.md) for detailed MeetingProxy API documentation.
 
 ### Example: Create Event
 ```bash

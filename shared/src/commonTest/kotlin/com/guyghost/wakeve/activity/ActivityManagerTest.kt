@@ -71,7 +71,7 @@ class ActivityManagerTest {
     }
     
     @Test
-    fun `createActivity trims name, description, location, and notes`() {
+    fun createActivityTrimsNameDescriptionLocationAndNotes() {
         val request = ActivityRequest(
             name = "  Hiking  ",
             description = "  Great trail  ",

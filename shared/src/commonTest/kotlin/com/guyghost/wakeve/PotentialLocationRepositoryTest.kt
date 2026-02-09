@@ -57,7 +57,7 @@ class PotentialLocationRepositoryTest {
         assertTrue(result.isFailure)
         val exception = result.exceptionOrNull()
         assertIs<IllegalStateException>(exception)
-        assert(exception.message?.contains("DRAFT", ignoreCase = true) == true)
+        assertTrue(exception.message?.contains("DRAFT", ignoreCase = true) == true)
     }
     
     @Test

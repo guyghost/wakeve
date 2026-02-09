@@ -14,295 +14,159 @@ import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-/**
- * Integration tests for end-to-end authentication flow.
- *
- * Tests cover the complete flow from:
- * 1. OAuth login
- * 2. JWT token issuance
- * 3. Authenticated API requests
- * 4. Token refresh
- * 5. Session management (multi-device)
- * 6. Logout and token blacklist
- *
- * These tests use actual HTTP requests through Ktor's test client.
- */
 class AuthFlowIntegrationTest {
 
     private lateinit var database: WakevDb
-    private val jwtSecret = "test-secret-key"
-    private val jwtIssuer = "wakev-test"
-    private val jwtAudience = "wakev-client-test"
+    private lateinit var sessionRepository: SessionRepository
+    private val jwtSecret = System.getenv("JWT_SECRET") ?: "default-secret-key-change-in-production"
+    private val jwtIssuer = System.getenv("JWT_ISSUER") ?: "wakev-api"
+    private val jwtAudience = System.getenv("JWT_AUDIENCE") ?: "wakev-client"
 
     @Before
     fun setup() {
+        DatabaseProvider.resetDatabase()
         database = DatabaseProvider.getDatabase(JvmTestDatabaseFactory())
+        sessionRepository = SessionRepository(database)
     }
 
     @After
     fun teardown() {
-        // Reset the database singleton for the next test
         DatabaseProvider.resetDatabase()
     }
 
-    // ============================================
-    // Full Authentication Flow Tests
-    // ============================================
-
-    @Ignore("Session/auth integration behavior is being refactored; assertions are stale.")
     @Test
-    fun `complete auth flow - login, access API, refresh token, logout`() = testApplication {
-        // Setup application with auth
-        application {
-            module(database)
+    fun `authenticated user can list active sessions`() = testApplication {
+        application { module(database) }
+
+        val (accessToken, sessionId) = runBlocking {
+            createSession(userId = "test-user-123", deviceId = "device-1", deviceName = "iPhone")
         }
 
-        // Step 1: Create a mock JWT token (simulating OAuth login)
-        val userId = "test-user-123"
-        val sessionId = "test-session-123"
-        val accessToken = createTestJWT(userId, sessionId)
-
-        // Store session in database
-        val sessionRepository = SessionRepository(database)
-        runBlocking {
-            sessionRepository.createSession(
-                userId = userId,
-                deviceId = "test-device-1",
-                deviceName = "Test Device",
-                jwtToken = accessToken,
-                refreshToken = "test-refresh-token",
-                ipAddress = "127.0.0.1",
-                userAgent = "Test Client",
-                expiresAt = (System.currentTimeMillis() + 3600000).toString()
-            )
-        }
-
-        // Step 2: Access protected API with token
         val response = client.get("/api/sessions") {
             header(HttpHeaders.Authorization, "Bearer $accessToken")
         }
 
-        // Verify authenticated access
         assertEquals(HttpStatusCode.OK, response.status)
-
-        // Step 3: Verify session appears in list
-        val bodyText = response.bodyAsText()
-        assertTrue(bodyText.contains(sessionId))
-
-        // Step 4: Logout (revoke session)
-        val logoutResponse = client.delete("/api/sessions/$sessionId") {
-            header(HttpHeaders.Authorization, "Bearer $accessToken")
-        }
-
-        // Note: This will fail because we're trying to revoke current session
-        // In real app, use separate logout endpoint
-        assertEquals(HttpStatusCode.BadRequest, logoutResponse.status)
-
-        // Step 5: Verify token is blacklisted after logout
-        // (In real implementation, after logout endpoint is called)
+        val body = response.bodyAsText()
+        assertTrue(body.contains(sessionId))
+        assertTrue(body.contains("iPhone"))
     }
 
-    // ============================================
-    // Multi-Device Session Management Tests
-    // ============================================
-
-    @Ignore("Session/auth integration behavior is being refactored; assertions are stale.")
     @Test
-    fun `multi-device flow - multiple sessions, revoke one, revoke all others`() = testApplication {
-        application {
-            module(database)
-        }
+    fun `user can revoke another active session`() = testApplication {
+        application { module(database) }
 
         val userId = "test-user-multi"
-        val sessionRepository = SessionRepository(database)
-
-        // Step 1: Create multiple sessions (simulating logins from different devices)
-        val device1SessionId = runBlocking {
-            sessionRepository.createSession(
-                userId = userId,
-                deviceId = "device-1",
-                deviceName = "iPhone",
-                jwtToken = "token-1",
-                refreshToken = "refresh-1",
-                ipAddress = "192.168.1.100",
-                expiresAt = (System.currentTimeMillis() + 3600000).toString()
-            ).getOrNull()!!
+        val (currentToken, currentSessionId) = runBlocking {
+            createSession(userId = userId, deviceId = "device-1", deviceName = "Current Device")
         }
 
-        val device2SessionId = runBlocking {
-            sessionRepository.createSession(
-                userId = userId,
-                deviceId = "device-2",
-                deviceName = "MacBook",
-                jwtToken = "token-2",
-                refreshToken = "refresh-2",
-                ipAddress = "192.168.1.101",
-                expiresAt = (System.currentTimeMillis() + 3600000).toString()
-            ).getOrNull()!!
+        val (_, otherSessionId) = runBlocking {
+            createSession(userId = userId, deviceId = "device-2", deviceName = "Other Device")
         }
 
-        val device3SessionId = runBlocking {
-            sessionRepository.createSession(
-                userId = userId,
-                deviceId = "device-3",
-                deviceName = "iPad",
-                jwtToken = "token-3",
-                refreshToken = "refresh-3",
-                ipAddress = "192.168.1.102",
-                expiresAt = (System.currentTimeMillis() + 3600000).toString()
-            ).getOrNull()!!
-        }
-
-        // Step 2: Verify all sessions are active
-        val currentToken = createTestJWT(userId, device1SessionId)
-        val sessionsResponse = client.get("/api/sessions") {
-            header(HttpHeaders.Authorization, "Bearer $currentToken")
-        }
-
-        assertEquals(HttpStatusCode.OK, sessionsResponse.status)
-        val bodyText = sessionsResponse.bodyAsText()
-        assertTrue(bodyText.contains("iPhone"))
-        assertTrue(bodyText.contains("MacBook"))
-        assertTrue(bodyText.contains("iPad"))
-
-        // Step 3: Revoke one specific session (device 2)
-        val revokeResponse = client.delete("/api/sessions/$device2SessionId") {
+        val revokeResponse = client.delete("/api/sessions/$otherSessionId") {
             header(HttpHeaders.Authorization, "Bearer $currentToken")
         }
 
         assertEquals(HttpStatusCode.OK, revokeResponse.status)
 
-        // Step 4: Verify session was revoked
         val activeSessions = runBlocking {
-            sessionRepository.getActiveSessionsForUser(userId).getOrNull()!!
+            sessionRepository.getActiveSessionsForUser(userId).getOrThrow()
         }
-        assertEquals(2, activeSessions.size)
-        assertFalse(activeSessions.any { it.id == device2SessionId })
 
-        // Step 5: Revoke all other sessions (keeping device 1)
-        val revokeAllResponse = client.post("/api/sessions/revoke-all-others") {
+        assertTrue(activeSessions.any { it.id == currentSessionId })
+        assertFalse(activeSessions.any { it.id == otherSessionId })
+    }
+
+    @Test
+    fun `revoked session token is added to blacklist`() = testApplication {
+        application { module(database) }
+
+        val (accessToken, sessionId) = runBlocking {
+            createSession(userId = "test-user-blacklist", deviceId = "device-blacklist", deviceName = "Blacklisted Device")
+        }
+
+        runBlocking {
+            sessionRepository.revokeSession(sessionId).getOrThrow()
+            val isBlacklisted = sessionRepository.isTokenBlacklisted(accessToken).getOrThrow()
+            assertTrue(isBlacklisted)
+        }
+    }
+
+    @Test
+    fun `revoke all others keeps current session active`() = testApplication {
+        application { module(database) }
+
+        val userId = "test-user-revoke-all"
+        val (currentToken, currentSessionId) = runBlocking {
+            createSession(userId = userId, deviceId = "device-1", deviceName = "Current Device")
+        }
+
+        runBlocking {
+            createSession(userId = userId, deviceId = "device-2", deviceName = "Laptop")
+            createSession(userId = userId, deviceId = "device-3", deviceName = "Tablet")
+        }
+
+        val response = client.post("/api/sessions/revoke-all-others") {
             header(HttpHeaders.Authorization, "Bearer $currentToken")
         }
 
-        assertEquals(HttpStatusCode.OK, revokeAllResponse.status)
-
-        // Step 6: Verify only current session remains
-        val finalSessions = runBlocking {
-            sessionRepository.getActiveSessionsForUser(userId).getOrNull()!!
-        }
-        assertEquals(1, finalSessions.size)
-        assertEquals(device1SessionId, finalSessions[0].id)
-    }
-
-    // ============================================
-    // Token Blacklist Tests
-    // ============================================
-
-    @Ignore("Session/auth integration behavior is being refactored; assertions are stale.")
-    @Test
-    fun `blacklisted token should be rejected`() = testApplication {
-        application {
-            module(database)
-        }
-
-        val userId = "test-user-blacklist"
-        val sessionRepository = SessionRepository(database)
-
-        // Step 1: Create session
-        val sessionId = runBlocking {
-            sessionRepository.createSession(
-                userId = userId,
-                deviceId = "device-1",
-                deviceName = "Device",
-                jwtToken = "token-to-blacklist",
-                refreshToken = "refresh",
-                expiresAt = (System.currentTimeMillis() + 3600000).toString()
-            ).getOrNull()!!
-        }
-
-        // Step 2: Revoke session (blacklist token)
-        runBlocking {
-            sessionRepository.revokeSession(sessionId)
-        }
-
-        // Step 3: Attempt to use blacklisted token
-        val token = createTestJWT(userId, sessionId)
-        val response = client.get("/api/sessions") {
-            header(HttpHeaders.Authorization, "Bearer $token")
-        }
-
-        // Verify token is rejected
-        assertEquals(HttpStatusCode.Unauthorized, response.status)
-    }
-
-    // ============================================
-    // Session Updates Tests
-    // ============================================
-
-    @Ignore("Session/auth integration behavior is being refactored; assertions are stale.")
-    @Test
-    fun `accessing API should update last accessed timestamp`() = testApplication {
-        application {
-            module(database)
-        }
-
-        val userId = "test-user-timestamp"
-        val sessionRepository = SessionRepository(database)
-
-        // Create session
-        val sessionId = runBlocking {
-            sessionRepository.createSession(
-                userId = userId,
-                deviceId = "device-1",
-                deviceName = "Device",
-                jwtToken = "token",
-                refreshToken = "refresh",
-                expiresAt = (System.currentTimeMillis() + 3600000).toString()
-            ).getOrNull()!!
-        }
-
-        // Get initial timestamp
-        val initialSession = runBlocking {
-            sessionRepository.getSessionById(sessionId).getOrNull()!!
-        }
-        val initialTimestamp = initialSession.lastAccessed
-
-        // Wait a moment
-        Thread.sleep(100)
-
-        // Access API (this should update timestamp in real implementation)
-        // Note: Our current implementation doesn't auto-update on every request
-        // This would be added via middleware if needed
-
-        val token = createTestJWT(userId, sessionId)
-        val response = client.get("/api/sessions/current") {
-            header(HttpHeaders.Authorization, "Bearer $token")
-        }
-
         assertEquals(HttpStatusCode.OK, response.status)
+
+        val activeSessions = runBlocking {
+            sessionRepository.getActiveSessionsForUser(userId).getOrThrow()
+        }
+
+        assertEquals(1, activeSessions.size)
+        assertEquals(currentSessionId, activeSessions.first().id)
     }
 
-    // ============================================
-    // Helper Methods
-    // ============================================
+    private suspend fun createSession(
+        userId: String,
+        deviceId: String,
+        deviceName: String
+    ): Pair<String, String> {
+        val bootstrapToken = createTestJwt(userId, "bootstrap-$deviceId")
+        val refreshToken = "refresh-$deviceId"
+        val expiresAt = (System.currentTimeMillis() + 3_600_000).toString()
 
-    /**
-     * Create a test JWT token with the given userId and sessionId.
-     */
-    private fun createTestJWT(userId: String, sessionId: String): String {
+        val sessionId = sessionRepository.createSession(
+            userId = userId,
+            deviceId = deviceId,
+            deviceName = deviceName,
+            jwtToken = bootstrapToken,
+            refreshToken = refreshToken,
+            ipAddress = "127.0.0.1",
+            userAgent = "Ktor Test Client",
+            expiresAt = expiresAt
+        ).getOrThrow()
+
+        val accessToken = createTestJwt(userId, sessionId)
+
+        sessionRepository.updateSessionTokens(
+            sessionId = sessionId,
+            newJwtToken = accessToken,
+            newRefreshToken = refreshToken,
+            newExpiresAt = expiresAt
+        ).getOrThrow()
+
+        return accessToken to sessionId
+    }
+
+    private fun createTestJwt(userId: String, sessionId: String): String {
         return JWT.create()
             .withIssuer(jwtIssuer)
             .withAudience(jwtAudience)
             .withClaim("userId", userId)
             .withClaim("sessionId", sessionId)
             .withClaim("permissions", listOf("READ", "WRITE"))
-            .withExpiresAt(java.util.Date(System.currentTimeMillis() + 3600000))
+            .withExpiresAt(java.util.Date(System.currentTimeMillis() + 3_600_000))
             .sign(Algorithm.HMAC256(jwtSecret))
     }
 }

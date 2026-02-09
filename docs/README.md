@@ -11,12 +11,14 @@ Bienvenue dans la documentation technique du projet Wakeve, une application mobi
 
 ### Architecture
 - [Architecture Overview](architecture/ARCHITECTURE.md) - Vue d'ensemble de l'architecture
+- [Meeting Service Architecture](architecture/meeting-service.md) - Architecture FC&IS pour MeetingService
 - [KMP State Machine](architecture/kmp/kmp-state-machine.md) - Machine à états Kotlin Multiplatform
 - [ViewModels](architecture/viewmodels/viewmodel-implementation-summary.md) - Implémentation des ViewModels
 - [Android Integration](architecture/kmp/android-integration.md) - Intégration Android
 
 ### API & Intégrations
 - [API REST](API.md) - Documentation des endpoints Ktor
+- [Meeting API](api/meeting-api.md) - API MeetingProxy (Zoom, Google Meet)
 - [Calendar Integration](integrations/calendar/implementation.md) - Intégration calendrier natif
 - [OAuth](integrations/oauth.md) - Authentification OAuth
 
@@ -33,6 +35,7 @@ Bienvenue dans la documentation technique du projet Wakeve, une application mobi
 
 ### Tests
 - [Testing Overview](testing/README.md) - Vue d'ensemble des tests
+- [E2E Testing Guide](testing/E2E_TESTING_GUIDE.md) - Guide des tests End-to-End (50 tests)
 - [Quick Start](testing/quick-start.md) - Démarrer avec les tests
 - [Onboarding Tests](testing/onboarding/README.md) - Tests d'onboarding
 - [Test Reports](testing/reports/index.md) - Rapports de tests

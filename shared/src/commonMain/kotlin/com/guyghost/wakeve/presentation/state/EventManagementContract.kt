@@ -162,12 +162,16 @@ object EventManagementContract {
          * Start polling on time slots.
          *
          * Transitions event from DRAFT to POLLING.
-         * Only the organizer can start polling.
+         * Only organizer can start polling.
          * Emits side effects for success or error handling.
          *
-         * @property eventId The ID of the event to start polling for
+         * @property eventId The ID of event to start polling for
+         * @property userId The ID of the user attempting to start poll (must be organizer)
          */
-        data class StartPoll(val eventId: String) : Intent
+        data class StartPoll(
+            val eventId: String,
+            val userId: String
+        ) : Intent
 
         /**
          * Confirm the final date for an event.

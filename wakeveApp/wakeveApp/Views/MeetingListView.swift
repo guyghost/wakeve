@@ -1,59 +1,135 @@
 import SwiftUI
+import Shared
 
 /**
  * MeetingListView - Virtual meetings list screen for iOS (Phase 4, Refactored).
  *
  * Displays:
- * - List of scheduled virtual meetings (Zoom, Meet, FaceTime)
- * - Meeting platform, time, participants
+ * - List of virtual meetings (Zoom, Meet, FaceTime)
+ * - Meetings grouped by status (SCHEDULED, STARTED, ENDED, CANCELLED)
+ * - Pull-to-refresh functionality
  * - Full Liquid Glass design system implementation
  * - Matches Android MeetingListScreen functionality
  *
  * Architecture: Functional Core & Imperative Shell
  * - Pure functions for meeting status mapping
- * - View state managed in Imperative Shell
+ * - View state managed in Imperative Shell via MeetingListViewModel
  */
 
 // MARK: - View
 
 struct MeetingListView: View {
+    let eventId: String
     let userId: String
+    let isOrganizer: Bool
     let onMeetingTap: (String) -> Void
     let onCreateMeeting: () -> Void
     let onBack: () -> Void
 
-    @State private var meetings: [MeetingModel] = []
-    @State private var isLoading = false
+    @StateObject private var viewModel: MeetingListViewModel
+    @State private var showingEditSheet = false
+    @State private var editingMeeting: VirtualMeeting?
+    @State private var showingGenerateLinkSheet = false
+    @State private var generatingMeeting: VirtualMeeting?
+    @State private var isRefreshing = false
+
+    init(
+        eventId: String,
+        userId: String,
+        isOrganizer: Bool = false,
+        onMeetingTap: @escaping (String) -> Void,
+        onCreateMeeting: @escaping () -> Void,
+        onBack: @escaping () -> Void
+    ) {
+        self.eventId = eventId
+        self.userId = userId
+        self.isOrganizer = isOrganizer
+        self.onMeetingTap = onMeetingTap
+        self.onCreateMeeting = onCreateMeeting
+        self.onBack = onBack
+        self._viewModel = StateObject(wrappedValue: MeetingListViewModel(eventId: eventId))
+    }
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                backgroundGradient
+        ZStack {
+            backgroundGradient
 
+            NavigationStack {
                 contentView
-            }
-            .navigationTitle("Réunions virtuelles")
-            #if os(iOS)
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: onBack) {
-                        Image(systemName: "chevron.left")
-                            .foregroundColor(.primary)
-                            .accessibilityLabel("Retour")
+                    .navigationTitle("Réunions")
+                    .navigationBarTitleDisplayMode(.large)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button(action: onBack) {
+                                Image(systemName: "chevron.left")
+                                    .foregroundColor(.primary)
+                                    .accessibilityLabel("Retour")
+                            }
+                        }
+                        if isOrganizer {
+                            ToolbarItem(placement: .navigationBarTrailing) {
+                                Button(action: onCreateMeeting) {
+                                    Image(systemName: "plus")
+                                        .foregroundColor(.primary)
+                                        .accessibilityLabel("Créer une réunion")
+                                }
+                            }
+                        }
                     }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: onCreateMeeting) {
-                        Image(systemName: "plus")
-                            .foregroundColor(.primary)
-                            .accessibilityLabel("Créer une réunion")
-                    }
-                }
             }
-            #endif
         }
-        .onAppear(perform: loadMeetings)
+        .onAppear {
+            viewModel.loadMeetings()
+        }
+        .refreshable {
+            await performRefresh()
+        }
+        .alert("Error", isPresented: Binding(
+            get: { viewModel.hasError },
+            set: { if !$0 { viewModel.clearError() } }
+        )) {
+            Button("OK", role: .cancel) { viewModel.clearError() }
+        } message: {
+            Text(viewModel.errorMessage ?? "An error occurred")
+        }
+        .sheet(isPresented: $showingEditSheet) {
+            if let meeting = editingMeeting {
+                MeetingEditSheet(
+                    meeting: meeting,
+                    onSave: { title, description, scheduledFor, duration in
+                        viewModel.updateMeeting(
+                            meetingId: meeting.id,
+                            title: title,
+                            description: description,
+                            scheduledFor: scheduledFor,
+                            durationMinutes: duration
+                        )
+                        showingEditSheet = false
+                        editingMeeting = nil
+                    },
+                    onCancel: {
+                        showingEditSheet = false
+                        editingMeeting = nil
+                    }
+                )
+            }
+        }
+        .sheet(isPresented: $showingGenerateLinkSheet) {
+            if let meeting = generatingMeeting {
+                MeetingGenerateLinkSheet(
+                    meeting: meeting,
+                    onGenerate: { platform in
+                        viewModel.generateMeetingLink(meetingId: meeting.id, platform: platform)
+                        showingGenerateLinkSheet = false
+                        generatingMeeting = nil
+                    },
+                    onCancel: {
+                        showingGenerateLinkSheet = false
+                        generatingMeeting = nil
+                    }
+                )
+            }
+        }
     }
 
     // MARK: - Background
@@ -74,9 +150,9 @@ struct MeetingListView: View {
 
     @ViewBuilder
     private var contentView: some View {
-        if isLoading {
+        if viewModel.isLoading && viewModel.isEmpty {
             loadingView
-        } else if meetings.isEmpty {
+        } else if viewModel.isEmpty {
             emptyStateView
         } else {
             meetingListView
@@ -95,6 +171,7 @@ struct MeetingListView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
+        .frame(maxHeight: .infinity)
     }
 
     // MARK: - Empty State View
@@ -103,31 +180,41 @@ struct MeetingListView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            Image(systemName: "video.slash")
-                .font(.system(size: 72))
-                .foregroundColor(.secondary.opacity(0.4))
+            ZStack {
+                Circle()
+                    .fill(Color.wakevPrimary.opacity(0.1))
+                    .frame(width: 80, height: 80)
+
+                Image(systemName: "video.slash")
+                    .font(.system(size: 36))
+                    .foregroundColor(.wakevPrimary)
+            }
 
             VStack(spacing: 8) {
                 Text(NSLocalizedString("no_meetings_title", comment: "No meetings title"))
                     .font(.title2.weight(.semibold))
                     .foregroundColor(.primary)
 
-                Text(NSLocalizedString("plan_meetings", comment: "Plan meetings text"))
+                Text(NSLocalizedString("no_meetings_subtitle", comment: "No meetings subtitle"))
                     .font(.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
             }
 
-            LiquidGlassButton(
-                title: NSLocalizedString("create_meeting_button", comment: "Create meeting button"),
-                style: .primary,
-                action: onCreateMeeting
-            )
-            .padding(.top, 8)
+            if isOrganizer {
+                LiquidGlassButton(
+                    title: NSLocalizedString("create_first_meeting", comment: "Create first meeting button"),
+                    icon: "plus.circle.fill",
+                    style: .primary,
+                    action: onCreateMeeting
+                )
+                .padding(.top, 8)
+            }
 
             Spacer()
         }
+        .frame(maxHeight: .infinity)
     }
 
     // MARK: - Meeting List View
@@ -135,15 +222,76 @@ struct MeetingListView: View {
     private var meetingListView: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
-                createMeetingButton
-
-                ForEach(meetings) { meeting in
-                    MeetingListItem(meeting: meeting)
-                        .onTapGesture {
-                            onMeetingTap(meeting.id)
+                // Scheduled meetings
+                if !scheduledMeetings.isEmpty {
+                    Section(header: sectionHeader(title: "Planifiées", icon: "calendar")) {
+                        ForEach(scheduledMeetings, id: \.id) { meeting in
+                            MeetingCard(
+                                meeting: meeting,
+                                isOrganizer: isOrganizer,
+                                onTap: { onMeetingTap(meeting.id) },
+                                onEdit: {
+                                    editingMeeting = meeting
+                                    showingEditSheet = true
+                                },
+                                onGenerateLink: {
+                                    generatingMeeting = meeting
+                                    showingGenerateLinkSheet = true
+                                }
+                            )
                         }
-                        .accessibilityLabel(meetingAccessibilityLabel(meeting))
-                        .accessibilityHint("Appuyez pour voir les détails de la réunion")
+                    }
+                }
+
+                // Started meetings
+                if !startedMeetings.isEmpty {
+                    Section(header: sectionHeader(title: "En cours", icon: "play.circle.fill")) {
+                        ForEach(startedMeetings, id: \.id) { meeting in
+                            MeetingCard(
+                                meeting: meeting,
+                                isOrganizer: isOrganizer,
+                                onTap: { onMeetingTap(meeting.id) },
+                                onEdit: {
+                                    editingMeeting = meeting
+                                    showingEditSheet = true
+                                },
+                                onGenerateLink: {
+                                    generatingMeeting = meeting
+                                    showingGenerateLinkSheet = true
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Ended meetings
+                if !endedMeetings.isEmpty {
+                    Section(header: sectionHeader(title: "Terminées", icon: "checkmark.circle.fill")) {
+                        ForEach(endedMeetings, id: \.id) { meeting in
+                            MeetingCard(
+                                meeting: meeting,
+                                isOrganizer: isOrganizer,
+                                onTap: { onMeetingTap(meeting.id) },
+                                onEdit: nil,
+                                onGenerateLink: nil
+                            )
+                        }
+                    }
+                }
+
+                // Cancelled meetings
+                if !cancelledMeetings.isEmpty {
+                    Section(header: sectionHeader(title: "Annulées", icon: "xmark.circle.fill")) {
+                        ForEach(cancelledMeetings, id: \.id) { meeting in
+                            MeetingCard(
+                                meeting: meeting,
+                                isOrganizer: isOrganizer,
+                                onTap: { onMeetingTap(meeting.id) },
+                                onEdit: nil,
+                                onGenerateLink: nil
+                            )
+                        }
+                    }
                 }
             }
             .padding(.horizontal, 20)
@@ -151,55 +299,153 @@ struct MeetingListView: View {
         }
     }
 
-    // MARK: - Create Meeting Button
+    // MARK: - Section Header
 
-    private var createMeetingButton: some View {
-        LiquidGlassButton(
-            title: "Créer une réunion",
-            style: .primary,
-            action: onCreateMeeting
-        )
-        .padding(.bottom, 8)
-    }
+    private func sectionHeader(title: String, icon: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.wakevPrimary)
 
-    // MARK: - Actions
-
-    private func loadMeetings() {
-        isLoading = true
-
-        // TODO: Load from repository
-        // For now, show sample data
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            meetings = sampleMeetings
-            isLoading = false
+            Text(title)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(.primary)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 8)
     }
 
-    // MARK: - Accessibility Helpers
+    // MARK: - Meeting Groups
 
-    private func meetingAccessibilityLabel(_ meeting: MeetingModel) -> String {
-        "\(meeting.title), \(meeting.statusText), \(meeting.participantCount) participants via \(meeting.platformName)"
+    private var scheduledMeetings: [VirtualMeeting] {
+        viewModel.meetings.filter { $0.status == .scheduled }
+    }
+
+    private var startedMeetings: [VirtualMeeting] {
+        viewModel.meetings.filter { $0.status == .started }
+    }
+
+    private var endedMeetings: [VirtualMeeting] {
+        viewModel.meetings.filter { $0.status == .ended }
+    }
+
+    private var cancelledMeetings: [VirtualMeeting] {
+        viewModel.meetings.filter { $0.status == .cancelled }
+    }
+
+    // MARK: - Refresh
+
+    private func performRefresh() async {
+        isRefreshing = true
+        viewModel.loadMeetings()
+        // Wait for the loading to complete
+        try? await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+        isRefreshing = false
     }
 }
 
-// MARK: - Meeting List Item
+// MARK: - Meeting Card
 
-struct MeetingListItem: View {
-    let meeting: MeetingModel
+struct MeetingCard: View {
+    let meeting: VirtualMeeting
+    let isOrganizer: Bool
+    let onTap: () -> Void
+    let onEdit: (() -> Void)?
+    let onGenerateLink: (() -> Void)?
+
+    @State private var showingShareSheet = false
 
     var body: some View {
         LiquidGlassCard(cornerRadius: 16, padding: 16) {
-            HStack(alignment: .top, spacing: 14) {
-                platformIcon
+            VStack(alignment: .leading, spacing: 12) {
+                // Header with platform and status
+                HStack {
+                    platformIcon
 
-                meetingContent
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(meeting.title)
+                            .font(.headline.weight(.semibold))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
 
-                Spacer()
+                        HStack(spacing: 6) {
+                            platformName
+                            statusBadge
+                        }
+                    }
 
-                chevronIcon
+                    Spacer()
+
+                    chevronIcon
+                }
+
+                // Date and duration
+                HStack(spacing: 16) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text(formattedDateTime)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Text(formattedDuration)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                // Meeting link (if exists)
+                if !meeting.meetingUrl.isEmpty {
+                    HStack(spacing: 8) {
+                        Image(systemName: "link.circle.fill")
+                            .font(.caption)
+                            .foregroundColor(.wakevPrimary)
+
+                        Text(meeting.meetingUrl)
+                            .font(.caption)
+                            .foregroundColor(.wakevPrimary)
+                            .lineLimit(1)
+
+                        Spacer()
+
+                        Button(action: {
+                            UIPasteboard.general.string = meeting.meetingUrl
+                        }) {
+                            Image(systemName: "doc.on.doc")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.wakevSurfaceLight)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+
+                // Organizer actions
+                if isOrganizer {
+                    organizerActions
+                }
             }
         }
+        .onTapGesture {
+            onTap()
+        }
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(meetingAccessibilityLabel)
+        .accessibilityHint("Tap to view meeting details")
+        .sheet(isPresented: $showingShareSheet) {
+            ShareSheet(items: [meeting.meetingUrl])
+        }
     }
 
     // MARK: - Platform Icon
@@ -207,59 +453,34 @@ struct MeetingListItem: View {
     private var platformIcon: some View {
         ZStack {
             Circle()
-                .fill(meeting.platformColor.opacity(0.15))
+                .fill(platformColor.opacity(0.15))
                 .frame(width: 48, height: 48)
 
-            Image(systemName: meeting.platformIcon)
+            Image(systemName: platformIconName)
                 .font(.system(size: 20, weight: .medium))
-                .foregroundColor(meeting.platformColor)
+                .foregroundColor(platformColor)
         }
     }
 
-    // MARK: - Meeting Content
+    // MARK: - Platform Name
 
-    private var meetingContent: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(meeting.title)
-                .font(.headline.weight(.semibold))
-                .foregroundColor(.primary)
-                .lineLimit(1)
-
-            HStack(spacing: 6) {
-                Image(systemName: "calendar")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Text(meeting.dateTime)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-
-            HStack(spacing: 6) {
-                Image(systemName: "person.2")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-
-                Text("\(meeting.participantCount) participants")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.top, 2)
-
-            meetingStatusBadge
-        }
+    private var platformName: some View {
+        Text(platformNameText)
+            .font(.caption)
+            .foregroundColor(platformColor)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(platformColor.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
-    // MARK: - Meeting Status Badge
+    // MARK: - Status Badge
 
-    private var meetingStatusBadge: some View {
-        HStack(spacing: 6) {
-            LiquidGlassBadge(
-                text: meeting.statusText,
-                style: meeting.statusBadgeStyle
-            )
-        }
-        .padding(.top, 6)
+    private var statusBadge: some View {
+        LiquidGlassBadge(
+            text: statusText,
+            style: statusBadgeStyle
+        )
     }
 
     // MARK: - Chevron Icon
@@ -268,121 +489,141 @@ struct MeetingListItem: View {
         Image(systemName: "chevron.right")
             .font(.system(size: 14, weight: .medium))
             .foregroundColor(.secondary.opacity(0.6))
-            .padding(.top, 4)
     }
-}
 
-// MARK: - Supporting Types
+    // MARK: - Organizer Actions
 
-struct MeetingModel: Identifiable {
-    let id: String
-    let title: String
-    let platform: MeetingPlatform
-    let dateTime: String
-    let participantCount: Int
-    let status: MeetingStatus
+    @ViewBuilder
+    private var organizerActions: some View {
+        HStack(spacing: 12) {
+            if let onEdit = onEdit {
+                LiquidGlassButton(
+                    title: "Modifier",
+                    icon: "pencil",
+                    style: .secondary,
+                    size: .small,
+                    action: onEdit
+                )
+            }
 
-    var platformIcon: String {
-        switch platform {
+            if let onGenerateLink = onGenerateLink {
+                LiquidGlassButton(
+                    title: "Régénérer le lien",
+                    icon: "link",
+                    style: .primary,
+                    size: .small,
+                    action: onGenerateLink
+                )
+            }
+
+            LiquidGlassButton(
+                title: "Partager",
+                icon: "square.and.arrow.up",
+                style: .text,
+                size: .small,
+                action: {
+                    showingShareSheet = true
+                }
+            )
+        }
+    }
+
+    // MARK: - Helpers
+
+    private var platformIconName: String {
+        switch meeting.platform {
         case .zoom: return "video.fill"
         case .googleMeet: return "video.badge.plus"
         case .facetime: return "video.fill"
+        case .teams: return "video.fill"
+        case .webex: return "video.fill"
+        default: return "video.fill"
         }
     }
 
-    var platformColor: Color {
-        switch platform {
+    private var platformColor: Color {
+        switch meeting.platform {
         case .zoom: return .wakevPrimary
         case .googleMeet: return .wakevSuccess
         case .facetime: return .wakevAccent
+        case .teams: return .iOSSystemBlue
+        case .webex: return .iOSSystemGreen
+        default: return .wakevPrimary
         }
     }
 
-    var platformName: String {
-        switch platform {
+    private var platformNameText: String {
+        switch meeting.platform {
         case .zoom: return "Zoom"
         case .googleMeet: return "Google Meet"
         case .facetime: return "FaceTime"
+        case .teams: return "Microsoft Teams"
+        case .webex: return "Webex"
+        default: return "Meeting"
         }
     }
 
-    var statusColor: Color {
-        switch status {
-        case .upcoming: return .wakevWarning
-        case .inProgress: return .wakevSuccess
-        case .completed: return .secondary
+    private var statusText: String {
+        switch meeting.status {
+        case .scheduled: return "Planifiée"
+        case .started: return "En cours"
+        case .ended: return "Terminée"
+        case .cancelled: return "Annulée"
+        default: return "Inconnue"
         }
     }
 
-    var statusText: String {
-        switch status {
-        case .upcoming: return "À venir"
-        case .inProgress: return "En cours"
-        case .completed: return "Terminée"
+    private var statusBadgeStyle: LiquidGlassBadgeStyle {
+        switch meeting.status {
+        case .scheduled: return .warning
+        case .started: return .success
+        case .ended: return .default
+        case .cancelled: return .default
+        default: return .default
         }
     }
 
-    var statusBadgeStyle: LiquidGlassBadgeStyle {
-        switch status {
-        case .upcoming: return .warning
-        case .inProgress: return .success
-        case .completed: return .default
+    private var formattedDateTime: String {
+        let instant = meeting.scheduledFor
+        let epochSeconds = instant.epochSeconds
+        let date = Date(timeIntervalSince1970: TimeInterval(epochSeconds))
+
+        let formatter = DateFormatter()
+        formatter.dateFormat = "dd MMM yyyy, HH:mm"
+        formatter.locale = Locale(identifier: "fr_FR")
+
+        return formatter.string(from: date)
+    }
+
+    private var formattedDuration: String {
+        let durationMs = meeting.duration
+        let totalMinutes = Int64(durationMs) / 60_000_000_000
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
         }
+    }
+
+    private var meetingAccessibilityLabel: String {
+        "\(meeting.title), \(platformNameText), \(formattedDateTime)"
     }
 }
-
-enum MeetingPlatform {
-    case zoom, googleMeet, facetime
-}
-
-enum MeetingStatus {
-    case upcoming, inProgress, completed
-}
-
-// MARK: - Sample Data
-
-private let sampleMeetings: [MeetingModel] = [
-    MeetingModel(
-        id: "1",
-        title: "Réunion de planification",
-        platform: .zoom,
-        dateTime: "15 Jan 2024, 14:00",
-        participantCount: 5,
-        status: .upcoming
-    ),
-    MeetingModel(
-        id: "2",
-        title: "Discussion budget",
-        platform: .googleMeet,
-        dateTime: "20 Jan 2024, 10:00",
-        participantCount: 3,
-        status: .upcoming
-    ),
-    MeetingModel(
-        id: "3",
-        title: "Point hebdomadaire",
-        platform: .zoom,
-        dateTime: "22 Jan 2024, 09:00",
-        participantCount: 8,
-        status: .inProgress
-    ),
-    MeetingModel(
-        id: "4",
-        title: "Formation équipe",
-        platform: .facetime,
-        dateTime: "10 Jan 2024, 15:00",
-        participantCount: 4,
-        status: .completed
-    )
-]
 
 // MARK: - Preview
 
-#Preview {
-    MeetingListView(
-        userId: "user-123",
-        onMeetingTap: { _ in },
-        onCreateMeeting: { },
-        onBack: { }
-    )
+struct MeetingListView_Previews: PreviewProvider {
+    static var previews: some View {
+        MeetingListView(
+            eventId: "event-123",
+            userId: "user-123",
+            isOrganizer: true,
+            onMeetingTap: { _ in },
+            onCreateMeeting: { },
+            onBack: { }
+        )
+    }
 }

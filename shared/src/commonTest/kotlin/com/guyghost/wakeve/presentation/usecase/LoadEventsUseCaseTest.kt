@@ -70,6 +70,10 @@ class LoadEventsUseCaseTest {
             }
             return events.values.toList()
         }
+        override fun getEventsPaginated(page: Int, pageSize: Int, orderBy: com.guyghost.wakeve.repository.OrderBy): kotlinx.coroutines.flow.Flow<List<Event>> =
+            kotlinx.coroutines.flow.flowOf(
+                events.values.toList().drop(page * pageSize).take(pageSize)
+            )
 
         override suspend fun deleteEvent(eventId: String): Result<Unit> {
             events.remove(eventId)

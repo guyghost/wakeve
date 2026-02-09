@@ -41,6 +41,7 @@ import kotlin.test.assertTrue
 class AuthFlowE2ETest {
 
     private val testDispatcher = StandardTestDispatcher()
+    private val now = 1000L
     private lateinit var tokenStorage: InMemoryTokenStorage
 
     @BeforeTest
@@ -126,7 +127,7 @@ class AuthFlowE2ETest {
     @Test
     fun testGuestUserCreation() {
         // When
-        val guest = User.createGuest("guest_123")
+        val guest = User.createGuest("guest_123", now)
 
         // Then
         assertEquals("guest_123", guest.id)
@@ -144,7 +145,8 @@ class AuthFlowE2ETest {
             id = "user_123",
             email = "test@example.com",
             name = "Test User",
-            authMethod = AuthMethod.GOOGLE
+            authMethod = AuthMethod.GOOGLE,
+            currentTime = now
         )
 
         // Then
@@ -159,15 +161,15 @@ class AuthFlowE2ETest {
     @Test
     fun testUserDisplayName() {
         // Guest user
-        val guest = User.createGuest("guest_123")
+        val guest = User.createGuest("guest_123", now)
         assertEquals("Invité", guest.displayName)
 
         // Authenticated with name
-        val userWithName = User.createAuthenticated("u1", "test@example.com", "John", AuthMethod.EMAIL)
+        val userWithName = User.createAuthenticated("u1", "test@example.com", "John", AuthMethod.EMAIL, now)
         assertEquals("John", userWithName.displayName)
 
         // Authenticated without name
-        val userNoName = User.createAuthenticated("u2", "john.doe@example.com", null, AuthMethod.EMAIL)
+        val userNoName = User.createAuthenticated("u2", "john.doe@example.com", null, AuthMethod.EMAIL, now)
         assertEquals("john.doe", userNoName.displayName)
     }
 
@@ -176,7 +178,7 @@ class AuthFlowE2ETest {
     @Test
     fun testAuthResultSuccessIsSuccess() {
         // Given
-        val user = User.createGuest("guest_123")
+        val user = User.createGuest("guest_123", now)
 
         // When
         val result = AuthResult.guest(user)
@@ -204,7 +206,7 @@ class AuthFlowE2ETest {
     @Test
     fun testAuthResultUserOrNull() {
         // Guest result
-        val guest = User.createGuest("guest_123")
+        val guest = User.createGuest("guest_123", now)
         val guestResult = AuthResult.guest(guest)
         assertEquals(guest, guestResult.userOrNull)
 
@@ -216,7 +218,7 @@ class AuthFlowE2ETest {
     @Test
     fun testAuthResultErrorOrNull() {
         // Success result
-        val user = User.createGuest("guest_123")
+        val user = User.createGuest("guest_123", now)
         val successResult = AuthResult.guest(user)
         assertNull(successResult.errorOrNull)
 

@@ -384,21 +384,25 @@ struct AuthenticatedView: View {
             }
             
         case .meetingList:
-            MeetingListView(
-                userId: userId,
-                onMeetingTap: { meetingId in
-                    // Store meeting ID and navigate to detail
-                    selectedMeetingId = meetingId
-                    currentView = .meetingDetail
-                },
-                onCreateMeeting: {
-                    // TODO: Show create meeting sheet
-                },
-                onBack: {
-                    currentView = .eventDetail
-                }
-            )
-            
+            if let event = selectedEvent {
+                MeetingListView(
+                    eventId: event.id,
+                    userId: userId,
+                    isOrganizer: event.organizerId == userId,
+                    onMeetingTap: { meetingId in
+                        // Store meeting ID and navigate to detail
+                        selectedMeetingId = meetingId
+                        currentView = .meetingDetail
+                    },
+                    onCreateMeeting: {
+                        // TODO: Show create meeting sheet
+                    },
+                    onBack: {
+                        currentView = .eventDetail
+                    }
+                )
+            }
+
         case .meetingDetail:
             if let meetingId = selectedMeetingId {
                 MeetingDetailView(

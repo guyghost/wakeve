@@ -60,6 +60,13 @@ class DatabaseEventRepositoryTest {
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
+            proposedSlots = listOf(
+                createTestTimeSlot(
+                    id = "slot-1",
+                    start = "2025-12-01T10:00:00Z",
+                    end = "2025-12-01T12:00:00Z"
+                )
+            ),
             deadline = "2025-11-20T18:00:00Z",
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"
@@ -103,6 +110,13 @@ class DatabaseEventRepositoryTest {
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
+            proposedSlots = listOf(
+                createTestTimeSlot(
+                    id = "slot-1",
+                    start = "2025-12-01T10:00:00Z",
+                    end = "2025-12-01T12:00:00Z"
+                )
+            ),
             deadline = "2025-11-20T18:00:00Z",
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"
@@ -123,6 +137,13 @@ class DatabaseEventRepositoryTest {
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
+            proposedSlots = listOf(
+                createTestTimeSlot(
+                    id = "slot-1",
+                    start = "2025-12-01T10:00:00Z",
+                    end = "2025-12-01T12:00:00Z"
+                )
+            ),
             deadline = "2025-11-20T18:00:00Z",
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"
@@ -146,6 +167,13 @@ class DatabaseEventRepositoryTest {
             title = "Team Meeting",
             description = "Q4 Planning",
             organizerId = "org-1",
+            proposedSlots = listOf(
+                createTestTimeSlot(
+                    id = "slot-1",
+                    start = "2025-12-01T10:00:00Z",
+                    end = "2025-12-01T12:00:00Z"
+                )
+            ),
             deadline = "2025-11-20T18:00:00Z",
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"
@@ -292,6 +320,13 @@ class DatabaseEventRepositoryTest {
             description = "Q4 Planning",
             organizerId = "org-1",
             status = EventStatus.POLLING,
+            proposedSlots = listOf(
+                createTestTimeSlot(
+                    id = "slot-1",
+                    start = "2025-12-01T10:00:00Z",
+                    end = "2025-12-01T12:00:00Z"
+                )
+            ),
             deadline = "2025-11-20T18:00:00Z",
             createdAt = "2025-11-20T10:00:00Z",
             updatedAt = "2025-11-20T10:00:00Z"

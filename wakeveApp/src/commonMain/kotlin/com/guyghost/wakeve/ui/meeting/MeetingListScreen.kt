@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -26,8 +27,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -39,13 +42,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.guyghost.wakeve.models.MeetingPlatform
 import com.guyghost.wakeve.models.VirtualMeeting
 import com.guyghost.wakeve.presentation.state.MeetingManagementContract
 import com.guyghost.wakeve.viewmodel.MeetingManagementViewModel
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.hours
 
 /**
  * Meeting List Screen for Android (Jetpack Compose)
@@ -107,6 +113,10 @@ fun MeetingListScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showCreateDialog by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var editingMeeting by remember { mutableStateOf<VirtualMeeting?>(null) }
+    var showGenerateLinkDialog by remember { mutableStateOf(false) }
+    var generatingMeeting by remember { mutableStateOf<VirtualMeeting?>(null) }
 
     // Load meetings on first composition
     LaunchedEffect(eventId ?: state.eventId) {
@@ -122,6 +132,11 @@ fun MeetingListScreen(
             when (effect) {
                 is MeetingManagementContract.SideEffect.NavigateTo -> onNavigateToDetail(effect.route)
                 is MeetingManagementContract.SideEffect.NavigateBack -> {} // Handled by parent navigation
+                is MeetingManagementContract.SideEffect.ShareMeetingLink -> {
+                    // Handle share action - typically triggers platform share sheet
+                    // For now, we show a toast or navigate
+                    viewModel.dispatch(MeetingManagementContract.Intent.ClearError)
+                }
                 else -> {} // Other side effects
             }
         }
@@ -168,11 +183,57 @@ fun MeetingListScreen(
                     MeetingsListContent(
                         state = state,
                         onDispatch = { viewModel.dispatch(it) },
-                        isOrganizer = isOrganizer
+                        isOrganizer = isOrganizer,
+                        onEditClick = { meeting ->
+                            editingMeeting = meeting
+                            showEditDialog = true
+                        },
+                        onGenerateLinkClick = { meeting ->
+                            generatingMeeting = meeting
+                            showGenerateLinkDialog = true
+                        }
                     )
                 }
             }
         }
+    }
+
+    // Edit Meeting Dialog
+    if (showEditDialog && editingMeeting != null) {
+        EditMeetingDialog(
+            meeting = editingMeeting!!,
+            onDismiss = {
+                showEditDialog = false
+                editingMeeting = null
+            },
+            onConfirm = { title, description, scheduledFor, duration ->
+                viewModel.updateMeeting(
+                    meetingId = editingMeeting!!.id,
+                    title = title,
+                    description = description,
+                    scheduledFor = scheduledFor,
+                    duration = duration
+                )
+                showEditDialog = false
+                editingMeeting = null
+            }
+        )
+    }
+
+    // Generate Link Dialog
+    if (showGenerateLinkDialog && generatingMeeting != null) {
+        GenerateLinkDialog(
+            meeting = generatingMeeting!!,
+            onDismiss = {
+                showGenerateLinkDialog = false
+                generatingMeeting = null
+            },
+            onGenerate = { platform ->
+                viewModel.generateMeetingLink(generatingMeeting!!.id, platform)
+                showGenerateLinkDialog = false
+                generatingMeeting = null
+            }
+        )
     }
 }
 
@@ -183,7 +244,9 @@ fun MeetingListScreen(
 private fun MeetingsListContent(
     state: MeetingManagementContract.State,
     onDispatch: (MeetingManagementContract.Intent) -> Unit,
-    isOrganizer: Boolean
+    isOrganizer: Boolean,
+    onEditClick: (VirtualMeeting) -> Unit = {},
+    onGenerateLinkClick: (VirtualMeeting) -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -197,7 +260,9 @@ private fun MeetingsListContent(
             MeetingCard(
                 meeting = meeting,
                 onClick = { onDispatch(MeetingManagementContract.Intent.SelectMeeting(meeting.id)) },
-                isOrganizer = isOrganizer
+                isOrganizer = isOrganizer,
+                onEditClick = onEditClick,
+                onGenerateLinkClick = onGenerateLinkClick
             )
         }
     }
@@ -210,7 +275,9 @@ private fun MeetingsListContent(
 private fun MeetingCard(
     meeting: VirtualMeeting,
     onClick: () -> Unit,
-    isOrganizer: Boolean
+    isOrganizer: Boolean,
+    onEditClick: (VirtualMeeting) -> Unit = {},
+    onGenerateLinkClick: (VirtualMeeting) -> Unit = {}
 ) {
     Card(
         onClick = onClick,
@@ -271,12 +338,12 @@ private fun MeetingCard(
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedButton(onClick = { /* TODO: Edit meeting */ }) {
+                    OutlinedButton(onClick = { onEditClick(meeting) }) {
                         Text("Edit")
                     }
 
                     Button(
-                        onClick = { /* TODO: Generate new link */ },
+                        onClick = { onGenerateLinkClick(meeting) },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
                         )
@@ -362,4 +429,123 @@ private fun formatDuration(duration: Duration): String {
     val hours = duration.inWholeHours
     val minutes = (duration.inWholeMinutes % 60)
     return "${hours}h ${minutes}m"
+}
+
+/**
+ * Edit Meeting Dialog
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditMeetingDialog(
+    meeting: VirtualMeeting,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String?, Instant, Duration) -> Unit
+) {
+    var title by remember { mutableStateOf(meeting.title) }
+    var description by remember { mutableStateOf(meeting.description) }
+    var duration by remember { mutableStateOf(meeting.duration) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Meeting") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Title") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = description ?: "",
+                    onValueChange = { description = if (it.isBlank()) null else it },
+                    label = { Text("Description") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = "${duration.inWholeHours}h",
+                    onValueChange = { input ->
+                        val hours = input.removeSuffix("h").toIntOrNull() ?: 1
+                        duration = hours.hours
+                    },
+                    label = { Text("Duration (hours)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                onConfirm(title, description, meeting.scheduledFor, duration)
+            }) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+/**
+ * Generate Link Dialog
+ */
+@Composable
+private fun GenerateLinkDialog(
+    meeting: VirtualMeeting,
+    onDismiss: () -> Unit,
+    onGenerate: (MeetingPlatform) -> Unit
+) {
+    var selectedPlatform by remember { mutableStateOf(meeting.platform) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Generate Meeting Link") },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "Select platform to generate a new meeting link:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                listOf(
+                    MeetingPlatform.ZOOM,
+                    MeetingPlatform.GOOGLE_MEET,
+                    MeetingPlatform.FACETIME
+                ).forEach { platform ->
+                    Button(
+                        onClick = {
+                            selectedPlatform = platform
+                            onGenerate(platform)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (platform == selectedPlatform) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.surface
+                            }
+                        )
+                    ) {
+                        Text(platform.name)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

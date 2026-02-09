@@ -5,6 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.guyghost.wakeve.auth.AppleOAuth2Service
 import com.guyghost.wakeve.auth.AuthenticationService
 import com.guyghost.wakeve.auth.GoogleOAuth2Service
+import com.guyghost.wakeve.cache.JwtBlacklistCache
 import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.calendar.PlatformCalendarServiceImpl
 import com.guyghost.wakeve.database.WakevDb
@@ -55,7 +56,6 @@ import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics
 import io.micrometer.prometheusmetrics.PrometheusConfig
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry
-import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlin.time.Duration.Companion.minutes
 
@@ -66,6 +66,7 @@ const val SERVER_PORT = 8080
  */
 class JWTBlacklistConfig {
     var sessionRepository: SessionRepository? = null
+    var jwtBlacklistCache: JwtBlacklistCache? = null
 }
 
 /**
@@ -81,6 +82,8 @@ val JWTBlacklistPlugin = createRouteScopedPlugin(
 ) {
     val sessionRepository = pluginConfig.sessionRepository
         ?: error("SessionRepository must be configured for JWTBlacklistPlugin")
+    val jwtBlacklistCache = pluginConfig.jwtBlacklistCache
+        ?: error("JwtBlacklistCache must be configured for JWTBlacklistPlugin")
 
     onCall { call ->
         // Get JWT principal (set by JWT authentication)
@@ -91,16 +94,23 @@ val JWTBlacklistPlugin = createRouteScopedPlugin(
         val token = authHeader?.removePrefix("Bearer ")?.trim()
 
         if (token != null) {
-            // Check if token is blacklisted (blocking call - see TODO below)
-            // TODO: Consider using a cache layer to reduce database lookups
-            val isBlacklisted = runBlocking {
-                sessionRepository.isTokenBlacklisted(token)
+            // Check cache first (non-blocking)
+            val cachedResult = jwtBlacklistCache.get(token)
+
+            val isBlacklisted = if (cachedResult != null) {
+                // Use cached result
+                cachedResult
+            } else {
+                // Check database and cache result
+                val result = sessionRepository.isTokenBlacklisted(token)
                     .getOrElse {
                         // SECURITY: Fail closed - if we can't verify the token status,
                         // assume it's revoked to be safe. Log the error for debugging.
-                        call.application.log.error("Failed to check token blacklist", it)
+                        this@createRouteScopedPlugin.environment.log.error("Failed to check token blacklist", it)
                         true // Fail closed for security
                     }
+                jwtBlacklistCache.put(token, result)
+                result
             }
 
             if (isBlacklisted) {
@@ -237,14 +247,9 @@ fun Application.module(
     ProcessorMetrics().bindTo(meterRegistry)
 
     // Initialize authentication services
-    // SECURITY: JWT_SECRET must be set in production - fail fast if not configured
+    // SECURITY: JWT_SECRET environment variable is required
     val jwtSecret = System.getenv("JWT_SECRET")
-        ?: if (System.getenv("ENVIRONMENT") == "production") {
-            throw IllegalStateException("JWT_SECRET must be set in production")
-        } else {
-            // Only allow default for development
-            "default-secret-key-change-in-production"
-        }
+        ?: throw IllegalStateException("JWT_SECRET environment variable is required. Please set a secure random string.")
     val jwtIssuer = System.getenv("JWT_ISSUER") ?: "wakev-api"
     val jwtAudience = System.getenv("JWT_AUDIENCE") ?: "wakev-client"
 
@@ -286,6 +291,7 @@ fun Application.module(
 
     val sessionRepository = SessionRepository(database)
     val sessionManager = SessionManager(database)
+    val jwtBlacklistCache = JwtBlacklistCache()
     val syncService = SyncService(database)
 
     // Install plugins
@@ -387,6 +393,7 @@ fun Application.module(
                             // Install JWT blacklist checking for all API routes
                             install(JWTBlacklistPlugin) {
                                 this.sessionRepository = sessionRepository
+                                this.jwtBlacklistCache = jwtBlacklistCache
                             }
 
                             eventRoutes(eventRepository)

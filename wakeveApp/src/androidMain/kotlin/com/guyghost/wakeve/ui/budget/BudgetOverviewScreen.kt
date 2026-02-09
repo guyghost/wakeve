@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.EventRepository
 import com.guyghost.wakeve.budget.BudgetRepository
 import com.guyghost.wakeve.models.Budget
 import com.guyghost.wakeve.models.BudgetCategory
@@ -63,19 +64,23 @@ import com.guyghost.wakeve.models.BudgetWithItems
 fun BudgetOverviewScreen(
     eventId: String,
     budgetRepository: BudgetRepository,
+    eventRepository: EventRepository,
     onNavigateToDetail: (String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     var budgetState by remember { mutableStateOf<BudgetWithItems?>(null) }
-    var participantCount by remember { mutableStateOf(3) } // TODO: Get from event
+    var participantCount by remember { mutableStateOf(0) }
     var isLoading by remember { mutableStateOf(true) }
-    
-    // Load budget data
+
+    // Load budget data and participant count
     LaunchedEffect(eventId) {
         val budget = budgetRepository.getBudgetByEventId(eventId)
         if (budget != null) {
             budgetState = budgetRepository.getBudgetWithItems(budget.id)
         }
+        // Get participant count from event
+        val event = eventRepository.getEvent(eventId)
+        participantCount = event?.participants?.size ?: 0
         isLoading = false
     }
     
