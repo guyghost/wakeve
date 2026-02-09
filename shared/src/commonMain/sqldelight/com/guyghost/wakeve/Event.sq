@@ -46,7 +46,19 @@ WHERE id = ?;
 deleteEvent:
 DELETE FROM event WHERE id = ?;
 
+selectPaginated:
+SELECT * FROM event
+ORDER BY
+    CASE WHEN :orderBy = 'CREATED_AT_DESC' THEN createdAt END DESC,
+    CASE WHEN :orderBy = 'CREATED_AT_ASC' THEN createdAt END ASC,
+    CASE WHEN :orderBy = 'TITLE_ASC' THEN title END ASC,
+    CASE WHEN :orderBy = 'TITLE_DESC' THEN title END DESC,
+    CASE WHEN :orderBy = 'STATUS_ASC' THEN status END ASC,
+    CASE WHEN :orderBy = 'STATUS_DESC' THEN status END DESC
+LIMIT :limit OFFSET :offset;
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_event_organizer ON event(organizerId, createdAt DESC);
 CREATE INDEX IF NOT EXISTS idx_event_status ON event(status, createdAt DESC);
 CREATE INDEX IF NOT EXISTS idx_event_updated ON event(updatedAt);
+CREATE INDEX IF NOT EXISTS idx_event_created_title ON event(createdAt DESC, title);
