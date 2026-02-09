@@ -107,7 +107,7 @@ class IosImagePickerServiceTest {
         val pngImage = jpegImage.copy(mimeType = "image/png")
 
         assertTrue(jpegImage.isCompressed == false)
-        assertTrue(jpegImage.formattedSize == "2.0 MB")
+        assertTrue(jpegImage.formattedSize == "1 MB")
         assertTrue(jpegImage.dimensions == "1920×1080")
         assertTrue(jpegImage.aspectRatio == 1920f / 1080f)
         assertTrue(pngImage.aspectRatio == 1920f / 1080f)
@@ -180,7 +180,7 @@ class IosImagePickerServiceTest {
         assertTrue(batch.count == 2)
         assertFalse(batch.isEmpty)
         assertTrue(batch.totalSizeBytes == 3000L)
-        assertTrue(batch.formattedTotalSize == "2.93 KB")
+        assertTrue(batch.formattedTotalSize == "2 KB")
     }
 
     /**

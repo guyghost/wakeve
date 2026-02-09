@@ -35,6 +35,7 @@ import com.guyghost.wakeve.ui.scenario.ScenarioDetailScreen
 import com.guyghost.wakeve.ui.scenario.ScenarioManagementScreen
 import com.guyghost.wakeve.ui.budget.BudgetOverviewScreen
 import com.guyghost.wakeve.ui.budget.BudgetDetailScreen
+import com.guyghost.wakeve.accommodation.AccommodationRepository
 import com.guyghost.wakeve.ui.accommodation.AccommodationScreen
 import com.guyghost.wakeve.ui.meal.MealPlanningScreen
 import com.guyghost.wakeve.ui.equipment.EquipmentChecklistScreen
@@ -48,6 +49,7 @@ import com.guyghost.wakeve.equipment.EquipmentRepository
 import com.guyghost.wakeve.activity.ActivityRepository
 import com.guyghost.wakeve.models.CommentSection
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
+import com.guyghost.wakeve.EventRepository
 import com.guyghost.wakeve.viewmodel.MeetingManagementViewModel
 import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
 import org.koin.compose.koinInject
@@ -597,10 +599,10 @@ fun WakevNavHost(
         composable(Screen.Settings.route) {
             val authViewModel: AuthViewModel = koinInject()
             val authState by authViewModel.uiState.collectAsState()
-            
+
             SettingsScreen(
                 userId = userId,
-                currentSessionId = "", // TODO: Get from auth state
+                currentSessionId = authState.currentUser?.id ?: "",
                 isGuest = authState.isGuest,
                 isAuthenticated = authState.isAuthenticated,
                 userEmail = authState.currentUser?.email,
@@ -630,10 +632,12 @@ fun WakevNavHost(
         ) { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
             val budgetRepository: BudgetRepository = koinInject()
-            
+            val eventRepository: EventRepository = koinInject()
+
             BudgetOverviewScreen(
                 eventId = eventId,
                 budgetRepository = budgetRepository,
+                eventRepository = eventRepository,
                 onNavigateToDetail = { budgetItemId ->
                     navController.navigate(Screen.BudgetDetail.createRoute(eventId, budgetItemId))
                 },
@@ -654,11 +658,18 @@ fun WakevNavHost(
             val budgetItemId = backStackEntry.arguments?.getString("budgetItemId") ?: ""
             val budgetRepository: BudgetRepository = koinInject()
             val commentRepository: CommentRepository = koinInject()
-            
+            val eventRepository: EventRepository = koinInject()
+
+            // Get event participants
+            val event = eventRepository.getEvent(eventId)
+            val eventParticipants = event?.participants ?: emptyList()
+
             BudgetDetailScreen(
                 budgetId = budgetItemId,
                 budgetRepository = budgetRepository,
                 commentRepository = commentRepository,
+                currentUserId = userId,
+                eventParticipants = eventParticipants,
                 onNavigateBack = {
                     navController.navigateUp()
                 },
@@ -677,10 +688,12 @@ fun WakevNavHost(
             arguments = listOf(navArgument("eventId") { type = NavType.StringType })
         ) { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val accommodationRepository: AccommodationRepository = koinInject()
             val commentRepository: CommentRepository = koinInject()
-            
+
             AccommodationScreen(
                 eventId = eventId,
+                accommodationRepository = accommodationRepository,
                 commentRepository = commentRepository,
                 onNavigateBack = {
                     navController.navigateUp()
@@ -777,14 +790,16 @@ fun WakevNavHost(
         ) { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
             val commentRepository: CommentRepository = koinInject()
-            
+            val authViewModel: AuthViewModel = koinInject()
+            val authState by authViewModel.uiState.collectAsState()
+
             CommentsScreen(
                 eventId = eventId,
                 commentRepository = commentRepository,
                 section = null, // Show all sections
                 sectionItemId = null,
                 currentUserId = userId,
-                currentUserName = "User", // TODO: Get actual user name
+                currentUserName = authState.currentUser?.displayName ?: "User",
                 onBack = {
                     navController.navigateUp()
                 }

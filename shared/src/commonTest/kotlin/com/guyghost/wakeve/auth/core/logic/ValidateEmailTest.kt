@@ -61,7 +61,7 @@ class ValidateEmailTest {
     }
 
     @Test
-    fun `validateEmail returns failure for email starting with @`() {
+    fun validateEmailReturnsFailureForEmailStartingWithAtSymbol() {
         // Given
         val email = "@example.com"
         

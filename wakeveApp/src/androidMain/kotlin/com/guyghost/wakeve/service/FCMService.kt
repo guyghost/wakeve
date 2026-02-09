@@ -1,7 +1,6 @@
 package com.guyghost.wakeve.service
 
 import android.Manifest
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -9,18 +8,17 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.guyghost.wakeve.MainActivity
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlin.time.Clock
 
 /**
  * Firebase Cloud Messaging Service for Android.
@@ -74,17 +72,17 @@ class FCMService : FirebaseMessagingService() {
      * Called when a new message is received.
      */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        Napier.d(tag = TAG, message = "Received FCM message")
+        Log.d(TAG, "Received FCM message")
 
         // Check if message contains a data payload
         if (remoteMessage.data.isNotEmpty()) {
-            Napier.d(tag = TAG, message = "Message data payload: ${remoteMessage.data}")
+            Log.d(TAG, "Message data payload: ${remoteMessage.data}")
             handleDataMessage(remoteMessage.data)
         }
 
         // Check if message contains a notification payload
         remoteMessage.notification?.let {
-            Napier.d(tag = TAG, message = "Message notification payload: ${it.body}")
+            Log.d(TAG, "Message notification payload: ${it.body}")
             handleNotificationMessage(it, remoteMessage.data)
         }
     }
@@ -93,14 +91,14 @@ class FCMService : FirebaseMessagingService() {
      * Called when a new token is generated or refreshed.
      */
     override fun onNewToken(token: String) {
-        Napier.d(tag = TAG, message = "New FCM token: ${token.take(10)}...")
+        Log.d(TAG, "New FCM token: ${token.take(10)}...")
 
         // Register token with backend
         serviceScope.launch {
             try {
                 registerTokenWithBackend(token)
             } catch (e: Exception) {
-                Napier.e(tag = TAG, message = "Failed to register token: ${e.message}", throwable = e)
+                Log.e(TAG, "Failed to register token: ${e.message}", e)
             }
         }
     }
@@ -115,7 +113,7 @@ class FCMService : FirebaseMessagingService() {
         val notificationId = data["notificationId"] ?: "unknown"
         val eventId = data["eventId"]
 
-        Napier.i(tag = TAG, message = "Data message: title=$title, body=$body")
+        Log.i(TAG, "Data message: title=$title, body=$body")
 
         // Show notification
         showNotification(title, body, notificationId, eventId)
@@ -134,7 +132,7 @@ class FCMService : FirebaseMessagingService() {
         val notificationId = data["notificationId"] ?: "unknown"
         val eventId = data["eventId"]
 
-        Napier.i(tag = TAG, message = "Notification message: title=$title, body=$body")
+        Log.i(TAG, "Notification message: title=$title, body=$body")
 
         showNotification(title, body, notificationId, eventId)
     }
@@ -186,10 +184,19 @@ class FCMService : FirebaseMessagingService() {
 
         // Show notification
         val notificationManager = NotificationManagerCompat.from(this)
-        if (isNotificationPermissionGranted(this)) {
+        val canPostNotifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true
+        }
+
+        if (canPostNotifications) {
             notificationManager.notify(notificationId.hashCode(), notification)
         } else {
-            Napier.w(tag = TAG, message = "Notification permission not granted, skipping notification")
+            Log.w(TAG, "Notification permission not granted, skipping notification")
         }
     }
 
@@ -211,7 +218,7 @@ class FCMService : FirebaseMessagingService() {
             val notificationManager = getSystemService(NotificationManager::class.java)
             notificationManager.createNotificationChannel(channel)
 
-            Napier.d(tag = TAG, message = "Notification channel created")
+            Log.d(TAG, "Notification channel created")
         }
     }
 
@@ -223,8 +230,8 @@ class FCMService : FirebaseMessagingService() {
         // TODO: Integrate with actual backend API
         // For now, this is a placeholder
 
-        Napier.i(tag = TAG, message = "Registering token with backend...")
-        Napier.d(tag = TAG, message = "Token (first 20 chars): ${token.take(20)}...")
+        Log.i(TAG, "Registering token with backend...")
+        Log.d(TAG, "Token (first 20 chars): ${token.take(20)}...")
 
         // Example implementation with Ktor client:
         /*

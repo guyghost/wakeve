@@ -85,6 +85,8 @@ fun BudgetDetailScreen(
     budgetId: String,
     budgetRepository: BudgetRepository,
     commentRepository: CommentRepository,
+    currentUserId: String,
+    eventParticipants: List<String>,
     onNavigateBack: () -> Unit,
     onNavigateToComments: (eventId: String, section: CommentSection, sectionItemId: String?) -> Unit
 ) {
@@ -235,7 +237,7 @@ fun BudgetDetailScreen(
                                 budgetRepository.markItemAsPaid(
                                     itemId = item.id,
                                     actualCost = item.estimatedCost,
-                                    paidBy = "user-1" // TODO: Get actual user
+                                    paidBy = currentUserId
                                 )
                                 loadData()
                             }
@@ -250,18 +252,22 @@ fun BudgetDetailScreen(
             BudgetItemDialog(
                 budgetId = budgetId,
                 budgetRepository = budgetRepository,
-                onDismiss = { 
+                currentUserId = currentUserId,
+                eventParticipants = eventParticipants,
+                onDismiss = {
                     showAddItemDialog = false
                     loadData()
                 }
             )
         }
-        
+
         itemToEdit?.let { item ->
             BudgetItemDialog(
                 budgetId = budgetId,
                 existingItem = item,
                 budgetRepository = budgetRepository,
+                currentUserId = currentUserId,
+                eventParticipants = eventParticipants,
                 onDismiss = {
                     itemToEdit = null
                     loadData()
@@ -559,6 +565,8 @@ fun BudgetItemDialog(
     budgetId: String,
     existingItem: BudgetItem? = null,
     budgetRepository: BudgetRepository,
+    currentUserId: String,
+    eventParticipants: List<String>,
     onDismiss: () -> Unit
 ) {
     var name by remember { mutableStateOf(existingItem?.name ?: "") }
@@ -660,13 +668,15 @@ fun BudgetItemDialog(
                     try {
                         if (existingItem == null) {
                             // Create new item
+                            // Default to sharing with all event participants if no specific selection
+                            val defaultSharedBy = if (eventParticipants.isEmpty()) listOf(currentUserId) else eventParticipants
                             budgetRepository.createBudgetItem(
                                 budgetId = budgetId,
                                 category = selectedCategory,
                                 name = name,
                                 description = description,
                                 estimatedCost = cost,
-                                sharedBy = listOf("user-1") // TODO: Get actual participants
+                                sharedBy = defaultSharedBy
                             )
                         } else {
                             // Update existing item

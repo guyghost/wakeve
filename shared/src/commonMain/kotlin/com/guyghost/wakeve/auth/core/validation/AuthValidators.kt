@@ -151,12 +151,13 @@ object AuthValidators {
             return AuthResult.error(emailValidation.errorOrNull!!)
         }
 
-        // Validate OTP
+        // Validate OTP - use current time from parameter
         val otpResult = validateOTP(
             otp = otp,
             expectedOTP = expectedOTP,
             otpExpiryTimestamp = otpExpiryTimestamp,
-            maxAttempts = 3,
+            currentTime = currentTimeMillis(),
+            maxAttempts =3,
             currentAttempt = attemptNumber
         )
 
@@ -164,15 +165,14 @@ object AuthValidators {
             is com.guyghost.wakeve.auth.core.logic.OTPAttemptResult.Success -> {
                 // Generate a session token for email auth
                 val sessionToken = generateSessionToken(email)
+                val currentTime = currentTimeMillis()
                 AuthResult.success(
-                    User(
+                    User.createAuthenticated(
                         id = generateUserId(),
                         email = email,
                         name = null,
                         authMethod = AuthMethod.EMAIL,
-                        isGuest = false,
-                        createdAt = currentTimeMillis(),
-                        lastLoginAt = currentTimeMillis()
+                        currentTime = currentTime
                     ),
                     AuthToken.createLongLived(sessionToken, expiresInDays = 30)
                 )

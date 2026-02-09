@@ -27,12 +27,13 @@ class GuestModeService(
 
     /**
      * Creates a new guest session.
-     * 
+     *
      * @return AuthResult with a new guest user
      */
     suspend fun createGuestSession(): AuthResult {
         val guestId = generateGuestId()
-        val guestUser = createGuest(guestId)
+        val currentTime = currentTimeMillis()
+        val guestUser = createGuest(guestId, currentTime)
 
         // Store guest ID for persistence
         tokenStorage.storeString(GUEST_USER_KEY, guestId)
@@ -42,14 +43,15 @@ class GuestModeService(
 
     /**
      * Restores an existing guest session if one exists.
-     * 
+     *
      * @return AuthResult with the restored guest user, or null if no session exists
      */
     suspend fun restoreGuestSession(): AuthResult? {
         val guestId = tokenStorage.getString(GUEST_USER_KEY)
 
         return if (guestId != null) {
-            val guestUser = createGuest(guestId)
+            val currentTime = currentTimeMillis()
+            val guestUser = createGuest(guestId, currentTime)
             AuthResult.guest(guestUser)
         } else {
             null
@@ -81,13 +83,14 @@ class GuestModeService(
 
     /**
      * Gets the current guest user if in guest mode.
-     * 
+     *
      * @return User if in guest mode, null otherwise
      */
     suspend fun getCurrentGuestUser(): User? {
         val guestId = tokenStorage.getString(GUEST_USER_KEY)
         return if (guestId != null) {
-            createGuest(guestId)
+            val currentTime = currentTimeMillis()
+            createGuest(guestId, currentTime)
         } else {
             null
         }

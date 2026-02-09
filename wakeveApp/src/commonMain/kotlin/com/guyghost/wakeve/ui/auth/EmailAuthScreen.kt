@@ -50,7 +50,6 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.guyghost.wakeve.ui.theme.WakevColorScheme
 import org.jetbrains.compose.resources.painterResource
 
 /**

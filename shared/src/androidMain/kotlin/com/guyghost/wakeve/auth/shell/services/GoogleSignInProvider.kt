@@ -104,7 +104,8 @@ class GoogleSignInProvider : AndroidOAuthProvider {
             id = id,
             email = email ?: throw IllegalStateException("Google account email is null"),
             name = displayName,
-            authMethod = AuthMethod.GOOGLE
+            authMethod = AuthMethod.GOOGLE,
+            currentTime = System.currentTimeMillis()
         )
 
         // Create AuthToken with the ID token

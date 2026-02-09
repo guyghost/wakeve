@@ -2,7 +2,6 @@ package com.guyghost.wakeve
 
 import com.guyghost.wakeve.models.SyncChange
 import com.guyghost.wakeve.models.SyncRequest
-import com.guyghost.wakeve.models.TokenRefreshRequest
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.post
@@ -14,16 +13,29 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
-import kotlin.test.Ignore
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ApplicationTest {
 
+    @BeforeTest
+    fun setup() {
+        DatabaseProvider.resetDatabase()
+    }
+
+    @AfterTest
+    fun teardown() {
+        DatabaseProvider.resetDatabase()
+    }
+
+    private fun createIsolatedDatabase() = DatabaseProvider.getDatabase(JvmDatabaseFactory(":memory:"))
+
     @Test
     fun testRoot() = testApplication {
         // Initialize test database
-        val database = DatabaseProvider.getDatabase(JvmDatabaseFactory(":memory:"))
+        val database = createIsolatedDatabase()
         val eventRepository = DatabaseEventRepository(database)
 
         application {
@@ -37,7 +49,7 @@ class ApplicationTest {
     @Test
     fun testProtectedApiRequiresAuth() = testApplication {
         // Initialize test database
-        val database = DatabaseProvider.getDatabase(JvmDatabaseFactory(":memory:"))
+        val database = createIsolatedDatabase()
         val eventRepository = DatabaseEventRepository(database)
 
         application {
@@ -49,11 +61,10 @@ class ApplicationTest {
         assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
 
-    @Ignore("Auth refresh contract changed; migrate this test with the new auth route payloads.")
     @Test
     fun testTokenRefreshEndpoint() = testApplication {
         // Initialize test database
-        val database = DatabaseProvider.getDatabase(JvmDatabaseFactory(":memory:"))
+        val database = createIsolatedDatabase()
         val eventRepository = DatabaseEventRepository(database)
 
         val client = createClient {
@@ -70,10 +81,9 @@ class ApplicationTest {
         }
 
         // Test token refresh with invalid token (should return 401)
-        val refreshRequest = TokenRefreshRequest(refreshToken = "invalid-refresh-token")
         val response = client.post("/auth/refresh") {
             contentType(ContentType.Application.Json)
-            setBody(refreshRequest)
+            setBody("""{"refreshToken":"invalid-refresh-token"}""")
         }
 
         // Should return 401 for invalid refresh token
@@ -83,7 +93,7 @@ class ApplicationTest {
     @Test
     fun testSyncEndpointRequiresAuth() = testApplication {
         // Initialize test database
-        val database = DatabaseProvider.getDatabase(JvmDatabaseFactory(":memory:"))
+        val database = createIsolatedDatabase()
         val eventRepository = DatabaseEventRepository(database)
 
         val client = createClient {

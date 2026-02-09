@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class EventValidationTest {
     
@@ -55,7 +56,7 @@ class EventValidationTest {
         
         val error = event.validate()
         assertNotNull(error, "Should have validation error")
-        assert(error.contains("Maximum participants", ignoreCase = true))
+        assertTrue(error.contains("Maximum participants", ignoreCase = true))
     }
     
     @Test
@@ -76,7 +77,7 @@ class EventValidationTest {
         
         val error = event.validate()
         assertNotNull(error, "Should have validation error")
-        assert(error.contains("custom", ignoreCase = true))
+        assertTrue(error.contains("custom", ignoreCase = true))
     }
     
     @Test

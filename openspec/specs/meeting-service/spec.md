@@ -1,38 +1,232 @@
 # Meeting Service Specification
 
-## Version
-**Version**: 1.0.0
-**Status**: ✅ Implémenté
-**Date de création**: 26 décembre 2025
-**Auteur**: Équipe Wakeve
+> **Capability**: `meeting-service`
+> **Version**: 2.0.0
+> **Status**: Active
+> **Last Updated**: 2026-02-08
 
 ## Overview
 
-Le service de réunion de Wakeve permet de générer des liens de réunion virtuelle (Zoom, Google Meet, FaceTime) pour les événements qui nécessitent une coordination à distance, avec gestion des invitations et des rappels.
+The Meeting Service enables Wakeve users to create and manage virtual meetings across multiple platforms (Zoom, Google Meet, FaceTime) for event coordination. It provides secure API proxy endpoints to hide external platform credentials and handles the complete meeting lifecycle from creation to cancellation.
 
-## Domain Model
+**Key Features**:
+- Multi-platform meeting creation (Zoom, Google Meet, FaceTime)
+- Secure backend proxy for external API authentication
+- Meeting lifecycle management (create, update, cancel, status)
+- Rate limiting per provider
+- Integration with notification system
+- Calendar integration for automatic event creation
+
+**Version**: 2.0.0
+**Status**: Active
+**Created**: 2025-12-26
+**Maintainer**: Wakeve Team
 
 ### Core Concepts
 
-- **Virtual Meeting**: Réunion en ligne pour coordination d'événements
-- **Meeting Link**: Lien de réunion généré
-- **Meeting Platform**: Type de plateforme (Zoom, Google Meet, FaceTime)
-- **Meeting Invitations**: Invitations envoyées aux participants validés
-- **Meeting Reminders**: Rappels automatiques avant la réunion
+**VirtualMeeting**: A scheduled online meeting associated with an event, containing platform-specific connection details and metadata.
+
+**MeetingPlatform**: Enum defining supported video conferencing platforms (Zoom, Google Meet, FaceTime, Teams, Webex).
+
+**MeetingProxy**: Backend API proxy that authenticates with external platforms using server-stored credentials, never exposing API keys to clients.
+
+**MeetingStatus**: Lifecycle state of a meeting (scheduled, started, ended, cancelled).
+
+### Dependencies
+
+| Dependency | Type | Description |
+|------------|------|-------------|
+| `event-organization` | Spec | Events that meetings are associated with |
+| `calendar-management` | Spec | Native calendar integration |
+| `notification-management` | Spec | Meeting reminders and invitations |
+| `collaboration-management` | Spec | Participant management |
+
+## Purpose
+
+Enable event organizers to create virtual meetings for remote coordination while keeping external platform credentials secure server-side.
+
+### Use Cases
+
+- **Remote Event Planning**: Create Zoom/Google Meet meetings for planning sessions
+- **International Coordination**: Support participants across different timezones
+- **Quick FaceTime**: iOS users can quickly start FaceTime calls
+- **Automated Reminders**: Send notifications before meetings start
+- **Calendar Sync**: Automatically add meetings to native calendars
+
+## Requirements
+
+### Requirement: Secure Platform API Integration
+**ID**: `MEETING-001`
+
+The system SHALL integrate with external meeting platforms (Zoom, Google Meet) via a backend proxy that:
+- Hides API keys and secrets from clients
+- Authenticates with external platforms server-side
+- Returns only necessary meeting details to clients
+- Implements rate limiting per provider
+- Logs all meeting creation events for audit
+
+#### Scenario: Create Zoom meeting via proxy
+- **GIVEN** User is authenticated and Zoom API credentials are configured on server
+- **WHEN** User requests meeting creation with title, time, and duration
+- **THEN** Server authenticates with Zoom API using stored JWT credentials
+- **AND** Server creates meeting via Zoom REST API
+- **AND** Server returns meeting ID, join URL, password, and dial-in details
+- **AND** API keys are never exposed to client
+
+#### Scenario: Handle missing Zoom credentials
+- **GIVEN** Zoom API credentials are not configured on server
+- **WHEN** User requests Zoom meeting creation
+- **THEN** Server returns 503 Service Unavailable with error code `zoom_not_configured`
+
+### Requirement: Zoom OAuth Flow
+**ID**: `MEETING-002`
+
+The system SHALL support Zoom OAuth 2.0 authentication for production use:
+- Generate JWT tokens using API Key and Secret
+- Include Bearer token in Zoom API requests
+- Handle token expiration and renewal
+- Support both Server-to-Server OAuth and JWT app types
+
+#### Scenario: Generate Zoom JWT token
+- **GIVEN** ZOOM_API_KEY and ZOOM_API_SECRET are configured
+- **WHEN** Server needs to call Zoom API
+- **THEN** Server generates JWT token with API credentials
+- **AND** Token includes required claims (iss, exp)
+- **AND** Token is valid for maximum expiration time
+
+### Requirement: Google Meet API Integration
+**ID**: `MEETING-003`
+
+The system SHALL integrate with Google Calendar API to create Google Meet meetings:
+- Authenticate using service account credentials
+- Create calendar events with conference data
+- Extract meeting URL and code from response
+- Handle domain-wide delegation for enterprise accounts
+
+#### Scenario: Create Google Meet via Calendar API
+- **GIVEN** GOOGLE_MEET_CREDENTIALS JSON is configured
+- **WHEN** User requests Google Meet creation
+- **THEN** Server creates calendar event with conferenceData.createRequest
+- **AND** Server extracts hangoutLink and meeting code
+- **AND** Server returns meeting URL to client
+
+### Requirement: Rate Limiting Per Provider
+**ID**: `MEETING-004`
+
+The system SHALL implement rate limiting for each platform provider:
+- Enforce platform-specific rate limits (Zoom: 100 requests/hour per user)
+- Track usage per user/IP combination
+- Return 429 Too Many Requests when limits exceeded
+- Implement exponential backoff for retries
+
+#### Scenario: Enforce Zoom rate limit
+- **GIVEN** User has made 100 Zoom meeting creation requests in past hour
+- **WHEN** User attempts another Zoom meeting creation
+- **THEN** Server returns 429 Too Many Requests
+- **AND** Response includes Retry-After header
+
+### Requirement: Meeting Lifecycle Management
+**ID**: `MEETING-005`
+
+The system SHALL support complete meeting lifecycle operations:
+- Create meetings with platform-specific settings
+- Update meeting time, duration, and details
+- Cancel meetings and notify participants
+- Query real-time meeting status
+- Track meeting state transitions
+
+#### Scenario: Update scheduled meeting
+- **GIVEN** Meeting exists with status SCHEDULED
+- **WHEN** Organizer updates meeting time
+- **THEN** Server calls platform API to update meeting
+- **AND** Database record is updated
+- **AND** Participants are notified of change
+- **AND** Calendar event is updated
+
+#### Scenario: Cancel meeting
+- **GIVEN** Meeting exists with status SCHEDULED
+- **WHEN** Organizer cancels meeting
+- **THEN** Server calls platform API to cancel
+- **AND** Status updated to CANCELLED
+- **AND** All scheduled reminders are cancelled
+- **AND** Participants receive cancellation notification
+
+### Requirement: Notification Integration
+**ID**: `MEETING-006`
+
+The system SHALL integrate with notification service for:
+- Meeting invitations to validated participants
+- Pre-meeting reminders (1 day, 1 hour, 15 min, 5 min before)
+- Meeting cancellation notifications
+- Meeting update notifications
+
+#### Scenario: Send meeting invitations
+- **GIVEN** Meeting created with 3 validated participants
+- **WHEN** Organizer sends invitations
+- **THEN** System sends push notification to each participant
+- **AND** Creates invitation records with PENDING status
+- **AND** Adds meeting to participant's native calendar
+
+### Requirement: Calendar Integration
+**ID**: `MEETING-007`
+
+The system SHALL automatically sync meetings with native device calendars:
+- Create calendar event when meeting is created
+- Update calendar event when meeting details change
+- Delete calendar event when meeting is cancelled
+- Include meeting link in calendar event description
+
+## Data Models
+
+> All models are defined in language-agnostic format (JSON/Kotlin) to support multiplatform implementation.
 
 ### MeetingPlatform
 
 ```kotlin
 enum class MeetingPlatform {
     ZOOM,           // Zoom Meetings
-    GOOGLE_MEET,     // Google Meet
-    FACETIME,        // Apple FaceTime
-    TEAMS,           // Microsoft Teams (future)
-    WEBEX            // Cisco Webex (future)
+    GOOGLE_MEET,    // Google Meet
+    FACETIME,       // Apple FaceTime
+    TEAMS,          // Microsoft Teams (future)
+    WEBEX           // Cisco Webex (future)
+}
+```
+
+### MeetingStatus
+
+```kotlin
+enum class MeetingStatus {
+    SCHEDULED,      // Meeting is scheduled
+    STARTED,        // Meeting is in progress
+    ENDED,          // Meeting has ended
+    CANCELLED       // Meeting was cancelled
 }
 ```
 
 ### VirtualMeeting
+
+| Field | Type | Description | Constraints |
+|-------|------|-------------|-------------|
+| `id` | string (UUID) | Unique identifier | Required, auto-generated |
+| `eventId` | string | Associated event ID | Required |
+| `organizerId` | string | Meeting organizer ID | Required |
+| `platform` | MeetingPlatform | Meeting platform | Required |
+| `meetingId` | string | Platform meeting ID | Required |
+| `meetingPassword` | string? | Meeting password | Optional |
+| `meetingUrl` | string | Full meeting URL | Required |
+| `dialInNumber` | string? | Phone dial-in number | Optional (Zoom only) |
+| `dialInPassword` | string? | Dial-in PIN | Optional (Zoom only) |
+| `title` | string | Meeting title | Required, max 200 chars |
+| `description` | string? | Meeting description | Optional, max 5000 chars |
+| `scheduledFor` | Instant | Scheduled start time | Required |
+| `duration` | Duration | Meeting duration | Required, 1-1440 minutes |
+| `timezone` | string | Timezone identifier | Required, default "UTC" |
+| `participantLimit` | Int? | Max participants | Optional |
+| `requirePassword` | boolean | Password required | Default: true |
+| `waitingRoom` | boolean | Waiting room enabled | Default: true |
+| `hostKey` | string? | Host control key | Optional (Zoom only) |
+| `createdAt` | Instant | Creation timestamp | Required |
+| `status` | MeetingStatus | Current status | Required |
 
 ```kotlin
 @Serializable
@@ -41,37 +235,47 @@ data class VirtualMeeting(
     val eventId: String,
     val organizerId: String,
     val platform: MeetingPlatform,
-    val meetingId: String,         // ID plateforme (ex: "abc123")
-    val meetingPassword: String?,   // Mot de passe (optionnel)
-    val meetingUrl: String,        // URL de réunion complète
-    val dialInNumber: String?,     // Numéro téléphone (Zoom)
-    val dialInPassword: String?,    // Code PIN (Zoom)
+    val meetingId: String,
+    val meetingPassword: String?,
+    val meetingUrl: String,
+    val dialInNumber: String?,
+    val dialInPassword: String?,
     val title: String,
     val description: String?,
     val scheduledFor: Instant,
-    val duration: Duration,        // Durée prévue
-    val timezone: String,          // Fuseau horaire
-    val participantLimit: Int?,     // Limite de participants (optionnel)
+    val duration: Duration,
+    val timezone: String,
+    val participantLimit: Int?,
     val requirePassword: Boolean,
     val waitingRoom: Boolean,
-    val hostKey: String?,         // Host key (Zoom)
+    val hostKey: String?,
     val createdAt: Instant,
     val status: MeetingStatus
 )
 ```
 
-### MeetingStatus
+### InvitationStatus
 
 ```kotlin
-enum class MeetingStatus {
-    SCHEDULED,       // Planifiée
-    STARTED,         // En cours
-    ENDED,           // Terminée
-    CANCELLED         // Annulée
+enum class InvitationStatus {
+    PENDING,        // Invitation sent, awaiting response
+    ACCEPTED,       // Participant accepted
+    DECLINED,       // Participant declined
+    TENTATIVE       // Participant tentative
 }
 ```
 
 ### MeetingInvitation
+
+| Field | Type | Description | Constraints |
+|-------|------|-------------|-------------|
+| `id` | string (UUID) | Unique identifier | Required |
+| `meetingId` | string | Associated meeting ID | Required |
+| `participantId` | string | Participant ID | Required |
+| `status` | InvitationStatus | Response status | Required |
+| `sentAt` | Instant | Sent timestamp | Required |
+| `respondedAt` | Instant? | Response timestamp | Optional |
+| `acceptedAt` | Instant? | Acceptance timestamp | Optional |
 
 ```kotlin
 @Serializable
@@ -86,25 +290,30 @@ data class MeetingInvitation(
 )
 ```
 
-### InvitationStatus
-
-```kotlin
-enum class InvitationStatus {
-    PENDING,    // Invitation envoyée, pas de réponse
-    ACCEPTED,    // Participant a accepté
-    DECLINED,    // Participant a décliné
-    TENTATIVE    // Participant est incertain
-}
-```
-
 ### MeetingReminder
 
+| Field | Type | Description | Constraints |
+|-------|------|-------------|-------------|
+| `id` | string (UUID) | Unique identifier | Required |
+| `meetingId` | string | Associated meeting ID | Required |
+| `participantId` | string? | Participant ID (null for all) | Optional |
+| `timing` | ReminderTiming | When to send reminder | Required |
+| `scheduledFor` | Instant | Scheduled send time | Required |
+| `sentAt` | Instant? | Actual send time | Optional |
+| `status` | ReminderStatus | Reminder status | Required |
+
 ```kotlin
-enum class MeetingReminderTiming {
+enum class ReminderTiming {
     ONE_DAY_BEFORE,
     ONE_HOUR_BEFORE,
     FIFTEEN_MINUTES_BEFORE,
     FIVE_MINUTES_BEFORE
+}
+
+enum class ReminderStatus {
+    SCHEDULED,
+    SENT,
+    FAILED
 }
 
 @Serializable
@@ -112,55 +321,165 @@ data class MeetingReminder(
     val id: String,
     val meetingId: String,
     val participantId: String?,
-    val timing: MeetingReminderTiming,
+    val timing: ReminderTiming,
     val scheduledFor: Instant,
     val sentAt: Instant?,
     val status: ReminderStatus
 )
+```
 
-enum class ReminderStatus {
-    SCHEDULED,
-    SENT,
-    FAILED
+## API / Interface
+
+### REST API Endpoints
+
+> Base path: `/api/meetings/proxy`
+> These endpoints act as a secure proxy to external platform APIs
+
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| POST /api/meetings/proxy/zoom/create | POST | Create Zoom meeting | Yes |
+| POST /api/meetings/proxy/zoom/{meetingId}/cancel | POST | Cancel Zoom meeting | Yes |
+| GET /api/meetings/proxy/zoom/{meetingId}/status | GET | Get Zoom meeting status | Yes |
+| POST /api/meetings/proxy/google-meet/create | POST | Create Google Meet | Yes |
+
+### Create Zoom Meeting
+
+**Endpoint**: `POST /api/meetings/proxy/zoom/create`
+
+**Description**: Creates a new Zoom meeting via Zoom API. Server authenticates using JWT token generated from stored credentials.
+
+**Authentication**: Required
+
+**Request Parameters**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `title` | string | Yes | Meeting title (1-200 chars) |
+| `description` | string | No | Meeting description (max 5000 chars) |
+| `scheduledFor` | string | Yes | ISO-8601 datetime |
+| `duration` | int | Yes | Duration in minutes (1-1440) |
+| `timezone` | string | No | Timezone identifier (default: "UTC") |
+| `participantLimit` | int | No | Max participants (optional) |
+| `requirePassword` | boolean | No | Enable password (default: true) |
+| `waitingRoom` | boolean | No | Enable waiting room (default: true) |
+
+**Request Body**:
+```json
+{
+  "title": "Team Planning Session",
+  "description": "Q4 2026 planning meeting",
+  "scheduledFor": "2026-02-15T14:00:00Z",
+  "duration": 60,
+  "timezone": "Europe/Paris",
+  "participantLimit": 100,
+  "requirePassword": true,
+  "waitingRoom": true
 }
 ```
 
-## MeetingService
+**Response 200 OK**:
+```json
+{
+  "meetingId": "1234567890",
+  "joinUrl": "https://zoom.us/j/1234567890?pwd=ABC123",
+  "password": "ABC123",
+  "hostUrl": "https://zoom.us/j/1234567890?pwd=XYZ789",
+  "hostKey": "123456",
+  "dialInNumber": "+33 1 23 45 67 89",
+  "dialInPassword": "123456"
+}
+```
 
-### Responsibilities
+**Error Responses**:
+| Code | Description |
+|------|-------------|
+| 400 Bad Request | Invalid request parameters |
+| 429 Too Many Requests | Rate limit exceeded |
+| 503 Service Unavailable | Zoom API not configured |
 
-**Génération de liens de réunion**:
-- Zoom Meetings avec mot de passe
-- Google Meet (auto-généré)
-- FaceTime (Apple ID)
+### Cancel Zoom Meeting
 
-**Gestion des invitations**:
-- Invitations aux participants validés
-- Suivi des réponses (accepté/décliné)
-- Envoi automatique des détails
+**Endpoint**: `POST /api/meetings/proxy/zoom/{meetingId}/cancel`
 
-**Rappels automatiques**:
-- Planification des rappels
-- Notification avant la réunion
-- Gestion des fuseaux horaires
+**Description**: Cancels an existing Zoom meeting via Zoom API.
 
-**Platform-specific features**:
-- Waiting room
-- Host key
-- Participant limit
-- Dial-in (téléphone)
+**Authentication**: Required
 
-### API
+**Path Parameters**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `meetingId` | string | Yes | 10-digit Zoom meeting ID |
+
+**Response 200 OK**:
+```json
+{
+  "success": true,
+  "message": "Meeting 1234567890 cancelled successfully"
+}
+```
+
+### Get Zoom Meeting Status
+
+**Endpoint**: `GET /api/meetings/proxy/zoom/{meetingId}/status`
+
+**Description**: Retrieves current status of a Zoom meeting from Zoom API.
+
+**Authentication**: Required
+
+**Response 200 OK**:
+```json
+{
+  "meetingId": "1234567890",
+  "status": "scheduled",
+  "startTime": "2026-02-15T14:00:00Z",
+  "duration": 60,
+  "participantCount": 0
+}
+```
+
+### Create Google Meet Meeting
+
+**Endpoint**: `POST /api/meetings/proxy/google-meet/create`
+
+**Description**: Creates a Google Meet meeting via Google Calendar API with conference data.
+
+**Authentication**: Required
+
+**Request Parameters**:
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `title` | string | Yes | Meeting title (1-200 chars) |
+| `description` | string | No | Meeting description (max 5000 chars) |
+| `scheduledFor` | string | Yes | ISO-8601 datetime |
+| `duration` | int | Yes | Duration in minutes (1-1440) |
+| `timezone` | string | No | Timezone identifier (default: "UTC") |
+
+**Response 200 OK**:
+```json
+{
+  "meetingUrl": "https://meet.google.com/abc-def-ghi",
+  "meetingCode": "abc-def-ghi"
+}
+```
+
+### Kotlin Interface (for shared layer)
 
 ```kotlin
-class MeetingService(
-    private val database: WakevDb,
-    private val calendarService: CalendarService,
-    private val notificationService: NotificationService
-) {
-
+interface MeetingService {
     /**
-     * Crée une réunion virtuelle
+     * Creates a virtual meeting on the specified platform
+     *
+     * @param eventId Associated event ID
+     * @param organizerId Meeting organizer user ID
+     * @param platform Meeting platform to use
+     * @param title Meeting title
+     * @param description Optional meeting description
+     * @param scheduledFor When the meeting is scheduled
+     * @param duration Expected duration
+     * @param timezone Timezone for the meeting
+     * @param participantLimit Optional max participants
+     * @param requirePassword Whether password is required
+     * @param waitingRoom Whether waiting room is enabled
+     * @return Result<VirtualMeeting> success or failure
      */
     suspend fun createMeeting(
         eventId: String,
@@ -174,50 +493,17 @@ class MeetingService(
         participantLimit: Int? = null,
         requirePassword: Boolean = true,
         waitingRoom: Boolean = true
-    ): Result<VirtualMeeting> {
-        // Generate meeting based on platform
-        val meeting = when (platform) {
-            MeetingPlatform.ZOOM -> createZoomMeeting(
-                eventId = eventId,
-                organizerId = organizerId,
-                title = title,
-                description = description,
-                scheduledFor = scheduledFor,
-                duration = duration,
-                timezone = timezone,
-                participantLimit = participantLimit,
-                requirePassword = requirePassword,
-                waitingRoom = waitingRoom
-            )
-            MeetingPlatform.GOOGLE_MEET -> createGoogleMeetMeeting(
-                eventId = eventId,
-                organizerId = organizerId,
-                title = title,
-                description = description,
-                scheduledFor = scheduledFor,
-                duration = duration
-            )
-            MeetingPlatform.FACETIME -> createFaceTimeMeeting(
-                eventId = eventId,
-                organizerId = organizerId,
-                title = title,
-                description = description,
-                scheduledFor = scheduledFor
-            )
-            else -> return Result.failure(UnsupportedPlatformException(platform))
-        }
-
-        // Save to database
-        database.virtualMeetingQueries.insert(meeting)
-
-        // Schedule reminders
-        scheduleMeetingReminders(meeting)
-
-        return Result.success(meeting)
-    }
+    ): Result<VirtualMeeting>
 
     /**
-     * Met à jour une réunion existante
+     * Updates an existing meeting
+     *
+     * @param meetingId Meeting to update
+     * @param title New title
+     * @param description New description
+     * @param scheduledFor New scheduled time
+     * @param duration New duration
+     * @return Result<VirtualMeeting> updated meeting
      */
     suspend fun updateMeeting(
         meetingId: String,
@@ -225,333 +511,158 @@ class MeetingService(
         description: String? = null,
         scheduledFor: Instant? = null,
         duration: Duration? = null
-    ): Result<VirtualMeeting> {
-        val existing = database.virtualMeetingQueries
-            .selectById(meetingId)
-            .executeAsOneOrNull()
-            ?: return Result.failure(MeetingNotFoundException(meetingId))
-
-        val updated = existing.copy(
-            title = title ?: existing.title,
-            description = description ?: existing.description,
-            scheduledFor = scheduledFor ?: existing.scheduledFor,
-            duration = duration ?: existing.duration
-        )
-
-        database.virtualMeetingQueries.update(updated)
-
-        // Update calendar event
-        calendarService.updateNativeCalendarEvent(existing.eventId, existing.organizerId)
-
-        // Reschedule reminders
-        cancelMeetingReminders(meetingId)
-        scheduleMeetingReminders(updated)
-
-        return Result.success(updated)
-    }
+    ): Result<VirtualMeeting>
 
     /**
-     * Annule une réunion
+     * Cancels a meeting
+     *
+     * @param meetingId Meeting to cancel
+     * @return Result<Unit> success or failure
      */
-    suspend fun cancelMeeting(meetingId: String): Result<Unit> {
-        val meeting = database.virtualMeetingQueries
-            .selectById(meetingId)
-            .executeAsOneOrNull()
-            ?: return Result.failure(MeetingNotFoundException(meetingId))
-
-        val cancelled = meeting.copy(status = MeetingStatus.CANCELLED)
-        database.virtualMeetingQueries.update(cancelled)
-
-        // Cancel reminders
-        cancelMeetingReminders(meetingId)
-
-        // Cancel calendar event
-        calendarService.removeFromNativeCalendar(meeting.eventId, meeting.organizerId)
-
-        // Notify participants
-        notifyParticipantsMeetingCancelled(meeting)
-
-        return Result.success(Unit)
-    }
+    suspend fun cancelMeeting(meetingId: String): Result<Unit>
 
     /**
-     * Démarre une réunion
+     * Starts a meeting
+     *
+     * @param meetingId Meeting to start
+     * @return Result<VirtualMeeting> updated meeting
      */
-    suspend fun startMeeting(meetingId: String): Result<VirtualMeeting> {
-        val meeting = database.virtualMeetingQueries
-            .selectById(meetingId)
-            .executeAsOneOrNull()
-            ?: return Result.failure(MeetingNotFoundException(meetingId))
-
-        val started = meeting.copy(status = MeetingStatus.STARTED)
-        database.virtualMeetingQueries.update(started)
-
-        return Result.success(started)
-    }
+    suspend fun startMeeting(meetingId: String): Result<VirtualMeeting>
 
     /**
-     * Termine une réunion
+     * Ends a meeting
+     *
+     * @param meetingId Meeting to end
+     * @return Result<VirtualMeeting> updated meeting
      */
-    suspend fun endMeeting(meetingId: String): Result<VirtualMeeting> {
-        val meeting = database.virtualMeetingQueries
-            .selectById(meetingId)
-            .executeAsOneOrNull()
-            ?: return Result.failure(MeetingNotFoundException(meetingId))
-
-        val ended = meeting.copy(status = MeetingStatus.ENDED)
-        database.virtualMeetingQueries.update(ended)
-
-        return Result.success(ended)
-    }
+    suspend fun endMeeting(meetingId: String): Result<VirtualMeeting>
 
     /**
-     * Envoie des invitations aux participants
+     * Sends invitations to validated participants
+     *
+     * @param meetingId Meeting to invite participants to
+     * @return Result<Unit> success or failure
      */
-    suspend fun sendInvitations(meetingId: String): Result<Unit> {
-        val meeting = database.virtualMeetingQueries
-            .selectById(meetingId)
-            .executeAsOneOrNull()
-            ?: return Result.failure(MeetingNotFoundException(meetingId))
-
-        // Get validated participants
-        val participants = database.participantQueries
-            .selectByEventId(meeting.eventId)
-            .executeAsList()
-            .filter { it.isValidated } // Only invite validated participants
-
-        // Create invitations
-        participants.forEach { participant ->
-            val invitation = MeetingInvitation(
-                id = UUID.randomUUID().toString(),
-                meetingId = meetingId,
-                participantId = participant.id,
-                status = InvitationStatus.PENDING,
-                sentAt = Instant.now(),
-                respondedAt = null,
-                acceptedAt = null
-            )
-
-            database.meetingInvitationQueries.insert(invitation)
-
-            // Send notification
-            notificationService.sendNotification(
-                title = "Invitation: ${meeting.title}",
-                body = "Vous êtes invité à une réunion virtuelle le ${formatDate(meeting.scheduledFor, meeting.timezone)}",
-                recipientId = participant.id
-            )
-        }
-
-        // Add meeting details to calendar
-        calendarService.addToNativeCalendar(meeting.eventId, meeting.organizerId)
-
-        return Result.success(Unit)
-    }
+    suspend fun sendInvitations(meetingId: String): Result<Unit>
 
     /**
-     * Enregistre la réponse d'un participant
+     * Records participant response to invitation
+     *
+     * @param invitationId Invitation to respond to
+     * @param status Participant's response
+     * @return Result<Unit> success or failure
      */
     suspend fun respondToInvitation(
         invitationId: String,
         status: InvitationStatus
-    ): Result<Unit> {
-        val invitation = database.meetingInvitationQueries
-            .selectById(invitationId)
-            .executeAsOneOrNull()
-            ?: return Result.failure(InvitationNotFoundException(invitationId))
-
-        val updated = invitation.copy(
-            status = status,
-            respondedAt = Instant.now(),
-            acceptedAt = if (status == InvitationStatus.ACCEPTED) {
-                Instant.now()
-            } else {
-                null
-            }
-        )
-
-        database.meetingInvitationQueries.update(updated)
-
-        return Result.success(Unit)
-    }
-
-    /**
-     * Planifie les rappels pour une réunion
-     */
-    private suspend fun scheduleMeetingReminders(meeting: VirtualMeeting) {
-        val timings = listOf(
-            MeetingReminderTiming.ONE_DAY_BEFORE,
-            MeetingReminderTiming.ONE_HOUR_BEFORE,
-            MeetingReminderTiming.FIFTEEN_MINUTES_BEFORE,
-            MeetingReminderTiming.FIVE_MINUTES_BEFORE
-        )
-
-        val participants = database.participantQueries
-            .selectByEventId(meeting.eventId)
-            .executeAsList()
-
-        timings.forEach { timing ->
-            val scheduledTime = when (timing) {
-                MeetingReminderTiming.ONE_DAY_BEFORE ->
-                    meeting.scheduledFor.minus(1, ChronoUnit.DAYS)
-                MeetingReminderTiming.ONE_HOUR_BEFORE ->
-                    meeting.scheduledFor.minus(1, ChronoUnit.HOURS)
-                MeetingReminderTiming.FIFTEEN_MINUTES_BEFORE ->
-                    meeting.scheduledFor.minus(15, ChronoUnit.MINUTES)
-                MeetingReminderTiming.FIVE_MINUTES_BEFORE ->
-                    meeting.scheduledFor.minus(5, ChronoUnit.MINUTES)
-            }
-
-            participants.forEach { participant ->
-                val reminder = MeetingReminder(
-                    id = UUID.randomUUID().toString(),
-                    meetingId = meeting.id,
-                    participantId = participant.id,
-                    timing = timing,
-                    scheduledFor = scheduledTime,
-                    sentAt = null,
-                    status = ReminderStatus.SCHEDULED
-                )
-
-                database.meetingReminderQueries.insert(reminder)
-            }
-        }
-    }
-
-    /**
-     * Annule les rappels d'une réunion
-     */
-    private suspend fun cancelMeetingReminders(meetingId: String) {
-        database.meetingReminderQueries
-            .deleteByMeetingId(meetingId)
-    }
-
-    private fun createZoomMeeting(/* ... */): VirtualMeeting {
-        // Generate Zoom meeting ID and password
-        val meetingId = generateZoomMeetingId() // 10 digits
-        val meetingPassword = generateRandomPassword(6)
-
-        val meetingUrl = "https://zoom.us/j/${meetingId}?pwd=${meetingPassword}"
-
-        return VirtualMeeting(
-            id = UUID.randomUUID().toString(),
-            eventId = eventId,
-            organizerId = organizerId,
-            platform = MeetingPlatform.ZOOM,
-            meetingId = meetingId,
-            meetingPassword = meetingPassword,
-            meetingUrl = meetingUrl,
-            dialInNumber = "+33 1 23 45 67 89", // Mock
-            dialInPassword = meetingId.substring(0, 6), // Mock
-            title = title,
-            description = description,
-            scheduledFor = scheduledFor,
-            duration = duration,
-            timezone = timezone,
-            participantLimit = participantLimit,
-            requirePassword = requirePassword,
-            waitingRoom = waitingRoom,
-            hostKey = generateHostKey(), // Mock
-            createdAt = Instant.now(),
-            status = MeetingStatus.SCHEDULED
-        )
-    }
-
-    private fun createGoogleMeetMeeting(/* ... */): VirtualMeeting {
-        // Generate Google Meet code (10 letters)
-        val meetCode = generateMeetCode()
-
-        val meetingUrl = "https://meet.google.com/${meetCode}"
-
-        return VirtualMeeting(
-            id = UUID.randomUUID().toString(),
-            eventId = eventId,
-            organizerId = organizerId,
-            platform = MeetingPlatform.GOOGLE_MEET,
-            meetingId = meetCode,
-            meetingPassword = null,
-            meetingUrl = meetingUrl,
-            dialInNumber = null,
-            dialInPassword = null,
-            title = title,
-            description = description,
-            scheduledFor = scheduledFor,
-            duration = duration,
-            timezone = timezone,
-            participantLimit = null,
-            requirePassword = false,
-            waitingRoom = false,
-            hostKey = null,
-            createdAt = Instant.now(),
-            status = MeetingStatus.SCHEDULED
-        )
-    }
-
-    private fun createFaceTimeMeeting(/* ... */): VirtualMeeting {
-        // FaceTime uses Apple ID or phone number
-        // For group FaceTime, all participants need Apple IDs
-        val meetingUrl = "facetime://" // App handles this
-
-        return VirtualMeeting(
-            id = UUID.randomUUID().toString(),
-            eventId = eventId,
-            organizerId = organizerId,
-            platform = MeetingPlatform.FACETIME,
-            meetingId = organizerId, // Use organizer's Apple ID
-            meetingPassword = null,
-            meetingUrl = meetingUrl,
-            dialInNumber = null,
-            dialInPassword = null,
-            title = title,
-            description = description,
-            scheduledFor = scheduledFor,
-            duration = duration,
-            timezone = timezone,
-            participantLimit = null,
-            requirePassword = false,
-            waitingRoom = false,
-            hostKey = null,
-            createdAt = Instant.now(),
-            status = MeetingStatus.SCHEDULED
-        )
-    }
-
-    private fun generateZoomMeetingId(): String {
-        return (1..10).map { Random.nextInt(0, 10) }.joinToString("")
-    }
-
-    private fun generateRandomPassword(length: Int): String {
-        val chars = ('a'..'z') + ('A'..'Z') + ('0'..'9')
-        return (1..length).map { chars.random() }.joinToString("")
-    }
-
-    private fun generateHostKey(): String {
-        return (1..6).map { Random.nextInt(0, 10) }.joinToString("")
-    }
-
-    private fun generateMeetCode(): String {
-        val letters = "abcdefghijklmnopqrstuvwxyz-"
-        return (1..10).map { letters.random() }.joinToString("").substring(0, 3) +
-               "-" +
-               (1..4).map { letters.random() }.joinToString("")
-    }
-
-    private fun formatDate(instant: Instant, timezone: String): String {
-        // Format date according to timezone
-        val zonedDateTime = instant.atZone(ZoneId.of(timezone))
-        val formatter = DateTimeFormatter.ofPattern("dd MMM à HH:mm")
-        return zonedDateTime.format(formatter)
-    }
-
-    private fun notifyParticipantsMeetingCancelled(meeting: VirtualMeeting) {
-        // TODO: Integrate with NotificationService
-        // notificationService.notifyMeetingCancelled(meeting)
-    }
+    ): Result<Unit>
 }
 ```
 
-## Database Schema
+## Security
 
-### VirtualMeeting.sq
+### Authentication Requirements
+
+- All proxy endpoints require authentication via Bearer token
+- Static user IDs in Phase 2 (development)
+- OAuth2 authentication planned for Phase 3
+
+### Authorization Requirements
+
+| Role | Create | Read | Update | Delete | Special Operations |
+|------|--------|------|--------|--------|-------------------|
+| Organizer | Yes | Yes | Yes | Yes | Send invitations |
+| Participant | No | Yes | No | No | Respond to invitations |
+| Guest | No | Limited | No | No | None |
+
+### Data Protection
+
+- API keys stored in server environment variables only
+- Never expose API keys or secrets to clients
+- All meeting creation events logged for audit
+- Zoom/Google credentials encrypted at rest
+
+### Validation Rules
+
+- Title: 1-200 characters, non-blank
+- Description: Max 5000 characters
+- Duration: 1-1440 minutes (24 hours max)
+- Rate limiting: 100 requests per hour per user per platform
+- Input sanitization for all user-provided fields
+
+### API Key Management
+
+The system manages external platform credentials via environment variables:
+
+```bash
+# Zoom API credentials (JWT app type)
+ZOOM_API_KEY=your_zoom_api_key_here
+ZOOM_API_SECRET=your_zoom_api_secret_here
+
+# Google Meet credentials (service account JSON)
+GOOGLE_MEET_CREDENTIALS='{"type":"service_account","project_id":"..."}'
+```
+
+**Credential Management Best Practices**:
+- Rotate credentials every 90 days
+- Use separate credentials for dev/staging/production
+- Never commit credentials to version control
+- Use secret management services (AWS Secrets Manager, Azure Key Vault)
+- Implement credential health checks
+
+## State Machine Integration
+
+### Intents
+
+```kotlin
+sealed interface MeetingIntent : Intent {
+    data class CreateMeeting(
+        val eventId: String,
+        val platform: MeetingPlatform,
+        val title: String,
+        val scheduledFor: Instant,
+        val duration: Duration
+    ) : MeetingIntent
+
+    data class UpdateMeeting(
+        val meetingId: String,
+        val title: String? = null,
+        val scheduledFor: Instant? = null
+    ) : MeetingIntent
+
+    data class CancelMeeting(val meetingId: String) : MeetingIntent
+
+    data class SendInvitations(val meetingId: String) : MeetingIntent
+
+    data class RespondToInvitation(
+        val invitationId: String,
+        val status: InvitationStatus
+    ) : MeetingIntent
+}
+```
+
+### State
+
+```kotlin
+data class MeetingState(
+    val meetings: List<VirtualMeeting> = emptyList(),
+    val invitations: List<MeetingInvitation> = emptyList(),
+    val loading: Boolean = false,
+    val error: String? = null
+)
+```
+
+### Side Effects
+
+| Intent | Side Effect | Description |
+|--------|-------------|-------------|
+| CreateMeeting | ShowToast("Meeting created") | Success notification |
+| CreateMeeting | NavigateTo("meeting-detail") | After successful creation |
+| CancelMeeting | ShowToast("Meeting cancelled") | Success notification |
+| CancelMeeting | NotifyParticipants() | Notify all participants |
+| SendInvitations | ShowToast("Invitations sent") | Success notification |
+
+## Database Schema
 
 ```sql
 CREATE TABLE virtual_meeting (
@@ -584,28 +695,6 @@ CREATE INDEX idx_virtual_meeting_organizer ON virtual_meeting(organizer_id);
 CREATE INDEX idx_virtual_meeting_status ON virtual_meeting(status);
 CREATE INDEX idx_virtual_meeting_scheduled_for ON virtual_meeting(scheduled_for);
 
-insertVirtualMeeting:
-INSERT INTO virtual_meeting (id, event_id, organizer_id, platform, meeting_id, meeting_password, meeting_url, dial_in_number, dial_in_password, title, description, scheduled_for, duration, timezone, participant_limit, require_password, waiting_room, host_key, created_at, status)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-
-updateVirtualMeeting:
-UPDATE virtual_meeting
-SET title = ?, description = ?, scheduled_for = ?, duration = ?, status = ?
-WHERE id = ?;
-
-selectById:
-SELECT * FROM virtual_meeting WHERE id = ?;
-
-selectByEventId:
-SELECT * FROM virtual_meeting WHERE event_id = ?;
-
-selectByOrganizerId:
-SELECT * FROM virtual_meeting WHERE organizer_id = ?;
-```
-
-### MeetingInvitation.sq
-
-```sql
 CREATE TABLE meeting_invitation (
     id TEXT PRIMARY KEY,
     meeting_id TEXT NOT NULL,
@@ -621,30 +710,7 @@ CREATE TABLE meeting_invitation (
 
 CREATE INDEX idx_meeting_invitation_meeting ON meeting_invitation(meeting_id);
 CREATE INDEX idx_meeting_invitation_participant ON meeting_invitation(participant_id);
-CREATE INDEX idx_meeting_invitation_status ON meeting_invitation(status);
 
-insertMeetingInvitation:
-INSERT INTO meeting_invitation (id, meeting_id, participant_id, status, sent_at, responded_at, accepted_at)
-VALUES (?, ?, ?, ?, ?, ?, ?);
-
-updateMeetingInvitation:
-UPDATE meeting_invitation
-SET status = ?, responded_at = ?, accepted_at = ?
-WHERE id = ?;
-
-selectById:
-SELECT * FROM meeting_invitation WHERE id = ?;
-
-selectByMeetingId:
-SELECT * FROM meeting_invitation WHERE meeting_id = ?;
-
-selectByParticipantId:
-SELECT * FROM meeting_invitation WHERE participant_id = ?;
-```
-
-### MeetingReminder.sq
-
-```sql
 CREATE TABLE meeting_reminder (
     id TEXT PRIMARY KEY,
     meeting_id TEXT NOT NULL,
@@ -658,473 +724,312 @@ CREATE TABLE meeting_reminder (
 );
 
 CREATE INDEX idx_meeting_reminder_meeting ON meeting_reminder(meeting_id);
-CREATE INDEX idx_meeting_reminder_participant ON meeting_reminder(participant_id);
 CREATE INDEX idx_meeting_reminder_scheduled_for ON meeting_reminder(scheduled_for);
-CREATE INDEX idx_meeting_reminder_status ON meeting_reminder(status);
-
-insertMeetingReminder:
-INSERT INTO meeting_reminder (id, meeting_id, participant_id, timing, scheduled_for, sent_at, status)
-VALUES (?, ?, ?, ?, ?, ?, ?);
-
-updateMeetingReminder:
-UPDATE meeting_reminder
-SET status = ?, sent_at = ?
-WHERE id = ?;
-
-selectByMeetingId:
-SELECT * FROM meeting_reminder WHERE meeting_id = ?;
-
-selectPendingForParticipant:
-SELECT * FROM meeting_reminder WHERE participant_id = ? AND status = 'SCHEDULED';
-
-deleteByMeetingId:
-DELETE FROM meeting_reminder WHERE meeting_id = ?;
 ```
 
-## API Endpoints
-
-```
-POST   /api/events/{id}/meetings                    # Créer réunion
-GET    /api/events/{id}/meetings                    # Liste réunions événement
-GET    /api/meetings/{meetingId}                     # Détails réunion
-PUT    /api/meetings/{meetingId}                     # Mettre à jour réunion
-DELETE /api/meetings/{meetingId}                     # Annuler réunion
-POST   /api/meetings/{meetingId}/start               # Démarrer réunion
-POST   /api/meetings/{meetingId}/end                 # Terminer réunion
-POST   /api/meetings/{meetingId}/invitations          # Envoyer invitations
-PUT    /api/meetings/invitations/{invitationId}/respond  # Répondre invitation
-GET    /api/meetings/{meetingId}/invitations          # Liste invitations
-GET    /api/meetings/{meetingId}/reminders           # Liste rappels
-POST   /api/meetings/{meetingId}/platforms          # Générer lien plateforme
-```
-
-## Scenarios
-
-### SCENARIO 1: Create Zoom Meeting
-
-**GIVEN**: Organisateur crée événement
-**WHEN**: Organisateur crée réunion Zoom
-**THEN**: Système génère:
-  - Meeting ID: 1234567890
-  - Password: abc123
-  - URL: https://zoom.us/j/1234567890?pwd=abc123
-  - Waiting room: enabled
-  - Host key: 654321
-**AND**: Réunion sauvegardée en base
-**AND**: Rappels planifiés
-
-```kotlin
-val meeting = meetingService.createMeeting(
-    eventId = "event-1",
-    organizerId = "organizer-1",
-    platform = MeetingPlatform.ZOOM,
-    title = "Team Planning Session",
-    description = "Planification de l'événement",
-    scheduledFor = Instant.parse("2025-12-27T10:00:00Z"),
-    duration = Duration.ofHours(1),
-    timezone = "Europe/Paris",
-    requirePassword = true,
-    waitingRoom = true
-)
-
-assertTrue(meeting.isSuccess)
-val result = meeting.getOrThrow()
-assertEquals(result.platform, MeetingPlatform.ZOOM)
-assertTrue(result.meetingId.length == 10)
-assertTrue(result.meetingPassword?.length == 6)
-assertTrue(result.waitingRoom)
-```
-
-### SCENARIO 2: Create Google Meet
-
-**GIVEN**: Organisateur préfère Google Meet
-**WHEN**: Organisateur crée réunion Google Meet
-**THEN**: Système génère:
-  - Meet Code: abc-defgh
-  - URL: https://meet.google.com/abc-defgh
-  - Pas de mot de passe
-  - Pas de waiting room
-
-```kotlin
-val meeting = meetingService.createMeeting(
-    eventId = "event-1",
-    organizerId = "organizer-1",
-    platform = MeetingPlatform.GOOGLE_MEET,
-    title = "Team Planning Session",
-    description = null,
-    scheduledFor = Instant.parse("2025-12-27T10:00:00Z"),
-    duration = Duration.ofHours(1),
-    timezone = "Europe/Paris"
-)
-
-assertTrue(meeting.isSuccess)
-val result = meeting.getOrThrow()
-assertEquals(result.platform, MeetingPlatform.GOOGLE_MEET)
-assertTrue(result.meetingId.contains("-"))
-assertNull(result.meetingPassword)
-assertFalse(result.waitingRoom)
-```
-
-### SCENARIO 3: Create FaceTime Meeting
-
-**GIVEN**: Organisateur et participants Apple
-**WHEN**: Organisateur crée réunion FaceTime
-**THEN**: Système génère:
-  - Meeting ID: Apple ID de l'organisateur
-  - URL: facetime://
-  - Pas de mot de passe
-  - Pas de participant limit
-
-```kotlin
-val meeting = meetingService.createMeeting(
-    eventId = "event-1",
-    organizerId = "organizer-appleid@icloud.com",
-    platform = MeetingPlatform.FACETIME,
-    title = "Team Planning Session",
-    description = null,
-    scheduledFor = Instant.parse("2025-12-27T10:00:00Z"),
-    duration = Duration.ofHours(1),
-    timezone = "Europe/Paris"
-)
-
-assertTrue(meeting.isSuccess)
-val result = meeting.getOrThrow()
-assertEquals(result.platform, MeetingPlatform.FACETIME)
-assertEquals(result.meetingId, "organizer-appleid@icloud.com")
-assertNull(result.meetingPassword)
-```
-
-### SCENARIO 4: Send Invitations
-
-**GIVEN**: Réunion créée avec 3 participants validés
-**WHEN**: Organisateur envoie invitations
-**THEN**: Système envoie:
-  - Notifications à tous les participants validés
-  - Statut: PENDING
-  - Ajout au calendrier natif
-**AND**: Enregistre invitations en base
-
-```kotlin
-meetingService.sendInvitations("meeting-1")
-
-val invitations = database.meetingInvitationQueries
-    .selectByMeetingId("meeting-1")
-    .executeAsList()
-
-assertTrue(invitations.size == 3)
-assertTrue(invitations.all { it.status == InvitationStatus.PENDING })
-```
-
-### SCENARIO 5: Respond to Invitation
-
-**GIVEN**: Participant reçoit invitation
-**WHEN**: Participant accepte l'invitation
-**THEN**: Statut mis à jour: ACCEPTED
-**AND**: Date d'acceptation enregistrée
-**AND**: Rappels planifiés pour ce participant
-
-```kotlin
-meetingService.respondToInvitation(
-    invitationId = "invitation-1",
-    status = InvitationStatus.ACCEPTED
-)
-
-val invitation = database.meetingInvitationQueries
-    .selectById("invitation-1")
-    .executeAsOne()
-
-assertEquals(invitation.status, InvitationStatus.ACCEPTED)
-assertNotNull(invitation.acceptedAt)
-```
-
-### SCENARIO 6: Cancel Meeting
-
-**GIVEN**: Réunion planifiée
-**WHEN**: Organisateur annule la réunion
-**THEN**: Statut: CANCELLED
-**AND**: Rappels annulés
-**AND**: Participants notifiés
-**AND**: Événement supprimé du calendrier
-
-```kotlin
-meetingService.cancelMeeting("meeting-1")
-
-val meeting = database.virtualMeetingQueries
-    .selectById("meeting-1")
-    .executeAsOne()
-
-assertEquals(meeting.status, MeetingStatus.CANCELLED)
-```
-
-### SCENARIO 7: Meeting Reminders
-
-**GIVEN**: Réunion planifiée pour demain à 10h
-**WHEN**: Rappels planifiés
-**THEN**: Rappels à:
-  - J-1: 27 déc à 10h
-  - J: 28 déc à 9h
-  - J: 28 déc à 9:45
-  - J: 28 déc à 9:55
-**AND**: Notifications envoyées aux participants
-
-```kotlin
-val meeting = meetingService.createMeeting(
-    // ... parameters
-    scheduledFor = Instant.parse("2025-12-28T10:00:00Z"),
-    timezone = "Europe/Paris"
-)
-
-val reminders = database.meetingReminderQueries
-    .selectByMeetingId(meeting.getOrThrow().id)
-    .executeAsList()
-
-assertTrue(reminders.size == 4 * 3) // 4 timings * 3 participants
-assertTrue(reminders.any { it.timing == MeetingReminderTiming.ONE_DAY_BEFORE })
-assertTrue(reminders.any { it.timing == MeetingReminderTiming.ONE_HOUR_BEFORE })
-```
-
-## Testing
+## Testing Requirements
 
 ### Unit Tests
 
+- Meeting creation (3 tests)
+  - Create Zoom meeting generates valid ID and password
+  - Create Google Meet generates valid code
+  - Create FaceTime uses Apple ID
+- Meeting lifecycle (3 tests)
+  - Update meeting modifies fields
+  - Cancel meeting updates status
+  - Status transitions are valid
+- Invitations (2 tests)
+  - Send invitations only to validated participants
+  - Respond to invitation updates status
+- Reminders (1 test)
+  - Schedule reminders creates all timing variants
+
+**Coverage Target**: 85%
+
+### Integration Tests
+
+- Zoom API integration: Create, update, cancel via Zoom API
+- Google Meet API integration: Create via Calendar API
+- Rate limiting: Enforce per-user limits
+- Error handling: Handle API failures gracefully
+
+### Test Commands
+
+```bash
+# Run unit tests
+./gradlew shared:allTests
+
+# Run integration tests
+./gradlew server:integrationTest
+```
+
+### Test Scenarios
+
+#### Scenario: Create Zoom meeting
+
 ```kotlin
-class MeetingServiceTest {
-    @Test
-    fun `createZoomMeeting generates valid meeting ID and password`() {
-        // When
-        val result = meetingService.createMeeting(
-            eventId = "event-1",
-            organizerId = "org-1",
-            platform = MeetingPlatform.ZOOM,
-            title = "Test Meeting",
-            description = null,
-            scheduledFor = Instant.now(),
-            duration = Duration.ofHours(1),
-            timezone = "Europe/Paris"
-        )
+@Test
+fun `createZoomMeeting generates valid meeting ID and password`() {
+    // Given
+    val eventId = "event-1"
+    val organizerId = "org-1"
 
-        // Then
-        assertTrue(result.isSuccess)
-        val meeting = result.getOrThrow()
-        assertEquals(meeting.platform, MeetingPlatform.ZOOM)
-        assertTrue(meeting.meetingId.length == 10)
-        assertTrue(meeting.meetingPassword?.length == 6)
-        assertTrue(meeting.meetingUrl.contains("zoom.us/j/"))
-    }
+    // When
+    val result = meetingService.createMeeting(
+        eventId = eventId,
+        organizerId = organizerId,
+        platform = MeetingPlatform.ZOOM,
+        title = "Test Meeting",
+        description = null,
+        scheduledFor = Instant.now(),
+        duration = Duration.ofHours(1),
+        timezone = "Europe/Paris"
+    )
 
-    @Test
-    fun `createGoogleMeet generates valid meet code`() {
-        // When
-        val result = meetingService.createMeeting(
-            eventId = "event-1",
-            organizerId = "org-1",
-            platform = MeetingPlatform.GOOGLE_MEET,
-            title = "Test Meeting",
-            description = null,
-            scheduledFor = Instant.now(),
-            duration = Duration.ofHours(1),
-            timezone = "Europe/Paris"
-        )
-
-        // Then
-        assertTrue(result.isSuccess)
-        val meeting = result.getOrThrow()
-        assertEquals(meeting.platform, MeetingPlatform.GOOGLE_MEET)
-        assertTrue(meeting.meetingId.contains("-"))
-        assertTrue(meeting.meetingUrl.contains("meet.google.com/"))
-        assertNull(meeting.meetingPassword)
-    }
-
-    @Test
-    fun `sendInvitations only invites validated participants`() {
-        // Given
-        val event = createTestEvent()
-        val validatedParticipant = createTestParticipant(event.id, isValidated = true)
-        val unvalidatedParticipant = createTestParticipant(event.id, isValidated = false)
-
-        // When
-        val result = meetingService.sendInvitations(meetingId = "meeting-1")
-
-        // Then
-        assertTrue(result.isSuccess)
-
-        val invitations = database.meetingInvitationQueries
-            .selectByMeetingId("meeting-1")
-            .executeAsList()
-
-        assertTrue(invitations.any { it.participantId == validatedParticipant.id })
-        assertFalse(invitations.any { it.participantId == unvalidatedParticipant.id })
-    }
-
-    @Test
-    fun `respondToInvitation updates status and timestamps`() {
-        // Given
-        val invitation = createTestInvitation(status = InvitationStatus.PENDING)
-
-        // When
-        meetingService.respondToInvitation(
-            invitationId = invitation.id,
-            status = InvitationStatus.ACCEPTED
-        )
-
-        // Then
-        val updated = database.meetingInvitationQueries
-            .selectById(invitation.id)
-            .executeAsOne()
-
-        assertEquals(updated.status, InvitationStatus.ACCEPTED)
-        assertNotNull(updated.respondedAt)
-        assertNotNull(updated.acceptedAt)
-    }
-
-    @Test
-    fun `cancelMeeting updates status and cancels reminders`() {
-        // Given
-        val meeting = createTestMeeting(status = MeetingStatus.SCHEDULED)
-        createTestReminders(meeting.id, count = 4)
-
-        // When
-        meetingService.cancelMeeting(meeting.id)
-
-        // Then
-        val updated = database.virtualMeetingQueries
-            .selectById(meeting.id)
-            .executeAsOne()
-
-        assertEquals(updated.status, MeetingStatus.CANCELLED)
-
-        val reminders = database.meetingReminderQueries
-            .selectByMeetingId(meeting.id)
-            .executeAsList()
-
-        assertTrue(reminders.isEmpty())
-    }
-
-    @Test
-    fun `startMeeting updates status to STARTED`() {
-        // Given
-        val meeting = createTestMeeting(status = MeetingStatus.SCHEDULED)
-
-        // When
-        val result = meetingService.startMeeting(meeting.id)
-
-        // Then
-        assertTrue(result.isSuccess)
-        val updated = result.getOrThrow()
-        assertEquals(updated.status, MeetingStatus.STARTED)
-    }
-
-    @Test
-    fun `endMeeting updates status to ENDED`() {
-        // Given
-        val meeting = createTestMeeting(status = MeetingStatus.STARTED)
-
-        // When
-        val result = meetingService.endMeeting(meeting.id)
-
-        // Then
-        assertTrue(result.isSuccess)
-        val updated = result.getOrThrow()
-        assertEquals(updated.status, MeetingStatus.ENDED)
-    }
-
-    @Test
-    fun `scheduleMeetingReminders creates reminders for all timings`() {
-        // Given
-        val meeting = createTestMeeting(
-            scheduledFor = Instant.parse("2025-12-28T10:00:00Z"),
-            timezone = "Europe/Paris"
-        )
-
-        // When
-        meetingService.scheduleMeetingReminders(meeting)
-
-        // Then
-        val reminders = database.meetingReminderQueries
-            .selectByMeetingId(meeting.id)
-            .executeAsList()
-
-        assertTrue(reminders.isNotEmpty())
-        assertTrue(reminders.any { it.timing == MeetingReminderTiming.ONE_DAY_BEFORE })
-        assertTrue(reminders.any { it.timing == MeetingReminderTiming.ONE_HOUR_BEFORE })
-        assertTrue(reminders.any { it.timing == MeetingReminderTiming.FIFTEEN_MINUTES_BEFORE })
-        assertTrue(reminders.any { it.timing == MeetingReminderTiming.FIVE_MINUTES_BEFORE })
-    }
+    // Then
+    assertTrue(result.isSuccess)
+    val meeting = result.getOrThrow()
+    assertEquals(meeting.platform, MeetingPlatform.ZOOM)
+    assertTrue(meeting.meetingId.length == 10)
+    assertTrue(meeting.meetingPassword?.length == 6)
+    assertTrue(meeting.meetingUrl.contains("zoom.us/j/"))
 }
 ```
 
-## Platform-Specific Features
+## Platform-Specific Implementation
 
-### Zoom
-- **Meeting ID**: 10 digits (ex: 1234567890)
-- **Password**: 6 characters alphanumeric
-- **Waiting Room**: Optional, enabled by default
-- **Host Key**: 6 digits for in-meeting controls
-- **Dial-in**: Phone number with PIN
-- **Participant Limit**: Optional
+### Shared Layer
 
-### Google Meet
-- **Meet Code**: 10 characters with dash (ex: abc-defgh)
-- **No Password**: No password required
-- **No Waiting Room**: No waiting room feature
-- **No Dial-in**: No phone dial-in
-- **Participant Limit**: Optional
+- `shared/src/commonMain/kotlin/com/guyghost/wakeve/meeting/MeetingService.kt`
+- `shared/src/commonMain/kotlin/com/guyghost/wakeve/meeting/MeetingPlatformProvider.kt`
 
-### FaceTime
-- **Meeting ID**: Apple ID of organizer
-- **Group FaceTime**: Requires all participants have Apple IDs
-- **No Password**: No password required
-- **No Waiting Room**: No waiting room feature
-- **No Participant Limit**: No limit
+### Server (Backend Proxy)
 
-## Error Handling
+- `server/src/main/kotlin/com/guyghost/wakeve/routes/MeetingProxyRoutes.kt`
+- `server/src/main/kotlin/com/guyghost/wakeve/service/ZoomApiClient.kt`
+- `server/src/main/kotlin/com/guyghost/wakeve/service/GoogleMeetApiClient.kt`
+
+### Android
+
+- `wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meeting/MeetingListScreen.kt`
+- `wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meeting/MeetingCreateScreen.kt`
+
+### iOS
+
+- `wakeveApp/wakeveApp/Views/MeetingListView.swift`
+- `wakeveApp/wakeveApp/Views/MeetingEditSheet.swift`
+
+## Production Implementation Details
+
+### Zoom OAuth Flow
+
+The Zoom integration uses JWT-based Server-to-Server OAuth:
+
+1. **Token Generation**: Server generates JWT token using API Key and Secret
+2. **API Authentication**: JWT token included as Bearer in Authorization header
+3. **Token Expiration**: Tokens valid for up to 1 hour
+4. **Token Renewal**: Generate new token when current expires
 
 ```kotlin
-class MeetingNotFoundException(meetingId: String) :
-    Exception("Meeting not found: $meetingId")
+// Production Zoom API call
+suspend fun createZoomMeeting(request: CreateZoomMeetingRequest): ZoomMeetingResponse {
+    val jwtToken = generateZoomJWT(
+        apiKey = System.getenv("ZOOM_API_KEY"),
+        apiSecret = System.getenv("ZOOM_API_SECRET")
+    )
 
-class InvitationNotFoundException(invitationId: String) :
-    Exception("Invitation not found: $invitationId")
+    val response = httpClient.post("https://api.zoom.us/v2/users/me/meetings") {
+        headers {
+            append("Authorization", "Bearer $jwtToken")
+            append("Content-Type", "application/json")
+        }
+        setBody(
+            buildJsonObject {
+                put("topic", request.title)
+                put("type", 2) // Scheduled meeting
+                put("start_time", request.scheduledFor)
+                put("duration", request.duration)
+                put("timezone", request.timezone)
+                put("password", generateRandomPassword(6))
+                putJsonObject("settings") {
+                    put("join_before_host", true)
+                    put("waiting_room", request.waitingRoom)
+                }
+            }
+        )
+    }
 
-class UnsupportedPlatformException(platform: MeetingPlatform) :
-    Exception("Unsupported platform: $platform")
-
-class MeetingStartedException(meetingId: String) :
-    Exception("Meeting already started: $meetingId")
-
-class MeetingAlreadyEndedException(meetingId: String) :
-    Exception("Meeting already ended: $meetingId")
+    return parseZoomResponse(response)
+}
 ```
 
-## Limitations
+### Google Meet API Integration
 
-**Phase 1** (Current):
-1. **Mock platform APIs**: Pas d'intégration réelle avec Zoom/Google Meet
-2. **Pas de gestion de participants en direct**: Pas de mute/unmute, kick, etc.
-3. **Pas d'enregistrement**: Pas d'enregistrement automatique des réunions
-4. **FaceTime group limit**: Limitations Apple FaceTime
-5. **Pas de récurrentes**: Réunions uniques uniquement
+Google Meet is created via Google Calendar API with conference data:
 
-**Phase 2** (Future):
-1. **Intégration réelle APIs**:
-   - Zoom API pour création de réunions
-   - Google Calendar API pour Meet
-   - FaceTime intégration native
-2. **Gestion en direct**: Mute, kick, raise hand, etc.
-3. **Enregistrement**: Option d'enregistrement automatique
-4. **Réunions récurrentes**: Daily, weekly, monthly
-5. **Statistiques de participation**: Temps de présence, etc.
-6. **Intégration chat**: Chat intégré aux réunions
+1. **Service Account Auth**: Authenticate using service account JSON credentials
+2. **Calendar Event Creation**: Create event with conferenceData.createRequest
+3. **Meet URL Extraction**: Extract hangoutLink from response
 
-## Related Specs
+```kotlin
+// Production Google Meet API call
+suspend fun createGoogleMeet(request: CreateGoogleMeetRequest): GoogleMeetResponse {
+    val credentials = GoogleCredentials.fromStream(
+        System.getenv("GOOGLE_MEET_CREDENTIALS").byteInputStream()
+    )
+    credentials.refreshIfExpired()
+    val accessToken = credentials.accessToken.tokenValue
 
-- `event-organization/spec.md` - Main event management
-- `calendar-management/spec.md` - Calendar integration
-- `collaboration-management/spec.md` - Comments and notifications
-- `notification-management/spec.md` - Push notifications (future)
+    val response = httpClient.post("https://www.googleapis.com/calendar/v3/calendars/primary/events") {
+        headers {
+            append("Authorization", "Bearer $accessToken")
+            append("Content-Type", "application/json")
+        }
+        parameter("conferenceDataVersion", "1")
+        setBody(
+            buildJsonObject {
+                put("summary", request.title)
+                put("description", request.description)
+                putJsonObject("start") {
+                    put("dateTime", request.scheduledFor)
+                    put("timeZone", request.timezone)
+                }
+                putJsonObject("end") {
+                    put("dateTime", calculateEndTime(request.scheduledFor, request.duration))
+                    put("timeZone", request.timezone)
+                }
+                putJsonObject("conferenceData") {
+                    putJsonObject("createRequest") {
+                        put("requestId", UUID.randomUUID().toString())
+                        put("conferenceSolutionKey") {
+                            put("type", "hangoutsMeet")
+                        }
+                    }
+                }
+            }
+        )
+    }
+
+    return parseGoogleMeetResponse(response)
+}
+```
+
+### Rate Limiting Implementation
+
+Per-provider rate limiting using token bucket algorithm:
+
+```kotlin
+class RateLimiter(
+    private val maxRequests: Int,
+    private val perTimeWindow: Duration
+) {
+    private val buckets = ConcurrentHashMap<String, TokenBucket>()
+
+    fun checkLimit(userId: String, platform: MeetingPlatform): Boolean {
+        val key = "$userId:${platform.name}"
+        val bucket = buckets.getOrPut(key) { TokenBucket(maxRequests, perTimeWindow) }
+        return bucket.tryConsume()
+    }
+}
+
+// Usage in route
+post("/zoom/create") {
+    val userId = call.getUserId()
+    if (!rateLimiter.checkLimit(userId, MeetingPlatform.ZOOM)) {
+        return@post call.respond(
+            HttpStatusCode.TooManyRequests,
+            mapOf("error" to "rate_limit_exceeded")
+        )
+    }
+    // ... proceed with request
+}
+```
+
+### Meeting Lifecycle State Transitions
+
+```
+     ┌─────────────┐
+     │  SCHEDULED  │
+     └──────┬──────┘
+            │
+     ┌──────▼──────┐
+     │   STARTED   │
+     └──────┬──────┘
+            │
+     ┌──────▼──────┐
+     │    ENDED    │
+     └─────────────┘
+
+     ┌─────────────┐
+     │  SCHEDULED  │
+     └──────┬──────┘
+            │
+     ┌──────▼──────┐
+     │  CANCELLED  │
+     └─────────────┘
+```
+
+## Related Specifications
+
+- `event-organization`: Main event management
+- `calendar-management`: Calendar integration
+- `collaboration-management`: Participant and notification management
+- `notification-management`: Push notification service
+
+## Internationalization
+
+### User-Facing Strings
+
+| Key | English | French | Context |
+|-----|---------|--------|---------|
+| `meeting.create.title` | Create Meeting | Créer une réunion | Screen title |
+| `meeting.platform.zoom` | Zoom | Zoom | Platform option |
+| `meeting.platform.google` | Google Meet | Google Meet | Platform option |
+| `meeting.platform.facetime` | FaceTime | FaceTime | Platform option |
+| `meeting.reminder.one_day` | 1 day before | 1 jour avant | Reminder timing |
+| `meeting.reminder.one_hour` | 1 hour before | 1 heure avant | Reminder timing |
+| `meeting.error.zoom_not_configured` | Zoom is not configured | Zoom n'est pas configuré | Error message |
+
+## Performance Considerations
+
+- **Caching**: Cache meeting status for 5 minutes to reduce API calls
+- **Database Indexing**: Index on eventId, organizerId, status, scheduledFor
+- **Rate Limiting**: 100 requests per hour per user per platform
+- **Async Operations**: All external API calls are non-blocking
+- **Timeouts**: 30 second timeout for external API calls
+
+## Change History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0.0 | 2025-12-26 | Initial version (French) |
+| 2.0.0 | 2026-02-08 | Production implementation details, security model, rate limiting |
+
+## Acceptance Criteria
+
+- [x] Meeting creation via backend proxy
+- [x] Zoom API integration (mock)
+- [x] Google Meet API integration (mock)
+- [x] Rate limiting structure defined
+- [ ] Production Zoom API calls
+- [ ] Production Google Meet API calls
+- [ ] Per-user rate limiting enforcement
+- [ ] OAuth2 authentication
+- [ ] Calendar sync on all platforms
+- [ ] Complete test coverage
+
+## Success Metrics
+
+- API key security: 0 credential leaks
+- Meeting creation success rate: >99%
+- API response time: <500ms p95
+- Rate limiting effectiveness: 0 API bans
+- User satisfaction: >4.5/5
 
 ---
 
-**Version**: 1.0.0
-**Last Updated**: 26 décembre 2025
-**Maintainer**: Équipe Wakeve
+**Spec Version**: 2.0.0
+**Last Updated**: 2026-02-08
+**Status**: Active
+**Maintainer**: Wakeve Team

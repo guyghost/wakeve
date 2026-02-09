@@ -65,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.accommodation.AccommodationRepository
 import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.models.Accommodation
 import com.guyghost.wakeve.models.AccommodationType
@@ -86,6 +87,7 @@ import java.util.UUID
 @Composable
 fun AccommodationScreen(
     eventId: String,
+    accommodationRepository: AccommodationRepository,
     commentRepository: CommentRepository,
     onNavigateBack: () -> Unit,
     onNavigateToComments: (eventId: String, section: CommentSection, sectionItemId: String?) -> Unit
@@ -96,12 +98,13 @@ fun AccommodationScreen(
     var selectedAccommodation by remember { mutableStateOf<Accommodation?>(null) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var commentCount by remember { mutableIntStateOf(0) }
-    
-    // TODO: Load from repository
-    // LaunchedEffect(eventId) { accommodations = repository.getAccommodationsByEventId(eventId) }
-    
+
+    // Load accommodations from repository
     LaunchedEffect(eventId) {
+        isLoading = true
+        accommodations = accommodationRepository.getAccommodationsByEventId(eventId)
         commentCount = commentRepository.countCommentsBySection(eventId, CommentSection.ACCOMMODATION).toInt()
+        isLoading = false
     }
     
     Scaffold(
@@ -234,14 +237,20 @@ fun AccommodationScreen(
                 selectedAccommodation = null
             },
             onSave = { newAccommodation ->
-                // TODO: Save to repository
-                accommodations = accommodations + newAccommodation
+                if (selectedAccommodation == null) {
+                    // Create new accommodation
+                    accommodationRepository.createAccommodation(newAccommodation)
+                } else {
+                    // Update existing accommodation
+                    accommodationRepository.updateAccommodation(newAccommodation)
+                }
+                accommodations = accommodationRepository.getAccommodationsByEventId(eventId)
                 showAddDialog = false
                 selectedAccommodation = null
             }
         )
     }
-    
+
     // Delete Confirmation Dialog
     if (showDeleteDialog) {
         AlertDialog(
@@ -256,8 +265,8 @@ fun AccommodationScreen(
                 Button(
                     onClick = {
                         selectedAccommodation?.let { accommodation ->
-                            // TODO: Delete from repository
-                            accommodations = accommodations.filter { it.id != accommodation.id }
+                            accommodationRepository.deleteAccommodation(accommodation.id)
+                            accommodations = accommodationRepository.getAccommodationsByEventId(eventId)
                         }
                         showDeleteDialog = false
                         selectedAccommodation = null

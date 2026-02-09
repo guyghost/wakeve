@@ -1,5 +1,7 @@
 package com.guyghost.wakeve.ui.collaboration
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -11,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.theme.WakevColors
@@ -127,7 +130,7 @@ fun CommentInput(
                             val newCursorPos = lastAtIndex + username.length + 2 // +2 for "@" and space
                             textFieldValue = TextFieldValue(
                                 text = newText,
-                                selection = kotlinx.datetime.format.TextRange(newCursorPos, newCursorPos)
+                                selection = TextRange(newCursorPos, newCursorPos)
                             )
                             onTextChange(newText)
                             onShowMentionAutocompleteChange(false)

@@ -419,7 +419,7 @@ class ScenarioManagementStateMachine(
      * 1. Validate repositories are available
      * 2. Load the event
      * 3. Validate event status is COMPARING
-     * 4. Validate user is organizer (TODO: add userId parameter)
+     * 4. Validate user is organizer
      * 5. Load the scenario
      * 6. Update scenario status to SELECTED
      * 7. Update event status to CONFIRMED

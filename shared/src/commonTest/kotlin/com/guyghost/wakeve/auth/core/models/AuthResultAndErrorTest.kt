@@ -22,14 +22,15 @@ import kotlin.test.assertTrue
  * Tests for AuthResult sealed class.
  */
 class AuthResultTest {
+    private val now = 1000L
 
     @Test
     fun `Success isSuccess returns true`() {
         // Given
-        val user = User.createGuest("guest_123")
+        val user = User.createGuest("guest_123", now)
         val token = AuthToken.createLongLived("test_token")
         val result = Success(user, token)
-        
+
         // Then
         assertTrue(result.isSuccess)
         assertFalse(result.isGuest)
@@ -39,9 +40,9 @@ class AuthResultTest {
     @Test
     fun `Guest isGuest returns true`() {
         // Given
-        val guest = User.createGuest("guest_123")
+        val guest = User.createGuest("guest_123", now)
         val result = Guest(guest)
-        
+
         // Then
         assertFalse(result.isSuccess)
         assertTrue(result.isGuest)
@@ -52,7 +53,7 @@ class AuthResultTest {
     fun `Error isError returns true`() {
         // Given
         val result = Error(NetworkError)
-        
+
         // Then
         assertFalse(result.isSuccess)
         assertFalse(result.isGuest)
@@ -62,13 +63,13 @@ class AuthResultTest {
     @Test
     fun `userOrNull returns user for Success`() {
         // Given
-        val user = User.createAuthenticated("user_123", "test@example.com", "Test", EMAIL)
+        val user = User.createAuthenticated("user_123", "test@example.com", "Test", EMAIL, now)
         val token = AuthToken.createLongLived("test_token")
         val result = Success(user, token)
-        
+
         // When
         val retrievedUser = result.userOrNull
-        
+
         // Then
         assertEquals(user, retrievedUser)
     }
@@ -76,12 +77,12 @@ class AuthResultTest {
     @Test
     fun `userOrNull returns guestUser for Guest`() {
         // Given
-        val guest = User.createGuest("guest_123")
+        val guest = User.createGuest("guest_123", now)
         val result = Guest(guest)
-        
+
         // When
         val retrievedUser = result.userOrNull
-        
+
         // Then
         assertEquals(guest, retrievedUser)
     }
@@ -90,10 +91,10 @@ class AuthResultTest {
     fun `userOrNull returns null for Error`() {
         // Given
         val result = Error(NetworkError)
-        
+
         // When
         val retrievedUser = result.userOrNull
-        
+
         // Then
         assertNull(retrievedUser)
     }
@@ -101,13 +102,13 @@ class AuthResultTest {
     @Test
     fun `errorOrNull returns null for Success`() {
         // Given
-        val user = User.createGuest("guest_123")
+        val user = User.createGuest("guest_123", now)
         val token = AuthToken.createLongLived("test_token")
         val result = Success(user, token)
-        
+
         // When
         val error = result.errorOrNull
-        
+
         // Then
         assertNull(error)
     }
@@ -116,10 +117,10 @@ class AuthResultTest {
     fun `errorOrNull returns error for Error`() {
         // Given
         val result = Error(NetworkError)
-        
+
         // When
         val error = result.errorOrNull
-        
+
         // Then
         assertEquals(NetworkError, error)
     }
@@ -127,9 +128,9 @@ class AuthResultTest {
     @Test
     fun `companion factory methods create correct types`() {
         // Given
-        val user = User.createGuest("guest_123")
+        val user = User.createGuest("guest_123", now)
         val token = AuthToken.createLongLived("test_token")
-        
+
         // When
         val successResult = AuthResult.success(user, token)
         val guestResult = AuthResult.guest(user)
@@ -137,7 +138,7 @@ class AuthResultTest {
         val networkErrorResult = AuthResult.networkError()
         val invalidCredsResult = AuthResult.invalidCredentials()
         val invalidOTPResult = AuthResult.invalidOTP(2)
-        
+
         // Then
         assertTrue(successResult is Success)
         assertTrue(guestResult is Guest)

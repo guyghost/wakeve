@@ -15,15 +15,16 @@ import kotlin.test.assertTrue
  * These tests verify the pure data class and companion functions.
  */
 class UserTest {
+    private val now = 1000L
 
     @Test
     fun `createGuest creates guest user with null email and name`() {
         // Given
         val guestId = "guest_123"
-        
+
         // When
-        val guest = User.createGuest(guestId)
-        
+        val guest = User.createGuest(guestId, now)
+
         // Then
         assertEquals(guestId, guest.id)
         assertNull(guest.email)
@@ -31,6 +32,8 @@ class UserTest {
         assertEquals(GUEST, guest.authMethod)
         assertTrue(guest.isGuest)
         assertTrue(guest.canSync == false)
+        assertEquals(now, guest.createdAt)
+        assertEquals(now, guest.lastLoginAt)
     }
 
     @Test
@@ -39,10 +42,10 @@ class UserTest {
         val id = "user_123"
         val email = "test@example.com"
         val name = "Test User"
-        
+
         // When
-        val user = User.createAuthenticated(id, email, name, GOOGLE)
-        
+        val user = User.createAuthenticated(id, email, name, GOOGLE, now)
+
         // Then
         assertEquals(id, user.id)
         assertEquals(email, user.email)
@@ -50,16 +53,18 @@ class UserTest {
         assertEquals(GOOGLE, user.authMethod)
         assertFalse(user.isGuest)
         assertTrue(user.canSync)
+        assertEquals(now, user.createdAt)
+        assertEquals(now, user.lastLoginAt)
     }
 
     @Test
     fun `displayName returns Invité for guest users`() {
         // Given
-        val guest = User.createGuest("guest_123")
-        
+        val guest = User.createGuest("guest_123", now)
+
         // When
         val displayName = guest.displayName
-        
+
         // Then
         assertEquals("Invité", displayName)
     }
@@ -67,11 +72,11 @@ class UserTest {
     @Test
     fun `displayName returns name for authenticated users with name`() {
         // Given
-        val user = User.createAuthenticated("user_123", "test@example.com", "John Doe", GOOGLE)
-        
+        val user = User.createAuthenticated("user_123", "test@example.com", "John Doe", GOOGLE, now)
+
         // When
         val displayName = user.displayName
-        
+
         // Then
         assertEquals("John Doe", displayName)
     }
@@ -79,11 +84,11 @@ class UserTest {
     @Test
     fun `displayName returns email prefix for authenticated users without name`() {
         // Given
-        val user = User.createAuthenticated("user_123", "john.doe@example.com", null, EMAIL)
-        
+        val user = User.createAuthenticated("user_123", "john.doe@example.com", null, EMAIL, now)
+
         // When
         val displayName = user.displayName
-        
+
         // Then
         assertEquals("john.doe", displayName)
     }
@@ -91,8 +96,8 @@ class UserTest {
     @Test
     fun `hasEmail returns true for users with email`() {
         // Given
-        val user = User.createAuthenticated("user_123", "test@example.com", "Test", GOOGLE)
-        
+        val user = User.createAuthenticated("user_123", "test@example.com", "Test", GOOGLE, now)
+
         // When/Then
         assertTrue(user.hasEmail)
     }
@@ -100,8 +105,8 @@ class UserTest {
     @Test
     fun `hasEmail returns false for guest users`() {
         // Given
-        val guest = User.createGuest("guest_123")
-        
+        val guest = User.createGuest("guest_123", now)
+
         // When/Then
         assertFalse(guest.hasEmail)
     }
@@ -109,8 +114,8 @@ class UserTest {
     @Test
     fun `canSync returns false for guest users`() {
         // Given
-        val guest = User.createGuest("guest_123")
-        
+        val guest = User.createGuest("guest_123", now)
+
         // When/Then
         assertFalse(guest.canSync)
     }
@@ -118,8 +123,8 @@ class UserTest {
     @Test
     fun `canSync returns true for authenticated users`() {
         // Given
-        val user = User.createAuthenticated("user_123", "test@example.com", "Test", APPLE)
-        
+        val user = User.createAuthenticated("user_123", "test@example.com", "Test", APPLE, now)
+
         // When/Then
         assertTrue(user.canSync)
     }
@@ -145,7 +150,7 @@ class UserTest {
             createdAt = 1000L,
             lastLoginAt = 1000L
         )
-        
+
         // Then
         assertEquals(user1, user2)
     }
