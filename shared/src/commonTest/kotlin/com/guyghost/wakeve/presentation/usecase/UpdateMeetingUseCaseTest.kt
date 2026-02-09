@@ -34,9 +34,13 @@ class UpdateMeetingUseCaseTest {
             title = "Original Title"
         )
         mockRepository.addMeetingDirectly(meeting)
-        
+
+        // Pass null for fields that shouldn't be updated
         val request = MeetingTestFixtures.createSampleUpdateMeetingRequest(
-            title = "Updated Title"
+            title = "Updated Title",
+            description = null,
+            scheduledFor = null,
+            duration = null
         )
 
         // When
@@ -57,9 +61,13 @@ class UpdateMeetingUseCaseTest {
             description = "Original Description"
         )
         mockRepository.addMeetingDirectly(meeting)
-        
+
+        // Pass null for fields that shouldn't be updated
         val request = MeetingTestFixtures.createSampleUpdateMeetingRequest(
-            description = "Updated Description"
+            title = null,
+            description = "Updated Description",
+            scheduledFor = null,
+            duration = null
         )
 
         // When
@@ -77,14 +85,18 @@ class UpdateMeetingUseCaseTest {
         // Given
         val originalTime = Clock.System.now()
         val newTime = originalTime.plus(2.hours)
-        
+
         val meeting = MeetingTestFixtures.createSampleMeeting(
             startTime = originalTime
         )
         mockRepository.addMeetingDirectly(meeting)
-        
+
+        // Pass null for fields that shouldn't be updated
         val request = MeetingTestFixtures.createSampleUpdateMeetingRequest(
-            scheduledFor = newTime
+            title = null,
+            description = null,
+            scheduledFor = newTime,
+            duration = null
         )
 
         // When
@@ -104,8 +116,12 @@ class UpdateMeetingUseCaseTest {
             duration = 60.minutes
         )
         mockRepository.addMeetingDirectly(meeting)
-        
+
+        // Pass null for fields that shouldn't be updated
         val request = MeetingTestFixtures.createSampleUpdateMeetingRequest(
+            title = null,
+            description = null,
+            scheduledFor = null,
             duration = 90.minutes
         )
 
@@ -173,9 +189,13 @@ class UpdateMeetingUseCaseTest {
             hostMeetingId = "original-host-id"
         )
         mockRepository.addMeetingDirectly(meeting)
-        
+
+        // Pass null for fields that shouldn't be updated
         val request = MeetingTestFixtures.createSampleUpdateMeetingRequest(
-            title = "Updated Title"
+            title = "Updated Title",
+            description = null,
+            scheduledFor = null,
+            duration = null
         )
 
         // When
