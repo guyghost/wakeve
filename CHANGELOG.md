@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (Phase 6: MeetingService & E2E Testing)
+
+- **MeetingService**
+  - Virtual meeting support for Zoom, Google Meet, and FaceTime platforms
+  - Secure meeting link generation via backend proxy (API keys hidden from clients)
+  - Meeting lifecycle management: create, update, cancel, start, end
+  - Meeting invitation and tracking system (PENDING, ACCEPTED, DECLINED)
+  - Automatic reminder scheduling (1 day, 1 hour, 15 min, 5 min before)
+  - Native calendar integration for meetings
+  - Platform provider abstraction for extensibility
+  - Functional Core, Imperative Shell (FC&IS) architecture pattern
+
+- **MeetingProxy Backend API** (4 new secure endpoints)
+  - `POST /api/meetings/proxy/zoom/create` - Create Zoom meeting with password and waiting room
+  - `POST /api/meetings/proxy/google-meet/create` - Create Google Meet meeting
+  - `POST /api/meetings/proxy/zoom/{id}/cancel` - Cancel Zoom meeting
+  - `GET /api/meetings/proxy/zoom/{id}/status` - Get Zoom meeting status
+
+- **E2E Testing Framework**
+  - `PrdWorkflowE2ETest` (6 tests) - Complete PRD workflow validation (DRAFT→FINALIZED)
+  - `ServiceIntegrationE2ETest` (5 tests) - Service integrations (Budget, Transport, Meeting, Suggestion)
+  - `MultiUserCollaborationE2ETest` (10 tests) - Multi-user collaboration scenarios
+  - `DeleteEventE2ETest` (6 tests) - Event deletion workflows
+  - `AuthFlowE2ETest` (4 tests) - Authentication flows
+  - Additional E2E tests for comprehensive coverage
+  - **Total: 35 E2E tests (100% passing)**
+
+- **MeetingListScreen UI**
+  - Meeting list with filtering and sorting
+  - Meeting editing capabilities
+  - Meeting link regeneration
+  - Meeting status display (SCHEDULED, STARTED, ENDED, CANCELLED)
+  - Material You design (Android) and Liquid Glass design (iOS)
+
+- **Architecture Documentation**
+  - `docs/architecture/meeting-service.md` - C4 component diagrams, FC&IS pattern, provider pattern
+  - Meeting creation flow sequence diagrams
+  - Security architecture (backend proxy explanation)
+  - Code examples for using MeetingService
+
+- **API Documentation**
+  - `docs/api/meeting-api.md` - Complete MeetingProxy API reference
+  - Request/response formats, error codes, curl examples
+  - Environment variable configuration
+  - Testing guide for all endpoints
+
+### Changed
+
+- **Test Coverage**
+  - Improved from 36/36 unit tests to 71/71 total tests (36 unit + 35 E2E)
+  - 100% pass rate maintained
+
+- **API Endpoints**
+  - Increased from 8 to 12 endpoints (8 event + 4 meeting proxy)
+
+- **Database Tables**
+  - Increased from 6 to 8 tables (added `meeting_invitations`, `meeting_reminders`)
+
+- **Critical TODOs**
+  - Reduced from 54 to 40 critical TODOs
+  - Improved organizer validation in state machines
+
+- **Offline Sync**
+  - Enhanced reliability with new test scenarios
+  - Better conflict handling and data recovery
+
+### Fixed
+
+- **Meeting Service**
+  - Fixed meeting link generation for Google Meet (proper 3-3-4 code format)
+  - Fixed meeting status transitions in state machines
+  - Fixed invitation tracking for validated participants
+  - Fixed reminder scheduling timezone handling
+
+- **Integration**
+  - Fixed calendar integration for meetings
+  - Fixed notification delivery for meeting reminders
+
 ### Added (Phase 4: DRAFT Workflow Tests & Phase 5: Documentation)
 
 - **DRAFT Workflow Integration Tests**
@@ -14,13 +92,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tests cover: repository operations, use cases, state machine dispatch, event persistence
   - Tests verify auto-save, validation gates, location management, time slot management
   - 100% test coverage for DRAFT workflow phase
-  
+
 - **Developer Documentation**
   - `DraftEventWizard Usage Guide` - Complete integration guide for Android & iOS
   - `State Machine Integration Guide` - MVI pattern and intent dispatch documentation
   - Enhanced `AGENTS.md` with detailed DRAFT phase workflow documentation
   - Examples for composable patterns, custom validation, offline support
-  
+
 - **Documentation Updates**
   - Added DRAFT Phase section to AGENTS.md with workflow diagram
   - Added validation rules by step
@@ -174,6 +252,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Key Features |
 |---------|------|--------------|
+| Unreleased | 2026-02-XX | MeetingService with Zoom/GoogleMeet/FaceTime, 35 E2E tests, secure meeting proxy API, meeting reminder scheduling |
 | 0.3.0 | 2026-01-01 | Enhanced DRAFT phase, wizard UI, event types, participants estimation, potential locations |
 | 0.2.0 | 2025-12-31 | Workflow coordination, state machine communication, navigation automation |
 | 0.1.0 | 2025-12-29 | Initial KMP release, event organization, polls, scenarios, meetings |
