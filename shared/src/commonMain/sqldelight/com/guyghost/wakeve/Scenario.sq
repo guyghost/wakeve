@@ -16,9 +16,10 @@ CREATE TABLE scenario (
 );
 
 -- Indexes for performance
-CREATE INDEX scenario_eventId ON scenario(eventId);
-CREATE INDEX scenario_status ON scenario(status);
-CREATE INDEX scenario_eventId_status ON scenario(eventId, status);
+CREATE INDEX IF NOT EXISTS scenario_eventId ON scenario(eventId);
+CREATE INDEX IF NOT EXISTS scenario_status ON scenario(status);
+CREATE INDEX IF NOT EXISTS scenario_eventId_status ON scenario(eventId, status);
+CREATE INDEX IF NOT EXISTS idx_scenario_event ON scenario(eventId, createdAt DESC);
 
 -- Queries
 selectAll:

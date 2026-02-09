@@ -71,3 +71,9 @@ SELECT * FROM vote WHERE timeslotId = ? AND vote = 'MAYBE';
 
 selectNoByTimeslot:
 SELECT * FROM vote WHERE timeslotId = ? AND vote = 'NO';
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_vote_event ON vote(eventId, createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_vote_timeslot ON vote(timeslotId, vote);
+CREATE INDEX IF NOT EXISTS idx_vote_participant ON vote(participantId, createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_vote_timeslot_participant ON vote(timeslotId, participantId);
