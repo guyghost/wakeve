@@ -189,22 +189,26 @@ This document provides a unified reference for all Wakeve OpenSpec specification
 
 ## Capability Map
 
-### All 12 Capabilities
+### All 16 Capabilities
 
 | # | Capability | Spec Path | Version | Status | Purpose |
 |---|------------|-----------|---------|--------|---------|
 | 1 | **event-organization** | `specs/event-organization/spec.md` | v1.1.0 | Draft | Core event CRUD, DRAFT wizard, poll voting, date confirmation |
-| 2 | **user-auth** | `specs/user-auth/spec.md` | Draft | Draft | OAuth (Google/Apple), Email OTP, Guest mode, Token storage |
+| 2 | **user-auth** | `specs/user-auth/spec.md` | v1.1.0 | ✅ Implémenté | OAuth 2.0 (Google/Apple) with PKCE, Email OTP, Guest mode, Secure token storage |
 | 3 | **workflow-coordination** | `specs/workflow-coordination/spec.md` | v1.0.0 | Active | State machine coordination, repository-mediated communication |
 | 4 | **scenario-management** | `specs/scenario-management/spec.md` | v1.0.0 | Active | Scenario creation, voting (PREFER/NEUTRAL/AGAINST), comparison |
 | 5 | **calendar-management** | `specs/calendar-management/spec.md` | v1.0.0 | Active | ICS generation (RFC 5545), native calendar integration |
 | 6 | **collaboration-management** | `specs/collaboration-management/spec.md` | Draft | Draft | Threaded comments, @mentions, notifications |
 | 7 | **budget-management** | `specs/budget-management/spec.md` | v1.0.0 | Active | Cost tracking, expense splitting, settlement suggestions |
-| 8 | **meeting-service** | `specs/meeting-service/spec.md` | v1.0.0 | Active | Zoom/Meet/FaceTime link generation, scheduling |
+| 8 | **meeting-service** | `specs/meeting-service/spec.md` | v1.0.0 | Active | Zoom/Meet/FaceTime link generation, scheduling with rate limiting |
 | 9 | **destination-planning** | `specs/destination-planning/spec.md` | v1.0.0 | Active | Destination & lodging suggestions with multi-criteria scoring |
 | 10 | **transport-optimization** | `specs/transport-optimization/spec.md` | v1.0.0 | Active | Multi-participant route optimization, meeting points |
 | 11 | **suggestion-management** | `specs/suggestion-management/spec.md` | v1.0.0 | Active | Personalized AI recommendations (5-criteria scoring) |
 | 12 | **payment-management** | `specs/payment-management/spec.md` | v1.0.0 | Active | Money pot, Tricount integration, payment tracking |
+| 13 | **notification-management** | `specs/notification-management/spec.md` | v1.0.0 | Active | Push notifications (FCM/APNs), in-app alerts, preferences |
+| 14 | **security-management** | `specs/security-management/spec.md` | v1.0.0 | Active | JWT, RBAC, audit logging, rate limiting, token blacklist |
+| 15 | **offline-sync** | `specs/offline-sync/spec.md` | v1.0.0 | Active | SQLite-first, sync queue, conflict resolution, retry logic |
+| 16 | **suggestion-engine** | `specs/suggestion-engine/spec.md` | v1.0.0 | Active | Multi-criteria scoring algorithm, user profile learning, A/B testing |
 
 ### Implementation Status
 
@@ -624,19 +628,30 @@ RULE: Shell calls Core, Core NEVER calls Shell
 | 6 | **collaboration-management incomplete** | Medium | collaboration-management | Add scenarios for @mentions, notifications, threading |
 | 7 | **Version inconsistency** | Low | Multiple | Some specs have version, others don't |
 
-### Missing Specifications
+### Completed Specifications (2026-02-08)
 
-The following capabilities are mentioned in code/docs but have no spec:
+The following specs were created/updated to address identified gaps:
 
-1. **notification-management** - Push notifications (FCM/APNs)
-2. **offline-sync** - Detailed sync strategy, conflict resolution
-3. **analytics-tracking** - Event tracking, A/B testing
+1. ✅ **notification-management** - Already existed (was incorrectly marked missing)
+2. ✅ **security-management** - Complete JWT, RBAC, audit logging, rate limiting spec
+3. ✅ **offline-sync** - Complete sync strategy with conflict resolution
+4. ✅ **suggestion-engine** - Multi-criteria scoring algorithm with A/B testing
+5. ✅ **user-auth** - Updated with OAuth 2.0 implementation details (Google/Apple)
 
-### Recommended Actions
+### New Resources Added (2026-02-08)
 
-1. **High Priority**: Create `notification-management/spec.md`
-2. **Medium Priority**: Complete `user-auth` and `payment-management` specs
-3. **Low Priority**: Standardize language and terminology across all specs
+1. **`specs/template/spec.md`** - Standardized template for new specifications
+2. **`specs/security-management/spec.md`** - Complete security model (917 lines)
+3. **`specs/offline-sync/spec.md`** - Offline-first sync strategy (290 lines)
+4. **`specs/suggestion-engine/spec.md`** - AI scoring algorithm (580 lines)
+5. **`proposals/next-priority-specs.md`** - Priority analysis for upcoming specs
+6. **`SECURITY_PATCHES.md`** - Security patch documentation from code review
+
+### Future Work
+
+1. **analytics-tracking** - Event tracking, A/B testing framework (LOW PRIORITY)
+2. **payment-management** - Expand with Tricount sync scenarios (MEDIUM PRIORITY)
+3. **collaboration-management** - Complete @mentions and threading scenarios (MEDIUM PRIORITY)
 
 ---
 
@@ -651,6 +666,12 @@ openspec/
 ├── project.md                   # Project configuration
 │
 ├── specs/                       # Active specifications
+│   ├── template/                # Template for new specs
+│   │   └── spec.md
+│   ├── security-management/     # NEW: Security model
+│   │   └── spec.md
+│   ├── offline-sync/            # NEW: Sync strategy
+│   │   └── spec.md
 │   ├── event-organization/
 │   ├── user-auth/
 │   ├── workflow-coordination/
@@ -658,11 +679,15 @@ openspec/
 │   ├── calendar-management/
 │   ├── collaboration-management/
 │   ├── budget-management/
-│   ├── meeting-service/
+│   ├── meeting-service/         # UPDATED: Production implementation
 │   ├── destination-planning/
 │   ├── transport-optimization/
 │   ├── suggestion-management/
-│   └── payment-management/
+│   ├── payment-management/
+│   └── notification-management/
+│
+├── proposals/                   # NEW: Spec proposals
+│   └── next-priority-specs.md
 │
 ├── changes/                     # Active change proposals
 │   └── [change-id]/
@@ -721,6 +746,7 @@ Intent.GenerateMeetingLink(meetingId)
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1.0 | 2026-02-08 | Added security-management, offline-sync, suggestion-engine specs; updated user-auth with OAuth |
 | 1.0.0 | 2026-01-16 | Initial creation with all 12 capabilities mapped |
 
 ---
