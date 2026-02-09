@@ -45,3 +45,8 @@ WHERE id = ?;
 
 deleteEvent:
 DELETE FROM event WHERE id = ?;
+
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_event_organizer ON event(organizerId, createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_event_status ON event(status, createdAt DESC);
+CREATE INDEX IF NOT EXISTS idx_event_updated ON event(updatedAt);

@@ -50,4 +50,10 @@ DELETE FROM participant WHERE id = ?;
 deleteByEventId:
 DELETE FROM participant WHERE eventId = ?;
 
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_participant_event ON participant(eventId, joinedAt ASC);
+CREATE INDEX IF NOT EXISTS idx_participant_user ON participant(userId);
+CREATE INDEX IF NOT EXISTS idx_participant_role ON participant(eventId, role);
+CREATE INDEX IF NOT EXISTS idx_participant_validated ON participant(eventId, hasValidatedDate);
+
 

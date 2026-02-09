@@ -40,4 +40,7 @@ DELETE FROM timeSlot WHERE id = ?;
 deleteByEventId:
 DELETE FROM timeSlot WHERE eventId = ?;
 
+-- Indexes for performance
+CREATE INDEX IF NOT EXISTS idx_timeslot_event ON timeSlot(eventId, startTime ASC);
+
 

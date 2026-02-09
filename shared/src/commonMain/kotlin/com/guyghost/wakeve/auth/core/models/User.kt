@@ -4,7 +4,6 @@ import com.guyghost.wakeve.auth.core.models.AuthMethod.GOOGLE
 import com.guyghost.wakeve.auth.core.models.AuthMethod.APPLE
 import com.guyghost.wakeve.auth.core.models.AuthMethod.EMAIL
 import com.guyghost.wakeve.auth.core.models.AuthMethod.GUEST
-import com.guyghost.wakeve.auth.core.logic.currentTimeMillis
 
 /**
  * Represents an authenticated user or guest user in the Wakeve application.
@@ -32,42 +31,45 @@ data class User(
     companion object {
         /**
          * Creates a new User instance for guest mode.
-         * 
+         *
          * @param id Unique guest session identifier
+         * @param currentTime The current time timestamp (injected for testability)
          * @return A new User configured for guest mode
          */
-        fun createGuest(id: String): User = User(
+        fun createGuest(id: String, currentTime: Long): User = User(
             id = id,
             email = null,
             name = null,
             authMethod = GUEST,
             isGuest = true,
-            createdAt = currentTimeMillis(),
-            lastLoginAt = currentTimeMillis()
+            createdAt = currentTime,
+            lastLoginAt = currentTime
         )
 
         /**
          * Creates a new User instance for authenticated user.
-         * 
+         *
          * @param id Unique user identifier
          * @param email User's email address
          * @param name User's display name
          * @param authMethod Authentication method used
+         * @param currentTime The current time timestamp (injected for testability)
          * @return A new User configured for authenticated mode
          */
         fun createAuthenticated(
             id: String,
             email: String,
             name: String?,
-            authMethod: AuthMethod
+            authMethod: AuthMethod,
+            currentTime: Long
         ): User = User(
             id = id,
             email = email,
             name = name,
             authMethod = authMethod,
             isGuest = false,
-            createdAt = currentTimeMillis(),
-            lastLoginAt = currentTimeMillis()
+            createdAt = currentTime,
+            lastLoginAt = currentTime
         )
     }
 
