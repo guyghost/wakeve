@@ -2,6 +2,7 @@ package com.guyghost.wakeve
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.guyghost.wakeve.analytics.AnalyticsDashboard
 import com.guyghost.wakeve.auth.AppleOAuth2Service
 import com.guyghost.wakeve.auth.AuthenticationService
 import com.guyghost.wakeve.auth.GoogleOAuth2Service
@@ -11,6 +12,7 @@ import com.guyghost.wakeve.calendar.PlatformCalendarServiceImpl
 import com.guyghost.wakeve.database.WakevDb
 import com.guyghost.wakeve.metrics.AuthMetricsCollector
 import com.guyghost.wakeve.routes.ChatService
+import com.guyghost.wakeve.routes.analyticsRoutes
 import com.guyghost.wakeve.routes.authRoutes
 import com.guyghost.wakeve.routes.budgetRoutes
 import com.guyghost.wakeve.routes.calendarRoutes
@@ -208,6 +210,9 @@ fun main() {
     // Initialize Chat Service
     val chatService = ChatService(database)
 
+    // Initialize Analytics Dashboard
+    val analyticsDashboard = AnalyticsDashboard(database)
+
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = {
         module(
             database,
@@ -219,7 +224,8 @@ fun main() {
             locationRepository,
             calendarService,
             chatService,
-            accommodationRepository
+            accommodationRepository,
+            analyticsDashboard
         )
     }).start(wait = true)
 }
@@ -234,7 +240,8 @@ fun Application.module(
     locationRepository: PotentialLocationRepositoryInterface = PotentialLocationRepository(eventRepository),
     calendarService: CalendarService = CalendarService(database, PlatformCalendarServiceImpl()),
     chatService: ChatService = ChatService(database),
-    accommodationRepository: com.guyghost.wakeve.accommodation.AccommodationRepository = com.guyghost.wakeve.accommodation.AccommodationRepository(database)
+    accommodationRepository: com.guyghost.wakeve.accommodation.AccommodationRepository = com.guyghost.wakeve.accommodation.AccommodationRepository(database),
+    analyticsDashboard: AnalyticsDashboard = AnalyticsDashboard(database)
 ) {
     // Initialize metrics
     val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -362,7 +369,7 @@ fun Application.module(
             // Get client IP - check X-Forwarded-For header first (for proxy/reverse proxy setups)
             val clientIp = call.request.headers["X-Forwarded-For"]?.split(",")?.firstOrNull()?.trim()
                 ?: call.request.headers["X-Real-IP"]
-                ?: call.request.host
+                ?: call.request.headers["Host"]
 
             // Log all metrics access attempts
             this@module.environment.log.info("Metrics access attempt from IP: $clientIp")
@@ -410,6 +417,7 @@ fun Application.module(
                             calendarRoutes(calendarService)
                             chatRoutes(chatService)
                             meetingProxyRoutes()
+                            analyticsRoutes(analyticsDashboard)
                         }
                     }
                 }
