@@ -1,0 +1,95 @@
+-- Analytics table: stores tracking events for analytics and metrics
+CREATE TABLE analytics (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT REFERENCES user(id) ON DELETE SET NULL,
+    event_name TEXT NOT NULL,
+    properties TEXT,  -- JSON string of event properties
+    platform TEXT NOT NULL,  -- 'android', 'ios', 'web'
+    timestamp INTEGER NOT NULL,  -- Epoch milliseconds
+    event_id TEXT  -- Optional: ID of related event (e.g., for event_viewed events)
+);
+
+-- Analytics sessions table: tracks user sessions for MAU/DAU calculation
+CREATE TABLE analytics_session (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    session_start INTEGER NOT NULL,  -- Epoch milliseconds
+    session_end INTEGER,  -- Epoch milliseconds (null if active)
+    platform TEXT NOT NULL
+);
+
+-- Analytics funnels table: tracks funnel events for conversion analysis
+CREATE TABLE analytics_funnel (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL REFERENCES user(id) ON DELETE CASCADE,
+    event_type TEXT NOT NULL,  -- 'event_started', 'event_details_entered', etc.
+    timestamp INTEGER NOT NULL,
+    metadata TEXT  -- JSON string of funnel metadata
+);
+
+-- Queries for analytics events
+insertAnalyticsEvent:
+INSERT INTO analytics(id, user_id, event_name, properties, platform, timestamp)
+VALUES (?, ?, ?, ?, ?, ?);
+
+selectEventsByUserId:
+SELECT * FROM analytics WHERE user_id = ? ORDER BY timestamp DESC LIMIT ?;
+
+selectEventsByEventName:
+SELECT * FROM analytics WHERE event_name = ? ORDER BY timestamp DESC;
+
+-- Queries for analytics sessions (MAU/DAU)
+insertSession:
+INSERT INTO analytics_session(id, user_id, session_start, platform)
+VALUES (?, ?, ?, ?);
+
+updateSessionEnd:
+UPDATE analytics_session
+SET session_end = ?
+WHERE id = ?;
+
+selectActiveSessionByUserId:
+SELECT * FROM analytics_session
+WHERE user_id = ? AND session_end IS NULL
+LIMIT 1;
+
+getActiveUsersSince:
+SELECT COUNT(DISTINCT user_id)
+FROM analytics_session
+WHERE session_start >= ?;
+
+getNewUsersOnDate:
+SELECT COUNT(DISTINCT id)
+FROM user
+WHERE DATE(created_at) = ?;
+
+getRetainedUsers:
+SELECT COUNT(DISTINCT user_id)
+FROM analytics_session
+WHERE session_start > ?;
+
+-- Queries for analytics funnels
+insertFunnelEvent:
+INSERT INTO analytics_funnel(id, user_id, event_type, timestamp, metadata)
+VALUES (?, ?, ?, ?, ?);
+
+getEventCount:
+SELECT COUNT(*)
+FROM analytics_funnel
+WHERE event_type = ?;
+
+getActiveEventsCount:
+SELECT COUNT(DISTINCT event_id)
+FROM analytics
+WHERE event_name = 'event_viewed'
+AND timestamp >= ?;
+
+-- Queries for cleanup
+deleteOldAnalyticsEvents:
+DELETE FROM analytics WHERE timestamp < ?;
+
+deleteOldSessions:
+DELETE FROM analytics_session WHERE session_end < ?;
+
+deleteOldFunnelEvents:
+DELETE FROM analytics_funnel WHERE timestamp < ?;

@@ -1,0 +1,26 @@
+-- Consent table: stores user consent for analytics and RGPD compliance
+CREATE TABLE consent (
+    user_id TEXT PRIMARY KEY NOT NULL,
+    has_consent INTEGER NOT NULL DEFAULT 0,  -- 0 = false, 1 = true
+    consent_date INTEGER,  -- Epoch milliseconds
+    updated_at TEXT NOT NULL  -- ISO 8601 UTC timestamp
+);
+
+-- Queries for consent
+selectConsentByUserId:
+SELECT * FROM consent WHERE user_id = ?;
+
+hasGivenConsent:
+SELECT has_consent FROM consent WHERE user_id = ?;
+
+insertConsent:
+INSERT INTO consent(user_id, has_consent, consent_date, updated_at)
+VALUES (?, ?, ?, ?);
+
+updateConsent:
+UPDATE consent
+SET has_consent = ?, consent_date = ?, updated_at = ?
+WHERE user_id = ?;
+
+deleteConsent:
+DELETE FROM consent WHERE user_id = ?;
