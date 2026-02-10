@@ -127,8 +127,8 @@ class MockEventRepository : EventRepositoryInterface {
         pendingSyncs.remove(eventId)
     }
     
-    fun setOffline(offline: Boolean) {
-        isOffline = offline
+    fun configureOffline(offline: Boolean) {
+        this.isOffline = offline
     }
 }
 
@@ -675,7 +675,7 @@ class EventManagementStateMachineEdgeCasesTest {
         val organizerId = "user-1"
         val event = createDraftEvent(eventId, organizerId)
         mockRepository.events[eventId] = event
-        mockRepository.setOffline(true)
+        mockRepository.configureOffline(true)
         
         // When
         stateMachine.dispatch(EventManagementContract.Intent.StartPoll(eventId, organizerId))
