@@ -50,6 +50,9 @@ kotlin {
             implementation("com.google.android.gms:play-services-base:18.5.0")
             // Android Security - EncryptedSharedPreferences
             implementation("androidx.security:security-crypto:1.1.0-alpha06")
+            // Firebase Analytics
+            implementation("com.google.firebase:firebase-analytics-ktx:21.5.0")
+            implementation("com.google.firebase:firebase-bom:32.7.0")
         }
         iosMain.dependencies {
             implementation(libs.sqldelight.iosDriver)
@@ -57,6 +60,8 @@ kotlin {
             implementation(libs.ktor.clientContentNegotiation)
             implementation(libs.ktor.clientCio)
             implementation(libs.ktor.clientWebsocket)
+            // Firebase Analytics - to be added via CocoaPods in Podfile
+            // Add 'pod Firebase/Analytics' in iOS Podfile
         }
         jvmMain.dependencies {
             implementation(libs.sqldelight.jvmDriver)
