@@ -10,6 +10,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
     alias(libs.plugins.buildconfig)
+    alias(libs.plugins.kotlinSerialization)
     id("com.google.gms.google-services")
 }
 
@@ -112,6 +113,10 @@ kotlin {
                 
                 // Image loading
                 implementation(libs.coil.compose)
+                implementation(libs.coil.svg)
+                
+                // Kotlinx Serialization
+                implementation(libs.kotlinx.serialization.json)
                 
                 // Koin Android
                 implementation(libs.koin.core)

@@ -13,7 +13,7 @@ import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import com.guyghost.wakeve.R
+// Note: R resources are from composeApp module, using system icons instead
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
@@ -40,17 +40,18 @@ actual class NotificationScheduler {
     private lateinit var workManager: WorkManager
     private lateinit var notificationManager: NotificationManager
 
-    companion object {
-        private const val CHANNEL_ID_EVENTS = "wakeve_events"
-        private const val CHANNEL_ID_POLLS = "wakeve_polls"
-        private const val NOTIFICATION_TAG = "wakeve_notification"
+    // Constants defined at class level (not in companion object to avoid expect/actual issues)
+    private val CHANNEL_ID_EVENTS = "wakeve_events"
+    private val CHANNEL_ID_POLLS = "wakeve_polls"
+    private val NOTIFICATION_TAG = "wakeve_notification"
 
-        // Work input data keys
-        private const val KEY_NOTIFICATION_ID = "notification_id"
-        private const val KEY_TITLE = "title"
-        private const val KEY_BODY = "body"
-        private const val KEY_EVENT_ID = "event_id"
+    // Work input data keys - public for use by NotificationWorker
+    val KEY_NOTIFICATION_ID = "notification_id"
+    val KEY_TITLE = "title"
+    val KEY_BODY = "body"
+    val KEY_EVENT_ID = "event_id"
 
+    actual companion object {
         @Volatile
         private var instance: NotificationScheduler? = null
 
@@ -92,14 +93,13 @@ actual class NotificationScheduler {
         body: String,
         scheduledTime: Instant
     ): Result<Unit> = withContext(Dispatchers.Default) {
+        if (calculateDelayMillis(scheduledTime) <= 0) {
+            return@withContext Result.success(Unit)
+        }
+        
         runCatching {
             val notificationId = generateNotificationId("event", eventId)
             val delayMillis = calculateDelayMillis(scheduledTime)
-
-            if (delayMillis <= 0) {
-                // Time already passed
-                return@runCatching Result.success(Unit)
-            }
 
             val workData = Data.Builder()
                 .putString(KEY_NOTIFICATION_ID, notificationId)
@@ -120,7 +120,7 @@ actual class NotificationScheduler {
                 workRequest
             )
 
-            Result.success(Unit)
+            Unit
         }
     }
 
@@ -136,14 +136,13 @@ actual class NotificationScheduler {
         body: String,
         deadlineTime: Instant
     ): Result<Unit> = withContext(Dispatchers.Default) {
+        if (calculateDelayMillis(deadlineTime) <= 0) {
+            return@withContext Result.success(Unit)
+        }
+        
         runCatching {
             val notificationId = generateNotificationId("poll", pollId)
             val delayMillis = calculateDelayMillis(deadlineTime)
-
-            if (delayMillis <= 0) {
-                // Deadline already passed
-                return@runCatching Result.success(Unit)
-            }
 
             val workData = Data.Builder()
                 .putString(KEY_NOTIFICATION_ID, notificationId)
@@ -164,7 +163,7 @@ actual class NotificationScheduler {
                 workRequest
             )
 
-            Result.success(Unit)
+            Unit
         }
     }
 
@@ -177,7 +176,7 @@ actual class NotificationScheduler {
                 workManager.cancelUniqueWork(notificationId)
                 // Also cancel any pending notification that might have been shown
                 notificationManager.cancel(notificationId.hashCode())
-                Result.success(Unit)
+                Unit
             }
         }
 
@@ -189,7 +188,7 @@ actual class NotificationScheduler {
             runCatching {
                 workManager.cancelAllWorkByTag(NOTIFICATION_TAG)
                 notificationManager.cancelAll()
-                Result.success(Unit)
+                Unit
             }
         }
 
@@ -252,14 +251,17 @@ actual class NotificationScheduler {
             CHANNEL_ID_EVENTS
         }
 
+        // Use system notification icons (composeApp resources not accessible from shared module)
         val iconResId = if (notificationId.startsWith("poll")) {
-            R.drawable.ic_points_black_24dp
+            android.R.drawable.ic_menu_info_details
         } else {
-            R.drawable.ic_event
+            android.R.drawable.ic_menu_info_details
         }
 
         // Create intent for tapping notification (navigate to event)
-        val intent = Intent(context, com.guyghost.wakeve.MainActivity::class.java).apply {
+        // Using action-based intent to avoid direct MainActivity reference from shared module
+        val intent = Intent("com.guyghost.wakeve.EVENT_DETAILS").apply {
+            `package` = context.packageName
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("eventId", eventId)
         }
@@ -298,14 +300,20 @@ internal class NotificationWorker(
 
     companion object {
         private const val TAG = "NotificationWorker"
+        
+        // Keys must match those in NotificationScheduler
+        private const val KEY_NOTIFICATION_ID = "notification_id"
+        private const val KEY_TITLE = "title"
+        private const val KEY_BODY = "body"
+        private const val KEY_EVENT_ID = "event_id"
     }
 
     override fun doWork(): androidx.work.ListenableWorker.Result {
         try {
-            val notificationId = inputData.getString(NotificationScheduler.KEY_NOTIFICATION_ID)
-            val title = inputData.getString(NotificationScheduler.KEY_TITLE)
-            val body = inputData.getString(NotificationScheduler.KEY_BODY)
-            val eventId = inputData.getString(NotificationScheduler.KEY_EVENT_ID)
+            val notificationId = inputData.getString(KEY_NOTIFICATION_ID)
+            val title = inputData.getString(KEY_TITLE)
+            val body = inputData.getString(KEY_BODY)
+            val eventId = inputData.getString(KEY_EVENT_ID)
 
             if (notificationId != null && title != null && body != null && eventId != null) {
                 // Access NotificationScheduler to show notification
