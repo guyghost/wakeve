@@ -1,11 +1,15 @@
-{"ts": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")", "seq": 1, "agent": "@codegen", "type": "decision", "content": "P1.4 Dashboard Backend + P1.5 RGPD Consent implementation", "reason": "Ralph Mode iteration 4-5/10: Create analytics dashboard and consent management"}
-{"ts": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")", "seq": 2, "agent": "@codegen", "type": "artifact", "action": "created", "file": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/Analytics.sq"}
-{"ts": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")", "seq": 3, "agent": "@codegen", "type": "artifact", "action": "created", "file": "shared/src/commonMain/sqldelight/com/guyghost/wakeve/Consent.sq"}
-{"ts": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")", "seq": 4, "agent": "@codegen", "type": "artifact", "action": "created", "file": "server/src/main/kotlin/com/guyghost/wakeve/analytics/AnalyticsDashboard.kt"}
-{"ts": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")", "seq": 5, "agent": "@codegen", "type": "artifact", "action": "created", "file": "server/src/main/kotlin/com/guyghost/wakeve/routes/AnalyticsRoutes.kt"}
-{"ts": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")", "seq": 6, "agent": "@codegen", "type": "artifact", "action": "created", "file": "shared/src/commonMain/kotlin/com/guyghost/wakeve/consent/ConsentRepository.kt"}
-{"ts": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")", "seq": 7, "agent": "@codegen", "type": "artifact", "action": "created", "file": "wakeveApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/settings/ConsentDialog.kt"}
-{"ts": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")", "seq": 8, "agent": "@codegen", "type": "artifact", "action": "modified", "file": "server/src/main/kotlin/com/guyghost/wakeve/Application.kt"}
-{"ts": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")", "seq": 9, "agent": "@codegen", "type": "artifact", "action": "created", "file": "docs/implementation/P1.4_P1.5_IMPLEMENTATION.md"}
-{"ts": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")", "seq": 10, "agent": "@codegen", "type": "note", "to": "@tests", "content": "P1.4 and P1.5 implemented - ready for test creation"}
-{"ts": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")", "seq": 11, "agent": "@codegen", "type": "checkpoint", "run": 1}
+{"ts": "2025-02-11T10:30:00Z", "seq": 12, "agent": "@codegen", "type": "decision", "content": "Implement deep linking for Android and iOS platforms following FC&IS architecture", "reason": "Ralph Mode T6: Deep Linking requirement for direct navigation"}
+{"ts": "2025-02-11T10:31:00Z", "seq": 13, "agent": "@codegen", "type": "decision", "content": "Use sealed class/enum for type-safe deep link representation", "reason": "Pattern: Functional Core with pure parsing functions"}
+{"ts": "2025-02-11T10:31:00Z", "seq": 14, "agent": "@codegen", "type": "decision", "content": "Implement DeepLinkStateManager as singleton to bridge MainActivity and Compose UI", "reason": "Android Compose architecture: NavController lives in UI, MainActivity receives deep links"}
+{"ts": "2025-02-11T10:31:00Z", "seq": 15, "agent": "@codegen", "type": "decision", "content": "Add deep link intent filters to AndroidManifest.xml for wakeve:// scheme", "reason": "Required for Android to receive deep link intents"}
+{"ts": "2025-02-11T10:31:00Z", "seq": 16, "agent": "@codegen", "type": "decision", "content": "Integrate DeepLinkService into iOSApp with onOpenURL handler", "reason": "SwiftUI pattern for handling incoming URLs"}
+{"ts": "2025-02-11T10:32:00Z", "seq": 17, "agent": "@codegen", "type": "artifact", "action": "created", "file": "wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/deeplink/DeepLinkHandler.kt"}
+{"ts": "2025-02-11T10:32:00Z", "seq": 18, "agent": "@codegen", "type": "artifact", "action": "created", "file": "wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/deeplink/DeepLinkStateManager.kt"}
+{"ts": "2025-02-11T10:32:00Z", "seq": 19, "agent": "@codegen", "type": "artifact", "action": "created", "file": "wakeveApp/wakeveApp/Services/DeepLinkService.swift"}
+{"ts": "2025-02-11T10:33:00Z", "seq": 20, "agent": "@codegen", "type": "artifact", "action": "modified", "file": "wakeveApp/src/androidMain/AndroidManifest.xml"}
+{"ts": "2025-02-11T10:33:00Z", "seq": 21, "agent": "@codegen", "type": "artifact", "action": "modified", "file": "wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/MainActivity.kt"}
+{"ts": "2025-02-11T10:33:00Z", "seq": 22, "agent": "@codegen", "type": "artifact", "action": "modified", "file": "wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/App.kt"}
+{"ts": "2025-02-11T10:34:00Z", "seq": 23, "agent": "@codegen", "type": "artifact", "action": "modified", "file": "wakeveApp/wakeveApp/iOSApp.swift"}
+{"ts": "2025-02-11T10:35:00Z", "seq": 24, "agent": "@codegen", "type": "artifact", "action": "created", "file": "docs/deep-linking.md"}
+{"ts": "2025-02-11T10:35:00Z", "seq": 25, "agent": "@codegen", "type": "note", "to": "@tests", "content": "Deep link implementation complete - ready for testing with ADB and Simulator commands"}
+{"ts": "2025-02-11T10:35:00Z", "seq": 26, "agent": "@codegen", "type": "checkpoint", "run": 2}
