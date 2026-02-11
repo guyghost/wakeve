@@ -60,7 +60,7 @@
 			exceptions = (
 				43DF86CC87D525648E45511C /* Exceptions for "wakeveApp" folder in "WakeveApp" target */,
 			);
-			path = wakeveApp;
+			path = src;
 			sourceTree = "<group>";
 		};
 		7F633F392BE35FAC079A9AA1 /* Configuration */ = {
@@ -288,16 +288,16 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_ASSET_PATHS = "\"wakeveApp/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"src/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/wakeveApp",
+					"$(PROJECT_DIR)/src",
 					"$(PROJECT_DIR)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/../shared/build/bin/$(PLATFORM_NAME)/$(CONFIGURATION)Framework",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = wakeveApp/Info.plist;
+				INFOPLIST_FILE = src/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -448,16 +448,16 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_ASSET_PATHS = "\"wakeveApp/Preview Content\"";
+				DEVELOPMENT_ASSET_PATHS = "\"src/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
-					"$(PROJECT_DIR)/wakeveApp",
+					"$(PROJECT_DIR)/src",
 					"$(PROJECT_DIR)/../shared/build/xcode-frameworks/$(CONFIGURATION)/$(PLATFORM_NAME)",
 					"$(PROJECT_DIR)/../shared/build/bin/$(PLATFORM_NAME)/$(CONFIGURATION)Framework",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = wakeveApp/Info.plist;
+				INFOPLIST_FILE = src/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
