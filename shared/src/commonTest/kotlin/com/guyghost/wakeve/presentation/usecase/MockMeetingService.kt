@@ -9,6 +9,14 @@ import kotlin.time.Duration
  */
 class MockMeetingService {
     
+    companion object {
+        private var idCounter = 0L
+        
+        fun generateUniqueId(): String {
+            return "meeting-${++idCounter}-${System.currentTimeMillis()}"
+        }
+    }
+    
     var shouldFailCreate = false
     var createdMeetings = mutableListOf<com.guyghost.wakeve.models.VirtualMeeting>()
     
@@ -29,7 +37,7 @@ class MockMeetingService {
             Result.failure(Exception("Service error: Failed to create meeting"))
         } else {
             val meeting = com.guyghost.wakeve.models.VirtualMeeting(
-                id = "meeting-${System.currentTimeMillis()}",
+                id = generateUniqueId(),
                 eventId = eventId,
                 organizerId = organizerId,
                 platform = platform,
@@ -46,7 +54,7 @@ class MockMeetingService {
                 participantLimit = participantLimit,
                 requirePassword = requirePassword,
                 waitingRoom = waitingRoom,
-                hostKey = if (platform == MeetingPlatform.ZOOM) "host-${System.currentTimeMillis()}" else null,
+                hostKey = if (platform == MeetingPlatform.ZOOM) "host-${generateUniqueId()}" else null,
                 createdAt = kotlinx.datetime.Clock.System.now(),
                 status = com.guyghost.wakeve.models.MeetingStatus.SCHEDULED
             )
@@ -65,7 +73,7 @@ class MockMeetingService {
                 (1..3).map { chars.random() }.joinToString("") + "-" +
                 (1..4).map { chars.random() }.joinToString("")
             }
-            MeetingPlatform.FACETIME -> "user-${System.currentTimeMillis()}"
+            MeetingPlatform.FACETIME -> "user-${generateUniqueId()}"
             else -> "meeting-${System.currentTimeMillis()}"
         }
     }
