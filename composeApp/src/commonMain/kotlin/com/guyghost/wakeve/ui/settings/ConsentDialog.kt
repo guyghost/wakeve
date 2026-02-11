@@ -19,6 +19,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -35,12 +36,14 @@ import kotlinx.coroutines.launch
  *
  * @param consentRepository Repository for managing consent state
  * @param analyticsProvider Provider for analytics tracking
+ * @param userId The current user ID for consent management
  * @param onDismiss Callback when dialog is dismissed
  */
 @Composable
 fun ConsentDialog(
     consentRepository: ConsentRepository,
     analyticsProvider: AnalyticsProvider,
+    userId: String,
     onDismiss: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -95,7 +98,7 @@ fun ConsentDialog(
             Button(
                 onClick = {
                     scope.launch {
-                        consentRepository.grantConsent()
+                        consentRepository.grantConsent(userId)
                         analyticsProvider.setEnabled(true)
                         analyticsProvider.trackEvent(AnalyticsEvent.AnalyticsConsentGranted)
                         onDismiss()
@@ -110,7 +113,7 @@ fun ConsentDialog(
             OutlinedButton(
                 onClick = {
                     scope.launch {
-                        consentRepository.revokeConsent()
+                        consentRepository.revokeConsent(userId)
                         analyticsProvider.setEnabled(false)
                         analyticsProvider.clearUserData()
                         analyticsProvider.trackEvent(AnalyticsEvent.AnalyticsConsentRevoked)
@@ -132,14 +135,16 @@ fun ConsentDialog(
  *
  * @param consentRepository Repository for managing consent state
  * @param analyticsProvider Provider for analytics tracking
+ * @param userId The current user ID for consent management
  */
 @Composable
 fun ConsentSettingsItem(
     consentRepository: ConsentRepository,
-    analyticsProvider: AnalyticsProvider
+    analyticsProvider: AnalyticsProvider,
+    userId: String
 ) {
     val scope = rememberCoroutineScope()
-    val hasConsent by consentRepository.observeConsent()
+    val hasConsent by consentRepository.observeConsent().collectAsState()
 
     androidx.compose.material3.ListItem(
         headlineContent = {
@@ -158,11 +163,11 @@ fun ConsentSettingsItem(
                 onCheckedChange = { checked ->
                     scope.launch {
                         if (checked) {
-                            consentRepository.grantConsent()
+                            consentRepository.grantConsent(userId)
                             analyticsProvider.setEnabled(true)
                             analyticsProvider.trackEvent(AnalyticsEvent.AnalyticsConsentGranted)
                         } else {
-                            consentRepository.revokeConsent()
+                            consentRepository.revokeConsent(userId)
                             analyticsProvider.setEnabled(false)
                             analyticsProvider.clearUserData()
                             analyticsProvider.trackEvent(AnalyticsEvent.AnalyticsConsentRevoked)

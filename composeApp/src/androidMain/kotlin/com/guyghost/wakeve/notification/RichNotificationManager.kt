@@ -41,8 +41,9 @@ class RichNotificationManager(
 
         /**
          * Default notification icon (small icon).
+         * Using Android system icon as fallback since composeApp doesn't have R class generated.
          */
-        private const val DEFAULT_SMALL_ICON = R.drawable.ic_launcher_foreground
+        private const val DEFAULT_SMALL_ICON = android.R.drawable.ic_menu_info_details
     }
 
     /**
@@ -116,7 +117,7 @@ class RichNotificationManager(
         bigPicture?.let {
             val style = NotificationCompat.BigPictureStyle()
                 .bigPicture(it)
-                .bigLargeIcon(null) // Don't show large icon in expanded view
+                .bigLargeIcon(null as android.graphics.Bitmap?) // Don't show large icon in expanded view
             builder.setStyle(style)
         }
 
@@ -277,12 +278,13 @@ class RichNotificationManager(
                 }
                 .build()
 
+            var loadedBitmap: Bitmap? = null
             val request = ImageRequest.Builder(context)
                 .data(uri)
                 .target { drawable ->
                     // Convert drawable to bitmap
-                    if (drawable is android.graphics.drawable.BitmapDrawable) {
-                        return@target drawable.bitmap
+                    loadedBitmap = if (drawable is android.graphics.drawable.BitmapDrawable) {
+                        drawable.bitmap
                     } else {
                         // For other drawable types, convert to bitmap
                         val bitmap = Bitmap.createBitmap(
@@ -293,13 +295,13 @@ class RichNotificationManager(
                         val canvas = android.graphics.Canvas(bitmap)
                         drawable.setBounds(0, 0, canvas.width, canvas.height)
                         drawable.draw(canvas)
-                        return@target bitmap
+                        bitmap
                     }
                 }
                 .build()
 
-            val result = imageLoader.execute(request)
-            (result.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap
+            imageLoader.execute(request)
+            loadedBitmap
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load image from URI: $uri", e)
             null
@@ -357,7 +359,7 @@ class RichNotificationManager(
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
 
-        val remoteInput = android.app.RemoteInput.Builder("key_text_reply").build()
+        val remoteInput = androidx.core.app.RemoteInput.Builder("key_text_reply").build()
 
         val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
