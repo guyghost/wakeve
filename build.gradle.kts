@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kotlinJvm) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.ktor) apply false
+    alias(libs.plugins.kotlinSerialization) apply false
     // Google Services plugin for Firebase
     id("com.google.gms.google-services") version "4.4.2" apply false
 }

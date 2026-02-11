@@ -5,6 +5,7 @@ android-compileSdk = "36"
 android-minSdk = "24"
 android-targetSdk = "36"
 androidx-activity = "1.11.0"
+activity-ktx = "1.9.3"
 androidx-appcompat = "1.7.1"
 androidx-core = "1.17.0"
 androidx-credentials = "1.3.0"
@@ -33,6 +34,23 @@ micrometer = "1.14.4"
 tensorflow-lite = "0.4.0"
 google-ml-kit-vision = "17.0.0"
 google-ml-kit-face-detection = "16.1.6"
+
+# Additional dependencies for KMP
+navigation-compose = "2.7.7"
+browser = "1.8.0"
+coil = "2.6.0"
+firebase-messaging = "24.1.0"
+firebase-bom = "32.7.0"
+firebase-analytics = "21.5.0"
+koin-androidx-compose = "3.5.3"
+compose-ui-test = "1.6.0"
+androidx-test-core = "1.5.0"
+ktor-client-mock = "2.3.12"
+google-services-auth = "20.7.0"
+google-services-base = "18.5.0"
+work-runtime = "2.9.0"
+mlkit-image-labeling = "16.0.8"
+mlkit-face-detection-legacy = "17.1.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -86,6 +104,36 @@ tensorflow-lite-support = { module = "org.tensorflow:tensorflow-lite-support", v
 ml-kit-vision = { module = "com.google.mlkit:vision", version.ref = "google-ml-kit-vision" }
 ml-kit-face-detection = { module = "com.google.mlkit:face-detection", version.ref = "google-ml-kit-face-detection" }
 
+# Navigation & UI
+navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigation-compose" }
+browser = { module = "androidx.browser:browser", version.ref = "browser" }
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
+
+# Firebase
+firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebase-messaging" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebase-analytics" }
+
+# AndroidX additional
+activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activity-ktx" }
+koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin-androidx-compose" }
+androidx-test-core = { module = "androidx.test:core", version.ref = "androidx-test-core" }
+compose-ui-test = { module = "androidx.compose.ui:ui-test-junit4", version.ref = "compose-ui-test" }
+
+# Ktor testing
+ktor-client-mock = { module = "io.ktor:ktor-client-mock", version.ref = "ktor-client-mock" }
+
+# Google Play Services
+google-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "google-services-auth" }
+google-services-base = { module = "com.google.android.gms:play-services-base", version.ref = "google-services-base" }
+
+# WorkManager
+work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work-runtime" }
+
+# ML Kit
+mlkit-image-labeling = { module = "com.google.android.gms:play-services-mlkit-image-labeling", version.ref = "mlkit-image-labeling" }
+mlkit-face-detection-legacy = { module = "com.google.android.gms:play-services-mlkit-face-detection", version.ref = "mlkit-face-detection-legacy" }
+
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
@@ -97,3 +145,4 @@ kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

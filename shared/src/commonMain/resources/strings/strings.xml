@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<resources>
+    <!-- App General -->
+    <string name="app_name">Wakeve</string>
+    <string name="app_tagline">Planifiez vos événements ensemble</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Accueil</string>
+    <string name="nav_events">Événements</string>
+    <string name="nav_profile">Profil</string>
+    <string name="nav_settings">Paramètres</string>
+    
+    <!-- Event Actions -->
+    <string name="event_create">Créer un événement</string>
+    <string name="event_edit">Modifier</string>
+    <string name="event_delete">Supprimer</string>
+    <string name="event_share">Partager</string>
+    <string name="event_invite">Inviter des participants</string>
+    
+    <!-- Poll -->
+    <string name="poll_title">Sondage de disponibilité</string>
+    <string name="poll_vote_yes">Disponible</string>
+    <string name="poll_vote_maybe">Peut-être</string>
+    <string name="poll_vote_no">Indisponible</string>
+    <string name="poll_submit">Voter</string>
+    <string name="poll_results">Résultats</string>
+    
+    <!-- Common Actions -->
+    <string name="action_save">Enregistrer</string>
+    <string name="action_cancel">Annuler</string>
+    <string name="action_confirm">Confirmer</string>
+    <string name="action_close">Fermer</string>
+    <string name="action_back">Retour</string>
+    <string name="action_next">Suivant</string>
+    <string name="action_done">Terminé</string>
+    
+    <!-- Status -->
+    <string name="status_loading">Chargement...</string>
+    <string name="status_error">Une erreur s'est produite</string>
+    <string name="status_empty">Aucun contenu</string>
+    <string name="status_offline">Mode hors ligne</string>
+    
+    <!-- Formatting -->
+    <string name="format_participants">%1$d participants</string>
+    <string name="format_date_range">%1$s - %2$s</string>
+</resources>
