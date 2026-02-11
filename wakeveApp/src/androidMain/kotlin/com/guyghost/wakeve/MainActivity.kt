@@ -25,6 +25,7 @@ import com.guyghost.wakeve.auth.shell.services.GoogleSignInProvider
 import com.guyghost.wakeve.auth.shell.services.AppleSignInProvider
 import com.guyghost.wakeve.auth.shell.services.AppleSignInWebFlow
 import com.guyghost.wakeve.ui.auth.AuthViewModel
+import com.guyghost.wakeve.deeplink.DeepLinkStateManager
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
@@ -95,6 +96,9 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
 
         // Setup OAuth providers
         setupOAuthProviders()
+
+        // Check for deep link in intent (app launched from deep link)
+        handleDeepLinkFromIntent(intent)
 
         setContent {
             Log.d("MainActivity", "setContent called")
@@ -323,18 +327,46 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
      * This method is called when the app receives an intent with an Apple Sign-In callback
      * via deep linking (wakeve://apple-auth-callback).
      *
+     * Also handles other deep links for events, polls, meetings, and invites.
+     *
      * @param intent The intent received from the OS
      */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         Log.d("MainActivity", "onNewIntent called")
 
-        // Handle Apple Sign-In callback (deep link)
-        intent.data?.let { uri ->
+        // Handle deep link from intent
+        handleDeepLinkFromIntent(intent)
+    }
+
+    /**
+     * Handle deep link from intent.
+     *
+     * This method extracts the deep link URI from an intent and processes it.
+     * It supports:
+     * - wakeve://event/{id} - Event details
+     * - wakeve://poll/{eventId} - Poll voting
+     * - wakeve://meeting/{meetingId} - Meeting details
+     * - wakeve://invite/{token} - Invite handling
+     * - wakeve://apple-auth-callback - Apple Sign-In callback
+     *
+     * @param intent The intent containing the deep link
+     */
+    private fun handleDeepLinkFromIntent(intent: Intent?) {
+        intent?.data?.let { uri ->
+            Log.d("MainActivity", "Deep link received: $uri")
+
+            // Handle Apple Sign-In callback specifically
             if (uri.scheme == "wakeve" && uri.host == "apple-auth-callback") {
                 Log.d("MainActivity", "Apple Sign-In callback received: $uri")
                 handleAppleAuthCallback(uri)
+            } else {
+                // Store deep link for Compose UI to handle
+                DeepLinkStateManager.updatePendingDeepLink(uri)
+                Log.d("MainActivity", "Deep link stored in state manager")
             }
+        } ?: run {
+            Log.d("MainActivity", "No deep link URI in intent")
         }
     }
 
