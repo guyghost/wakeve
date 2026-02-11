@@ -25,7 +25,7 @@ wakeve/
 │
 ├── iosApp/                       # Application iOS native (Swift)
 │   ├── iosApp.xcodeproj/         # Projet Xcode
-│   ├── iosApp/
+│   ├── src/                      # Code source Swift
 │   │   ├── Views/                # Écrans SwiftUI
 │   │   ├── ViewModels/           # ViewModels Swift
 │   │   ├── Components/           # Composants réutilisables
@@ -179,7 +179,7 @@ Android (Compose)              iOS (SwiftUI)
        └──────────┬─────────────────┘
                   │
        ┌──────────▼─────────────────┐
-       │       iosApp/iosApp         │  ← UI Swift natif
+       │       iosApp/src            │  ← UI Swift natif
        └────────────────────────────┘
 ```
 
@@ -254,7 +254,7 @@ resources/
 - Utiliser le système de ressources Android standard
 - Drawable, mipmap, values, etc.
 
-### Ressources iOS (iosApp/iosApp/)
+### Ressources iOS (iosApp/src/)
 - `Assets.xcassets/` pour les images
 - `Localizable.strings` pour les traductions
 
