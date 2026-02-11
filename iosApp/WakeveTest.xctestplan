@@ -11,7 +11,7 @@
   "defaultOptions" : {
     "performanceAntipatternCheckerEnabled" : true,
     "targetForVariableExpansion" : {
-      "containerPath" : "container:wakeveApp.xcodeproj",
+      "containerPath" : "container:iosApp.xcodeproj",
       "identifier" : "26FA9A92B051534D6E7C900B",
       "name" : "WakeveApp"
     }
@@ -20,7 +20,7 @@
     {
       "parallelizable" : true,
       "target" : {
-        "containerPath" : "container:wakeveApp.xcodeproj",
+        "containerPath" : "container:iosApp.xcodeproj",
         "identifier" : "E489717B2F0BC60F00BE8BF0",
         "name" : "WakeveTests"
       }
