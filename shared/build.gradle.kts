@@ -2,100 +2,117 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.sqldelight)
-    kotlin("plugin.serialization") version "2.2.20"
+    alias(libs.plugins.kotlinSerialization)
     jacoco
 }
 
 kotlin {
+    // Android target
     androidTarget()
     
-    listOf(
-        iosArm64(),
-        iosSimulatorArm64()
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "Shared"
-            isStatic = true
-        }
-    }
+    // iOS targets
+    iosArm64()
+    iosSimulatorArm64()
     
-    jvm {
-        compilerOptions {
-            freeCompilerArgs.add("-Xexpect-actual-classes")
-        }
-    }
+    // JVM target for server and desktop
+    jvm()
     
     sourceSets {
-        commonMain.dependencies {
-            implementation(libs.sqldelight.runtime)
-            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-            implementation(libs.kotlinx.coroutines)
-            implementation(libs.kotlinx.datetime)
+        // Common source set - shared across all platforms
+        commonMain {
+            dependencies {
+                // Kotlinx
+                implementation(libs.kotlinx.coroutines)
+                implementation(libs.kotlinx.datetime)
+                // kotlinx-serialization-json is added by the plugin
+                
+                // SQLDelight
+                implementation(libs.sqldelight.runtime)
+            }
         }
-        androidMain.dependencies {
-            implementation(libs.sqldelight.androidDriver)
-            implementation(libs.ktor.clientCore)
-            implementation(libs.ktor.clientContentNegotiation)
-            implementation(libs.ktor.clientCio)
-            implementation(libs.ktor.clientWebsocket)
-            implementation("io.ktor:ktor-serialization-kotlinx-json:3.3.1")
-            implementation(libs.androidx.core.ktx)
-            // Activity Result API for image picker
-            implementation("androidx.activity:activity-ktx:1.9.3")
-            implementation("androidx.appcompat:appcompat:1.7.0")
-            // WorkManager for background tasks
-            implementation("androidx.work:work-runtime-ktx:2.9.0")
-            // ML Kit Vision for on-device photo recognition
-            implementation("com.google.android.gms:play-services-mlkit-image-labeling:16.0.8")
-            implementation("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
-            // Google Play Services Auth for OAuth (Google Sign-In)
-            implementation("com.google.android.gms:play-services-auth:20.7.0")
-            implementation("com.google.android.gms:play-services-base:18.5.0")
-            // Android Security - EncryptedSharedPreferences
-            implementation("androidx.security:security-crypto:1.1.0-alpha06")
-            // Firebase Analytics
-            implementation("com.google.firebase:firebase-analytics-ktx:21.5.0")
-            implementation("com.google.firebase:firebase-bom:32.7.0")
+        
+        commonTest {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.kotlinx.coroutines.test)
+            }
         }
-        iosMain.dependencies {
-            implementation(libs.sqldelight.iosDriver)
-            implementation(libs.ktor.clientCore)
-            implementation(libs.ktor.clientContentNegotiation)
-            implementation(libs.ktor.clientCio)
-            implementation(libs.ktor.clientWebsocket)
-            // Firebase Analytics - to be added via CocoaPods in Podfile
-            // Add 'pod Firebase/Analytics' in iOS Podfile
+        
+        // Android source set
+        androidMain {
+            dependencies {
+                // SQLDelight
+                implementation(libs.sqldelight.androidDriver)
+                
+                // Ktor client
+                implementation(libs.ktor.clientCore)
+                implementation(libs.ktor.clientCio)
+                implementation(libs.ktor.clientContentNegotiation)
+                implementation(libs.ktor.clientWebsocket)
+                implementation(libs.ktor.serialization)
+                
+                // AndroidX
+                implementation(libs.androidx.core.ktx)
+                implementation(libs.androidx.appcompat)
+                implementation(libs.activity.ktx)
+                
+                // WorkManager
+                implementation(libs.work.runtime)
+                
+                // ML Kit
+                implementation(libs.mlkit.image.labeling)
+                implementation(libs.mlkit.face.detection.legacy)
+                
+                // Google Play Services
+                implementation(libs.google.services.auth)
+                implementation(libs.google.services.base)
+                
+                // Security
+                implementation(libs.androidx.security.crypto)
+                
+                // Firebase
+                implementation(libs.firebase.bom)
+                implementation(libs.firebase.analytics)
+            }
         }
-        jvmMain.dependencies {
-            implementation(libs.sqldelight.jvmDriver)
-            implementation(libs.ktor.clientCore)
-            implementation(libs.ktor.clientContentNegotiation)
-            implementation(libs.ktor.clientCio)
-            implementation(libs.ktor.clientWebsocket)
-            implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+        
+        // iOS source set
+        iosMain {
+            dependencies {
+                // SQLDelight
+                implementation(libs.sqldelight.iosDriver)
+                
+                // Ktor client
+                implementation(libs.ktor.clientCore)
+                implementation(libs.ktor.clientCio)
+                implementation(libs.ktor.clientContentNegotiation)
+                implementation(libs.ktor.clientWebsocket)
+            }
         }
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
-            implementation(libs.kotlinx.coroutines.test)
+        
+        // JVM source set (server and desktop)
+        jvmMain {
+            dependencies {
+                // SQLDelight
+                implementation(libs.sqldelight.jvmDriver)
+                
+                // Ktor client
+                implementation(libs.ktor.clientCore)
+                implementation(libs.ktor.clientCio)
+                implementation(libs.ktor.clientContentNegotiation)
+                implementation(libs.ktor.clientWebsocket)
+                implementation(libs.ktor.serialization)
+            }
         }
-        jvmTest.dependencies {
-            implementation(libs.mockk)
-        }
+        
         jvmTest {
-            // Legacy JVM E2E tests are not aligned with the current APIs yet.
-            // Keep them out of the strict build until they are migrated.
-            kotlin.exclude("**/e2e/**")
-        }
-        androidUnitTest.dependencies {
-            implementation(libs.mockk)
-        }
-        androidInstrumentedTest.dependencies {
-            implementation(libs.mockk)
-            implementation(libs.androidx.testExt.junit)
-            implementation(libs.androidx.espresso.core)
-            implementation(libs.kotlin.test)
-            // Add androidx.test:core directly for ApplicationProvider
-            implementation("androidx.test:core:1.5.0")
+            dependencies {
+                implementation(libs.mockk)
+            }
+            kotlin {
+                // Legacy JVM E2E tests are not aligned with the current APIs yet.
+                exclude("**/e2e/**")
+            }
         }
     }
 }
@@ -103,13 +120,25 @@ kotlin {
 android {
     namespace = "com.guyghost.wakeve.shared"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
+    
+    defaultConfig {
+        minSdk = libs.versions.android.minSdk.get().toInt()
+    }
+    
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    defaultConfig {
-        minSdk = libs.versions.android.minSdk.get().toInt()
-    }
+}
+
+// Configure Android test dependencies
+dependencies {
+    testImplementation(libs.mockk)
+    androidTestImplementation(libs.mockk)
+    androidTestImplementation(libs.androidx.testExt.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.kotlin.test)
+    androidTestImplementation(libs.androidx.test.core)
 }
 
 sqldelight {
@@ -123,7 +152,7 @@ sqldelight {
 
 // JaCoCo Configuration for Code Coverage
 jacoco {
-    toolVersion = "0.8.12" // Updated for Java 23 support
+    toolVersion = "0.8.12"
 }
 
 tasks.withType<Test> {
@@ -145,7 +174,6 @@ tasks.register<JacocoReport>("jacocoJvmTestReport") {
         csv.required.set(false)
     }
     
-    // Source directories
     sourceDirectories.setFrom(
         files(
             "src/commonMain/kotlin",
@@ -153,7 +181,6 @@ tasks.register<JacocoReport>("jacocoJvmTestReport") {
         )
     )
     
-    // Class directories
     classDirectories.setFrom(
         files(
             fileTree("build/classes/kotlin/commonMain"),
@@ -161,11 +188,8 @@ tasks.register<JacocoReport>("jacocoJvmTestReport") {
         )
     )
     
-    // Execution data
     executionData.setFrom(
-        files(
-            "build/jacoco/jvmTest.exec"
-        )
+        files("build/jacoco/jvmTest.exec")
     )
 }
 
@@ -178,7 +202,7 @@ tasks.register<JacocoCoverageVerification>("jacocoCoverageVerification") {
     violationRules {
         rule {
             limit {
-                minimum = BigDecimal.valueOf(0.60) // 60% minimum coverage
+                minimum = BigDecimal.valueOf(0.60)
             }
         }
         rule {
@@ -191,7 +215,7 @@ tasks.register<JacocoCoverageVerification>("jacocoCoverageVerification") {
                 "*TestFixture*"
             )
             limit {
-                minimum = BigDecimal.valueOf(0.50) // 50% per class
+                minimum = BigDecimal.valueOf(0.50)
             }
         }
     }
@@ -211,13 +235,10 @@ tasks.register<JacocoCoverageVerification>("jacocoCoverageVerification") {
     )
     
     executionData.setFrom(
-        files(
-            "build/jacoco/jvmTest.exec"
-        )
+        files("build/jacoco/jvmTest.exec")
     )
 }
 
-// Convenience task to run tests with coverage
 tasks.register("testWithCoverage") {
     group = "Verification"
     description = "Run all tests and generate coverage report"
