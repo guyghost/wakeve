@@ -101,6 +101,46 @@
                     android:scheme="wakeve"
                     android:host="apple-auth-callback" />
             </intent-filter>
+
+            <!-- Deep Link: Event Detail - wakeve://event/{id} -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="wakeve"
+                    android:host="event" />
+            </intent-filter>
+
+            <!-- Deep Link: Poll Voting - wakeve://poll/{eventId} -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="wakeve"
+                    android:host="poll" />
+            </intent-filter>
+
+            <!-- Deep Link: Meeting Detail - wakeve://meeting/{meetingId} -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="wakeve"
+                    android:host="meeting" />
+            </intent-filter>
+
+            <!-- Deep Link: Invite - wakeve://invite/{token} -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="wakeve"
+                    android:host="invite" />
+            </intent-filter>
         </activity>
 
         <!-- Shortcuts for Google Assistant -->
