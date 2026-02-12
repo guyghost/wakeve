@@ -77,7 +77,7 @@ struct MeetingGenerateLinkSheet: View {
         VStack(spacing: 12) {
             Image(systemName: "link.circle.fill")
                 .font(.system(size: 48))
-                .foregroundColor(.wakevPrimary)
+                .foregroundColor(.wakevePrimary)
 
             Text("Sélectionnez une plateforme")
                 .font(.title2.weight(.semibold))
@@ -137,7 +137,7 @@ struct MeetingGenerateLinkSheet: View {
     private var infoSection: some View {
         HStack(spacing: 12) {
             Image(systemName: "info.circle.fill")
-                .foregroundColor(.wakevAccent)
+                .foregroundColor(.wakeveAccent)
                 .font(.system(size: 20))
 
             Text("Le lien existant sera remplacé par le nouveau lien généré.")
@@ -146,7 +146,7 @@ struct MeetingGenerateLinkSheet: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color.wakevAccent.opacity(0.1))
+        .background(Color.wakeveAccent.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
@@ -165,12 +165,12 @@ struct MeetingGenerateLinkSheet: View {
 
     private func platformColor(for platform: Shared.MeetingPlatform) -> Color {
         switch platform {
-        case .zoom: return .wakevPrimary
-        case .googleMeet: return .wakevSuccess
-        case .facetime: return .wakevAccent
+        case .zoom: return .wakevePrimary
+        case .googleMeet: return .wakeveSuccess
+        case .facetime: return .wakeveAccent
         case .teams: return .iOSSystemBlue
         case .webex: return .iOSSystemGreen
-        default: return .wakevPrimary
+        default: return .wakevePrimary
         }
     }
 
@@ -207,12 +207,12 @@ private struct GenerateLinkPlatformOption: View {
             VStack(spacing: 4) {
                 Text(platformName)
                     .font(.subheadline.weight(.medium))
-                    .foregroundColor(isSelected ? .wakevPrimary : .primary)
+                    .foregroundColor(isSelected ? .wakevePrimary : .primary)
                 
                 if isSelected {
                     Text("Sélectionné")
                         .font(.caption)
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                 }
             }
         }
@@ -228,14 +228,14 @@ private struct GenerateLinkPlatformOption: View {
         if isSelected {
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color.wakevPrimary.opacity(0.15),
-                    Color.wakevAccent.opacity(0.15)
+                    Color.wakevePrimary.opacity(0.15),
+                    Color.wakeveAccent.opacity(0.15)
                 ]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
         } else {
-            Color.wakevSurfaceLight
+            Color.wakeveSurfaceLight
         }
     }
     
@@ -246,8 +246,8 @@ private struct GenerateLinkPlatformOption: View {
                 .stroke(
                     LinearGradient(
                         gradient: Gradient(colors: [
-                            Color.wakevPrimary.opacity(0.5),
-                            Color.wakevAccent.opacity(0.5)
+                            Color.wakevePrimary.opacity(0.5),
+                            Color.wakeveAccent.opacity(0.5)
                         ]),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -256,7 +256,7 @@ private struct GenerateLinkPlatformOption: View {
                 )
         } else {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.wakevBorderLight, lineWidth: 1)
+                .stroke(Color.wakeveBorderLight, lineWidth: 1)
         }
     }
     
@@ -273,12 +273,12 @@ private struct GenerateLinkPlatformOption: View {
     
     private var platformColor: Color {
         switch platform {
-        case .zoom: return .wakevPrimary
-        case .googleMeet: return .wakevSuccess
-        case .facetime: return .wakevAccent
+        case .zoom: return .wakevePrimary
+        case .googleMeet: return .wakeveSuccess
+        case .facetime: return .wakeveAccent
         case .teams: return .iOSSystemBlue
         case .webex: return .iOSSystemGreen
-        default: return .wakevPrimary
+        default: return .wakevePrimary
         }
     }
     

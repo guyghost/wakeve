@@ -139,12 +139,12 @@ struct LiquidGlassTextField: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke(
-                            isFocused ? Color.wakevPrimary : (errorMessage != nil ? Color.secondary : .clear),
+                            isFocused ? Color.wakevePrimary : (errorMessage != nil ? Color.secondary : .clear),
                             lineWidth: 1.5
                         )
                 )
                 .shadow(
-                    color: isFocused ? Color.wakevPrimary.opacity(0.2) : .clear,
+                    color: isFocused ? Color.wakevePrimary.opacity(0.2) : .clear,
                     radius: isFocused ? 6 : 0,
                     x: 0,
                     y: isFocused ? 2 : 0
@@ -226,7 +226,7 @@ struct LiquidGlassTextField: View {
         if let errorMessage = errorMessage, !errorMessage.isEmpty {
             return .red
         } else if isFocused {
-            return .wakevPrimary
+            return .wakevePrimary
         } else {
             return .secondary
         }

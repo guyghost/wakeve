@@ -177,12 +177,12 @@ struct AppleInvitesEmptyState: View {
                 // Calendar icon with animation
                 ZStack {
                     Circle()
-                        .fill(Color.wakevPrimary.opacity(0.15))
+                        .fill(Color.wakevePrimary.opacity(0.15))
                         .frame(width: 80, height: 80)
 
                     Image(systemName: "calendar")
                         .font(.system(size: 40, weight: .light))
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                         .scaleEffect(isAnimating ? 1.05 : 1.0)
                         .animation(
                             Animation.spring(response: 1.5, dampingFraction: 0.6)
@@ -218,8 +218,8 @@ struct AppleInvitesEmptyState: View {
                     .background(
                         LinearGradient(
                             gradient: Gradient(colors: [
-                                Color.wakevPrimary,
-                                Color.wakevAccent
+                                Color.wakevePrimary,
+                                Color.wakeveAccent
                             ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -386,7 +386,7 @@ struct AddEventCard: View {
                 VStack(spacing: 12) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 44, weight: .light))
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
 
                     Text("Créer un événement")
                         .font(.headline.weight(.semibold))
@@ -413,12 +413,12 @@ struct ParticipantAvatar: View {
 
     private var avatarColor: Color {
         let colors: [Color] = [
-            .wakevError,
-            .wakevWarning,
-            .wakevSuccess,
-            .wakevPrimary,
-            .wakevAccent,
-            .wakevSuccessDark
+            .wakeveError,
+            .wakeveWarning,
+            .wakeveSuccess,
+            .wakevePrimary,
+            .wakeveAccent,
+            .wakeveSuccessDark
         ]
         let hash = abs(participantId.hashValue)
         return colors[hash % colors.count]
@@ -469,7 +469,7 @@ struct LoadingEventsView: View {
     var body: some View {
         VStack(spacing: 20) {
             ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: .wakevPrimary))
+                .progressViewStyle(CircularProgressViewStyle(tint: .wakevePrimary))
                 .scaleEffect(1.3)
 
             Text("Chargement des événements...")

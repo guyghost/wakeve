@@ -30,7 +30,7 @@ struct InfoRow: View {
             if let icon = icon {
                 Image(systemName: icon)
                     .font(.body)
-                    .foregroundColor(.wakevAccent)
+                    .foregroundColor(.wakeveAccent)
                     .frame(width: 20)
             }
 
@@ -151,7 +151,7 @@ struct FilterChip: View {
                         .padding(.vertical, 4)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(isSelected ? Color.white.opacity(0.25) : Color.wakevBorderLight.opacity(0.3))
+                                .fill(isSelected ? Color.white.opacity(0.25) : Color.wakeveBorderLight.opacity(0.3))
                         )
                 }
             }
@@ -162,7 +162,7 @@ struct FilterChip: View {
                 Group {
                     if isSelected {
                         LinearGradient(
-                            gradient: Gradient(colors: [.wakevPrimary, .wakevAccent]),
+                            gradient: Gradient(colors: [.wakevePrimary, .wakeveAccent]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -177,13 +177,13 @@ struct FilterChip: View {
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 20)
-                                .strokeBorder(Color.wakevBorderLight.opacity(0.5), lineWidth: 1)
+                                .strokeBorder(Color.wakeveBorderLight.opacity(0.5), lineWidth: 1)
                         )
                     }
                 }
             )
             .clipShape(Capsule())
-            .shadow(color: isSelected ? Color.wakevPrimary.opacity(0.3) : Color.clear, radius: 4, x: 0, y: 2)
+            .shadow(color: isSelected ? Color.wakevePrimary.opacity(0.3) : Color.clear, radius: 4, x: 0, y: 2)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(text)
@@ -270,9 +270,9 @@ struct VoteButton: View {
 
     private func voteColor(for vote: PollVote) -> Color {
         switch vote {
-        case .yes: return .wakevSuccess
-        case .maybe: return .wakevWarning
-        case .no: return .wakevError
+        case .yes: return .wakeveSuccess
+        case .maybe: return .wakeveWarning
+        case .no: return .wakeveError
         }
     }
 
@@ -323,7 +323,7 @@ struct SectionHeader: View {
                 Button(action: action) {
                     Text(actionTitle)
                         .font(.subheadline)
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                 }
             }
         }
@@ -358,7 +358,7 @@ struct EmptyStateView: View {
         VStack(spacing: 16) {
             Image(systemName: icon)
                 .font(.system(size: 48))
-                .foregroundColor(.wakevAccent.opacity(0.6))
+                .foregroundColor(.wakeveAccent.opacity(0.6))
 
             Text(title)
                 .font(.title3.weight(.semibold))
@@ -389,7 +389,7 @@ struct LoadingView: View {
     var body: some View {
         VStack(spacing: 16) {
             ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: .wakevPrimary))
+                .progressViewStyle(CircularProgressViewStyle(tint: .wakevePrimary))
                 .scaleEffect(1.2)
 
             Text(message)
@@ -411,7 +411,7 @@ struct ActionRow: View {
             HStack(spacing: 12) {
                 Image(systemName: icon)
                     .font(.body)
-                    .foregroundColor(.wakevPrimary)
+                    .foregroundColor(.wakevePrimary)
                     .frame(width: 24)
 
                 Text(title)
@@ -449,7 +449,7 @@ struct RatingDisplay: View {
             ForEach(1...maxRating, id: \.self) { index in
                 Image(systemName: icon)
                     .font(.caption)
-                    .foregroundColor(index <= rating ? .wakevWarning : Color.gray.opacity(0.3))
+                    .foregroundColor(index <= rating ? .wakeveWarning : Color.gray.opacity(0.3))
             }
         }
     }
@@ -491,7 +491,7 @@ struct PriceDisplay: View {
     private var priceColor: Color {
         switch style {
         case .normal: return .primary
-        case .large: return .wakevPrimary
+        case .large: return .wakevePrimary
         case .subtle: return .secondary
         }
     }
@@ -607,6 +607,6 @@ struct SharedComponents_Previews: PreviewProvider {
             }
             .padding()
         }
-        .background(Color.wakevBackgroundDark)
+        .background(Color.wakeveBackgroundDark)
     }
 }

@@ -153,7 +153,7 @@ struct ExploreEventCardContent: View {
                             .aspectRatio(contentMode: .fill)
                     } placeholder: {
                         Rectangle()
-                            .fill(Color.wakevSurfaceLight)
+                            .fill(Color.wakeveSurfaceLight)
                     }
                 } else {
                     // Fallback gradient
@@ -161,8 +161,8 @@ struct ExploreEventCardContent: View {
                         .fill(
                             LinearGradient(
                                 gradient: Gradient(colors: [
-                                    Color.wakevPrimary,
-                                    Color.wakevAccent
+                                    Color.wakevePrimary,
+                                    Color.wakeveAccent
                                 ]),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing

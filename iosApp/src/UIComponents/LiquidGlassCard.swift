@@ -67,7 +67,7 @@ struct LiquidGlassCard<Content: View>: View {
     LiquidGlassCard(cornerRadius: 12, padding: 12) {
         HStack {
             Image(systemName: "star.fill")
-                .foregroundColor(.wakevAccent)
+                .foregroundColor(.wakeveAccent)
             Text("Compact card")
                 .font(.subheadline)
         }

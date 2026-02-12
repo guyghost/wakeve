@@ -30,8 +30,8 @@ struct InboxView: View {
                 // Background gradient using design system colors
                 LinearGradient(
                     gradient: Gradient(colors: [
-                        Color.wakevPrimary.opacity(0.08),
-                        Color.wakevAccent.opacity(0.08)
+                        Color.wakevePrimary.opacity(0.08),
+                        Color.wakeveAccent.opacity(0.08)
                     ]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -60,7 +60,7 @@ struct InboxView: View {
                     LiquidGlassIconButton(
                         icon: "chevron.left",
                         size: 44,
-                        gradientColors: [.wakevPrimary.opacity(0.3), .wakevAccent.opacity(0.3)]
+                        gradientColors: [.wakevePrimary.opacity(0.3), .wakeveAccent.opacity(0.3)]
                     ) {
                         onBack()
                     }
@@ -71,7 +71,7 @@ struct InboxView: View {
                         LiquidGlassIconButton(
                             icon: "checkmark.circle",
                             size: 44,
-                            gradientColors: [.wakevSuccess.opacity(0.3), .wakevSuccess.opacity(0.2)]
+                            gradientColors: [.wakeveSuccess.opacity(0.3), .wakeveSuccess.opacity(0.2)]
                         ) {
                             markAllAsRead()
                         }
@@ -144,7 +144,7 @@ struct InboxView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.5)
-                .tint(.wakevPrimary)
+                .tint(.wakevePrimary)
             Text("Chargement...")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
@@ -158,7 +158,7 @@ struct InboxView: View {
         VStack(spacing: 20) {
             Image(systemName: emptyStateIcon)
                 .font(.system(size: 64))
-                .foregroundColor(.wakevPrimary.opacity(0.3))
+                .foregroundColor(.wakevePrimary.opacity(0.3))
             
             Text(emptyStateTitle)
                 .font(.title3)
@@ -362,10 +362,10 @@ struct InboxItemModel: Identifiable {
     
     var iconColor: Color {
         switch type {
-        case .invitation: return .wakevPrimary
-        case .pollUpdate: return .wakevAccent
-        case .comment: return .wakevSuccess
-        case .eventUpdate: return .wakevWarning
+        case .invitation: return .wakevePrimary
+        case .pollUpdate: return .wakeveAccent
+        case .comment: return .wakeveSuccess
+        case .eventUpdate: return .wakeveWarning
         }
     }
     

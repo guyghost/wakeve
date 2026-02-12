@@ -84,7 +84,7 @@ struct PointsSummaryCard: View {
                         Circle()
                             .fill(
                                 LinearGradient(
-                                    colors: [.wakevPrimary, .wakevAccent],
+                                    colors: [.wakevePrimary, .wakeveAccent],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
@@ -101,10 +101,10 @@ struct PointsSummaryCard: View {
                     .padding(.vertical, 4)
                 
                 // Points breakdown
-                PointBreakdownRow(label: "Création d'événements", points: eventCreationPoints, color: .wakevWarning)
-                PointBreakdownRow(label: "Votes", points: votingPoints, color: .wakevSuccess)
-                PointBreakdownRow(label: "Commentaires", points: commentPoints, color: .wakevAccent)
-                PointBreakdownRow(label: "Participation", points: participationPoints, color: .wakevPrimary)
+                PointBreakdownRow(label: "Création d'événements", points: eventCreationPoints, color: .wakeveWarning)
+                PointBreakdownRow(label: "Votes", points: votingPoints, color: .wakeveSuccess)
+                PointBreakdownRow(label: "Commentaires", points: commentPoints, color: .wakeveAccent)
+                PointBreakdownRow(label: "Participation", points: participationPoints, color: .wakevePrimary)
             }
         }
     }
@@ -146,7 +146,7 @@ struct BadgesSection: View {
             // Section header
             HStack {
                 Image(systemName: "trophy.fill")
-                    .foregroundColor(.wakevWarning)
+                    .foregroundColor(.wakeveWarning)
                 
                 Text("Succès")
                     .font(.title2)
@@ -236,11 +236,11 @@ struct BadgeItemView: View {
         case .common:
             return .gray
         case .rare:
-            return .wakevPrimary
+            return .wakevePrimary
         case .epic:
-            return .wakevAccent
+            return .wakeveAccent
         case .legendary:
-            return .wakevWarning
+            return .wakeveWarning
         }
     }
     
@@ -271,7 +271,7 @@ struct LeaderboardSection: View {
             // Section header
             HStack {
                 Image(systemName: "chart.bar.fill")
-                    .foregroundColor(.wakevPrimary)
+                    .foregroundColor(.wakevePrimary)
                 
                 Text("Classement")
                     .font(.title2)
@@ -363,7 +363,7 @@ struct LeaderboardItemView: View {
                     Text(formatPoints(entry.totalPoints))
                         .font(.headline)
                         .fontWeight(.bold)
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                     
                     Text("points")
                         .font(.caption2)

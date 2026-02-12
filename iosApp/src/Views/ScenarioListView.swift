@@ -146,12 +146,12 @@ struct ScenarioListView: View {
         VStack(spacing: 24) {
             ZStack {
                 Circle()
-                    .fill(Color.wakevPrimary.opacity(0.1))
+                    .fill(Color.wakevePrimary.opacity(0.1))
                     .frame(width: 80, height: 80)
                 
                 Image(systemName: "list.bullet.rectangle.portrait")
                     .font(.system(size: 36))
-                    .foregroundColor(.wakevPrimary)
+                    .foregroundColor(.wakevePrimary)
             }
             
             VStack(spacing: 8) {
@@ -289,7 +289,7 @@ struct ScenarioListView: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.wakevPrimary)
+                .foregroundColor(.wakevePrimary)
                 .frame(width: 24)
             
             VStack(alignment: .leading, spacing: 2) {
@@ -325,25 +325,25 @@ struct ScenarioListView: View {
             HStack(spacing: 12) {
                 voteCount(
                     count: Int(result.preferCount),
-                    color: .wakevSuccess,
+                    color: .wakeveSuccess,
                     label: NSLocalizedString("prefer_label", comment: "Prefer label")
                 )
                 
                 voteCount(
                     count: Int(result.neutralCount),
-                    color: .wakevWarning,
+                    color: .wakeveWarning,
                     label: NSLocalizedString("neutral_label", comment: "Neutral label")
                 )
                 
                 voteCount(
                     count: Int(result.againstCount),
-                    color: .wakevError,
+                    color: .wakeveError,
                     label: NSLocalizedString("against_label", comment: "Against label")
                 )
             }
         }
         .padding(16)
-        .background(Color.wakevSurfaceLight)
+        .background(Color.wakeveSurfaceLight)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
     

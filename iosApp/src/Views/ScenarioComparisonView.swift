@@ -21,9 +21,9 @@ struct ScenarioComparisonView: View {
             // Liquid Glass background gradient
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color.wakevPrimary.opacity(0.1),
-                    Color.wakevAccent.opacity(0.05),
-                    Color.wakevPrimary.opacity(0.08)
+                    Color.wakevePrimary.opacity(0.1),
+                    Color.wakeveAccent.opacity(0.05),
+                    Color.wakevePrimary.opacity(0.08)
                 ]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -64,7 +64,7 @@ struct ScenarioComparisonView: View {
                 LiquidGlassIconButton(
                     icon: "arrow.left",
                     size: 40,
-                    gradientColors: [.wakevPrimary.opacity(0.6), .wakevAccent.opacity(0.6)]
+                    gradientColors: [.wakevePrimary.opacity(0.6), .wakeveAccent.opacity(0.6)]
                 ) {
                     onBack()
                 }
@@ -198,7 +198,7 @@ struct ScenarioComparisonView: View {
                     // Label column
                     Text("Score")
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                         .frame(width: 140, alignment: .leading)
                         .padding(12)
 
@@ -263,7 +263,7 @@ struct ScenarioComparisonView: View {
                 .padding(12)
             }
         }
-        .background(Color.wakevPrimary.opacity(0.05))
+        .background(Color.wakevePrimary.opacity(0.05))
     }
 
     // MARK: - Comparison Row
@@ -351,7 +351,7 @@ struct ScenarioComparisonView: View {
 
     private func scenarioScoreColor(_ swv: ScenarioWithVotes) -> Color {
         if swv.scenario.id == bestScenarioId {
-            return .wakevAccent
+            return .wakeveAccent
         }
         return .primary
     }
@@ -396,8 +396,8 @@ struct ScenarioComparisonView: View {
                     .fill(
                         LinearGradient(
                             gradient: Gradient(colors: [
-                                Color.wakevPrimary.opacity(0.2),
-                                Color.wakevAccent.opacity(0.1)
+                                Color.wakevePrimary.opacity(0.2),
+                                Color.wakeveAccent.opacity(0.1)
                             ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -407,7 +407,7 @@ struct ScenarioComparisonView: View {
 
                 Image(systemName: "arrow.left.arrow.right")
                     .font(.system(size: 40, weight: .medium))
-                    .foregroundColor(.wakevPrimary)
+                    .foregroundColor(.wakevePrimary)
             }
 
             VStack(spacing: 12) {

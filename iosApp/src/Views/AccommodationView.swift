@@ -52,7 +52,7 @@ struct AccommodationView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Fermer") { dismiss() }
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 12) {
@@ -66,7 +66,7 @@ struct AccommodationView: View {
                         } label: {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
-                                .foregroundColor(.wakevPrimary)
+                                .foregroundColor(.wakevePrimary)
                         }
                     }
                 }
@@ -99,7 +99,7 @@ struct AccommodationView: View {
                         Button("Fermer") {
                             showComments = false
                         }
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                     }
                 }
             }
@@ -107,7 +107,7 @@ struct AccommodationView: View {
                 Button("Annuler", role: .cancel) {
                     accommodationToDelete = nil
                 }
-                .foregroundColor(.wakevPrimary)
+                .foregroundColor(.wakevePrimary)
                 Button("Supprimer", role: .destructive) {
                     accommodations.removeAll { $0.id == accommodation.id }
                     accommodationToDelete = nil
@@ -126,7 +126,7 @@ struct AccommodationView: View {
         VStack(spacing: 24) {
             Image(systemName: "bed.double.fill")
                 .font(.system(size: 64))
-                .foregroundColor(.wakevPrimary)
+                .foregroundColor(.wakevePrimary)
             
             Text("Aucun hébergement")
                 .font(.title2)
@@ -210,7 +210,7 @@ struct AccommodationCard: View {
                         HStack(spacing: 6) {
                             Image(systemName: accommodation.typeIcon)
                                 .font(.caption)
-                                .foregroundColor(.wakevPrimary)
+                                .foregroundColor(.wakevePrimary)
                             Text(accommodation.typeLabel)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
@@ -421,7 +421,7 @@ struct AccommodationFormSheet: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Annuler") { dismiss() }
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Enregistrer") {
@@ -429,7 +429,7 @@ struct AccommodationFormSheet: View {
                     }
                     .disabled(!isFormValid)
                     .fontWeight(.semibold)
-                    .foregroundColor(.wakevPrimary)
+                    .foregroundColor(.wakevePrimary)
                 }
             }
         }

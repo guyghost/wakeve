@@ -41,8 +41,8 @@ struct LiquidGlassModifier: ViewModifier {
             )
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(Color.blue.opacity(0.1))
-                    .blur(radius: 10)
+                    .fill(Color.white.opacity(0.02))
+                    .blur(radius: 8)
             )
     }
 }

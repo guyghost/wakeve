@@ -138,7 +138,7 @@ struct BudgetOverviewView: View {
                 HStack {
                     Image(systemName: "chart.bar.fill")
                         .font(.system(size: 20))
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                     
                     Text("Budget Summary")
                         .font(.system(size: 20, weight: .semibold))
@@ -173,10 +173,10 @@ struct BudgetOverviewView: View {
             HStack(spacing: 4) {
                 Text("$")
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.wakevPrimary)
+                    .foregroundColor(.wakevePrimary)
                 Text(formatCost(budget.totalEstimated))
                     .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(.wakevPrimary)
+                    .foregroundColor(.wakevePrimary)
             }
         }
         .accessibilityLabel("Estimated budget: \(formatCost(budget.totalEstimated)) dollars")
@@ -258,13 +258,13 @@ struct BudgetOverviewView: View {
     
     private var progressBarColors: [Color] {
         if usagePercentage <= 80 {
-            return [.wakevSuccess, .wakevSuccessLight]
+            return [.wakeveSuccess, .wakeveSuccessLight]
         } else if usagePercentage <= 100 {
-            return [.wakevPrimary, .wakevAccent]
+            return [.wakevePrimary, .wakeveAccent]
         } else if usagePercentage <= 120 {
-            return [.wakevWarning, .wakevWarningLight]
+            return [.wakeveWarning, .wakeveWarningLight]
         } else {
-            return [.wakevError, .wakevErrorLight]
+            return [.wakeveError, .wakeveErrorLight]
         }
     }
     
@@ -276,7 +276,7 @@ struct BudgetOverviewView: View {
                 HStack {
                     Image(systemName: "person.2.fill")
                         .font(.system(size: 20))
-                        .foregroundColor(.wakevAccent)
+                        .foregroundColor(.wakeveAccent)
                     
                     Text("Cost Per Person")
                         .font(.system(size: 20, weight: .semibold))
@@ -317,10 +317,10 @@ struct BudgetOverviewView: View {
             HStack(spacing: 4) {
                 Text("$")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.wakevPrimary)
+                    .foregroundColor(.wakevePrimary)
                 Text(formatCost(budget.totalEstimated / Double(participantCount)))
                     .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(.wakevPrimary)
+                    .foregroundColor(.wakevePrimary)
             }
         }
         .accessibilityLabel("Estimated cost per person: \(formatCost(budget.totalEstimated / Double(participantCount))) dollars")
@@ -371,15 +371,15 @@ struct BudgetOverviewView: View {
             if usagePercentage <= 100 {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 28))
-                    .foregroundColor(.wakevSuccess)
+                    .foregroundColor(.wakeveSuccess)
             } else if usagePercentage <= 120 {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: 28))
-                    .foregroundColor(.wakevWarning)
+                    .foregroundColor(.wakeveWarning)
             } else {
                 Image(systemName: "xmark.octagon.fill")
                     .font(.system(size: 28))
-                    .foregroundColor(.wakevError)
+                    .foregroundColor(.wakeveError)
             }
         }
         .accessibilityHidden(true)
@@ -414,7 +414,7 @@ struct BudgetOverviewView: View {
             HStack {
                 Image(systemName: "square.grid.2x2.fill")
                     .font(.system(size: 20))
-                    .foregroundColor(.wakevWarning)
+                    .foregroundColor(.wakeveWarning)
                 
                 Text("Category Breakdown")
                     .font(.system(size: 20, weight: .semibold))
@@ -504,11 +504,11 @@ struct BudgetOverviewView: View {
     
     private var actualCostColor: Color {
         if usagePercentage <= 100 {
-            return .wakevSuccess
+            return .wakeveSuccess
         } else if usagePercentage <= 120 {
-            return .wakevWarning
+            return .wakeveWarning
         } else {
-            return .wakevError
+            return .wakeveError
         }
     }
     
@@ -597,10 +597,10 @@ private struct CategoryRow: View {
     
     private var categoryColor: Color {
         switch category {
-        case .transport: return .wakevPrimary
-        case .accommodation: return .wakevAccent
-        case .meals: return .wakevWarning
-        case .activities: return .wakevSuccess
+        case .transport: return .wakevePrimary
+        case .accommodation: return .wakeveAccent
+        case .meals: return .wakeveWarning
+        case .activities: return .wakeveSuccess
         case .equipment: return .pink
         case .other: return .secondary
         default: return .secondary

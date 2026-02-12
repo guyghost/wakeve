@@ -114,8 +114,8 @@ struct ModernEventDetailView: View {
                                 .background(
                                     LinearGradient(
                                         gradient: Gradient(colors: [
-                                            Color.wakevPrimary,
-                                            Color.wakevAccent
+                                            Color.wakevePrimary,
+                                            Color.wakeveAccent
                                         ]),
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing

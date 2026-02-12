@@ -79,7 +79,7 @@ struct TimeSlotInput: View {
                 HStack(spacing: 8) {
                     Image(systemName: "clock.fill")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                     
                     Text("Time Preference")
                         .font(.headline)
@@ -120,7 +120,7 @@ struct TimeSlotInput: View {
                                     
                                     if tod.hashValue == timeOfDay.hashValue {
                                         Image(systemName: "checkmark")
-                                            .foregroundColor(.wakevPrimary)
+                                            .foregroundColor(.wakevePrimary)
                                     }
                                     
                                     if let subtitle = timeOfDaySubtitle(tod) {
@@ -135,7 +135,7 @@ struct TimeSlotInput: View {
                         HStack {
                             Image(systemName: "sun.horizon.fill")
                                 .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.wakevAccent)
+                                .foregroundColor(.wakeveAccent)
                                 .frame(width: 24)
                             
                             Text(timeOfDayDisplayName(timeOfDay))
@@ -153,7 +153,7 @@ struct TimeSlotInput: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(Color.wakevPrimary.opacity(0.2), lineWidth: 1)
+                                .stroke(Color.wakevePrimary.opacity(0.2), lineWidth: 1)
                         )
                     }
                     .disabled(!enabled)
@@ -172,7 +172,7 @@ struct TimeSlotInput: View {
                             HStack {
                                 Image(systemName: "calendar.badge.clock")
                                     .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.wakevSuccess)
+                                    .foregroundColor(.wakeveSuccess)
                                 
                                 Text("Start Time")
                                     .font(.subheadline.weight(.medium))
@@ -187,7 +187,7 @@ struct TimeSlotInput: View {
                                 HStack {
                                     Image(systemName: "clock")
                                         .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.wakevPrimary)
+                                        .foregroundColor(.wakevePrimary)
                                         .frame(width: 24)
                                     
                                     Text(formattedDate(startDate))
@@ -206,7 +206,7 @@ struct TimeSlotInput: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(Color.wakevPrimary.opacity(0.2), lineWidth: 1)
+                                        .stroke(Color.wakevePrimary.opacity(0.2), lineWidth: 1)
                                 )
                             }
                             .disabled(!enabled)
@@ -237,7 +237,7 @@ struct TimeSlotInput: View {
                             HStack {
                                 Image(systemName: "clock.badge.checkmark")
                                     .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.wakevAccent)
+                                    .foregroundColor(.wakeveAccent)
                                 
                                 Text("End Time")
                                     .font(.subheadline.weight(.medium))
@@ -252,7 +252,7 @@ struct TimeSlotInput: View {
                                 HStack {
                                     Image(systemName: "clock")
                                         .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.wakevPrimary)
+                                        .foregroundColor(.wakevePrimary)
                                         .frame(width: 24)
                                     
                                     Text(formattedDate(endDate))
@@ -270,7 +270,7 @@ struct TimeSlotInput: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .stroke(Color.wakevPrimary.opacity(0.2), lineWidth: 1)
+                                        .stroke(Color.wakevePrimary.opacity(0.2), lineWidth: 1)
                                 )
                             }
                             .disabled(!enabled)
@@ -304,7 +304,7 @@ struct TimeSlotInput: View {
                     HStack {
                         Image(systemName: "globe")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.wakevAccent)
+                            .foregroundColor(.wakeveAccent)
                         
                         Text("Timezone")
                             .font(.subheadline.weight(.medium))
@@ -325,7 +325,7 @@ struct TimeSlotInput: View {
                                     
                                     if tz == timezone {
                                         Image(systemName: "checkmark")
-                                            .foregroundColor(.wakevPrimary)
+                                            .foregroundColor(.wakevePrimary)
                                     }
                                 }
                             }
@@ -334,7 +334,7 @@ struct TimeSlotInput: View {
                         HStack {
                             Image(systemName: "globe")
                                 .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.wakevAccent)
+                                .foregroundColor(.wakeveAccent)
                                 .frame(width: 24)
                             
                             Text(timezone)
@@ -352,7 +352,7 @@ struct TimeSlotInput: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .stroke(Color.wakevPrimary.opacity(0.2), lineWidth: 1)
+                                .stroke(Color.wakevePrimary.opacity(0.2), lineWidth: 1)
                         )
                     }
                     .disabled(!enabled)
@@ -371,13 +371,13 @@ struct TimeSlotInput: View {
                     HStack(alignment: .top, spacing: 10) {
                         Image(systemName: "lightbulb.fill")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.wakevAccent)
+                            .foregroundColor(.wakeveAccent)
                             .frame(width: 20)
                         
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Tip")
                                 .font(.caption.weight(.semibold))
-                                .foregroundColor(.wakevAccent)
+                                .foregroundColor(.wakeveAccent)
                             
                             Text(helpText)
                                 .font(.caption)

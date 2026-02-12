@@ -40,7 +40,7 @@ struct MainTabView: View {
                 }
                 .tag(AppTab.profile)
         }
-        .tint(.wakevPrimary)
+        .tint(.wakevePrimary)
     }
 
     // MARK: - Tab Contents

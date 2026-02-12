@@ -51,7 +51,7 @@ LiquidGlassButton(title: "En savoir plus", style: .text) {
 ```
 
 **Styles:**
-- `.primary`: Gradient background (wakevPrimary to wakevAccent)
+- `.primary`: Gradient background (wakevePrimary to wakeveAccent)
 - `.secondary`: Outline style with liquid glass
 - `.text`: Transparent background, just text
 
@@ -86,7 +86,7 @@ LiquidGlassIconButton(
 **Parameters:**
 - `icon`: SF Symbol name
 - `size`: Button size (default: 56)
-- `gradientColors`: Array of two colors for gradient (default: wakevPrimary, wakevAccent)
+- `gradientColors`: Array of two colors for gradient (default: wakevePrimary, wakeveAccent)
 
 ---
 
@@ -197,11 +197,11 @@ The components use the following design system colors:
 
 | Color | Usage |
 |-------|-------|
-| `.wakevPrimary` | Primary brand color |
-| `.wakevAccent` | Accent/secondary color |
-| `.wakevSuccess` | Success states (confirmed, finalized) |
-| `.wakevWarning` | Warning states (draft, organizing) |
-| `.wakevError` | Error states |
+| `.wakevePrimary` | Primary brand color |
+| `.wakeveAccent` | Accent/secondary color |
+| `.wakeveSuccess` | Success states (confirmed, finalized) |
+| `.wakeveWarning` | Warning states (draft, organizing) |
+| `.wakeveError` | Error states |
 
 ---
 

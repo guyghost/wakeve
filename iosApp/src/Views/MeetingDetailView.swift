@@ -53,8 +53,8 @@ struct MeetingDetailView: View {
                 // Background gradient
                 LinearGradient(
                     gradient: Gradient(colors: [
-                        Color.wakevPrimaryLight.opacity(0.1),
-                        Color.wakevAccentLight.opacity(0.1)
+                        Color.wakevePrimaryLight.opacity(0.1),
+                        Color.wakeveAccentLight.opacity(0.1)
                     ]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -110,7 +110,7 @@ struct MeetingDetailView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.5)
-                .tint(.wakevPrimary)
+                .tint(.wakevePrimary)
             Text("Chargement...")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
@@ -125,7 +125,7 @@ struct MeetingDetailView: View {
             VStack(spacing: 20) {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 64))
-                    .foregroundColor(.wakevError)
+                    .foregroundColor(.wakeveError)
                 
                 Text("Réunion non trouvée")
                     .font(.title3)
@@ -227,7 +227,7 @@ struct MeetingDetailView: View {
                 title: "Participants",
                 subtitle: "\(meeting.participants.count) personnes",
                 icon: "person.2",
-                iconColor: .wakevAccent
+                iconColor: .wakeveAccent
             ) {
                 EmptyView()
             }
@@ -240,7 +240,7 @@ struct MeetingDetailView: View {
                 title: "Durée",
                 subtitle: meeting.duration,
                 icon: "clock",
-                iconColor: .wakevWarning
+                iconColor: .wakeveWarning
             ) {
                 EmptyView()
             }
@@ -329,7 +329,7 @@ struct MeetingDetailView: View {
             statusBadge(for: status)
         }
         .padding(12)
-        .background(Color.wakevSurfaceLight)
+        .background(Color.wakeveSurfaceLight)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
     
@@ -349,9 +349,9 @@ struct MeetingDetailView: View {
     
     private func statusColor(for status: ParticipantStatus) -> Color {
         switch status {
-        case .confirmed: return .wakevSuccess
-        case .pending: return .wakevWarning
-        case .tentative: return .wakevAccent
+        case .confirmed: return .wakeveSuccess
+        case .pending: return .wakeveWarning
+        case .tentative: return .wakeveAccent
         }
     }
     
@@ -408,7 +408,7 @@ struct MeetingDetailView: View {
                 LiquidGlassButton(title: "Annuler la réunion", style: .text) {
                     showCancelConfirmation = true
                 }
-                .foregroundColor(.wakevError)
+                .foregroundColor(.wakeveError)
                 .accessibilityLabel("Annuler la réunion")
                 .accessibilityHint("Annule et supprime cette réunion")
             }
@@ -458,9 +458,9 @@ struct MeetingDetailModel {
     
     var platformColor: Color {
         switch platform {
-        case .zoom: return .wakevPrimary
-        case .googleMeet: return .wakevSuccess
-        case .facetime: return .wakevAccent
+        case .zoom: return .wakevePrimary
+        case .googleMeet: return .wakeveSuccess
+        case .facetime: return .wakeveAccent
         }
     }
     
