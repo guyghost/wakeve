@@ -52,3 +52,21 @@ val PointsCreationColor = Color(0xFFFF6B6B)
 val PointsVotingColor = Color(0xFF4ECDC4)
 val PointsCommentColor = Color(0xFFFFE66D)
 val PointsParticipationColor = Color(0xFF95E1D3)
+
+// Home Screen Gradient Colors - Dark Theme
+val HomeGradientTeal = Color(0xFF0D7377)
+val HomeGradientBlue = Color(0xFF14919B)
+val HomeGradientGreen = Color(0xFF14B8A6)
+val HomeGradientOrange = Color(0xFFF97316)
+
+// Home Screen - Light Theme
+val HomeBackgroundLight = Color(0xFFF8FAFC)
+val HomeSurfaceLight = Color(0xFFFFFFFF)
+val HomeTextPrimaryLight = Color(0xFF0F172A)
+val HomeTextSecondaryLight = Color(0xFF64748B)
+
+// Home Screen - Dark Theme  
+val HomeBackgroundDark = Color(0xFF0F172A)
+val HomeSurfaceDark = Color(0xFF1E293B)
+val HomeTextPrimaryDark = Color(0xFFFFFFFF)
+val HomeTextSecondaryDark = Color(0xFF94A3B8)
