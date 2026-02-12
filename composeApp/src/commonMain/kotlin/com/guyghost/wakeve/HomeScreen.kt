@@ -173,6 +173,7 @@ fun HomeScreen(
     viewModel: EventManagementViewModel,
     onNavigateTo: (String) -> Unit = {},
     onShowToast: (String) -> Unit = {},
+    onProfileClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     isDarkTheme: Boolean = true
 ) {
@@ -246,10 +247,11 @@ fun HomeScreen(
                     
                     Spacer(modifier = Modifier.width(12.dp))
                     
+                    // Profile icon - opens bottom sheet
                     Surface(
                         modifier = Modifier
                             .size(40.dp)
-                            .clickable { showMenu = true },
+                            .clickable { onProfileClick() },
                         shape = CircleShape,
                         color = HomeGradientOrange
                     ) {

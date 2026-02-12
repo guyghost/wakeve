@@ -132,9 +132,16 @@ struct AuthenticatedView: View {
     @State private var selectedScenario: Scenario_?
     @State private var selectedMeetingId: String?
     @State private var selectedBudget: Budget_?
+    
+    // Profile sheet state
+    @State private var showProfileSheet = false
+    
+    // Get auth state from environment
+    @EnvironmentObject var authStateManager: AuthStateManager
 
     var body: some View {
         // Using native iOS TabView with Apple's Liquid Glass effect (iOS 18+)
+        // Profile tab removed - now accessed via profile icon in Home header
         TabView(selection: $selectedTab) {
             tabContent(for: .home)
                 .tabItem {
@@ -154,12 +161,6 @@ struct AuthenticatedView: View {
                     Label("Explorer", systemImage: "sparkles")
                 }
                 .tag(WakeveTab.explore)
-
-            tabContent(for: .profile)
-                .tabItem {
-                    Label("Profil", systemImage: "person.fill")
-                }
-                .tag(WakeveTab.profile)
         }
         .tint(.wakevePrimary)
         .sheet(isPresented: $showEventCreationSheet) {
@@ -172,6 +173,17 @@ struct AuthenticatedView: View {
                         selectedEvent = event
                         currentView = .participantManagement
                     }
+                }
+            )
+        }
+        .sheet(isPresented: $showProfileSheet) {
+            ProfileSettingsSheet(
+                userId: userId,
+                userName: authStateManager.currentUser?.name,
+                userEmail: authStateManager.currentUser?.email,
+                onDismiss: { showProfileSheet = false },
+                onSignOut: {
+                    authStateManager.signOut()
                 }
             )
         }
@@ -193,6 +205,10 @@ struct AuthenticatedView: View {
                 onCreateEvent: {
                     // Show bottom sheet instead of navigating
                     showEventCreationSheet = true
+                },
+                onProfileClick: {
+                    // Show profile settings sheet
+                    showProfileSheet = true
                 }
             )
             
@@ -468,8 +484,6 @@ struct AuthenticatedView: View {
             )
         case .explore:
             ExploreTabView()
-        case .profile:
-            ProfileTabView(userId: userId)
         }
     }
 }

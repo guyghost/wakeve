@@ -134,6 +134,7 @@ struct ModernHomeView: View {
     let repository: EventRepositoryInterface
     let onEventSelected: (Event) -> Void
     let onCreateEvent: () -> Void
+    let onProfileClick: () -> Void
 
     @State private var events: [Event] = []
     @State private var isLoading = true
@@ -252,7 +253,7 @@ struct ModernHomeView: View {
                     )
             }
 
-            Button(action: {}) {
+            Button(action: onProfileClick) {
                 Text("U")
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)

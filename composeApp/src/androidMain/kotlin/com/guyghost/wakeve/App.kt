@@ -16,7 +16,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
 import com.guyghost.wakeve.deeplink.DeepLinkHandler
@@ -24,6 +23,8 @@ import com.guyghost.wakeve.deeplink.DeepLinkStateManager
 import com.guyghost.wakeve.navigation.Screen
 import com.guyghost.wakeve.navigation.WakeveBottomBar
 import com.guyghost.wakeve.navigation.WakeveNavHost
+import com.guyghost.wakeve.ui.auth.AuthViewModel
+import com.guyghost.wakeve.ui.components.ProfileBottomSheet
 import org.koin.compose.koinInject
 
 // SharedPreferences constants
@@ -56,13 +57,15 @@ fun markOnboardingComplete(context: Context) {
  * 
  * Architecture:
  * - NavController for navigation management
- * - Scaffold with Bottom Navigation Bar
+ * - Scaffold with Bottom Navigation Bar (3 tabs: Home, Inbox, Explore)
  * - WakeveNavHost for all navigation destinations
+ * - Profile Bottom Sheet for settings (accessed via top bar icon)
  * - Reactive navigation based on AuthStateMachine state
  * 
  * Flow:
  * 1. Splash → GetStarted → Auth → Onboarding → Home (with bottom nav)
- * 2. Bottom Navigation: Home | Inbox | Explore | Profile
+ * 2. Bottom Navigation: Home | Inbox | Explore
+ * 3. Profile: Accessed via profile icon in Home top bar, opens bottom sheet
  */
 @Composable
 @Preview
@@ -73,11 +76,18 @@ fun App() {
     val authStateMachine: AuthStateMachine = koinInject()
     val authState by authStateMachine.state.collectAsState()
     
+    // Auth ViewModel for user actions
+    val authViewModel: AuthViewModel = koinInject()
+    val authUiState by authViewModel.uiState.collectAsState()
+    
     // Onboarding status
     var hasOnboarded by remember { mutableStateOf(false) }
     
     // Navigation controller
     val navController = rememberNavController()
+    
+    // Profile bottom sheet visibility
+    var showProfileSheet by remember { mutableStateOf(false) }
     
     // Check onboarding status on first composition
     LaunchedEffect(Unit) {
@@ -137,8 +147,7 @@ fun App() {
         currentRoute.value?.destination?.route in listOf(
             Screen.Home.route,
             Screen.Inbox.route,
-            Screen.Explore.route,
-            Screen.Profile.route
+            Screen.Explore.route
         )
     }
     
@@ -154,9 +163,57 @@ fun App() {
                 navController = navController,
                 modifier = Modifier.padding(paddingValues),
                 startDestination = startDestination,
-                userId = userId
+                userId = userId,
+                onProfileClick = { showProfileSheet = true }
             )
         }
+        
+        // Profile Bottom Sheet
+        ProfileBottomSheet(
+            isVisible = showProfileSheet,
+            onDismiss = { showProfileSheet = false },
+            userName = authUiState.currentUser?.displayName,
+            userEmail = authUiState.currentUser?.email,
+            userPhotoUrl = null, // TODO: Add photo URL when available
+            isGuest = authState.isGuest,
+            isAuthenticated = authState.isAuthenticated,
+            notificationsEnabled = false, // TODO: Get from preferences
+            calendarSyncEnabled = false, // TODO: Get from preferences
+            emailNotificationsEnabled = false, // TODO: Get from preferences
+            onNotificationsClick = { 
+                // TODO: Navigate to notifications settings
+                showProfileSheet = false
+                // navController.navigate(Screen.NotificationSettings.route)
+            },
+            onCalendarSyncClick = { 
+                // TODO: Navigate to calendar sync settings
+                showProfileSheet = false
+            },
+            onEmailNotificationsClick = { 
+                // TODO: Navigate to email notification settings
+                showProfileSheet = false
+            },
+            onPrivacyClick = { 
+                // TODO: Show privacy policy
+            },
+            onHelpClick = { 
+                // TODO: Show help
+            },
+            onTermsClick = { 
+                // TODO: Show terms
+            },
+            onSignOutClick = {
+                authViewModel.signOut()
+                showProfileSheet = false
+                navController.navigate(Screen.Auth.route) {
+                    popUpTo(0) { inclusive = true }
+                }
+            },
+            onCreateAccountClick = {
+                showProfileSheet = false
+                navController.navigate(Screen.Auth.route)
+            }
+        )
     }
 }
 
