@@ -221,25 +221,8 @@ struct ModernHomeView: View {
     }
 
     private var backgroundView: some View {
-        Group {
-            if colorScheme == .dark {
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(hex: "0F172A"),
-                        Color(hex: "0F172A"),
-                        Color(hex: "0D7377").opacity(0.3),
-                        Color(hex: "14919B").opacity(0.4),
-                        Color(hex: "14B8A6").opacity(0.3),
-                        Color(hex: "F97316").opacity(0.2)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-            } else {
-                Color(hex: "F8FAFC").ignoresSafeArea()
-            }
-        }
+        Color(.systemBackground)
+            .ignoresSafeArea()
     }
 
     private var headerView: some View {
@@ -307,7 +290,7 @@ struct EventsCarouselView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.vertical, 8)
         }
     }
 }
@@ -328,58 +311,58 @@ struct VisualEventCard: View {
         Button(action: onTap) {
             ZStack {
                 // Background
-                RoundedRectangle(cornerRadius: 24)
+                RoundedRectangle(cornerRadius: 32)
                     .fill(theme.backgroundColor)
                 
-                // Emoji decorations
+                // Emoji decorations - scattered around
                 ForEach(0..<min(theme.emojis.count, theme.emojiPositions.count), id: \.self) { index in
                     Text(theme.emojis[index])
-                        .font(.system(size: 60))
+                        .font(.system(size: 90))
                         .position(
-                            x: theme.emojiPositions[index].x * 280,
-                            y: theme.emojiPositions[index].y * 400
+                            x: theme.emojiPositions[index].x * 360,
+                            y: theme.emojiPositions[index].y * 640
                         )
-                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                        .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
                 }
                 
                 VStack(spacing: 0) {
                     HStack {
                         // Badge "Organisé par moi"
                         if isOrganizer {
-                            HStack(spacing: 6) {
+                            HStack(spacing: 8) {
                                 Image(systemName: "crown.fill")
-                                    .font(.system(size: 14))
+                                    .font(.system(size: 16))
                                 Text("Organisé par moi")
-                                    .font(.system(size: 14, weight: .medium))
+                                    .font(.system(size: 16, weight: .semibold))
                             }
                             .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
                             .background(
                                 Capsule()
-                                    .fill(Color.black.opacity(0.3))
+                                    .fill(Color.white.opacity(0.25))
                             )
                         }
                         
                         Spacer()
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
                     
                     Spacer()
                     
-                    // Event title
+                    // Event title - large at bottom
                     Text(event.title)
-                        .font(.system(size: 42, weight: .bold))
+                        .font(.system(size: 52, weight: .bold))
                         .foregroundColor(.white)
-                        .shadow(color: Color.black.opacity(0.3), radius: 4, x: 0, y: 2)
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 24)
+                        .shadow(color: Color.black.opacity(0.4), radius: 8, x: 0, y: 4)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 32)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .frame(width: 280, height: 400)
-            .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 8)
+            .frame(width: 360, height: 640)
+            .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 10)
         }
         .buttonStyle(ScaleButtonStyle())
     }

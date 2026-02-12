@@ -58,6 +58,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -193,7 +195,7 @@ fun HomeScreen(
         }
     }
 
-    val backgroundColor = if (isDarkTheme) HomeBackgroundDark else HomeBackgroundLight
+    val backgroundColor = MaterialTheme.colorScheme.background
 
     val filteredEvents = remember(state.events, selectedFilter) {
         filterEvents(state.events, selectedFilter)
@@ -447,7 +449,7 @@ private fun EventsCarousel(
     onEventClick: (Event) -> Unit
 ) {
     LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(events) { event ->
@@ -474,11 +476,11 @@ fun VisualEventCard(
     Card(
         onClick = onClick,
         modifier = modifier
-            .width(280.dp)
-            .height(400.dp),
-        shape = RoundedCornerShape(24.dp),
+            .width(360.dp)
+            .height(640.dp),
+        shape = RoundedCornerShape(32.dp),
         colors = CardDefaults.cardColors(containerColor = theme.backgroundColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Emoji decorations
@@ -487,11 +489,11 @@ fun VisualEventCard(
                     val (x, y) = theme.emojiPositions[index]
                     Text(
                         text = emoji,
-                        style = MaterialTheme.typography.displayMedium,
+                        fontSize = 72.sp,
                         modifier = Modifier
                             .padding(
-                                start = (x * 280).dp,
-                                top = (y * 400).dp
+                                start = (x * 360).dp,
+                                top = (y * 640).dp
                             )
                     )
                 }
@@ -504,32 +506,33 @@ fun VisualEventCard(
                 // Badge
                 if (isOrganizer) {
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(20.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(
-                            color = Color.Black.copy(alpha = 0.3f),
+                            color = Color.White.copy(alpha = 0.25f),
                             shape = CircleShape
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                             ) {
                                 Text(
                                     text = "👑",
-                                    style = MaterialTheme.typography.bodySmall
+                                    style = MaterialTheme.typography.bodyMedium
                                 )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "Organisé par moi",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
                         }
                     }
                 } else {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -538,11 +541,12 @@ fun VisualEventCard(
                 Text(
                     text = event.title,
                     style = MaterialTheme.typography.headlineLarge.copy(
-                        fontSize = MaterialTheme.typography.headlineLarge.fontSize * 1.5
+                        fontSize = 42.sp,
+                        fontWeight = FontWeight.Bold
                     ),
                     color = Color.White,
                     modifier = Modifier
-                        .padding(horizontal = 20.dp, vertical = 24.dp)
+                        .padding(horizontal = 24.dp, vertical = 32.dp)
                         .fillMaxWidth()
                 )
             }
@@ -617,32 +621,15 @@ fun EmptyState(
     subtitle: String,
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor = if (isDarkTheme) HomeBackgroundDark else HomeBackgroundLight
-    val textColor = if (isDarkTheme) HomeTextPrimaryDark else HomeTextPrimaryLight
-    val textSecondaryColor = if (isDarkTheme) HomeTextSecondaryDark else HomeTextSecondaryLight
-    val iconColor = if (isDarkTheme) Color(0xFF64748B) else Color(0xFF94A3B8)
-    
-    val gradientBrush = if (isDarkTheme) {
-        Brush.verticalGradient(
-            colors = listOf(
-                backgroundColor,
-                backgroundColor,
-                HomeGradientTeal.copy(alpha = 0.3f),
-                HomeGradientBlue.copy(alpha = 0.4f),
-                HomeGradientGreen.copy(alpha = 0.3f),
-                HomeGradientOrange.copy(alpha = 0.2f)
-            ),
-            startY = 0f,
-            endY = Float.POSITIVE_INFINITY
-        )
-    } else {
-        Brush.verticalGradient(colors = listOf(backgroundColor, backgroundColor))
-    }
+    val backgroundColor = MaterialTheme.colorScheme.background
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val textSecondaryColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val iconColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(gradientBrush)
+            .background(backgroundColor)
     ) {
         Column(
             modifier = Modifier
