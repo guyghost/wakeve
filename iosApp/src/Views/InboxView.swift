@@ -20,117 +20,230 @@ struct InboxView: View {
     let userId: String
     let onBack: () -> Void
     
-    @State private var selectedFilter: InboxFilter = .all
+    @State private var selectedFilter: InboxFilter = .inbox
+    @State private var showNotificationBanner = true
     @State private var items: [InboxItemModel] = []
     @State private var isLoading = false
+    @State private var selectedEventFilter: String? = nil
+    @State private var showEventSheet = false
+    @State private var isSelectionMode = false
+    @State private var selectedItemIds: Set<String> = []
+    
+    // Sample events for the dropdown
+    private let availableEvents = ["Week-end ski 2024", "Réunion famille", "Voyage Espagne", "Week-end montagne", "Anniversaire Alice"]
     
     var body: some View {
         NavigationView {
             ZStack {
-                // Background gradient using design system colors
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color.wakevePrimary.opacity(0.08),
-                        Color.wakeveAccent.opacity(0.08)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                // System background adapts to light/dark mode (white like home page)
+                Color(.systemBackground)
+                    .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
-                    // Filter chips using LiquidGlassButton and LiquidGlassBadge
-                    filterChipsView
+                    // Header
+                    headerView
+                    
+                    // Filter tabs
+                    filterTabsView
                     
                     // Content
                     if isLoading {
                         loadingView
                     } else if filteredItems.isEmpty {
-                        emptyStateView
+                        ScrollView {
+                            if showNotificationBanner {
+                                notificationBanner
+                            }
+                            emptyStateView
+                        }
                     } else {
-                        itemListView
+                        ScrollView {
+                            itemListView
+                        }
                     }
                 }
             }
-            .navigationTitle("Boîte de réception")
             #if os(iOS)
-            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    LiquidGlassIconButton(
-                        icon: "chevron.left",
-                        size: 44,
-                        gradientColors: [.wakevePrimary.opacity(0.3), .wakeveAccent.opacity(0.3)]
-                    ) {
-                        onBack()
+                    if isSelectionMode {
+                        Button("Cancel") {
+                            isSelectionMode = false
+                            selectedItemIds.removeAll()
+                        }
+                    } else {
+                        Button("Select") {
+                            isSelectionMode = true
+                        }
                     }
-                    .accessibilityLabel("Retour")
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    if hasUnreadItems {
-                        LiquidGlassIconButton(
-                            icon: "checkmark.circle",
-                            size: 44,
-                            gradientColors: [.wakeveSuccess.opacity(0.3), .wakeveSuccess.opacity(0.2)]
-                        ) {
-                            markAllAsRead()
+                    if isSelectionMode {
+                        Button("Select All") {
+                            selectedItemIds = Set(filteredItems.map { $0.id })
                         }
-                        .accessibilityLabel("Tout marquer comme lu")
                     }
                 }
             }
             #endif
+            .sheet(isPresented: $showEventSheet) {
+                EventFilterSheet(
+                    events: availableEvents,
+                    selectedEvent: $selectedEventFilter,
+                    onSelect: {
+                        selectedFilter = .event
+                    },
+                    onDismiss: {
+                        showEventSheet = false
+                    }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
         }
         .onAppear(perform: loadItems)
     }
     
-    // MARK: - Filter Chips View
+    // MARK: - Header View
     
-    private var filterChipsView: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                FilterChip(
-                    title: "Tout",
-                    count: items.count,
-                    isSelected: selectedFilter == .all,
-                    action: { selectedFilter = .all }
-                )
-                FilterChip(
-                    title: "Tâches",
-                    count: items.filter { $0.requiresAction }.count,
-                    isSelected: selectedFilter == .tasks,
-                    action: { selectedFilter = .tasks }
-                )
-                FilterChip(
-                    title: "Messages",
-                    count: items.filter { $0.type == .comment }.count,
-                    isSelected: selectedFilter == .messages,
-                    action: { selectedFilter = .messages }
-                )
-                FilterChip(
-                    title: "Notifications",
-                    count: items.filter { !$0.requiresAction && $0.type != .comment }.count,
-                    isSelected: selectedFilter == .notifications,
-                    action: { selectedFilter = .notifications }
-                )
+    private var headerView: some View {
+        HStack {
+            if isSelectionMode {
+                Text("\(selectedItemIds.count) selected")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.primary)
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
+            Spacer()
         }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+    }
+    
+    // MARK: - Filter Tabs View
+    
+    private var filterTabsView: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Large title
+            Text("Inbox")
+                .font(.system(size: 34, weight: .bold))
+                .foregroundColor(.primary)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+            
+            // Filter chips row
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    // Inbox filter with dropdown
+                    FilterTabButton(
+                        title: "Inbox",
+                        isSelected: selectedFilter == .inbox,
+                        hasDropdown: true,
+                        action: { selectedFilter = .inbox }
+                    )
+                    
+                    // Focused filter with "New" badge
+                    FilterTabButton(
+                        title: "Focused",
+                        isSelected: selectedFilter == .focused,
+                        badge: "New",
+                        action: { selectedFilter = .focused }
+                    )
+                    
+                    // Unread filter
+                    FilterTabButton(
+                        title: "Unread",
+                        isSelected: selectedFilter == .unread,
+                        action: { selectedFilter = .unread }
+                    )
+                    
+                    // Event filter with sheet
+                    EventFilterTabButton(
+                        title: selectedEventFilter ?? "Event",
+                        isSelected: selectedFilter == .event,
+                        hasDropdown: true,
+                        action: {
+                            showEventSheet = true
+                        }
+                    )
+                }
+                .padding(.horizontal, 16)
+            }
+            
+            // Divider line
+            Divider()
+                .padding(.top, 8)
+        }
+    }
+    
+    // MARK: - Notification Banner
+    
+    private var notificationBanner: some View {
+        HStack(alignment: .top, spacing: 12) {
+            // Bell icon
+            ZStack {
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 36, height: 36)
+                
+                Image(systemName: "bell.fill")
+                    .font(.system(size: 16))
+                    .foregroundColor(.white)
+            }
+            
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Never miss what's important to you.")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.primary)
+                
+                Text("Customize your Notification experience with push notifications, working hours, and swipe actions.")
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                
+                Button(action: {
+                    // Configure action
+                }) {
+                    Text("Configure")
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.blue)
+                        .padding(.vertical, 4)
+                }
+            }
+            
+            Spacer()
+            
+            // Close button
+            Button(action: {
+                withAnimation(.easeOut(duration: 0.2)) {
+                    showNotificationBanner = false
+                }
+            }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .frame(width: 24, height: 24)
+            }
+        }
+        .padding(16)
+        .background(Color(.secondarySystemBackground))
     }
     
     // MARK: - Filtered Items
     
     private var filteredItems: [InboxItemModel] {
         switch selectedFilter {
-        case .all:
+        case .inbox:
             return items
-        case .tasks:
-            return items.filter { $0.requiresAction }
-        case .messages:
-            return items.filter { $0.type == .comment }
-        case .notifications:
-            return items.filter { !$0.requiresAction && $0.type != .comment }
+        case .focused:
+            return items.filter { $0.isFocused }
+        case .unread:
+            return items.filter { !$0.isRead }
+        case .event:
+            if let eventName = selectedEventFilter {
+                return items.filter { $0.eventName?.contains(eventName) ?? false }
+            }
+            return items.filter { $0.eventName != nil }
         }
     }
     
@@ -176,45 +289,68 @@ struct InboxView: View {
     
     private var emptyStateIcon: String {
         switch selectedFilter {
-        case .all: return "tray"
-        case .tasks: return "checkmark.circle"
-        case .messages: return "bubble.left"
-        case .notifications: return "bell"
+        case .inbox: return "tray"
+        case .focused: return "star"
+        case .unread: return "envelope.open"
+        case .event: return "calendar"
         }
     }
     
     private var emptyStateTitle: String {
         switch selectedFilter {
-        case .all: return "Aucune notification"
-        case .tasks: return "Aucune tâche"
-        case .messages: return "Aucun message"
-        case .notifications: return "Aucune notification"
+        case .inbox: return "Aucune notification"
+        case .focused: return "Aucun élément focus"
+        case .unread: return "Aucun message non lu"
+        case .event: return selectedEventFilter != nil ? "Aucune notification pour \(selectedEventFilter!)" : "Aucun événement"
         }
     }
     
     private var emptyStateSubtitle: String {
         switch selectedFilter {
-        case .all: return "Vos notifications apparaîtront ici"
-        case .tasks: return "Vous n'avez pas de tâches en pendiente"
-        case .messages: return "Vous n'avez pas de nouveaux messages"
-        case .notifications: return "Vous n'avez pas de notifications"
+        case .inbox: return "Vos notifications apparaîtront ici"
+        case .focused: return "Les éléments importants apparaîtront ici"
+        case .unread: return "Vous avez tout lu !"
+        case .event: return "Les notifications liées aux événements apparaîtront ici"
         }
     }
     
     // MARK: - Item List View
     
     private var itemListView: some View {
-        ScrollView {
-            LazyVStack(spacing: 12) {
-                ForEach(filteredItems) { item in
-                    InboxItemRow(item: item)
-                        .onTapGesture {
-                            handleItemTap(item)
-                        }
+        LazyVStack(spacing: 0) {
+            // Notification banner
+            if showNotificationBanner && !isSelectionMode {
+                notificationBanner
+            }
+            
+            // Items list
+            ForEach(filteredItems) { item in
+                InboxGitHubStyleRow(
+                    item: item,
+                    isSelectionMode: isSelectionMode,
+                    isSelected: selectedItemIds.contains(item.id)
+                )
+                .onTapGesture {
+                    if isSelectionMode {
+                        toggleSelection(for: item.id)
+                    } else {
+                        handleItemTap(item)
+                    }
+                }
+                
+                if item.id != filteredItems.last?.id {
+                    Divider()
+                        .padding(.leading, isSelectionMode ? 68 : 56)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
+        }
+    }
+    
+    private func toggleSelection(for itemId: String) {
+        if selectedItemIds.contains(itemId) {
+            selectedItemIds.remove(itemId)
+        } else {
+            selectedItemIds.insert(itemId)
         }
     }
     
@@ -247,7 +383,211 @@ struct InboxView: View {
     }
 }
 
-// MARK: - Inbox Item Row
+// MARK: - Filter Tab Button
+
+struct FilterTabButton: View {
+    let title: String
+    let isSelected: Bool
+    var hasDropdown: Bool = false
+    var badge: String? = nil
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Text(title)
+                    .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
+                
+                if let badge = badge {
+                    Text(badge)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.blue)
+                        .cornerRadius(4)
+                }
+                
+                if hasDropdown {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .foregroundColor(isSelected ? .primary : .secondary)
+            .padding(.vertical, 8)
+        }
+    }
+}
+
+// MARK: - Event Filter Tab Button
+
+struct EventFilterTabButton: View {
+    let title: String
+    let isSelected: Bool
+    var hasDropdown: Bool = false
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                Text(title)
+                    .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
+                
+                if hasDropdown {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+            }
+            .foregroundColor(isSelected ? .primary : .secondary)
+            .padding(.vertical, 8)
+        }
+    }
+}
+
+// MARK: - Event Filter Sheet
+
+struct EventFilterSheet: View {
+    let events: [String]
+    @Binding var selectedEvent: String?
+    let onSelect: () -> Void
+    let onDismiss: () -> Void
+    
+    var body: some View {
+        NavigationView {
+            List {
+                // All events option
+                Section {
+                    Button {
+                        selectedEvent = nil
+                        onSelect()
+                        onDismiss()
+                    } label: {
+                        HStack {
+                            Text("Tous les événements")
+                                .foregroundColor(.primary)
+                            Spacer()
+                            if selectedEvent == nil {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                    }
+                }
+                
+                // List of events
+                Section(header: Text("Événements")) {
+                    ForEach(events, id: \.self) { event in
+                        Button {
+                            selectedEvent = event
+                            onSelect()
+                            onDismiss()
+                        } label: {
+                            HStack {
+                                Text(event)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                if selectedEvent == event {
+                                    Image(systemName: "checkmark")
+                                        .foregroundColor(.blue)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Filtrer par événement")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Fermer") {
+                        onDismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - GitHub Style Inbox Row
+
+struct InboxGitHubStyleRow: View {
+    let item: InboxItemModel
+    var isSelectionMode: Bool = false
+    var isSelected: Bool = false
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            if isSelectionMode {
+                // Selection checkbox
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundColor(isSelected ? .blue : .secondary)
+                    .padding(.top, 2)
+            } else {
+                // Status dot
+                Circle()
+                    .fill(item.statusColor)
+                    .frame(width: 8, height: 8)
+                    .padding(.top, 6)
+            }
+            
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                // Top row: repo/time
+                HStack {
+                    Text("\(item.repository) / \(item.repository)#\(item.number)")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                    
+                    Spacer()
+                    
+                    Text(item.timeAgo)
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                }
+                
+                // Title row
+                HStack(spacing: 8) {
+                    Text(item.title)
+                        .font(.system(size: 15, weight: item.isRead ? .regular : .semibold))
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                    
+                    if item.commentCount > 0 {
+                        Text("\(item.commentCount)")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 1)
+                            .background(Color(.systemGray5))
+                            .cornerRadius(10)
+                    }
+                }
+                
+                // Subtitle row
+                HStack(spacing: 4) {
+                    Image(systemName: "person.circle.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                    
+                    Text(item.message)
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(item.isRead || isSelectionMode ? Color.clear : Color.blue.opacity(0.03))
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Legacy Inbox Item Row (kept for compatibility)
 
 struct InboxItemRow: View {
     let item: InboxItemModel
@@ -291,46 +631,29 @@ struct InboxItemRow: View {
                     Text(item.timeAgo)
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                    
-                    // Badge for item type
-                    itemTypeBadge
                 }
             }
             
             Spacer()
             
-            // Unread indicator using LiquidGlassBadge
+            // Unread indicator
             if !item.isRead {
-                LiquidGlassBadge(text: "Nouveau", style: .info)
-                    .accessibilityLabel("Non lu")
+                Circle()
+                    .fill(Color.blue)
+                    .frame(width: 8, height: 8)
             }
         }
         .padding(16)
-        .liquidGlass(cornerRadius: 16, opacity: 0.85, intensity: 0.9)
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
         .opacity(item.isRead ? 0.85 : 1.0)
-        .accessibilityLabel(item.accessibilityLabel)
-        .accessibilityHint(item.accessibilityHint)
-    }
-    
-    @ViewBuilder
-    private var itemTypeBadge: some View {
-        switch item.type {
-        case .invitation:
-            LiquidGlassBadge(text: "Invitation", icon: "envelope.fill", style: .info)
-        case .pollUpdate:
-            LiquidGlassBadge(text: "Sondage", icon: "chart.bar.fill", style: .accent)
-        case .comment:
-            LiquidGlassBadge(text: "Commentaire", icon: "bubble.left.fill", style: .success)
-        case .eventUpdate:
-            LiquidGlassBadge(text: "Mise à jour", icon: "calendar", style: .warning)
-        }
     }
 }
 
 // MARK: - Supporting Types
 
 enum InboxFilter {
-    case all, tasks, messages, notifications
+    case inbox, focused, unread, event
 }
 
 struct InboxItemModel: Identifiable {
@@ -341,8 +664,15 @@ struct InboxItemModel: Identifiable {
     var type: InboxItemType
     var isRead: Bool
     
+    // GitHub-style properties
+    var repository: String
+    var number: Int
+    var commentCount: Int
+    var status: InboxItemStatus
+    var isFocused: Bool
+    var eventName: String?  // Optional event name for event filtering
+    
     var requiresAction: Bool {
-        // Tasks are items that require user action (invitations, poll updates)
         switch type {
         case .invitation, .pollUpdate:
             return true
@@ -366,6 +696,15 @@ struct InboxItemModel: Identifiable {
         case .pollUpdate: return .wakeveAccent
         case .comment: return .wakeveSuccess
         case .eventUpdate: return .wakeveWarning
+        }
+    }
+    
+    var statusColor: Color {
+        switch status {
+        case .open: return .green
+        case .closed: return .red
+        case .merged: return .purple
+        case .draft: return .gray
         }
     }
     
@@ -394,6 +733,10 @@ struct InboxItemModel: Identifiable {
     }
 }
 
+enum InboxItemStatus {
+    case open, closed, merged, draft
+}
+
 enum InboxItemType {
     case invitation, pollUpdate, comment, eventUpdate
 }
@@ -403,35 +746,59 @@ enum InboxItemType {
 private let sampleInboxItems: [InboxItemModel] = [
     InboxItemModel(
         id: "1",
-        title: "Nouvelle invitation",
-        message: "Alice vous a invité à \"Week-end ski 2024\"",
-        timeAgo: "il y a 5 min",
+        title: "Naming input with SavedModel format",
+        message: "System information:",
+        timeAgo: "17m",
         type: .invitation,
-        isRead: false
+        isRead: false,
+        repository: "tensorflow",
+        number: 34070,
+        commentCount: 1,
+        status: .open,
+        isFocused: true,
+        eventName: "Week-end ski 2024"
     ),
     InboxItemModel(
         id: "2",
-        title: "Sondage mis à jour",
-        message: "Les résultats du sondage pour \"Réunion famille\" sont disponibles",
-        timeAgo: "il y a 2 h",
-        type: .pollUpdate,
-        isRead: false
+        title: "Upgrade Electron from v5 to v7",
+        message: "Merged #8967 into development",
+        timeAgo: "3h",
+        type: .eventUpdate,
+        isRead: true,
+        repository: "desktop",
+        number: 8967,
+        commentCount: 29,
+        status: .merged,
+        isFocused: false,
+        eventName: "Réunion famille"
     ),
     InboxItemModel(
         id: "3",
-        title: "Nouveau commentaire",
-        message: "Bob a commenté sur \"Voyage Espagne\"",
-        timeAgo: "il y a 1 jour",
+        title: "Adding docs for account creation",
+        message: "This screenshot: https://github.co...",
+        timeAgo: "1h",
         type: .comment,
-        isRead: true
+        isRead: false,
+        repository: "storybookjs",
+        number: 8750,
+        commentCount: 2,
+        status: .open,
+        isFocused: true,
+        eventName: "Voyage Espagne"
     ),
     InboxItemModel(
         id: "4",
-        title: "Événement confirmé",
-        message: "La date de \"Week-end montagne\" a été confirmée",
-        timeAgo: "il y a 2 jours",
-        type: .eventUpdate,
-        isRead: true
+        title: "Prisma Client connection pool issue",
+        message: "@matthewmueller commented",
+        timeAgo: "2h",
+        type: .pollUpdate,
+        isRead: true,
+        repository: "prisma",
+        number: 5920,
+        commentCount: 0,
+        status: .open,
+        isFocused: false,
+        eventName: "Week-end montagne"
     )
 ]
 
