@@ -137,8 +137,8 @@ struct LiquidGlassListItem<TrailingContent: View>: View {
                 .fill(
                     LinearGradient(
                         gradient: Gradient(colors: [
-                            (iconColor ?? .wakevPrimary).opacity(0.2),
-                            (iconColor ?? .wakevAccent).opacity(0.1)
+                            (iconColor ?? .wakevePrimary).opacity(0.2),
+                            (iconColor ?? .wakeveAccent).opacity(0.1)
                         ]),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -148,7 +148,7 @@ struct LiquidGlassListItem<TrailingContent: View>: View {
 
             Image(systemName: icon ?? "circle")
                 .font(.system(size: iconFontSize, weight: .medium))
-                .foregroundColor(iconColor ?? .wakevPrimary)
+                .foregroundColor(iconColor ?? .wakevePrimary)
         }
     }
 

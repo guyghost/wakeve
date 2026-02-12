@@ -137,8 +137,8 @@ struct MeetingListView: View {
     private var backgroundGradient: some View {
         LinearGradient(
             gradient: Gradient(colors: [
-                Color.wakevPrimary.opacity(0.08),
-                Color.wakevAccent.opacity(0.08)
+                Color.wakevePrimary.opacity(0.08),
+                Color.wakeveAccent.opacity(0.08)
             ]),
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -165,7 +165,7 @@ struct MeetingListView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.5)
-                .tint(.wakevPrimary)
+                .tint(.wakevePrimary)
 
             Text(NSLocalizedString("loading_label", comment: "Loading text"))
                 .font(.subheadline)
@@ -182,12 +182,12 @@ struct MeetingListView: View {
 
             ZStack {
                 Circle()
-                    .fill(Color.wakevPrimary.opacity(0.1))
+                    .fill(Color.wakevePrimary.opacity(0.1))
                     .frame(width: 80, height: 80)
 
                 Image(systemName: "video.slash")
                     .font(.system(size: 36))
-                    .foregroundColor(.wakevPrimary)
+                    .foregroundColor(.wakevePrimary)
             }
 
             VStack(spacing: 8) {
@@ -305,7 +305,7 @@ struct MeetingListView: View {
         HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.wakevPrimary)
+                .foregroundColor(.wakevePrimary)
 
             Text(title)
                 .font(.system(size: 18, weight: .semibold))
@@ -408,11 +408,11 @@ struct MeetingCard: View {
                     HStack(spacing: 8) {
                         Image(systemName: "link.circle.fill")
                             .font(.caption)
-                            .foregroundColor(.wakevPrimary)
+                            .foregroundColor(.wakevePrimary)
 
                         Text(meeting.meetingUrl)
                             .font(.caption)
-                            .foregroundColor(.wakevPrimary)
+                            .foregroundColor(.wakevePrimary)
                             .lineLimit(1)
 
                         Spacer()
@@ -427,7 +427,7 @@ struct MeetingCard: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
-                    .background(Color.wakevSurfaceLight)
+                    .background(Color.wakeveSurfaceLight)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 }
 
@@ -543,12 +543,12 @@ struct MeetingCard: View {
 
     private var platformColor: Color {
         switch meeting.platform {
-        case .zoom: return .wakevPrimary
-        case .googleMeet: return .wakevSuccess
-        case .facetime: return .wakevAccent
+        case .zoom: return .wakevePrimary
+        case .googleMeet: return .wakeveSuccess
+        case .facetime: return .wakeveAccent
         case .teams: return .iOSSystemBlue
         case .webex: return .iOSSystemGreen
-        default: return .wakevPrimary
+        default: return .wakevePrimary
         }
     }
 

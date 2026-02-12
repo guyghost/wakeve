@@ -64,8 +64,8 @@ struct PotentialLocationsList: View {
                         .fill(
                             LinearGradient(
                                 gradient: Gradient(colors: [
-                                    Color.wakevPrimary.opacity(0.2),
-                                    Color.wakevAccent.opacity(0.15)
+                                    Color.wakevePrimary.opacity(0.2),
+                                    Color.wakeveAccent.opacity(0.15)
                                 ]),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -75,7 +75,7 @@ struct PotentialLocationsList: View {
                     
                     Image(systemName: "mappin.and.ellipse")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                 }
                 
                 Text("Potential Locations")
@@ -116,8 +116,8 @@ struct PotentialLocationsList: View {
                     .fill(
                         LinearGradient(
                             gradient: Gradient(colors: [
-                                Color.wakevPrimary.opacity(0.1),
-                                Color.wakevAccent.opacity(0.05)
+                                Color.wakevePrimary.opacity(0.1),
+                                Color.wakeveAccent.opacity(0.05)
                             ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -127,7 +127,7 @@ struct PotentialLocationsList: View {
                 
                 Image(systemName: "mappin.slash")
                     .font(.system(size: 32, weight: .light))
-                    .foregroundColor(.wakevPrimary.opacity(0.5))
+                    .foregroundColor(.wakevePrimary.opacity(0.5))
             }
             
             VStack(spacing: 4) {
@@ -199,11 +199,11 @@ private struct LocationListItem: View {
         Button(action: onRemove) {
             Image(systemName: "trash.fill")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.wakevError)
+                .foregroundColor(.wakeveError)
                 .frame(width: 32, height: 32)
                 .background(
                     Circle()
-                        .fill(Color.wakevError.opacity(0.1))
+                        .fill(Color.wakeveError.opacity(0.1))
                 )
         }
         .disabled(!enabled)
@@ -241,7 +241,7 @@ private struct LocationListItem: View {
     private var iconColor: Color {
         switch location.locationType {
         case Shared.LocationType.city:
-            return .wakevPrimary
+            return .wakevePrimary
         case Shared.LocationType.region:
             return .cyan
         case Shared.LocationType.specificVenue:
@@ -249,7 +249,7 @@ private struct LocationListItem: View {
         case Shared.LocationType.online:
             return .purple
         default:
-            return .wakevAccent
+            return .wakeveAccent
         }
     }
     

@@ -123,7 +123,7 @@ struct CalendarIntegrationCard: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(NSLocalizedString("calendar", comment: "Calendar label"))
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(Color.wakevTextPrimaryDark)
+                .foregroundColor(Color.wakeveTextPrimaryDark)
             
             LiquidGlassBadge(
                 text: calendarStatus.badgeText,
@@ -138,7 +138,7 @@ struct CalendarIntegrationCard: View {
             if calendarStatus == .loading {
                 ProgressView()
                     .scaleEffect(0.9)
-                    .tint(.wakevPrimary)
+                    .tint(.wakevePrimary)
             }
         }
     }
@@ -148,8 +148,8 @@ struct CalendarIntegrationCard: View {
             .fill(
                 LinearGradient(
                     gradient: Gradient(colors: [
-                        Color.wakevBackgroundLight.opacity(0.8),
-                        Color.wakevSurfaceLight.opacity(0.6)
+                        Color.wakeveBackgroundLight.opacity(0.8),
+                        Color.wakeveSurfaceLight.opacity(0.6)
                     ]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -223,7 +223,7 @@ struct CalendarIntegrationCard: View {
             if isShareInvitationLoading {
                 ProgressView()
                     .scaleEffect(0.8)
-                    .tint(.wakevPrimary)
+                    .tint(.wakevePrimary)
                     .padding(.trailing, 16)
             }
         }

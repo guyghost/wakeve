@@ -211,7 +211,7 @@ struct ManageParticipantsSheet: View {
                             Spacer()
                             if registeredIds.contains(participant.id) {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(.wakevSuccess)
+                                    .foregroundColor(.wakeveSuccess)
                             } else {
                                 Image(systemName: "circle")
                                     .foregroundColor(.secondary)
@@ -448,7 +448,7 @@ struct ActivityPlanningView: View {
                 VStack(spacing: 4) {
                     Text("\(activities.count)")
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                     Text("Activités")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -461,7 +461,7 @@ struct ActivityPlanningView: View {
                 VStack(spacing: 4) {
                     Text("\(totalCost / 100)€")
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.wakevSuccess)
+                        .foregroundColor(.wakeveSuccess)
                     Text("Coût total")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -524,11 +524,11 @@ struct ActivityPlanningView: View {
                 .padding(.vertical, 6)
                 .background(
                     isSelected
-                        ? Color.wakevPrimary.opacity(0.2)
+                        ? Color.wakevePrimary.opacity(0.2)
                         : Color.gray.opacity(0.1)
                 )
                 .foregroundColor(
-                    isSelected ? .wakevPrimary : .primary
+                    isSelected ? .wakevePrimary : .primary
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
@@ -623,7 +623,7 @@ struct ActivityPlanningView: View {
                             detailItem(
                                 icon: "creditcard",
                                 text: "\(activity.costPerPerson / 100)€/pers",
-                                color: .wakevSuccess
+                                color: .wakeveSuccess
                             )
                         }
                     }
@@ -648,8 +648,8 @@ struct ActivityPlanningView: View {
                             }
                             .padding(.horizontal, 8)
                             .padding(.vertical, 4)
-                            .background(Color.wakevPrimary.opacity(0.15))
-                            .foregroundColor(.wakevPrimary)
+                            .background(Color.wakevePrimary.opacity(0.15))
+                            .foregroundColor(.wakevePrimary)
                             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -692,8 +692,8 @@ struct ActivityPlanningView: View {
                                 }
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 4)
-                                .background(Color.wakevError.opacity(0.1))
-                                .foregroundColor(.wakevError)
+                                .background(Color.wakeveError.opacity(0.1))
+                                .foregroundColor(.wakeveError)
                                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                             }
                             .buttonStyle(PlainButtonStyle())
@@ -727,7 +727,7 @@ struct ActivityPlanningView: View {
             VStack(spacing: 16) {
                 Image(systemName: "calendar.badge.plus")
                     .font(.system(size: 64))
-                    .foregroundColor(.wakevPrimary.opacity(0.6))
+                    .foregroundColor(.wakevePrimary.opacity(0.6))
                 
                 Text(activities.isEmpty ? "Aucune activité planifiée" : "Aucune activité à cette date")
                     .font(.body)

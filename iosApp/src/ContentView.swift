@@ -134,14 +134,34 @@ struct AuthenticatedView: View {
     @State private var selectedBudget: Budget_?
 
     var body: some View {
-        // Using native iOS TabView which automatically adopts Liquid Glass on iOS 26+
-        WakeveTabBarContainer(
-            selectedTab: $selectedTab,
-            home: { homeTabContent },
-            inbox: { inboxTabContent },
-            explore: { exploreTabContent },
-            profile: { profileTabContent }
-        )
+        // Using native iOS TabView with Apple's Liquid Glass effect (iOS 18+)
+        TabView(selection: $selectedTab) {
+            tabContent(for: .home)
+                .tabItem {
+                    Label("Accueil", systemImage: "house.fill")
+                }
+                .tag(WakeveTab.home)
+                .badge(3) // TODO: Connect to real notification count
+
+            tabContent(for: .inbox)
+                .tabItem {
+                    Label("Inbox", systemImage: "tray.fill")
+                }
+                .tag(WakeveTab.inbox)
+
+            tabContent(for: .explore)
+                .tabItem {
+                    Label("Explorer", systemImage: "sparkles")
+                }
+                .tag(WakeveTab.explore)
+
+            tabContent(for: .profile)
+                .tabItem {
+                    Label("Profil", systemImage: "person.fill")
+                }
+                .tag(WakeveTab.profile)
+        }
+        .tint(.wakevePrimary)
         .sheet(isPresented: $showEventCreationSheet) {
             CreateEventView(
                 userId: userId,
@@ -434,28 +454,23 @@ struct AuthenticatedView: View {
         }
     }
     
-    // MARK: - Inbox Tab
+    // MARK: - Tab Content
     
     @ViewBuilder
-    private var inboxTabContent: some View {
-        InboxView(
-            userId: userId,
-            onBack: { /* Inbox is main tab, no back action needed */ }
-        )
-    }
-    
-    // MARK: - Explore Tab
-    
-    @ViewBuilder
-    private var exploreTabContent: some View {
-        ExploreTabView()
-    }
-    
-    // MARK: - Profile Tab
-    
-    @ViewBuilder
-    private var profileTabContent: some View {
-        ProfileTabView(userId: userId)
+    private func tabContent(for tab: WakeveTab) -> some View {
+        switch tab {
+        case .home:
+            homeTabContent
+        case .inbox:
+            InboxView(
+                userId: userId,
+                onBack: { /* Inbox is main tab, no back action needed */ }
+            )
+        case .explore:
+            ExploreTabView()
+        case .profile:
+            ProfileTabView(userId: userId)
+        }
     }
 }
 

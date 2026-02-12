@@ -645,7 +645,7 @@ struct EquipmentChecklistView: View {
             // Progress Bar
             VStack(alignment: .leading, spacing: 4) {
                 ProgressView(value: stats.progress)
-                    .tint(Color.wakevPrimary)
+                    .tint(Color.wakevePrimary)
                 
                 Text("\(stats.packedItems) / \(stats.totalItems) équipements emballés (\(Int(stats.progress * 100))%)")
                     .font(.caption)
@@ -660,7 +660,7 @@ struct EquipmentChecklistView: View {
                     Text("\(stats.neededItems)")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                     Text("Requis")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -670,7 +670,7 @@ struct EquipmentChecklistView: View {
                     Text("\(stats.assignedItems)")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.wakevAccent)
+                        .foregroundColor(.wakeveAccent)
                     Text("Assignés")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -680,7 +680,7 @@ struct EquipmentChecklistView: View {
                     Text("\(stats.confirmedItems)")
                         .font(.title2)
                         .fontWeight(.bold)
-                        .foregroundColor(.wakevSuccess)
+                        .foregroundColor(.wakeveSuccess)
                     Text("Confirmés")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -710,7 +710,7 @@ struct EquipmentChecklistView: View {
                     Text("\(stats.costPerPerson / 100)€")
                         .font(.title3)
                         .fontWeight(.bold)
-                        .foregroundColor(.wakevAccent)
+                        .foregroundColor(.wakeveAccent)
                 }
             }
         }
@@ -749,7 +749,7 @@ struct EquipmentChecklistView: View {
             HStack {
                 HStack(spacing: 8) {
                     Image(systemName: category.icon)
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                     Text(category.label)
                         .font(.headline)
                 }
@@ -846,7 +846,7 @@ struct EquipmentChecklistView: View {
                     if item.estimatedCost > 0 {
                         Text("\(item.estimatedCost / 100)€")
                             .font(.caption)
-                            .foregroundColor(.wakevAccent)
+                            .foregroundColor(.wakeveAccent)
                     }
                 }
                 

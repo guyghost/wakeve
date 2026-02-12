@@ -189,7 +189,7 @@ struct BudgetDetailView: View {
                     
                     Text("$\(formatCost(budget.totalEstimated))")
                         .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                         .accessibilityLabel("Estimated total: $\(formatCost(budget.totalEstimated))")
                 }
                 
@@ -212,11 +212,11 @@ struct BudgetDetailView: View {
                     VStack(alignment: .trailing, spacing: 4) {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 16))
-                            .foregroundColor(.wakevWarning)
+                            .foregroundColor(.wakeveWarning)
                         
                         Text("Over Budget")
                             .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.wakevWarning)
+                            .foregroundColor(.wakeveWarning)
                     }
                     .accessibilityLabel("Warning: Over budget")
                 }
@@ -476,11 +476,11 @@ struct BudgetDetailView: View {
             : 0
         
         if percentage <= 100 {
-            return .wakevSuccess
+            return .wakeveSuccess
         } else if percentage <= 120 {
-            return .wakevWarning
+            return .wakeveWarning
         } else {
-            return .wakevError
+            return .wakeveError
         }
     }
     
@@ -516,10 +516,10 @@ struct BudgetDetailView: View {
     
     private func categoryColor(_ category: BudgetCategory) -> Color {
         switch category {
-        case .transport: return .wakevPrimary
-        case .accommodation: return .wakevAccent
-        case .meals: return .wakevWarning
-        case .activities: return .wakevSuccess
+        case .transport: return .wakevePrimary
+        case .accommodation: return .wakeveAccent
+        case .meals: return .wakeveWarning
+        case .activities: return .wakeveSuccess
         case .equipment: return .pink
         case .other: return .gray
         default: return .gray
@@ -705,7 +705,7 @@ private struct BudgetItemCard: View {
                         
                         Text("$\(formatCost(item.estimatedCost))")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundColor(.wakevPrimary)
+                            .foregroundColor(.wakevePrimary)
                     }
                     
                     // Actual Cost (if paid)
@@ -723,7 +723,7 @@ private struct BudgetItemCard: View {
                             
                             Text("$\(formatCost(item.actualCost))")
                                 .font(.system(size: 15, weight: .semibold))
-                                .foregroundColor(.wakevSuccess)
+                                .foregroundColor(.wakeveSuccess)
                         }
                     }
                     
@@ -794,10 +794,10 @@ private struct BudgetItemCard: View {
     
     private var categoryColor: Color {
         switch item.category {
-        case .transport: return .wakevPrimary
-        case .accommodation: return .wakevAccent
-        case .meals: return .wakevWarning
-        case .activities: return .wakevSuccess
+        case .transport: return .wakevePrimary
+        case .accommodation: return .wakeveAccent
+        case .meals: return .wakeveWarning
+        case .activities: return .wakeveSuccess
         case .equipment: return .pink
         case .other: return .gray
         default: return .gray

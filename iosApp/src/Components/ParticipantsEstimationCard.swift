@@ -170,7 +170,7 @@ struct ParticipantsEstimationCard: View {
             HStack(spacing: 8) {
                 Image(systemName: "person.3.fill")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.wakevPrimary)
+                    .foregroundColor(.wakevePrimary)
                 
                 Text("Minimum Participants")
                     .font(.subheadline.weight(.medium))
@@ -199,7 +199,7 @@ struct ParticipantsEstimationCard: View {
             HStack(spacing: 8) {
                 Image(systemName: "person.2.fill")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.wakevAccent)
+                    .foregroundColor(.wakeveAccent)
                 
                 Text("Maximum Participants")
                     .font(.subheadline.weight(.medium))
@@ -228,7 +228,7 @@ struct ParticipantsEstimationCard: View {
             HStack(spacing: 8) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.wakevSuccess)
+                    .foregroundColor(.wakeveSuccess)
                 
                 Text("Expected Participants")
                     .font(.subheadline.weight(.medium))
@@ -363,11 +363,11 @@ struct ParticipantsEstimationCard: View {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 12))
-                        .foregroundColor(.wakevWarning)
+                        .foregroundColor(.wakeveWarning)
                     
                     Text(warningMessage)
                         .font(.caption)
-                        .foregroundColor(.wakevWarning)
+                        .foregroundColor(.wakeveWarning)
                 }
                 .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }

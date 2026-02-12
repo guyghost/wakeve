@@ -116,7 +116,7 @@ struct MessagesTabBar: View {
                         Text(tab.title)
                             .font(.subheadline.weight(.medium))
                     }
-                    .foregroundColor(selectedTab == tab ? .wakevPrimary : .secondary)
+                    .foregroundColor(selectedTab == tab ? .wakevePrimary : .secondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                 }
@@ -125,7 +125,7 @@ struct MessagesTabBar: View {
         }
         .overlay(
             Rectangle()
-                .fill(Color.wakevPrimary)
+                .fill(Color.wakevePrimary)
                 .frame(height: 2)
                 .frame(maxWidth: .infinity),
             alignment: .bottom
@@ -259,7 +259,7 @@ struct ConversationRow: View {
             title: name,
             subtitle: lastMessage,
             icon: "person.circle.fill",
-            iconColor: .wakevPrimary,
+            iconColor: .wakevePrimary,
             style: .default
         ) {
             VStack(alignment: .trailing, spacing: 4) {
@@ -314,7 +314,7 @@ struct LoadingMessagesView: View {
     var body: some View {
         VStack(spacing: 20) {
             ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: .wakevPrimary))
+                .progressViewStyle(CircularProgressViewStyle(tint: .wakevePrimary))
                 .scaleEffect(1.3)
 
             Text("Chargement des messages...")
@@ -354,19 +354,19 @@ enum NotificationType {
         switch self {
         case .poll:
             return LinearGradient(
-                gradient: Gradient(colors: [.wakevPrimary, .wakevAccent]),
+                gradient: Gradient(colors: [.wakevePrimary, .wakeveAccent]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
         case .confirmation:
             return LinearGradient(
-                gradient: Gradient(colors: [.wakevSuccess, .wakevSuccessLight]),
+                gradient: Gradient(colors: [.wakeveSuccess, .wakeveSuccessLight]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
         case .reminder:
             return LinearGradient(
-                gradient: Gradient(colors: [.wakevWarning, .wakevWarningLight]),
+                gradient: Gradient(colors: [.wakeveWarning, .wakeveWarningLight]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )

@@ -127,11 +127,11 @@ struct MeetingEditSheet: View {
                 .foregroundColor(.primary)
                 .padding(12)
                 .frame(minHeight: 100)
-                .background(Color.wakevSurfaceLight)
+                .background(Color.wakeveSurfaceLight)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.wakevBorderLight, lineWidth: 1)
+                        .stroke(Color.wakeveBorderLight, lineWidth: 1)
                 )
                 .accessibilityLabel("Description de la réunion")
         }
@@ -150,7 +150,7 @@ struct MeetingEditSheet: View {
             }) {
                 HStack {
                     Image(systemName: "calendar")
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
 
                     Text(formattedDateTime)
                         .font(.body)
@@ -163,11 +163,11 @@ struct MeetingEditSheet: View {
                         .font(.system(size: 14))
                 }
                 .padding(12)
-                .background(Color.wakevSurfaceLight)
+                .background(Color.wakeveSurfaceLight)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.wakevBorderLight, lineWidth: 1)
+                        .stroke(Color.wakeveBorderLight, lineWidth: 1)
                 )
             }
             .buttonStyle(PlainButtonStyle())
@@ -239,7 +239,7 @@ struct MeetingEditSheet: View {
                 }) {
                     Image(systemName: "minus.circle.fill")
                         .font(.system(size: 32))
-                        .foregroundColor(value.wrappedValue > range.lowerBound ? .wakevPrimary : .gray.opacity(0.3))
+                        .foregroundColor(value.wrappedValue > range.lowerBound ? .wakevePrimary : .gray.opacity(0.3))
                 }
                 .buttonStyle(PlainButtonStyle())
 
@@ -255,18 +255,18 @@ struct MeetingEditSheet: View {
                 }) {
                     Image(systemName: "plus.circle.fill")
                         .font(.system(size: 32))
-                        .foregroundColor(value.wrappedValue < range.upperBound ? .wakevPrimary : .gray.opacity(0.3))
+                        .foregroundColor(value.wrappedValue < range.upperBound ? .wakevePrimary : .gray.opacity(0.3))
                 }
                 .buttonStyle(PlainButtonStyle())
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Color.wakevSurfaceLight)
+        .background(Color.wakeveSurfaceLight)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.wakevBorderLight, lineWidth: 1)
+                .stroke(Color.wakeveBorderLight, lineWidth: 1)
         )
     }
 
@@ -341,12 +341,12 @@ struct MeetingEditSheet: View {
 
     private func platformColor(for platform: Shared.MeetingPlatform) -> Color {
         switch platform {
-        case .zoom: return .wakevPrimary
-        case .googleMeet: return .wakevSuccess
-        case .facetime: return .wakevAccent
+        case .zoom: return .wakevePrimary
+        case .googleMeet: return .wakeveSuccess
+        case .facetime: return .wakeveAccent
         case .teams: return .iOSSystemBlue
         case .webex: return .iOSSystemGreen
-        default: return .wakevPrimary
+        default: return .wakevePrimary
         }
     }
 
@@ -382,7 +382,7 @@ private struct PlatformOptionContent: View {
             
             Text(platformName)
                 .font(.caption.weight(.medium))
-                .foregroundColor(isSelected ? .wakevPrimary : .secondary)
+                .foregroundColor(isSelected ? .wakevePrimary : .secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
@@ -396,14 +396,14 @@ private struct PlatformOptionContent: View {
         if isSelected {
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color.wakevPrimary.opacity(0.15),
-                    Color.wakevAccent.opacity(0.15)
+                    Color.wakevePrimary.opacity(0.15),
+                    Color.wakeveAccent.opacity(0.15)
                 ]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
         } else {
-            Color.wakevSurfaceLight
+            Color.wakeveSurfaceLight
         }
     }
     
@@ -414,8 +414,8 @@ private struct PlatformOptionContent: View {
                 .stroke(
                     LinearGradient(
                         gradient: Gradient(colors: [
-                            Color.wakevPrimary.opacity(0.5),
-                            Color.wakevAccent.opacity(0.5)
+                            Color.wakevePrimary.opacity(0.5),
+                            Color.wakeveAccent.opacity(0.5)
                         ]),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -424,7 +424,7 @@ private struct PlatformOptionContent: View {
                 )
         } else {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.wakevBorderLight, lineWidth: 1)
+                .stroke(Color.wakeveBorderLight, lineWidth: 1)
         }
     }
     
@@ -441,12 +441,12 @@ private struct PlatformOptionContent: View {
 
     private var platformColor: Color {
         switch platform {
-        case .zoom: return .wakevPrimary
-        case .googleMeet: return .wakevSuccess
-        case .facetime: return .wakevAccent
+        case .zoom: return .wakevePrimary
+        case .googleMeet: return .wakeveSuccess
+        case .facetime: return .wakeveAccent
         case .teams: return .iOSSystemBlue
         case .webex: return .iOSSystemGreen
-        default: return .wakevPrimary
+        default: return .wakevePrimary
         }
     }
 

@@ -28,7 +28,7 @@ struct CommentButton: View {
                     // Icône de commentaire
                     Image(systemName: "bubble.right.fill")
                         .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                 }
                 .overlay(
                     Circle()
@@ -73,7 +73,7 @@ struct CommentButton: View {
         }
     }
     .padding()
-    .background(Color.wakevBackgroundDark)
+    .background(Color.wakeveBackgroundDark)
 }
 
 #Preview("CommentButton - In Context") {
@@ -82,11 +82,11 @@ struct CommentButton: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Réunion d'équipe")
                 .font(.headline)
-                .foregroundColor(.wakevTextPrimaryLight)
+                .foregroundColor(.wakeveTextPrimaryLight)
             
             Text("Discussion sur les objectifs du trimestre")
                 .font(.subheadline)
-                .foregroundColor(.wakevTextSecondaryLight)
+                .foregroundColor(.wakeveTextSecondaryLight)
             
             HStack {
                 CommentButton(commentCount: 12) {}
@@ -96,23 +96,23 @@ struct CommentButton: View {
                 // Autres actions
                 HStack(spacing: 16) {
                     Image(systemName: "heart.fill")
-                        .foregroundColor(.wakevError)
+                        .foregroundColor(.wakeveError)
                     
                     Image(systemName: "square.and.arrow.up")
-                        .foregroundColor(.wakevPrimary)
+                        .foregroundColor(.wakevePrimary)
                 }
             }
         }
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 20)
-                .fill(Color.wakevSurfaceDark)
+                .fill(Color.wakeveSurfaceDark)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.wakevBorderDark.opacity(0.3), lineWidth: 1)
+                .stroke(Color.wakeveBorderDark.opacity(0.3), lineWidth: 1)
         )
     }
     .padding()
-    .background(Color.wakevBackgroundDark)
+    .background(Color.wakeveBackgroundDark)
 }

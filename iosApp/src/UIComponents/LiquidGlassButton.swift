@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Button style variants for LiquidGlassButton
 enum LiquidGlassButtonStyle {
-    case primary      // Gradient background (wakevPrimary to wakevAccent)
+    case primary      // Gradient background (wakevePrimary to wakeveAccent)
     case secondary    // Outline style with liquid glass
     case text         // Transparent background, just text
     case icon         // Icon-only button
@@ -113,9 +113,9 @@ struct LiquidGlassButton: View {
         case .primary:
             return .white
         case .secondary:
-            return .wakevPrimary
+            return .wakevePrimary
         case .text:
-            return .wakevPrimary
+            return .wakevePrimary
         case .icon:
             return .white
         }
@@ -127,8 +127,8 @@ struct LiquidGlassButton: View {
             case .primary, .icon:
                 LinearGradient(
                     gradient: Gradient(colors: [
-                        Color.wakevPrimary,
-                        Color.wakevAccent
+                        Color.wakevePrimary,
+                        Color.wakeveAccent
                     ]),
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -162,8 +162,8 @@ struct LiquidGlassButton: View {
                     .stroke(
                         LinearGradient(
                             gradient: Gradient(colors: [
-                                Color.wakevPrimary.opacity(0.5),
-                                Color.wakevAccent.opacity(0.5)
+                                Color.wakevePrimary.opacity(0.5),
+                                Color.wakeveAccent.opacity(0.5)
                             ]),
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -190,7 +190,7 @@ struct LiquidGlassIconButton: View {
     init(
         icon: String,
         size: CGFloat = 56,
-        gradientColors: [Color] = [.wakevPrimary, .wakevAccent],
+        gradientColors: [Color] = [.wakevePrimary, .wakeveAccent],
         action: @escaping () -> Void
     ) {
         self.icon = icon

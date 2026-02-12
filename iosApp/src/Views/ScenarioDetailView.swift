@@ -393,12 +393,12 @@ struct ScenarioDetailView: View {
         VStack(spacing: 24) {
             ZStack {
                 Circle()
-                    .fill(Color.wakevError.opacity(0.1))
+                    .fill(Color.wakeveError.opacity(0.1))
                     .frame(width: 80, height: 80)
                 
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: 36))
-                    .foregroundColor(.wakevError)
+                    .foregroundColor(.wakeveError)
             }
             
             VStack(spacing: 8) {
@@ -525,7 +525,7 @@ struct DetailSection<Content: View>: View {
                 HStack(spacing: 8) {
                     Image(systemName: icon)
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.wakevAccent)
+                        .foregroundColor(.wakeveAccent)
                     
                     Text(title)
                         .font(.system(size: 17, weight: .semibold))
@@ -592,7 +592,7 @@ struct VotingResultsView: View {
                 
                 Text("\(result.score)")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.wakevPrimary)
+                    .foregroundColor(.wakevePrimary)
             }
         }
     }

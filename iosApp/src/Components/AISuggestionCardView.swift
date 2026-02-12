@@ -146,13 +146,13 @@ struct AISuggestionCardView: View {
     private var confidenceColor: Color {
         switch metadata.confidenceLevel {
         case .veryHigh:
-            return .wakevSuccess
+            return .wakeveSuccess
         case .high:
-            return .wakevPrimary
+            return .wakevePrimary
         case .medium:
-            return .wakevWarning
+            return .wakeveWarning
         case .low:
-            return .wakevError
+            return .wakeveError
         case .veryLow:
             return .secondary
         }
@@ -174,7 +174,7 @@ struct AISuggestionCardView: View {
     private var dateRecommendationRow: some View {
         HStack(spacing: 8) {
             Image(systemName: "calendar")
-                .foregroundColor(.wakevPrimary)
+                .foregroundColor(.wakevePrimary)
                 .font(.subheadline)
                 .frame(width: 20)
             
@@ -188,7 +188,7 @@ struct AISuggestionCardView: View {
     private var timeSlotRow: some View {
         HStack(spacing: 8) {
             Image(systemName: "clock")
-                .foregroundColor(.wakevAccent)
+                .foregroundColor(.wakeveAccent)
                 .font(.subheadline)
                 .frame(width: 20)
             
@@ -205,7 +205,7 @@ struct AISuggestionCardView: View {
             HStack(spacing: 4) {
                 Image(systemName: "lightbulb.fill")
                     .font(.caption)
-                    .foregroundColor(.wakevWarning)
+                    .foregroundColor(.wakeveWarning)
                 
                 Text("Why this recommendation?")
                     .font(.caption)
@@ -292,19 +292,19 @@ struct AISuggestionCardView: View {
     // MARK: - Design System Colors
     
     private var wakevTextPrimary: Color {
-        Color.wakevTextPrimaryLight
+        Color.wakeveTextPrimaryLight
     }
     
     private var wakevTextSecondary: Color {
-        Color.wakevTextSecondaryLight
+        Color.wakeveTextSecondaryLight
     }
     
     private var wakevSurface: Color {
-        Color.wakevSurfaceLight
+        Color.wakeveSurfaceLight
     }
     
     private var wakevBorder: Color {
-        Color.wakevBorderLight
+        Color.wakeveBorderLight
     }
 }
 
@@ -345,7 +345,7 @@ struct AISuggestionCardView: View {
         }
         .padding(.vertical)
     }
-    .background(Color.wakevBackgroundLight)
+    .background(Color.wakeveBackgroundLight)
 }
 
 #Preview("AISuggestionCardView - Variants") {
@@ -378,5 +378,5 @@ struct AISuggestionCardView: View {
         )
     }
     .padding()
-    .background(Color.wakevBackgroundLight)
+    .background(Color.wakeveBackgroundLight)
 }

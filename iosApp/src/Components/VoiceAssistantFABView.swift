@@ -202,18 +202,18 @@ struct VoiceAssistantFABView: View {
         switch state {
         case .idle:
             return [
-                Color.wakevPrimary.opacity(0.6),
-                Color.wakevAccent.opacity(0.6)
+                Color.wakevePrimary.opacity(0.6),
+                Color.wakeveAccent.opacity(0.6)
             ]
         case .listening:
             return [
-                Color.wakevSuccess,
-                Color.wakevSuccessLight
+                Color.wakeveSuccess,
+                Color.wakeveSuccessLight
             ]
         case .error:
             return [
-                Color.wakevError,
-                Color.wakevErrorLight
+                Color.wakeveError,
+                Color.wakeveErrorLight
             ]
         }
     }
@@ -222,18 +222,18 @@ struct VoiceAssistantFABView: View {
         switch state {
         case .idle:
             return [
-                Color.wakevPrimary.opacity(0.4),
-                Color.wakevAccent.opacity(0.4)
+                Color.wakevePrimary.opacity(0.4),
+                Color.wakeveAccent.opacity(0.4)
             ]
         case .listening:
             return [
-                Color.wakevSuccess.opacity(0.5),
-                Color.wakevSuccessLight.opacity(0.3)
+                Color.wakeveSuccess.opacity(0.5),
+                Color.wakeveSuccessLight.opacity(0.3)
             ]
         case .error:
             return [
-                Color.wakevError.opacity(0.5),
-                Color.wakevErrorLight.opacity(0.3)
+                Color.wakeveError.opacity(0.5),
+                Color.wakeveErrorLight.opacity(0.3)
             ]
         }
     }
@@ -243,20 +243,20 @@ struct VoiceAssistantFABView: View {
         case .idle:
             return Color.black.opacity(Core.shadowOpacity * 0.5)
         case .listening:
-            return Color.wakevSuccess.opacity(Core.shadowOpacity)
+            return Color.wakeveSuccess.opacity(Core.shadowOpacity)
         case .error:
-            return Color.wakevError.opacity(Core.shadowOpacity)
+            return Color.wakeveError.opacity(Core.shadowOpacity)
         }
     }
     
     private var iconColor: Color {
         switch state {
         case .idle:
-            return Color.wakevPrimary.opacity(0.9)
+            return Color.wakevePrimary.opacity(0.9)
         case .listening:
-            return Color.wakevSuccess
+            return Color.wakeveSuccess
         case .error:
-            return Color.wakevError
+            return Color.wakeveError
         }
     }
     
@@ -358,19 +358,19 @@ struct SoundWaveAnimation: View {
         ZStack {
             // Wave 1 (outermost)
             Circle()
-                .stroke(Color.wakevSuccess.opacity(wave1Opacity), lineWidth: 2)
+                .stroke(Color.wakeveSuccess.opacity(wave1Opacity), lineWidth: 2)
                 .frame(width: Core.waveSize, height: Core.waveSize)
                 .scaleEffect(wave1Scale)
             
             // Wave 2 (middle)
             Circle()
-                .stroke(Color.wakevSuccess.opacity(wave2Opacity), lineWidth: 2)
+                .stroke(Color.wakeveSuccess.opacity(wave2Opacity), lineWidth: 2)
                 .frame(width: Core.waveSize, height: Core.waveSize)
                 .scaleEffect(wave2Scale)
             
             // Wave 3 (innermost)
             Circle()
-                .stroke(Color.wakevSuccess.opacity(wave3Opacity), lineWidth: 2)
+                .stroke(Color.wakeveSuccess.opacity(wave3Opacity), lineWidth: 2)
                 .frame(width: Core.waveSize, height: Core.waveSize)
                 .scaleEffect(wave3Scale)
         }
@@ -504,22 +504,22 @@ struct VoiceAssistantCompactFABView: View {
     private var compactGradientColors: [Color] {
         switch state {
         case .idle:
-            return [Color.wakevPrimary.opacity(0.6), Color.wakevAccent.opacity(0.6)]
+            return [Color.wakevePrimary.opacity(0.6), Color.wakeveAccent.opacity(0.6)]
         case .listening:
-            return [Color.wakevSuccess, Color.wakevSuccessLight]
+            return [Color.wakeveSuccess, Color.wakeveSuccessLight]
         case .error:
-            return [Color.wakevError, Color.wakevErrorLight]
+            return [Color.wakeveError, Color.wakeveErrorLight]
         }
     }
     
     private var compactBorderGradientColors: [Color] {
         switch state {
         case .idle:
-            return [Color.wakevPrimary.opacity(0.4), Color.wakevAccent.opacity(0.4)]
+            return [Color.wakevePrimary.opacity(0.4), Color.wakeveAccent.opacity(0.4)]
         case .listening:
-            return [Color.wakevSuccess.opacity(0.5), Color.wakevSuccessLight.opacity(0.3)]
+            return [Color.wakeveSuccess.opacity(0.5), Color.wakeveSuccessLight.opacity(0.3)]
         case .error:
-            return [Color.wakevError.opacity(0.5), Color.wakevErrorLight.opacity(0.3)]
+            return [Color.wakeveError.opacity(0.5), Color.wakeveErrorLight.opacity(0.3)]
         }
     }
     
@@ -528,20 +528,20 @@ struct VoiceAssistantCompactFABView: View {
         case .idle:
             return Color.black.opacity(Core.shadowOpacity * 0.5)
         case .listening:
-            return Color.wakevSuccess.opacity(Core.shadowOpacity)
+            return Color.wakeveSuccess.opacity(Core.shadowOpacity)
         case .error:
-            return Color.wakevError.opacity(Core.shadowOpacity)
+            return Color.wakeveError.opacity(Core.shadowOpacity)
         }
     }
     
     private var compactIconColor: Color {
         switch state {
         case .idle:
-            return Color.wakevPrimary.opacity(0.9)
+            return Color.wakevePrimary.opacity(0.9)
         case .listening:
-            return Color.wakevSuccess
+            return Color.wakeveSuccess
         case .error:
-            return Color.wakevError
+            return Color.wakeveError
         }
     }
 }
@@ -560,7 +560,7 @@ struct CompactSoundWaveAnimation: View {
     
     var body: some View {
         Circle()
-            .stroke(Color.wakevSuccess.opacity(waveOpacity), lineWidth: 1.5)
+            .stroke(Color.wakeveSuccess.opacity(waveOpacity), lineWidth: 1.5)
             .frame(width: Core.waveSize, height: Core.waveSize)
             .scaleEffect(waveScale)
             .opacity(hasAppeared ? 1.0 : 0.0)

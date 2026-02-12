@@ -122,7 +122,7 @@ struct DailySuggestionSection: View {
                     // Large icon for the featured suggestion
 Image(systemName: "sparkles")
                         .font(.system(size: 48))
-                        .foregroundColor(.wakevAccent)
+                        .foregroundColor(.wakeveAccent)
                         .frame(maxWidth: .infinity, alignment: .center)
                     
                     // Description

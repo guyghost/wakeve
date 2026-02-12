@@ -125,7 +125,7 @@ struct ScenarioManagementView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "exclamationmark.circle.fill")
-                    .foregroundColor(.wakevError)
+                    .foregroundColor(.wakeveError)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Error")
@@ -144,7 +144,7 @@ struct ScenarioManagementView: View {
             }
         }
         .padding(16)
-        .background(Color.wakevError.opacity(0.1))
+        .background(Color.wakeveError.opacity(0.1))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .padding(16)
         .frame(maxHeight: .infinity, alignment: .top)
@@ -166,13 +166,13 @@ struct ScenarioManagementView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.2)
-                .tint(Color.wakevPrimary)
+                .tint(Color.wakevePrimary)
             Text("Loading scenarios...")
                 .font(.body)
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.wakevSurfaceDark)
+        .background(Color.wakeveSurfaceDark)
     }
 
     @ViewBuilder
@@ -205,7 +205,7 @@ struct ScenarioManagementView: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 100)
         }
-        .background(Color.wakevSurfaceDark)
+        .background(Color.wakeveSurfaceDark)
         .refreshable {
             isRefreshing = true
             viewModel.loadScenarios()
@@ -219,7 +219,7 @@ struct ScenarioManagementView: View {
         VStack(spacing: 24) {
             Image(systemName: "calendar.badge.exclamationmark")
                 .font(.system(size: 56))
-                .foregroundColor(Color.wakevTextSecondaryDark)
+                .foregroundColor(Color.wakeveTextSecondaryDark)
 
             VStack(spacing: 8) {
                 Text("No Scenarios Yet")
@@ -241,7 +241,7 @@ struct ScenarioManagementView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(24)
-        .background(Color.wakevSurfaceDark)
+        .background(Color.wakeveSurfaceDark)
     }
     
     private var createScenarioButton: some View {
@@ -254,7 +254,7 @@ struct ScenarioManagementView: View {
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(Color.wakevPrimary)
+            .background(Color.wakevePrimary)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
@@ -339,7 +339,7 @@ struct ScenarioRowView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .stroke(
-                    isSelected ? Color.wakevPrimary : Color.clear,
+                    isSelected ? Color.wakevePrimary : Color.clear,
                     lineWidth: 2
                 )
         )
@@ -384,9 +384,9 @@ struct ScenarioRowView: View {
         Button(action: onEdit) {
             Image(systemName: "pencil")
                 .font(.body)
-                .foregroundColor(Color.wakevPrimary)
+                .foregroundColor(Color.wakevePrimary)
                 .frame(width: 32, height: 32)
-                .background(Color.wakevPrimary.opacity(0.1))
+                .background(Color.wakevePrimary.opacity(0.1))
                 .clipShape(Circle())
         }
         .buttonStyle(.plain)
@@ -396,9 +396,9 @@ struct ScenarioRowView: View {
         Button(action: onDelete) {
             Image(systemName: "trash")
                 .font(.body)
-                .foregroundColor(Color.wakevError)
+                .foregroundColor(Color.wakeveError)
                 .frame(width: 32, height: 32)
-                .background(Color.wakevError.opacity(0.1))
+                .background(Color.wakeveError.opacity(0.1))
                 .clipShape(Circle())
         }
         .buttonStyle(.plain)
@@ -481,21 +481,21 @@ struct ScenarioRowView: View {
                         label: "Prefer",
                         count: scenario.votingResult.preferCount,
                         percentage: scenario.votingResult.preferPercentage,
-                        color: Color.wakevPrimary
+                        color: Color.wakevePrimary
                     )
 
                     VoteBreakdownRow(
                         label: "Neutral",
                         count: scenario.votingResult.neutralCount,
                         percentage: scenario.votingResult.neutralPercentage,
-                        color: Color.wakevWarning
+                        color: Color.wakeveWarning
                     )
 
                     VoteBreakdownRow(
                         label: "Against",
                         count: scenario.votingResult.againstCount,
                         percentage: scenario.votingResult.againstPercentage,
-                        color: Color.wakevError
+                        color: Color.wakeveError
                     )
 
                     Text("Total: \(scenario.votingResult.totalVotes) votes")
@@ -510,9 +510,9 @@ struct ScenarioRowView: View {
 
     private var scoreColor: Color {
         if scenario.votingResult.score > 0 {
-            return Color.wakevSuccess
+            return Color.wakeveSuccess
         } else if scenario.votingResult.score < 0 {
-            return Color.wakevError
+            return Color.wakeveError
         } else {
             return .secondary
         }
@@ -527,7 +527,7 @@ struct ScenarioRowView: View {
                 label: "Prefer",
                 action: { onVote(scenario.id, "PREFER") },
                 disabled: isLocked,
-                color: Color.wakevSuccess
+                color: Color.wakeveSuccess
             )
 
             VotingButton(
@@ -535,7 +535,7 @@ struct ScenarioRowView: View {
                 label: "Neutral",
                 action: { onVote(scenario.id, "NEUTRAL") },
                 disabled: isLocked,
-                color: Color.wakevWarning
+                color: Color.wakeveWarning
             )
 
             VotingButton(
@@ -543,7 +543,7 @@ struct ScenarioRowView: View {
                 label: "Against",
                 action: { onVote(scenario.id, "AGAINST") },
                 disabled: isLocked,
-                color: Color.wakevError
+                color: Color.wakeveError
             )
         }
     }
@@ -553,11 +553,11 @@ struct ScenarioRowView: View {
     private var lockWarning: some View {
         HStack {
             Image(systemName: "lock.fill")
-                .foregroundColor(Color.wakevWarning)
+                .foregroundColor(Color.wakeveWarning)
             Text("Voting locked")
                 .font(.caption)
                 .fontWeight(.medium)
-                .foregroundColor(Color.wakevWarning)
+                .foregroundColor(Color.wakeveWarning)
         }
         .padding(.vertical, 4)
     }
@@ -569,7 +569,7 @@ struct ScenarioRowView: View {
             HStack(spacing: 12) {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title3)
-                    .foregroundColor(isSelected ? Color.wakevPrimary : .secondary)
+                    .foregroundColor(isSelected ? Color.wakevePrimary : .secondary)
 
                 Text("Select for comparison")
                     .font(.subheadline)
@@ -578,7 +578,7 @@ struct ScenarioRowView: View {
                 Spacer()
             }
             .padding(12)
-            .background(isSelected ? Color.wakevPrimary.opacity(0.1) : Color.clear)
+            .background(isSelected ? Color.wakevePrimary.opacity(0.1) : Color.clear)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -641,8 +641,8 @@ struct VotingButton: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 12)
-            .background(disabled ? Color.wakevTextSecondaryDark.opacity(0.1) : color.opacity(0.1))
-            .foregroundColor(disabled ? Color.wakevTextSecondaryDark.opacity(0.5) : color)
+            .background(disabled ? Color.wakeveTextSecondaryDark.opacity(0.1) : color.opacity(0.1))
+            .foregroundColor(disabled ? Color.wakeveTextSecondaryDark.opacity(0.5) : color)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)

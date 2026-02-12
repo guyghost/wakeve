@@ -14,7 +14,7 @@ import AuthenticationServices
  * - Error handling with retry option
  *
  * Design System:
- * - Gradient: .wakevPrimary → .wakevAccent
+ * - Gradient: .wakevePrimary → .wakeveAccent
  * - Cards: LiquidGlassCard with ultra-thin material
  * - Buttons: LiquidGlassButton with gradient background
  * - Colors: Full WakeveColors palette
@@ -71,7 +71,7 @@ struct LoginView: View {
     
     private var backgroundGradient: some View {
         LinearGradient(
-            gradient: Gradient(colors: [.wakevPrimary, .wakevAccent]),
+            gradient: Gradient(colors: [.wakevePrimary, .wakeveAccent]),
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )

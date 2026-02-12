@@ -145,7 +145,7 @@ struct EventTypePicker: View {
                 )
         )
         .shadow(
-            color: Color.wakevPrimary.opacity(customTypeError ? 0.1 : 0.05),
+            color: Color.wakevePrimary.opacity(customTypeError ? 0.1 : 0.05),
             radius: customTypeError ? 4 : 2,
             x: 0,
             y: customTypeError ? 2 : 1
@@ -285,8 +285,8 @@ private struct EventTypeButton: View {
     private var selectedBackgroundGradient: LinearGradient {
         LinearGradient(
             gradient: Gradient(colors: [
-                Color.wakevPrimary,
-                Color.wakevAccent
+                Color.wakevePrimary,
+                Color.wakeveAccent
             ]),
             startPoint: .topLeading,
             endPoint: .bottomTrailing
