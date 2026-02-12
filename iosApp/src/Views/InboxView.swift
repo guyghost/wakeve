@@ -523,7 +523,18 @@ struct ActiveFilterIndicator: View {
     let action: () -> Void
     
     var body: some View {
-        Button(action: action) {
+        Menu {
+            Section {
+                Text(filterAppliedText)
+                    .foregroundColor(.secondary)
+            }
+            
+            Button(role: .destructive) {
+                action()
+            } label: {
+                Text("Clear all filters")
+            }
+        } label: {
             HStack(spacing: 6) {
                 Image(systemName: "line.3.horizontal.decrease")
                     .font(.system(size: 14))
@@ -541,6 +552,14 @@ struct ActiveFilterIndicator: View {
                 Capsule()
                     .fill(Color(.systemGray5))
             )
+        }
+    }
+    
+    private var filterAppliedText: String {
+        if count == 1 {
+            return "One filter applied."
+        } else {
+            return "\(count) filters applied."
         }
     }
 }
