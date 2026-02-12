@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.notification
 
 import com.guyghost.wakeve.Notification_preferences
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
@@ -19,7 +19,7 @@ interface NotificationPreferencesRepositoryInterface {
  * Repository for managing notification preferences in database.
  */
 class NotificationPreferencesRepository(
-    private val database: WakevDb
+    private val database: WakeveDb
 ) : NotificationPreferencesRepositoryInterface {
 
     override suspend fun getPreferences(userId: String): NotificationPreferences? = withContext(Dispatchers.Default) {

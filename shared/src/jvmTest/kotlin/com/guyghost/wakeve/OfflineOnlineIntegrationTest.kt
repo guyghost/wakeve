@@ -19,7 +19,7 @@ import kotlin.test.assertTrue
  */
 class OfflineOnlineIntegrationTest {
 
-    private lateinit var database: com.guyghost.wakeve.database.WakevDb
+    private lateinit var database: com.guyghost.wakeve.database.WakeveDb
     private lateinit var eventRepository: DatabaseEventRepository
     private lateinit var userRepository: UserRepository
     private lateinit var networkDetector: TestNetworkStatusDetector

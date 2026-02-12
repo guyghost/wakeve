@@ -29,7 +29,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
  * @param navController The navigation controller for routing
  */
 @Composable
-fun WakevBottomBar(navController: NavController) {
+fun WakeveBottomBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     

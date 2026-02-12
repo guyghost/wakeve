@@ -1,6 +1,6 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Before
@@ -21,7 +21,7 @@ import kotlin.test.assertTrue
  */
 class SessionManagerTest {
 
-    private lateinit var database: WakevDb
+    private lateinit var database: WakeveDb
     private lateinit var sessionRepository: SessionRepository
     private lateinit var sessionManager: SessionManager
 
@@ -245,7 +245,7 @@ class JvmTestDatabaseFactory : DatabaseFactory {
         return app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver(
             url = app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver.IN_MEMORY
         ).also { driver ->
-            com.guyghost.wakeve.database.WakevDb.Schema.create(driver)
+            com.guyghost.wakeve.database.WakeveDb.Schema.create(driver)
         }
     }
 }

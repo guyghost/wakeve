@@ -19,7 +19,7 @@ import com.guyghost.wakeve.BuildConfig
  * - Crash reporting (future)
  * - Analytics (future)
  */
-class WakevApplication : Application(), ImageLoaderFactory {
+class WakeveApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()

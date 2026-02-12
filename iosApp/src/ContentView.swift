@@ -115,7 +115,7 @@ struct ErrorView: View {
 
 struct AuthenticatedView: View {
     let userId: String
-    @State private var selectedTab: WakevTab = .home
+    @State private var selectedTab: WakeveTab = .home
     @State private var currentView: AppView = .eventList
     @State private var selectedEvent: Event?
     // Use persistent database-backed repository instead of in-memory mock
@@ -135,7 +135,7 @@ struct AuthenticatedView: View {
 
     var body: some View {
         // Using native iOS TabView which automatically adopts Liquid Glass on iOS 26+
-        WakevTabBarContainer(
+        WakeveTabBarContainer(
             selectedTab: $selectedTab,
             home: { homeTabContent },
             inbox: { inboxTabContent },

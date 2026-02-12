@@ -22,7 +22,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.collaboration.MentionParser
 import com.guyghost.wakeve.models.Comment
-import com.guyghost.wakeve.theme.WakevColors
+import com.guyghost.wakeve.theme.WakeveColors
 import kotlinx.datetime.Clock
 
 /**
@@ -71,9 +71,9 @@ fun CommentItem(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isPinned) {
-                WakevColors.primaryContainer.copy(alpha = 0.3f)
+                WakeveColors.primaryContainer.copy(alpha = 0.3f)
             } else {
-                WakevColors.surface
+                WakeveColors.surface
             }
         )
     ) {
@@ -102,13 +102,13 @@ fun CommentItem(
                         text = comment.authorName,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = WakevColors.onSurface,
+                        color = WakeveColors.onSurface,
                         modifier = Modifier.clickable { onUserClick(comment.authorId) }
                     )
                     Text(
                         text = formatTimestamp(comment.createdAt),
                         style = MaterialTheme.typography.bodySmall,
-                        color = WakevColors.onSurfaceVariant
+                        color = WakeveColors.onSurfaceVariant
                     )
                 }
 
@@ -117,7 +117,7 @@ fun CommentItem(
                     Icon(
                         imageVector = Icons.Default.PushPin,
                         contentDescription = "Pinned",
-                        tint = WakevColors.primary,
+                        tint = WakeveColors.primary,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -157,7 +157,7 @@ fun CommentItem(
                         if (part.isMention) {
                             withStyle(
                                 style = SpanStyle(
-                                    color = WakevColors.primary,
+                                    color = WakeveColors.primary,
                                     fontWeight = FontWeight.Bold
                                 )
                             ) {
@@ -171,9 +171,9 @@ fun CommentItem(
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (comment.isDeleted) {
-                    WakevColors.onSurfaceVariant
+                    WakeveColors.onSurfaceVariant
                 } else {
-                    WakevColors.onSurface
+                    WakeveColors.onSurface
                 }
             )
 
@@ -183,7 +183,7 @@ fun CommentItem(
                 TextButton(
                     onClick = { onReply(comment.id, comment.authorName) },
                     colors = ButtonDefaults.textButtonColors(
-                        contentColor = WakevColors.primary
+                        contentColor = WakeveColors.primary
                     )
                 ) {
                     Text("Reply")
@@ -276,13 +276,13 @@ fun Avatar(
 ) {
     Box(
         modifier = modifier
-            .background(WakevColors.primaryContainer, CircleShape),
+            .background(WakeveColors.primaryContainer, CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = initials,
             style = MaterialTheme.typography.titleMedium,
-            color = WakevColors.onPrimaryContainer,
+            color = WakeveColors.onPrimaryContainer,
             fontWeight = FontWeight.Bold
         )
     }

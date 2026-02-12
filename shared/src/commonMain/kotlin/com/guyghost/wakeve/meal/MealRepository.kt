@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.meal
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.DailyMealSchedule
 import com.guyghost.wakeve.models.DietaryRestriction
 import com.guyghost.wakeve.models.DietaryRestrictionRequest
@@ -24,7 +24,7 @@ import kotlin.random.Random
  * - Statistics and aggregations
  * - Map between SQLDelight entities and Kotlin models
  */
-class MealRepository(private val db: WakevDb) {
+class MealRepository(private val db: WakeveDb) {
     
     private val mealQueries = db.mealQueries
     private val dietaryRestrictionQueries = db.participantDietaryRestrictionQueries

@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.presentation.usecase
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.meeting.MeetingPlatformProvider
 import com.guyghost.wakeve.meeting.MeetingService
 import com.guyghost.wakeve.models.MeetingPlatform
@@ -11,7 +11,7 @@ import kotlin.time.Duration
 /**
  * Helper to create a test database instance
  */
-fun createTestDatabase(): WakevDb {
+fun createTestDatabase(): WakeveDb {
     // In real implementation, use SQLDelight in-memory database
     // For now, return a placeholder
     error("Test database creation not implemented")
@@ -51,7 +51,7 @@ fun createMockMeetingPlatformProvider(): MeetingPlatformProvider {
  * Helper to create a mock meeting service
  */
 fun createMockMeetingService(
-    database: WakevDb,
+    database: WakeveDb,
     repository: com.guyghost.wakeve.meeting.MeetingRepository
 ): MeetingService {
     val mockCalendarService = object : com.guyghost.wakeve.calendar.PlatformCalendarService {

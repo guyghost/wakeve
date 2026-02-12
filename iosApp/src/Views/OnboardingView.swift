@@ -1,8 +1,8 @@
 import SwiftUI
 
-// Color scheme for onboarding using Wakev design system
+// Color scheme for onboarding using Wakeve design system
 struct OnboardingColors {
-    // Using hex values from WakevColors design system
+    // Using hex values from WakeveColors design system
     static let primary = Color(red: 0x25/255.0, green: 0x63/255.0, blue: 0xEB/255.0)      // #2563EB (wakevPrimary)
     static let primaryLight = Color(red: 0x25/255.0, green: 0x63/255.0, blue: 0xEB/255.0).opacity(0.15)
     static let success = Color(red: 0x05/255.0, green: 0x96/255.0, blue: 0x69/255.0)      // #059669 (wakevSuccess)

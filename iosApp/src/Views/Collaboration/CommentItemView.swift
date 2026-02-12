@@ -39,14 +39,14 @@ struct CommentItemView: View {
                         Text(comment.authorName)
                             .font(.headline)
                             .fontWeight(.bold)
-                            .foregroundColor(WakevColors.onSurface)
+                            .foregroundColor(WakeveColors.onSurface)
                             .onTapGesture {
                                 onUserClick(comment.authorId)
                             }
 
                         Text(formatTimestamp(comment.createdAt))
                             .font(.caption)
-                            .foregroundColor(WakevColors.onSurfaceVariant)
+                            .foregroundColor(WakeveColors.onSurfaceVariant)
                     }
 
                     Spacer()
@@ -54,7 +54,7 @@ struct CommentItemView: View {
                     // Pin icon (if pinned)
                     if isPinned {
                         Image(systemName: "pin.fill")
-                            .foregroundColor(WakevColors.primary)
+                            .foregroundColor(WakeveColors.primary)
                             .font(.system(size: 16))
 
                         Spacer()
@@ -98,7 +98,7 @@ struct CommentItemView: View {
                             }
                         } label: {
                             Image(systemName: "ellipsis.circle")
-                                .foregroundColor(WakevColors.onSurface)
+                                .foregroundColor(WakeveColors.onSurface)
                         }
                     }
                 }
@@ -115,7 +115,7 @@ struct CommentItemView: View {
                     Button(action: { onReply(comment.id, comment.authorName) }) {
                         Text("Reply")
                             .font(.body)
-                            .foregroundColor(WakevColors.primary)
+                            .foregroundColor(WakeveColors.primary)
                     }
                     .buttonStyle(.borderless)
                 }
@@ -127,17 +127,18 @@ struct CommentItemView: View {
 
 /// Glass card with optional pinned styling
 struct GlassCard<Content: View>: View {
-    let isPinned: Bool    let content: Content
+    let isPinned: Bool
+    let content: Content
 
     var body: some View {
         content
             .background(
-                isPinned ? WakevColors.primary.opacity(0.2) : WakevColors.surface,
+                isPinned ? WakeveColors.primary.opacity(0.2) : WakeveColors.surface,
                 in: RoundedRectangle(cornerRadius: 16)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(WakevColors.outline, lineWidth: 1)
+                    .stroke(WakeveColors.outline, lineWidth: 1)
             )
     }
 }
@@ -150,10 +151,10 @@ struct Avatar: View {
         Text(initials)
             .font(.title3)
             .fontWeight(.bold)
-            .foregroundColor(WakevColors.onPrimaryContainer)
+            .foregroundColor(WakeveColors.onPrimaryContainer)
             .frame(width: 40, height: 40)
             .background(
-                WakevColors.primaryContainer,
+                WakeveColors.primaryContainer,
                 in: Circle()
             )
     }
@@ -169,7 +170,7 @@ struct AttributedComment: View {
         if isDeleted {
             Text("[Deleted]")
                 .font(.body)
-                .foregroundColor(WakevColors.onSurfaceVariant)
+                .foregroundColor(WakeveColors.onSurfaceVariant)
                 .italic()
         } else {
             attributedContent
@@ -180,7 +181,7 @@ struct AttributedComment: View {
         if mentions.isEmpty {
             Text(content)
                 .font(.body)
-                .foregroundColor(WakevColors.onSurface)
+                .foregroundColor(WakeveColors.onSurface)
         } else {
             // Simple version - split and highlight mentions
             var text = content
@@ -197,7 +198,7 @@ struct AttributedComment: View {
 
             Text(text)
                 .font(.body)
-                .foregroundColor(WakevColors.onSurface)
+                .foregroundColor(WakeveColors.onSurface)
         }
     }
 }

@@ -7,7 +7,7 @@ import com.guyghost.wakeve.ScenarioRepository
 import com.guyghost.wakeve.TestDatabaseFactory
 import com.guyghost.wakeve.budget.BudgetRepository
 import com.guyghost.wakeve.comment.CommentRepository
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.CommentRequest
 import com.guyghost.wakeve.models.CommentSection
 import com.guyghost.wakeve.models.Event
@@ -41,7 +41,7 @@ import kotlin.test.assertTrue
  */
 class CollaborationIntegrationTest {
     
-    private lateinit var db: WakevDb
+    private lateinit var db: WakeveDb
     private lateinit var commentRepository: CommentRepository
     private lateinit var mockNotificationService: MockNotificationService
     private lateinit var eventRepository: DatabaseEventRepository
@@ -62,7 +62,7 @@ class CollaborationIntegrationTest {
     private val participant5Id = "user-5"
     private val participant5Name = "Eve"
     
-    private fun createTestDatabase(): WakevDb {
+    private fun createTestDatabase(): WakeveDb {
         return DatabaseProvider.getDatabase(TestDatabaseFactory())
     }
     

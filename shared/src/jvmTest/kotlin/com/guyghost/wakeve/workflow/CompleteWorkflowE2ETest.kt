@@ -4,7 +4,7 @@ import com.guyghost.wakeve.DatabaseEventRepository
 import com.guyghost.wakeve.EventRepositoryInterface
 import com.guyghost.wakeve.PollLogic
 import com.guyghost.wakeve.ScenarioRepository
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.meeting.MeetingRepository
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
@@ -55,7 +55,7 @@ import kotlin.time.Duration.Companion.hours
 @OptIn(ExperimentalCoroutinesApi::class)
 class CompleteWorkflowE2ETest {
 
-    private lateinit var database: WakevDb
+    private lateinit var database: WakeveDb
     private lateinit var eventRepository: EventRepositoryInterface
     private lateinit var scenarioRepository: ScenarioRepository
     private lateinit var meetingRepository: MeetingRepository

@@ -11,4 +11,11 @@ package com.guyghost.wakeve.analytics
  */
 expect class FirebaseAnalyticsProvider(
     analyticsQueue: AnalyticsQueue
-) : AnalyticsProvider
+) : AnalyticsProvider {
+
+    override fun trackEvent(event: AnalyticsEvent, properties: Map<String, Any?>)
+    override fun setUserProperty(name: String, value: String)
+    override fun setUserId(userId: String?)
+    override fun setEnabled(enabled: Boolean)
+    override fun clearUserData()
+}

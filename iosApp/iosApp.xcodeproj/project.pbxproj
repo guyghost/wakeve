@@ -45,7 +45,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		43DF86CC87D525648E45511C /* Exceptions for "wakeveApp" folder in "WakeveApp" target */ = {
+		43DF86CC87D525648E45511C /* Exceptions for "src" folder in "WakeveApp" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -55,10 +55,10 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		467D4A3F1360E73EE8C50DBE /* wakeveApp */ = {
+		467D4A3F1360E73EE8C50DBE /* src */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				43DF86CC87D525648E45511C /* Exceptions for "wakeveApp" folder in "WakeveApp" target */,
+				43DF86CC87D525648E45511C /* Exceptions for "src" folder in "WakeveApp" target */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -100,7 +100,7 @@
 			children = (
 				E48971852F0BC6B500BE8BF0 /* WakeveTest.xctestplan */,
 				7F633F392BE35FAC079A9AA1 /* Configuration */,
-				467D4A3F1360E73EE8C50DBE /* wakeveApp */,
+				467D4A3F1360E73EE8C50DBE /* src */,
 				E489717D2F0BC60F00BE8BF0 /* WakeveTests */,
 				E47B48702ECC913300486797 /* Frameworks */,
 				7C1E253D802399F7F0FA1DA8 /* Products */,
@@ -143,7 +143,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				467D4A3F1360E73EE8C50DBE /* wakeveApp */,
+				467D4A3F1360E73EE8C50DBE /* src */,
 			);
 			name = WakeveApp;
 			packageProductDependencies = (
@@ -194,7 +194,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 130D2E2F7BBD969051F5423F /* Build configuration list for PBXProject "wakeveApp" */;
+			buildConfigurationList = 130D2E2F7BBD969051F5423F /* Build configuration list for PBXProject "iosApp" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -298,8 +298,6 @@
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = src/Info.plist;
-				PRODUCT_NAME = Wakeve;
-				WRAPPER_NAME = "$(PRODUCT_NAME).app";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -310,9 +308,11 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				PRODUCT_NAME = Wakeve;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				WRAPPER_NAME = "$(PRODUCT_NAME).app";
 			};
 			name = Release;
 		};
@@ -460,8 +460,6 @@
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = src/Info.plist;
-				PRODUCT_NAME = Wakeve;
-				WRAPPER_NAME = "$(PRODUCT_NAME).app";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -472,9 +470,11 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				PRODUCT_NAME = Wakeve;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				WRAPPER_NAME = "$(PRODUCT_NAME).app";
 			};
 			name = Debug;
 		};
@@ -534,7 +534,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		130D2E2F7BBD969051F5423F /* Build configuration list for PBXProject "wakeveApp" */ = {
+		130D2E2F7BBD969051F5423F /* Build configuration list for PBXProject "iosApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				47D52F9D77F43E8BCB5341B4 /* Debug */,

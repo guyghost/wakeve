@@ -5,7 +5,7 @@ import com.guyghost.wakeve.EventRepositoryInterface
 import com.guyghost.wakeve.ScenarioRepository
 import com.guyghost.wakeve.comment.CommentCache
 import com.guyghost.wakeve.comment.CommentRepository
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.meeting.MeetingRepository
 import com.guyghost.wakeve.meeting.MeetingService
 import com.guyghost.wakeve.meeting.MockMeetingPlatformProvider
@@ -108,10 +108,10 @@ object IosFactory {
      * - `dispatch(intent:)`: Method to dispatch intents
      * - `dispose()`: Method to clean up resources
      *
-     * @param database The WakevDb instance (must be provided by iOS app)
+     * @param database The WakeveDb instance (must be provided by iOS app)
      * @return An ObservableStateMachine wrapper for Event Management
       */
-     fun createEventStateMachine(database: WakevDb): ObservableStateMachine<
+     fun createEventStateMachine(database: WakeveDb): ObservableStateMachine<
              EventManagementContract.State,
              EventManagementContract.Intent,
              EventManagementContract.SideEffect
@@ -153,10 +153,10 @@ object IosFactory {
      * - `dispatch(intent:)`: Method to dispatch intents
      * - `dispose()`: Method to clean up resources
      *
-     * @param database The WakevDb instance (must be provided by iOS app)
+     * @param database The WakeveDb instance (must be provided by iOS app)
      * @return An ObservableStateMachine wrapper for Meeting Service
      */
-    fun createMeetingStateMachine(database: WakevDb): ObservableStateMachine<
+    fun createMeetingStateMachine(database: WakeveDb): ObservableStateMachine<
         MeetingManagementContract.State,
         MeetingManagementContract.Intent,
         MeetingManagementContract.SideEffect
@@ -214,10 +214,10 @@ object IosFactory {
      * - `dispatch(intent:)`: Method to dispatch intents
      * - `dispose()`: Method to clean up resources
      *
-     * @param database The WakevDb instance (must be provided by iOS app)
+     * @param database The WakeveDb instance (must be provided by iOS app)
      * @return An ObservableStateMachine wrapper for Scenario Management
      */
-    fun createScenarioStateMachine(database: WakevDb): ObservableStateMachine<
+    fun createScenarioStateMachine(database: WakeveDb): ObservableStateMachine<
         ScenarioManagementContract.State,
         ScenarioManagementContract.Intent,
         ScenarioManagementContract.SideEffect
@@ -252,10 +252,10 @@ object IosFactory {
      *
      * Provides access to comment CRUD operations for the CommentsView.
      *
-     * @param database The WakevDb instance (must be provided by iOS app)
+     * @param database The WakeveDb instance (must be provided by iOS app)
      * @return A CommentRepository instance
      */
-    fun createCommentRepository(database: WakevDb): CommentRepository {
+    fun createCommentRepository(database: WakeveDb): CommentRepository {
         return CommentRepository(database)
     }
 }

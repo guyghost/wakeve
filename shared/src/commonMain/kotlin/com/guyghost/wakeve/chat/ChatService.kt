@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.chat
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,7 +45,7 @@ interface WebSocketClient {
 class ChatService(
     private val currentUserId: String,
     private val currentUserName: String,
-    private val database: WakevDb? = null,
+    private val database: WakeveDb? = null,
     private val reconnectionManager: ReconnectionManager? = null,
     private val webSocketClient: WebSocketClient? = null
 ) {

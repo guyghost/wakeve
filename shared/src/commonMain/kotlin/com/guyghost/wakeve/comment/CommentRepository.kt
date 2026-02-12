@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.comment
 
 import com.guyghost.wakeve.EventRepositoryInterface
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.collaboration.MentionParser
 import com.guyghost.wakeve.models.Comment
 import com.guyghost.wakeve.models.CommentRequest
@@ -40,7 +40,7 @@ data class PagingData<T>(
  * - Map between SQLDelight entities and Kotlin models
  */
 class CommentRepository(
-    private val db: WakevDb,
+    private val db: WakeveDb,
     private val commentNotificationService: CommentNotificationService? = null,
     private val eventRepository: EventRepositoryInterface? = null,
     private val cache: CommentCache = CommentCache()

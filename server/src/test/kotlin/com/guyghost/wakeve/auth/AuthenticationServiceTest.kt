@@ -2,7 +2,7 @@ package com.guyghost.wakeve.auth
 
 import com.guyghost.wakeve.DatabaseProvider
 import com.guyghost.wakeve.JvmDatabaseFactory
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.User
 import kotlinx.coroutines.runBlocking
@@ -15,7 +15,7 @@ import kotlin.test.assertTrue
 
 class AuthenticationServiceTest {
 
-    private lateinit var database: WakevDb
+    private lateinit var database: WakeveDb
     private lateinit var authService: AuthenticationService
 
     @BeforeTest

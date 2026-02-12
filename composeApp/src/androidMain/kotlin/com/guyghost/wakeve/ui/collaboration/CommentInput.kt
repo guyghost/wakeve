@@ -16,7 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import com.guyghost.wakeve.theme.WakevColors
+import com.guyghost.wakeve.theme.WakeveColors
 import com.guyghost.wakeve.collaboration.MentionParser
 
 /**
@@ -49,7 +49,7 @@ fun CommentInput(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(WakevColors.surface)
+            .background(WakeveColors.surface)
     ) {
         Column {
             // Input field
@@ -86,10 +86,10 @@ fun CommentInput(
                 maxLines = 4,
                 shape = RoundedCornerShape(24.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = WakevColors.primary,
-                    unfocusedBorderColor = WakevColors.outline,
-                    focusedContainerColor = WakevColors.surfaceVariant,
-                    unfocusedContainerColor = WakevColors.surfaceVariant
+                    focusedBorderColor = WakeveColors.primary,
+                    unfocusedBorderColor = WakeveColors.outline,
+                    focusedContainerColor = WakeveColors.surfaceVariant,
+                    unfocusedContainerColor = WakeveColors.surfaceVariant
                 ),
                 trailingIcon = {
                     IconButton(
@@ -104,9 +104,9 @@ fun CommentInput(
                             imageVector = Icons.Default.Send,
                             contentDescription = "Send",
                             tint = if (text.isNotBlank()) {
-                                WakevColors.primary
+                                WakeveColors.primary
                             } else {
-                                WakevColors.onSurfaceVariant
+                                WakeveColors.onSurfaceVariant
                             }
                         )
                     }
@@ -173,7 +173,7 @@ fun MentionAutocomplete(
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = WakevColors.surface
+            containerColor = WakeveColors.surface
         )
     ) {
         Column(
@@ -182,7 +182,7 @@ fun MentionAutocomplete(
             Text(
                 text = "Mention someone...",
                 style = MaterialTheme.typography.labelSmall,
-                color = WakevColors.onSurfaceVariant,
+                color = WakeveColors.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
             )
 
@@ -223,7 +223,7 @@ fun MentionUserItem(
         Text(
             text = "@$username",
             style = MaterialTheme.typography.bodyMedium,
-            color = WakevColors.onSurface
+            color = WakeveColors.onSurface
         )
     }
 }

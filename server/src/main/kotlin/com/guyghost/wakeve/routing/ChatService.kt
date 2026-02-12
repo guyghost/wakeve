@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.routes
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.AddReactionRequest
 import com.guyghost.wakeve.models.ChatMessage
 import com.guyghost.wakeve.models.ChatMessageType
@@ -45,7 +45,7 @@ import java.util.UUID
  * - EventChatConnections for WebSocket broadcasting
  */
 class ChatService(
-    private val database: WakevDb,
+    private val database: WakeveDb,
     private val eventConnections: EventChatConnections = com.guyghost.wakeve.routes.eventChatConnections
 ) {
     private val json = Json { ignoreUnknownKeys = true }

@@ -2,7 +2,7 @@ package com.guyghost.wakeve.sync
 
 import com.guyghost.wakeve.DatabaseEventRepository
 import com.guyghost.wakeve.UserRepository
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.SyncChange
 import com.guyghost.wakeve.models.SyncConflict
 import com.guyghost.wakeve.models.SyncEventData
@@ -16,7 +16,7 @@ import kotlinx.serialization.json.Json
 /**
  * Service for handling offline synchronization
  */
-class SyncService(private val db: WakevDb) {
+class SyncService(private val db: WakeveDb) {
 
     private val eventRepository = DatabaseEventRepository(db)
     private val userRepository = UserRepository(db)

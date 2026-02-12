@@ -2,7 +2,7 @@ package com.guyghost.wakeve.sync
 
 import com.guyghost.wakeve.DatabaseEventRepository
 import com.guyghost.wakeve.UserRepository
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.getCurrentTimeMillis
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.SyncChange
@@ -26,7 +26,7 @@ import kotlinx.serialization.json.Json
  * Client-side sync manager for offline-first synchronization
  */
 class SyncManager(
-    private val database: WakevDb,
+    private val database: WakeveDb,
     private val eventRepository: DatabaseEventRepository,
     private val userRepository: UserRepository,
     private val networkDetector: NetworkStatusDetector,

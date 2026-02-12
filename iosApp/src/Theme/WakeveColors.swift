@@ -71,6 +71,46 @@ extension Color {
     }
 }
 
+// MARK: - WakeveColors Struct
+/// Material You inspired color container for the Wakeve app
+public struct WakeveColors {
+    // Primary
+    public static let primary = Color.wakevPrimary
+    public static let onPrimary = Color.white
+    public static let primaryContainer = Color.wakevPrimary.opacity(0.15)
+    public static let onPrimaryContainer = Color.wakevPrimaryDark
+    
+    // Secondary / Accent
+    public static let secondary = Color.wakevAccent
+    public static let onSecondary = Color.white
+    public static let secondaryContainer = Color.wakevAccent.opacity(0.15)
+    public static let onSecondaryContainer = Color.wakevAccentDark
+    
+    // Surface
+    public static let surface = Color.wakevSurfaceDark
+    public static let onSurface = Color.wakevTextPrimaryDark
+    public static let onSurfaceVariant = Color.wakevTextSecondaryDark
+    
+    // Background
+    public static let background = Color.wakevBackgroundDark
+    public static let onBackground = Color.wakevTextPrimaryDark
+    
+    // Outline
+    public static let outline = Color.wakevBorderDark
+    
+    // Error
+    public static let error = Color.wakevError
+    public static let onError = Color.white
+    
+    // Success
+    public static let success = Color.wakevSuccess
+    public static let onSuccess = Color.white
+    
+    // Warning
+    public static let warning = Color.wakevWarning
+    public static let onWarning = Color.white
+}
+
 // MARK: - Gradient Presets
 
 extension LinearGradient {

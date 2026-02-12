@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Color extensions are defined in Theme/WakevColors.swift
+// Color extensions are defined in Theme/WakeveColors.swift
 
 @main
 struct iOSApp: App {

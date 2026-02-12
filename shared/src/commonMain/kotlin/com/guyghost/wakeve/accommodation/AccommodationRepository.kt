@@ -15,7 +15,7 @@ import com.guyghost.wakeve.models.RoomAssignment
  * - Statistics calculations from database
  * - Map between SQLDelight entities and Kotlin models
  */
-class AccommodationRepository(private val db: com.guyghost.wakeve.database.WakevDb) {
+class AccommodationRepository(private val db: com.guyghost.wakeve.database.WakeveDb) {
 
     private val accommodationQueries = db.accommodationQueries
     private val roomAssignmentQueries = db.roomAssignmentQueries

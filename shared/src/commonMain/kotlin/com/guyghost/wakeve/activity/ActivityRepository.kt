@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.activity
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.ActivitiesByDate
 import com.guyghost.wakeve.models.Activity
 import com.guyghost.wakeve.models.ActivityParticipant
@@ -17,7 +17,7 @@ import kotlinx.datetime.Clock
  * - Statistics and aggregations
  * - Map between SQLDelight entities and Kotlin models
  */
-class ActivityRepository(private val db: WakevDb) {
+class ActivityRepository(private val db: WakeveDb) {
     
     private val activityQueries = db.activityQueries
     private val participantQueries = db.activityParticipantQueries

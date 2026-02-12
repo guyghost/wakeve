@@ -66,7 +66,7 @@ import org.koin.compose.koinInject
  * @param userId The current authenticated user ID
  */
 @Composable
-fun WakevNavHost(
+fun WakeveNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
     startDestination: String = Screen.Home.route,

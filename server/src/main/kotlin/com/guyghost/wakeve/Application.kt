@@ -9,7 +9,7 @@ import com.guyghost.wakeve.auth.GoogleOAuth2Service
 import com.guyghost.wakeve.cache.JwtBlacklistCache
 import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.calendar.PlatformCalendarServiceImpl
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.metrics.AuthMetricsCollector
 import com.guyghost.wakeve.routes.ChatService
 import com.guyghost.wakeve.routes.analyticsRoutes
@@ -231,7 +231,7 @@ fun main() {
 }
 
 fun Application.module(
-    database: WakevDb,
+    database: WakeveDb,
     eventRepository: DatabaseEventRepository = DatabaseEventRepository(database),
     scenarioRepository: ScenarioRepository = ScenarioRepository(database),
     budgetRepository: com.guyghost.wakeve.budget.BudgetRepository = com.guyghost.wakeve.budget.BudgetRepository(database),

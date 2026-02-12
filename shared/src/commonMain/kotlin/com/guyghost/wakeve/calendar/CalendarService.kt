@@ -3,7 +3,7 @@ package com.guyghost.wakeve.calendar
 import com.guyghost.wakeve.Event
 import com.guyghost.wakeve.Participant
 import com.guyghost.wakeve.User
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.EnhancedCalendarEvent
 import com.guyghost.wakeve.models.ICSDocument
 import kotlinx.datetime.Clock
@@ -20,7 +20,7 @@ import kotlinx.datetime.toLocalDateTime
  * et s'intègre aux calendriers natifs Android (CalendarContract) et iOS (EventKit).
  */
 class CalendarService(
-    private val database: WakevDb,
+    private val database: WakeveDb,
     private val platformCalendarService: PlatformCalendarService
 ) {
 

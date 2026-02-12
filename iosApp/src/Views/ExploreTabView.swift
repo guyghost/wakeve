@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Import the Wakev color extensions
+// Import the Wakeve color extensions
 
 /// Explore Tab View with suggestions, ideas, and new features
 struct ExploreTabView: View {

@@ -2,7 +2,7 @@ package com.guyghost.wakeve.meeting
 
 import com.guyghost.wakeve.NotificationService
 import com.guyghost.wakeve.calendar.CalendarService
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.InvitationStatus
 import com.guyghost.wakeve.models.MeetingLinkResponse
@@ -31,7 +31,7 @@ import kotlin.time.Duration.Companion.minutes
  * - Intégration avec le calendrier natif
  */
 class MeetingService(
-    private val database: WakevDb,
+    private val database: WakeveDb,
     private val calendarService: CalendarService,
     private val notificationService: NotificationService
 ) {
