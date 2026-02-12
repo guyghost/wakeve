@@ -291,7 +291,7 @@ private func generateICSContent(event: Event) -> String {
     let endDate = event.finalDate ?? now
     
     let title = event.title.replacingOccurrences(of: "\n", with: "\\n")
-    let description = (event.description ?? "").replacingOccurrences(of: "\n", with: "\\n")
+    let description = event.description.replacingOccurrences(of: "\n", with: "\\n")
     
     return """
     BEGIN:VCALENDAR
@@ -329,6 +329,7 @@ private func createICSFile(icsContent: String) async throws -> URL {
 
 /// Presents the share sheet with the ICS file
 /// Side effect: UI presentation
+@MainActor
 private func presentShareSheet(fileURL: URL) async throws {
     let activityViewController = UIActivityViewController(
         activityItems: [fileURL],
@@ -352,7 +353,7 @@ private func presentShareSheet(fileURL: URL) async throws {
         popover.permittedArrowDirections = []
     }
     
-    await rootViewController.present(activityViewController, animated: true)
+    rootViewController.present(activityViewController, animated: true)
 }
 
 /// Errors that can occur during share operation

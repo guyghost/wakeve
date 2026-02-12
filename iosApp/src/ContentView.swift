@@ -314,7 +314,7 @@ struct AuthenticatedView: View {
             }
             
         case .mealPlanning:
-            if let event = selectedEvent {
+            if selectedEvent != nil {
                 // TODO: Re-enable MealPlanningView when Shared types are properly integrated
                 Text("Meal Planning - Coming Soon")
                     .font(.title2)
@@ -420,26 +420,16 @@ struct AuthenticatedView: View {
                         }
                     }
                 )
+            } else {
+                Text("No meeting selected")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
             }
             
         case .inbox:
             InboxView(
                 userId: userId,
                 onBack: { /* Inbox handled by tab */ }
-            )
-            
-        default:
-            // Fallback to event list
-            ModernHomeView(
-                userId: userId,
-                repository: repository,
-                onEventSelected: { event in
-                    selectedEvent = event
-                    currentView = .eventDetail
-                },
-                onCreateEvent: {
-                    showEventCreationSheet = true
-                }
             )
         }
     }

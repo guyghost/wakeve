@@ -85,7 +85,7 @@ struct CreateEventView: View {
             do {
                 // Save the event in the repository (create if doesn't exist, otherwise update)
                 // This is a background save, so we don't block the UI
-                let result = try await repository.saveEvent(event: event)
+                let _ = try await repository.saveEvent(event: event)
 
                 // Log success (optional)
                 print("✅ Event auto-saved: \(event.id)")

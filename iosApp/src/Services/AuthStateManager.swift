@@ -59,11 +59,7 @@ public class AuthStateManager: ObservableObject {
     /// Check authentication status
     func checkAuthStatus() {
         // In stub mode, check if user was previously authenticated
-        if let user = currentUser {
-            isAuthenticated = true
-        } else {
-            isAuthenticated = false
-        }
+        isAuthenticated = currentUser != nil
     }
     
     /// Refresh authentication token if needed

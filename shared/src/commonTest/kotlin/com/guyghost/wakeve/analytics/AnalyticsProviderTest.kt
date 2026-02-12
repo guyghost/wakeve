@@ -18,7 +18,7 @@ class AnalyticsProviderTest {
 
         // Then
         assertEquals(1, mockProvider.trackedEvents.size)
-        assertTrue(mockProvider.hasEvent(AnalyticsEvent.AppStart::class.java))
+        assertTrue(mockProvider.hasEvent(AnalyticsEvent.AppStart::class))
     }
 
     @Test
@@ -103,7 +103,7 @@ class AnalyticsProviderTest {
         mockProvider.trackEvent(AnalyticsEvent.ScreenView("profile"))
 
         // When
-        val screenViews = mockProvider.findEvents(AnalyticsEvent.ScreenView::class.java)
+        val screenViews = mockProvider.findEvents(AnalyticsEvent.ScreenView::class)
 
         // Then
         assertEquals(2, screenViews.size)
@@ -147,8 +147,8 @@ class AnalyticsProviderTest {
         )
 
         // Then
-        assertTrue(mockProvider.hasEvent(AnalyticsEvent.PollVoted::class.java))
-        val voteEvents = mockProvider.findEvents(AnalyticsEvent.PollVoted::class.java)
+        assertTrue(mockProvider.hasEvent(AnalyticsEvent.PollVoted::class))
+        val voteEvents = mockProvider.findEvents(AnalyticsEvent.PollVoted::class)
         assertEquals(1, voteEvents.size)
         assertEquals("yes", voteEvents[0].response)
         assertEquals(false, voteEvents[0].isChangingVote)
@@ -168,7 +168,7 @@ class AnalyticsProviderTest {
         )
 
         // Then
-        val screenViews = mockProvider.findEvents(AnalyticsEvent.ScreenView::class.java)
+        val screenViews = mockProvider.findEvents(AnalyticsEvent.ScreenView::class)
         assertEquals(1, screenViews.size)
         assertEquals("EventDetail", screenViews[0].screenName)
         assertEquals("EventDetailScreen", screenViews[0].screenClass)
@@ -201,8 +201,8 @@ class AnalyticsProviderTest {
 
         // Then
         assertEquals(3, mockProvider.trackedEvents.size)
-        assertTrue(mockProvider.hasEvent(AnalyticsEvent.AnalyticsConsentGranted::class.java))
-        assertTrue(mockProvider.hasEvent(AnalyticsEvent.AnalyticsConsentRevoked::class.java))
-        assertTrue(mockProvider.hasEvent(AnalyticsEvent.UserDataDeleted::class.java))
+        assertTrue(mockProvider.hasEvent(AnalyticsEvent.AnalyticsConsentGranted::class))
+        assertTrue(mockProvider.hasEvent(AnalyticsEvent.AnalyticsConsentRevoked::class))
+        assertTrue(mockProvider.hasEvent(AnalyticsEvent.UserDataDeleted::class))
     }
 }

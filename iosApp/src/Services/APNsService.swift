@@ -143,10 +143,10 @@ import UIKit
     private func handleNotification(userInfo: [AnyHashable: Any]) {
         guard let aps = userInfo["aps"] as? [String: Any] else { return }
 
-        let title = aps["alert"] as? String ?? "Wakeve"
-        let body = (aps["alert"] as? [String: String])?["body"] ?? "New notification"
-        let notificationId = userInfo["notificationId"] as? String ?? UUID().uuidString
-        let eventId = userInfo["eventId"] as? String
+        let _ = aps["alert"] as? String ?? "Wakeve"
+        let _ = (aps["alert"] as? [String: String])?["body"] ?? "New notification"
+        let _ = userInfo["notificationId"] as? String ?? UUID().uuidString
+        let _ = userInfo["eventId"] as? String
 
         // Check if app is in foreground
         if UIApplication.shared.applicationState == .active {

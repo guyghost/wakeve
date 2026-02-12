@@ -99,8 +99,8 @@ class FirebaseAnalyticsProviderTest {
         provider.trackEvent(event)
 
         // Then
-        assertTrue(provider.hasEvent(AnalyticsEvent.PollVoted::class.java))
-        val voteEvents = provider.findEvents(AnalyticsEvent.PollVoted::class.java)
+        assertTrue(provider.hasEvent(AnalyticsEvent.PollVoted::class))
+        val voteEvents = provider.findEvents(AnalyticsEvent.PollVoted::class)
         assertEquals(1, voteEvents.size)
         assertEquals("yes", voteEvents[0].response)
         assertEquals(false, voteEvents[0].isChangingVote)
@@ -118,7 +118,7 @@ class FirebaseAnalyticsProviderTest {
         provider.trackEvent(event)
 
         // Then
-        val screenViews = provider.findEvents(AnalyticsEvent.ScreenView::class.java)
+        val screenViews = provider.findEvents(AnalyticsEvent.ScreenView::class)
         assertEquals(1, screenViews.size)
         assertEquals("EventDetail", screenViews[0].screenName)
         assertEquals("EventDetailScreen", screenViews[0].screenClass)
@@ -299,7 +299,7 @@ class FirebaseAnalyticsProviderTest {
         provider.trackEvent(event)
 
         // Then
-        val joinedEvents = provider.findEvents(AnalyticsEvent.EventJoined::class.java)
+        val joinedEvents = provider.findEvents(AnalyticsEvent.EventJoined::class)
         assertEquals(1, joinedEvents.size)
         assertEquals(true, joinedEvents[0].isGuest)
     }
@@ -316,7 +316,7 @@ class FirebaseAnalyticsProviderTest {
         provider.trackEvent(event)
 
         // Then
-        val sharedEvents = provider.findEvents(AnalyticsEvent.EventShared::class.java)
+        val sharedEvents = provider.findEvents(AnalyticsEvent.EventShared::class)
         assertEquals(1, sharedEvents.size)
         assertEquals("qr_code", sharedEvents[0].shareMethod)
     }
@@ -333,7 +333,7 @@ class FirebaseAnalyticsProviderTest {
         provider.trackEvent(event)
 
         // Then
-        val createdEvents = provider.findEvents(AnalyticsEvent.ScenarioCreated::class.java)
+        val createdEvents = provider.findEvents(AnalyticsEvent.ScenarioCreated::class)
         assertEquals(1, createdEvents.size)
         assertEquals(true, createdEvents[0].hasAccommodation)
     }
@@ -350,7 +350,7 @@ class FirebaseAnalyticsProviderTest {
         provider.trackEvent(event)
 
         // Then
-        val createdEvents = provider.findEvents(AnalyticsEvent.MeetingCreated::class.java)
+        val createdEvents = provider.findEvents(AnalyticsEvent.MeetingCreated::class)
         assertEquals(1, createdEvents.size)
         assertEquals("zoom", createdEvents[0].platform)
     }
@@ -366,7 +366,7 @@ class FirebaseAnalyticsProviderTest {
         provider.trackEvent(event)
 
         // Then
-        val registeredEvents = provider.findEvents(AnalyticsEvent.UserRegistered::class.java)
+        val registeredEvents = provider.findEvents(AnalyticsEvent.UserRegistered::class)
         assertEquals(1, registeredEvents.size)
         assertEquals("google", registeredEvents[0].authMethod)
     }
@@ -383,7 +383,7 @@ class FirebaseAnalyticsProviderTest {
         provider.trackEvent(event)
 
         // Then
-        val queuedEvents = provider.findEvents(AnalyticsEvent.OfflineActionQueued::class.java)
+        val queuedEvents = provider.findEvents(AnalyticsEvent.OfflineActionQueued::class)
         assertEquals(1, queuedEvents.size)
         assertEquals("vote", queuedEvents[0].actionType)
         assertEquals(5, queuedEvents[0].queueSize)
@@ -401,7 +401,7 @@ class FirebaseAnalyticsProviderTest {
         provider.trackEvent(event)
 
         // Then
-        val completedEvents = provider.findEvents(AnalyticsEvent.SyncCompleted::class.java)
+        val completedEvents = provider.findEvents(AnalyticsEvent.SyncCompleted::class)
         assertEquals(1, completedEvents.size)
         assertEquals(10, completedEvents[0].itemsSynced)
         assertEquals(1500L, completedEvents[0].durationMs)
@@ -419,7 +419,7 @@ class FirebaseAnalyticsProviderTest {
         provider.trackEvent(event)
 
         // Then
-        val failedEvents = provider.findEvents(AnalyticsEvent.SyncFailed::class.java)
+        val failedEvents = provider.findEvents(AnalyticsEvent.SyncFailed::class)
         assertEquals(1, failedEvents.size)
         assertEquals("network_error", failedEvents[0].errorType)
         assertEquals(3, failedEvents[0].itemsPending)
@@ -438,7 +438,7 @@ class FirebaseAnalyticsProviderTest {
         provider.trackEvent(event)
 
         // Then
-        val errorEvents = provider.findEvents(AnalyticsEvent.ErrorOccurred::class.java)
+        val errorEvents = provider.findEvents(AnalyticsEvent.ErrorOccurred::class)
         assertEquals(1, errorEvents.size)
         assertEquals("validation_error", errorEvents[0].errorType)
         assertEquals("Invalid input", errorEvents[0].errorContext)
@@ -458,7 +458,7 @@ class FirebaseAnalyticsProviderTest {
         provider.trackEvent(event)
 
         // Then
-        val apiErrors = provider.findEvents(AnalyticsEvent.ApiError::class.java)
+        val apiErrors = provider.findEvents(AnalyticsEvent.ApiError::class)
         assertEquals(1, apiErrors.size)
         assertEquals("/api/events", apiErrors[0].endpoint)
         assertEquals(500, apiErrors[0].statusCode)
@@ -479,8 +479,8 @@ class FirebaseAnalyticsProviderTest {
 
         // Then
         assertEquals(3, provider.trackedEvents.size)
-        assertTrue(provider.hasEvent(AnalyticsEvent.AnalyticsConsentGranted::class.java))
-        assertTrue(provider.hasEvent(AnalyticsEvent.AnalyticsConsentRevoked::class.java))
-        assertTrue(provider.hasEvent(AnalyticsEvent.UserDataDeleted::class.java))
+        assertTrue(provider.hasEvent(AnalyticsEvent.AnalyticsConsentGranted::class))
+        assertTrue(provider.hasEvent(AnalyticsEvent.AnalyticsConsentRevoked::class))
+        assertTrue(provider.hasEvent(AnalyticsEvent.UserDataDeleted::class))
     }
 }

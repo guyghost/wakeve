@@ -73,7 +73,7 @@ class AdvancedPerformanceBenchmarks {
         
         println("=== Notification Preferences Check Benchmark ===")
         println("Iterations: $iterations")
-        println("Average time: ${"%.3f".format(averageTime)}ms")
+        println("Average time: ${String.format("%.3f", averageTime)}ms")
         println("Max time: ${maxTime}ms")
         println("Target: < 1ms")
         
@@ -157,7 +157,7 @@ class AdvancedPerformanceBenchmarks {
         
         println("=== DeepLink Parsing Benchmark ===")
         println("Iterations: $iterations")
-        println("Average time: ${"%.3f".format(averageTime)}ms")
+        println("Average time: ${String.format("%.3f", averageTime)}ms")
         println("Max time: ${maxTime}ms")
         println("Target: < 10ms")
         
@@ -210,7 +210,7 @@ class AdvancedPerformanceBenchmarks {
         println("=== Poll Calculation Benchmark (100 votes) ===")
         println("Iterations: $iterations")
         println("Participants: 100, Slots: 10, Total votes: 1000")
-        println("Average time: ${"%.3f".format(averageTime)}ms")
+        println("Average time: ${String.format("%.3f", averageTime)}ms")
         println("Max time: ${maxTime}ms")
         println("Target: < 50ms")
         
@@ -627,7 +627,7 @@ class AdvancedPerformanceBenchmarks {
         
         println("=== Event Serialization Benchmark ===")
         println("Iterations: $iterations")
-        println("Average time: ${"%.3f".format(averageTime)}ms")
+        println("Average time: ${String.format("%.3f", averageTime)}ms")
         println("Max time: ${maxTime}ms")
         println("Target: < 1ms")
         
@@ -666,7 +666,7 @@ class AdvancedPerformanceBenchmarks {
         
         println("=== DeepLink Factory Creation Benchmark ===")
         println("Iterations: $iterations")
-        println("Average time: ${"%.3f".format(averageTime)}ms")
+        println("Average time: ${String.format("%.3f", averageTime)}ms")
         println("Max time: ${maxTime}ms")
         println("Target: < 5ms")
         
@@ -723,7 +723,7 @@ class AdvancedPerformanceBenchmarks {
         
         println("=== Event Search Benchmark (200 events) ===")
         println("Iterations: $iterations")
-        println("Average time: ${"%.3f".format(averageTime)}ms")
+        println("Average time: ${String.format("%.3f", averageTime)}ms")
         println("Max time: ${maxTime}ms")
         println("Target: < 5ms")
         
@@ -777,7 +777,7 @@ class AdvancedPerformanceBenchmarks {
         println("=== Poll Score Calculation Benchmark ===")
         println("Iterations: $iterations")
         println("Participants: 50, Slots: 20")
-        println("Average time: ${"%.3f".format(averageTime)}ms")
+        println("Average time: ${String.format("%.3f", averageTime)}ms")
         println("Max time: ${maxTime}ms")
         println("Target: < 10ms")
         
@@ -873,7 +873,7 @@ class AdvancedPerformanceBenchmarks {
         println("=== Notification Preferences Repository Benchmark ===")
         println("Iterations: $iterations")
         println("Users: ${userIds.size}")
-        println("Average time: ${"%.3f".format(averageTime)}ms")
+        println("Average time: ${String.format("%.3f", averageTime)}ms")
         println("Max time: ${maxTime}ms")
         println("Target: < 5ms")
         
@@ -930,7 +930,7 @@ class AdvancedPerformanceBenchmarks {
         
         println("=== DeepLink Pattern Matching Benchmark ===")
         println("Iterations: $iterations")
-        println("Average time: ${"%.3f".format(averageTime)}ms")
+        println("Average time: ${String.format("%.3f", averageTime)}ms")
         println("Max time: ${maxTime}ms")
         println("Target: < 2ms")
         
@@ -977,7 +977,7 @@ class AdvancedPerformanceBenchmarks {
         
         println("=== Event Sorting Benchmark (300 events) ===")
         println("Iterations: $iterations")
-        println("Average time: ${"%.3f".format(averageTime)}ms")
+        println("Average time: ${String.format("%.3f", averageTime)}ms")
         println("Max time: ${maxTime}ms")
         println("Target: < 5ms")
         
@@ -1020,7 +1020,7 @@ class AdvancedPerformanceBenchmarks {
         
         println("=== RichNotification Builder Benchmark ===")
         println("Iterations: $iterations")
-        println("Average time: ${"%.3f".format(averageTime)}ms")
+        println("Average time: ${String.format("%.3f", averageTime)}ms")
         println("Max time: ${maxTime}ms")
         println("Target: < 2ms")
         

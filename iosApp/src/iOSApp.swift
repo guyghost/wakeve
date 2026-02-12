@@ -32,10 +32,10 @@ struct iOSApp: App {
                 .task {
                     authStateManager.checkAuthStatus()
                 }
-        }
-        .onOpenURL { url in
-            // Handle incoming deep links
-            handleDeepLink(url)
+                .onOpenURL { url in
+                    // Handle incoming deep links
+                    handleDeepLink(url)
+                }
         }
     }
 
