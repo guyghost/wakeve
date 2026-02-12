@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.navigation
 
 import android.widget.Toast
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -85,6 +86,7 @@ fun WakeveNavHost(
         
         composable(Screen.Home.route) {
             val viewModel: EventManagementViewModel = koinInject()
+            val isDarkTheme = isSystemInDarkTheme()
             HomeScreen(
                 viewModel = viewModel,
                 onNavigateTo = { route ->
@@ -92,7 +94,8 @@ fun WakeveNavHost(
                 },
                 onShowToast = { message ->
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                }
+                },
+                isDarkTheme = isDarkTheme
             )
         }
         

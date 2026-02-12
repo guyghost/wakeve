@@ -1,24 +1,134 @@
 import SwiftUI
-import SwiftUI
 import Shared
 
 // MARK: - Event Filter Enum
 
-/// Filter options for events list (matches Android's TabRow filters)
-enum ModernEventFilter: String, CaseIterable {
-    case all = "Tous"
+enum HomeEventFilter: String, CaseIterable, Identifiable {
     case upcoming = "À venir"
-    case past = "Passés"
+    case past = "Évènements passés"
+    case drafts = "Brouillons"
+    case organizedByMe = "Organisés par moi"
+    case confirmed = "Confirmés"
+    
+    var id: String { self.rawValue }
+    
+    var icon: String {
+        switch self {
+        case .upcoming: return "calendar"
+        case .past: return "arrow.counterclockwise"
+        case .drafts: return "pencil"
+        case .organizedByMe: return "crown"
+        case .confirmed: return "checkmark.circle"
+        }
+    }
+    
+    var showBadge: Bool {
+        switch self {
+        case .drafts: return true
+        default: return false
+        }
+    }
+}
 
-    var title: String {
-        return self.rawValue
+// MARK: - Event Theme
+
+struct EventTheme {
+    let backgroundColor: Color
+    let accentColor: Color
+    let emojis: [String]
+    let emojiPositions: [CGPoint]
+    
+    static let beach = EventTheme(
+        backgroundColor: Color(hex: "7DD3C0"),
+        accentColor: Color(hex: "F97316"),
+        emojis: ["🏖️", "☀️", "🐚", "🐠", "🚤"],
+        emojiPositions: [
+            CGPoint(x: 0.5, y: 0.4),  // Parasol
+            CGPoint(x: 0.85, y: 0.15), // Soleil
+            CGPoint(x: 0.75, y: 0.75), // Coquillage
+            CGPoint(x: 0.15, y: 0.8),  // Poisson
+            CGPoint(x: 0.1, y: 0.55)   // Bateau
+        ]
+    )
+    
+    static let party = EventTheme(
+        backgroundColor: Color(hex: "C084FC"),
+        accentColor: Color(hex: "FACC15"),
+        emojis: ["🎉", "🎈", "🎊", "🎁", "🎂"],
+        emojiPositions: [
+            CGPoint(x: 0.5, y: 0.35),
+            CGPoint(x: 0.8, y: 0.2),
+            CGPoint(x: 0.2, y: 0.25),
+            CGPoint(x: 0.75, y: 0.7),
+            CGPoint(x: 0.25, y: 0.75)
+        ]
+    )
+    
+    static let dinner = EventTheme(
+        backgroundColor: Color(hex: "FB923C"),
+        accentColor: Color(hex: "DC2626"),
+        emojis: ["🍽️", "🍷", "🥗", "🍝", "🥂"],
+        emojiPositions: [
+            CGPoint(x: 0.5, y: 0.4),
+            CGPoint(x: 0.75, y: 0.2),
+            CGPoint(x: 0.25, y: 0.3),
+            CGPoint(x: 0.7, y: 0.75),
+            CGPoint(x: 0.2, y: 0.7)
+        ]
+    )
+    
+    static let sport = EventTheme(
+        backgroundColor: Color(hex: "34D399"),
+        accentColor: Color(hex: "059669"),
+        emojis: ["⚽", "🏆", "🥅", "👟", "🎯"],
+        emojiPositions: [
+            CGPoint(x: 0.5, y: 0.4),
+            CGPoint(x: 0.8, y: 0.15),
+            CGPoint(x: 0.2, y: 0.2),
+            CGPoint(x: 0.75, y: 0.8),
+            CGPoint(x: 0.15, y: 0.75)
+        ]
+    )
+    
+    static let travel = EventTheme(
+        backgroundColor: Color(hex: "60A5FA"),
+        accentColor: Color(hex: "1D4ED8"),
+        emojis: ["✈️", "🗺️", "🧳", "📸", "🏔️"],
+        emojiPositions: [
+            CGPoint(x: 0.5, y: 0.35),
+            CGPoint(x: 0.75, y: 0.2),
+            CGPoint(x: 0.25, y: 0.3),
+            CGPoint(x: 0.8, y: 0.75),
+            CGPoint(x: 0.2, y: 0.8)
+        ]
+    )
+    
+    static let defaultTheme = EventTheme(
+        backgroundColor: Color(hex: "94A3B8"),
+        accentColor: Color(hex: "475569"),
+        emojis: ["📅", "✨", "🎊", "🎈", "🎉"],
+        emojiPositions: [
+            CGPoint(x: 0.5, y: 0.4),
+            CGPoint(x: 0.8, y: 0.2),
+            CGPoint(x: 0.2, y: 0.25),
+            CGPoint(x: 0.75, y: 0.75),
+            CGPoint(x: 0.25, y: 0.8)
+        ]
+    )
+    
+    static func theme(for eventType: String?) -> EventTheme {
+        guard let type = eventType?.lowercased() else { return .defaultTheme }
+        if type.contains("beach") || type.contains("plage") || type.contains("sea") { return .beach }
+        if type.contains("party") || type.contains("fête") || type.contains("birthday") { return .party }
+        if type.contains("dinner") || type.contains("dîner") || type.contains("restaurant") { return .dinner }
+        if type.contains("sport") || type.contains("football") || type.contains("match") { return .sport }
+        if type.contains("travel") || type.contains("voyage") || type.contains("trip") { return .travel }
+        return .defaultTheme
     }
 }
 
 // MARK: - Modern Home View
 
-/// Modern home view inspired by Apple Invites
-/// Features: Card-based event display, functional filters, clean typography
 struct ModernHomeView: View {
     let userId: String
     let repository: EventRepositoryInterface
@@ -27,111 +137,147 @@ struct ModernHomeView: View {
 
     @State private var events: [Event] = []
     @State private var isLoading = true
-    @State private var selectedFilter: ModernEventFilter = .upcoming
+    @State private var showFilterMenu = false
+    @State private var selectedFilter: HomeEventFilter = .upcoming
+    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         ZStack {
-            // System background adapts to light/dark mode
-            Color(.systemBackground)
-                .ignoresSafeArea()
+            backgroundView
 
             VStack(spacing: 0) {
-                // Filter Picker
-                VStack(spacing: 0) {
-                    EventFilterPicker(
-                        selectedFilter: $selectedFilter
-                    )
+                headerView
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .padding(.top, 8)
 
-                    Divider()
-                }
-                .background(Color(.systemBackground))
-
-                // Content
                 if isLoading {
                     LoadingEventsView()
                 } else if filteredEvents.isEmpty {
-                    AppleInvitesEmptyState(onCreateEvent: onCreateEvent)
+                    HomeEmptyStateView(
+                        onCreateEvent: onCreateEvent,
+                        colorScheme: colorScheme,
+                        title: emptyStateTitle,
+                        subtitle: emptyStateSubtitle
+                    )
                 } else {
-                    ScrollView {
-                        VStack(spacing: 16) {
-                            // Event Cards
-                            ForEach(filteredEvents, id: \.id) { event in
-                                ModernEventCard(
-                                    event: event,
-                                    onTap: { onEventSelected(event) }
-                                )
-                            }
-
-                            // Add Event Card
-                            AddEventCard(onTap: onCreateEvent)
-
-                            Spacer()
-                                .frame(height: 40)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                    }
+                    EventsCarouselView(
+                        events: filteredEvents,
+                        onEventSelected: onEventSelected,
+                        userId: userId
+                    )
                 }
             }
-        }
-        .onAppear {
-            loadEvents()
-        }
-    }
-
-    // MARK: - Computed Properties
-
-    /// Filter events based on selected filter and dates
-    private var filteredEvents: [Event] {
-        let now = Date()
-
-        return events.filter { event in
-            // Get relevant date for filtering
-            let eventDate = getEventDate(event)
-
-            // Apply filter
-            switch selectedFilter {
-            case .all:
-                return true
-            case .upcoming:
-                return eventDate > now
-            case .past:
-                return eventDate <= now
+            
+            if showFilterMenu {
+                FilterDropdownMenu(
+                    selectedFilter: $selectedFilter,
+                    isShowing: $showFilterMenu,
+                    colorScheme: colorScheme,
+                    draftCount: draftCount
+                )
+                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .topLeading)))
             }
         }
-        // Sort by date (most recent first)
-        .sorted { event1, event2 in
-            let date1 = getEventDate(event1)
-            let date2 = getEventDate(event2)
-            return date1 < date2
+        .onAppear { loadEvents() }
+    }
+    
+    private var filteredEvents: [Event] {
+        events.filter { event in
+            switch selectedFilter {
+            case .upcoming:
+                return event.status != .finalized && event.status != .draft
+            case .past:
+                return event.status == .finalized
+            case .drafts:
+                return event.status == .draft
+            case .organizedByMe:
+                return event.organizerId == userId
+            case .confirmed:
+                return event.status == .confirmed
+            }
+        }
+    }
+    
+    private var draftCount: Int { events.filter { $0.status == .draft }.count }
+    
+    private var emptyStateTitle: String {
+        switch selectedFilter {
+        case .upcoming: return "Aucun évènement à venir"
+        case .past: return "Aucun évènement passé"
+        case .drafts: return "Aucun brouillon"
+        case .organizedByMe: return "Aucun évènement organisé"
+        case .confirmed: return "Aucun évènement confirmé"
+        }
+    }
+    
+    private var emptyStateSubtitle: String {
+        switch selectedFilter {
+        case .upcoming: return "Les évènements à venir apparaîtront ici, que vous les organisiez ou non."
+        case .past: return "Les évènements passés apparaîtront ici."
+        case .drafts: return "Vos brouillons d'évènements apparaîtront ici."
+        case .organizedByMe: return "Les évènements que vous organisez apparaîtront ici."
+        case .confirmed: return "Les évènements confirmés apparaîtront ici."
         }
     }
 
-    /// Helper to get relevant date from an event for filtering
-    private func getEventDate(_ event: Event) -> Date {
-        let formatter = ISO8601DateFormatter()
-
-        // Prefer finalDate
-        if let finalDateStr = event.finalDate, let finalDate = formatter.date(from: finalDateStr) {
-            return finalDate
+    private var backgroundView: some View {
+        Group {
+            if colorScheme == .dark {
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color(hex: "0F172A"),
+                        Color(hex: "0F172A"),
+                        Color(hex: "0D7377").opacity(0.3),
+                        Color(hex: "14919B").opacity(0.4),
+                        Color(hex: "14B8A6").opacity(0.3),
+                        Color(hex: "F97316").opacity(0.2)
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea()
+            } else {
+                Color(hex: "F8FAFC").ignoresSafeArea()
+            }
         }
-
-        // Fall back to deadline
-        if let deadline = formatter.date(from: event.deadline) {
-            return deadline
-        }
-
-        // Final fallback to createdAt
-        if let createdAt = formatter.date(from: event.createdAt) {
-            return createdAt
-        }
-
-        return Date()
     }
 
-    // MARK: - Data Loading
+    private var headerView: some View {
+        HStack {
+            Button(action: { withAnimation(.spring(response: 0.3)) { showFilterMenu.toggle() } }) {
+                HStack(spacing: 4) {
+                    Text(selectedFilter.rawValue)
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+
+                    Image(systemName: showFilterMenu ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                }
+            }
+
+            Spacer()
+
+            Button(action: onCreateEvent) {
+                Image(systemName: "plus")
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                    .frame(width: 40, height: 40)
+                    .background(
+                        Circle()
+                            .fill(colorScheme == .dark ? Color(hex: "2A2A2A") : Color(hex: "E2E8F0"))
+                    )
+            }
+
+            Button(action: {}) {
+                Text("U")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 40, height: 40)
+                    .background(Circle().fill(Color(hex: "F97316")))
+            }
+        }
+    }
 
     private func loadEvents() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -141,330 +287,235 @@ struct ModernHomeView: View {
     }
 }
 
-// MARK: - Event Filter Picker
+// MARK: - Events Carousel View
 
-/// Segmented control for filtering events (All, Upcoming, Past)
-/// Matches Android's TabRow filtering behavior
-struct EventFilterPicker: View {
-    @Binding var selectedFilter: ModernEventFilter
-
+struct EventsCarouselView: View {
+    let events: [Event]
+    let onEventSelected: (Event) -> Void
+    let userId: String
+    @Environment(\.colorScheme) var colorScheme
+    
     var body: some View {
-        Picker("Filtre", selection: $selectedFilter) {
-            ForEach(ModernEventFilter.allCases, id: \.self) { filter in
-                Text(filter.title)
-                    .tag(filter)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 16) {
+                ForEach(events, id: \.id) { event in
+                    VisualEventCard(
+                        event: event,
+                        isOrganizer: event.organizerId == userId,
+                        onTap: { onEventSelected(event) }
+                    )
+                }
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
-        .pickerStyle(.segmented)
-        .accessibilityLabel("Filtre d'événements")
-        .accessibilityValue(selectedFilter.title)
     }
 }
 
-// MARK: - Apple Invites Empty State
+// MARK: - Visual Event Card
 
-/// Empty state when no events match the current filter
-struct AppleInvitesEmptyState: View {
+struct VisualEventCard: View {
+    let event: Event
+    let isOrganizer: Bool
+    let onTap: () -> Void
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var theme: EventTheme {
+        EventTheme.theme(for: event.eventType.name)
+    }
+    
+    var body: some View {
+        Button(action: onTap) {
+            ZStack {
+                // Background
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(theme.backgroundColor)
+                
+                // Emoji decorations
+                ForEach(0..<min(theme.emojis.count, theme.emojiPositions.count), id: \.self) { index in
+                    Text(theme.emojis[index])
+                        .font(.system(size: 60))
+                        .position(
+                            x: theme.emojiPositions[index].x * 280,
+                            y: theme.emojiPositions[index].y * 400
+                        )
+                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+                }
+                
+                VStack(spacing: 0) {
+                    HStack {
+                        // Badge "Organisé par moi"
+                        if isOrganizer {
+                            HStack(spacing: 6) {
+                                Image(systemName: "crown.fill")
+                                    .font(.system(size: 14))
+                                Text("Organisé par moi")
+                                    .font(.system(size: 14, weight: .medium))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(
+                                Capsule()
+                                    .fill(Color.black.opacity(0.3))
+                            )
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                    
+                    Spacer()
+                    
+                    // Event title
+                    Text(event.title)
+                        .font(.system(size: 42, weight: .bold))
+                        .foregroundColor(.white)
+                        .shadow(color: Color.black.opacity(0.3), radius: 4, x: 0, y: 2)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 24)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .frame(width: 280, height: 400)
+            .shadow(color: Color.black.opacity(0.15), radius: 12, x: 0, y: 8)
+        }
+        .buttonStyle(ScaleButtonStyle())
+    }
+}
+
+// MARK: - Filter Dropdown Menu
+
+struct FilterDropdownMenu: View {
+    @Binding var selectedFilter: HomeEventFilter
+    @Binding var isShowing: Bool
+    let colorScheme: ColorScheme
+    let draftCount: Int
+    
+    var body: some View {
+        VStack {
+            HStack {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(Array(HomeEventFilter.allCases.enumerated()), id: \.element.id) { index, filter in
+                        Button(action: {
+                            withAnimation(.spring(response: 0.3)) {
+                                selectedFilter = filter
+                                isShowing = false
+                            }
+                        }) {
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    if selectedFilter == filter {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                                    }
+                                }
+                                .frame(width: 24)
+                                
+                                Image(systemName: filter.icon)
+                                    .font(.system(size: 18))
+                                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                                    .frame(width: 24)
+                                
+                                HStack(spacing: 4) {
+                                    Text(filter.rawValue)
+                                        .font(.body.weight(.medium))
+                                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                                    
+                                    if filter.showBadge && draftCount > 0 {
+                                        Text("(\(draftCount))")
+                                            .font(.body.weight(.medium))
+                                            .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                                    }
+                                }
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                        }
+                        
+                        if index == 1 {
+                            Divider()
+                                .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
+                                .padding(.horizontal, 16)
+                        }
+                    }
+                }
+                .frame(width: 280)
+                .padding(.vertical, 8)
+                .background(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(colorScheme == .dark ? Color(hex: "1E293B").opacity(0.95) : Color.white.opacity(0.95))
+                        .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 10)
+                )
+                .padding(.top, 60)
+                .padding(.leading, 16)
+                
+                Spacer()
+            }
+            
+            Spacer()
+        }
+        .background(Color.black.opacity(0.001))
+        .onTapGesture {
+            withAnimation(.spring(response: 0.3)) {
+                isShowing = false
+            }
+        }
+    }
+}
+
+// MARK: - Empty State View
+
+struct HomeEmptyStateView: View {
     let onCreateEvent: () -> Void
-
-    @State private var isAnimating = false
+    let colorScheme: ColorScheme
+    let title: String
+    let subtitle: String
 
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
 
             VStack(spacing: 24) {
-                // Calendar icon with animation
-                ZStack {
-                    Circle()
-                        .fill(Color.wakevePrimary.opacity(0.15))
-                        .frame(width: 80, height: 80)
+                Image(systemName: "calendar")
+                    .font(.system(size: 80, weight: .light))
+                    .foregroundColor(colorScheme == .dark ? Color(hex: "64748B") : Color(hex: "94A3B8"))
 
-                    Image(systemName: "calendar")
-                        .font(.system(size: 40, weight: .light))
-                        .foregroundColor(.wakevePrimary)
-                        .scaleEffect(isAnimating ? 1.05 : 1.0)
-                        .animation(
-                            Animation.spring(response: 1.5, dampingFraction: 0.6)
-                                .repeatForever(autoreverses: true),
-                            value: isAnimating
-                        )
-                }
-                .onAppear { isAnimating = true }
+                Text(title)
+                    .font(.title2.weight(.semibold))
+                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                    .multilineTextAlignment(.center)
 
-                // Text content
-                VStack(spacing: 12) {
-                    Text("Aucun événement")
-                        .font(.title2.weight(.bold))
-                        .foregroundColor(.primary)
-
-                    Text("Créez votre premier événement\npour commencer")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(2)
-                }
-
-                // Create Event button
-                Button(action: onCreateEvent) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus.circle.fill")
-                        Text("Créer un événement")
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .background(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.wakevePrimary,
-                                Color.wakeveAccent
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .continuousCornerRadius(12)
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
+                Text(subtitle)
+                    .font(.body)
+                    .foregroundColor(colorScheme == .dark ? Color(hex: "94A3B8") : Color(hex: "64748B"))
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+                    .padding(.horizontal, 32)
             }
-            .padding(.horizontal, 24)
 
             Spacer()
-        }
-    }
-}
 
-// MARK: - Modern Event Card
-
-/// Card displaying event information with gradient background
-struct ModernEventCard: View {
-    let event: Event
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            LiquidGlassCard(cornerRadius: 20, padding: 0) {
-                ZStack {
-                    // Background Gradient
-                    RoundedRectangle(cornerRadius: 20)
-                        .fill(
-                            LinearGradient(
-                                colors: gradientColors,
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .overlay(
-                            // Pattern overlay
-                            GeometryReader { geometry in
-                                Image(systemName: "calendar")
-                                    .font(.system(size: 200))
-                                    .foregroundColor(.white.opacity(0.05))
-                                    .shadow(color: .black.opacity(0.3), radius: 2, x: 0, y: 1)  // WCAG 1.4.3 (Contrast)
-                                    .offset(x: geometry.size.width * 0.6, y: -50)
-                            }
-                        )
-
-                    // Content Overlay
-                    VStack {
-                        // Top Bar with status badge
-                        HStack {
-                            LiquidGlassBadge(
-                                text: eventStatusText(for: event.status),
-                                style: eventStatusStyle(for: event.status)
-                            )
-                            Spacer()
-                        }
-                        .padding(20)
-
-                        Spacer()
-
-                        // Bottom Content
-                        VStack(alignment: .leading, spacing: 12) {
-                            // Participant Avatars
-                            if !event.participants.isEmpty {
-                                HStack(spacing: -8) {
-                                    ForEach(event.participants.prefix(5), id: \.self) { participant in
-                                        ParticipantAvatar(participantId: participant)
-                                    }
-
-                                    if event.participants.count > 5 {
-                                        AdditionalParticipantsCount(count: event.participants.count - 5)
-                                    }
-                                }
-                                .padding(.bottom, 4)
-                            }
-
-                            // Event Info
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(event.title)
-                                    .font(.title.weight(.bold))
-                                    .foregroundColor(.white)
-                                    .lineLimit(2)
-
-                                if let finalDate = event.finalDate {
-                                    Text(formatEventDate(finalDate))
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundColor(.white.opacity(0.9))
-                                } else {
-                                    Text(formatDeadline(event.deadline))
-                                        .font(.subheadline.weight(.medium))
-                                        .foregroundColor(.white.opacity(0.9))
-                                }
-
-                                if !event.description.isEmpty {
-                                    Text(event.description)
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.8))
-                                        .lineLimit(2)
-                                        .padding(.top, 2)
-                                }
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(20)
-                        .background(
-                            LinearGradient(
-                                colors: [Color.black.opacity(0), Color.black.opacity(0.7)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                    }
-                }
-                .frame(height: 380)
+            Button(action: onCreateEvent) {
+                Text("Créer un évènement")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.black)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(RoundedRectangle(cornerRadius: 28).fill(Color.white))
             }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 32)
         }
-        .buttonStyle(ScaleButtonStyle())
-    }
-
-    private var gradientColors: [Color] {
-        switch event.status {
-        case .draft:
-            return [Color.orange, Color.red]
-        case .polling:
-            return [Color.blue, Color.purple]
-        case .confirmed:
-            return [Color.green, Color.teal]
-        default:
-            return [Color.gray, Color.gray.opacity(0.7)]
-        }
-    }
-
-    private func formatEventDate(_ dateString: String) -> String {
-        if let date = ISO8601DateFormatter().date(from: dateString) {
-            let formatter = DateFormatter()
-            formatter.dateFormat = "EEEE, MMM d, h:mm a"
-            return formatter.string(from: date)
-        }
-        return dateString
-    }
-
-    private func formatDeadline(_ deadlineString: String?) -> String {
-        guard let deadlineString = deadlineString,
-              let date = ISO8601DateFormatter().date(from: deadlineString) else {
-            return "No deadline set"
-        }
-        let formatter = DateFormatter()
-        formatter.dateFormat = "Deadline: MMM d"
-        return formatter.string(from: date)
-    }
-}
-
-// MARK: - Add Event Card
-
-/// Card button to create a new event
-struct AddEventCard: View {
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            LiquidGlassCard(cornerRadius: 20, padding: 0) {
-                VStack(spacing: 12) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 44, weight: .light))
-                        .foregroundColor(.wakevePrimary)
-
-                    Text("Créer un événement")
-                        .font(.headline.weight(.semibold))
-                        .foregroundColor(.primary)
-                }
-                .frame(maxWidth: .infinity)
-                .frame(height: 160)
-            }
-        }
-        .buttonStyle(ScaleButtonStyle())
-        .accessibilityLabel("Créer un nouvel événement")
-    }
-}
-
-// MARK: - Participant Avatar
-
-/// Avatar showing participant initial
-struct ParticipantAvatar: View {
-    let participantId: String
-
-    private var initials: String {
-        String(participantId.prefix(1).uppercased())
-    }
-
-    private var avatarColor: Color {
-        let colors: [Color] = [
-            .wakeveError,
-            .wakeveWarning,
-            .wakeveSuccess,
-            .wakevePrimary,
-            .wakeveAccent,
-            .wakeveSuccessDark
-        ]
-        let hash = abs(participantId.hashValue)
-        return colors[hash % colors.count]
-    }
-
-    var body: some View {
-        Circle()
-            .fill(avatarColor)
-            .frame(width: 44, height: 44)
-            .overlay(
-                Text(initials)
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-            )
-            .overlay(
-                Circle()
-                    .stroke(Color.white, lineWidth: 2)
-            )
-    }
-}
-
-/// Badge showing additional participants count
-struct AdditionalParticipantsCount: View {
-    let count: Int
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(.ultraThinMaterial)
-
-            Text("+\(count)")
-                .font(.caption.weight(.semibold))
-                .foregroundColor(.white)
-        }
-        .frame(width: 44, height: 44)
-        .overlay(
-            Circle()
-                .stroke(Color.white, lineWidth: 2)
-        )
-        .accessibilityLabel(String.localizedStringWithFormat(NSLocalizedString("%d_more_participants", comment: ""), count))  // WCAG 1.1.1 (Non-text Content)
     }
 }
 
 // MARK: - Loading View
 
-/// View shown while loading events
 struct LoadingEventsView: View {
     var body: some View {
         VStack(spacing: 20) {
@@ -480,29 +531,8 @@ struct LoadingEventsView: View {
     }
 }
 
-// MARK: - Event Status Helpers
-
-private func eventStatusText(for status: EventStatus) -> String {
-    switch status {
-    case .draft: return "Brouillon"
-    case .polling: return "Sondage"
-    case .confirmed: return "Confirmé"
-    default: return "Inconnu"
-    }
-}
-
-private func eventStatusStyle(for status: EventStatus) -> LiquidGlassBadgeStyle {
-    switch status {
-    case .draft: return .warning
-    case .polling: return .info
-    case .confirmed: return .success
-    default: return .default
-    }
-}
-
 // MARK: - Button Styles
 
-/// Button style with scale animation on press
 struct ScaleButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -513,4 +543,3 @@ struct ScaleButtonStyle: ButtonStyle {
 
 // MARK: - Preview
 // Preview commented out due to API changes in shared module
-// TODO: Update preview when Event model is stabilized
