@@ -389,25 +389,20 @@ struct ScenarioListView: View {
     // MARK: - Vote Button
     
     private func voteButton(type: ScenarioVoteType, isSelected: Bool, onTap: @escaping () -> Void) -> some View {
-        let color: Color
         let icon: String
         let label: String
         
         switch type {
         case .prefer:
-            color = .wakevSuccess
             icon = "hand.thumbsup.fill"
             label = NSLocalizedString("prefer_label", comment: "Prefer label")
         case .neutral:
-            color = .wakevWarning
             icon = "minus.circle.fill"
             label = NSLocalizedString("neutral_label", comment: "Neutral label")
         case .against:
-            color = .wakevError
             icon = "hand.thumbsdown.fill"
             label = NSLocalizedString("against_label", comment: "Against label")
         default:
-            color = .secondary
             icon = "questionmark.circle.fill"
             label = NSLocalizedString("unknown_label", comment: "Unknown label")
         }

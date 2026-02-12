@@ -159,7 +159,7 @@ struct BudgetDetailView: View {
                     style: .primary
                 ) {
                     if let item = itemToDelete {
-                        Task { await deleteItem(item) }
+                        Task { deleteItem(item) }
                     }
                 }
             } message: {
@@ -316,7 +316,7 @@ struct BudgetDetailView: View {
                                 showDeleteConfirmation = true
                             },
                             onMarkPaid: {
-                                Task { await markItemAsPaid(item) }
+                                Task { markItemAsPaid(item) }
                             }
                         )
                     }
@@ -408,7 +408,7 @@ struct BudgetDetailView: View {
                         style: .primary
                     ) {
                         Task {
-                            await addItem()
+                            addItem()
                             showAddDialog = false
                         }
                     }
@@ -458,7 +458,7 @@ struct BudgetDetailView: View {
                         style: .primary
                     ) {
                         Task {
-                            await updateItem()
+                            updateItem()
                             showEditDialog = false
                         }
                     }
@@ -529,15 +529,9 @@ struct BudgetDetailView: View {
     private func loadItems() {
         Task {
             isLoading = true
-            do {
-                items = try await repository.getBudgetItems(budgetId: budget.id)
-                applyFilters()
-                isLoading = false
-            } catch {
-                errorMessage = error.localizedDescription
-                showError = true
-                isLoading = false
-            }
+            items = repository.getBudgetItems(budgetId: budget.id)
+            applyFilters()
+            isLoading = false
         }
     }
     
@@ -559,91 +553,71 @@ struct BudgetDetailView: View {
         filteredItems = filtered
     }
     
-    private func addItem() async {
+    private func addItem() {
         guard let estimatedCost = Double(itemEstimatedCost) else { return }
         
-        do {
-            try await repository.createBudgetItem(
-                budgetId: budget.id,
-                category: itemCategory,
-                name: itemName,
-                description: itemDescription,
-                estimatedCost: estimatedCost,
-                sharedBy: ["user-1"],
-                notes: ""
-            )
-            resetForm()
-            loadItems()
-        } catch {
-            errorMessage = "Failed to add item: \(error.localizedDescription)"
-            showError = true
-        }
+        repository.createBudgetItem(
+            budgetId: budget.id,
+            category: itemCategory,
+            name: itemName,
+            description: itemDescription,
+            estimatedCost: estimatedCost,
+            sharedBy: ["user-1"],
+            notes: ""
+        )
+        resetForm()
+        loadItems()
     }
     
-    private func updateItem() async {
+    private func updateItem() {
         guard let item = itemToEdit,
               let estimatedCost = Double(itemEstimatedCost) else { return }
         
-        do {
-            let updatedItem = BudgetItem_(
-                id: item.id,
-                budgetId: item.budgetId,
-                category: itemCategory,
-                name: itemName,
-                description: itemDescription,
-                estimatedCost: estimatedCost,
-                actualCost: item.actualCost,
-                isPaid: item.isPaid,
-                paidBy: item.paidBy,
-                sharedBy: item.sharedBy,
-                notes: item.notes,
-                createdAt: item.createdAt,
-                updatedAt: getCurrentIsoTimestamp()
-            )
-            
-            try await repository.updateBudgetItem(item: updatedItem)
-            resetForm()
-            loadItems()
-        } catch {
-            errorMessage = "Failed to update item: \(error.localizedDescription)"
-            showError = true
-        }
+        let updatedItem = BudgetItem_(
+            id: item.id,
+            budgetId: item.budgetId,
+            category: itemCategory,
+            name: itemName,
+            description: itemDescription,
+            estimatedCost: estimatedCost,
+            actualCost: item.actualCost,
+            isPaid: item.isPaid,
+            paidBy: item.paidBy,
+            sharedBy: item.sharedBy,
+            notes: item.notes,
+            createdAt: item.createdAt,
+            updatedAt: getCurrentIsoTimestamp()
+        )
+        
+        repository.updateBudgetItem(item: updatedItem)
+        resetForm()
+        loadItems()
     }
     
-    private func deleteItem(_ item: BudgetItem_) async {
-        do {
-            try await repository.deleteBudgetItem(itemId: item.id)
-            loadItems()
-        } catch {
-            errorMessage = "Failed to delete item: \(error.localizedDescription)"
-            showError = true
-        }
+    private func deleteItem(_ item: BudgetItem_) {
+        repository.deleteBudgetItem(itemId: item.id)
+        loadItems()
     }
     
-    private func markItemAsPaid(_ item: BudgetItem_) async {
-        do {
-            let updatedItem = BudgetItem_(
-                id: item.id,
-                budgetId: item.budgetId,
-                category: item.category,
-                name: item.name,
-                description: item.description,
-                estimatedCost: item.estimatedCost,
-                actualCost: item.estimatedCost, // Use estimated as actual
-                isPaid: true,
-                paidBy: "user-1", // TODO: Get current user
-                sharedBy: item.sharedBy,
-                notes: item.notes,
-                createdAt: item.createdAt,
-                updatedAt: getCurrentIsoTimestamp()
-            )
-            
-            try await repository.updateBudgetItem(item: updatedItem)
-            loadItems()
-        } catch {
-            errorMessage = "Failed to mark as paid: \(error.localizedDescription)"
-            showError = true
-        }
+    private func markItemAsPaid(_ item: BudgetItem_) {
+        let updatedItem = BudgetItem_(
+            id: item.id,
+            budgetId: item.budgetId,
+            category: item.category,
+            name: item.name,
+            description: item.description,
+            estimatedCost: item.estimatedCost,
+            actualCost: item.estimatedCost, // Use estimated as actual
+            isPaid: true,
+            paidBy: "user-1", // TODO: Get current user
+            sharedBy: item.sharedBy,
+            notes: item.notes,
+            createdAt: item.createdAt,
+            updatedAt: getCurrentIsoTimestamp()
+        )
+        
+        repository.updateBudgetItem(item: updatedItem)
+        loadItems()
     }
     
     private func resetForm() {

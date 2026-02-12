@@ -430,26 +430,18 @@ struct ScenarioComparisonView: View {
 
     private func loadScenarios() {
         Task {
-            do {
-                let scenariosWithVotes = try await repository.getScenariosWithVotes(eventId: event.id)
+            let scenariosWithVotes = repository.getScenariosWithVotes(eventId: event.id)
 
-                // Rank scenarios by score
-                let ranked = ScenarioLogic.shared.rankScenariosByScore(
-                    scenarios: scenariosWithVotes.map { $0.scenario },
-                    votes: scenariosWithVotes.flatMap { $0.votes }
-                )
+            // Rank scenarios by score
+            let ranked = ScenarioLogic.shared.rankScenariosByScore(
+                scenarios: scenariosWithVotes.map { $0.scenario },
+                votes: scenariosWithVotes.flatMap { $0.votes }
+            )
 
-                await MainActor.run {
-                    self.scenarios = scenariosWithVotes
-                    self.bestScenarioId = ranked.first?.scenario.id
-                    self.isLoading = false
-                }
-            } catch {
-                await MainActor.run {
-                    self.errorMessage = error.localizedDescription
-                    self.showError = true
-                    self.isLoading = false
-                }
+            await MainActor.run {
+                self.scenarios = scenariosWithVotes
+                self.bestScenarioId = ranked.first?.scenario.id
+                self.isLoading = false
             }
         }
     }

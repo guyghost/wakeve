@@ -1,5 +1,7 @@
 package com.guyghost.wakeve.analytics
 
+import kotlin.reflect.KClass
+
 /**
  * Mock implementation of AnalyticsProvider for testing.
  */
@@ -65,7 +67,7 @@ class MockAnalyticsProvider : AnalyticsProvider {
      * Check if an event of the given type was tracked.
      * Uses reflection to avoid inline/reified type issues.
      */
-    fun hasEvent(eventClass: Class<out AnalyticsEvent>): Boolean {
+    fun hasEvent(eventClass: KClass<out AnalyticsEvent>): Boolean {
         return trackedEvents.any { eventClass.isInstance(it.event) }
     }
 
@@ -74,7 +76,7 @@ class MockAnalyticsProvider : AnalyticsProvider {
      * Uses reflection to avoid inline/reified type issues.
      */
     @Suppress("UNCHECKED_CAST")
-    fun <T : AnalyticsEvent> findEvents(eventClass: Class<T>): List<T> {
+    fun <T : AnalyticsEvent> findEvents(eventClass: KClass<T>): List<T> {
         return trackedEvents
             .mapNotNull { it.event as? T }
             .filter { eventClass.isInstance(it) }

@@ -329,7 +329,7 @@ struct ParticipantsEstimationCard: View {
                 TextField(placeholder, text: text)
                     .font(.body)
                     .disabled(!enabled)
-                    .onChange(of: text.wrappedValue) { newValue in
+                    .onChange(of: text.wrappedValue) { _, newValue in
                         onCommit(newValue)
                     }
                     .accessibilityLabel(accessibilityLabel)

@@ -487,7 +487,7 @@ struct BudgetOverviewView: View {
                 title: "Create Budget",
                 style: .primary
             ) {
-                Task { await createBudget() }
+                Task { createBudget() }
             }
             .padding(.horizontal, 40)
             .accessibilityLabel("Create a new budget")
@@ -521,45 +521,34 @@ struct BudgetOverviewView: View {
     private func loadBudget() {
         Task {
             isLoading = true
-            do {
-                // Get budget for event
-                budget = try await repository.getBudgetByEventId(eventId: event.id)
+            // Get budget for event
+            budget = repository.getBudgetByEventId(eventId: event.id)
+            
+            if let budget = budget {
+                // Get all items
+                items = repository.getBudgetItems(budgetId: budget.id)
                 
-                if let budget = budget {
-                    // Get all items
-                    items = try await repository.getBudgetItems(budgetId: budget.id)
+                // Calculate category breakdown
+                for category in allCategories {
+                    let categoryItems = items.filter { $0.category == category }
+                    let estimated = categoryItems.reduce(0.0) { $0 + $1.estimatedCost }
+                    let actual = categoryItems.reduce(0.0) { $0 + $1.actualCost }
                     
-                    // Calculate category breakdown
-                    for category in allCategories {
-                        let categoryItems = items.filter { $0.category == category }
-                        let estimated = categoryItems.reduce(0.0) { $0 + $1.estimatedCost }
-                        let actual = categoryItems.reduce(0.0) { $0 + $1.actualCost }
-                        
-                        categoryBreakdown[category] = BudgetCategoryDetails(
-                            category: category,
-                            estimatedCost: estimated,
-                            actualCost: actual
-                        )
-                    }
+                    categoryBreakdown[category] = BudgetCategoryDetails(
+                        category: category,
+                        estimatedCost: estimated,
+                        actualCost: actual
+                    )
                 }
-                
-                isLoading = false
-            } catch {
-                errorMessage = error.localizedDescription
-                showError = true
-                isLoading = false
             }
+            
+            isLoading = false
         }
     }
     
-    private func createBudget() async {
-        do {
-            try await repository.createBudget(eventId: event.id)
-            loadBudget()
-        } catch {
-            errorMessage = "Failed to create budget: \(error.localizedDescription)"
-            showError = true
-        }
+    private func createBudget() {
+        repository.createBudget(eventId: event.id)
+        loadBudget()
     }
     
     private func getCurrentIsoTimestamp() -> String {

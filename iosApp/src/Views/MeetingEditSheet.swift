@@ -37,7 +37,7 @@ struct MeetingEditSheet: View {
 
         // Initialize state from meeting data
         self._title = State(initialValue: meeting.title)
-        self._description = State(initialValue: meeting.description ?? "")
+        self._description = State(initialValue: meeting.description)
         // Convert Kotlinx_datetimeInstant to Date using static method
         let instant = meeting.scheduledFor
         let epochSeconds = instant.epochSeconds

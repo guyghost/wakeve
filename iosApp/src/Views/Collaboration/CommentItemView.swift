@@ -1,10 +1,11 @@
 import SwiftUI
+import Shared
 
 /// Comment Item View for Wakeve
 ///
 /// Liquid Glass design card with comment content, mentions, and actions.
 struct CommentItemView: View {
-    let comment: Comment
+    let comment: Comment_
     let isPinned: Bool
     let currentUserId: String
     let isOrganizer: Bool
@@ -19,9 +20,7 @@ struct CommentItemView: View {
     @State private var showMenu: Bool = false
 
     var body: some View {
-        GlassCard(
-            isPinned: isPinned
-        ) {
+        GlassCard(isPinned: isPinned) {
             VStack(alignment: .leading, spacing: 8) {
                 // Header: Avatar + Name + Actions
                 HStack(alignment: .center) {
@@ -64,36 +63,28 @@ struct CommentItemView: View {
                     // More options menu
                     if comment.canEdit(currentUserId) || comment.canDelete(currentUserId, isOrganizer) {
                         Menu {
-                            Button {
+                            Button(action: { onReply(comment.id, comment.authorName) }) {
                                 Label("Reply", systemImage: "arrow.uturn.backward")
-                            } action: {
-                                onReply(comment.id, comment.authorName)
                             }
 
                             if comment.canEdit(currentUserId) {
-                                Button {
+                                Button(action: { onEdit(comment.id, comment.content) }) {
                                     Label("Edit", systemImage: "pencil")
-                                } action: {
-                                    onEdit(comment.id, comment.content)
                                 }
                             }
 
                             if comment.canPin(currentUserId, isOrganizer) {
-                                Button {
+                                Button(action: { onPin(comment.id, !comment.isPinned) }) {
                                     Label(comment.isPinned ? "Unpin" : "Pin", systemImage: "pin")
-                                } action: {
-                                    onPin(comment.id, !comment.isPinned)
                                 }
                             }
 
                             Divider()
 
                             if comment.canDelete(currentUserId, isOrganizer) {
-                                Button(role: .destructive) {
+                                Button(role: .destructive, action: { onDelete(comment.id) }) {
                                     Label(comment.authorId == currentUserId ? "Delete" : "Remove",
                                           systemImage: "trash")
-                                } action: {
-                                    onDelete(comment.id)
                                 }
                             }
                         } label: {
@@ -128,7 +119,7 @@ struct CommentItemView: View {
 /// Glass card with optional pinned styling
 struct GlassCard<Content: View>: View {
     let isPinned: Bool
-    let content: Content
+    @ViewBuilder let content: Content
 
     var body: some View {
         content
@@ -179,24 +170,13 @@ struct AttributedComment: View {
 
     private var attributedContent: some View {
         if mentions.isEmpty {
-            Text(content)
+            return Text(content)
                 .font(.body)
                 .foregroundColor(WakeveColors.onSurface)
         } else {
-            // Simple version - split and highlight mentions
-            var text = content
-            for mention in mentions {
-                let mentionText = "@\(mention)"
-                if let range = text.range(of: mentionText) {
-                    let before = String(text.prefix(upTo: range.lowerBound))
-                    let after = String(text.suffix(from: range.upperBound))
-                    text = before // Simplified for brevity
-
-                    // In production, use AttributedString with custom attributes
-                }
-            }
-
-            Text(text)
+            // Simple version - just show content
+            // In production, use AttributedString with custom attributes
+            return Text(content)
                 .font(.body)
                 .foregroundColor(WakeveColors.onSurface)
         }
@@ -214,8 +194,6 @@ func getInitials(_ name: String) -> String {
 
 /// Format timestamp to relative time
 func formatTimestamp(_ timestamp: String) -> String {
-    // Parse ISO 8601 timestamp and calculate relative time
-    // Simplified for brevity
     let formatter = ISO8601DateFormatter()
     if let date = formatter.date(from: timestamp) {
         let now = Date()
@@ -244,4 +222,42 @@ private func ISO8601DateFormatter() -> DateFormatter {
     formatter.timeZone = TimeZone(secondsFromGMT: 0)
     formatter.locale = Locale(identifier: "en_US_POSIX")
     return formatter
+}
+
+// MARK: - Comment_ Extensions
+
+extension Comment_ {
+    // Properties are already in camelCase in the generated Swift header
+    var isPinned: Bool { false } // TODO: Add pinned support to database schema
+    
+    var isDeleted: Bool { content == "[Deleted]" || content == "[deleted]" }
+    
+    var mentions: [String] {
+        // Extract @mentions from content
+        let pattern = "@\\w+"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return [] }
+        let matches = regex.matches(in: content, options: [], range: NSRange(location: 0, length: content.utf16.count))
+        return matches.compactMap { match in
+            guard let range = Range(match.range, in: content) else { return nil }
+            return String(content[range]).replacingOccurrences(of: "@", with: "")
+        }
+    }
+    
+    func canEdit(_ currentUserId: String) -> Bool {
+        return authorId == currentUserId && !isDeleted
+    }
+    
+    func canDelete(_ currentUserId: String, _ isOrganizer: Bool) -> Bool {
+        return authorId == currentUserId || isOrganizer
+    }
+    
+    func canPin(_ currentUserId: String, _ isOrganizer: Bool) -> Bool {
+        return isOrganizer
+    }
+}
+
+// MARK: - CommentThread Extensions
+
+extension CommentThread {
+    var hasMoreReplies: Bool { comment.replyCount > Int32(replies.count) }
 }

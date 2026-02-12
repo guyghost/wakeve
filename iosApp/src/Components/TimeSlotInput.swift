@@ -225,7 +225,7 @@ struct TimeSlotInput: View {
                                 .padding(.leading, 8)
                                 .background(Color(.systemBackground).opacity(0.5))
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .onChange(of: startDate) { _ in
+                                .onChange(of: startDate) { _, _ in
                                     updateTimeSlot()
                                 }
                                 .transition(.opacity.combined(with: .move(edge: .top)))
@@ -289,7 +289,7 @@ struct TimeSlotInput: View {
                                 .padding(.leading, 8)
                                 .background(Color(.systemBackground).opacity(0.5))
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
-                                .onChange(of: endDate) { _ in
+                                .onChange(of: endDate) { _, _ in
                                     updateTimeSlot()
                                 }
                                 .transition(.opacity.combined(with: .move(edge: .top)))

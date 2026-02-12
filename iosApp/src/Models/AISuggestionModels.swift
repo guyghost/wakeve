@@ -21,7 +21,7 @@ struct AIBadge: Identifiable, Codable, Hashable {
     
     /// Computed SwiftUI Color from hex string
     var color: Color {
-        Color(hex: colorHex) ?? .primary
+        Color(hex: colorHex)
     }
     
     /// Default badges for common AI scenarios
