@@ -20,7 +20,7 @@ import com.guyghost.wakeve.auth.AuthState
 import com.guyghost.wakeve.auth.AuthStateManager
 import com.guyghost.wakeve.auth.BrowserOAuthHelper
 import com.guyghost.wakeve.auth.JvmAuthenticationService
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.OAuthProvider
@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
  * Event repository that uses database persistence and sync capabilities
  */
 class SyncedEventRepository(
-    private val database: WakevDb,
+    private val database: WakeveDb,
     private val syncManager: SyncManager
 ) : EventRepositoryInterface {
     private val eventRepository = DatabaseEventRepository(database, syncManager)

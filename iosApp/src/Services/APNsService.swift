@@ -9,7 +9,6 @@
 import Foundation
 import UserNotifications
 import UIKit
-import shared
 
 /**
  * Service for managing Apple Push Notifications.

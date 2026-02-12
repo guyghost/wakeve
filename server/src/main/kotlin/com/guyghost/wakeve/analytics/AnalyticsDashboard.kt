@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.analytics
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
@@ -12,7 +12,7 @@ import kotlinx.datetime.toLocalDateTime
  *
  * Provides metrics for MAU, DAU, retention, and event creation funnels.
  */
-class AnalyticsDashboard(private val database: WakevDb) {
+class AnalyticsDashboard(private val database: WakeveDb) {
 
     data class Metrics(
         val mau: Int,

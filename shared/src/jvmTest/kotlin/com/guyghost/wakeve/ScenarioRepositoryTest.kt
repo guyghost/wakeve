@@ -1,6 +1,6 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Scenario
@@ -17,11 +17,11 @@ import kotlin.test.assertTrue
 
 class ScenarioRepositoryTest {
 
-    private lateinit var db: WakevDb
+    private lateinit var db: WakeveDb
     private lateinit var repository: ScenarioRepository
     private lateinit var eventRepository: DatabaseEventRepository
 
-    private fun createTestDatabase(): WakevDb {
+    private fun createTestDatabase(): WakeveDb {
         return DatabaseProvider.getDatabase(TestDatabaseFactory())
     }
 

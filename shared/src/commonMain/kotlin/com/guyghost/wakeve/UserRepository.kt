@@ -1,7 +1,7 @@
 package com.guyghost.wakeve
 
 import com.guyghost.wakeve.auth.UserRole
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.NotificationPreferences
 import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.SyncMetadata
@@ -12,7 +12,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-class UserRepository(private val db: WakevDb) {
+class UserRepository(private val db: WakeveDb) {
 
     private val userQueries = db.userQueries
 

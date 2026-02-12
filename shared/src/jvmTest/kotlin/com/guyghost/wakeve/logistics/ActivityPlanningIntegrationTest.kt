@@ -4,7 +4,7 @@ import com.guyghost.wakeve.DatabaseEventRepository
 import com.guyghost.wakeve.DatabaseProvider
 import com.guyghost.wakeve.TestDatabaseFactory
 import com.guyghost.wakeve.comment.CommentRepository
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.CommentRequest
 import com.guyghost.wakeve.models.CommentSection
 import com.guyghost.wakeve.models.Event
@@ -29,7 +29,7 @@ import kotlin.test.assertTrue
  */
 class ActivityPlanningIntegrationTest {
     
-    private lateinit var db: WakevDb
+    private lateinit var db: WakeveDb
     private lateinit var commentRepository: CommentRepository
     private lateinit var eventRepository: DatabaseEventRepository
     
@@ -42,7 +42,7 @@ class ActivityPlanningIntegrationTest {
     private val participant4Id = "user-4"
     private val participant4Name = "Diana"
     
-    private fun createTestDatabase(): WakevDb {
+    private fun createTestDatabase(): WakeveDb {
         return DatabaseProvider.getDatabase(TestDatabaseFactory())
     }
     

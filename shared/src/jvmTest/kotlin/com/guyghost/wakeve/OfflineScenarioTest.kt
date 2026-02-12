@@ -1,6 +1,6 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.TimeSlot
@@ -24,7 +24,7 @@ import kotlin.test.assertTrue
  */
 class OfflineScenarioTest {
 
-    private lateinit var db: WakevDb
+    private lateinit var db: WakeveDb
     private lateinit var repository: DatabaseEventRepository
 
     @BeforeTest

@@ -1,5 +1,7 @@
 import SwiftUI
+#if canImport(LiquidGlass)
 import LiquidGlass
+#endif
 
 /// Comment List View for Wakeve
 ///
@@ -68,7 +70,7 @@ struct CommentListView: View {
                             }
                         }
                     )
-                    .background(WakevColors.surface)
+                    .background(WakeveColors.surface)
                 }
 
                 // Mention Autocomplete Overlay
@@ -99,37 +101,37 @@ struct CommentListView: View {
             Text(getSectionTitle(section))
                 .font(.title3)
                 .fontWeight(.bold)
-                .foregroundColor(WakevColors.onSurface)
+                .foregroundColor(WakeveColors.onSurface)
 
             Spacer()
 
             // Filter/Sort options (optional)
             Button(action: {}) {
                 Image(systemName: "line.3.horizontal.decrease.circle")
-                    .foregroundColor(WakevColors.primary)
+                    .foregroundColor(WakeveColors.primary)
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(WakevColors.background)
+        .background(WakeveColors.background)
     }
 
     private var emptyCommentsSection: some View {
         VStack(spacing: 16) {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 60))
-                .foregroundColor(WakevColors.onSurfaceVariant)
+                .foregroundColor(WakeveColors.onSurfaceVariant)
 
             Text("No comments yet")
                 .font(.title2)
-                .foregroundColor(WakevColors.onSurfaceVariant)
+                .foregroundColor(WakeveColors.onSurfaceVariant)
 
             Text("Be the first to share your thoughts!")
                 .font(.body)
-                .foregroundColor(WakevColors.onSurfaceVariant)
+                .foregroundColor(WakeveColors.onSurfaceVariant)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(WakevColors.background)
+        .background(WakeveColors.background)
     }
 
     private func insertMention(_ username: String) {
@@ -206,7 +208,7 @@ struct CommentThreadView: View {
                 Button(action: {}) {
                     Text("Load more replies (\(thread.comment.replyCount))")
                         .font(.body)
-                        .foregroundColor(WakevColors.primary)
+                        .foregroundColor(WakeveColors.primary)
                 }
                 .padding(.leading, 56)
                 .padding(.top, 4)

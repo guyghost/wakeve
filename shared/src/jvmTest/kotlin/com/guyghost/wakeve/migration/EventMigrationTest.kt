@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.migration
 
 import com.guyghost.wakeve.createFreshTestDatabase
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import kotlinx.coroutines.runBlocking
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -24,7 +24,7 @@ import kotlin.test.assertNull
  */
 class EventMigrationTest {
 
-    private lateinit var db: WakevDb
+    private lateinit var db: WakeveDb
 
     @BeforeTest
     fun setup() {

@@ -31,7 +31,7 @@ kotlin {
                 // Kotlinx
                 implementation(libs.kotlinx.coroutines)
                 implementation(libs.kotlinx.datetime)
-                // kotlinx-serialization-json is added by the plugin
+                implementation(libs.kotlinx.serialization.json)
                 
                 // SQLDelight
                 implementation(libs.sqldelight.runtime)
@@ -150,7 +150,7 @@ dependencies {
 
 sqldelight {
     databases {
-        create("WakevDb") {
+        create("WakeveDb") {
             packageName.set("com.guyghost.wakeve.database")
             schemaOutputDirectory.set(file("src/commonMain/sqldelight"))
         }

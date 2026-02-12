@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.meeting
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.MeetingPlatform
 import kotlinx.datetime.Instant
 import kotlinx.serialization.builtins.ListSerializer
@@ -11,7 +11,7 @@ import kotlin.time.Duration
 /**
  * Repository pour la persistance des réunions
  */
-class MeetingRepository(private val database: WakevDb) {
+class MeetingRepository(private val database: WakeveDb) {
     
     private val meetingQueries = database.meetingQueries
     

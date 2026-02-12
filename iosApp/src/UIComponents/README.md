@@ -211,7 +211,7 @@ The components use the following design system colors:
 iosApp/
 └── iosApp/
     ├── Theme/
-    │   ├── WakevColors.swift        # Color definitions
+    │   ├── WakeveColors.swift        # Color definitions
     │   └── LiquidGlassModifier.swift # Base liquid glass modifier
     └── UIComponents/
         ├── LiquidGlassCard.swift    # Card component

@@ -2,7 +2,7 @@ package com.guyghost.wakeve
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -21,7 +21,7 @@ import kotlin.test.assertTrue
 
 class AuthFlowIntegrationTest {
 
-    private lateinit var database: WakevDb
+    private lateinit var database: WakeveDb
     private lateinit var sessionRepository: SessionRepository
     private val jwtSecret = System.getenv("JWT_SECRET") ?: "default-secret-key-change-in-production"
     private val jwtIssuer = System.getenv("JWT_ISSUER") ?: "wakev-api"

@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.equipment
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.EquipmentByCategory
 import com.guyghost.wakeve.models.EquipmentCategory
 import com.guyghost.wakeve.models.EquipmentChecklist
@@ -18,7 +18,7 @@ import kotlinx.datetime.Clock
  * - Statistics and aggregations
  * - Map between SQLDelight entities and Kotlin models
  */
-class EquipmentRepository(private val db: WakevDb) {
+class EquipmentRepository(private val db: WakeveDb) {
     
     private val equipmentQueries = db.equipmentItemQueries
     

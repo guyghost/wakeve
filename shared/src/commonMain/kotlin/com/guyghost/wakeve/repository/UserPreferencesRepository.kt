@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.repository
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.DayOfWeek
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.InteractionType
@@ -30,7 +30,7 @@ import kotlin.math.exp
  *
  * @property database The SQLDelight database instance
  */
-class UserPreferencesRepository(private val database: WakevDb) {
+class UserPreferencesRepository(private val database: WakeveDb) {
 
     private val json = Json { 
         prettyPrint = false 

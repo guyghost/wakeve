@@ -22,8 +22,8 @@ import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
 import com.guyghost.wakeve.deeplink.DeepLinkHandler
 import com.guyghost.wakeve.deeplink.DeepLinkStateManager
 import com.guyghost.wakeve.navigation.Screen
-import com.guyghost.wakeve.navigation.WakevBottomBar
-import com.guyghost.wakeve.navigation.WakevNavHost
+import com.guyghost.wakeve.navigation.WakeveBottomBar
+import com.guyghost.wakeve.navigation.WakeveNavHost
 import org.koin.compose.koinInject
 
 // SharedPreferences constants
@@ -57,7 +57,7 @@ fun markOnboardingComplete(context: Context) {
  * Architecture:
  * - NavController for navigation management
  * - Scaffold with Bottom Navigation Bar
- * - WakevNavHost for all navigation destinations
+ * - WakeveNavHost for all navigation destinations
  * - Reactive navigation based on AuthStateMachine state
  * 
  * Flow:
@@ -146,11 +146,11 @@ fun App() {
         Scaffold(
             bottomBar = {
                 if (showBottomBar) {
-                    WakevBottomBar(navController = navController)
+                    WakeveBottomBar(navController = navController)
                 }
             }
         ) { paddingValues ->
-            WakevNavHost(
+            WakeveNavHost(
                 navController = navController,
                 modifier = Modifier.padding(paddingValues),
                 startDestination = startDestination,

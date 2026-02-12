@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.notification
 
 import com.guyghost.wakeve.Notification
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -34,7 +34,7 @@ import kotlin.uuid.Uuid
  * @property apnsSender APNs sender for iOS devices
  */
 class RichNotificationService(
-    private val database: WakevDb,
+    private val database: WakeveDb,
     private val preferencesRepository: NotificationPreferencesRepositoryInterface,
     private val fcmSender: RichFCMSender,
     private val apnsSender: RichAPNsSender

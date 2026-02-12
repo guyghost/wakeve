@@ -1,6 +1,6 @@
 import SwiftUI
 
-// Colors and LiquidGlass components are defined in Theme/WakevColors.swift and UIComponents/
+// Colors and LiquidGlass components are defined in Theme/WakeveColors.swift and UIComponents/
 
 // MARK: - Mock Models (pour compilation - à remplacer par Shared module)
 

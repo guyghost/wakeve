@@ -8,7 +8,7 @@ class RepositoryProvider {
     
     private let databaseFactory: IosDatabaseFactory
     /// The database instance - exposed for state machine creation
-    let database: WakevDb
+    let database: WakeveDb
     private let _repository: DatabaseEventRepository
     
     private init() {

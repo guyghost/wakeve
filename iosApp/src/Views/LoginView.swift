@@ -1,7 +1,7 @@
 import SwiftUI
 import AuthenticationServices
 
-// Colors and LiquidGlass components are defined in Theme/WakevColors.swift and UIComponents/
+// Colors and LiquidGlass components are defined in Theme/WakeveColors.swift and UIComponents/
 
 /**
  * Login view for iOS using SwiftUI with Liquid Glass design system.
@@ -17,7 +17,7 @@ import AuthenticationServices
  * - Gradient: .wakevPrimary → .wakevAccent
  * - Cards: LiquidGlassCard with ultra-thin material
  * - Buttons: LiquidGlassButton with gradient background
- * - Colors: Full WakevColors palette
+ * - Colors: Full WakeveColors palette
  */
 struct LoginView: View {
     @StateObject private var appleSignInHelper = AppleSignInHelper()

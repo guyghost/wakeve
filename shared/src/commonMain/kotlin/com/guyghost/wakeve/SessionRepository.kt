@@ -1,6 +1,6 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -60,7 +60,7 @@ data class DeviceData(
  * - Device fingerprinting for security
  * - Session lifecycle management (creation, validation, revocation)
  */
-class SessionRepository(private val db: WakevDb) {
+class SessionRepository(private val db: WakeveDb) {
 
     private val sessionQueries = db.sessionQueries
 

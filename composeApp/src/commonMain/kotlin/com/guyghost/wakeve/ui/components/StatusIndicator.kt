@@ -29,7 +29,7 @@ import com.guyghost.wakeve.models.InboxItemType
 /**
  * Wakeve Design System Colors
  */
-private object WakevColors {
+private object WakeveColors {
     // Primary
     val Primary = Color(0xFF2563EB)
     val PrimaryLight = Color(0xFF4A90E2)
@@ -124,7 +124,7 @@ fun UnreadDot(
         modifier = modifier
             .size(size)
             .clip(CircleShape)
-            .background(WakevColors.Primary)
+            .background(WakeveColors.Primary)
     )
 }
 
@@ -133,11 +133,11 @@ fun UnreadDot(
  */
 private fun getStatusColors(status: InboxItemStatus): Pair<Color, Color> {
     return when (status) {
-        InboxItemStatus.ACTION_REQUIRED -> WakevColors.Primary to WakevColors.Primary
-        InboxItemStatus.INFO -> WakevColors.Gray to WakevColors.Gray
-        InboxItemStatus.SUCCESS -> WakevColors.Success to WakevColors.Success
-        InboxItemStatus.WARNING -> WakevColors.Warning to WakevColors.Warning
-        InboxItemStatus.COMPLETED -> WakevColors.Accent to WakevColors.Accent
+        InboxItemStatus.ACTION_REQUIRED -> WakeveColors.Primary to WakeveColors.Primary
+        InboxItemStatus.INFO -> WakeveColors.Gray to WakeveColors.Gray
+        InboxItemStatus.SUCCESS -> WakeveColors.Success to WakeveColors.Success
+        InboxItemStatus.WARNING -> WakeveColors.Warning to WakeveColors.Warning
+        InboxItemStatus.COMPLETED -> WakeveColors.Accent to WakeveColors.Accent
     }
 }
 

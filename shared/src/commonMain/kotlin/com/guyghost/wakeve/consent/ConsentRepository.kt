@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.consent
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,7 +55,7 @@ interface ConsentRepository {
  * Uses SQLDelight database for persistence.
  */
 class ConsentRepositoryImpl(
-    private val database: WakevDb
+    private val database: WakeveDb
 ) : ConsentRepository {
 
     private val _consentFlow = MutableStateFlow(false)

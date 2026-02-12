@@ -11,7 +11,7 @@ import com.guyghost.wakeve.auth.shell.services.EmailAuthService
 import com.guyghost.wakeve.auth.shell.services.GuestModeService
 import com.guyghost.wakeve.auth.shell.services.TokenStorage
 import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.ui.auth.AuthViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +25,7 @@ import org.koin.dsl.module
  *
  * This module provides:
  * - DatabaseFactory using Android SQLite driver
- * - WakevDb database instance
+ * - WakeveDb database instance
  * - DatabaseEventRepository for persistent storage
  * - Authentication services (TokenStorage, AuthService, etc.)
  * - AuthStateMachine and AuthViewModel
@@ -54,11 +54,11 @@ fun platformModule(): Module = module {
     }
 
     /**
-     * Provide WakevDb singleton.
+     * Provide WakeveDb singleton.
      *
      * The database is created once and shared across the application.
      */
-    single<WakevDb> {
+    single<WakeveDb> {
         val factory = get<DatabaseFactory>()
         DatabaseProvider.getDatabase(factory)
     }
@@ -74,7 +74,7 @@ fun platformModule(): Module = module {
      * persistent offline-first storage.
      */
     single<EventRepositoryInterface> {
-        val database = get<WakevDb>()
+        val database = get<WakeveDb>()
         DatabaseEventRepository(db = database, syncManager = null)
     }
     

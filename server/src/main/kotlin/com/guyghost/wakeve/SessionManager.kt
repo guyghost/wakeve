@@ -1,13 +1,13 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 
 /**
  * Server-side SessionManager wrapping SessionRepository
  *
  * This manager provides high-level session operations for the server endpoints.
  */
-class SessionManager(private val database: WakevDb) {
+class SessionManager(private val database: WakeveDb) {
     private val sessionRepository = SessionRepository(database)
 
     /**

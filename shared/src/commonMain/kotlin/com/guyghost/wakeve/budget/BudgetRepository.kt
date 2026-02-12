@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.budget
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Budget
 import com.guyghost.wakeve.models.BudgetCategory
 import com.guyghost.wakeve.models.BudgetItem
@@ -19,7 +19,7 @@ import com.guyghost.wakeve.BudgetItem as SqlBudgetItem
  * - Aggregate calculations from database
  * - Map between SQLDelight entities and Kotlin models
  */
-class BudgetRepository(private val db: WakevDb) {
+class BudgetRepository(private val db: WakeveDb) {
     
     private val budgetQueries = db.budgetQueries
     private val budgetItemQueries = db.budgetItemQueries

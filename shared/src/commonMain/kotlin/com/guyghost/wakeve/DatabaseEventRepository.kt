@@ -1,6 +1,6 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Poll
@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.flowOf
  * Database-backed event repository using SQLDelight for persistence.
  * Mirrors the EventRepository interface but stores data in SQLite.
  */
-class DatabaseEventRepository(private val db: WakevDb, private val syncManager: SyncManager? = null) : EventRepositoryInterface {
+class DatabaseEventRepository(private val db: WakeveDb, private val syncManager: SyncManager? = null) : EventRepositoryInterface {
     private val eventQueries = db.eventQueries
     private val timeSlotQueries = db.timeSlotQueries
     private val participantQueries = db.participantQueries

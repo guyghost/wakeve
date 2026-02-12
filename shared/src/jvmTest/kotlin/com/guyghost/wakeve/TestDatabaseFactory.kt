@@ -2,7 +2,7 @@ package com.guyghost.wakeve
 
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
@@ -23,7 +23,7 @@ class TestDatabaseFactory : DatabaseFactory {
         if (driver == null) {
             driver = JdbcSqliteDriver("jdbc:sqlite:file:$dbName?mode=memory&cache=shared").also {
                 it.execute(null, "PRAGMA foreign_keys = ON", 0)
-                WakevDb.Schema.create(it)
+                WakeveDb.Schema.create(it)
             }
         }
         return driver!!
@@ -34,7 +34,7 @@ class TestDatabaseFactory : DatabaseFactory {
  * Creates a fresh database for each test, bypassing the singleton.
  * Use this for tests that need isolation.
  */
-fun createFreshTestDatabase(): WakevDb {
+fun createFreshTestDatabase(): WakeveDb {
     val factory = TestDatabaseFactory()
-    return WakevDb(factory.createDriver())
+    return WakeveDb(factory.createDriver())
 }

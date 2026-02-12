@@ -1,6 +1,6 @@
 package com.guyghost.wakeve
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.ScenarioVote
@@ -12,7 +12,7 @@ import com.guyghost.wakeve.models.ScenarioWithVotes
  * Repository for managing scenarios and scenario votes in the database.
  * Provides CRUD operations and voting functionality for event planning scenarios.
  */
-class ScenarioRepository(private val db: WakevDb) {
+class ScenarioRepository(private val db: WakeveDb) {
     private val scenarioQueries = db.scenarioQueries
     private val scenarioVoteQueries = db.scenarioVoteQueries
 

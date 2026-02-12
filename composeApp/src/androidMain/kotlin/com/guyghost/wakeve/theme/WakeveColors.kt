@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
  * Legacy color aliases used by collaboration screens.
  * Values map to the existing Wakeve palette.
  */
-object WakevColors {
+object WakeveColors {
     val primary: Color = WakevePrimary
     val primaryContainer: Color = WakevePrimaryLight
     val onPrimaryContainer: Color = WakevePrimaryDark

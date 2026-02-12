@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.budget
 
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.BudgetCategory
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -26,15 +26,15 @@ import kotlin.test.assertTrue
  */
 class BudgetRepositoryTest {
     
-    private lateinit var database: WakevDb
+    private lateinit var database: WakeveDb
     private lateinit var repository: BudgetRepository
     
     @BeforeTest
     fun setup() {
         // Create in-memory database
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
-        WakevDb.Schema.create(driver)
-        database = WakevDb(driver)
+        WakeveDb.Schema.create(driver)
+        database = WakeveDb(driver)
         repository = BudgetRepository(database)
     }
     

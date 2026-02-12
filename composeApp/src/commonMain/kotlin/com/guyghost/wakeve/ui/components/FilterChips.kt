@@ -69,7 +69,7 @@ fun FilterChipRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         filters.forEachIndexed { index, filter ->
-            WakevFilterChip(
+            WakeveFilterChip(
                 selected = selectedFilter == filter,
                 onClick = { onFilterSelected(filter) },
                 label = filter.label,
@@ -80,7 +80,7 @@ fun FilterChipRow(
 }
 
 /**
- * WakevFilterChip - Individual filter chip with Wakeve styling
+ * WakeveFilterChip - Individual filter chip with Wakeve styling
  * 
  * @param selected Whether this chip is currently selected
  * @param onClick Callback when chip is clicked
@@ -89,7 +89,7 @@ fun FilterChipRow(
  * @param modifier Modifier for the component
  */
 @Composable
-fun WakevFilterChip(
+fun WakeveFilterChip(
     selected: Boolean,
     onClick: () -> Unit,
     label: String,

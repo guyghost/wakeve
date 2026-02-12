@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.notification
 
 import com.guyghost.wakeve.Notification
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.NotificationMessage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -17,7 +17,7 @@ import kotlin.uuid.Uuid
  * Handles token registration, notification sending, and history management.
  */
 class NotificationService(
-    private val database: WakevDb,
+    private val database: WakeveDb,
     private val preferencesRepository: NotificationPreferencesRepositoryInterface,
     private val fcmSender: FCMSender,
     private val apnsSender: APNsSender

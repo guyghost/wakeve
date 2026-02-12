@@ -424,7 +424,7 @@ struct ScaleEffectOnPress: ViewModifier {
     }
 }
 
-// Colors are defined in Theme/WakevColors.swift
+// Colors are defined in Theme/WakeveColors.swift
 
 // MARK: - Preview
 

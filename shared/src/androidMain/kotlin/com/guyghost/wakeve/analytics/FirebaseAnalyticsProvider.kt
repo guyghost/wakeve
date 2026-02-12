@@ -43,7 +43,7 @@ actual class FirebaseAnalyticsProvider actual constructor(
      * @param event The event to track
      * @param properties Optional custom properties for the event
      */
-    override fun trackEvent(event: AnalyticsEvent, properties: Map<String, Any?>) {
+    actual override fun trackEvent(event: AnalyticsEvent, properties: Map<String, Any?>) {
         if (!isEnabled) return
 
         // Create Firebase Analytics bundle
@@ -183,7 +183,7 @@ actual class FirebaseAnalyticsProvider actual constructor(
      * @param name Property name
      * @param value Property value
      */
-    override fun setUserProperty(name: String, value: String) {
+    actual override fun setUserProperty(name: String, value: String) {
         if (!isEnabled) return
         firebaseAnalytics.setUserProperty(name, value)
     }
@@ -193,7 +193,7 @@ actual class FirebaseAnalyticsProvider actual constructor(
      *
      * @param userId User identifier, or null to clear
      */
-    override fun setUserId(userId: String?) {
+    actual override fun setUserId(userId: String?) {
         if (!isEnabled) return
         firebaseAnalytics.setUserId(userId)
     }
@@ -204,7 +204,7 @@ actual class FirebaseAnalyticsProvider actual constructor(
      *
      * @param enabled true to enable, false to disable
      */
-    override fun setEnabled(enabled: Boolean) {
+    actual override fun setEnabled(enabled: Boolean) {
         isEnabled = enabled
         firebaseAnalytics.setAnalyticsCollectionEnabled(enabled)
     }
@@ -213,7 +213,7 @@ actual class FirebaseAnalyticsProvider actual constructor(
      * Clear all user data from analytics.
      * Used when user revokes consent.
      */
-    override fun clearUserData() {
+    actual override fun clearUserData() {
         firebaseAnalytics.resetAnalyticsData()
         scope.launch {
             analyticsQueue.clear()

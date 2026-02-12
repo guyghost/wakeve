@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.suggestions
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.LocationPreferences
 import com.guyghost.wakeve.models.SuggestionBudgetRange
 import com.guyghost.wakeve.models.SuggestionInteractionType
@@ -19,7 +19,7 @@ import kotlinx.datetime.Clock
  * to the Functional Core (SuggestionUserPreferences models).
  */
 class DatabaseSuggestionPreferencesRepository(
-    private val database: WakevDb,
+    private val database: WakeveDb,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) : SuggestionPreferencesRepositoryInterface {
 

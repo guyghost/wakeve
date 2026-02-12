@@ -24,7 +24,7 @@ import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.Comment
 import com.guyghost.wakeve.models.CommentSection
 import com.guyghost.wakeve.models.CommentThread
-import com.guyghost.wakeve.theme.WakevColors
+import com.guyghost.wakeve.theme.WakeveColors
 import kotlinx.datetime.Clock
 
 /**
@@ -76,7 +76,7 @@ fun CommentListScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = WakevColors.surface
+                    containerColor = WakeveColors.surface
                 )
             )
         }
@@ -85,7 +85,7 @@ fun CommentListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(WakevColors.background)
+                .background(WakeveColors.background)
         ) {
             // Comment List
             LazyColumn(
@@ -195,7 +195,7 @@ fun CommentThreadItem(
         if (thread.hasMoreReplies) {
             Text(
                 text = "Load more replies (${thread.comment.replyCount})",
-                color = WakevColors.primary,
+                color = WakeveColors.primary,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
                     .padding(start = 56.dp, top = 4.dp)
@@ -219,13 +219,13 @@ fun EmptyCommentsSection() {
         Text(
             text = "No comments yet",
             style = MaterialTheme.typography.titleLarge,
-            color = WakevColors.onSurfaceVariant
+            color = WakeveColors.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Be the first to share your thoughts!",
             style = MaterialTheme.typography.bodyMedium,
-            color = WakevColors.onSurfaceVariant
+            color = WakeveColors.onSurfaceVariant
         )
     }
 }

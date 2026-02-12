@@ -2,13 +2,12 @@ package com.guyghost.wakeve.notification
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import platform.Foundation.NSDate
 import platform.Foundation.NSTimeInterval
 import platform.Foundation.NSUUID
 import platform.Foundation.timeIntervalSince1970
-import platform.UserNotifications.UNAuthorizationOption
-import platform.UserNotifications.UNAuthorizationOptions
 import platform.UserNotifications.UNAuthorizationStatus
 import platform.UserNotifications.UNCalendarNotificationTrigger
 import platform.UserNotifications.UNMutableNotificationContent
@@ -19,6 +18,8 @@ import platform.UserNotifications.UNNotificationRequest
 import platform.UserNotifications.UNNotificationSound
 import platform.UserNotifications.UNTimeIntervalNotificationTrigger
 import platform.UserNotifications.UNUserNotificationCenter
+import platform.darwin.NSObject
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * iOS implementation of NotificationScheduler.
@@ -33,9 +34,9 @@ import platform.UserNotifications.UNUserNotificationCenter
  * - **Permissions**: User must grant notification permission first
  *
  * ## Permissions
- * - UNAuthorizationOption.alert: Show alert banners
- * - UNAuthorizationOption.sound: Play sounds
- * - UNAuthorizationOption.badge: Update app badge count
+ * - UNAuthorizationOptionAlert: Show alert banners
+ * - UNAuthorizationOptionSound: Play sounds
+ * - UNAuthorizationOptionBadge: Update app badge count
  *
  * @note This is a Kotlin/Native implementation that bridges to iOS UNUserNotificationCenter.
  * In production, you may want to handle this from SwiftUI with proper error handling.
@@ -44,7 +45,7 @@ actual class NotificationScheduler {
 
     private val notificationCenter = UNUserNotificationCenter.currentNotificationCenter()
 
-    companion object {
+    actual companion object {
         private const val CATEGORY_EVENT = "EVENT_CATEGORY"
         private const val CATEGORY_POLL = "POLL_CATEGORY"
         private const val ACTION_VIEW = "VIEW_ACTION"
@@ -89,7 +90,7 @@ actual class NotificationScheduler {
 
             if (interval <= 0) {
                 // Time already passed
-                return@runCatching
+                return@runCatching Unit
             }
 
             val content = createNotificationContent(
@@ -119,7 +120,7 @@ actual class NotificationScheduler {
                 }
             }
 
-            Result.success(Unit)
+            Unit
         }
     }
 
@@ -142,7 +143,7 @@ actual class NotificationScheduler {
 
             if (interval <= 0) {
                 // Deadline already passed
-                return@runCatching
+                return@runCatching Unit
             }
 
             val content = createNotificationContent(
@@ -173,7 +174,7 @@ actual class NotificationScheduler {
                 }
             }
 
-            Result.success(Unit)
+            Unit
         }
     }
 
@@ -190,7 +191,6 @@ actual class NotificationScheduler {
                 notificationCenter.removeDeliveredNotificationsWithIdentifiers(
                     listOf(notificationId)
                 )
-                Result.success(Unit)
             }
         }
 
@@ -202,7 +202,6 @@ actual class NotificationScheduler {
             runCatching {
                 notificationCenter.removeAllPendingNotificationRequests()
                 notificationCenter.removeAllDeliveredNotifications()
-                Result.success(Unit)
             }
         }
 
@@ -210,9 +209,9 @@ actual class NotificationScheduler {
      * Calculate time interval in seconds from now to target time.
      */
     private fun calculateTimeInterval(targetTime: Instant): NSTimeInterval {
-        val now = platform.Foundation.NSDate()
-        val targetDate = NSDate(timeIntervalSince1970 = targetTime.epochSeconds)
-        return targetDate.timeIntervalSince1970 - now.timeIntervalSince1970
+        val now = Clock.System.now()
+        val duration = targetTime - now
+        return duration.inWholeSeconds.toDouble()
     }
 
     /**
@@ -225,23 +224,24 @@ actual class NotificationScheduler {
     /**
      * Create notification content with user info.
      */
+    @Suppress("UNCHECKED_CAST")
     private fun createNotificationContent(
         id: String,
         title: String,
         body: String,
         userInfo: Map<String, Any>
     ): UNMutableNotificationContent {
-        return UNMutableNotificationContent().apply {
-            this.title = title
-            this.body = body
-            this.userInfo = userInfo
-            this.sound = UNNotificationSound.default
-            // Category for grouping notifications
-            this.categoryIdentifier = when {
-                id.startsWith("event") -> CATEGORY_EVENT
-                id.startsWith("poll") -> CATEGORY_POLL
-                else -> "DEFAULT"
-            }
-        }
+        val content = UNMutableNotificationContent()
+        content.setTitle(title)
+        content.setBody(body)
+        content.setUserInfo(userInfo as Map<Any?, *>)
+        content.setSound(UNNotificationSound.defaultSound())
+        // Category for grouping notifications
+        content.setCategoryIdentifier(when {
+            id.startsWith("event") -> CATEGORY_EVENT
+            id.startsWith("poll") -> CATEGORY_POLL
+            else -> "DEFAULT"
+        })
+        return content
     }
 }

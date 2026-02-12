@@ -72,7 +72,7 @@ private val DarkColorScheme = darkColorScheme(
 /**
  * Spacing values for consistent layout throughout the app.
  */
-object WakevSpacing {
+object WakeveSpacing {
     val small = 8.dp
     val medium = 16.dp
     val large = 24.dp
@@ -82,8 +82,8 @@ object WakevSpacing {
 /**
  * Theme object providing access to spacing and other design tokens.
  */
-object WakevTheme {
-    val spacing: WakevSpacing = WakevSpacing
+object WakeveThemeTokens {
+    val spacing: WakeveSpacing = WakeveSpacing
 }
 
 @Composable

@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.suggestions
 
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.LocationPreferences
 import com.guyghost.wakeve.models.SuggestionBudgetRange
 import com.guyghost.wakeve.models.SuggestionInteractionType
@@ -17,11 +17,11 @@ import kotlinx.serialization.json.Json
  * (SQLite database access) while delegating pure logic to the Functional Core
  * (SuggestionUserPreferences models).
  * 
- * @param database The SQLDelight WakevDb instance for persistence
+ * @param database The SQLDelight WakeveDb instance for persistence
  * @param json The JSON serializer for complex preference fields
  */
 class SuggestionPreferencesRepository(
-    private val database: WakevDb,
+    private val database: WakeveDb,
     private val json: Json = Json { ignoreUnknownKeys = true }
 ) : SuggestionPreferencesRepositoryInterface {
 

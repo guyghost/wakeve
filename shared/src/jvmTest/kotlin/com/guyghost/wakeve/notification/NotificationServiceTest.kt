@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.notification
 
 import com.guyghost.wakeve.createFreshTestDatabase
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.NotificationMessage
 import com.guyghost.wakeve.models.NotificationType as ModelNotificationType
 import kotlinx.coroutines.test.runTest
@@ -20,7 +20,7 @@ import kotlin.test.fail
 
 class NotificationServiceTest {
 
-    private lateinit var database: WakevDb
+    private lateinit var database: WakeveDb
     private lateinit var preferencesRepository: InMemoryNotificationPreferencesRepository
     private lateinit var fcmSender: RecordingFCMSender
     private lateinit var apnsSender: RecordingAPNsSender

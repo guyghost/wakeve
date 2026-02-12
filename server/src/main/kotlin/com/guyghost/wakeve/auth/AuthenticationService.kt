@@ -5,7 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
 import com.auth0.jwt.interfaces.DecodedJWT
 import com.guyghost.wakeve.UserRepository
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.OAuthLoginRequest
 import com.guyghost.wakeve.models.OAuthLoginResponse
 import com.guyghost.wakeve.models.OAuthProvider
@@ -21,7 +21,7 @@ import java.util.Date
  * Main authentication service that handles OAuth2 login flow
  */
 class AuthenticationService(
-    private val db: WakevDb,
+    private val db: WakeveDb,
     private val jwtSecret: String,
     private val jwtIssuer: String,
     private val jwtAudience: String,

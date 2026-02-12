@@ -4,7 +4,7 @@ import com.guyghost.wakeve.DefaultNotificationService
 import com.guyghost.wakeve.createFreshTestDatabase
 import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.calendar.PlatformCalendarService
-import com.guyghost.wakeve.database.WakevDb
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.EnhancedCalendarEvent
 import com.guyghost.wakeve.models.InvitationStatus
 import com.guyghost.wakeve.models.MeetingPlatform
@@ -21,7 +21,7 @@ import kotlin.time.Duration.Companion.hours
 
 class MeetingServiceTest {
 
-    private lateinit var database: WakevDb
+    private lateinit var database: WakeveDb
     private lateinit var service: MeetingService
 
     @BeforeTest

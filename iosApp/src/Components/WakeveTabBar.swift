@@ -6,7 +6,7 @@ import UIKit
 // MARK: - Tab Items
 
 /// Defines the available tabs in the Wakeve app
-enum WakevTab: String, CaseIterable, Identifiable {
+enum WakeveTab: String, CaseIterable, Identifiable {
     case home
     case inbox
     case explore
@@ -72,7 +72,7 @@ struct TabBadge: Equatable {
     }
 }
 
-extension WakevTab {
+extension WakeveTab {
     /// Default badge style for each tab
     var defaultBadgeStyle: TabBadge.BadgeStyle {
         switch self {
@@ -88,7 +88,7 @@ extension WakevTab {
 
 /// Individual tab button with Liquid Glass styling
 struct LiquidGlassTabButton: View {
-    let tab: WakevTab
+    let tab: WakeveTab
     let isSelected: Bool
     let badge: TabBadge
     let action: () -> Void
@@ -267,8 +267,8 @@ struct LiquidGlassTabButton: View {
 // MARK: - Liquid Glass Tab Bar Container (Imperative Shell)
 
 /// Custom tab bar container with Liquid Glass styling
-struct WakevTabBarContainer<Home: View, Inbox: View, Explore: View, Profile: View>: View {
-    @Binding var selectedTab: WakevTab
+struct WakeveTabBarContainer<Home: View, Inbox: View, Explore: View, Profile: View>: View {
+    @Binding var selectedTab: WakeveTab
     
     /// Badge configurations for each tab
     var homeBadge: TabBadge
@@ -282,7 +282,7 @@ struct WakevTabBarContainer<Home: View, Inbox: View, Explore: View, Profile: Vie
     let profileContent: Profile
     
     init(
-        selectedTab: Binding<WakevTab>,
+        selectedTab: Binding<WakeveTab>,
         homeBadge: TabBadge = .zero,
         inboxBadge: TabBadge = .zero,
         exploreBadge: TabBadge = .zero,
@@ -307,30 +307,30 @@ struct WakevTabBarContainer<Home: View, Inbox: View, Explore: View, Profile: Vie
         TabView(selection: $selectedTab) {
             homeContent
                 .tabItem {
-                    Label(WakevTab.home.title, systemImage: WakevTab.home.icon)
+                    Label(WakeveTab.home.title, systemImage: WakeveTab.home.icon)
                 }
-                .tag(WakevTab.home)
+                .tag(WakeveTab.home)
                 .badge(homeBadge.isVisible ? String(homeBadge.count) : nil)
             
             inboxContent
                 .tabItem {
-                    Label(WakevTab.inbox.title, systemImage: WakevTab.inbox.icon)
+                    Label(WakeveTab.inbox.title, systemImage: WakeveTab.inbox.icon)
                 }
-                .tag(WakevTab.inbox)
+                .tag(WakeveTab.inbox)
                 .badge(inboxBadge.isVisible ? String(inboxBadge.count) : nil)
 
             exploreContent
                 .tabItem {
-                    Label(WakevTab.explore.title, systemImage: WakevTab.explore.icon)
+                    Label(WakeveTab.explore.title, systemImage: WakeveTab.explore.icon)
                 }
-                .tag(WakevTab.explore)
+                .tag(WakeveTab.explore)
                 .badge(exploreBadge.isVisible ? String(exploreBadge.count) : nil)
             
             profileContent
                 .tabItem {
-                    Label(WakevTab.profile.title, systemImage: WakevTab.profile.icon)
+                    Label(WakeveTab.profile.title, systemImage: WakeveTab.profile.icon)
                 }
-                .tag(WakevTab.profile)
+                .tag(WakeveTab.profile)
                 .badge(profileBadge.isVisible ? String(profileBadge.count) : nil)
         }
         .tint(Color.wakevPrimary)
@@ -441,23 +441,23 @@ struct WakevTabBarContainer<Home: View, Inbox: View, Explore: View, Profile: Vie
 // MARK: - Simplified Container
 
 /// Simplified container that switches content based on selected tab
-struct WakevTabBarSimpleContainer<Content: View>: View {
-    @Binding var selectedTab: WakevTab
+struct WakeveTabBarSimpleContainer<Content: View>: View {
+    @Binding var selectedTab: WakeveTab
     
     var homeBadge: TabBadge
     var inboxBadge: TabBadge
     var exploreBadge: TabBadge
     var profileBadge: TabBadge
     
-    let content: (WakevTab) -> Content
+    let content: (WakeveTab) -> Content
     
     init(
-        selectedTab: Binding<WakevTab>,
+        selectedTab: Binding<WakeveTab>,
         homeBadge: TabBadge = .zero,
         inboxBadge: TabBadge = .zero,
         exploreBadge: TabBadge = .zero,
         profileBadge: TabBadge = .zero,
-        @ViewBuilder content: @escaping (WakevTab) -> Content
+        @ViewBuilder content: @escaping (WakeveTab) -> Content
     ) {
         self._selectedTab = selectedTab
         self.homeBadge = homeBadge
@@ -469,7 +469,7 @@ struct WakevTabBarSimpleContainer<Content: View>: View {
     
     var body: some View {
         TabView(selection: $selectedTab) {
-            ForEach(WakevTab.allCases) { tab in
+            ForEach(WakeveTab.allCases) { tab in
                 content(tab)
                     .tabItem {
                         Label(tab.title, systemImage: tab.icon)
@@ -484,7 +484,7 @@ struct WakevTabBarSimpleContainer<Content: View>: View {
         .tint(Color.wakevPrimary)
     }
     
-    private func badgeForTab(_ tab: WakevTab) -> TabBadge {
+    private func badgeForTab(_ tab: WakeveTab) -> TabBadge {
         switch tab {
         case .home: return homeBadge
         case .inbox: return inboxBadge
@@ -596,12 +596,12 @@ extension View {
 
 // MARK: - Native TabView with Liquid Glass (iOS 26+)
 
-struct WakevNativeTabView<Content: View>: View {
-    @Binding var selectedTab: WakevTab
+struct WakeveNativeTabView<Content: View>: View {
+    @Binding var selectedTab: WakeveTab
     let content: Content
     
     init(
-        selectedTab: Binding<WakevTab>,
+        selectedTab: Binding<WakeveTab>,
         @ViewBuilder content: () -> Content
     ) {
         self._selectedTab = selectedTab
@@ -617,12 +617,12 @@ struct WakevNativeTabView<Content: View>: View {
 
 // MARK: - Tab Content Wrapper
 
-struct WakevTabContent<Content: View>: View {
-    let tab: WakevTab
+struct WakeveTabContent<Content: View>: View {
+    let tab: WakeveTab
     let content: Content
     
     init(
-        tab: WakevTab,
+        tab: WakeveTab,
         @ViewBuilder content: () -> Content
     ) {
         self.tab = tab
@@ -641,12 +641,12 @@ struct WakevTabContent<Content: View>: View {
 // MARK: - Preview
 
 #Preview("Native TabView - Light") {
-    WakevTabBarPreview()
+    WakeveTabBarPreview()
         .preferredColorScheme(.light)
 }
 
 #Preview("Native TabView - Dark") {
-    WakevTabBarPreview()
+    WakeveTabBarPreview()
         .preferredColorScheme(.dark)
 }
 
@@ -660,13 +660,13 @@ struct WakevTabContent<Content: View>: View {
 
 // MARK: - Preview Views
 
-struct WakevTabBarPreview: View {
-    @State private var selectedTab: WakevTab = .home
+struct WakeveTabBarPreview: View {
+    @State private var selectedTab: WakeveTab = .home
     @State private var inboxBadge = TabBadge(count: 5, style: .error)
     @State private var exploreBadge = TabBadge(count: 12, style: .accent)
     
     var body: some View {
-        WakevTabBarContainer(
+        WakeveTabBarContainer(
             selectedTab: $selectedTab,
             homeBadge: .zero,
             inboxBadge: inboxBadge,
@@ -705,7 +705,7 @@ struct WakevTabBarPreview: View {
 }
 
 struct LiquidGlassTabButtonsPreview: View {
-    @State private var selectedTab: WakevTab = .home
+    @State private var selectedTab: WakeveTab = .home
     @State private var inboxBadge = TabBadge(count: 3, style: .error)
     @State private var exploreBadge = TabBadge(count: 7, style: .accent)
     
