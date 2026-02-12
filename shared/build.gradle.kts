@@ -11,8 +11,15 @@ kotlin {
     androidTarget()
     
     // iOS targets
-    iosArm64()
-    iosSimulatorArm64()
+    listOf(
+        iosArm64(),
+        iosSimulatorArm64()
+    ).forEach { iosTarget ->
+        iosTarget.binaries.framework {
+            baseName = "Shared"
+            isStatic = true
+        }
+    }
     
     // JVM target for server and desktop
     jvm()
