@@ -310,7 +310,6 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				INFOPLIST_KEY_CFBundleIdentifier = com.guyghost.wakeve;
 				PRODUCT_BUNDLE_IDENTIFIER = com.guyghost.wakeve;
 				PRODUCT_NAME = Wakeve;
 				SWIFT_EMIT_LOC_STRINGS = YES;
