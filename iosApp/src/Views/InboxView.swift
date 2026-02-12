@@ -28,6 +28,7 @@ struct InboxView: View {
     @State private var showEventSheet = false
     @State private var isSelectionMode = false
     @State private var selectedItemIds: Set<String> = []
+    @State private var showActionBar = false
     
     // Sample events for the dropdown
     private let availableEvents = ["Week-end ski 2024", "Réunion famille", "Voyage Espagne", "Week-end montagne", "Anniversaire Alice"]
@@ -68,24 +69,39 @@ struct InboxView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if isSelectionMode {
                         Button("Cancel") {
-                            isSelectionMode = false
-                            selectedItemIds.removeAll()
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                isSelectionMode = false
+                                showActionBar = false
+                                selectedItemIds.removeAll()
+                            }
                         }
                     } else {
                         Button("Select") {
-                            isSelectionMode = true
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                isSelectionMode = true
+                                showActionBar = true
+                            }
                         }
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if isSelectionMode {
                         Button("Select All") {
-                            selectedItemIds = Set(filteredItems.map { $0.id })
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedItemIds = Set(filteredItems.map { $0.id })
+                            }
                         }
                     }
                 }
             }
+            .toolbar(showActionBar ? .hidden : .visible, for: .tabBar)
             #endif
+            .overlay(alignment: .bottom) {
+                if showActionBar {
+                    actionBarView
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
             .sheet(isPresented: $showEventSheet) {
                 EventFilterSheet(
                     events: availableEvents,
@@ -132,13 +148,26 @@ struct InboxView: View {
             
             // Filter chips row
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
+                HStack(spacing: 12) {
+                    // Active filter indicator (shows when filter is active)
+                    if selectedFilter != .inbox || selectedEventFilter != nil {
+                        ActiveFilterIndicator(count: activeFilterCount) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedFilter = .inbox
+                                selectedEventFilter = nil
+                            }
+                        }
+                    }
+                    
                     // Inbox filter with dropdown
                     FilterTabButton(
                         title: "Inbox",
-                        isSelected: selectedFilter == .inbox,
+                        isSelected: selectedFilter == .inbox && selectedEventFilter == nil,
                         hasDropdown: true,
-                        action: { selectedFilter = .inbox }
+                        action: { 
+                            selectedFilter = .inbox
+                            selectedEventFilter = nil
+                        }
                     )
                     
                     // Focused filter with "New" badge
@@ -251,6 +280,17 @@ struct InboxView: View {
         items.contains { !$0.isRead }
     }
     
+    private var activeFilterCount: Int {
+        var count = 0
+        if selectedFilter != .inbox {
+            count += 1
+        }
+        if selectedEventFilter != nil {
+            count += 1
+        }
+        return count
+    }
+    
     // MARK: - Loading View
     
     private var loadingView: some View {
@@ -312,6 +352,62 @@ struct InboxView: View {
         case .unread: return "Vous avez tout lu !"
         case .event: return "Les notifications liées aux événements apparaîtront ici"
         }
+    }
+    
+    // MARK: - Action Bar View
+    
+    private var actionBarView: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 12) {
+                // Mark as Read button
+                ActionBarButton(
+                    title: "Mark as Read",
+                    isEnabled: !selectedItemIds.isEmpty,
+                    action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            markSelectedAsRead()
+                            isSelectionMode = false
+                            showActionBar = false
+                            selectedItemIds.removeAll()
+                        }
+                    }
+                )
+                
+                // Mark as Done button
+                ActionBarButton(
+                    title: "Mark as Done",
+                    isEnabled: !selectedItemIds.isEmpty,
+                    action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            markSelectedAsDone()
+                            isSelectionMode = false
+                            showActionBar = false
+                            selectedItemIds.removeAll()
+                        }
+                    }
+                )
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .padding(.bottom, 34) // Extra padding for safe area
+            .background(
+                Color(.systemBackground)
+                    .ignoresSafeArea()
+            )
+        }
+    }
+    
+    private func markSelectedAsRead() {
+        for index in items.indices {
+            if selectedItemIds.contains(items[index].id) {
+                items[index].isRead = true
+            }
+        }
+    }
+    
+    private func markSelectedAsDone() {
+        // Remove selected items from the list (mark as done/archived)
+        items.removeAll { selectedItemIds.contains($0.id) }
     }
     
     // MARK: - Item List View
@@ -416,6 +512,35 @@ struct FilterTabButton: View {
             }
             .foregroundColor(isSelected ? .primary : .secondary)
             .padding(.vertical, 8)
+        }
+    }
+}
+
+// MARK: - Active Filter Indicator
+
+struct ActiveFilterIndicator: View {
+    let count: Int
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: "line.3.horizontal.decrease")
+                    .font(.system(size: 14))
+                
+                Text("\(count)")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 20, height: 20)
+                    .background(Circle().fill(Color.blue))
+            }
+            .foregroundColor(.primary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(Color(.systemGray5))
+            )
         }
     }
 }
@@ -584,6 +709,32 @@ struct InboxGitHubStyleRow: View {
         .padding(.vertical, 12)
         .background(item.isRead || isSelectionMode ? Color.clear : Color.blue.opacity(0.03))
         .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Action Bar Button
+
+struct ActionBarButton: View {
+    let title: String
+    let isEnabled: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(title)
+                .font(.system(size: 16, weight: .regular))
+                .foregroundColor(.primary)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(
+                    Capsule()
+                        .fill(Color(.systemGray5))
+                )
+        }
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1.0 : 0.5)
+        .animation(.easeInOut(duration: 0.2), value: isEnabled)
     }
 }
 
