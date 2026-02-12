@@ -65,13 +65,15 @@ import org.koin.compose.koinInject
  * @param modifier Modifier for customizing the layout
  * @param startDestination The initial destination route
  * @param userId The current authenticated user ID
+ * @param onProfileClick Callback when profile icon is clicked (opens bottom sheet)
  */
 @Composable
 fun WakeveNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
     startDestination: String = Screen.Home.route,
-    userId: String
+    userId: String,
+    onProfileClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     
@@ -95,6 +97,7 @@ fun WakeveNavHost(
                 onShowToast = { message ->
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 },
+                onProfileClick = onProfileClick,
                 isDarkTheme = isDarkTheme
             )
         }

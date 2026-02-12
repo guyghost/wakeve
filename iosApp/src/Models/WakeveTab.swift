@@ -7,7 +7,6 @@ enum WakeveTab: String, CaseIterable, Identifiable {
     case home
     case inbox
     case explore
-    case profile
 
     var id: String { rawValue }
 
@@ -16,7 +15,6 @@ enum WakeveTab: String, CaseIterable, Identifiable {
         case .home: return "Accueil"
         case .inbox: return "Inbox"
         case .explore: return "Explorer"
-        case .profile: return "Profil"
         }
     }
 }

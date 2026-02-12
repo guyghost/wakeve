@@ -55,6 +55,9 @@ struct MainTabView: View {
             },
             onCreateEvent: {
                 // Show event creation sheet
+            },
+            onProfileClick: {
+                // Show profile settings sheet
             }
         )
     }

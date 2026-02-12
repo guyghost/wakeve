@@ -3,7 +3,6 @@ package com.guyghost.wakeve.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -20,11 +19,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 /**
  * Bottom Navigation Bar for Wakeve Android app.
  * 
- * Implements Material You design with 4 tabs:
+ * Implements Material You design with 3 tabs:
  * - Home: Main dashboard with event overview
- * - Events: Filtered list of events (À venir / En cours / Passés)
+ * - Inbox: Notifications, tasks and messages
  * - Explore: Featured events, templates, tips
- * - Profile: User info, settings, inbox link
+ * 
+ * Profile is now accessed via the profile icon in the top bar,
+ * opening a bottom sheet instead of a navigation tab.
  * 
  * @param navController The navigation controller for routing
  */
@@ -33,7 +34,7 @@ fun WakeveBottomBar(navController: NavController) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     
-    // Define bottom navigation items
+    // Define bottom navigation items - Profile tab removed
     val items = listOf(
         BottomNavItem(
             screen = Screen.Home,
@@ -52,12 +53,6 @@ fun WakeveBottomBar(navController: NavController) {
             label = "Explorer",
             icon = Icons.Filled.Search,
             contentDescription = "Explorer - Découvrir des événements et modèles"
-        ),
-        BottomNavItem(
-            screen = Screen.Profile,
-            label = "Profil",
-            icon = Icons.Filled.Person,
-            contentDescription = "Profil - Paramètres et informations utilisateur"
         )
     )
     
