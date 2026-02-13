@@ -16,6 +16,14 @@ struct CreateEventSheet: View {
     @State private var hasBackgroundImage = false
     @State private var showingImagePicker = false
     
+    // Date picker sheet state
+    @State private var showingDatePicker = false
+    @State private var isAllDay = false
+    @State private var startDate = Date()
+    @State private var startTime = Date()
+    @State private var hasEndTime = false
+    @State private var endTime = Date().addingTimeInterval(3600) // +1 hour by default
+    
     var onEventCreated: (Event) -> Void = { _ in }
     
     var body: some View {
@@ -57,6 +65,22 @@ struct CreateEventSheet: View {
                     Spacer(minLength: 40)
                 }
             }
+        }
+        .sheet(isPresented: $showingDatePicker) {
+            DateTimePickerSheet(
+                isAllDay: $isAllDay,
+                startDate: $startDate,
+                startTime: $startTime,
+                hasEndTime: $hasEndTime,
+                endTime: $endTime,
+                onSave: {
+                    showingDatePicker = false
+                    selectedDate = startDate
+                },
+                onCancel: {
+                    showingDatePicker = false
+                }
+            )
         }
     }
     
@@ -164,10 +188,10 @@ struct CreateEventSheet: View {
             // Date & Time Row
             DetailRow(
                 icon: "calendar.badge.plus",
-                label: selectedDate != nil ? formattedDate(selectedDate!) : "Date et heure",
+                label: selectedDate != nil ? formattedDateTime() : "Date et heure",
                 isPlaceholder: selectedDate == nil
             ) {
-                // Show date picker
+                showingDatePicker = true
             }
             
             Divider()
@@ -238,12 +262,20 @@ struct CreateEventSheet: View {
         !title.isEmpty
     }
     
-    private func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .short
-        formatter.locale = Locale(identifier: "fr_FR")
-        return formatter.string(from: date)
+    private func formattedDateTime() -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .none
+        dateFormatter.locale = Locale(identifier: "fr_FR")
+        
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm"
+        
+        if isAllDay {
+            return dateFormatter.string(from: startDate) + " (Jour entier)"
+        } else {
+            return dateFormatter.string(from: startDate) + " à " + timeFormatter.string(from: startTime)
+        }
     }
     
     private func createEvent() {
@@ -269,6 +301,186 @@ struct CreateEventSheet: View {
         
         onEventCreated(event)
         dismiss()
+    }
+}
+
+// MARK: - Date Time Picker Sheet
+
+struct DateTimePickerSheet: View {
+    @Binding var isAllDay: Bool
+    @Binding var startDate: Date
+    @Binding var startTime: Date
+    @Binding var hasEndTime: Bool
+    @Binding var endTime: Date
+    
+    let onSave: () -> Void
+    let onCancel: () -> Void
+    
+    var body: some View {
+        ZStack {
+            // Dark semi-transparent background
+            Color.black.opacity(0.3)
+                .ignoresSafeArea()
+            
+            // Liquid Glass Card
+            VStack(spacing: 0) {
+                // Header
+                HStack {
+                    // Close button
+                    Button(action: onCancel) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 20, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Color.white.opacity(0.15))
+                            .clipShape(Circle())
+                    }
+                    
+                    Spacer()
+                    
+                    Text("Date et heure")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    // Save button
+                    Button(action: onSave) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.black)
+                            .frame(width: 44, height: 44)
+                            .background(Color.white)
+                            .clipShape(Circle())
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                
+                // All Day Toggle
+                HStack {
+                    Text("Jour entier")
+                        .font(.system(size: 18))
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    Toggle("", isOn: $isAllDay)
+                        .toggleStyle(SwitchToggleStyle(tint: .white))
+                        .frame(width: 51, height: 31)
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                
+                Divider()
+                    .background(Color.white.opacity(0.2))
+                    .padding(.horizontal, 20)
+                
+                // Start Date/Time Section
+                HStack(spacing: 12) {
+                    Text("Début")
+                        .font(.system(size: 18))
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                    // Date Button
+                    Button(action: {}) {
+                        Text(formattedDate(startDate))
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
+                            .background(Color.white.opacity(0.15))
+                            .cornerRadius(20)
+                    }
+                    
+                    if !isAllDay {
+                        // Time Button
+                        Button(action: {}) {
+                            Text(formattedTime(startTime))
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(20)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                
+                if hasEndTime && !isAllDay {
+                    Divider()
+                        .background(Color.white.opacity(0.2))
+                        .padding(.horizontal, 20)
+                    
+                    HStack(spacing: 12) {
+                        Text("Fin")
+                            .font(.system(size: 18))
+                            .foregroundColor(.white)
+                        
+                        Spacer()
+                        
+                        Button(action: {}) {
+                            Text(formattedTime(endTime))
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .background(Color.white.opacity(0.15))
+                                .cornerRadius(20)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+                }
+                
+                // Add End Time Link
+                if !hasEndTime && !isAllDay {
+                    Divider()
+                        .background(Color.white.opacity(0.2))
+                        .padding(.horizontal, 20)
+                    
+                    Button(action: { hasEndTime = true }) {
+                        Text("Ajouter une heure de fin")
+                            .font(.system(size: 17))
+                            .foregroundColor(Color(hex: "5AC8FA"))
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 16)
+                    }
+                }
+                
+                Spacer(minLength: 20)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 32)
+                    .fill(.ultraThinMaterial)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 32)
+                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                    )
+            )
+            .cornerRadius(32)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 40)
+        }
+    }
+    
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        formatter.locale = Locale(identifier: "fr_FR")
+        return formatter.string(from: date)
+    }
+    
+    private func formattedTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 }
 
