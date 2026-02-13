@@ -1,14 +1,7 @@
-package com.guyghost.wakeve.ui.components
+package com.guyghost.wakeve.ui.screens
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,38 +21,30 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -69,11 +54,10 @@ import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.TimeSlot
-import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 
 /**
- * Full-screen bottom sheet for creating an event with immersive gradient design.
+ * Full-screen page for creating an event with immersive gradient design.
  * 
  * Features:
  * - Gradient background (orange to purple to blue)
@@ -84,58 +68,13 @@ import kotlinx.datetime.Clock
  * - Organizer display
  * - Description input
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateEventBottomSheet(
-    isVisible: Boolean,
-    onDismiss: () -> Unit,
+fun CreateEventScreen(
     userId: String,
     userName: String? = null,
     userPhotoUrl: String? = null,
+    onClose: () -> Unit = {},
     onEventCreated: (Event) -> Unit = {}
-) {
-    if (!isVisible) return
-    
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
-    )
-    val scope = rememberCoroutineScope()
-    
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        sheetState = sheetState,
-        containerColor = Color.Transparent,
-        dragHandle = null,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        CreateEventContent(
-            userId = userId,
-            userName = userName,
-            userPhotoUrl = userPhotoUrl,
-            onClose = {
-                scope.launch {
-                    sheetState.hide()
-                    onDismiss()
-                }
-            },
-            onEventCreated = { event ->
-                scope.launch {
-                    sheetState.hide()
-                    onEventCreated(event)
-                    onDismiss()
-                }
-            }
-        )
-    }
-}
-
-@Composable
-private fun CreateEventContent(
-    userId: String,
-    userName: String?,
-    userPhotoUrl: String?,
-    onClose: () -> Unit,
-    onEventCreated: (Event) -> Unit
 ) {
     // Form state
     var title by remember { mutableStateOf("") }
