@@ -256,17 +256,32 @@ struct CreateEventSheet: View {
                 .font(.system(size: 18, weight: .medium))
                 .foregroundColor(.white)
             
-            // Description button
-            Button(action: {
-                showingEventInfoSheet = true
-            }) {
-                Text("Ajouter une description")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(Color(hex: "1A1A3E"))
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(Color.white.opacity(0.9))
-                    .cornerRadius(24)
+            // Description or Button
+            if description.isEmpty {
+                // Description button
+                Button(action: {
+                    showingEventInfoSheet = true
+                }) {
+                    Text("Ajouter une description")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(Color(hex: "1A1A3E"))
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.white.opacity(0.9))
+                        .cornerRadius(24)
+                }
+            } else {
+                // Description text (tappable to edit)
+                Button(action: {
+                    showingEventInfoSheet = true
+                }) {
+                    Text(description)
+                        .font(.system(size: 16))
+                        .foregroundColor(.white.opacity(0.9))
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 8)
+                }
             }
         }
         .frame(maxWidth: .infinity)
