@@ -321,13 +321,12 @@ struct DateTimePickerPopup: View {
     
     var body: some View {
         ZStack {
-            // Transparent background - no dark overlay
-            Color.clear
+            // Semi-transparent overlay to block interaction with background
+            Color.black.opacity(0.01)
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
-                .onTapGesture { onCancel() }
             
-            // Liquid Glass Card - Centered compact popup
+            // Liquid Glass Card - Centered compact popup with shadow
             VStack(spacing: 0) {
                 // Header
                 HStack(spacing: 0) {
@@ -464,6 +463,7 @@ struct DateTimePickerPopup: View {
                     .background(.ultraThinMaterial)
             )
             .cornerRadius(24)
+            .shadow(color: Color.black.opacity(0.15), radius: 40, x: 0, y: 20)
         }
     }
     
