@@ -313,8 +313,7 @@ struct DraftEventWizardView: View {
             .padding(.vertical)
         }
         .sheet(isPresented: $showLocationSheet) {
-            LocationInputSheet(
-                eventId: initialEvent?.id ?? "temp-event",
+            LocationSelectionSheet(
                 onDismiss: {
                     showLocationSheet = false
                 },

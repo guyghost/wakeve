@@ -42,18 +42,13 @@ struct CreateEventSheet: View {
                     backgroundImageSelector
                         .padding(.top, 40)
                     
-                    // Event Title Input
-                    eventTitleInput
-                        .padding(.top, 40)
-                        .padding(.horizontal, 24)
-                    
-                    // Event Details Card
-                    eventDetailsCard
+                    // Main Event Card (contains title, date, location)
+                    mainEventCard
                         .padding(.top, 32)
                         .padding(.horizontal, 16)
                     
-                    // Description Input
-                    descriptionInput
+                    // Organizer Card (separate card with organizer and description)
+                    organizerCard
                         .padding(.top, 16)
                         .padding(.horizontal, 16)
                     
@@ -93,12 +88,11 @@ struct CreateEventSheet: View {
         LinearGradient(
             gradient: Gradient(colors: [
                 Color(hex: "FF6B35"),  // Orange
-                Color(hex: "FF8C42"),  // Light orange
-                Color(hex: "9B59B6"),  // Purple
-                Color(hex: "6C5CE7"),  // Deep purple
-                Color(hex: "4834D4"),  // Blue-purple
-                Color(hex: "0984E3"),  // Blue
-                Color(hex: "0C2461"),  // Dark blue
+                Color(hex: "FF4757"),  // Red-orange
+                Color(hex: "8B5CF6"),  // Purple
+                Color(hex: "6366F1"),  // Indigo
+                Color(hex: "3B82F6"),  // Blue
+                Color(hex: "1E3A8A"),  // Dark blue
             ]),
             startPoint: .top,
             endPoint: .bottom
@@ -165,84 +159,105 @@ struct CreateEventSheet: View {
         }
     }
     
-    // MARK: - Event Title Input
+    // MARK: - Main Event Card
     
-    private var eventTitleInput: some View {
-        ZStack(alignment: .center) {
-            if title.isEmpty {
-                Text("Titre de\nl'évènement")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundColor(.white.opacity(0.4))
+    private var mainEventCard: some View {
+        VStack(spacing: 0) {
+            // Event Title Input (inside the card now)
+            ZStack(alignment: .center) {
+                if title.isEmpty {
+                    Text("Titre de\nl'évènement")
+                        .font(.system(size: 32, weight: .bold))
+                        .foregroundColor(.white.opacity(0.4))
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(4)
+                }
+                
+                TextField("", text: $title)
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundColor(.white)
                     .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.5)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 32)
             }
             
-            TextField("", text: $title)
-                .font(.system(size: 36, weight: .bold))
-                .foregroundColor(.white)
-                .multilineTextAlignment(.center)
-                .minimumScaleFactor(0.5)
-        }
-    }
-    
-    // MARK: - Event Details Card
-    
-    private var eventDetailsCard: some View {
-        VStack(spacing: 0) {
+            Divider()
+                .background(Color.white.opacity(0.1))
+                .padding(.horizontal, 24)
+            
             // Date & Time Row
             DetailRow(
                 icon: "calendar.badge.plus",
                 label: selectedDate != nil ? formattedDateTime() : "Date et heure",
-                isPlaceholder: selectedDate == nil
+                isPlaceholder: selectedDate == nil,
+                iconColor: Color(hex: "8B5CF6")
             ) {
                 showingDatePicker = true
             }
             
             Divider()
                 .background(Color.white.opacity(0.1))
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 24)
             
             // Location Row
             DetailRow(
                 icon: "mappin.circle.fill",
                 label: selectedLocation ?? "Lieu",
-                isPlaceholder: selectedLocation == nil
+                isPlaceholder: selectedLocation == nil,
+                iconColor: Color(hex: "6366F1")
             ) {
                 // Show location picker
             }
         }
-        .padding(.vertical, 8)
-        .background(Color(hex: "1A1A2E").opacity(0.6))
-        .cornerRadius(24)
+        .background(Color(hex: "1A1A3E").opacity(0.7))
+        .cornerRadius(28)
     }
     
-    // MARK: - Description Input
+    // MARK: - Organizer Card (separate card)
     
-    private var descriptionInput: some View {
-        HStack {
-            Spacer()
-            
-            if description.isEmpty {
-                Button(action: {}) {
-                    Text("Ajouter une description")
-                        .font(.system(size: 16, weight: .medium))
+    private var organizerCard: some View {
+        VStack(spacing: 16) {
+            // Profile photo
+            ZStack {
+                Circle()
+                    .fill(Color(hex: "FF6B35"))
+                    .frame(width: 56, height: 56)
+                
+                if let name = userName {
+                    Text(String(name.prefix(1)).uppercased())
+                        .font(.system(size: 24, weight: .bold))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(Color.white.opacity(0.15))
-                        .cornerRadius(20)
+                } else {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.white)
                 }
-            } else {
-                Text(description)
-                    .font(.system(size: 16))
-                    .foregroundColor(.white)
-                    .padding(16)
             }
             
-            Spacer()
+            // Organizer text
+            Text("Organisé par \(userName ?? "Vous")")
+                .font(.system(size: 18, weight: .medium))
+                .foregroundColor(.white)
+            
+            // Description button
+            Button(action: {}) {
+                Text("Ajouter une description")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(Color(hex: "1A1A3E"))
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Color.white.opacity(0.9))
+                    .cornerRadius(24)
+            }
         }
-        .background(Color(hex: "1A1A2E").opacity(0.6))
-        .cornerRadius(24)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        .background(Color(hex: "0F1B3A").opacity(0.8))
+        .cornerRadius(28)
     }
+    
+
     
     // MARK: - Create Button
     
@@ -488,25 +503,30 @@ struct DetailRow: View {
     let icon: String
     let label: String
     let isPlaceholder: Bool
+    let iconColor: Color
     let action: () -> Void
+    
+    init(icon: String, label: String, isPlaceholder: Bool, iconColor: Color = Color(hex: "6C5CE7"), action: @escaping () -> Void) {
+        self.icon = icon
+        self.label = label
+        self.isPlaceholder = isPlaceholder
+        self.iconColor = iconColor
+        self.action = action
+    }
     
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 12) {
-                Spacer()
-                
+            VStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 24))
-                    .foregroundColor(Color(hex: "6C5CE7"))
+                    .font(.system(size: 28))
+                    .foregroundColor(iconColor)
                 
                 Text(label)
                     .font(.system(size: 18, weight: isPlaceholder ? .regular : .medium))
                     .foregroundColor(isPlaceholder ? .white.opacity(0.9) : .white)
-                
-                Spacer()
             }
+            .frame(maxWidth: .infinity)
             .padding(.vertical, 20)
-            .padding(.horizontal, 24)
         }
     }
 }
