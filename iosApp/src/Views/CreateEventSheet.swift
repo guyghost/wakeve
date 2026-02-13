@@ -321,21 +321,22 @@ struct DateTimePickerPopup: View {
     
     var body: some View {
         ZStack {
-            // Dark semi-transparent background with blur
-            Color.black.opacity(0.5)
+            // Transparent background - no dark overlay
+            Color.clear
                 .ignoresSafeArea()
+                .contentShape(Rectangle())
                 .onTapGesture { onCancel() }
             
-            // Liquid Glass Card - Centered popup
+            // Liquid Glass Card - Centered compact popup
             VStack(spacing: 0) {
                 // Header
                 HStack(spacing: 0) {
                     // Close button
                     Button(action: onCancel) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 18, weight: .medium))
+                            .font(.system(size: 17, weight: .medium))
                             .foregroundColor(.white)
-                            .frame(width: 28, height: 28)
+                            .frame(width: 24, height: 24)
                     }
                     
                     Spacer()
@@ -349,7 +350,7 @@ struct DateTimePickerPopup: View {
                     // Save button
                     Button(action: onSave) {
                         Image(systemName: "checkmark")
-                            .font(.system(size: 18, weight: .semibold))
+                            .font(.system(size: 17, weight: .semibold))
                             .foregroundColor(.black)
                             .frame(width: 28, height: 28)
                             .background(Color.white)
@@ -362,26 +363,26 @@ struct DateTimePickerPopup: View {
                 // All Day Toggle
                 HStack {
                     Text("Jour entier")
-                        .font(.system(size: 17))
+                        .font(.system(size: 16))
                         .foregroundColor(.white)
                     
                     Spacer()
                     
                     Toggle("", isOn: $isAllDay)
                         .toggleStyle(SwitchToggleStyle(tint: Color(hex: "34C759")))
-                        .frame(width: 51, height: 31)
+                        .frame(width: 48, height: 28)
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
                 
                 Divider()
-                    .background(Color.white.opacity(0.12))
-                    .padding(.horizontal, 16)
+                    .background(Color.white.opacity(0.1))
+                    .padding(.horizontal, 14)
                 
                 // Start Date/Time Section - Same row layout
                 HStack(spacing: 6) {
                     Text("Début")
-                        .font(.system(size: 17))
+                        .font(.system(size: 16))
                         .foregroundColor(.white)
                     
                     Spacer()
@@ -389,82 +390,80 @@ struct DateTimePickerPopup: View {
                     // Date Button
                     Button(action: {}) {
                         Text(formattedDate(startDate))
-                            .font(.system(size: 15, weight: .medium))
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
                             .background(Color.white.opacity(0.12))
-                            .cornerRadius(14)
+                            .cornerRadius(12)
                     }
                     
                     if !isAllDay {
                         // Time Button
                         Button(action: {}) {
                             Text(formattedTime(startTime))
-                                .font(.system(size: 15, weight: .medium))
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
                                 .background(Color.white.opacity(0.12))
-                                .cornerRadius(14)
+                                .cornerRadius(12)
                         }
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
                 
                 if hasEndTime && !isAllDay {
                     Divider()
-                        .background(Color.white.opacity(0.12))
-                        .padding(.horizontal, 16)
+                        .background(Color.white.opacity(0.1))
+                        .padding(.horizontal, 14)
                     
                     HStack(spacing: 6) {
                         Text("Fin")
-                            .font(.system(size: 17))
+                            .font(.system(size: 16))
                             .foregroundColor(.white)
                         
                         Spacer()
                         
                         Button(action: {}) {
                             Text(formattedTime(endTime))
-                                .font(.system(size: 15, weight: .medium))
+                                .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
                                 .background(Color.white.opacity(0.12))
-                                .cornerRadius(14)
+                                .cornerRadius(12)
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
                 }
                 
                 // Add End Time Link
                 if !hasEndTime && !isAllDay {
                     Divider()
-                        .background(Color.white.opacity(0.12))
-                        .padding(.horizontal, 16)
+                        .background(Color.white.opacity(0.1))
+                        .padding(.horizontal, 14)
                     
                     Button(action: { hasEndTime = true }) {
                         Text("Ajouter une heure de fin")
-                            .font(.system(size: 17))
+                            .font(.system(size: 16))
                             .foregroundColor(Color(hex: "0A84FF"))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
                     }
                 }
                 
-                Spacer(minLength: 4)
             }
-            .frame(maxWidth: 360)
+            .frame(maxWidth: 320)
             .background(
-                RoundedRectangle(cornerRadius: 28)
-                    .fill(Color.white.opacity(0.12))
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Color.white.opacity(0.15))
                     .background(.ultraThinMaterial)
             )
-            .cornerRadius(28)
-            .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
+            .cornerRadius(24)
         }
     }
     
