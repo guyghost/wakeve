@@ -164,17 +164,24 @@ struct AuthenticatedView: View {
         }
         .tint(.wakevePrimary)
         .sheet(isPresented: $showEventCreationSheet) {
-            CreateEventView(
+            CreateEventSheet(
                 userId: userId,
-                repository: repository,
-                onEventCreated: { eventId in
-                    // Navigate to participant management after creation
-                    if let event = repository.getEvent(id: eventId) {
-                        selectedEvent = event
-                        currentView = .participantManagement
+                userName: authStateManager.currentUser?.name
+            ) { event in
+                // Save event to repository
+                Task {
+                    do {
+                        try await repository.saveEvent(event: event)
+                        await MainActor.run {
+                            // Navigate to participant management
+                            selectedEvent = event
+                            currentView = .participantManagement
+                        }
+                    } catch {
+                        print("Failed to save event: \(error)")
                     }
                 }
-            )
+            }
         }
         .sheet(isPresented: $showProfileSheet) {
             ProfileSettingsSheet(
