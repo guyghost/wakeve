@@ -66,8 +66,9 @@ struct CreateEventSheet: View {
                 }
             }
         }
-        .sheet(isPresented: $showingDatePicker) {
-            DateTimePickerSheet(
+        // Date Picker Popup Overlay
+        if showingDatePicker {
+            DateTimePickerPopup(
                 isAllDay: $isAllDay,
                 startDate: $startDate,
                 startTime: $startTime,
@@ -81,6 +82,8 @@ struct CreateEventSheet: View {
                     showingDatePicker = false
                 }
             )
+            .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            .zIndex(100)
         }
     }
     
@@ -304,9 +307,9 @@ struct CreateEventSheet: View {
     }
 }
 
-// MARK: - Date Time Picker Sheet
+// MARK: - Date Time Picker Popup
 
-struct DateTimePickerSheet: View {
+struct DateTimePickerPopup: View {
     @Binding var isAllDay: Bool
     @Binding var startDate: Date
     @Binding var startTime: Date
@@ -318,11 +321,12 @@ struct DateTimePickerSheet: View {
     
     var body: some View {
         ZStack {
-            // Dark semi-transparent background
-            Color.black.opacity(0.4)
+            // Dark semi-transparent background with blur
+            Color.black.opacity(0.5)
                 .ignoresSafeArea()
+                .onTapGesture { onCancel() }
             
-            // Liquid Glass Card
+            // Liquid Glass Card - Centered popup
             VStack(spacing: 0) {
                 // Header
                 HStack(spacing: 0) {
@@ -331,7 +335,7 @@ struct DateTimePickerSheet: View {
                         Image(systemName: "xmark")
                             .font(.system(size: 18, weight: .medium))
                             .foregroundColor(.white)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 28, height: 28)
                     }
                     
                     Spacer()
@@ -347,13 +351,13 @@ struct DateTimePickerSheet: View {
                         Image(systemName: "checkmark")
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundColor(.black)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 28, height: 28)
                             .background(Color.white)
                             .clipShape(Circle())
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
+                .padding(.horizontal, 12)
+                .padding(.top, 12)
                 
                 // All Day Toggle
                 HStack {
@@ -367,15 +371,15 @@ struct DateTimePickerSheet: View {
                         .toggleStyle(SwitchToggleStyle(tint: Color(hex: "34C759")))
                         .frame(width: 51, height: 31)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
                 
                 Divider()
-                    .background(Color.white.opacity(0.15))
-                    .padding(.horizontal, 20)
+                    .background(Color.white.opacity(0.12))
+                    .padding(.horizontal, 16)
                 
                 // Start Date/Time Section - Same row layout
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     Text("Début")
                         .font(.system(size: 17))
                         .foregroundColor(.white)
@@ -387,10 +391,10 @@ struct DateTimePickerSheet: View {
                         Text(formattedDate(startDate))
                             .font(.system(size: 15, weight: .medium))
                             .foregroundColor(.white)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
                             .background(Color.white.opacity(0.12))
-                            .cornerRadius(16)
+                            .cornerRadius(14)
                     }
                     
                     if !isAllDay {
@@ -399,22 +403,22 @@ struct DateTimePickerSheet: View {
                             Text(formattedTime(startTime))
                                 .font(.system(size: 15, weight: .medium))
                                 .foregroundColor(.white)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
                                 .background(Color.white.opacity(0.12))
-                                .cornerRadius(16)
+                                .cornerRadius(14)
                         }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
                 
                 if hasEndTime && !isAllDay {
                     Divider()
-                        .background(Color.white.opacity(0.15))
-                        .padding(.horizontal, 20)
+                        .background(Color.white.opacity(0.12))
+                        .padding(.horizontal, 16)
                     
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Text("Fin")
                             .font(.system(size: 17))
                             .foregroundColor(.white)
@@ -425,42 +429,42 @@ struct DateTimePickerSheet: View {
                             Text(formattedTime(endTime))
                                 .font(.system(size: 15, weight: .medium))
                                 .foregroundColor(.white)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
                                 .background(Color.white.opacity(0.12))
-                                .cornerRadius(16)
+                                .cornerRadius(14)
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
                 }
                 
                 // Add End Time Link
                 if !hasEndTime && !isAllDay {
                     Divider()
-                        .background(Color.white.opacity(0.15))
-                        .padding(.horizontal, 20)
+                        .background(Color.white.opacity(0.12))
+                        .padding(.horizontal, 16)
                     
                     Button(action: { hasEndTime = true }) {
                         Text("Ajouter une heure de fin")
                             .font(.system(size: 17))
                             .foregroundColor(Color(hex: "0A84FF"))
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
                     }
                 }
                 
-                Spacer(minLength: 8)
+                Spacer(minLength: 4)
             }
+            .frame(maxWidth: 360)
             .background(
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(Color.white.opacity(0.15))
+                RoundedRectangle(cornerRadius: 28)
+                    .fill(Color.white.opacity(0.12))
                     .background(.ultraThinMaterial)
             )
-            .cornerRadius(24)
-            .padding(.horizontal, 12)
-            .padding(.bottom, 20)
+            .cornerRadius(28)
+            .shadow(color: Color.black.opacity(0.3), radius: 20, x: 0, y: 10)
         }
     }
     
