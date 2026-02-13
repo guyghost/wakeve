@@ -24,6 +24,9 @@ struct CreateEventSheet: View {
     @State private var hasEndTime = false
     @State private var endTime = Date().addingTimeInterval(3600) // +1 hour by default
     
+    // Event info sheet state
+    @State private var showingEventInfoSheet = false
+    
     var onEventCreated: (Event) -> Void = { _ in }
     
     var body: some View {
@@ -60,6 +63,19 @@ struct CreateEventSheet: View {
                     Spacer(minLength: 40)
                 }
             }
+        }
+        .sheet(isPresented: $showingEventInfoSheet) {
+            EventInfoSheet(
+                description: $description,
+                organizerName: .constant(userName ?? "Vous"),
+                organizerPhotoUrl: .constant(nil),
+                onDismiss: {
+                    showingEventInfoSheet = false
+                },
+                onConfirm: {
+                    showingEventInfoSheet = false
+                }
+            )
         }
         // Date Picker Popup Overlay
         if showingDatePicker {
@@ -241,7 +257,9 @@ struct CreateEventSheet: View {
                 .foregroundColor(.white)
             
             // Description button
-            Button(action: {}) {
+            Button(action: {
+                showingEventInfoSheet = true
+            }) {
                 Text("Ajouter une description")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(Color(hex: "1A1A3E"))
