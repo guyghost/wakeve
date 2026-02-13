@@ -163,7 +163,7 @@ struct AuthenticatedView: View {
                 .tag(WakeveTab.explore)
         }
         .tint(.wakevePrimary)
-        .sheet(isPresented: $showEventCreationSheet) {
+        .fullScreenCover(isPresented: $showEventCreationSheet) {
             CreateEventSheet(
                 userId: userId,
                 userName: authStateManager.currentUser?.name
