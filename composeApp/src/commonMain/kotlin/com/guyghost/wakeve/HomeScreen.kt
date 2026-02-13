@@ -82,6 +82,7 @@ import com.guyghost.wakeve.theme.HomeTextPrimaryDark
 import com.guyghost.wakeve.theme.HomeTextPrimaryLight
 import com.guyghost.wakeve.theme.HomeTextSecondaryDark
 import com.guyghost.wakeve.theme.HomeTextSecondaryLight
+import com.guyghost.wakeve.ui.components.CreateEventBottomSheet
 import kotlinx.datetime.toLocalDateTime
 
 enum class HomeEventFilter(
@@ -181,6 +182,7 @@ fun HomeScreen(
     var showMenu by remember { mutableStateOf(false) }
     var showFilterDropdown by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf(HomeEventFilter.UPCOMING) }
+    var showCreateEventSheet by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.dispatch(EventManagementContract.Intent.LoadEvents)
@@ -229,7 +231,7 @@ fun HomeScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { onNavigateTo("event_creation") },
+                        onClick = { showCreateEventSheet = true },
                         modifier = Modifier
                             .size(40.dp)
                             .background(
@@ -339,6 +341,20 @@ fun HomeScreen(
             onSignOut = { }
         )
     }
+    
+    // Create Event Bottom Sheet
+    CreateEventBottomSheet(
+        isVisible = showCreateEventSheet,
+        onDismiss = { showCreateEventSheet = false },
+        userId = "currentUser", // TODO: Get from auth state
+        userName = "Utilisateur",
+        onEventCreated = { event ->
+            viewModel.dispatch(
+                EventManagementContract.Intent.CreateEvent(event)
+            )
+            showCreateEventSheet = false
+        }
+    )
 }
 
 private fun filterEvents(events: List<Event>, filter: HomeEventFilter): List<Event> {
