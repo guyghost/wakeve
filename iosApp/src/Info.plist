@@ -41,6 +41,10 @@
 	<true/>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Wakeve utilise la reconnaissance vocale pour vous permettre de créer et gérer des événements en utilisant votre voix. Vos commandes vocales sont traitées localement sur votre appareil et ne sont pas envoyées à des serveurs tiers.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Wakeve utilise votre position pour suggérer des lieux proches lors de la création d'événements. Votre position n'est partagée qu'avec les participants que vous invitez.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Wakeve utilise votre position pour suggérer des lieux proches lors de la création d'événements. Votre position n'est partagée qu'avec les participants que vous invitez.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

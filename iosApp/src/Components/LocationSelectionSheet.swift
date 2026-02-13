@@ -1,12 +1,14 @@
 import SwiftUI
 import Shared
+import CoreLocation
+import Combine
 
 /// Bottom sheet for selecting a location.
 /// Matches the design from lugarres.png with native iOS Liquid Glass styling.
 ///
 /// Features:
 /// - Search bar with voice input button
-/// - Current location suggestion
+/// - Current location suggestion with geolocation
 /// - Optional custom location name input
 /// - Checkmark confirmation button
 /// - Liquid Glass dark theme design
@@ -31,14 +33,26 @@ struct LocationSelectionSheet: View {
     @State private var searchText: String = ""
     @State private var customLocationName: String = ""
     @State private var useCurrentLocation: Bool = false
+    @State private var currentAddress: String? = nil
+    @State private var isLoadingLocation: Bool = false
+    @State private var showPermissionAlert: Bool = false
     
     @FocusState private var searchFieldFocused: Bool
     @FocusState private var customNameFieldFocused: Bool
+    
+    @StateObject private var locationManager = LocationManager()
     
     // MARK: - Computed Properties
     
     private var isValid: Bool {
         useCurrentLocation || !customLocationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+    
+    private var displayLocationName: String {
+        if useCurrentLocation {
+            return currentAddress ?? "Ma position actuelle"
+        }
+        return customLocationName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     // MARK: - Body
@@ -82,6 +96,91 @@ struct LocationSelectionSheet: View {
                 }
             }
             .background(Color(.systemBackground))
+        }
+        .alert("Autoriser la localisation", isPresented: $showPermissionAlert) {
+            Button("Annuler", role: .cancel) {}
+            Button("Ouvrir les réglages") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+        } message: {
+            Text("Pour utiliser votre position actuelle, veuillez autoriser l'accès à la localisation dans les réglages.")
+        }
+        .onChange(of: locationManager.authorizationStatus) { _, newStatus in
+            handleAuthorizationChange(newStatus)
+        }
+        .onChange(of: locationManager.location) { _, newLocation in
+            if let location = newLocation {
+                reverseGeocode(location)
+            }
+        }
+        .onReceive(locationManager.$error) { error in
+            if let error = error {
+                print("Location error: \(error.localizedDescription)")
+                isLoadingLocation = false
+            }
+        }
+    }
+    
+    // MARK: - Authorization Handling
+    
+    private func handleAuthorizationChange(_ status: CLAuthorizationStatus) {
+        switch status {
+        case .authorizedWhenInUse, .authorizedAlways:
+            if useCurrentLocation {
+                locationManager.requestLocation()
+            }
+        case .denied, .restricted:
+            if useCurrentLocation {
+                showPermissionAlert = true
+                useCurrentLocation = false
+                isLoadingLocation = false
+            }
+        case .notDetermined:
+            if useCurrentLocation {
+                locationManager.requestAuthorization()
+            }
+        @unknown default:
+            break
+        }
+    }
+    
+    // MARK: - Geocoding
+    
+    private func reverseGeocode(_ location: CLLocation) {
+        let geocoder = CLGeocoder()
+        geocoder.reverseGeocodeLocation(location) { placemarks, error in
+            isLoadingLocation = false
+            
+            if let error = error {
+                print("Reverse geocoding error: \(error.localizedDescription)")
+                currentAddress = "Ma position actuelle"
+                return
+            }
+            
+            if let placemark = placemarks?.first {
+                // Build address string from available components
+                var addressComponents: [String] = []
+                
+                if let subThoroughfare = placemark.subThoroughfare {
+                    addressComponents.append(subThoroughfare)
+                }
+                if let thoroughfare = placemark.thoroughfare {
+                    addressComponents.append(thoroughfare)
+                }
+                if let locality = placemark.locality {
+                    addressComponents.append(locality)
+                }
+                
+                if addressComponents.isEmpty {
+                    currentAddress = "Ma position actuelle"
+                } else {
+                    currentAddress = addressComponents.joined(separator: ", ")
+                }
+            } else {
+                currentAddress = "Ma position actuelle"
+            }
         }
     }
     
@@ -146,6 +245,9 @@ struct LocationSelectionSheet: View {
                     useCurrentLocation.toggle()
                     if useCurrentLocation {
                         customLocationName = ""
+                        requestCurrentLocation()
+                    } else {
+                        currentAddress = nil
                     }
                 }
             } label: {
@@ -155,14 +257,29 @@ struct LocationSelectionSheet: View {
                             .fill(Color.blue.opacity(0.15))
                             .frame(width: 36, height: 36)
                         
-                        Image(systemName: "location.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.blue)
+                        if isLoadingLocation {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                                .frame(width: 16, height: 16)
+                        } else {
+                            Image(systemName: "location.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.blue)
+                        }
                     }
                     
-                    Text("Position actuelle")
-                        .font(.body.weight(.medium))
-                        .foregroundColor(.primary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Position actuelle")
+                            .font(.body.weight(.medium))
+                            .foregroundColor(.primary)
+                        
+                        if useCurrentLocation, let address = currentAddress {
+                            Text(address)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        }
+                    }
                     
                     Spacer()
                     
@@ -202,40 +319,35 @@ struct LocationSelectionSheet: View {
                 .padding(.horizontal)
             
             // Custom location text field
-            ZStack(alignment: .leading) {
-                if customLocationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            TextField("", text: $customLocationName)
+                .font(.body)
+                .foregroundColor(.primary)
+                .placeholder(when: customLocationName.isEmpty) {
                     Text("Exemple : chez Guy MANDINA NZEZA")
                         .font(.body)
                         .foregroundColor(.secondary.opacity(0.6))
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .accessibilityHidden(true)
                 }
-
-                TextField("", text: $customLocationName)
-                    .font(.body)
-                    .foregroundColor(.primary)
-                    .focused($customNameFieldFocused)
-                    .padding(12)
-            }
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color(.secondarySystemBackground))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .stroke(Color.primary.opacity(0.08), lineWidth: 1)
-            )
-            .onChange(of: customLocationName) { _, newValue in
-                if !newValue.isEmpty {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        useCurrentLocation = false
+                .focused($customNameFieldFocused)
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color(.secondarySystemBackground))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08), lineWidth: 1)
+                )
+                .onChange(of: customLocationName) { _, newValue in
+                    if !newValue.isEmpty {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            useCurrentLocation = false
+                            currentAddress = nil
+                        }
                     }
                 }
-            }
-            .padding(.horizontal)
-            .accessibilityLabel("Nom du lieu")
-            .accessibilityHint("Entrez un nom de lieu personnalisé")
+                .padding(.horizontal)
+                .accessibilityLabel("Nom du lieu")
+                .accessibilityHint("Entrez un nom de lieu personnalisé")
             
             // Help text
             Text("Facultatif. Ceci apparaît sur l'invitation.")
@@ -247,9 +359,25 @@ struct LocationSelectionSheet: View {
     
     // MARK: - Helpers
     
+    private func requestCurrentLocation() {
+        isLoadingLocation = true
+        
+        let status = locationManager.authorizationStatus
+        switch status {
+        case .notDetermined:
+            locationManager.requestAuthorization()
+        case .authorizedWhenInUse, .authorizedAlways:
+            locationManager.requestLocation()
+        case .denied, .restricted:
+            showPermissionAlert = true
+            isLoadingLocation = false
+            useCurrentLocation = false
+        @unknown default:
+            isLoadingLocation = false
+        }
+    }
+    
     private func triggerVoiceSearch() {
-        // TODO: Implement voice search using Speech framework
-        // For now, show a placeholder feedback
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
     }
@@ -261,7 +389,7 @@ struct LocationSelectionSheet: View {
         let locationType: Shared.LocationType
         
         if useCurrentLocation {
-            locationName = "Ma position actuelle"
+            locationName = currentAddress ?? "Ma position actuelle"
             locationType = .specificVenue
         } else {
             locationName = customLocationName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -282,7 +410,47 @@ struct LocationSelectionSheet: View {
     }
 }
 
-// MARK: - Previews
+// MARK: - Location Manager
+
+class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
+    private let manager = CLLocationManager()
+    
+    @Published var location: CLLocation?
+    @Published var authorizationStatus: CLAuthorizationStatus = .notDetermined
+    @Published var error: Error?
+    
+    override init() {
+        super.init()
+        manager.delegate = self
+        authorizationStatus = manager.authorizationStatus
+    }
+    
+    func requestAuthorization() {
+        manager.requestWhenInUseAuthorization()
+    }
+    
+    func requestLocation() {
+        error = nil
+        manager.requestLocation()
+    }
+    
+    // MARK: - CLLocationManagerDelegate
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        location = locations.first
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        self.error = error
+        print("Location manager error: \(error.localizedDescription)")
+    }
+    
+    func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
+        authorizationStatus = manager.authorizationStatus
+    }
+}
+
+// MARK: - Preview
 
 struct LocationSelectionSheet_Previews: PreviewProvider {
     static var previews: some View {
