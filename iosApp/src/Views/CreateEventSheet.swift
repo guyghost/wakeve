@@ -27,6 +27,9 @@ struct CreateEventSheet: View {
     // Event info sheet state
     @State private var showingEventInfoSheet = false
     
+    // Location sheet state
+    @State private var showingLocationSheet = false
+    
     var onEventCreated: (Event) -> Void = { _ in }
     
     var body: some View {
@@ -74,6 +77,17 @@ struct CreateEventSheet: View {
                 },
                 onConfirm: {
                     showingEventInfoSheet = false
+                }
+            )
+        }
+        .sheet(isPresented: $showingLocationSheet) {
+            LocationSelectionSheet(
+                onDismiss: {
+                    showingLocationSheet = false
+                },
+                onConfirm: { location in
+                    selectedLocation = location.name
+                    showingLocationSheet = false
                 }
             )
         }
@@ -223,7 +237,7 @@ struct CreateEventSheet: View {
                 isPlaceholder: selectedLocation == nil,
                 iconColor: Color(hex: "6366F1")
             ) {
-                // Show location picker
+                showingLocationSheet = true
             }
         }
         .background(Color(hex: "1A1A3E").opacity(0.7))
