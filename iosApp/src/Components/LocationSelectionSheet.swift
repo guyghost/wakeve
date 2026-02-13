@@ -196,6 +196,11 @@ struct LocationSelectionSheet: View {
                 .font(.body)
                 .foregroundColor(.primary)
                 .focused($searchFieldFocused)
+                .onChange(of: searchFieldFocused) { _, isFocused in
+                    if isFocused {
+                        requestLocationPermissionForSearch()
+                    }
+                }
             
             if !searchText.isEmpty {
                 Button {
@@ -358,6 +363,24 @@ struct LocationSelectionSheet: View {
     }
     
     // MARK: - Helpers
+    
+    private func requestLocationPermissionForSearch() {
+        let status = locationManager.authorizationStatus
+        switch status {
+        case .notDetermined:
+            // Request permission when user taps search field
+            locationManager.requestAuthorization()
+        case .authorizedWhenInUse, .authorizedAlways:
+            // Permission already granted, user can type freely
+            break
+        case .denied, .restricted:
+            // Permission denied, show alert but still allow typing
+            // User can still search by typing manually
+            break
+        @unknown default:
+            break
+        }
+    }
     
     private func requestCurrentLocation() {
         isLoadingLocation = true
