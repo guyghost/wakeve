@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { useState } from 'react';
 
@@ -32,6 +33,7 @@ function NavItem({
 export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
@@ -48,16 +50,16 @@ export function Layout() {
             <NavLink
               to="/"
               className="text-xl font-bold text-wakeve-700 tracking-tight"
-              aria-label="Accueil Wakeve"
+              aria-label={t('nav.homeAriaLabel')}
             >
               Wakeve
             </NavLink>
 
             {/* Desktop nav */}
-            <nav className="hidden md:flex items-center gap-1" aria-label="Navigation principale">
+            <nav className="hidden md:flex items-center gap-1" aria-label={t('nav.mainNav')}>
               <NavItem
                 to="/"
-                label="Evenements"
+                label={t('nav.events')}
                 icon={
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
@@ -66,7 +68,7 @@ export function Layout() {
               />
               <NavItem
                 to="/explore"
-                label="Explorer"
+                label={t('nav.explore')}
                 icon={
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -75,7 +77,7 @@ export function Layout() {
               />
               <NavItem
                 to="/dashboard"
-                label="Tableau de bord"
+                label={t('nav.dashboard')}
                 icon={
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
@@ -84,7 +86,7 @@ export function Layout() {
               />
               <NavItem
                 to="/profile"
-                label="Profil"
+                label={t('nav.profile')}
                 icon={
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
@@ -96,14 +98,14 @@ export function Layout() {
             {/* User info & logout */}
             <div className="hidden md:flex items-center gap-3">
               <span className="text-sm text-gray-500">
-                {user?.name || user?.email || 'Invite'}
+                {user?.name || user?.email || t('common.guest')}
               </span>
               <button
                 onClick={handleLogout}
                 className="text-sm text-gray-500 hover:text-red-600 transition-colors"
-                aria-label="Se deconnecter"
+                aria-label={t('auth.logout')}
               >
-                Deconnexion
+                {t('auth.logoutShort')}
               </button>
             </div>
 
@@ -111,7 +113,7 @@ export function Layout() {
             <button
               className="md:hidden p-2 rounded-lg hover:bg-gray-100"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+              aria-label={mobileMenuOpen ? t('nav.closeMenu') : t('nav.openMenu')}
               aria-expanded={mobileMenuOpen}
             >
               {mobileMenuOpen ? (
@@ -129,10 +131,10 @@ export function Layout() {
 
         {/* Mobile nav */}
         {mobileMenuOpen && (
-          <nav className="md:hidden border-t border-gray-200 px-4 py-3 space-y-1" aria-label="Navigation mobile">
+          <nav className="md:hidden border-t border-gray-200 px-4 py-3 space-y-1" aria-label={t('nav.mobileNav')}>
             <NavItem
               to="/"
-              label="Evenements"
+              label={t('nav.events')}
               icon={
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
@@ -141,7 +143,7 @@ export function Layout() {
             />
             <NavItem
               to="/explore"
-              label="Explorer"
+              label={t('nav.explore')}
               icon={
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -150,7 +152,7 @@ export function Layout() {
             />
             <NavItem
               to="/profile"
-              label="Profil"
+              label={t('nav.profile')}
               icon={
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
@@ -159,13 +161,13 @@ export function Layout() {
             />
             <div className="border-t border-gray-200 pt-2 mt-2">
               <span className="block px-4 py-1 text-sm text-gray-500">
-                {user?.name || user?.email || 'Invite'}
+                {user?.name || user?.email || t('common.guest')}
               </span>
               <button
                 onClick={handleLogout}
                 className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg"
               >
-                Deconnexion
+                {t('auth.logoutShort')}
               </button>
             </div>
           </nav>
@@ -182,7 +184,7 @@ export function Layout() {
       {/* Mobile bottom nav */}
       <nav
         className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 z-30"
-        aria-label="Navigation mobile bas"
+        aria-label={t('nav.mobileNavBottom')}
       >
         <div className="flex justify-around py-2">
           <NavLink
@@ -192,12 +194,12 @@ export function Layout() {
                 isActive ? 'text-wakeve-600' : 'text-gray-500'
               }`
             }
-            aria-label="Evenements"
+            aria-label={t('nav.events')}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
             </svg>
-            <span>Evenements</span>
+            <span>{t('nav.events')}</span>
           </NavLink>
           <NavLink
             to="/explore"
@@ -206,22 +208,22 @@ export function Layout() {
                 isActive ? 'text-wakeve-600' : 'text-gray-500'
               }`
             }
-            aria-label="Explorer"
+            aria-label={t('nav.explore')}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
             </svg>
-            <span>Explorer</span>
+            <span>{t('nav.explore')}</span>
           </NavLink>
           <NavLink
             to="/create"
             className="flex flex-col items-center gap-0.5 px-3 py-1 text-xs text-white bg-wakeve-600 rounded-full -mt-4 shadow-lg"
-            aria-label="Creer un evenement"
+            aria-label={t('nav.createEvent')}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
-            <span>Creer</span>
+            <span>{t('nav.create')}</span>
           </NavLink>
           <NavLink
             to="/profile"
@@ -230,12 +232,12 @@ export function Layout() {
                 isActive ? 'text-wakeve-600' : 'text-gray-500'
               }`
             }
-            aria-label="Profil"
+            aria-label={t('nav.profile')}
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
             </svg>
-            <span>Profil</span>
+            <span>{t('nav.profile')}</span>
           </NavLink>
         </div>
       </nav>

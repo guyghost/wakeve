@@ -69,7 +69,7 @@ struct MeetingDetailView: View {
                     errorView
                 }
             }
-            .navigationTitle("Détails de la réunion")
+            .navigationTitle(String(localized: "meetings.detail_title"))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -77,30 +77,30 @@ struct MeetingDetailView: View {
                     Button(action: onBack) {
                         Image(systemName: "chevron.left")
                             .foregroundColor(.primary)
-                            .accessibilityLabel("Retour")
+                            .accessibilityLabel(String(localized: "common.back"))
                     }
                 }
             }
             #endif
         }
         .onAppear(perform: loadMeeting)
-        .alert("Annuler la réunion?", isPresented: $showCancelConfirmation) {
-            Button("Annuler", role: .cancel) {}
-            Button("Confirmer", role: .destructive) {
+        .alert(String(localized: "meetings.cancel_confirm"), isPresented: $showCancelConfirmation) {
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+            Button(String(localized: "common.confirm"), role: .destructive) {
                 cancelMeeting()
             }
         } message: {
-            Text("Cette action ne peut pas être annulée.")
+            Text(String(localized: "meetings.cancel_warning"))
         }
-        .alert("Ajouter au calendrier?", isPresented: $showCalendarConfirmation) {
-            Button("Annuler", role: .cancel) {}
-            Button("Ajouter") {
+        .alert(String(localized: "meetings.add_to_calendar_title"), isPresented: $showCalendarConfirmation) {
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+            Button(String(localized: "common.add")) {
                 if let meeting = meeting {
                     onAddToCalendar?(meeting)
                 }
             }
         } message: {
-            Text("Cette réunion sera ajoutée à votre calendrier.")
+            Text(String(localized: "meetings.add_to_calendar_message"))
         }
     }
     
@@ -111,7 +111,7 @@ struct MeetingDetailView: View {
             ProgressView()
                 .scaleEffect(1.5)
                 .tint(.wakevePrimary)
-            Text("Chargement...")
+            Text(String(localized: "common.loading"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
@@ -127,11 +127,11 @@ struct MeetingDetailView: View {
                     .font(.system(size: 64))
                     .foregroundColor(.wakeveError)
                 
-                Text("Réunion non trouvée")
+                Text(String(localized: "meetings.not_found"))
                     .font(.title3)
                     .fontWeight(.semibold)
-                
-                LiquidGlassButton(title: "Retour", style: .primary) {
+
+                LiquidGlassButton(title: String(localized: "common.back"), style: .primary) {
                     onBack()
                 }
             }
@@ -194,7 +194,7 @@ struct MeetingDetailView: View {
                 // Status badge
                 if meeting.canJoin {
                     LiquidGlassBadge(
-                        text: "Prêt à rejoindre",
+                        text: String(localized: "meetings.ready_to_join"),
                         icon: "checkmark.circle.fill",
                         style: .success
                     )
@@ -211,7 +211,7 @@ struct MeetingDetailView: View {
         VStack(spacing: 0) {
             // Date and time
             LiquidGlassListItem(
-                title: "Date et heure",
+                title: String(localized: "meetings.date_time"),
                 subtitle: meeting.dateTime,
                 icon: "calendar",
                 iconColor: meeting.platformColor
@@ -224,8 +224,8 @@ struct MeetingDetailView: View {
             
             // Participants count
             LiquidGlassListItem(
-                title: "Participants",
-                subtitle: "\(meeting.participants.count) personnes",
+                title: String(localized: "meetings.participants"),
+                subtitle: "\(meeting.participants.count) \(String(localized: "meetings.people"))",
                 icon: "person.2",
                 iconColor: .wakeveAccent
             ) {
@@ -237,7 +237,7 @@ struct MeetingDetailView: View {
             
             // Duration
             LiquidGlassListItem(
-                title: "Durée",
+                title: String(localized: "meetings.duration"),
                 subtitle: meeting.duration,
                 icon: "clock",
                 iconColor: .wakeveWarning
@@ -256,7 +256,7 @@ struct MeetingDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 // Header with badge
                 HStack {
-                    Text("Participants")
+                    Text(String(localized: "meetings.participants"))
                         .font(.headline)
                         .foregroundColor(.primary)
                     
@@ -307,7 +307,7 @@ struct MeetingDetailView: View {
                         .foregroundColor(.primary)
                     
                     if isOrganizer {
-                        LiquidGlassBadge(text: "Organisateur", style: .info)
+                        LiquidGlassBadge(text: String(localized: "meetings.organizer"), style: .info)
                     }
                 }
                 
@@ -357,9 +357,9 @@ struct MeetingDetailView: View {
     
     private func statusText(for status: ParticipantStatus) -> String {
         switch status {
-        case .confirmed: return "Confirmé"
-        case .pending: return "En attente"
-        case .tentative: return "Peut-être"
+        case .confirmed: return String(localized: "status.confirmed")
+        case .pending: return String(localized: "status.pending")
+        case .tentative: return String(localized: "status.maybe")
         }
     }
     
@@ -387,30 +387,30 @@ struct MeetingDetailView: View {
         VStack(spacing: 12) {
             // Join button (primary action)
             if meeting.canJoin {
-                LiquidGlassButton(title: "Rejoindre la réunion", style: .primary) {
+                LiquidGlassButton(title: String(localized: "meetings.join"), style: .primary) {
                     onJoinMeeting(meeting.meetingUrl)
                 }
-                .accessibilityLabel("Rejoindre la réunion")
-                .accessibilityHint("Ouvre le lien de la réunion")
+                .accessibilityLabel(String(localized: "meetings.join"))
+                .accessibilityHint(String(localized: "meetings.join_hint"))
             }
             
             // Add to calendar button (if available)
             if onAddToCalendar != nil {
-                LiquidGlassButton(title: "Ajouter au calendrier", style: .secondary) {
+                LiquidGlassButton(title: String(localized: "meetings.add_to_calendar"), style: .secondary) {
                     showCalendarConfirmation = true
                 }
-                .accessibilityLabel("Ajouter au calendrier")
-                .accessibilityHint("Ajoute cette réunion à votre calendrier")
+                .accessibilityLabel(String(localized: "meetings.add_to_calendar"))
+                .accessibilityHint(String(localized: "meetings.add_to_calendar_hint"))
             }
             
             // Cancel button (destructive)
             if onCancelMeeting != nil {
-                LiquidGlassButton(title: "Annuler la réunion", style: .text) {
+                LiquidGlassButton(title: String(localized: "meetings.cancel"), style: .text) {
                     showCancelConfirmation = true
                 }
                 .foregroundColor(.wakeveError)
-                .accessibilityLabel("Annuler la réunion")
-                .accessibilityHint("Annule et supprime cette réunion")
+                .accessibilityLabel(String(localized: "meetings.cancel"))
+                .accessibilityHint(String(localized: "meetings.cancel_hint"))
             }
         }
         .accessibilityIdentifier("actionButtons")

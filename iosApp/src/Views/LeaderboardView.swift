@@ -41,11 +41,11 @@ struct LeaderboardView: View {
                     await refreshData()
                 }
             }
-            .navigationTitle("Classement")
+            .navigationTitle(String(localized: "leaderboard.title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Fermer") {
+                    Button(String(localized: "leaderboard.close")) {
                         dismiss()
                     }
                 }
@@ -128,7 +128,7 @@ struct LeaderboardView: View {
                     .foregroundColor(.white)
             }
 
-            Text(entry.isCurrentUser ? "Vous" : entry.username.components(separatedBy: " ").first ?? "")
+            Text(entry.isCurrentUser ? String(localized: "leaderboard.you") : entry.username.components(separatedBy: " ").first ?? "")
                 .font(.caption)
                 .fontWeight(entry.isCurrentUser ? .bold : .medium)
                 .foregroundColor(.primary)
@@ -139,7 +139,7 @@ struct LeaderboardView: View {
                 .fontWeight(.bold)
                 .foregroundColor(.blue)
 
-            Text("\(entry.badgesCount) badges")
+            Text(String(format: String(localized: "leaderboard.badges_count"), entry.badgesCount))
                 .font(.caption2)
                 .foregroundColor(.secondary)
 
@@ -182,7 +182,7 @@ struct LeaderboardView: View {
             // User info
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 4) {
-                    Text(entry.isCurrentUser ? "Vous" : entry.username)
+                    Text(entry.isCurrentUser ? String(localized: "leaderboard.you") : entry.username)
                         .font(.subheadline)
                         .fontWeight(entry.isCurrentUser ? .bold : .medium)
                         .foregroundColor(.primary)
@@ -194,7 +194,7 @@ struct LeaderboardView: View {
                     }
                 }
 
-                Text("\(entry.badgesCount) badges")
+                Text(String(format: String(localized: "leaderboard.badges_count"), entry.badgesCount))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -208,7 +208,7 @@ struct LeaderboardView: View {
                     .fontWeight(.bold)
                     .foregroundColor(.blue)
 
-                Text("points")
+                Text(String(localized: "leaderboard.points"))
                     .font(.caption2)
                     .foregroundColor(.secondary)
             }
@@ -256,10 +256,10 @@ enum LeaderboardFilter: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .global: return "Global"
-        case .thisMonth: return "Ce mois"
-        case .thisWeek: return "Cette semaine"
-        case .friends: return "Amis"
+        case .global: return String(localized: "leaderboard.filter.global")
+        case .thisMonth: return String(localized: "leaderboard.filter.this_month")
+        case .thisWeek: return String(localized: "leaderboard.filter.this_week")
+        case .friends: return String(localized: "leaderboard.filter.friends")
         }
     }
 }

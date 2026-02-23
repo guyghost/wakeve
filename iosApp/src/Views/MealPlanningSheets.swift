@@ -106,12 +106,12 @@ struct MealFormSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Enregistrer") {
+                    Button(String(localized: "common.save")) {
                         saveMeal()
                     }
                 }
@@ -315,7 +315,7 @@ struct AutoGenerateMealsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }
@@ -465,7 +465,7 @@ struct DietaryRestrictionsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fermer") {
+                    Button(String(localized: "common.close")) {
                         dismiss()
                     }
                 }
@@ -487,11 +487,11 @@ struct DietaryRestrictionsSheet: View {
                     }
                 )
             }
-            .alert("Supprimer cette contrainte ?", isPresented: $showDeleteAlert, presenting: restrictionToDelete) { restriction in
-                Button("Annuler", role: .cancel) {
+            .alert(String(localized: "meal.delete_constraint"), isPresented: $showDeleteAlert, presenting: restrictionToDelete) { restriction in
+                Button(String(localized: "common.cancel"), role: .cancel) {
                     restrictionToDelete = nil
                 }
-                Button("Supprimer", role: .destructive) {
+                Button(String(localized: "common.delete"), role: .destructive) {
                     restrictions.removeAll { $0.id == restriction.id }
                     restrictionToDelete = nil
                 }
@@ -650,12 +650,12 @@ struct AddDietaryRestrictionSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Enregistrer") {
+                    Button(String(localized: "common.save")) {
                         saveRestriction()
                     }
                     .disabled(selectedParticipantId.isEmpty)

@@ -526,4 +526,127 @@
     <string name="plan_meetings">Planifiez des réunions virtuelles pour votre événement</string>
     <string name="loading_label">Chargement…</string>
     <string name="organizer_will_create">Quand l\'organisateur crée une réunion, elle apparaîtra ici</string>
+
+    <!-- Explore Screen -->
+    <string name="explore_title">Explorer</string>
+    <string name="explore_search_hint">Rechercher un événement…</string>
+    <string name="explore_results_count">%1$d résultats</string>
+    <string name="explore_trending">Tendances</string>
+    <string name="explore_recommended">Recommandés pour vous</string>
+    <string name="explore_event_ideas">Idées d\'événements</string>
+    <string name="explore_planning_tips">Conseils de planification</string>
+    <string name="explore_empty_title">Rien à explorer pour le moment</string>
+    <string name="explore_empty_subtitle">Les événements apparaîtront ici dès qu\'ils seront créés.\nCommencez par en créer un !</string>
+    <string name="explore_no_results_title">Aucun résultat pour « %1$s »</string>
+    <string name="explore_no_results_hint">Essayez avec d\'autres mots-clés ou modifiez les filtres.</string>
+    <string name="explore_use_template">Utiliser ce modèle</string>
+    <string name="explore_category_all">Tout</string>
+    <string name="explore_category_social">Social</string>
+    <string name="explore_category_sport">Sport</string>
+    <string name="explore_category_culture">Culture</string>
+    <string name="explore_category_professional">Pro</string>
+    <string name="explore_category_food">Gastronomie</string>
+    <string name="explore_category_wellness">Bien-être</string>
+    <string name="explore_template_weekend_name">Week-end entre amis</string>
+    <string name="explore_template_weekend_desc">Escapade de 2-3 jours avec hébergement et activités</string>
+    <string name="explore_template_family_name">Réunion de famille</string>
+    <string name="explore_template_family_desc">Rassemblement familial avec repas et photos</string>
+    <string name="explore_template_trip_name">Voyage de groupe</string>
+    <string name="explore_template_trip_desc">Séjour de plusieurs jours avec transport et budget partagé</string>
+    <string name="explore_template_sport_name">Événement sportif</string>
+    <string name="explore_template_sport_desc">Compétition ou sortie sportive collective</string>
+    <string name="explore_tip_slots_title">Proposez plusieurs créneaux</string>
+    <string name="explore_tip_slots_content">Plus vous proposez de dates, plus il est facile de trouver un consensus.</string>
+    <string name="explore_tip_deadline_title">Définissez une échéance claire</string>
+    <string name="explore_tip_deadline_content">Une date limite de vote incite les participants à répondre rapidement.</string>
+    <string name="explore_tip_scenarios_title">Créez des scénarios</string>
+    <string name="explore_tip_scenarios_content">Comparez différentes options (destination, hébergement, activités) pour optimiser votre événement.</string>
+    <string name="explore_tip_budget_title">Partagez le budget tôt</string>
+    <string name="explore_tip_budget_content">Une transparence précoce sur les coûts évite les mauvaises surprises.</string>
+
+    <!-- Notification Screen (new) -->
+    <string name="notification_date_today">Aujourd\'hui</string>
+    <string name="notification_date_yesterday">Hier</string>
+    <string name="notification_date_this_week">Cette semaine</string>
+    <string name="notification_date_older">Plus ancien</string>
+    <string name="notification_just_now">À l\'instant</string>
+    <string name="notification_minutes_ago">Il y a %1$d min</string>
+    <string name="notification_hours_ago">Il y a %1$dh</string>
+    <string name="notification_days_ago">Il y a %1$dj</string>
+    <string name="notification_empty_body">Vos notifications apparaîtront ici lorsque quelqu\'un votera, commentera ou mettra à jour un événement.</string>
+
+    <!-- Notification Preferences -->
+    <string name="prefs_title">Préférences</string>
+    <string name="prefs_save">Enregistrer</string>
+    <string name="prefs_notification_types">Types de notifications</string>
+    <string name="prefs_votes_desc">Recevoir une notification lorsqu\'un participant vote</string>
+    <string name="prefs_comments_desc">Recevoir une notification pour les nouveaux commentaires</string>
+    <string name="prefs_status_changes">Changements de statut</string>
+    <string name="prefs_status_changes_desc">Être notifié lorsqu\'un événement change de statut</string>
+    <string name="prefs_reminders">Rappels</string>
+    <string name="prefs_reminders_desc">Rappels le jour de l\'événement</string>
+    <string name="prefs_deadlines">Échéances</string>
+    <string name="prefs_deadlines_desc">Rappels avant la date limite des sondages</string>
+    <string name="prefs_weekly_digest">Résumé hebdomadaire</string>
+    <string name="prefs_weekly_digest_desc">Recevoir un résumé chaque lundi</string>
+    <string name="prefs_general">Général</string>
+    <string name="prefs_sound">Son</string>
+    <string name="prefs_do_not_disturb">Ne pas déranger</string>
+    <string name="prefs_quiet_hours">Heures silencieuses</string>
+    <string name="prefs_quiet_hours_desc">Les notifications seront mises en sourdine pendant cette période.</string>
+
+    <!-- Invitation Share (new) -->
+    <string name="invitation_copy">Copier</string>
+    <string name="invitation_share_text">Rejoins l\'événement « %1$s » sur Wakeve !\n%2$s</string>
+    <string name="invitation_share_subject">Invitation Wakeve : %1$s</string>
+    <string name="invitation_qr_description">QR Code de l\'invitation</string>
+    <string name="invitation_share_chooser">Partager l\'invitation</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Tableau de bord</string>
+    <string name="dashboard_overview">Vue d\'ensemble</string>
+    <string name="dashboard_events_by_status">Événements par statut</string>
+    <string name="dashboard_my_events">Mes événements</string>
+    <string name="dashboard_events">Événements</string>
+    <string name="dashboard_avg_per_event">Moy. / evt</string>
+    <string name="dashboard_response_rate">Taux rép.</string>
+    <string name="dashboard_view_details">Voir détails</string>
+    <string name="dashboard_participation_rate">Taux de participation</string>
+    <string name="dashboard_voted_of_total">%1$d sur %2$d participants ont voté</string>
+    <string name="dashboard_vote_timeline">Chronologie des votes</string>
+    <string name="dashboard_participant_timeline">Chronologie des inscriptions</string>
+    <string name="dashboard_popular_slots">Créneaux les plus populaires</string>
+    <string name="dashboard_yes">Oui : %1$d</string>
+    <string name="dashboard_maybe">Peut-être : %1$d</string>
+    <string name="dashboard_no">Non : %1$d</string>
+    <string name="dashboard_votes_count">%1$d votes</string>
+    <string name="dashboard_status_draft">Brouillon</string>
+    <string name="dashboard_status_polling">Sondage</string>
+    <string name="dashboard_status_comparing">Comparaison</string>
+    <string name="dashboard_status_confirmed">Confirmé</string>
+    <string name="dashboard_status_organizing">Organisation</string>
+    <string name="dashboard_status_finalized">Finalisé</string>
+    <string name="dashboard_mini_participants">Participants</string>
+    <string name="dashboard_mini_comm">Comm.</string>
+    <string name="dashboard_mini_resp">Rép.</string>
+
+    <!-- Profile Screen (new) -->
+    <string name="profile_title">Profil &amp; Succès</string>
+    <string name="profile_total_points">Points Totaux</string>
+    <string name="profile_level">Niveau %1$d</string>
+    <string name="profile_badges_section">Succès</string>
+    <string name="profile_badges_count">%1$d badges</string>
+    <string name="profile_locked">Verrouillé</string>
+    <string name="profile_category_creation">Création</string>
+    <string name="profile_category_voting">Votes</string>
+    <string name="profile_category_participation">Participation</string>
+    <string name="profile_category_engagement">Engagement</string>
+    <string name="profile_category_special">Spéciaux</string>
+    <string name="profile_leaderboard_all_time">Tout temps</string>
+
+    <!-- Leaderboard Screen (new) -->
+    <string name="leaderboard_title">Classement</string>
+    <string name="leaderboard_you">Vous</string>
+    <string name="leaderboard_badges">%1$d badges</string>
+    <string name="leaderboard_global">Global</string>
 </resources>

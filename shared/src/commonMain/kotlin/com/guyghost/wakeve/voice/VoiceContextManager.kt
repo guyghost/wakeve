@@ -116,6 +116,7 @@ class VoiceContextManager {
             Language.ES -> "¡Evento creado con éxito! Ahora puedes añadir horarios e invitar a participantes."
             Language.DE -> "Veranstaltung erfolgreich erstellt! Du kannst jetzt Zeiträume hinzufügen und Teilnehmer einladen."
             Language.IT -> "Evento creato con successo! Ora puoi aggiungere fasce orarie e invitare partecipanti."
+            Language.PT -> "Evento criado com sucesso! Agora pode adicionar horários e convidar participantes."
         }
     }
 
@@ -143,7 +144,7 @@ class VoiceContextManager {
                 "ANNIVERSAIRE" -> "Les anniversaires sont généralement plus sympas l'après-midi ou le soir. Voulez-vous que je vous propose des créneaux ?"
                 "TEAM_BUILDING" -> "Les team building fonctionnent mieux en semaine. Avez-vous besoin d'aide pour trouver un lieu ?"
                 "CULTURAL_EVENT" -> "Les musées et théâtres ont souvent des horaires spécifiques. Voulez-vous des suggestions de lieux culturels ?"
-                "SPORT_EVENT" -> "Pour les événements sportifs, pensez à réserver un terrain à l'avance. Combien de participants ожидаez-vous ?"
+                "SPORT_EVENT" -> "Pour les événements sportifs, pensez à réserver un terrain à l'avance. Combien de participants attendez-vous ?"
                 else -> null
             }
             Language.ES -> when (eventType.uppercase()) {
@@ -156,6 +157,7 @@ class VoiceContextManager {
                 else -> null
             }
             Language.IT -> null
+            Language.PT -> null
         }
     }
 
@@ -212,6 +214,7 @@ class VoiceContextManager {
             Language.ES -> "¿Cuál es el título de tu evento?"
             Language.DE -> "Wie lautet der Titel deiner Veranstaltung?"
             Language.IT -> "Qual è il titolo del tuo evento?"
+            Language.PT -> "Qual é o título do seu evento?"
         }
     }
 
@@ -222,6 +225,7 @@ class VoiceContextManager {
             Language.ES -> "¿Cuál es la descripción o los detalles adicionales para este evento?"
             Language.DE -> "Wie lautet die Beschreibung oder weitere Details für diese Veranstaltung?"
             Language.IT -> "Qual è la descrizione o i dettagli aggiuntivi per questo evento?"
+            Language.PT -> "Qual é a descrição ou os detalhes adicionais para este evento?"
         }
     }
 
@@ -232,6 +236,7 @@ class VoiceContextManager {
             Language.ES -> "¿Qué fecha y hora te gustaría programar para este evento?"
             Language.DE -> "Welches Datum und welche Uhrzeit möchtest du für diese Veranstaltung planen?"
             Language.IT -> "Quale data e orario vorresti programmare per questo evento?"
+            Language.PT -> "Que data e horário gostaria de agendar para este evento?"
         }
     }
 
@@ -242,6 +247,7 @@ class VoiceContextManager {
             Language.ES -> "¿Cuántos participantes esperas?"
             Language.DE -> "Wie viele Teilnehmer erwartest du?"
             Language.IT -> "Quanti partecipanti ti aspetti?"
+            Language.PT -> "Quantos participantes espera?"
         }
     }
 
@@ -252,6 +258,7 @@ class VoiceContextManager {
             Language.ES -> "¿Te gustaría que creara este evento con la información proporcionada? Confirma con \"sí\" o \"no\"."
             Language.DE -> "Möchtest du, dass ich diese Veranstaltung mit den bereitgestellten Informationen erstelle? Bitte bestätige mit \"ja\" oder \"nein\"."
             Language.IT -> "Vorresti che creassi questo evento con le informazioni fornite? Conferma con \"sì\" o \"no\"."
+            Language.PT -> "Gostaria que eu criasse este evento com as informações fornecidas? Confirme com \"sim\" ou \"não\"."
         }
     }
 
@@ -262,6 +269,7 @@ class VoiceContextManager {
             Language.ES -> "¡Evento creado con éxito! Ahora puedes añadir horarios, invitar a participantes o pedirme sugerencias."
             Language.DE -> "Veranstaltung erfolgreich erstellt! Du kannst jetzt Zeiträume hinzufügen, Teilnehmer einladen oder mich um Vorschläge bitten."
             Language.IT -> "Evento creato con successo! Ora puoi aggiungere fasce orarie, invitare partecipanti o chiedermi suggerimenti."
+            Language.PT -> "Evento criado com sucesso! Agora pode adicionar horários, convidar participantes ou pedir-me sugestões."
         }
     }
 

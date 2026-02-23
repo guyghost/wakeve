@@ -213,24 +213,24 @@ struct ExploreEventItem: Identifiable, Equatable {
         }
     }
 
-    /// French display name for the event type
+    /// Localized display name for the event type
     var eventTypeDisplayName: String {
         switch eventType {
-        case "BIRTHDAY": return "Anniversaire"
-        case "WEDDING": return "Mariage"
-        case "TEAM_BUILDING": return "Team building"
-        case "CONFERENCE": return "Conference"
-        case "WORKSHOP": return "Atelier"
-        case "PARTY": return "Soiree"
-        case "SPORTS_EVENT", "SPORT_EVENT": return "Sport"
-        case "CULTURAL_EVENT": return "Culture"
-        case "FAMILY_GATHERING": return "Famille"
-        case "OUTDOOR_ACTIVITY": return "Plein air"
-        case "FOOD_TASTING": return "Gastronomie"
-        case "TECH_MEETUP": return "Tech"
-        case "WELLNESS_EVENT": return "Bien-etre"
-        case "CREATIVE_WORKSHOP": return "Creatif"
-        default: return "Autre"
+        case "BIRTHDAY": return String(localized: "explore.event_type.birthday")
+        case "WEDDING": return String(localized: "explore.event_type.wedding")
+        case "TEAM_BUILDING": return String(localized: "explore.event_type.team_building")
+        case "CONFERENCE": return String(localized: "explore.event_type.conference")
+        case "WORKSHOP": return String(localized: "explore.event_type.workshop")
+        case "PARTY": return String(localized: "explore.event_type.party")
+        case "SPORTS_EVENT", "SPORT_EVENT": return String(localized: "explore.event_type.sport")
+        case "CULTURAL_EVENT": return String(localized: "explore.event_type.culture")
+        case "FAMILY_GATHERING": return String(localized: "explore.event_type.family")
+        case "OUTDOOR_ACTIVITY": return String(localized: "explore.event_type.outdoor")
+        case "FOOD_TASTING": return String(localized: "explore.event_type.food")
+        case "TECH_MEETUP": return String(localized: "explore.event_type.tech")
+        case "WELLNESS_EVENT": return String(localized: "explore.event_type.wellness")
+        case "CREATIVE_WORKSHOP": return String(localized: "explore.event_type.creative")
+        default: return String(localized: "explore.event_type.other")
         }
     }
 
@@ -265,13 +265,13 @@ enum EventCategoryItem: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .all: return "Tout"
-        case .social: return "Social"
-        case .sport: return "Sport"
-        case .culture: return "Culture"
-        case .professional: return "Pro"
-        case .food: return "Food"
-        case .wellness: return "Bien-etre"
+        case .all: return String(localized: "explore.category.all")
+        case .social: return String(localized: "explore.category.social")
+        case .sport: return String(localized: "explore.category.sport")
+        case .culture: return String(localized: "explore.category.culture")
+        case .professional: return String(localized: "explore.category.professional")
+        case .food: return String(localized: "explore.category.food")
+        case .wellness: return String(localized: "explore.category.wellness")
         }
     }
 

@@ -71,11 +71,11 @@ enum ItemStatus: String, CaseIterable {
     
     var label: String {
         switch self {
-        case .needed: return "Requis"
-        case .assigned: return "Assigné"
-        case .confirmed: return "Confirmé"
-        case .packed: return "Emballé"
-        case .cancelled: return "Annulé"
+        case .needed: return String(localized: "equipment.status.required")
+        case .assigned: return String(localized: "equipment.status.assigned")
+        case .confirmed: return String(localized: "equipment.status.confirmed")
+        case .packed: return String(localized: "equipment.status.packed")
+        case .cancelled: return String(localized: "equipment.status.cancelled")
         }
     }
     
@@ -112,11 +112,11 @@ enum ItemStatusFilter: String, CaseIterable {
     var label: String {
         switch self {
         case .all: return "Tous"
-        case .needed: return "Requis"
-        case .assigned: return "Assignés"
-        case .confirmed: return "Confirmés"
-        case .packed: return "Emballés"
-        case .cancelled: return "Annulés"
+        case .needed: return String(localized: "equipment.filter.required")
+        case .assigned: return String(localized: "equipment.filter.assigned")
+        case .confirmed: return String(localized: "equipment.filter.confirmed")
+        case .packed: return String(localized: "equipment.filter.packed")
+        case .cancelled: return String(localized: "equipment.filter.cancelled")
         }
     }
     
@@ -228,7 +228,7 @@ struct EquipmentItemFormSheet: View {
                 }
                 
                 Section("Attribution") {
-                    Picker("Assigné à", selection: $assignedTo) {
+                    Picker(String(localized: "equipment.assigned_to"), selection: $assignedTo) {
                         Text("Non assigné").tag(nil as String?)
                         ForEach(participants) { participant in
                             Text(participant.name).tag(participant.id as String?)
@@ -240,17 +240,17 @@ struct EquipmentItemFormSheet: View {
                     Toggle("Équipement partagé", isOn: $sharedItem)
                 }
             }
-            .navigationTitle(item == nil ? "Ajouter" : "Modifier")
+            .navigationTitle(item == nil ? String(localized: "common.add") : String(localized: "common.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    LiquidGlassButton(title: "Annuler", style: .secondary) {
+                    LiquidGlassButton(title: String(localized: "common.cancel"), style: .secondary) {
                         dismiss()
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     LiquidGlassButton(
-                        title: item == nil ? "Ajouter" : "Modifier",
+                        title: item == nil ? String(localized: "common.add") : String(localized: "common.edit"),
                         style: item == nil ? .primary : .primary
                     ) {
                         saveItem()
@@ -326,12 +326,12 @@ struct AssignItemSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    LiquidGlassButton(title: "Annuler", style: .secondary) {
+                    LiquidGlassButton(title: String(localized: "common.cancel"), style: .secondary) {
                         dismiss()
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    LiquidGlassButton(title: "Confirmer", style: .primary) {
+                    LiquidGlassButton(title: String(localized: "common.confirm"), style: .primary) {
                         onAssign(selectedParticipant)
                     }
                 }
@@ -382,7 +382,7 @@ struct AutoGenerateEquipmentSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    LiquidGlassButton(title: "Annuler", style: .secondary) {
+                    LiquidGlassButton(title: String(localized: "common.cancel"), style: .secondary) {
                         dismiss()
                     }
                 }
@@ -481,7 +481,7 @@ struct EquipmentChecklistView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    LiquidGlassButton(title: "Fermer", style: .secondary) {
+                    LiquidGlassButton(title: String(localized: "common.close"), style: .secondary) {
                         dismiss()
                     }
                 }
@@ -490,13 +490,13 @@ struct EquipmentChecklistView: View {
                         CommentButton(commentCount: commentCount) {
                             showComments = true
                         }
-                        
+
                         Menu {
                             Button {
                                 selectedItem = nil
                                 showAddItemSheet = true
                             } label: {
-                                Label("Ajouter un équipement", systemImage: "plus.circle")
+                                Label(String(localized: "equipment.add"), systemImage: "plus.circle")
                             }
                             
                             Button {
@@ -573,7 +573,7 @@ struct EquipmentChecklistView: View {
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar {
                         ToolbarItem(placement: .navigationBarLeading) {
-                            LiquidGlassButton(title: "Fermer", style: .secondary) {
+                            LiquidGlassButton(title: String(localized: "common.close"), style: .secondary) {
                                 showComments = false
                             }
                         }
@@ -581,7 +581,7 @@ struct EquipmentChecklistView: View {
                 }
             }
             .alert("Supprimer l'équipement", isPresented: $showDeleteAlert, presenting: itemToDelete) { item in
-                LiquidGlassButton(title: "Supprimer", style: .primary) {
+                LiquidGlassButton(title: String(localized: "common.delete"), style: .primary) {
                     equipmentItems.removeAll { $0.id == item.id }
                     itemToDelete = nil
                 }
@@ -625,14 +625,14 @@ struct EquipmentChecklistView: View {
     @ViewBuilder
     private var addItemButton: some View {
         LiquidGlassButton(
-            title: "Ajouter un équipement",
+            title: String(localized: "equipment.add"),
             style: .primary
         ) {
             selectedItem = nil
             showAddItemSheet = true
         }
-        .accessibilityLabel("Ajouter un équipement")
-        .accessibilityHint("Appuyez pour ajouter un nouvel équipement à la liste")
+        .accessibilityLabel(String(localized: "equipment.add"))
+        .accessibilityHint(String(localized: "equipment.add_hint"))
     }
     
     @ViewBuilder
@@ -661,27 +661,27 @@ struct EquipmentChecklistView: View {
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.wakevePrimary)
-                    Text("Requis")
+                    Text(String(localized: "equipment.stats.required"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 VStack {
                     Text("\(stats.assignedItems)")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.wakeveAccent)
-                    Text("Assignés")
+                    Text(String(localized: "equipment.stats.assigned"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
-                
+
                 VStack {
                     Text("\(stats.confirmedItems)")
                         .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(.wakeveSuccess)
-                    Text("Confirmés")
+                    Text(String(localized: "equipment.stats.confirmed"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -785,8 +785,8 @@ struct EquipmentChecklistView: View {
                     .font(.title2)
                     .foregroundColor(item.status == .packed ? .green : .secondary)
             }
-            .accessibilityLabel(item.status == .packed ? "Marquer comme non emballé" : "Marquer comme emballé")
-            .accessibilityHint("Appuyez pour changer le statut d'emballage de \(item.name)")
+            .accessibilityLabel(item.status == .packed ? String(localized: "equipment.mark_unpacked") : String(localized: "equipment.mark_packed"))
+            .accessibilityHint(String(localized: "equipment.pack_toggle_hint"))
             
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -826,8 +826,8 @@ struct EquipmentChecklistView: View {
                                 style: .accent
                             )
                         }
-                        .accessibilityLabel("Assigné à \(participant.name)")
-                        .accessibilityHint("Appuyez pour réassigner cet équipement")
+                        .accessibilityLabel("\(String(localized: "equipment.assigned_to")) \(participant.name)")
+                        .accessibilityHint(String(localized: "equipment.reassign_hint"))
                     } else {
                         Button {
                             itemToAssign = item
@@ -838,8 +838,8 @@ struct EquipmentChecklistView: View {
                                 style: .default
                             )
                         }
-                        .accessibilityLabel("Assigner cet équipement")
-                        .accessibilityHint("Appuyez pour assigner cet équipement à un participant")
+                        .accessibilityLabel(String(localized: "equipment.assign"))
+                        .accessibilityHint(String(localized: "equipment.assign_hint"))
                     }
                     
                     // Cost
@@ -857,24 +857,24 @@ struct EquipmentChecklistView: View {
                         showAddItemSheet = true
                     } label: {
                         LiquidGlassBadge(
-                            text: "Modifier",
+                            text: String(localized: "common.edit"),
                             icon: "pencil",
                             style: .default
                         )
                     }
-                    .accessibilityLabel("Modifier \(item.name)")
-                    
+                    .accessibilityLabel("\(String(localized: "common.edit")) \(item.name)")
+
                     Button {
                         itemToDelete = item
                         showDeleteAlert = true
                     } label: {
                         LiquidGlassBadge(
-                            text: "Supprimer",
+                            text: String(localized: "common.delete"),
                             icon: "trash",
                             style: .warning
                         )
                     }
-                    .accessibilityLabel("Supprimer \(item.name)")
+                    .accessibilityLabel("\(String(localized: "common.delete")) \(item.name)")
                 }
             }
             

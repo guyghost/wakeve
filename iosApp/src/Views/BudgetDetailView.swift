@@ -140,7 +140,7 @@ struct BudgetDetailView: View {
                     .toolbar {
                         ToolbarItem(placement: .navigationBarLeading) {
                             LiquidGlassButton(
-                                title: "Fermer",
+                                title: String(localized: "common.close"),
                                 style: .text
                             ) {
                                 showComments = false

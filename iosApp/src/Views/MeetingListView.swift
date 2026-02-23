@@ -56,14 +56,14 @@ struct MeetingListView: View {
 
             NavigationStack {
                 contentView
-                    .navigationTitle("Réunions")
+                    .navigationTitle(String(localized: "meetings.title"))
                     .navigationBarTitleDisplayMode(.large)
                     .toolbar {
                         ToolbarItem(placement: .navigationBarLeading) {
                             Button(action: onBack) {
                                 Image(systemName: "chevron.left")
                                     .foregroundColor(.primary)
-                                    .accessibilityLabel("Retour")
+                                    .accessibilityLabel(String(localized: "common.back"))
                             }
                         }
                         if isOrganizer {
@@ -71,7 +71,7 @@ struct MeetingListView: View {
                                 Button(action: onCreateMeeting) {
                                     Image(systemName: "plus")
                                         .foregroundColor(.primary)
-                                        .accessibilityLabel("Créer une réunion")
+                                        .accessibilityLabel(String(localized: "meetings.create"))
                                 }
                             }
                         }
@@ -224,7 +224,7 @@ struct MeetingListView: View {
             LazyVStack(spacing: 16) {
                 // Scheduled meetings
                 if !scheduledMeetings.isEmpty {
-                    Section(header: sectionHeader(title: "Planifiées", icon: "calendar")) {
+                    Section(header: sectionHeader(title: String(localized: "meetings.scheduled_plural"), icon: "calendar")) {
                         ForEach(scheduledMeetings, id: \.id) { meeting in
                             MeetingCard(
                                 meeting: meeting,
@@ -245,7 +245,7 @@ struct MeetingListView: View {
 
                 // Started meetings
                 if !startedMeetings.isEmpty {
-                    Section(header: sectionHeader(title: "En cours", icon: "play.circle.fill")) {
+                    Section(header: sectionHeader(title: String(localized: "meetings.started_plural"), icon: "play.circle.fill")) {
                         ForEach(startedMeetings, id: \.id) { meeting in
                             MeetingCard(
                                 meeting: meeting,
@@ -266,7 +266,7 @@ struct MeetingListView: View {
 
                 // Ended meetings
                 if !endedMeetings.isEmpty {
-                    Section(header: sectionHeader(title: "Terminées", icon: "checkmark.circle.fill")) {
+                    Section(header: sectionHeader(title: String(localized: "meetings.ended_plural"), icon: "checkmark.circle.fill")) {
                         ForEach(endedMeetings, id: \.id) { meeting in
                             MeetingCard(
                                 meeting: meeting,
@@ -281,7 +281,7 @@ struct MeetingListView: View {
 
                 // Cancelled meetings
                 if !cancelledMeetings.isEmpty {
-                    Section(header: sectionHeader(title: "Annulées", icon: "xmark.circle.fill")) {
+                    Section(header: sectionHeader(title: String(localized: "meetings.cancelled_plural"), icon: "xmark.circle.fill")) {
                         ForEach(cancelledMeetings, id: \.id) { meeting in
                             MeetingCard(
                                 meeting: meeting,
@@ -498,7 +498,7 @@ struct MeetingCard: View {
         HStack(spacing: 12) {
             if let onEdit = onEdit {
                 LiquidGlassButton(
-                    title: "Modifier",
+                    title: String(localized: "common.edit"),
                     icon: "pencil",
                     style: .secondary,
                     size: .small,
@@ -508,7 +508,7 @@ struct MeetingCard: View {
 
             if let onGenerateLink = onGenerateLink {
                 LiquidGlassButton(
-                    title: "Régénérer le lien",
+                    title: String(localized: "meetings.regenerate_link"),
                     icon: "link",
                     style: .primary,
                     size: .small,
@@ -517,7 +517,7 @@ struct MeetingCard: View {
             }
 
             LiquidGlassButton(
-                title: "Partager",
+                title: String(localized: "common.share"),
                 icon: "square.and.arrow.up",
                 style: .text,
                 size: .small,
@@ -565,11 +565,11 @@ struct MeetingCard: View {
 
     private var statusText: String {
         switch meeting.status {
-        case .scheduled: return "Planifiée"
-        case .started: return "En cours"
-        case .ended: return "Terminée"
-        case .cancelled: return "Annulée"
-        default: return "Inconnue"
+        case .scheduled: return String(localized: "meetings.scheduled")
+        case .started: return String(localized: "meetings.started")
+        case .ended: return String(localized: "meetings.ended")
+        case .cancelled: return String(localized: "meetings.cancelled")
+        default: return String(localized: "common.unknown")
         }
     }
 

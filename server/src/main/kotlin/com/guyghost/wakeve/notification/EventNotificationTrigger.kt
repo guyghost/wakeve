@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.notification
 
 import com.guyghost.wakeve.DatabaseEventRepository
+import com.guyghost.wakeve.i18n.ServerLocalizer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -43,6 +44,7 @@ class EventNotificationTrigger(
      * Cle : "userId:eventId" -> liste des noms de votants
      */
     private val pendingVoteNotifications = ConcurrentHashMap<String, MutableList<String>>()
+    private val pendingVoteLocales = ConcurrentHashMap<String, String>()
     private val voteFlushMutex = Mutex()
 
     /**
@@ -110,7 +112,7 @@ class EventNotificationTrigger(
      * @param voterId ID du participant qui a vote
      * @param voterName Nom du participant (optionnel)
      */
-    fun onVoteAdded(eventId: String, voterId: String, voterName: String? = null) {
+    fun onVoteAdded(eventId: String, voterId: String, voterName: String? = null, locale: String = "fr") {
         scope.launch {
             try {
                 val event = eventRepository.getEvent(eventId) ?: return@launch
@@ -119,12 +121,13 @@ class EventNotificationTrigger(
                 // Ne pas notifier l'organisateur s'il vote lui-meme
                 if (organizerId == voterId) return@launch
 
-                val displayName = voterName ?: "Un participant"
+                val displayName = voterName ?: ServerLocalizer.t("notification.vote.default_voter", locale)
                 val batchKey = "$organizerId:$eventId"
 
                 val isFirstInBatch = voteFlushMutex.withLock {
                     val pending = pendingVoteNotifications.getOrPut(batchKey) { mutableListOf() }
                     pending.add(displayName)
+                    pendingVoteLocales.putIfAbsent(batchKey, locale)
                     pending.size == 1 // Premier vote dans ce batch
                 }
 
@@ -153,16 +156,21 @@ class EventNotificationTrigger(
         eventTitle: String
     ) {
         try {
-            val voterNames = voteFlushMutex.withLock {
-                pendingVoteNotifications.remove(batchKey) ?: return
+            val voterNames: List<String>
+            val locale: String
+            voteFlushMutex.withLock {
+                voterNames = pendingVoteNotifications.remove(batchKey) ?: return
+                locale = pendingVoteLocales.remove(batchKey) ?: "fr"
             }
 
             if (voterNames.isEmpty()) return
 
             val (title, body) = if (voterNames.size == 1) {
-                "Nouveau vote" to "${voterNames.first()} a vote pour \"$eventTitle\""
+                ServerLocalizer.t("notification.vote.title_single", locale) to
+                    ServerLocalizer.t("notification.vote.body_single", locale, voterNames.first(), eventTitle)
             } else {
-                "Nouveaux votes" to "${voterNames.size} personnes ont vote pour \"$eventTitle\""
+                ServerLocalizer.t("notification.vote.title_multiple", locale) to
+                    ServerLocalizer.t("notification.vote.body_multiple", locale, voterNames.size, eventTitle)
             }
 
             val request = NotificationRequest(
@@ -195,7 +203,7 @@ class EventNotificationTrigger(
      * @param newStatus Nouveau statut de l'evenement
      * @param finalDate Date finale confirmee (si applicable)
      */
-    fun onEventStatusChanged(eventId: String, newStatus: String, finalDate: String? = null) {
+    fun onEventStatusChanged(eventId: String, newStatus: String, finalDate: String? = null, locale: String = "fr") {
         scope.launch {
             try {
                 val event = eventRepository.getEvent(eventId) ?: return@launch
@@ -204,23 +212,27 @@ class EventNotificationTrigger(
                 val (notificationType, title, body) = when (newStatus.uppercase()) {
                     "CONFIRMED", "FINALIZED" -> Triple(
                         NotificationType.DATE_CONFIRMED,
-                        "Date confirmee !",
-                        "La date de \"${event.title}\" est confirmee${finalDate?.let { " : $it" } ?: ""}"
+                        ServerLocalizer.t("notification.status.confirmed_title", locale),
+                        if (finalDate != null) {
+                            ServerLocalizer.t("notification.status.confirmed_body_with_date", locale, event.title, finalDate)
+                        } else {
+                            ServerLocalizer.t("notification.status.confirmed_body", locale, event.title)
+                        }
                     )
                     "POLLING" -> Triple(
                         NotificationType.VOTE_REMINDER,
-                        "Votez maintenant !",
-                        "Le sondage pour \"${event.title}\" est ouvert. Votez pour vos dates preferees."
+                        ServerLocalizer.t("notification.status.polling_title", locale),
+                        ServerLocalizer.t("notification.status.polling_body", locale, event.title)
                     )
                     "CANCELLED" -> Triple(
                         NotificationType.EVENT_UPDATE,
-                        "Evenement annule",
-                        "\"${event.title}\" a ete annule par l'organisateur."
+                        ServerLocalizer.t("notification.status.cancelled_title", locale),
+                        ServerLocalizer.t("notification.status.cancelled_body", locale, event.title)
                     )
                     else -> Triple(
                         NotificationType.EVENT_UPDATE,
-                        "Mise a jour",
-                        "\"${event.title}\" a ete mis a jour."
+                        ServerLocalizer.t("notification.status.updated_title", locale),
+                        ServerLocalizer.t("notification.status.updated_body", locale, event.title)
                     )
                 }
 
@@ -262,7 +274,7 @@ class EventNotificationTrigger(
      * @param authorName Nom de l'auteur
      * @param commentPreview Apercu du contenu du commentaire
      */
-    fun onNewComment(eventId: String, authorId: String, authorName: String, commentPreview: String) {
+    fun onNewComment(eventId: String, authorId: String, authorName: String, commentPreview: String, locale: String = "fr") {
         scope.launch {
             try {
                 val event = eventRepository.getEvent(eventId) ?: return@launch
@@ -281,8 +293,8 @@ class EventNotificationTrigger(
                     val request = NotificationRequest(
                         userId = participantId,
                         type = NotificationType.NEW_COMMENT,
-                        title = "$authorName a commente",
-                        body = "\"${event.title}\" : $truncatedPreview",
+                        title = ServerLocalizer.t("notification.comment.title", locale, authorName),
+                        body = ServerLocalizer.t("notification.comment.body", locale, event.title, truncatedPreview),
                         eventId = eventId,
                         data = mapOf(
                             "eventId" to eventId,
@@ -307,24 +319,24 @@ class EventNotificationTrigger(
      * @param eventId ID de l'evenement
      * @param hoursRemaining Heures restantes avant la deadline
      */
-    fun onDeadlineApproaching(eventId: String, hoursRemaining: Int) {
+    fun onDeadlineApproaching(eventId: String, hoursRemaining: Int, locale: String = "fr") {
         scope.launch {
             try {
                 val event = eventRepository.getEvent(eventId) ?: return@launch
                 val participants = eventRepository.getParticipants(eventId) ?: return@launch
 
                 val timeText = when {
-                    hoursRemaining <= 1 -> "moins d'une heure"
-                    hoursRemaining < 24 -> "$hoursRemaining heures"
-                    else -> "${hoursRemaining / 24} jour(s)"
+                    hoursRemaining <= 1 -> ServerLocalizer.t("notification.deadline.time_less_than_hour", locale)
+                    hoursRemaining < 24 -> ServerLocalizer.t("notification.deadline.time_hours", locale, hoursRemaining)
+                    else -> ServerLocalizer.t("notification.deadline.time_days", locale, hoursRemaining / 24)
                 }
 
                 for (participantId in participants) {
                     val request = NotificationRequest(
                         userId = participantId,
                         type = NotificationType.DEADLINE_REMINDER,
-                        title = "Deadline approche",
-                        body = "Il reste $timeText pour voter sur \"${event.title}\"",
+                        title = ServerLocalizer.t("notification.deadline.title", locale),
+                        body = ServerLocalizer.t("notification.deadline.body", locale, timeText, event.title),
                         eventId = eventId,
                         data = mapOf(
                             "eventId" to eventId,

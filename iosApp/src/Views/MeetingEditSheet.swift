@@ -80,15 +80,15 @@ struct MeetingEditSheet: View {
                     .padding(.top, 16)
                 }
             }
-            .navigationTitle("Modifier la réunion")
+            .navigationTitle(String(localized: "meetings.edit"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler", action: onCancel)
+                    Button(String(localized: "common.cancel"), action: onCancel)
                         .foregroundColor(.secondary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Enregistrer", action: saveMeeting)
+                    Button(String(localized: "common.save"), action: saveMeeting)
                         .fontWeight(.semibold)
                         .disabled(title.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
@@ -101,16 +101,16 @@ struct MeetingEditSheet: View {
 
     private var titleSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Titre")
+            Text(String(localized: "meetings.field_title"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.secondary)
 
             LiquidGlassTextField(
-                placeholder: "Titre de la réunion",
+                placeholder: String(localized: "meetings.title_placeholder"),
                 text: $title,
                 isSecure: false
             )
-            .accessibilityLabel("Titre de la réunion")
+            .accessibilityLabel(String(localized: "meetings.title_placeholder"))
         }
     }
 
@@ -118,7 +118,7 @@ struct MeetingEditSheet: View {
 
     private var descriptionSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Description (optionnel)")
+            Text(String(localized: "meetings.description_optional"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.secondary)
 
@@ -133,7 +133,7 @@ struct MeetingEditSheet: View {
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke(Color.wakeveBorderLight, lineWidth: 1)
                 )
-                .accessibilityLabel("Description de la réunion")
+                .accessibilityLabel(String(localized: "meetings.description_label"))
         }
     }
 
@@ -141,7 +141,7 @@ struct MeetingEditSheet: View {
 
     private var dateTimeSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Date et heure")
+            Text(String(localized: "meetings.date_time"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.secondary)
 
@@ -171,7 +171,7 @@ struct MeetingEditSheet: View {
                 )
             }
             .buttonStyle(PlainButtonStyle())
-            .accessibilityLabel("Date et heure de la réunion")
+            .accessibilityLabel(String(localized: "meetings.date_time_label"))
             .accessibilityHint(formattedDateTime)
             .sheet(isPresented: $showDatePicker) {
                 DatePickerSheet(
@@ -191,14 +191,14 @@ struct MeetingEditSheet: View {
 
     private var durationSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Durée")
+            Text(String(localized: "meetings.duration"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.secondary)
 
             HStack(spacing: 12) {
                 // Hours picker
                 durationPicker(
-                    label: "Heures",
+                    label: String(localized: "meetings.hours"),
                     value: $durationHours,
                     range: 0...24
                 )
@@ -210,7 +210,7 @@ struct MeetingEditSheet: View {
 
                 // Minutes picker
                 durationPicker(
-                    label: "Minutes",
+                    label: String(localized: "meetings.minutes"),
                     value: $durationMinutes,
                     range: 0...59
                 )
@@ -274,7 +274,7 @@ struct MeetingEditSheet: View {
 
     private var platformSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Plateforme")
+            Text(String(localized: "meetings.platform"))
                 .font(.system(size: 13, weight: .medium))
                 .foregroundColor(.secondary)
 
@@ -473,7 +473,7 @@ struct DatePickerSheet: View {
         NavigationStack {
             VStack(spacing: 20) {
                 DatePicker(
-                    "Date et heure",
+                    String(localized: "meetings.date_time"),
                     selection: $selectedDate,
                     displayedComponents: [.date, .hourAndMinute]
                 )
@@ -486,13 +486,13 @@ struct DatePickerSheet: View {
 
                 HStack(spacing: 12) {
                     LiquidGlassButton(
-                        title: "Annuler",
+                        title: String(localized: "common.cancel"),
                         style: .secondary,
                         action: onCancel
                     )
 
                     LiquidGlassButton(
-                        title: "Confirmer",
+                        title: String(localized: "common.confirm"),
                         style: .primary,
                         action: onConfirm
                     )
@@ -500,7 +500,7 @@ struct DatePickerSheet: View {
                 .padding(.horizontal, 20)
                 .padding(.bottom, 20)
             }
-            .navigationTitle("Sélectionner la date")
+            .navigationTitle(String(localized: "meetings.select_date"))
             .navigationBarTitleDisplayMode(.inline)
         }
     }

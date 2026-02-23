@@ -1,25 +1,26 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { eventsApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import type { CreateTimeSlotRequest, EventType } from '../types/api';
 
-const EVENT_TYPES: { value: EventType; label: string }[] = [
-  { value: 'BIRTHDAY', label: 'Anniversaire' },
-  { value: 'WEDDING', label: 'Mariage' },
-  { value: 'TEAM_BUILDING', label: 'Team Building' },
-  { value: 'CONFERENCE', label: 'Conference' },
-  { value: 'WORKSHOP', label: 'Atelier' },
-  { value: 'PARTY', label: 'Fete' },
-  { value: 'SPORTS_EVENT', label: 'Sport' },
-  { value: 'CULTURAL_EVENT', label: 'Evenement culturel' },
-  { value: 'FAMILY_GATHERING', label: 'Reunion de famille' },
-  { value: 'OUTDOOR_ACTIVITY', label: 'Plein air' },
-  { value: 'FOOD_TASTING', label: 'Degustation' },
-  { value: 'TECH_MEETUP', label: 'Tech Meetup' },
-  { value: 'WELLNESS_EVENT', label: 'Bien-etre' },
-  { value: 'CREATIVE_WORKSHOP', label: 'Atelier creatif' },
-  { value: 'OTHER', label: 'Autre' },
+const EVENT_TYPE_KEYS: { value: EventType; key: string }[] = [
+  { value: 'BIRTHDAY', key: 'events.typeBirthday' },
+  { value: 'WEDDING', key: 'events.typeWedding' },
+  { value: 'TEAM_BUILDING', key: 'events.typeTeamBuilding' },
+  { value: 'CONFERENCE', key: 'events.typeConference' },
+  { value: 'WORKSHOP', key: 'events.typeWorkshop' },
+  { value: 'PARTY', key: 'events.typeParty' },
+  { value: 'SPORTS_EVENT', key: 'events.typeSportsEvent' },
+  { value: 'CULTURAL_EVENT', key: 'events.typeCulturalEvent' },
+  { value: 'FAMILY_GATHERING', key: 'events.typeFamilyGathering' },
+  { value: 'OUTDOOR_ACTIVITY', key: 'events.typeOutdoorActivity' },
+  { value: 'FOOD_TASTING', key: 'events.typeFoodTasting' },
+  { value: 'TECH_MEETUP', key: 'events.typeTechMeetup' },
+  { value: 'WELLNESS_EVENT', key: 'events.typeWellnessEvent' },
+  { value: 'CREATIVE_WORKSHOP', key: 'events.typeCreativeWorkshop' },
+  { value: 'OTHER', key: 'events.typeOther' },
 ];
 
 interface SlotForm {
@@ -37,6 +38,7 @@ function generateId(): string {
 export function CreateEventPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -72,17 +74,17 @@ export function CreateEventPage() {
     setError('');
 
     if (!user) {
-      setError('Vous devez etre connecte pour creer un evenement.');
+      setError(t('create.errorNotLoggedIn'));
       return;
     }
 
     if (!title.trim()) {
-      setError('Le titre est requis.');
+      setError(t('create.errorTitleRequired'));
       return;
     }
 
     if (!deadline) {
-      setError('La date limite est requise.');
+      setError(t('create.errorDeadlineRequired'));
       return;
     }
 
@@ -121,7 +123,7 @@ export function CreateEventPage() {
       });
       navigate(`/events/${response.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la creation');
+      setError(err instanceof Error ? err.message : t('create.errorCreation'));
     } finally {
       setIsLoading(false);
     }
@@ -129,24 +131,24 @@ export function CreateEventPage() {
 
   return (
     <div className="pb-20 md:pb-0 max-w-2xl mx-auto">
-      <nav className="mb-4" aria-label="Fil d'Ariane">
+      <nav className="mb-4" aria-label={t('common.breadcrumb')}>
         <Link to="/" className="text-sm text-wakeve-600 hover:text-wakeve-700">
-          Evenements
+          {t('nav.events')}
         </Link>
         <span className="mx-2 text-gray-400">/</span>
-        <span className="text-sm text-gray-500">Nouvel evenement</span>
+        <span className="text-sm text-gray-500">{t('create.breadcrumbNew')}</span>
       </nav>
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Creer un evenement</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{t('create.title')}</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Title */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
-          <h2 className="font-semibold text-gray-900">Informations generales</h2>
+          <h2 className="font-semibold text-gray-900">{t('create.generalInfo')}</h2>
 
           <div>
             <label htmlFor="event-title" className="block text-sm font-medium text-gray-700 mb-1">
-              Titre *
+              {t('create.titleLabel')}
             </label>
             <input
               id="event-title"
@@ -154,7 +156,7 @@ export function CreateEventPage() {
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Soiree d'anniversaire"
+              placeholder={t('create.titlePlaceholder')}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-wakeve-500 focus:border-wakeve-500 outline-none"
               maxLength={100}
               disabled={isLoading}
@@ -163,14 +165,14 @@ export function CreateEventPage() {
 
           <div>
             <label htmlFor="event-description" className="block text-sm font-medium text-gray-700 mb-1">
-              Description
+              {t('create.descriptionLabel')}
             </label>
             <textarea
               id="event-description"
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Decrivez votre evenement..."
+              placeholder={t('create.descriptionPlaceholder')}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-wakeve-500 focus:border-wakeve-500 outline-none resize-none"
               maxLength={500}
               disabled={isLoading}
@@ -180,7 +182,7 @@ export function CreateEventPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="event-type" className="block text-sm font-medium text-gray-700 mb-1">
-                Type d'evenement
+                {t('create.eventTypeLabel')}
               </label>
               <select
                 id="event-type"
@@ -189,9 +191,9 @@ export function CreateEventPage() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-wakeve-500 focus:border-wakeve-500 outline-none bg-white"
                 disabled={isLoading}
               >
-                {EVENT_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
+                {EVENT_TYPE_KEYS.map((et) => (
+                  <option key={et.value} value={et.value}>
+                    {t(et.key)}
                   </option>
                 ))}
               </select>
@@ -199,7 +201,7 @@ export function CreateEventPage() {
 
             <div>
               <label htmlFor="event-participants" className="block text-sm font-medium text-gray-700 mb-1">
-                Participants attendus
+                {t('create.expectedParticipants')}
               </label>
               <input
                 id="event-participants"
@@ -207,7 +209,7 @@ export function CreateEventPage() {
                 min="1"
                 value={expectedParticipants}
                 onChange={(e) => setExpectedParticipants(e.target.value)}
-                placeholder="Ex: 10"
+                placeholder={t('create.expectedParticipantsPlaceholder')}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-wakeve-500 focus:border-wakeve-500 outline-none"
                 disabled={isLoading}
               />
@@ -216,7 +218,7 @@ export function CreateEventPage() {
 
           <div>
             <label htmlFor="event-deadline" className="block text-sm font-medium text-gray-700 mb-1">
-              Date limite de vote *
+              {t('create.deadlineLabel')}
             </label>
             <input
               id="event-deadline"
@@ -234,14 +236,14 @@ export function CreateEventPage() {
         {/* Time slots */}
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Creneaux proposes</h2>
+            <h2 className="font-semibold text-gray-900">{t('create.proposedSlots')}</h2>
             <button
               type="button"
               onClick={addSlot}
               className="text-sm text-wakeve-600 hover:text-wakeve-700 font-medium"
               disabled={isLoading}
             >
-              + Ajouter un creneau
+              {t('create.addSlot')}
             </button>
           </div>
 
@@ -249,39 +251,39 @@ export function CreateEventPage() {
             <div key={slot.id} className="border border-gray-200 rounded-lg p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700">
-                  Creneau {index + 1}
+                  {t('create.slotNumber', { number: index + 1 })}
                 </span>
                 {slots.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeSlot(index)}
                     className="text-sm text-red-500 hover:text-red-700"
-                    aria-label={`Supprimer le creneau ${index + 1}`}
+                    aria-label={t('create.removeSlotAriaLabel', { number: index + 1 })}
                     disabled={isLoading}
                   >
-                    Supprimer
+                    {t('create.remove')}
                   </button>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Moment de la journee</label>
+                <label className="block text-xs text-gray-500 mb-1">{t('create.timeOfDay')}</label>
                 <select
                   value={slot.timeOfDay}
                   onChange={(e) => updateSlot(index, 'timeOfDay', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-wakeve-500 focus:border-wakeve-500 outline-none bg-white text-sm"
                   disabled={isLoading}
                 >
-                  <option value="SPECIFIC">Horaire precis</option>
-                  <option value="ALL_DAY">Toute la journee</option>
-                  <option value="MORNING">Matin</option>
-                  <option value="AFTERNOON">Apres-midi</option>
-                  <option value="EVENING">Soir</option>
+                  <option value="SPECIFIC">{t('events.timeSpecific')}</option>
+                  <option value="ALL_DAY">{t('events.timeAllDay')}</option>
+                  <option value="MORNING">{t('events.timeMorning')}</option>
+                  <option value="AFTERNOON">{t('events.timeAfternoon')}</option>
+                  <option value="EVENING">{t('events.timeEvening')}</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Date</label>
+                <label className="block text-xs text-gray-500 mb-1">{t('create.date')}</label>
                 <input
                   type="date"
                   value={slot.date}
@@ -294,7 +296,7 @@ export function CreateEventPage() {
               {slot.timeOfDay === 'SPECIFIC' && (
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Debut</label>
+                    <label className="block text-xs text-gray-500 mb-1">{t('create.start')}</label>
                     <input
                       type="time"
                       value={slot.startTime}
@@ -304,7 +306,7 @@ export function CreateEventPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-1">Fin</label>
+                    <label className="block text-xs text-gray-500 mb-1">{t('create.end')}</label>
                     <input
                       type="time"
                       value={slot.endTime}
@@ -332,14 +334,14 @@ export function CreateEventPage() {
             to="/"
             className="flex-1 py-2.5 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg text-center hover:bg-gray-50 transition-colors"
           >
-            Annuler
+            {t('common.cancel')}
           </Link>
           <button
             type="submit"
             disabled={isLoading}
             className="flex-1 py-2.5 px-4 bg-wakeve-600 text-white font-medium rounded-lg hover:bg-wakeve-700 focus:outline-none focus:ring-2 focus:ring-wakeve-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isLoading ? 'Creation en cours...' : 'Creer l\'evenement'}
+            {isLoading ? t('create.creating') : t('create.submit')}
           </button>
         </div>
       </form>

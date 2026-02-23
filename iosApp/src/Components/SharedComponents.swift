@@ -64,11 +64,11 @@ struct StatusBadge: View {
 
     private var statusText: String {
         switch status {
-        case "PLANNED": return "Planifié"
-        case "ASSIGNED": return "Assigné"
-        case "IN_PROGRESS": return "En cours"
-        case "COMPLETED": return "Terminé"
-        case "CANCELLED": return "Annulé"
+        case "PLANNED": return String(localized: "status.planned")
+        case "ASSIGNED": return String(localized: "status.assigned")
+        case "IN_PROGRESS": return String(localized: "status.in_progress")
+        case "COMPLETED": return String(localized: "status.completed")
+        case "CANCELLED": return String(localized: "status.cancelled")
         default: return status
         }
     }
@@ -286,9 +286,9 @@ struct VoteButton: View {
 
     private func voteLabel(for vote: PollVote) -> String {
         switch vote {
-        case .yes: return "Oui"
-        case .maybe: return "Peut-être"
-        case .no: return "Non"
+        case .yes: return String(localized: "poll.yes")
+        case .maybe: return String(localized: "poll.maybe")
+        case .no: return String(localized: "poll.no")
         }
     }
 }
@@ -510,7 +510,7 @@ struct SharedComponents_Previews: PreviewProvider {
                         .foregroundColor(.secondary)
 
                     InfoRow(label: "Date", value: "25 Dec", icon: "calendar")
-                    InfoRow(label: "Participants", value: "8 personnes")
+                    InfoRow(label: "Participants", value: "8 persons")
                 }
                 .padding()
                 .liquidGlass(cornerRadius: 16)
@@ -537,9 +537,9 @@ struct SharedComponents_Previews: PreviewProvider {
                         .foregroundColor(.secondary)
 
                     HStack(spacing: 12) {
-                        FilterChip(text: "Tous", isSelected: true, action: {})
-                        FilterChip(text: "Actifs", isSelected: false, action: {})
-                        FilterChip(text: "Terminés", isSelected: false, action: {})
+                        FilterChip(text: String(localized: "filter.all"), isSelected: true, action: {})
+                        FilterChip(text: String(localized: "filter.active"), isSelected: false, action: {})
+                        FilterChip(text: String(localized: "filter.completed"), isSelected: false, action: {})
                     }
                 }
                 .padding()
@@ -566,8 +566,8 @@ struct SharedComponents_Previews: PreviewProvider {
                         .font(.caption)
                         .foregroundColor(.secondary)
 
-                    SectionHeader("Mes Événements", actionTitle: "Voir tout") {
-                        print("Voir tout tapped")
+                    SectionHeader(String(localized: "home.my_events"), actionTitle: String(localized: "common.see_all")) {
+                        print("See all tapped")
                     }
                 }
                 .padding()
@@ -579,11 +579,11 @@ struct SharedComponents_Previews: PreviewProvider {
                         .font(.caption)
                         .foregroundColor(.secondary)
 
-                    ActionRow(icon: "calendar.badge.plus", title: "Créer un événement") {
+                    ActionRow(icon: "calendar.badge.plus", title: String(localized: "events.create")) {
                         print("Create event tapped")
                     }
 
-                    ActionRow(icon: "gearshape", title: "Paramètres") {
+                    ActionRow(icon: "gearshape", title: String(localized: "settings.title")) {
                         print("Settings tapped")
                     }
                 }

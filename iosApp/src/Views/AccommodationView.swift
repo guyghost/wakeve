@@ -47,11 +47,11 @@ struct AccommodationView: View {
                     accommodationsList
                 }
             }
-            .navigationTitle("Hébergement")
+            .navigationTitle(String(localized: "accommodation.title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Fermer") { dismiss() }
+                    Button(String(localized: "common.close")) { dismiss() }
                         .foregroundColor(.wakevePrimary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -96,24 +96,24 @@ struct AccommodationView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Fermer") {
+                        Button(String(localized: "common.close")) {
                             showComments = false
                         }
                         .foregroundColor(.wakevePrimary)
                     }
                 }
             }
-            .alert("Supprimer l'hébergement ?", isPresented: $showDeleteAlert, presenting: accommodationToDelete) { accommodation in
-                Button("Annuler", role: .cancel) {
+            .alert(String(localized: "accommodation.delete_title"), isPresented: $showDeleteAlert, presenting: accommodationToDelete) { accommodation in
+                Button(String(localized: "common.cancel"), role: .cancel) {
                     accommodationToDelete = nil
                 }
                 .foregroundColor(.wakevePrimary)
-                Button("Supprimer", role: .destructive) {
+                Button(String(localized: "common.delete"), role: .destructive) {
                     accommodations.removeAll { $0.id == accommodation.id }
                     accommodationToDelete = nil
                 }
             } message: { _ in
-                Text("Cette action est irréversible. Toutes les affectations de chambres seront également supprimées.")
+                Text(String(localized: "accommodation.delete_message"))
             }
         }
         .onAppear {
@@ -128,18 +128,18 @@ struct AccommodationView: View {
                 .font(.system(size: 64))
                 .foregroundColor(.wakevePrimary)
             
-            Text("Aucun hébergement")
+            Text(String(localized: "accommodation.empty_title"))
                 .font(.title2)
                 .fontWeight(.bold)
             
-            Text("Ajoutez votre premier hébergement pour organiser la logistique")
+            Text(String(localized: "accommodation.empty_message"))
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
             
             LiquidGlassButton(
-                title: "Ajouter",
+                title: String(localized: "common.add"),
                 icon: "plus",
                 style: .primary,
                 action: {
@@ -227,26 +227,26 @@ struct AccommodationCard: View {
                 // Details
                 VStack(spacing: 12) {
                     InfoRow(
-                        label: "Adresse",
+                        label: String(localized: "accommodation.address"),
                         value: accommodation.address,
                         icon: "location.fill"
                     )
                     
                     InfoRow(
-                        label: "Période",
-                        value: "\(accommodation.checkInDate) → \(accommodation.checkOutDate) (\(accommodation.totalNights) nuits)",
+                        label: String(localized: "accommodation.period"),
+                        value: "\(accommodation.checkInDate) → \(accommodation.checkOutDate) (\(accommodation.totalNights) \(String(localized: "accommodation.nights")))",
                         icon: "calendar"
                     )
                     
                     InfoRow(
-                        label: "Capacité",
-                        value: "Capacité: \(accommodation.capacity) personnes",
+                        label: String(localized: "accommodation.capacity"),
+                        value: "\(String(localized: "accommodation.capacity")): \(accommodation.capacity) \(String(localized: "accommodation.persons"))",
                         icon: "person.2.fill"
                     )
                     
                     InfoRow(
-                        label: "Prix",
-                        value: formatPrice(accommodation.totalCost) + " (\(formatPrice(accommodation.pricePerNight))/nuit)",
+                        label: String(localized: "accommodation.price"),
+                        value: formatPrice(accommodation.totalCost) + " (\(formatPrice(accommodation.pricePerNight))/\(String(localized: "accommodation.night")))",
                         icon: "eurosign.circle.fill"
                     )
                 }
@@ -263,7 +263,7 @@ struct AccommodationCard: View {
                     // Book button - primary action
                     if accommodation.bookingStatus != "CONFIRMED" {
                         LiquidGlassButton(
-                            title: "Réserver",
+                            title: String(localized: "accommodation.book"),
                             icon: "safari.fill",
                             style: .primary,
                             size: .medium,
@@ -274,7 +274,7 @@ struct AccommodationCard: View {
                     Spacer()
                     
                     LiquidGlassButton(
-                        title: "Modifier",
+                        title: String(localized: "common.edit"),
                         icon: "pencil",
                         style: .secondary,
                         size: .small,
@@ -282,7 +282,7 @@ struct AccommodationCard: View {
                     )
                     
                     LiquidGlassButton(
-                        title: "Supprimer",
+                        title: String(localized: "common.delete"),
                         icon: "trash",
                         style: .secondary,
                         size: .small,
@@ -301,11 +301,11 @@ struct BookingStatusBadge: View {
 
     private var statusInfo: (style: LiquidGlassBadgeStyle, label: String) {
         switch status {
-        case "SEARCHING": return (.info, "Recherche")
-        case "RESERVED": return (.warning, "Réservé")
-        case "CONFIRMED": return (.success, "Confirmé")
-        case "CANCELLED": return (.default, "Annulé")
-        default: return (.default, "Inconnu")
+        case "SEARCHING": return (.info, String(localized: "status.searching"))
+        case "RESERVED": return (.warning, String(localized: "status.reserved"))
+        case "CONFIRMED": return (.success, String(localized: "status.confirmed"))
+        case "CANCELLED": return (.default, String(localized: "status.cancelled"))
+        default: return (.default, String(localized: "common.unknown"))
         }
     }
 
@@ -340,52 +340,52 @@ struct AccommodationFormSheet: View {
     @State private var selectedStatus = "SEARCHING"
     
     let accommodationTypes = [
-        ("HOTEL", "Hôtel"),
+        ("HOTEL", String(localized: "accommodation.type.hotel")),
         ("AIRBNB", "Airbnb"),
         ("CAMPING", "Camping"),
-        ("HOSTEL", "Auberge"),
-        ("VACATION_RENTAL", "Location de vacances"),
-        ("OTHER", "Autre")
+        ("HOSTEL", String(localized: "accommodation.type.hostel")),
+        ("VACATION_RENTAL", String(localized: "accommodation.type.vacation_rental")),
+        ("OTHER", String(localized: "accommodation.type.other"))
     ]
     
     let bookingStatuses = [
-        ("SEARCHING", "Recherche"),
-        ("RESERVED", "Réservé"),
-        ("CONFIRMED", "Confirmé"),
-        ("CANCELLED", "Annulé")
+        ("SEARCHING", String(localized: "status.searching")),
+        ("RESERVED", String(localized: "status.reserved")),
+        ("CONFIRMED", String(localized: "status.confirmed")),
+        ("CANCELLED", String(localized: "status.cancelled"))
     ]
     
     var body: some View {
         NavigationView {
             Form {
-                Section("Informations générales") {
-                    TextField("Nom", text: $name)
-                    
-                    Picker("Type", selection: $selectedType) {
+                Section(String(localized: "accommodation.section.general_info")) {
+                    TextField(String(localized: "accommodation.field.name"), text: $name)
+
+                    Picker(String(localized: "accommodation.field.type"), selection: $selectedType) {
                         ForEach(accommodationTypes, id: \.0) { type in
                             Text(type.1).tag(type.0)
                         }
                     }
                     
-                    TextField("Adresse", text: $address, axis: .vertical)
+                    TextField(String(localized: "accommodation.address"), text: $address, axis: .vertical)
                         .lineLimit(2...4)
                 }
                 
-                Section("Capacité et durée") {
-                    TextField("Capacité (personnes)", text: $capacity)
+                Section(String(localized: "accommodation.section.capacity_duration")) {
+                    TextField(String(localized: "accommodation.field.capacity"), text: $capacity)
                         .keyboardType(.numberPad)
-                    
-                    TextField("Nombre de nuits", text: $totalNights)
+
+                    TextField(String(localized: "accommodation.field.number_of_nights"), text: $totalNights)
                         .keyboardType(.numberPad)
                 }
                 
-                Section("Tarification") {
-                    TextField("Prix par nuit (€)", text: $pricePerNight)
+                Section(String(localized: "accommodation.section.pricing")) {
+                    TextField(String(localized: "accommodation.field.price_per_night"), text: $pricePerNight)
                         .keyboardType(.decimalPad)
                     
                     if let price = Double(pricePerNight), let nights = Int(totalNights), nights > 0 {
                         HStack {
-                            Text("Total")
+                            Text(String(localized: "accommodation.total"))
                                 .foregroundColor(.secondary)
                             Spacer()
                             Text(formatPrice(Int(price * Double(nights) * 100)))
@@ -394,37 +394,37 @@ struct AccommodationFormSheet: View {
                     }
                 }
                 
-                Section("Dates") {
+                Section(String(localized: "accommodation.section.dates")) {
                     TextField("Check-in (YYYY-MM-DD)", text: $checkInDate)
                     TextField("Check-out (YYYY-MM-DD)", text: $checkOutDate)
                 }
                 
-                Section("Réservation") {
-                    Picker("Statut", selection: $selectedStatus) {
+                Section(String(localized: "accommodation.section.booking")) {
+                    Picker(String(localized: "accommodation.field.status"), selection: $selectedStatus) {
                         ForEach(bookingStatuses, id: \.0) { status in
                             Text(status.1).tag(status.0)
                         }
                     }
                     
-                    TextField("URL de réservation (optionnel)", text: $bookingUrl)
+                    TextField(String(localized: "accommodation.field.booking_url"), text: $bookingUrl)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                 }
                 
-                Section("Notes") {
-                    TextField("Notes (optionnel)", text: $notes, axis: .vertical)
+                Section(String(localized: "accommodation.section.notes")) {
+                    TextField(String(localized: "accommodation.field.notes"), text: $notes, axis: .vertical)
                         .lineLimit(3...6)
                 }
             }
-            .navigationTitle(accommodation == nil ? "Ajouter hébergement" : "Modifier hébergement")
+            .navigationTitle(accommodation == nil ? String(localized: "accommodation.add_title") : String(localized: "accommodation.edit_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }
+                    Button(String(localized: "common.cancel")) { dismiss() }
                         .foregroundColor(.wakevePrimary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Enregistrer") {
+                    Button(String(localized: "common.save")) {
                         saveAccommodation()
                     }
                     .disabled(!isFormValid)
@@ -523,12 +523,12 @@ struct AccommodationModel: Identifiable {
     
     var typeLabel: String {
         switch type {
-        case "HOTEL": return "Hôtel"
+        case "HOTEL": return String(localized: "accommodation.type.hotel")
         case "AIRBNB": return "Airbnb"
         case "CAMPING": return "Camping"
-        case "HOSTEL": return "Auberge"
-        case "VACATION_RENTAL": return "Location de vacances"
-        default: return "Autre"
+        case "HOSTEL": return String(localized: "accommodation.type.hostel")
+        case "VACATION_RENTAL": return String(localized: "accommodation.type.vacation_rental")
+        default: return String(localized: "accommodation.type.other")
         }
     }
 }

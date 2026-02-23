@@ -35,7 +35,7 @@ struct InvitationShareSheet: View {
                             .font(.system(size: 48))
                             .foregroundColor(.wakevePrimary)
 
-                        Text("Inviter des participants")
+                        Text(String(localized: "invitation.title"))
                             .font(.title2.weight(.bold))
                             .foregroundColor(.primary)
 
@@ -47,7 +47,7 @@ struct InvitationShareSheet: View {
 
                     // QR Code Section
                     VStack(spacing: 12) {
-                        Text("QR Code")
+                        Text(String(localized: "invitation.qr_code"))
                             .font(.headline)
                             .foregroundColor(.primary)
 
@@ -65,7 +65,7 @@ struct InvitationShareSheet: View {
                                 .frame(width: 200, height: 200)
                         }
 
-                        Text("Scannez pour rejoindre")
+                        Text(String(localized: "invitation.scan_to_join"))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -76,7 +76,7 @@ struct InvitationShareSheet: View {
 
                     // Link Section
                     VStack(spacing: 12) {
-                        Text("Lien d'invitation")
+                        Text(String(localized: "invitation.link"))
                             .font(.headline)
                             .foregroundColor(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -94,7 +94,7 @@ struct InvitationShareSheet: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: showCopiedFeedback ? "checkmark" : "doc.on.doc")
                                         .font(.system(size: 14, weight: .medium))
-                                    Text(showCopiedFeedback ? "Copié" : "Copier")
+                                    Text(showCopiedFeedback ? String(localized: "invitation.copied") : String(localized: "invitation.copy"))
                                         .font(.caption.weight(.medium))
                                 }
                                 .foregroundColor(showCopiedFeedback ? .green : .wakevePrimary)
@@ -122,7 +122,7 @@ struct InvitationShareSheet: View {
                             Image(systemName: "square.and.arrow.up")
                                 .font(.system(size: 18, weight: .semibold))
 
-                            Text("Partager l'invitation")
+                            Text(String(localized: "invitation.share"))
                                 .font(.headline)
                         }
                         .foregroundColor(.white)
@@ -188,7 +188,7 @@ struct InvitationShareSheet: View {
 
     /// Share invitation via UIActivityViewController
     private func shareInvitation() {
-        let shareText = "Rejoins l'événement \"\(eventTitle)\" sur Wakeve !\n\(inviteUrl)"
+        let shareText = String(format: String(localized: "invitation.share_text"), eventTitle, inviteUrl)
         var items: [Any] = [shareText]
 
         // Include QR code image if available

@@ -298,7 +298,7 @@ struct InboxView: View {
             ProgressView()
                 .scaleEffect(1.5)
                 .tint(.wakevePrimary)
-            Text("Chargement...")
+            Text(String(localized: "common.loading"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
         }
@@ -338,19 +338,19 @@ struct InboxView: View {
     
     private var emptyStateTitle: String {
         switch selectedFilter {
-        case .inbox: return "Aucune notification"
-        case .focused: return "Aucun élément focus"
-        case .unread: return "Aucun message non lu"
-        case .event: return selectedEventFilter != nil ? "Aucune notification pour \(selectedEventFilter!)" : "Aucun événement"
+        case .inbox: return String(localized: "inbox.empty.no_notifications")
+        case .focused: return String(localized: "inbox.empty.no_focused")
+        case .unread: return String(localized: "inbox.empty.no_unread")
+        case .event: return selectedEventFilter != nil ? String(format: String(localized: "inbox.empty.no_notifications_for"), selectedEventFilter!) : String(localized: "inbox.empty.no_events")
         }
     }
     
     private var emptyStateSubtitle: String {
         switch selectedFilter {
-        case .inbox: return "Vos notifications apparaîtront ici"
-        case .focused: return "Les éléments importants apparaîtront ici"
-        case .unread: return "Vous avez tout lu !"
-        case .event: return "Les notifications liées aux événements apparaîtront ici"
+        case .inbox: return String(localized: "inbox.empty.notifications_subtitle")
+        case .focused: return String(localized: "inbox.empty.focused_subtitle")
+        case .unread: return String(localized: "inbox.empty.unread_subtitle")
+        case .event: return String(localized: "inbox.empty.events_subtitle")
         }
     }
     
@@ -609,7 +609,7 @@ struct EventFilterSheet: View {
                         onDismiss()
                     } label: {
                         HStack {
-                            Text("Tous les événements")
+                            Text(String(localized: "inbox.all_events"))
                                 .foregroundColor(.primary)
                             Spacer()
                             if selectedEvent == nil {
@@ -621,7 +621,7 @@ struct EventFilterSheet: View {
                 }
                 
                 // List of events
-                Section(header: Text("Événements")) {
+                Section(header: Text(String(localized: "inbox.events"))) {
                     ForEach(events, id: \.self) { event in
                         Button {
                             selectedEvent = event
@@ -642,11 +642,11 @@ struct EventFilterSheet: View {
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Filtrer par événement")
+            .navigationTitle(String(localized: "inbox.filter_by_event"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fermer") {
+                    Button(String(localized: "common.close")) {
                         onDismiss()
                     }
                 }
@@ -881,10 +881,10 @@ struct InboxItemModel: Identifiable {
     var accessibilityLabel: String {
         let typeLabel: String
         switch type {
-        case .invitation: typeLabel = "Invitation"
-        case .pollUpdate: typeLabel = "Mise à jour du sondage"
-        case .comment: typeLabel = "Commentaire"
-        case .eventUpdate: typeLabel = "Mise à jour de l'événement"
+        case .invitation: typeLabel = String(localized: "inbox.type.invitation")
+        case .pollUpdate: typeLabel = String(localized: "inbox.type.poll_update")
+        case .comment: typeLabel = String(localized: "inbox.type.comment")
+        case .eventUpdate: typeLabel = String(localized: "inbox.type.event_update")
         }
         return "\(typeLabel): \(title)"
     }
@@ -892,13 +892,13 @@ struct InboxItemModel: Identifiable {
     var accessibilityHint: String {
         switch type {
         case .invitation:
-            return "Appuyez pour voir les détails de l'invitation"
+            return String(localized: "inbox.invitation_hint")
         case .pollUpdate:
-            return "Appuyez pour voter ou voir les résultats"
+            return String(localized: "inbox.vote_hint")
         case .comment:
-            return "Appuyez pour lire le commentaire"
+            return String(localized: "inbox.comment_hint")
         case .eventUpdate:
-            return "Appuyez pour voir les détails de l'événement"
+            return String(localized: "inbox.event_hint")
         }
     }
 }

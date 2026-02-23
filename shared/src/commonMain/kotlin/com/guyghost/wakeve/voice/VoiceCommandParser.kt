@@ -26,7 +26,8 @@ class VoiceCommandParser {
             Language.EN to LanguageConfig(Language.EN, "English", "en-US", listOf("MMMM d yyyy", "MMM d yyyy")),
             Language.FR to LanguageConfig(Language.FR, "Français", "fr-FR", listOf("d MMMM yyyy", "d MMM yyyy")),
             Language.ES to LanguageConfig(Language.ES, "Español", "es-ES", listOf("d 'de' MMMM 'de' yyyy")),
-            Language.DE to LanguageConfig(Language.DE, "Deutsch", "de-DE", listOf("d. MMMM yyyy"))
+            Language.DE to LanguageConfig(Language.DE, "Deutsch", "de-DE", listOf("d. MMMM yyyy")),
+            Language.PT to LanguageConfig(Language.PT, "Português", "pt-BR", listOf("d 'de' MMMM 'de' yyyy"))
         )
 
         private val intentKeywords = mapOf(
@@ -227,7 +228,16 @@ class VoiceCommandParser {
                 lowerTranscript.contains("morgen") -> today.plus(1, DateTimeUnit.DAY)
                 else -> null
             }
-            Language.IT -> null
+            Language.IT -> when {
+                lowerTranscript.contains("oggi") -> today
+                lowerTranscript.contains("domani") -> today.plus(1, DateTimeUnit.DAY)
+                else -> null
+            }
+            Language.PT -> when {
+                lowerTranscript.contains("hoje") -> today
+                lowerTranscript.contains("amanhã") || lowerTranscript.contains("amanha") -> today.plus(1, DateTimeUnit.DAY)
+                else -> null
+            }
         }
         if (relativeDate != null) {
             return relativeDate.toString()

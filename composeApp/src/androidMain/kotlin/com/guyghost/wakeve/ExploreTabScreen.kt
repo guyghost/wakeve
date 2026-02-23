@@ -62,6 +62,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.EventSearchResult
 import com.guyghost.wakeve.models.SearchResultsResponse
@@ -163,7 +164,7 @@ fun ExploreTabScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Explorer",
+                        text = stringResource(R.string.explore_title),
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.Bold
                         )
@@ -225,7 +226,7 @@ fun ExploreTabScreen(
                                 CircularProgressIndicator()
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
-                                    text = "Chargement...",
+                                    text = stringResource(R.string.loading),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                                 )
@@ -243,7 +244,7 @@ fun ExploreTabScreen(
                     } else {
                         item {
                             Text(
-                                text = "${searchResults.size} resultats",
+                                text = stringResource(R.string.explore_results_count, searchResults.size),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -269,7 +270,7 @@ fun ExploreTabScreen(
                     if (trendingEvents.isNotEmpty()) {
                         item {
                             ExploreSectionHeader(
-                                title = "Tendances",
+                                title = stringResource(R.string.explore_trending),
                                 icon = Icons.Default.Favorite,
                                 iconTint = Color(0xFFFF6B35)
                             )
@@ -294,7 +295,7 @@ fun ExploreTabScreen(
                         item {
                             Spacer(modifier = Modifier.height(8.dp))
                             ExploreSectionHeader(
-                                title = "Recommandes pour vous",
+                                title = stringResource(R.string.explore_recommended),
                                 icon = Icons.Default.Star,
                                 iconTint = MaterialTheme.colorScheme.primary
                             )
@@ -318,12 +319,12 @@ fun ExploreTabScreen(
                     item {
                         Spacer(modifier = Modifier.height(16.dp))
                         ExploreSectionHeader(
-                            title = "Idees d'evenements",
+                            title = stringResource(R.string.explore_event_ideas),
                             icon = Icons.Default.Info,
                             iconTint = Color(0xFFFFC107)
                         )
                     }
-                    items(eventTemplates) { template ->
+                    items(eventTemplates()) { template ->
                         TemplateCard(template = template, onClick = {
                             // TODO: Create event from template
                         })
@@ -333,12 +334,12 @@ fun ExploreTabScreen(
                     item {
                         Spacer(modifier = Modifier.height(16.dp))
                         ExploreSectionHeader(
-                            title = "Conseils de planification",
+                            title = stringResource(R.string.explore_planning_tips),
                             icon = Icons.Default.Info,
                             iconTint = MaterialTheme.colorScheme.secondary
                         )
                     }
-                    items(planningTips) { tip ->
+                    items(planningTips()) { tip ->
                         TipCard(tip = tip)
                     }
                 }
@@ -360,12 +361,12 @@ private fun ExploreSearchBar(
         onValueChange = onSearchTextChange,
         modifier = modifier.fillMaxWidth(),
         placeholder = {
-            Text("Rechercher un evenement...")
+            Text(stringResource(R.string.explore_search_hint))
         },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Search,
-                contentDescription = "Rechercher",
+                contentDescription = stringResource(R.string.search),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         },
@@ -397,7 +398,7 @@ private fun ExploreCategoryChips(
             FilterChip(
                 selected = selectedCategory == category,
                 onClick = { onCategorySelected(category) },
-                label = { Text(category.displayName) },
+                label = { Text(stringResource(category.displayNameRes)) },
                 leadingIcon = if (selectedCategory == category) {
                     {
                         Icon(
@@ -536,13 +537,8 @@ private fun ExploreEventCard(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                val participantText = if (event.maxParticipants != null) {
-                    "${event.participantCount}/${event.maxParticipants} participants"
-                } else {
-                    "${event.participantCount} participants"
-                }
                 Text(
-                    text = participantText,
+                    text = stringResource(R.string.participants_count, event.participantCount),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -607,7 +603,7 @@ private fun SearchResultCard(
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "${event.participantCount} participants",
+                        text = stringResource(R.string.participants_count, event.participantCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -657,13 +653,13 @@ private fun ExploreDiscoveryEmptyState() {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Rien a explorer pour le moment",
+            text = stringResource(R.string.explore_empty_title),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Les evenements apparaitront ici des qu'ils seront crees.\nCommencez par en creer un !",
+            text = stringResource(R.string.explore_empty_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             textAlign = TextAlign.Center,
@@ -688,13 +684,13 @@ private fun ExploreSearchEmptyState(searchText: String) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Aucun resultat pour \"$searchText\"",
+            text = stringResource(R.string.explore_no_results_title, searchText),
             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Essayez avec d'autres mots-cles ou modifiez les filtres.",
+            text = stringResource(R.string.explore_no_results_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             textAlign = TextAlign.Center,
@@ -762,17 +758,17 @@ private fun eventTypeDisplayName(eventType: String): String {
 // MARK: - Category Enum
 
 enum class ExploreCategoryItem(
-    val displayName: String,
+    val displayNameRes: Int,
     val icon: ImageVector,
     val eventTypes: List<String>
 ) {
-    ALL("Tout", Icons.Default.Star, emptyList()),
-    SOCIAL("Social", Icons.Default.Favorite, listOf("BIRTHDAY", "WEDDING", "PARTY", "FAMILY_GATHERING")),
-    SPORT("Sport", Icons.Default.Face, listOf("SPORTS_EVENT", "SPORT_EVENT", "OUTDOOR_ACTIVITY")),
-    CULTURE("Culture", Icons.Default.Star, listOf("CULTURAL_EVENT", "CREATIVE_WORKSHOP")),
-    PROFESSIONAL("Pro", Icons.Default.AccountCircle, listOf("TEAM_BUILDING", "CONFERENCE", "WORKSHOP", "TECH_MEETUP")),
-    FOOD("Food", Icons.Default.Favorite, listOf("FOOD_TASTING")),
-    WELLNESS("Bien-etre", Icons.Default.Favorite, listOf("WELLNESS_EVENT"))
+    ALL(R.string.explore_category_all, Icons.Default.Star, emptyList()),
+    SOCIAL(R.string.explore_category_social, Icons.Default.Favorite, listOf("BIRTHDAY", "WEDDING", "PARTY", "FAMILY_GATHERING")),
+    SPORT(R.string.explore_category_sport, Icons.Default.Face, listOf("SPORTS_EVENT", "SPORT_EVENT", "OUTDOOR_ACTIVITY")),
+    CULTURE(R.string.explore_category_culture, Icons.Default.Star, listOf("CULTURAL_EVENT", "CREATIVE_WORKSHOP")),
+    PROFESSIONAL(R.string.explore_category_professional, Icons.Default.AccountCircle, listOf("TEAM_BUILDING", "CONFERENCE", "WORKSHOP", "TECH_MEETUP")),
+    FOOD(R.string.explore_category_food, Icons.Default.Favorite, listOf("FOOD_TASTING")),
+    WELLNESS(R.string.explore_category_wellness, Icons.Default.Favorite, listOf("WELLNESS_EVENT"))
 }
 
 // MARK: - Existing Components (Template & Tip Cards)
@@ -823,7 +819,7 @@ private fun TemplateCard(
             }
             Icon(
                 imageVector = Icons.Default.ArrowForward,
-                contentDescription = "Utiliser ce modele",
+                contentDescription = stringResource(R.string.explore_use_template),
                 tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
@@ -895,25 +891,26 @@ private data class PlanningTip(
 /**
  * Sample event templates.
  */
-private val eventTemplates = listOf(
+@Composable
+private fun eventTemplates() = listOf(
     EventTemplate(
-        name = "Week-end entre amis",
-        description = "Escapade de 2-3 jours avec hebergement et activites",
+        name = stringResource(R.string.explore_template_weekend_name),
+        description = stringResource(R.string.explore_template_weekend_desc),
         icon = Icons.Default.Favorite
     ),
     EventTemplate(
-        name = "Reunion de famille",
-        description = "Rassemblement familial avec repas et photos",
+        name = stringResource(R.string.explore_template_family_name),
+        description = stringResource(R.string.explore_template_family_desc),
         icon = Icons.Default.Face
     ),
     EventTemplate(
-        name = "Voyage de groupe",
-        description = "Sejour de plusieurs jours avec transport et budget partage",
+        name = stringResource(R.string.explore_template_trip_name),
+        description = stringResource(R.string.explore_template_trip_desc),
         icon = Icons.Default.DateRange
     ),
     EventTemplate(
-        name = "Evenement sportif",
-        description = "Competition ou sortie sportive collective",
+        name = stringResource(R.string.explore_template_sport_name),
+        description = stringResource(R.string.explore_template_sport_desc),
         icon = Icons.Default.AccountCircle
     )
 )
@@ -921,21 +918,22 @@ private val eventTemplates = listOf(
 /**
  * Sample planning tips.
  */
-private val planningTips = listOf(
+@Composable
+private fun planningTips() = listOf(
     PlanningTip(
-        title = "Proposez plusieurs creneaux",
-        content = "Plus vous proposez de dates, plus il est facile de trouver un consensus."
+        title = stringResource(R.string.explore_tip_slots_title),
+        content = stringResource(R.string.explore_tip_slots_content)
     ),
     PlanningTip(
-        title = "Definissez une echeance claire",
-        content = "Une date limite de vote incite les participants a repondre rapidement."
+        title = stringResource(R.string.explore_tip_deadline_title),
+        content = stringResource(R.string.explore_tip_deadline_content)
     ),
     PlanningTip(
-        title = "Creez des scenarios",
-        content = "Comparez differentes options (destination, hebergement, activites) pour optimiser votre evenement."
+        title = stringResource(R.string.explore_tip_scenarios_title),
+        content = stringResource(R.string.explore_tip_scenarios_content)
     ),
     PlanningTip(
-        title = "Partagez le budget tot",
-        content = "Une transparence precoce sur les couts evite les mauvaises surprises."
+        title = stringResource(R.string.explore_tip_budget_title),
+        content = stringResource(R.string.explore_tip_budget_content)
     )
 )

@@ -28,7 +28,7 @@ struct ExploreView: View {
                         // Search Bar
                         LiquidGlassTextField(
                             title: nil,
-                            placeholder: "Rechercher...",
+                            placeholder: String(localized: "explore.search_placeholder"),
                             text: $searchText,
                             isSecure: nil,
                             isDisabled: nil,
@@ -49,7 +49,7 @@ struct ExploreView: View {
                         // Featured Events
                         if !isLoading && !events.isEmpty {
                             VStack(spacing: 16) {
-                                SectionHeader("Événements en vedette")
+                                SectionHeader(String(localized: "explore.featured_events"))
 
                                 LazyVStack(spacing: 16) {
                                     ForEach(events.prefix(3), id: \.id) { event in
@@ -64,7 +64,7 @@ struct ExploreView: View {
 
                                 // See More Button
                                 LiquidGlassButton(
-                                    title: "Voir plus",
+                                    title: String(localized: "explore.see_more"),
                                     icon: "chevron.right",
                                     style: .text,
                                     action: {
@@ -79,7 +79,7 @@ struct ExploreView: View {
 
                             // Recommended Events
                             VStack(spacing: 16) {
-                                SectionHeader("Recommandés pour vous")
+                                SectionHeader(String(localized: "explore.recommended_for_you"))
 
                                 LazyVStack(spacing: 16) {
                                     ForEach(events.suffix(from: events.count > 3 ? 3 : 0), id: \.id) { event in
@@ -94,19 +94,19 @@ struct ExploreView: View {
                             }
                             .padding(.horizontal, 16)
                         } else if isLoading {
-                            LoadingView(message: "Chargement des événements...")
+                            LoadingView(message: String(localized: "explore.loading_events"))
                         } else {
                             EmptyStateView(
                                 icon: "calendar.badge.exclamationmark",
-                                title: "Aucun événement",
-                                message: "Créez votre premier événement pour commencer !"
+                                title: String(localized: "explore.no_events"),
+                                message: String(localized: "explore.no_events_message")
                             )
                         }
                     }
                     .padding(.top, 12)
                 }
             }
-            .navigationTitle("Explorer")
+            .navigationTitle(String(localized: "explore.title"))
             .navigationBarTitleDisplayMode(.large)
         }
         .onAppear {
@@ -217,25 +217,25 @@ private func eventStatusBadge(for status: EventStatus) -> LiquidGlassBadge {
     let (text, style): (String, LiquidGlassBadgeStyle)
     switch status {
     case .draft:
-        text = "Brouillon"
+        text = String(localized: "status.draft")
         style = .warning
     case .polling:
-        text = "Sondage"
+        text = String(localized: "status.polling")
         style = .info
     case .comparing:
-        text = "Comparaison"
+        text = String(localized: "status.comparing")
         style = .accent
     case .confirmed:
-        text = "Confirmé"
+        text = String(localized: "status.confirmed")
         style = .success
     case .organizing:
-        text = "Organisation"
+        text = String(localized: "status.organizing")
         style = .warning
     case .finalized:
-        text = "Finalisé"
+        text = String(localized: "status.finalized")
         style = .success
     default:
-        text = "Inconnu"
+        text = String(localized: "common.unknown")
         style = .default
     }
 
@@ -245,14 +245,20 @@ private func eventStatusBadge(for status: EventStatus) -> LiquidGlassBadge {
 // MARK: - Category Picker
 
 enum ExploreCategory: String, CaseIterable {
-    case all = "Tous"
-    case social = "Social"
-    case professional = "Professionnel"
-    case sport = "Sport"
-    case culture = "Culture"
+    case all
+    case social
+    case professional
+    case sport
+    case culture
 
     var title: String {
-        return self.rawValue
+        switch self {
+        case .all: return String(localized: "explore.category_all")
+        case .social: return String(localized: "explore.category_social")
+        case .professional: return String(localized: "explore.category_professional")
+        case .sport: return String(localized: "explore.category_sport")
+        case .culture: return String(localized: "explore.category_culture")
+        }
     }
 
     var iconName: String {

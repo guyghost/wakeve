@@ -126,16 +126,65 @@ data class RecommendedEventsResponse(
  * Maps to EventType values but provides a simplified, user-facing grouping.
  */
 @Serializable
-enum class EventCategory(val displayNameFr: String, val icon: String, val eventTypes: List<String>) {
-    ALL("Tout", "square.grid.2x2", listOf()),
-    SOCIAL("Social", "person.2.fill", listOf("BIRTHDAY", "WEDDING", "PARTY", "FAMILY_GATHERING")),
-    SPORT("Sport", "figure.run", listOf("SPORTS_EVENT", "SPORT_EVENT", "OUTDOOR_ACTIVITY")),
-    CULTURE("Culture", "theatermasks.fill", listOf("CULTURAL_EVENT", "CREATIVE_WORKSHOP")),
-    PROFESSIONAL("Pro", "briefcase.fill", listOf("TEAM_BUILDING", "CONFERENCE", "WORKSHOP", "TECH_MEETUP")),
-    FOOD("Food", "fork.knife", listOf("FOOD_TASTING")),
-    WELLNESS("Bien-etre", "leaf.fill", listOf("WELLNESS_EVENT"));
+enum class EventCategory(
+    val displayNameKey: String,
+    val icon: String,
+    val eventTypes: List<String>
+) {
+    ALL("category.all", "square.grid.2x2", listOf()),
+    SOCIAL("category.social", "person.2.fill", listOf("BIRTHDAY", "WEDDING", "PARTY", "FAMILY_GATHERING")),
+    SPORT("category.sport", "figure.run", listOf("SPORTS_EVENT", "SPORT_EVENT", "OUTDOOR_ACTIVITY")),
+    CULTURE("category.culture", "theatermasks.fill", listOf("CULTURAL_EVENT", "CREATIVE_WORKSHOP")),
+    PROFESSIONAL("category.professional", "briefcase.fill", listOf("TEAM_BUILDING", "CONFERENCE", "WORKSHOP", "TECH_MEETUP")),
+    FOOD("category.food", "fork.knife", listOf("FOOD_TASTING")),
+    WELLNESS("category.wellness", "leaf.fill", listOf("WELLNESS_EVENT"));
 
     companion object {
+        /** Localized display names for each category key, keyed by language code. */
+        val displayNames: Map<String, Map<String, String>> = mapOf(
+            "category.all" to mapOf(
+                "en" to "All", "fr" to "Tout", "es" to "Todo",
+                "it" to "Tutto", "pt" to "Tudo"
+            ),
+            "category.social" to mapOf(
+                "en" to "Social", "fr" to "Social", "es" to "Social",
+                "it" to "Sociale", "pt" to "Social"
+            ),
+            "category.sport" to mapOf(
+                "en" to "Sport", "fr" to "Sport", "es" to "Deporte",
+                "it" to "Sport", "pt" to "Esporte"
+            ),
+            "category.culture" to mapOf(
+                "en" to "Culture", "fr" to "Culture", "es" to "Cultura",
+                "it" to "Cultura", "pt" to "Cultura"
+            ),
+            "category.professional" to mapOf(
+                "en" to "Pro", "fr" to "Pro", "es" to "Pro",
+                "it" to "Pro", "pt" to "Pro"
+            ),
+            "category.food" to mapOf(
+                "en" to "Food", "fr" to "Food", "es" to "Comida",
+                "it" to "Cibo", "pt" to "Comida"
+            ),
+            "category.wellness" to mapOf(
+                "en" to "Wellness", "fr" to "Bien-être", "es" to "Bienestar",
+                "it" to "Benessere", "pt" to "Bem-estar"
+            )
+        )
+
+        /**
+         * Resolves a category display name key to a localized string.
+         *
+         * @param key The category key (e.g., "category.all")
+         * @param locale The locale code ("en", "fr", "es", "it", "pt")
+         * @return The localized category name, falling back to French then to the key.
+         */
+        fun localizedName(key: String, locale: String = "fr"): String {
+            return displayNames[key]?.get(locale)
+                ?: displayNames[key]?.get("fr")
+                ?: key
+        }
+
         /**
          * Find the category for a given EventType name.
          */
@@ -143,4 +192,10 @@ enum class EventCategory(val displayNameFr: String, val icon: String, val eventT
             return entries.firstOrNull { it.eventTypes.contains(eventType) } ?: ALL
         }
     }
+
+    /**
+     * Gets the display name for this category in the given locale.
+     * Convenience method that delegates to companion's localizedName.
+     */
+    fun displayName(locale: String = "fr"): String = localizedName(displayNameKey, locale)
 }

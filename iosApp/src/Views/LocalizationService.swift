@@ -7,7 +7,9 @@ enum AppLocale: String, CaseIterable {
     case english = "en"
     case french = "fr"
     case spanish = "es"
-    
+    case italian = "it"
+    case portuguese = "pt"
+
     var displayName: String {
         switch self {
         case .english:
@@ -16,9 +18,13 @@ enum AppLocale: String, CaseIterable {
             return NSLocalizedString("language_french", comment: "French language name")
         case .spanish:
             return NSLocalizedString("language_spanish", comment: "Spanish language name")
+        case .italian:
+            return NSLocalizedString("language_italian", comment: "Italian language name")
+        case .portuguese:
+            return NSLocalizedString("language_portuguese", comment: "Portuguese language name")
         }
     }
-    
+
     var nativeName: String {
         switch self {
         case .english:
@@ -27,6 +33,10 @@ enum AppLocale: String, CaseIterable {
             return "Français"
         case .spanish:
             return "Español"
+        case .italian:
+            return "Italiano"
+        case .portuguese:
+            return "Português"
         }
     }
 }
@@ -37,7 +47,7 @@ enum AppLocale: String, CaseIterable {
  */
 class LocalizationService {
     private let localeKey = "app_locale"
-    
+
     /**
      * Get the currently selected locale.
      * Returns the saved locale or falls back to the system locale.
@@ -48,31 +58,35 @@ class LocalizationService {
            let savedLocale = AppLocale(rawValue: savedLocaleString) {
             return savedLocale
         }
-        
+
         // Fall back to system locale
         let systemLanguageCode = Locale.current.language.languageCode?.identifier ?? "en"
-        
+
         // Map system locale to supported locales
         if systemLanguageCode.hasPrefix("fr") {
             return .french
         } else if systemLanguageCode.hasPrefix("es") {
             return .spanish
+        } else if systemLanguageCode.hasPrefix("it") {
+            return .italian
+        } else if systemLanguageCode.hasPrefix("pt") {
+            return .portuguese
         } else {
             return .english
         }
     }
-    
+
     /**
      * Set the app locale and persist the selection.
      * This will trigger a UI update on next launch.
      */
     func setLocale(_ locale: AppLocale) {
         UserDefaults.standard.set(locale.rawValue, forKey: localeKey)
-        
+
         // Set the override language for the app
         UserDefaults.standard.set([locale.rawValue], forKey: "AppleLanguages")
         UserDefaults.standard.synchronize()
-        
+
         // Note: In a production app, you might want to restart the app or
         // use a notification to update all views immediately
     }

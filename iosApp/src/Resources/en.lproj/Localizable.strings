@@ -1,0 +1,621 @@
+/*
+  Localizable.strings (English)
+  Wakeve - Collaborative Event Planning
+*/
+
+// MARK: - Common
+"common.close" = "Close";
+"common.cancel" = "Cancel";
+"common.save" = "Save";
+"common.delete" = "Delete";
+"common.back" = "Back";
+"common.ok" = "OK";
+"common.error" = "Error";
+"common.loading" = "Loading...";
+"common.yes" = "Yes";
+"common.no" = "No";
+
+// MARK: - Auth
+"auth.sign_in" = "Sign In";
+"auth.sign_in_subtitle" = "Continue with your Apple ID to get started";
+"auth.signing_in" = "Signing in...";
+"auth.sign_out" = "Sign out";
+"auth.sign_in_failed" = "Sign-in Failed";
+"auth.try_again" = "Try Again";
+"auth.privacy_agree" = "By signing in, you agree to our";
+"auth.privacy_policy" = "Privacy Policy";
+"auth.terms_of_service" = "Terms of Service";
+"auth.and" = "and";
+"auth.skip_dev" = "Skip (Development)";
+
+// MARK: - Explore
+"explore.title" = "Explore";
+"explore.search_prompt" = "Search for an event...";
+"explore.trending" = "Trending";
+"explore.nearby" = "Near you";
+"explore.recommended" = "Recommended for you";
+"explore.empty_title" = "Nothing to explore yet";
+"explore.empty_subtitle" = "Events will appear here as soon as they are created. Start by creating one!";
+"explore.no_results" = "No results for \"%@\"";
+"explore.search_hint" = "Try different keywords or adjust your filters.";
+"explore.results_count" = "%lld results";
+"explore.participants_count" = "%lld participants";
+"explore.event_ideas" = "Event ideas";
+
+// MARK: - Explore Ideas
+"explore.ideas.weekend" = "Weekend with friends";
+"explore.ideas.weekend_desc" = "Plan a memorable weekend with your closest friends";
+"explore.ideas.team_building" = "Team building";
+"explore.ideas.team_building_desc" = "Organize an unforgettable team cohesion day";
+"explore.ideas.birthday" = "Birthday";
+"explore.ideas.birthday_desc" = "Celebrate a special birthday in style";
+"explore.ideas.party" = "Party";
+"explore.ideas.party_desc" = "Host a great party with your loved ones";
+"explore.ideas.create" = "Create";
+
+// MARK: - Explore Categories
+"explore.category.all" = "All";
+"explore.category.social" = "Social";
+"explore.category.sport" = "Sport";
+"explore.category.culture" = "Culture";
+"explore.category.professional" = "Pro";
+"explore.category.food" = "Food";
+"explore.category.wellness" = "Wellness";
+
+// MARK: - Explore Event Types
+"explore.event_type.birthday" = "Birthday";
+"explore.event_type.wedding" = "Wedding";
+"explore.event_type.team_building" = "Team building";
+"explore.event_type.conference" = "Conference";
+"explore.event_type.workshop" = "Workshop";
+"explore.event_type.party" = "Party";
+"explore.event_type.sport" = "Sport";
+"explore.event_type.culture" = "Culture";
+"explore.event_type.family" = "Family";
+"explore.event_type.outdoor" = "Outdoor";
+"explore.event_type.food" = "Gastronomy";
+"explore.event_type.tech" = "Tech";
+"explore.event_type.wellness" = "Wellness";
+"explore.event_type.creative" = "Creative";
+"explore.event_type.other" = "Other";
+
+// MARK: - Notifications
+"notifications.title" = "Notifications";
+"notifications.mark_all_read" = "Read all";
+"notifications.delete" = "Delete";
+"notifications.read" = "Read";
+"notifications.mark_as_read" = "Mark as read";
+"notifications.empty_title" = "No notifications";
+"notifications.empty_subtitle" = "Your notifications will appear here when someone votes, comments, or updates an event.";
+"notifications.loading" = "Loading notifications...";
+"notifications.date.today" = "Today";
+"notifications.date.yesterday" = "Yesterday";
+"notifications.date.this_week" = "This week";
+"notifications.date.older" = "Older";
+"notifications.time.just_now" = "Just now";
+"notifications.time.minutes_ago" = "%lld min ago";
+"notifications.time.hours_ago" = "%lldh ago";
+"notifications.time.days_ago" = "%lldd ago";
+
+// MARK: - Notification Preferences
+"notifications.preferences.title" = "Preferences";
+"notifications.preferences.save" = "Save";
+"notifications.preferences.types_header" = "Notification types";
+"notifications.preferences.votes" = "Votes";
+"notifications.preferences.votes_desc" = "Receive a notification when a participant votes";
+"notifications.preferences.comments" = "Comments";
+"notifications.preferences.comments_desc" = "Receive a notification for new comments";
+"notifications.preferences.status_changes" = "Status changes";
+"notifications.preferences.status_changes_desc" = "Be notified when an event changes status";
+"notifications.preferences.reminders" = "Reminders";
+"notifications.preferences.reminders_desc" = "Reminders on the day of the event";
+"notifications.preferences.deadlines" = "Deadlines";
+"notifications.preferences.deadlines_desc" = "Reminders before poll deadlines";
+"notifications.preferences.weekly_digest" = "Weekly digest";
+"notifications.preferences.weekly_digest_desc" = "Receive a summary every Monday";
+"notifications.preferences.sound" = "Sound";
+"notifications.preferences.general" = "General";
+"notifications.preferences.quiet_hours" = "Quiet hours";
+"notifications.preferences.dnd" = "Do not disturb";
+"notifications.preferences.start" = "Start";
+"notifications.preferences.end" = "End";
+"notifications.preferences.muted_footer" = "Notifications will be muted during this period.";
+
+// MARK: - Leaderboard
+"leaderboard.title" = "Leaderboard";
+"leaderboard.close" = "Close";
+"leaderboard.filter.global" = "Global";
+"leaderboard.filter.this_month" = "This month";
+"leaderboard.filter.this_week" = "This week";
+"leaderboard.filter.friends" = "Friends";
+"leaderboard.you" = "You";
+"leaderboard.badges_count" = "%lld badges";
+"leaderboard.points" = "points";
+"leaderboard.friend" = "Friend";
+
+// MARK: - Dashboard
+"dashboard.title" = "Dashboard";
+"dashboard.overview" = "Overview";
+"dashboard.events" = "Events";
+"dashboard.participants" = "Participants";
+"dashboard.avg_per_event" = "Avg / event";
+"dashboard.votes" = "Votes";
+"dashboard.comments" = "Comments";
+"dashboard.response_rate" = "Resp. rate";
+"dashboard.events_by_status" = "Events by status";
+"dashboard.my_events" = "My events";
+"dashboard.status.draft" = "Draft";
+"dashboard.status.polling" = "Poll";
+"dashboard.status.comparing" = "Comparison";
+"dashboard.status.confirmed" = "Confirmed";
+"dashboard.status.organizing" = "Organizing";
+"dashboard.status.finalized" = "Finalized";
+"dashboard.close" = "Close";
+
+// MARK: - Dashboard Analytics
+"dashboard.poll_participation" = "Poll participation rate";
+"dashboard.participants_voted" = "%lld out of %lld participants voted";
+"dashboard.vote_timeline" = "Vote timeline";
+"dashboard.registration_timeline" = "Registration timeline";
+"dashboard.popular_slots" = "Most popular time slots";
+"dashboard.time.morning" = "Morning";
+"dashboard.time.afternoon" = "Afternoon";
+"dashboard.time.evening" = "Evening";
+"dashboard.time.specific" = "Specific";
+"dashboard.time.all_day" = "All day";
+"dashboard.vote.yes" = "Yes";
+"dashboard.vote.maybe" = "Maybe";
+"dashboard.vote.no" = "No";
+"dashboard.votes_count" = "%lld votes";
+
+// MARK: - Profile
+"profile.title" = "My Profile";
+"profile.organizer" = "Organizer";
+"profile.dashboard" = "Dashboard";
+"profile.dashboard_subtitle" = "Statistics and analytics for your events";
+"profile.preferences" = "My Preferences";
+"profile.push_notifications" = "Push notifications";
+"profile.push_notifications_desc" = "Receive notifications on this device";
+"profile.appearance" = "Appearance";
+"profile.dark_mode" = "Dark mode";
+"profile.light_mode" = "Light mode";
+"profile.dark_mode_desc" = "Use the dark theme";
+"profile.light_mode_desc" = "Use the light theme";
+"profile.about" = "About";
+"profile.settings" = "Settings";
+"profile.version" = "Version";
+"profile.documentation" = "Documentation";
+"profile.achievements" = "Profile & Achievements";
+"profile.user" = "User";
+
+// MARK: - Gamification
+"gamification.points_and_level" = "Points & Level";
+"gamification.total_points" = "Total Points";
+"gamification.level_short" = "Lv. %lld";
+"gamification.level_format" = "Level %lld";
+"gamification.event_creation" = "Event creation";
+"gamification.voting" = "Votes";
+"gamification.commenting" = "Comments";
+"gamification.participation" = "Participation";
+"gamification.badges" = "Badges";
+"gamification.locked" = "Locked";
+"gamification.achievements" = "Achievements";
+"gamification.view_leaderboard" = "View leaderboard";
+"gamification.leaderboard_subtitle" = "Compare your points with other participants";
+"gamification.leaderboard" = "Leaderboard";
+"gamification.badges_count" = "%lld badges";
+
+// MARK: - Gamification Levels
+"gamification.level.beginner" = "Beginner";
+"gamification.level.explorer" = "Explorer";
+"gamification.level.contributor" = "Contributor";
+"gamification.level.organizer" = "Organizer";
+"gamification.level.expert" = "Expert";
+"gamification.level.master" = "Master";
+"gamification.level.champion" = "Champion";
+"gamification.level.legend" = "Legend";
+"gamification.level.mythic" = "Mythical";
+"gamification.level.transcendent" = "Transcendent";
+
+// MARK: - Gamification Badges
+"gamification.badge.first_event" = "First Event";
+"gamification.badge.super_organizer" = "Super Organizer";
+"gamification.badge.early_bird" = "Early Bird";
+"gamification.badge.voting_master" = "Voting Master";
+"gamification.badge.active_participant" = "Active Participant";
+"gamification.badge.event_master" = "Event Master";
+"gamification.badge.commentator" = "Chatterbox";
+"gamification.badge.dedicated" = "Dedicated";
+"gamification.badge.social_butterfly" = "Social Butterfly";
+"gamification.badge.party_animal" = "Party Animal";
+"gamification.badge.century_club" = "Century Club";
+"gamification.badge.millennium_club" = "Millennium Club";
+
+// MARK: - Badge Categories
+"gamification.badge_category.organization" = "Organization";
+"gamification.badge_category.participation" = "Participation";
+"gamification.badge_category.social" = "Social";
+"gamification.badge_category.special" = "Special";
+
+// MARK: - Settings
+"settings.title" = "Settings";
+"settings.notifications" = "Notifications";
+"settings.notifications_subtitle" = "Manage your notification preferences";
+"settings.notification_preferences" = "Notification preferences";
+
+// MARK: - Language Settings
+"language_title" = "Language";
+"language_description" = "Choose the app language";
+"language_english" = "English";
+"language_french" = "French";
+"language_spanish" = "Spanish";
+"language_italian" = "Italian";
+"language_portuguese" = "Portuguese";
+"selected" = "Selected";
+"currently_selected" = "Currently selected";
+"tap_to_select" = "Tap to select this language";
+
+// MARK: - Home
+"home.filter.upcoming" = "Upcoming";
+"home.filter.past" = "Past events";
+"home.filter.drafts" = "Drafts";
+"home.filter.organized_by_me" = "Organized by me";
+"home.filter.confirmed" = "Confirmed";
+"home.empty.upcoming.title" = "No upcoming events";
+"home.empty.upcoming.subtitle" = "Upcoming events will appear here, whether you organize them or not.";
+"home.empty.past.title" = "No past events";
+"home.empty.past.subtitle" = "Past events will appear here.";
+"home.empty.drafts.title" = "No drafts";
+"home.empty.drafts.subtitle" = "Your event drafts will appear here.";
+"home.empty.organized.title" = "No organized events";
+"home.empty.organized.subtitle" = "Events you organize will appear here.";
+"home.empty.confirmed.title" = "No confirmed events";
+"home.empty.confirmed.subtitle" = "Confirmed events will appear here.";
+"home.organized_by_me_badge" = "Organized by me";
+"home.create_event" = "Create an event";
+"home.loading" = "Loading events...";
+
+// MARK: - Event Detail
+"events.share" = "Share event";
+"events.vote_poll" = "Participate in poll";
+"events.vote_hint" = "Vote for your preferred time slots";
+"events.delete" = "Delete event";
+"events.delete_title" = "Delete this event?";
+"events.delete_message" = "This action is irreversible. All data associated with this event will be permanently deleted.";
+"events.delete_confirm" = "Confirm deletion";
+"events.options" = "Event options";
+"events.about" = "About";
+"events.hosted_by" = "Hosted by";
+"events.organizer" = "Organizer";
+"events.going" = "Going";
+"events.going_count" = "Going";
+"events.no_participants" = "No participants yet";
+"events.more_participants" = "+%lld more";
+"events.participating" = "Participating";
+"events.vote_by" = "Vote by";
+"events.status.hosting" = "Hosting";
+"events.status.polling" = "Polling";
+"events.status.confirmed" = "Confirmed";
+"events.manage_participants" = "Manage participants";
+"events.view_results" = "View results";
+"events.scenario_planning" = "Scenario planning";
+"events.budget_overview" = "Budget overview";
+"events.accommodation" = "Accommodation";
+"events.meal_planning" = "Meal planning";
+"events.equipment_checklist" = "Equipment checklist";
+"events.activity_planning" = "Activity planning";
+"events.close_accessibility" = "Close";
+"events.more_options" = "More options";
+"events.cancel_keep" = "Cancel and keep event";
+"events.delete_hint" = "This action is irreversible";
+"events.rsvp.going" = "Going";
+"events.rsvp.not_going" = "Not going";
+"events.rsvp.maybe" = "Maybe";
+"events.accessibility.rank" = "%@, rank #%lld, %lld points";
+"events.accessibility.its_you" = "That's you";
+
+// MARK: - Invitation
+"invitation.title" = "Invite participants";
+"invitation.qr_code" = "QR Code";
+"invitation.scan_to_join" = "Scan to join";
+"invitation.link" = "Invitation link";
+"invitation.copied" = "Copied";
+"invitation.copy" = "Copy";
+"invitation.share" = "Share invitation";
+"invitation.share_text" = "Join the event \"%@\" on Wakeve!\n%@";
+
+// MARK: - Settings Sheet
+"settings_sheet.title" = "Settings";
+"settings_sheet.notifications" = "Notifications";
+"settings_sheet.enabled" = "Enabled";
+"settings_sheet.disabled" = "Disabled";
+"settings_sheet.calendar_sync" = "Calendar sync";
+"settings_sheet.email_notifications" = "Email notifications";
+"settings_sheet.privacy" = "Privacy and information";
+"settings_sheet.data_management" = "Learn how your data is managed...";
+"settings_sheet.help" = "Help";
+"settings_sheet.terms" = "Terms and conditions";
+"settings_sheet.sign_out" = "Sign out";
+
+// MARK: - Additional Common
+"common.add" = "Add";
+"common.edit" = "Edit";
+"common.confirm" = "Confirm";
+"common.required" = "Required";
+"common.unknown" = "Unknown";
+"common.see_all" = "See all";
+"common.validate" = "Validate";
+
+// MARK: - Event Creation
+"events.create" = "Create an event";
+"events.create_short" = "Create";
+"events.save_draft" = "Save draft";
+"events.organized_by" = "Organized by %@";
+"events.create_event_button" = "Create event";
+
+// MARK: - Meetings
+"meetings.create" = "Create a meeting";
+"meetings.edit" = "Edit meeting";
+"meetings.cancel" = "Cancel meeting";
+"meetings.cancel_confirm" = "Cancel the meeting?";
+"meetings.cancel_hint" = "This action cannot be undone.";
+"meetings.add_to_calendar_title" = "Add to calendar?";
+"meetings.cancelled" = "Cancelled";
+"meetings.cancelled_plural" = "Cancelled";
+"meetings.generate_link" = "Generate link";
+
+// MARK: - Status Labels
+"status.confirmed" = "Confirmed";
+"status.pending" = "Pending";
+"status.maybe" = "Maybe";
+"status.cancelled" = "Cancelled";
+"status.reserved" = "Reserved";
+"status.draft" = "Draft";
+"status.polling" = "Poll";
+
+// MARK: - Equipment
+"equipment.add" = "Add equipment";
+"equipment.status.required" = "Required";
+"equipment.status.assigned" = "Assigned";
+"equipment.status.confirmed" = "Confirmed";
+"equipment.status.packed" = "Packed";
+"equipment.status.cancelled" = "Cancelled";
+"equipment.filter.required" = "Required";
+"equipment.filter.assigned" = "Assigned";
+"equipment.filter.confirmed" = "Confirmed";
+"equipment.filter.packed" = "Packed";
+"equipment.filter.cancelled" = "Cancelled";
+"equipment.assigned_to" = "Assigned to";
+"equipment.mark_packed" = "Mark as packed";
+"equipment.mark_unpacked" = "Mark as not packed";
+"equipment.assign" = "Assign this equipment";
+"equipment.reassign" = "Reassign this equipment";
+"equipment.assign_hint" = "Tap to assign this equipment to a participant";
+"equipment.reassign_hint" = "Tap to reassign this equipment";
+"equipment.pack_toggle_hint" = "Tap to change the packing status of this equipment";
+"equipment.add_hint" = "Tap to add new equipment to the list";
+"equipment.stats.required" = "Required";
+"equipment.stats.assigned" = "Assigned";
+"equipment.stats.confirmed" = "Confirmed";
+
+// MARK: - Activity Planning
+"activity.create" = "Create an activity";
+"activity.create_first" = "Create the first activity";
+"activity.create_new" = "Create a new activity";
+"activity.create_new_hint" = "Add a new activity to the event";
+"activity.delete_title" = "Delete activity";
+"activity.delete" = "Delete";
+
+// MARK: - Meal Planning
+"meal.add" = "Add a meal";
+"meal.delete_title" = "Delete this meal?";
+"meal.delete_message" = "This action is irreversible.";
+"meal.delete_constraint" = "Delete this constraint?";
+
+// MARK: - Accommodation
+"accommodation.delete_title" = "Delete accommodation?";
+
+// MARK: - Inbox
+"inbox.events" = "Events";
+"inbox.invitation_hint" = "Tap to view invitation details";
+"inbox.vote_hint" = "Tap to vote or view results";
+"inbox.comment_hint" = "Tap to read the comment";
+"inbox.event_hint" = "Tap to view event details";
+
+// MARK: - Onboarding
+"onboarding.create_events_title" = "Create your events";
+"onboarding.create_events_desc" = "Easily organize events with friends and colleagues. Set dates, suggest time slots, and let participants vote.";
+"onboarding.feature.quick_creation" = "Quick event creation";
+"onboarding.feature.availability_poll" = "Availability poll";
+"onboarding.feature.auto_calculate" = "Automatic best time slot calculation";
+"onboarding.organize_title" = "Organize everything in one place";
+"onboarding.organize_desc" = "Manage accommodation, meals, activities, and budget. All in one place for seamless organization.";
+
+// MARK: - Shared Components
+"home.my_events" = "My Events";
+
+// MARK: - Location
+"location.validate_selection" = "Validate location selection";
+"location.allow_title" = "Allow location access";
+"location.open_settings" = "Open settings";
+
+// MARK: - Budget
+"budget.close" = "Close";
+
+// MARK: - Explore (Legacy)
+"explore.loading_events" = "Loading events...";
+
+// MARK: - Accommodation (Extended)
+"accommodation.title" = "Accommodation";
+"accommodation.address" = "Address";
+"accommodation.book" = "Book";
+"accommodation.capacity" = "Capacity";
+"accommodation.delete_message" = "This action is irreversible. All data will be permanently deleted.";
+"accommodation.add_title" = "Add accommodation";
+"accommodation.edit_title" = "Edit accommodation";
+"accommodation.empty_message" = "Add your first accommodation for this event.";
+"accommodation.empty_title" = "No accommodation";
+"accommodation.night" = "night";
+"accommodation.nights" = "nights";
+"accommodation.period" = "Period";
+"accommodation.persons" = "people";
+"accommodation.price" = "Price";
+"accommodation.total" = "Total";
+"accommodation.field.booking_url" = "Booking URL";
+"accommodation.field.capacity" = "Capacity";
+"accommodation.field.name" = "Name";
+"accommodation.field.notes" = "Notes";
+"accommodation.field.number_of_nights" = "Number of nights";
+"accommodation.field.price_per_night" = "Price per night";
+"accommodation.field.status" = "Status";
+"accommodation.field.type" = "Type";
+"accommodation.section.booking" = "Booking";
+"accommodation.section.capacity_duration" = "Capacity and duration";
+"accommodation.section.dates" = "Dates";
+"accommodation.section.general_info" = "General information";
+"accommodation.section.notes" = "Notes";
+"accommodation.section.pricing" = "Pricing";
+"accommodation.type.hostel" = "Hostel";
+"accommodation.type.hotel" = "Hotel";
+"accommodation.type.other" = "Other";
+"accommodation.type.vacation_rental" = "Vacation rental";
+
+// MARK: - Common (Extended)
+"common.double_tap_to_select" = "Double tap to select";
+"common.not_selected" = "Not selected";
+"common.selected" = "Selected";
+"common.share" = "Share";
+
+// MARK: - Events (Extended)
+"events.add_background" = "Add a background";
+"events.add_description" = "Add a description";
+"events.add_end_time" = "Add an end time";
+"events.all_day" = "All day";
+"events.create_error" = "Unable to create event";
+"events.creating" = "Creating...";
+"events.date_and_time" = "Date and time";
+"events.end" = "End";
+"events.location" = "Location";
+"events.preview" = "Preview";
+"events.start" = "Start";
+"events.title_placeholder" = "Event\ntitle";
+
+// MARK: - Explore (Extended)
+"explore.category_all" = "All";
+"explore.category_culture" = "Culture";
+"explore.category_professional" = "Pro";
+"explore.category_social" = "Social";
+"explore.category_sport" = "Sport";
+"explore.featured_events" = "Featured events";
+"explore.no_events" = "No events";
+"explore.no_events_message" = "Create your first event to get started!";
+"explore.recommended_for_you" = "Recommended for you";
+"explore.search_placeholder" = "Search...";
+"explore.see_more" = "See more";
+
+// MARK: - Filters
+"filter.active" = "Active";
+"filter.all" = "All";
+"filter.completed" = "Completed";
+
+// MARK: - Inbox (Extended)
+"inbox.all_events" = "All events";
+"inbox.empty.events_subtitle" = "Events you participate in will appear here.";
+"inbox.empty.focused_subtitle" = "Important items will appear here.";
+"inbox.empty.no_events" = "No events";
+"inbox.empty.no_notifications_for" = "No notifications for %@";
+"inbox.empty.no_focused" = "No focus items";
+"inbox.empty.no_notifications" = "No notifications";
+"inbox.empty.no_unread" = "No unread messages";
+"inbox.empty.notifications_subtitle" = "Your notifications will appear here.";
+"inbox.empty.unread_subtitle" = "You have read all your messages.";
+"inbox.filter_by_event" = "Filter by event";
+"inbox.type.comment" = "Comment";
+"inbox.type.event_update" = "Event update";
+"inbox.type.invitation" = "Invitation";
+"inbox.type.poll_update" = "Poll update";
+
+// MARK: - Location (Extended)
+"location.clear_search" = "Clear search";
+"location.current_position" = "Current position";
+"location.custom_place_hint" = "Enter a custom place name";
+"location.my_current_position" = "My current position";
+"location.optional_hint" = "Optional";
+"location.permission_message" = "Location access allows you to find nearby places and get suggestions.";
+"location.place_name" = "Place name";
+"location.place_name_placeholder" = "Enter a place name";
+"location.search_places" = "Search places";
+"location.suggestions" = "Suggestions";
+"location.use_current_position_hint" = "Use current position";
+"location.voice_search" = "Voice search";
+"location.voice_search_hint" = "Search by voice";
+
+// MARK: - Meetings (Extended)
+"meetings.add_to_calendar" = "Add to calendar";
+"meetings.add_to_calendar_hint" = "Add this meeting to your calendar";
+"meetings.add_to_calendar_message" = "This meeting will be added to your calendar.";
+"meetings.cancel_warning" = "This action cannot be undone.";
+"meetings.date_time" = "Date and time";
+"meetings.date_time_label" = "Date and time";
+"meetings.description_label" = "Meeting description";
+"meetings.description_optional" = "Description (optional)";
+"meetings.detail_title" = "Meeting details";
+"meetings.duration" = "Duration";
+"meetings.ended" = "Ended";
+"meetings.ended_plural" = "Ended";
+"meetings.field_title" = "Title";
+"meetings.generate" = "Generate";
+"meetings.generate_link_description" = "A new meeting link will be generated.";
+"meetings.generate_link_info" = "The existing link will be replaced.";
+"meetings.hours" = "Hours";
+"meetings.join" = "Join meeting";
+"meetings.join_hint" = "Open meeting link";
+"meetings.minutes" = "Minutes";
+"meetings.not_found" = "Meeting not found";
+"meetings.organizer" = "Organizer";
+"meetings.participants" = "Participants";
+"meetings.people" = "people";
+"meetings.platform" = "Platform";
+"meetings.ready_to_join" = "Ready to join";
+"meetings.regenerate_link" = "Regenerate link";
+"meetings.scheduled" = "Scheduled";
+"meetings.scheduled_plural" = "Scheduled";
+"meetings.select_date" = "Select date";
+"meetings.select_platform" = "Select a platform";
+"meetings.started" = "In progress";
+"meetings.started_plural" = "In progress";
+"meetings.title" = "Meetings";
+"meetings.title_placeholder" = "Meeting title";
+
+// MARK: - Onboarding (Extended)
+"onboarding.collaborate_desc" = "Invite your friends and colleagues. Everyone can suggest dates and vote for their preferences.";
+"onboarding.collaborate_title" = "Collaborate together";
+"onboarding.enjoy_desc" = "Track everything in real time: reminders, calendars, and notifications keep everyone on the same page.";
+"onboarding.enjoy_title" = "Enjoy the experience";
+"onboarding.feature.accommodation_planning" = "Accommodation planning";
+"onboarding.feature.budget_tracking" = "Budget tracking";
+"onboarding.feature.built_in_reminders" = "Built-in reminders";
+"onboarding.feature.meal_organization" = "Meal organization";
+"onboarding.feature.native_calendar" = "Native calendar integration";
+"onboarding.feature.overview" = "Full event overview";
+"onboarding.feature.participant_management" = "Participant management";
+"onboarding.feature.realtime_tracking" = "Real-time tracking";
+"onboarding.feature.task_assignment" = "Task assignment";
+"onboarding.get_started" = "Get started";
+"onboarding.next" = "Next";
+"onboarding.skip" = "Skip";
+
+// MARK: - Poll
+"poll.maybe" = "Maybe";
+"poll.no" = "No";
+"poll.yes" = "Yes";
+
+// MARK: - Status (Extended)
+"status.assigned" = "Assigned";
+"status.comparing" = "Comparison";
+"status.completed" = "Completed";
+"status.finalized" = "Finalized";
+"status.in_progress" = "In progress";
+"status.organizing" = "Organizing";
+"status.planned" = "Planned";
+"status.searching" = "Searching";

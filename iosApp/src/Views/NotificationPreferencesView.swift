@@ -18,43 +18,43 @@ struct NotificationPreferencesView: View {
     @State private var preferences: [NotificationPreferenceItem] = [
         NotificationPreferenceItem(
             id: "votes",
-            label: "Votes",
-            description: "Recevoir une notification lorsqu'un participant vote",
+            label: String(localized: "notifications.preferences.votes"),
+            description: String(localized: "notifications.preferences.votes_desc"),
             icon: "chart.bar.fill",
             isEnabled: true
         ),
         NotificationPreferenceItem(
             id: "comments",
-            label: "Commentaires",
-            description: "Recevoir une notification pour les nouveaux commentaires",
+            label: String(localized: "notifications.preferences.comments"),
+            description: String(localized: "notifications.preferences.comments_desc"),
             icon: "bubble.left.fill",
             isEnabled: true
         ),
         NotificationPreferenceItem(
             id: "status_changes",
-            label: "Changements de statut",
-            description: "Etre notifie lorsqu'un evenement change de statut",
+            label: String(localized: "notifications.preferences.status_changes"),
+            description: String(localized: "notifications.preferences.status_changes_desc"),
             icon: "arrow.triangle.2.circlepath",
             isEnabled: true
         ),
         NotificationPreferenceItem(
             id: "reminders",
-            label: "Rappels",
-            description: "Rappels le jour de l'evenement",
+            label: String(localized: "notifications.preferences.reminders"),
+            description: String(localized: "notifications.preferences.reminders_desc"),
             icon: "bell.fill",
             isEnabled: true
         ),
         NotificationPreferenceItem(
             id: "deadlines",
-            label: "Deadlines",
-            description: "Rappels avant la date limite des sondages",
+            label: String(localized: "notifications.preferences.deadlines"),
+            description: String(localized: "notifications.preferences.deadlines_desc"),
             icon: "clock.fill",
             isEnabled: true
         ),
         NotificationPreferenceItem(
             id: "weekly_digest",
-            label: "Resume hebdomadaire",
-            description: "Recevoir un resume chaque lundi",
+            label: String(localized: "notifications.preferences.weekly_digest"),
+            description: String(localized: "notifications.preferences.weekly_digest_desc"),
             icon: "newspaper.fill",
             isEnabled: false
         )
@@ -97,7 +97,7 @@ struct NotificationPreferencesView: View {
                         .padding(.vertical, 4)
                     }
                 } header: {
-                    Text("Types de notifications")
+                    Text(String(localized: "notifications.preferences.types_header"))
                         .font(.system(size: 13, weight: .semibold))
                         .textCase(nil)
                 }
@@ -111,13 +111,13 @@ struct NotificationPreferencesView: View {
                                 .foregroundColor(soundEnabled ? .accentColor : .secondary)
                                 .frame(width: 24)
 
-                            Text("Son")
+                            Text(String(localized: "notifications.preferences.sound"))
                                 .font(.system(size: 16, weight: .medium))
                         }
                     }
                     .tint(.accentColor)
                 } header: {
-                    Text("General")
+                    Text(String(localized: "notifications.preferences.general"))
                         .font(.system(size: 13, weight: .semibold))
                         .textCase(nil)
                 }
@@ -131,7 +131,7 @@ struct NotificationPreferencesView: View {
                                 .foregroundColor(quietHoursEnabled ? .purple : .secondary)
                                 .frame(width: 24)
 
-                            Text("Heures silencieuses")
+                            Text(String(localized: "notifications.preferences.quiet_hours"))
                                 .font(.system(size: 16, weight: .medium))
                         }
                     }
@@ -139,29 +139,29 @@ struct NotificationPreferencesView: View {
 
                     if quietHoursEnabled {
                         DatePicker(
-                            "Debut",
+                            String(localized: "notifications.preferences.start"),
                             selection: $quietHoursStart,
                             displayedComponents: .hourAndMinute
                         )
 
                         DatePicker(
-                            "Fin",
+                            String(localized: "notifications.preferences.end"),
                             selection: $quietHoursEnd,
                             displayedComponents: .hourAndMinute
                         )
                     }
                 } header: {
-                    Text("Ne pas deranger")
+                    Text(String(localized: "notifications.preferences.dnd"))
                         .font(.system(size: 13, weight: .semibold))
                         .textCase(nil)
                 } footer: {
                     if quietHoursEnabled {
-                        Text("Les notifications seront mises en sourdine pendant cette periode.")
+                        Text(String(localized: "notifications.preferences.muted_footer"))
                             .font(.system(size: 12))
                     }
                 }
             }
-            .navigationTitle("Preferences")
+            .navigationTitle(String(localized: "notifications.preferences.title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -177,7 +177,7 @@ struct NotificationPreferencesView: View {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle())
                         } else {
-                            Text("Enregistrer")
+                            Text(String(localized: "notifications.preferences.save"))
                                 .font(.system(size: 15, weight: .semibold))
                                 .foregroundColor(.accentColor)
                         }

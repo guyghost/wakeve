@@ -66,14 +66,16 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
+import androidx.compose.ui.res.stringResource
+import com.guyghost.wakeve.R
 
 // MARK: - Models
 
-enum class NotificationDateGroup(val label: String) {
-    TODAY("Aujourd'hui"),
-    YESTERDAY("Hier"),
-    THIS_WEEK("Cette semaine"),
-    OLDER("Plus ancien")
+enum class NotificationDateGroup(val labelRes: Int) {
+    TODAY(R.string.notification_date_today),
+    YESTERDAY(R.string.notification_date_yesterday),
+    THIS_WEEK(R.string.notification_date_this_week),
+    OLDER(R.string.notification_date_older)
 }
 
 enum class NotificationItemType(
@@ -160,7 +162,7 @@ fun NotificationsScreen(
             LargeTopAppBar(
                 title = {
                     Text(
-                        text = "Notifications",
+                        text = stringResource(R.string.notifications),
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -168,7 +170,7 @@ fun NotificationsScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Retour"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -178,7 +180,7 @@ fun NotificationsScreen(
                             notifications = notifications.map { it.copy(isRead = true) }
                         }) {
                             Text(
-                                text = "Tout lire",
+                                text = stringResource(R.string.mark_all_read),
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -187,7 +189,7 @@ fun NotificationsScreen(
                     IconButton(onClick = onNavigateToPreferences) {
                         Icon(
                             imageVector = Icons.Filled.Settings,
-                            contentDescription = "Preferences de notifications"
+                            contentDescription = stringResource(R.string.prefs_title)
                         )
                     }
                 },
@@ -223,7 +225,7 @@ fun NotificationsScreen(
                         groupedNotifications.forEach { (group, items) ->
                             item(key = "header-${group.name}") {
                                 Text(
-                                    text = group.label,
+                                    text = stringResource(group.labelRes),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.SemiBold,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -448,7 +450,7 @@ private fun EmptyNotificationsState() {
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Aucune notification",
+            text = stringResource(R.string.no_notifications),
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold,
             textAlign = TextAlign.Center
@@ -457,7 +459,7 @@ private fun EmptyNotificationsState() {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Vos notifications apparaitront ici lorsque quelqu'un votera, commentera ou mettra a jour un evenement.",
+            text = stringResource(R.string.notification_empty_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center

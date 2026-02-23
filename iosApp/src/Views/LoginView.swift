@@ -58,8 +58,8 @@ struct LoginView: View {
                     .padding(.bottom, 60)
             }
         }
-        .alert("Sign-in Failed", isPresented: $showError) {
-            Button("Try Again", role: .cancel) {
+        .alert(String(localized: "auth.sign_in_failed"), isPresented: $showError) {
+            Button(String(localized: "auth.try_again"), role: .cancel) {
                 showError = false
             }
         } message: {
@@ -119,12 +119,12 @@ struct LoginView: View {
     
     private var welcomeTextView: some View {
         VStack(spacing: 12) {
-            Text("Sign In")
+            Text(String(localized: "auth.sign_in"))
                 .font(.system(size: 42, weight: .bold))
                 .foregroundColor(.white)
                 .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
             
-            Text("Continue with your Apple ID to get started")
+            Text(String(localized: "auth.sign_in_subtitle"))
                 .font(.system(size: 17))
                 .foregroundColor(.white.opacity(0.9))
                 .multilineTextAlignment(.center)
@@ -149,7 +149,7 @@ struct LoginView: View {
                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                 .scaleEffect(1.5)
             
-            Text("Signing in...")
+            Text(String(localized: "auth.signing_in"))
                 .font(.system(size: 17, weight: .medium))
                 .foregroundColor(.white.opacity(0.9))
         }
@@ -185,7 +185,7 @@ struct LoginView: View {
     #if DEBUG
     private var developmentSkipButton: some View {
         LiquidGlassButton(
-            title: "Skip (Development)",
+            title: String(localized: "auth.skip_dev"),
             icon: "chevron.right",
             style: .secondary,
             size: .medium
@@ -199,7 +199,7 @@ struct LoginView: View {
     
     private var privacyTermsView: some View {
         VStack(spacing: 6) {
-            Text("By signing in, you agree to our")
+            Text(String(localized: "auth.privacy_agree"))
                 .font(.system(size: 13))
                 .foregroundColor(.white.opacity(0.7))
             
@@ -207,20 +207,20 @@ struct LoginView: View {
                 Button {
                     // TODO: Open privacy policy
                 } label: {
-                    Text("Privacy Policy")
+                    Text(String(localized: "auth.privacy_policy"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.white)
                 }
                 .accessibilityLabel("Read Privacy Policy")
                 
-                Text("and")
+                Text(String(localized: "auth.and"))
                     .font(.system(size: 13))
                     .foregroundColor(.white.opacity(0.7))
                 
                 Button {
                     // TODO: Open terms
                 } label: {
-                    Text("Terms of Service")
+                    Text(String(localized: "auth.terms_of_service"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.white)
                 }
