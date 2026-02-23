@@ -4,13 +4,23 @@ import Shared
 // MARK: - Event Filter Enum
 
 enum HomeEventFilter: String, CaseIterable, Identifiable {
-    case upcoming = "À venir"
-    case past = "Évènements passés"
-    case drafts = "Brouillons"
-    case organizedByMe = "Organisés par moi"
-    case confirmed = "Confirmés"
-    
+    case upcoming
+    case past
+    case drafts
+    case organizedByMe
+    case confirmed
+
     var id: String { self.rawValue }
+
+    var displayName: String {
+        switch self {
+        case .upcoming: return String(localized: "home.filter.upcoming")
+        case .past: return String(localized: "home.filter.past")
+        case .drafts: return String(localized: "home.filter.drafts")
+        case .organizedByMe: return String(localized: "home.filter.organized_by_me")
+        case .confirmed: return String(localized: "home.filter.confirmed")
+        }
+    }
     
     var icon: String {
         switch self {
@@ -205,21 +215,21 @@ struct ModernHomeView: View {
     
     private var emptyStateTitle: String {
         switch selectedFilter {
-        case .upcoming: return "Aucun évènement à venir"
-        case .past: return "Aucun évènement passé"
-        case .drafts: return "Aucun brouillon"
-        case .organizedByMe: return "Aucun évènement organisé"
-        case .confirmed: return "Aucun évènement confirmé"
+        case .upcoming: return String(localized: "home.empty.upcoming.title")
+        case .past: return String(localized: "home.empty.past.title")
+        case .drafts: return String(localized: "home.empty.drafts.title")
+        case .organizedByMe: return String(localized: "home.empty.organized.title")
+        case .confirmed: return String(localized: "home.empty.confirmed.title")
         }
     }
-    
+
     private var emptyStateSubtitle: String {
         switch selectedFilter {
-        case .upcoming: return "Les évènements à venir apparaîtront ici, que vous les organisiez ou non."
-        case .past: return "Les évènements passés apparaîtront ici."
-        case .drafts: return "Vos brouillons d'évènements apparaîtront ici."
-        case .organizedByMe: return "Les évènements que vous organisez apparaîtront ici."
-        case .confirmed: return "Les évènements confirmés apparaîtront ici."
+        case .upcoming: return String(localized: "home.empty.upcoming.subtitle")
+        case .past: return String(localized: "home.empty.past.subtitle")
+        case .drafts: return String(localized: "home.empty.drafts.subtitle")
+        case .organizedByMe: return String(localized: "home.empty.organized.subtitle")
+        case .confirmed: return String(localized: "home.empty.confirmed.subtitle")
         }
     }
 
@@ -232,7 +242,7 @@ struct ModernHomeView: View {
         HStack {
             Button(action: { withAnimation(.spring(response: 0.3)) { showFilterMenu.toggle() } }) {
                 HStack(spacing: 4) {
-                    Text(selectedFilter.rawValue)
+                    Text(selectedFilter.displayName)
                         .font(.system(size: 32, weight: .bold))
                         .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
 
@@ -357,7 +367,7 @@ struct VisualEventCard: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "crown.fill")
                                     .font(.system(size: 16))
-                                Text("Organisé par moi")
+                                Text(String(localized: "home.organized_by_me_badge"))
                                     .font(.system(size: 16, weight: .semibold))
                             }
                             .foregroundColor(.white)
@@ -428,7 +438,7 @@ struct FilterDropdownMenu: View {
                                     .frame(width: 24)
                                 
                                 HStack(spacing: 4) {
-                                    Text(filter.rawValue)
+                                    Text(filter.displayName)
                                         .font(.body.weight(.medium))
                                         .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
                                     
@@ -509,7 +519,7 @@ struct HomeEmptyStateView: View {
             Spacer()
 
             Button(action: onCreateEvent) {
-                Text("Créer un évènement")
+                Text(String(localized: "home.create_event"))
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.black)
                     .frame(maxWidth: .infinity)
@@ -531,7 +541,7 @@ struct LoadingEventsView: View {
                 .progressViewStyle(CircularProgressViewStyle(tint: .wakevePrimary))
                 .scaleEffect(1.3)
 
-            Text("Chargement des événements...")
+            Text(String(localized: "home.loading"))
                 .font(.body.weight(.medium))
                 .foregroundColor(.secondary)
         }

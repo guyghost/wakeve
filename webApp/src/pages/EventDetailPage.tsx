@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { eventsApi, pollApi, commentsApi } from '../services/api';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,10 +11,10 @@ import type { VoteValue, Comment as CommentType } from '../types/api';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function formatDateTime(iso: string | null | undefined): string {
+function formatDateTime(iso: string | null | undefined, lng: string): string {
   if (!iso) return '-';
   try {
-    return new Date(iso).toLocaleString('fr-FR', {
+    return new Date(iso).toLocaleString(lng, {
       dateStyle: 'medium',
       timeStyle: 'short',
     });
@@ -22,9 +23,9 @@ function formatDateTime(iso: string | null | undefined): string {
   }
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, lng: string): string {
   try {
-    return new Date(iso).toLocaleDateString('fr-FR', {
+    return new Date(iso).toLocaleDateString(lng, {
       day: 'numeric',
       month: 'long',
       year: 'numeric',
@@ -34,33 +35,12 @@ function formatDate(iso: string): string {
   }
 }
 
-const TIME_OF_DAY_LABELS: Record<string, string> = {
-  ALL_DAY: 'Toute la journee',
-  MORNING: 'Matin',
-  AFTERNOON: 'Apres-midi',
-  EVENING: 'Soir',
-  SPECIFIC: 'Horaire precis',
-};
-
-const VOTE_CONFIG: Record<VoteValue, { label: string; emoji: string; className: string; activeClassName: string }> = {
-  YES: {
-    label: 'Oui',
-    emoji: '',
-    className: 'border-green-200 text-green-700 hover:bg-green-50',
-    activeClassName: 'bg-green-100 border-green-500 text-green-800 ring-2 ring-green-500',
-  },
-  MAYBE: {
-    label: 'Peut-etre',
-    emoji: '',
-    className: 'border-yellow-200 text-yellow-700 hover:bg-yellow-50',
-    activeClassName: 'bg-yellow-100 border-yellow-500 text-yellow-800 ring-2 ring-yellow-500',
-  },
-  NO: {
-    label: 'Non',
-    emoji: '',
-    className: 'border-red-200 text-red-700 hover:bg-red-50',
-    activeClassName: 'bg-red-100 border-red-500 text-red-800 ring-2 ring-red-500',
-  },
+const TIME_OF_DAY_KEYS: Record<string, string> = {
+  ALL_DAY: 'events.timeAllDay',
+  MORNING: 'events.timeMorning',
+  AFTERNOON: 'events.timeAfternoon',
+  EVENING: 'events.timeEvening',
+  SPECIFIC: 'events.timeSpecific',
 };
 
 // ---------------------------------------------------------------------------
@@ -76,7 +56,9 @@ type Tab = 'info' | 'poll' | 'comments';
 export function EventDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { t, i18n } = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>('info');
+  const lng = i18n.language;
 
   const { data: event, error, isLoading, refetch: refetchEvent } = useApi(
     () => eventsApi.get(id!),
@@ -131,7 +113,7 @@ export function EventDetailPage() {
         section: 'GENERAL',
         content: commentText.trim(),
         authorId: user.id,
-        authorName: user.name || user.email || 'Anonyme',
+        authorName: user.name || user.email || t('common.anonymous'),
       });
       setCommentText('');
       refetchComments();
@@ -144,7 +126,7 @@ export function EventDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-12" role="status" aria-label="Chargement">
+      <div className="flex justify-center py-12" role="status" aria-label={t('common.loading')}>
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-wakeve-600" />
       </div>
     );
@@ -153,9 +135,9 @@ export function EventDetailPage() {
   if (error || !event) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600" role="alert">{error || 'Evenement introuvable'}</p>
+        <p className="text-red-600" role="alert">{error || t('events.eventNotFound')}</p>
         <Link to="/" className="text-wakeve-600 hover:text-wakeve-700 mt-4 inline-block">
-          Retour aux evenements
+          {t('events.backToEvents')}
         </Link>
       </div>
     );
@@ -176,18 +158,36 @@ export function EventDetailPage() {
 
   const userVotes: Record<string, string> = user && poll?.votes?.[user.id] ? poll.votes[user.id] : {};
 
+  const VOTE_CONFIG: Record<VoteValue, { label: string; className: string; activeClassName: string }> = {
+    YES: {
+      label: t('common.yes'),
+      className: 'border-green-200 text-green-700 hover:bg-green-50',
+      activeClassName: 'bg-green-100 border-green-500 text-green-800 ring-2 ring-green-500',
+    },
+    MAYBE: {
+      label: t('common.maybe'),
+      className: 'border-yellow-200 text-yellow-700 hover:bg-yellow-50',
+      activeClassName: 'bg-yellow-100 border-yellow-500 text-yellow-800 ring-2 ring-yellow-500',
+    },
+    NO: {
+      label: t('common.no'),
+      className: 'border-red-200 text-red-700 hover:bg-red-50',
+      activeClassName: 'bg-red-100 border-red-500 text-red-800 ring-2 ring-red-500',
+    },
+  };
+
   const tabs: { key: Tab; label: string }[] = [
-    { key: 'info', label: 'Informations' },
-    { key: 'poll', label: 'Sondage' },
-    { key: 'comments', label: `Commentaires${comments && comments.length > 0 ? ` (${comments.length})` : ''}` },
+    { key: 'info', label: t('events.info') },
+    { key: 'poll', label: t('events.poll') },
+    { key: 'comments', label: comments && comments.length > 0 ? t('events.commentsCount', { count: comments.length }) : t('events.comments') },
   ];
 
   return (
     <div className="pb-20 md:pb-0">
       {/* Breadcrumb */}
-      <nav className="mb-4" aria-label="Fil d'Ariane">
+      <nav className="mb-4" aria-label={t('common.breadcrumb')}>
         <Link to="/" className="text-sm text-wakeve-600 hover:text-wakeve-700">
-          Evenements
+          {t('nav.events')}
         </Link>
         <span className="mx-2 text-gray-400">/</span>
         <span className="text-sm text-gray-500 truncate">{event.title}</span>
@@ -206,14 +206,14 @@ export function EventDetailPage() {
         </div>
 
         <div className="mt-4 flex flex-wrap gap-4 text-sm text-gray-500">
-          <span>Date limite : {formatDate(event.deadline)}</span>
-          <span>{event.participants.length} participant{event.participants.length !== 1 ? 's' : ''}</span>
-          {event.finalDate && <span>Date finale : {formatDate(event.finalDate)}</span>}
+          <span>{t('events.deadlineValue', { date: formatDate(event.deadline, lng) })}</span>
+          <span>{t('common.participant', { count: event.participants.length })}</span>
+          {event.finalDate && <span>{t('events.finalDateValue', { date: formatDate(event.finalDate, lng) })}</span>}
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6" role="tablist" aria-label="Sections de l'evenement">
+      <div className="border-b border-gray-200 mb-6" role="tablist" aria-label={t('events.eventSections')}>
         <div className="flex gap-6">
           {tabs.map((tab) => (
             <button
@@ -235,37 +235,37 @@ export function EventDetailPage() {
 
       {/* Tab panels */}
       {activeTab === 'info' && (
-        <div role="tabpanel" aria-label="Informations">
+        <div role="tabpanel" aria-label={t('events.info')}>
           <div className="grid gap-6 md:grid-cols-2">
             {/* Event details */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h2 className="font-semibold text-gray-900 mb-4">Details</h2>
+              <h2 className="font-semibold text-gray-900 mb-4">{t('events.details')}</h2>
               <dl className="space-y-3">
                 <div>
-                  <dt className="text-xs text-gray-500 uppercase tracking-wider">Statut</dt>
+                  <dt className="text-xs text-gray-500 uppercase tracking-wider">{t('events.status')}</dt>
                   <dd className="mt-0.5"><StatusBadge status={event.status} /></dd>
                 </div>
                 {event.eventType && (
                   <div>
-                    <dt className="text-xs text-gray-500 uppercase tracking-wider">Type</dt>
+                    <dt className="text-xs text-gray-500 uppercase tracking-wider">{t('events.type')}</dt>
                     <dd className="mt-0.5 text-sm text-gray-900">
                       {event.eventTypeCustom || event.eventType}
                     </dd>
                   </div>
                 )}
                 <div>
-                  <dt className="text-xs text-gray-500 uppercase tracking-wider">Date limite</dt>
-                  <dd className="mt-0.5 text-sm text-gray-900">{formatDate(event.deadline)}</dd>
+                  <dt className="text-xs text-gray-500 uppercase tracking-wider">{t('events.deadline')}</dt>
+                  <dd className="mt-0.5 text-sm text-gray-900">{formatDate(event.deadline, lng)}</dd>
                 </div>
                 {event.finalDate && (
                   <div>
-                    <dt className="text-xs text-gray-500 uppercase tracking-wider">Date finale</dt>
-                    <dd className="mt-0.5 text-sm text-gray-900">{formatDate(event.finalDate)}</dd>
+                    <dt className="text-xs text-gray-500 uppercase tracking-wider">{t('events.finalDate')}</dt>
+                    <dd className="mt-0.5 text-sm text-gray-900">{formatDate(event.finalDate, lng)}</dd>
                   </div>
                 )}
                 {event.expectedParticipants && (
                   <div>
-                    <dt className="text-xs text-gray-500 uppercase tracking-wider">Participants attendus</dt>
+                    <dt className="text-xs text-gray-500 uppercase tracking-wider">{t('events.expectedParticipants')}</dt>
                     <dd className="mt-0.5 text-sm text-gray-900">{event.expectedParticipants}</dd>
                   </div>
                 )}
@@ -275,10 +275,10 @@ export function EventDetailPage() {
             {/* Participants */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <h2 className="font-semibold text-gray-900 mb-4">
-                Participants ({event.participants.length})
+                {t('events.participantsTitle', { count: event.participants.length })}
               </h2>
               {event.participants.length === 0 ? (
-                <p className="text-sm text-gray-500">Aucun participant pour le moment.</p>
+                <p className="text-sm text-gray-500">{t('events.noParticipants')}</p>
               ) : (
                 <ul className="space-y-2">
                   {event.participants.map((p) => (
@@ -288,7 +288,7 @@ export function EventDetailPage() {
                       </div>
                       <span>{p}</span>
                       {p === event.organizerId && (
-                        <span className="text-xs text-wakeve-600 font-medium">(Organisateur)</span>
+                        <span className="text-xs text-wakeve-600 font-medium">({t('common.organizer')})</span>
                       )}
                     </li>
                   ))}
@@ -301,7 +301,7 @@ export function EventDetailPage() {
           {event.proposedSlots.length > 0 && (
             <div className="mt-6 bg-white rounded-xl border border-gray-200 p-5">
               <h2 className="font-semibold text-gray-900 mb-4">
-                Creneaux proposes ({event.proposedSlots.length})
+                {t('events.proposedSlots', { count: event.proposedSlots.length })}
               </h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {event.proposedSlots.map((slot) => (
@@ -311,12 +311,12 @@ export function EventDetailPage() {
                   >
                     <div className="text-sm font-medium text-gray-900">
                       {slot.timeOfDay && slot.timeOfDay !== 'SPECIFIC'
-                        ? TIME_OF_DAY_LABELS[slot.timeOfDay] || slot.timeOfDay
-                        : formatDateTime(slot.start)}
+                        ? t(TIME_OF_DAY_KEYS[slot.timeOfDay] || 'events.timeSpecific')
+                        : formatDateTime(slot.start, lng)}
                     </div>
                     {slot.start && slot.end && slot.timeOfDay === 'SPECIFIC' && (
                       <div className="text-xs text-gray-500 mt-1">
-                        {formatDateTime(slot.start)} - {formatDateTime(slot.end)}
+                        {formatDateTime(slot.start, lng)} - {formatDateTime(slot.end, lng)}
                       </div>
                     )}
                     <div className="text-xs text-gray-400 mt-1">{slot.timezone}</div>
@@ -329,10 +329,10 @@ export function EventDetailPage() {
       )}
 
       {activeTab === 'poll' && (
-        <div role="tabpanel" aria-label="Sondage">
+        <div role="tabpanel" aria-label={t('events.poll')}>
           {event.proposedSlots.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              Aucun creneau propose pour voter.
+              {t('events.noSlotsToVote')}
             </div>
           ) : (
             <div className="space-y-4">
@@ -350,19 +350,19 @@ export function EventDetailPage() {
                       <div>
                         <div className="font-medium text-gray-900">
                           {slot.timeOfDay && slot.timeOfDay !== 'SPECIFIC'
-                            ? TIME_OF_DAY_LABELS[slot.timeOfDay] || slot.timeOfDay
-                            : formatDateTime(slot.start)}
+                            ? t(TIME_OF_DAY_KEYS[slot.timeOfDay] || 'events.timeSpecific')
+                            : formatDateTime(slot.start, lng)}
                         </div>
                         {slot.start && slot.end && slot.timeOfDay === 'SPECIFIC' && (
                           <div className="text-sm text-gray-500 mt-0.5">
-                            {formatDateTime(slot.start)} - {formatDateTime(slot.end)}
+                            {formatDateTime(slot.start, lng)} - {formatDateTime(slot.end, lng)}
                           </div>
                         )}
                       </div>
 
                       {total > 0 && (
                         <div className="text-xs text-gray-500">
-                          {total} vote{total !== 1 ? 's' : ''}
+                          {t('common.vote', { count: total })}
                         </div>
                       )}
                     </div>
@@ -374,21 +374,21 @@ export function EventDetailPage() {
                           <div
                             className="bg-green-500"
                             style={{ width: `${(summary.YES / total) * 100}%` }}
-                            title={`${summary.YES} Oui`}
+                            title={`${summary.YES} ${t('common.yes')}`}
                           />
                         )}
                         {summary.MAYBE > 0 && (
                           <div
                             className="bg-yellow-400"
                             style={{ width: `${(summary.MAYBE / total) * 100}%` }}
-                            title={`${summary.MAYBE} Peut-etre`}
+                            title={`${summary.MAYBE} ${t('common.maybe')}`}
                           />
                         )}
                         {summary.NO > 0 && (
                           <div
                             className="bg-red-400"
                             style={{ width: `${(summary.NO / total) * 100}%` }}
-                            title={`${summary.NO} Non`}
+                            title={`${summary.NO} ${t('common.no')}`}
                           />
                         )}
                       </div>
@@ -396,9 +396,9 @@ export function EventDetailPage() {
 
                     {/* Vote counts */}
                     <div className="mt-2 flex gap-4 text-xs text-gray-500">
-                      <span className="text-green-600">{summary.YES} Oui</span>
-                      <span className="text-yellow-600">{summary.MAYBE} Peut-etre</span>
-                      <span className="text-red-600">{summary.NO} Non</span>
+                      <span className="text-green-600">{summary.YES} {t('common.yes')}</span>
+                      <span className="text-yellow-600">{summary.MAYBE} {t('common.maybe')}</span>
+                      <span className="text-red-600">{summary.NO} {t('common.no')}</span>
                     </div>
 
                     {/* Vote buttons */}
@@ -415,7 +415,7 @@ export function EventDetailPage() {
                               isActive ? config.activeClassName : config.className
                             } disabled:opacity-50`}
                             aria-pressed={isActive}
-                            aria-label={`Voter ${config.label} pour ce creneau`}
+                            aria-label={t('events.voteFor', { vote: config.label })}
                           >
                             {config.label}
                           </button>
@@ -431,16 +431,16 @@ export function EventDetailPage() {
       )}
 
       {activeTab === 'comments' && (
-        <div role="tabpanel" aria-label="Commentaires">
+        <div role="tabpanel" aria-label={t('events.comments')}>
           {/* Comment form */}
           <form onSubmit={handleComment} className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
-            <label htmlFor="comment-input" className="sr-only">Ajouter un commentaire</label>
+            <label htmlFor="comment-input" className="sr-only">{t('events.addComment')}</label>
             <textarea
               id="comment-input"
               rows={3}
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Ecrire un commentaire..."
+              placeholder={t('events.commentPlaceholder')}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-wakeve-500 focus:border-wakeve-500 outline-none resize-none"
               maxLength={2000}
               disabled={commentLoading}
@@ -452,7 +452,7 @@ export function EventDetailPage() {
                 disabled={commentLoading || !commentText.trim()}
                 className="px-4 py-1.5 bg-wakeve-600 text-white text-sm font-medium rounded-lg hover:bg-wakeve-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {commentLoading ? 'Envoi...' : 'Commenter'}
+                {commentLoading ? t('events.commentSending') : t('events.commentSubmit')}
               </button>
             </div>
           </form>
@@ -468,10 +468,10 @@ export function EventDetailPage() {
                     </div>
                     <span className="text-sm font-medium text-gray-900">{comment.authorName}</span>
                     <span className="text-xs text-gray-400">
-                      {formatDateTime(comment.createdAt)}
+                      {formatDateTime(comment.createdAt, lng)}
                     </span>
                     {comment.isPinned && (
-                      <span className="text-xs text-wakeve-600 font-medium">Epingle</span>
+                      <span className="text-xs text-wakeve-600 font-medium">{t('events.pinned')}</span>
                     )}
                   </div>
                   <p className="text-sm text-gray-700 whitespace-pre-wrap">{comment.content}</p>
@@ -480,7 +480,7 @@ export function EventDetailPage() {
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500 text-sm">
-              Aucun commentaire pour le moment. Soyez le premier !
+              {t('events.noComments')}
             </div>
           )}
         </div>

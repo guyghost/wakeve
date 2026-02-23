@@ -58,30 +58,88 @@ data class UnlockResult(
 data class UserLevel(
     val level: Int,
     val name: String,
+    val nameKey: String,
     val currentPoints: Int,
     val pointsForCurrentLevel: Int,
     val pointsForNextLevel: Int,
     val progressToNextLevel: Float
 ) {
     companion object {
-        /** Level thresholds: list of (points required, level name) */
+        /** Level thresholds: list of (points required, localization key) */
         val LEVEL_THRESHOLDS: List<Pair<Int, String>> = listOf(
-            0 to "Debutant",
-            50 to "Explorateur",
-            150 to "Contributeur",
-            300 to "Organisateur",
-            500 to "Expert",
-            800 to "Maitre",
-            1200 to "Champion",
-            1800 to "Legende",
-            2500 to "Mythique",
-            3500 to "Transcendant"
+            0 to "level.beginner",
+            50 to "level.explorer",
+            150 to "level.contributor",
+            300 to "level.organizer",
+            500 to "level.expert",
+            800 to "level.master",
+            1200 to "level.champion",
+            1800 to "level.legend",
+            2500 to "level.mythic",
+            3500 to "level.transcendent"
         )
+
+        /** Localized display names for each level key, keyed by language code. */
+        val displayNames: Map<String, Map<String, String>> = mapOf(
+            "level.beginner" to mapOf(
+                "en" to "Beginner", "fr" to "Débutant", "es" to "Principiante",
+                "it" to "Principiante", "pt" to "Iniciante"
+            ),
+            "level.explorer" to mapOf(
+                "en" to "Explorer", "fr" to "Explorateur", "es" to "Explorador",
+                "it" to "Esploratore", "pt" to "Explorador"
+            ),
+            "level.contributor" to mapOf(
+                "en" to "Contributor", "fr" to "Contributeur", "es" to "Contribuidor",
+                "it" to "Collaboratore", "pt" to "Contribuidor"
+            ),
+            "level.organizer" to mapOf(
+                "en" to "Organizer", "fr" to "Organisateur", "es" to "Organizador",
+                "it" to "Organizzatore", "pt" to "Organizador"
+            ),
+            "level.expert" to mapOf(
+                "en" to "Expert", "fr" to "Expert", "es" to "Experto",
+                "it" to "Esperto", "pt" to "Especialista"
+            ),
+            "level.master" to mapOf(
+                "en" to "Master", "fr" to "Maître", "es" to "Maestro",
+                "it" to "Maestro", "pt" to "Mestre"
+            ),
+            "level.champion" to mapOf(
+                "en" to "Champion", "fr" to "Champion", "es" to "Campeón",
+                "it" to "Campione", "pt" to "Campeão"
+            ),
+            "level.legend" to mapOf(
+                "en" to "Legend", "fr" to "Légende", "es" to "Leyenda",
+                "it" to "Leggenda", "pt" to "Lenda"
+            ),
+            "level.mythic" to mapOf(
+                "en" to "Mythic", "fr" to "Mythique", "es" to "Mítico",
+                "it" to "Mitico", "pt" to "Mítico"
+            ),
+            "level.transcendent" to mapOf(
+                "en" to "Transcendent", "fr" to "Transcendant", "es" to "Trascendente",
+                "it" to "Trascendente", "pt" to "Transcendente"
+            )
+        )
+
+        /**
+         * Resolves a level name key to a localized display name.
+         *
+         * @param key The level key (e.g., "level.beginner")
+         * @param locale The locale code ("en", "fr", "es", "it", "pt")
+         * @return The localized level name, falling back to French then to the key.
+         */
+        fun localizedName(key: String, locale: String = "fr"): String {
+            return displayNames[key]?.get(locale)
+                ?: displayNames[key]?.get("fr")
+                ?: key
+        }
 
         /**
          * Calculates the user level from total points.
          */
-        fun fromPoints(totalPoints: Int): UserLevel {
+        fun fromPoints(totalPoints: Int, locale: String = "fr"): UserLevel {
             var currentLevelIndex = 0
             for (i in LEVEL_THRESHOLDS.indices) {
                 if (totalPoints >= LEVEL_THRESHOLDS[i].first) {
@@ -107,9 +165,12 @@ data class UserLevel(
                 1f
             }
 
+            val nameKey = LEVEL_THRESHOLDS[currentLevelIndex].second
+
             return UserLevel(
                 level = currentLevelIndex + 1,
-                name = LEVEL_THRESHOLDS[currentLevelIndex].second,
+                name = localizedName(nameKey, locale),
+                nameKey = nameKey,
                 currentPoints = totalPoints,
                 pointsForCurrentLevel = currentThreshold,
                 pointsForNextLevel = nextThreshold,

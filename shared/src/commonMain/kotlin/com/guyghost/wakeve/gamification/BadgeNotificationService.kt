@@ -153,6 +153,7 @@ object BadgeNotificationContent {
             Language.ES -> "¡Insignia desbloqueada!"
             Language.DE -> "Abzeichen freigeschaltet!"
             Language.IT -> "Badge sbloccato!"
+            Language.PT -> "Badge desbloqueado!"
         }
     }
     
@@ -171,6 +172,7 @@ object BadgeNotificationContent {
             Language.ES -> "¡Enhorabuena! Has ganado $pointsEarned puntos y la insignia '${badge.name}'"
             Language.DE -> "Glückwunsch! Du hast $pointsEarned Punkte und das '${badge.name}' Abzeichen verdient"
             Language.IT -> "Congratulazioni! Hai guadagnato $pointsEarned punti e il badge '${badge.name}'"
+            Language.PT -> "Parabéns! Ganhou $pointsEarned pontos e o badge '${badge.name}'"
         }
     }
     
@@ -184,13 +186,7 @@ object BadgeNotificationContent {
      */
     fun getExpandedText(badge: Badge, pointsEarned: Int, language: Language = Language.FR): String {
         val baseText = getBody(badge, pointsEarned, language)
-        return when (language) {
-            Language.FR -> "$baseText\n\n${badge.description}"
-            Language.EN -> "$baseText\n\n${badge.description}"
-            Language.ES -> "$baseText\n\n${badge.description}"
-            Language.DE -> "$baseText\n\n${badge.description}"
-            Language.IT -> "$baseText\n\n${badge.description}"
-        }
+        return "$baseText\n\n${badge.description}"
     }
 }
 
@@ -228,6 +224,10 @@ object PointsNotificationContent {
                 points == 1 -> "1 punto guadagnato!"
                 else -> "$points punti guadagnati!"
             }
+            Language.PT -> when {
+                points == 1 -> "1 ponto ganho!"
+                else -> "$points pontos ganhos!"
+            }
         }
     }
     
@@ -246,6 +246,7 @@ object PointsNotificationContent {
             Language.ES -> "Has ganado $points puntos por $action"
             Language.DE -> "Du hast $points Punkte für $action verdient"
             Language.IT -> "Hai guadagnato $points punti per $action"
+            Language.PT -> "Ganhou $points pontos por $action"
         }
     }
 }

@@ -3,10 +3,19 @@ import SwiftUI
 // MARK: - Notification Date Group
 
 enum NotificationDateGroup: String, CaseIterable {
-    case today = "Aujourd'hui"
-    case yesterday = "Hier"
-    case thisWeek = "Cette semaine"
-    case older = "Plus ancien"
+    case today
+    case yesterday
+    case thisWeek
+    case older
+
+    var displayName: String {
+        switch self {
+        case .today: return String(localized: "notifications.date.today")
+        case .yesterday: return String(localized: "notifications.date.yesterday")
+        case .thisWeek: return String(localized: "notifications.date.this_week")
+        case .older: return String(localized: "notifications.date.older")
+        }
+    }
 }
 
 // MARK: - Notification Item Model
@@ -51,16 +60,16 @@ struct NotificationItemModel: Identifiable {
         let interval = now.timeIntervalSince(createdAt)
 
         if interval < 60 {
-            return "A l'instant"
+            return String(localized: "notifications.time.just_now")
         } else if interval < 3600 {
             let minutes = Int(interval / 60)
-            return "Il y a \(minutes) min"
+            return String(format: String(localized: "notifications.time.minutes_ago"), minutes)
         } else if interval < 86400 {
             let hours = Int(interval / 3600)
-            return "Il y a \(hours)h"
+            return String(format: String(localized: "notifications.time.hours_ago"), hours)
         } else if interval < 604800 {
             let days = Int(interval / 86400)
-            return "Il y a \(days)j"
+            return String(format: String(localized: "notifications.time.days_ago"), days)
         } else {
             let formatter = DateFormatter()
             formatter.dateStyle = .short
@@ -132,7 +141,7 @@ struct NotificationsView: View {
                     notificationListView
                 }
             }
-            .navigationTitle("Notifications")
+            .navigationTitle(String(localized: "notifications.title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -145,7 +154,7 @@ struct NotificationsView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if unreadCount > 0 {
                         Button(action: markAllAsRead) {
-                            Text("Tout lire")
+                            Text(String(localized: "notifications.mark_all_read"))
                                 .font(.system(size: 15, weight: .medium))
                                 .foregroundColor(.accentColor)
                         }
@@ -168,14 +177,14 @@ struct NotificationsView: View {
                                 Button(role: .destructive) {
                                     deleteNotification(notification.id)
                                 } label: {
-                                    Label("Supprimer", systemImage: "trash")
+                                    Label(String(localized: "notifications.delete"), systemImage: "trash")
                                 }
 
                                 if !notification.isRead {
                                     Button {
                                         markAsRead(notification.id)
                                     } label: {
-                                        Label("Lu", systemImage: "envelope.open")
+                                        Label(String(localized: "notifications.read"), systemImage: "envelope.open")
                                     }
                                     .tint(.blue)
                                 }
@@ -185,7 +194,7 @@ struct NotificationsView: View {
                                     Button {
                                         markAsRead(notification.id)
                                     } label: {
-                                        Label("Marquer comme lu", systemImage: "checkmark.circle")
+                                        Label(String(localized: "notifications.mark_as_read"), systemImage: "checkmark.circle")
                                     }
                                     .tint(.green)
                                 }
@@ -193,7 +202,7 @@ struct NotificationsView: View {
                             .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                     }
                 } header: {
-                    Text(group.rawValue)
+                    Text(group.displayName)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.secondary)
                         .textCase(nil)
@@ -216,11 +225,11 @@ struct NotificationsView: View {
                 .font(.system(size: 72, weight: .light))
                 .foregroundColor(colorScheme == .dark ? Color(hex: "64748B") : Color(hex: "94A3B8"))
 
-            Text("Aucune notification")
+            Text(String(localized: "notifications.empty_title"))
                 .font(.title2.weight(.semibold))
                 .foregroundColor(.primary)
 
-            Text("Vos notifications apparaitront ici lorsque quelqu'un votera, commentera ou mettra a jour un evenement.")
+            Text(String(localized: "notifications.empty_subtitle"))
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -237,7 +246,7 @@ struct NotificationsView: View {
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle(tint: .wakevePrimary))
                 .scaleEffect(1.3)
-            Text("Chargement des notifications...")
+            Text(String(localized: "notifications.loading"))
                 .font(.body.weight(.medium))
                 .foregroundColor(.secondary)
         }

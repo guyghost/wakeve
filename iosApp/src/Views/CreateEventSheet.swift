@@ -70,7 +70,7 @@ struct CreateEventSheet: View {
         .sheet(isPresented: $showingEventInfoSheet) {
             EventInfoSheet(
                 description: $description,
-                organizerName: .constant(userName ?? "Vous"),
+                organizerName: .constant(userName ?? String(localized: "leaderboard.you")),
                 organizerPhotoUrl: .constant(nil),
                 onDismiss: {
                     showingEventInfoSheet = false
@@ -148,7 +148,7 @@ struct CreateEventSheet: View {
             
             // Preview button
             Button(action: {}) {
-                Text("Aperçu")
+                Text(String(localized: "events.preview"))
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
@@ -178,7 +178,7 @@ struct CreateEventSheet: View {
             
             // Add background button
             Button(action: { showingImagePicker = true }) {
-                Text("Ajouter un arrière-plan")
+                Text(String(localized: "events.add_background"))
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
@@ -196,7 +196,7 @@ struct CreateEventSheet: View {
             // Event Title Input (inside the card now)
             ZStack(alignment: .center) {
                 if title.isEmpty {
-                    Text("Titre de\nl'évènement")
+                    Text(String(localized: "events.title_placeholder"))
                         .font(.system(size: 32, weight: .bold))
                         .foregroundColor(.white.opacity(0.4))
                         .multilineTextAlignment(.center)
@@ -219,7 +219,7 @@ struct CreateEventSheet: View {
             // Date & Time Row
             DetailRow(
                 icon: "calendar.badge.plus",
-                label: selectedDate != nil ? formattedDateTime() : "Date et heure",
+                label: selectedDate != nil ? formattedDateTime() : String(localized: "events.date_and_time"),
                 isPlaceholder: selectedDate == nil,
                 iconColor: Color(hex: "8B5CF6")
             ) {
@@ -233,7 +233,7 @@ struct CreateEventSheet: View {
             // Location Row
             DetailRow(
                 icon: "mappin.circle.fill",
-                label: selectedLocation ?? "Lieu",
+                label: selectedLocation ?? String(localized: "events.location"),
                 isPlaceholder: selectedLocation == nil,
                 iconColor: Color(hex: "6366F1")
             ) {
@@ -266,7 +266,7 @@ struct CreateEventSheet: View {
             }
             
             // Organizer text
-            Text("Organisé par \(userName ?? "Vous")")
+            Text(String(format: String(localized: "events.organized_by"), userName ?? String(localized: "leaderboard.you")))
                 .font(.system(size: 18, weight: .medium))
                 .foregroundColor(.white)
             
@@ -276,7 +276,7 @@ struct CreateEventSheet: View {
                 Button(action: {
                     showingEventInfoSheet = true
                 }) {
-                    Text("Ajouter une description")
+                    Text(String(localized: "events.add_description"))
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(Color(hex: "1A1A3E"))
                         .padding(.horizontal, 24)
@@ -310,7 +310,7 @@ struct CreateEventSheet: View {
     
     private var createButton: some View {
         Button(action: createEvent) {
-            Text("Créer l'évènement")
+            Text(String(localized: "events.create_event_button"))
                 .font(.system(size: 18, weight: .semibold))
                 .foregroundColor(canCreate ? Color(hex: "6C5CE7") : .white.opacity(0.6))
                 .frame(maxWidth: .infinity)
@@ -337,7 +337,7 @@ struct CreateEventSheet: View {
         timeFormatter.dateFormat = "HH:mm"
         
         if isAllDay {
-            return dateFormatter.string(from: startDate) + " (Jour entier)"
+            return dateFormatter.string(from: startDate) + " (\(String(localized: "events.all_day")))"
         } else {
             return dateFormatter.string(from: startDate) + " à " + timeFormatter.string(from: startTime)
         }
@@ -402,7 +402,7 @@ struct DateTimePickerPopup: View {
                     
                     Spacer()
                     
-                    Text("Date et heure")
+                    Text(String(localized: "events.date_and_time"))
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(.white)
                     
@@ -423,7 +423,7 @@ struct DateTimePickerPopup: View {
                 
                 // All Day Toggle
                 HStack {
-                    Text("Jour entier")
+                    Text(String(localized: "events.all_day"))
                         .font(.system(size: 16))
                         .foregroundColor(.white)
                     
@@ -442,7 +442,7 @@ struct DateTimePickerPopup: View {
                 
                 // Start Date/Time Section - Same row layout
                 HStack(spacing: 6) {
-                    Text("Début")
+                    Text(String(localized: "events.start"))
                         .font(.system(size: 16))
                         .foregroundColor(.white)
                     
@@ -481,7 +481,7 @@ struct DateTimePickerPopup: View {
                         .padding(.horizontal, 14)
                     
                     HStack(spacing: 6) {
-                        Text("Fin")
+                        Text(String(localized: "events.end"))
                             .font(.system(size: 16))
                             .foregroundColor(.white)
                         
@@ -508,7 +508,7 @@ struct DateTimePickerPopup: View {
                         .padding(.horizontal, 14)
                     
                     Button(action: { hasEndTime = true }) {
-                        Text("Ajouter une heure de fin")
+                        Text(String(localized: "events.add_end_time"))
                             .font(.system(size: 16))
                             .foregroundColor(Color(hex: "0A84FF"))
                             .frame(maxWidth: .infinity, alignment: .leading)

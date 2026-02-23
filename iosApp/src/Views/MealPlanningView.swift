@@ -62,20 +62,20 @@ struct MealPlanningView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Fermer") { dismiss() }
+                    Button(String(localized: "common.close")) { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 12) {
                         CommentButton(commentCount: commentCount) {
                             showComments = true
                         }
-                        
+
                         Menu {
                             Button {
                                 selectedMeal = nil
                                 showAddMealSheet = true
                             } label: {
-                                Label("Ajouter un repas", systemImage: "plus.circle")
+                                Label(String(localized: "meal.add"), systemImage: "plus.circle")
                             }
                             
                             Button {
@@ -139,7 +139,7 @@ struct MealPlanningView: View {
                             .navigationBarTitleDisplayMode(.inline)
                             .toolbar {
                                 ToolbarItem(placement: .navigationBarLeading) {
-                                    Button("Fermer") {
+                                    Button(String(localized: "common.close")) {
                                         showComments = false
                                     }
                                 }
@@ -147,16 +147,16 @@ struct MealPlanningView: View {
                     }
                 }
             }
-            .alert("Supprimer ce repas ?", isPresented: $showDeleteAlert, presenting: mealToDelete) { meal in
-                Button("Annuler", role: .cancel) {
+            .alert(String(localized: "meal.delete_title"), isPresented: $showDeleteAlert, presenting: mealToDelete) { meal in
+                Button(String(localized: "common.cancel"), role: .cancel) {
                     mealToDelete = nil
                 }
-                Button("Supprimer", role: .destructive) {
+                Button(String(localized: "common.delete"), role: .destructive) {
                     meals.removeAll { $0.id == meal.id }
                     mealToDelete = nil
                 }
             } message: { _ in
-                Text("Cette action est irréversible.")
+                Text(String(localized: "meal.delete_message"))
             }
         }
         .onAppear {
@@ -516,7 +516,7 @@ struct MealCard: View {
                 Button {
                     onEdit()
                 } label: {
-                    Label("Modifier", systemImage: "pencil")
+                    Label(String(localized: "common.edit"), systemImage: "pencil")
                         .font(.subheadline)
                         .foregroundColor(.blue)
                         .padding(.horizontal, 16)
@@ -524,11 +524,11 @@ struct MealCard: View {
                         .background(Color.blue.opacity(0.1))
                         .continuousCornerRadius(8)
                 }
-                
+
                 Button {
                     onDelete()
                 } label: {
-                    Label("Supprimer", systemImage: "trash")
+                    Label(String(localized: "common.delete"), systemImage: "trash")
                         .font(.subheadline)
                         .foregroundColor(.red)
                         .padding(.horizontal, 16)

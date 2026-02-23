@@ -50,7 +50,7 @@ struct LocationSelectionSheet: View {
     
     private var displayLocationName: String {
         if useCurrentLocation {
-            return currentAddress ?? "Ma position actuelle"
+            return currentAddress ?? String(localized: "location.my_current_position")
         }
         return customLocationName.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -74,7 +74,7 @@ struct LocationSelectionSheet: View {
                 }
                 .padding(.top, 8)
             }
-            .navigationTitle("Lieu")
+            .navigationTitle(String(localized: "events.location"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -91,21 +91,21 @@ struct LocationSelectionSheet: View {
                             )
                     }
                     .disabled(!isValid)
-                    .accessibilityLabel("Confirmer")
-                    .accessibilityHint("Valider la sélection du lieu")
+                    .accessibilityLabel(String(localized: "common.confirm"))
+                    .accessibilityHint(String(localized: "location.validate_selection"))
                 }
             }
             .background(Color(.systemBackground))
         }
-        .alert("Autoriser la localisation", isPresented: $showPermissionAlert) {
-            Button("Annuler", role: .cancel) {}
-            Button("Ouvrir les réglages") {
+        .alert(String(localized: "location.allow_title"), isPresented: $showPermissionAlert) {
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+            Button(String(localized: "location.open_settings")) {
                 if let url = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(url)
                 }
             }
         } message: {
-            Text("Pour utiliser votre position actuelle, veuillez autoriser l'accès à la localisation dans les réglages.")
+            Text(String(localized: "location.permission_message"))
         }
         .onChange(of: locationManager.authorizationStatus) { _, newStatus in
             handleAuthorizationChange(newStatus)
@@ -155,7 +155,7 @@ struct LocationSelectionSheet: View {
             
             if let error = error {
                 print("Reverse geocoding error: \(error.localizedDescription)")
-                currentAddress = "Ma position actuelle"
+                currentAddress = String(localized: "location.my_current_position")
                 return
             }
             
@@ -174,12 +174,12 @@ struct LocationSelectionSheet: View {
                 }
                 
                 if addressComponents.isEmpty {
-                    currentAddress = "Ma position actuelle"
+                    currentAddress = String(localized: "location.my_current_position")
                 } else {
                     currentAddress = addressComponents.joined(separator: ", ")
                 }
             } else {
-                currentAddress = "Ma position actuelle"
+                currentAddress = String(localized: "location.my_current_position")
             }
         }
     }
@@ -192,7 +192,7 @@ struct LocationSelectionSheet: View {
                 .font(.system(size: 17, weight: .medium))
                 .foregroundColor(.secondary)
             
-            TextField("Rechercher des lieux", text: $searchText)
+            TextField(String(localized: "location.search_places"), text: $searchText)
                 .font(.body)
                 .foregroundColor(.primary)
                 .focused($searchFieldFocused)
@@ -210,7 +210,7 @@ struct LocationSelectionSheet: View {
                         .font(.system(size: 20))
                         .foregroundColor(.secondary)
                 }
-                .accessibilityLabel("Effacer la recherche")
+                .accessibilityLabel(String(localized: "location.clear_search"))
             }
             
             Button {
@@ -221,8 +221,8 @@ struct LocationSelectionSheet: View {
                     .font(.system(size: 20, weight: .medium))
                     .foregroundColor(.secondary)
             }
-            .accessibilityLabel("Recherche vocale")
-            .accessibilityHint("Tapez pour rechercher un lieu par la voix")
+            .accessibilityLabel(String(localized: "location.voice_search"))
+            .accessibilityHint(String(localized: "location.voice_search_hint"))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
@@ -239,7 +239,7 @@ struct LocationSelectionSheet: View {
     
     private var suggestionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Suggestions")
+            Text(String(localized: "location.suggestions"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.secondary)
                 .padding(.horizontal)
@@ -274,7 +274,7 @@ struct LocationSelectionSheet: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Position actuelle")
+                        Text(String(localized: "location.current_position"))
                             .font(.body.weight(.medium))
                             .foregroundColor(.primary)
                         
@@ -309,16 +309,16 @@ struct LocationSelectionSheet: View {
                             : Color.primary.opacity(0.06), lineWidth: 1)
                 )
             }
-            .accessibilityLabel("Position actuelle")
-            .accessibilityHint("Utiliser votre position actuelle comme lieu")
-            .accessibilityValue(useCurrentLocation ? "Sélectionné" : "Non sélectionné")
+            .accessibilityLabel(String(localized: "location.current_position"))
+            .accessibilityHint(String(localized: "location.use_current_position_hint"))
+            .accessibilityValue(useCurrentLocation ? String(localized: "common.selected") : String(localized: "common.not_selected"))
             .padding(.horizontal)
         }
     }
     
     private var customLocationSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Nom du lieu")
+            Text(String(localized: "location.place_name"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.secondary)
                 .padding(.horizontal)
@@ -328,7 +328,7 @@ struct LocationSelectionSheet: View {
                 .font(.body)
                 .foregroundColor(.primary)
                 .placeholder(when: customLocationName.isEmpty) {
-                    Text("Exemple : chez Guy MANDINA NZEZA")
+                    Text(String(localized: "location.place_name_placeholder"))
                         .font(.body)
                         .foregroundColor(.secondary.opacity(0.6))
                 }
@@ -351,11 +351,11 @@ struct LocationSelectionSheet: View {
                     }
                 }
                 .padding(.horizontal)
-                .accessibilityLabel("Nom du lieu")
-                .accessibilityHint("Entrez un nom de lieu personnalisé")
+                .accessibilityLabel(String(localized: "location.place_name"))
+                .accessibilityHint(String(localized: "location.custom_place_hint"))
             
             // Help text
-            Text("Facultatif. Ceci apparaît sur l'invitation.")
+            Text(String(localized: "location.optional_hint"))
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .padding(.horizontal)
@@ -412,7 +412,7 @@ struct LocationSelectionSheet: View {
         let locationType: Shared.LocationType
         
         if useCurrentLocation {
-            locationName = currentAddress ?? "Ma position actuelle"
+            locationName = currentAddress ?? String(localized: "location.my_current_position")
             locationType = .specificVenue
         } else {
             locationName = customLocationName.trimmingCharacters(in: .whitespacesAndNewlines)

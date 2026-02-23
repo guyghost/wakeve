@@ -55,7 +55,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.R
 
 /**
  * Invitation Share Screen for Android.
@@ -84,10 +86,10 @@ fun InvitationShareScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Inviter des participants") },
+                title = { Text(stringResource(R.string.invite_participants)) },
                 navigationIcon = {
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Fermer")
+                        Icon(Icons.Default.Close, contentDescription = stringResource(R.string.close))
                     }
                 }
             )
@@ -156,7 +158,7 @@ fun InvitationShareScreen(
                         ) {
                             Image(
                                 bitmap = bitmap.asImageBitmap(),
-                                contentDescription = "QR Code de l'invitation",
+                                contentDescription = stringResource(R.string.invitation_qr_description),
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Fit
                             )
@@ -164,7 +166,7 @@ fun InvitationShareScreen(
                     }
 
                     Text(
-                        text = "Scannez pour rejoindre",
+                        text = stringResource(R.string.scan_to_join),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -185,7 +187,7 @@ fun InvitationShareScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Lien d'invitation",
+                        text = stringResource(R.string.invitation_link),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -216,7 +218,7 @@ fun InvitationShareScreen(
                                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                                 val clip = ClipData.newPlainText("Invitation Wakeve", inviteUrl)
                                 clipboard.setPrimaryClip(clip)
-                                Toast.makeText(context, "Lien copié", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(R.string.link_copied), Toast.LENGTH_SHORT).show()
                             }
                         ) {
                             Icon(
@@ -225,7 +227,7 @@ fun InvitationShareScreen(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Copier")
+                            Text(stringResource(R.string.invitation_copy))
                         }
                     }
                 }
@@ -234,14 +236,14 @@ fun InvitationShareScreen(
             // Share Button
             Button(
                 onClick = {
-                    val shareText = "Rejoins l'événement \"$eventTitle\" sur Wakeve !\n$inviteUrl"
+                    val shareText = context.getString(R.string.invitation_share_text, eventTitle, inviteUrl)
                     val shareIntent = Intent().apply {
                         action = Intent.ACTION_SEND
                         putExtra(Intent.EXTRA_TEXT, shareText)
-                        putExtra(Intent.EXTRA_SUBJECT, "Invitation Wakeve: $eventTitle")
+                        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.invitation_share_subject, eventTitle))
                         type = "text/plain"
                     }
-                    context.startActivity(Intent.createChooser(shareIntent, "Partager l'invitation"))
+                    context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.invitation_share_chooser)))
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -256,7 +258,7 @@ fun InvitationShareScreen(
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
-                    text = "Partager l'invitation",
+                    text = stringResource(R.string.invitation_share_chooser),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )

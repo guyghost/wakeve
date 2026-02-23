@@ -1,9 +1,12 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
+import { supportedLanguages } from '../i18n';
 
 export function ProfilePage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
 
   const handleLogout = () => {
     logout();
@@ -12,7 +15,7 @@ export function ProfilePage() {
 
   return (
     <div className="pb-20 md:pb-0 max-w-lg mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Profil</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{t('profile.title')}</h1>
 
       {/* Organizer Dashboard Link */}
       <button
@@ -25,8 +28,8 @@ export function ProfilePage() {
           </svg>
         </div>
         <div className="flex-1">
-          <h3 className="text-sm font-semibold text-gray-900">Tableau de bord</h3>
-          <p className="text-xs text-gray-500">Statistiques et analytiques de vos evenements</p>
+          <h3 className="text-sm font-semibold text-gray-900">{t('profile.dashboard')}</h3>
+          <p className="text-xs text-gray-500">{t('profile.dashboardDescription')}</p>
         </div>
         <svg className="w-5 h-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
@@ -41,10 +44,10 @@ export function ProfilePage() {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              {user?.name || 'Utilisateur'}
+              {user?.name || t('profile.defaultUser')}
             </h2>
             <p className="text-sm text-gray-500">
-              {user?.email || (user?.isGuest ? 'Session invite' : '')}
+              {user?.email || (user?.isGuest ? t('profile.guestSession') : '')}
             </p>
           </div>
         </div>
@@ -52,29 +55,48 @@ export function ProfilePage() {
         {/* User info */}
         <dl className="space-y-4 mb-6">
           <div>
-            <dt className="text-xs text-gray-500 uppercase tracking-wider">Identifiant</dt>
+            <dt className="text-xs text-gray-500 uppercase tracking-wider">{t('profile.userId')}</dt>
             <dd className="mt-0.5 text-sm text-gray-900 font-mono truncate">{user?.id || '-'}</dd>
           </div>
           {user?.authMethod && (
             <div>
-              <dt className="text-xs text-gray-500 uppercase tracking-wider">Methode de connexion</dt>
+              <dt className="text-xs text-gray-500 uppercase tracking-wider">{t('profile.authMethod')}</dt>
               <dd className="mt-0.5 text-sm text-gray-900">{user.authMethod}</dd>
             </div>
           )}
           <div>
-            <dt className="text-xs text-gray-500 uppercase tracking-wider">Type de compte</dt>
+            <dt className="text-xs text-gray-500 uppercase tracking-wider">{t('profile.accountType')}</dt>
             <dd className="mt-0.5 text-sm text-gray-900">
-              {user?.isGuest ? 'Invite' : 'Compte complet'}
+              {user?.isGuest ? t('profile.guestAccount') : t('profile.fullAccount')}
             </dd>
           </div>
         </dl>
+
+        {/* Language switcher */}
+        <div className="mb-6">
+          <label htmlFor="language-select" className="text-xs text-gray-500 uppercase tracking-wider block mb-1">
+            {t('profile.language')}
+          </label>
+          <select
+            id="language-select"
+            value={i18n.language}
+            onChange={(e) => i18n.changeLanguage(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-wakeve-500 focus:border-wakeve-500 outline-none bg-white text-sm"
+          >
+            {supportedLanguages.map((lang) => (
+              <option key={lang.code} value={lang.code}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* Logout */}
         <button
           onClick={handleLogout}
           className="w-full py-2.5 px-4 border border-red-300 text-red-600 font-medium rounded-lg hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
         >
-          Se deconnecter
+          {t('profile.logout')}
         </button>
       </div>
     </div>

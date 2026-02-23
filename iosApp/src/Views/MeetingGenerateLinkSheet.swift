@@ -51,15 +51,15 @@ struct MeetingGenerateLinkSheet: View {
                     .padding(.top, 16)
                 }
             }
-            .navigationTitle("Régénérer le lien")
+            .navigationTitle(String(localized: "meetings.regenerate_link"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler", action: onCancel)
+                    Button(String(localized: "common.cancel"), action: onCancel)
                         .foregroundColor(.secondary)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Générer") {
+                    Button(String(localized: "meetings.generate")) {
                         isGenerating = true
                         onGenerate(selectedPlatform)
                     }
@@ -79,12 +79,12 @@ struct MeetingGenerateLinkSheet: View {
                 .font(.system(size: 48))
                 .foregroundColor(.wakevePrimary)
 
-            Text("Sélectionnez une plateforme")
+            Text(String(localized: "meetings.select_platform"))
                 .font(.title2.weight(.semibold))
                 .foregroundColor(.primary)
                 .multilineTextAlignment(.center)
 
-            Text("Un nouveau lien de réunion sera généré pour la plateforme sélectionnée.")
+            Text(String(localized: "meetings.generate_link_description"))
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -96,7 +96,7 @@ struct MeetingGenerateLinkSheet: View {
 
     private var platformSelectionSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Plateforme")
+            Text(String(localized: "meetings.platform"))
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundColor(.primary)
 
@@ -129,7 +129,7 @@ struct MeetingGenerateLinkSheet: View {
         .buttonStyle(PlainButtonStyle())
         .accessibilityLabel(platformName(for: platform))
         .accessibilityAddTraits(selectedPlatform == platform ? .isSelected : [])
-        .accessibilityHint(selectedPlatform == platform ? "Sélectionné" : "Double tap to select")
+        .accessibilityHint(selectedPlatform == platform ? String(localized: "common.selected") : String(localized: "common.double_tap_to_select"))
     }
 
     // MARK: - Info Section
@@ -140,7 +140,7 @@ struct MeetingGenerateLinkSheet: View {
                 .foregroundColor(.wakeveAccent)
                 .font(.system(size: 20))
 
-            Text("Le lien existant sera remplacé par le nouveau lien généré.")
+            Text(String(localized: "meetings.generate_link_info"))
                 .font(.caption)
                 .foregroundColor(.secondary)
         }
@@ -210,7 +210,7 @@ private struct GenerateLinkPlatformOption: View {
                     .foregroundColor(isSelected ? .wakevePrimary : .primary)
                 
                 if isSelected {
-                    Text("Sélectionné")
+                    Text(String(localized: "common.selected"))
                         .font(.caption)
                         .foregroundColor(.wakevePrimary)
                 }

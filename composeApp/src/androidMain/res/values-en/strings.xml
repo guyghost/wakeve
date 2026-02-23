@@ -451,6 +451,199 @@
     <string name="language_title">Language</string>
     <string name="language_description">Select the application language</string>
 
+    <!-- Authentication -->
+    <string name="welcome_to_wakeve">Welcome to Wakeve</string>
+    <string name="auth_subtitle">Organize your events easily</string>
+    <string name="or">OR</string>
+    <string name="sign_in_with_email">Sign in with email</string>
+    <string name="continue_with_google">Continue with Google</string>
+    <string name="continue_with_apple">Continue with Apple</string>
+    <string name="skip">Skip</string>
+    <string name="terms_notice">By continuing, you agree to our terms of service and privacy policy</string>
+    <string name="enter_your_email">Enter your email address</string>
+    <string name="email_otp_notice">We\'ll send you a 6-digit code to verify your account</string>
+    <string name="email">Email</string>
+    <string name="email_placeholder">your@email.com</string>
+    <string name="send_otp">Send code</string>
+    <string name="enter_otp_code">Enter verification code</string>
+    <string name="otp_sent_to">Code sent to %1$s</string>
+    <string name="otp_validity">Valid for %1$d:%2$02d</string>
+    <string name="otp_code">6-digit code</string>
+    <string name="otp_attempts_warning">%1$d attempts remaining</string>
+    <string name="verify_otp">Verify code</string>
+    <string name="resend_otp">Resend code</string>
+
+    <!-- Wizard Steps (missing) -->
+    <string name="step_participants_locations">Participants &amp; Locations</string>
+    <string name="step_preview">Preview</string>
+
+    <!-- Preview Step -->
+    <string name="preview_title">Preview your event</string>
+    <string name="preview_subtitle">Review the information before creating the event</string>
+    <string name="preview_participants_count">%1$s people</string>
+    <string name="preview_locations">Potential locations</string>
+    <string name="preview_time_slots">Proposed time slots</string>
+    <string name="preview_edit_hint">You can go back to edit the information</string>
+    <string name="save_draft">Save draft</string>
+
+    <!-- Participants (missing) -->
+    <string name="participant_count">Number of participants</string>
+    <string name="participant_count_hint">e.g., 10</string>
+
+    <!-- Time Slots (missing) -->
+    <string name="select_date">Select a date</string>
+    <string name="select_time">Select a time</string>
+
+    <!-- Event Types (missing) -->
+    <string name="event_type_party">Party</string>
+    <string name="event_type_sports_event">Sports Event</string>
+    <string name="event_type_cultural_event">Cultural Event</string>
+    <string name="event_type_family_gathering">Family Gathering</string>
+    <string name="event_type_sport_event">Sports Competition</string>
+    <string name="event_type_outdoor_activity">Outdoor Activity</string>
+    <string name="event_type_food_tasting">Food Tasting</string>
+    <string name="event_type_tech_meetup">Tech Meetup</string>
+    <string name="event_type_wellness_event">Wellness</string>
+    <string name="event_type_creative_workshop">Creative Workshop</string>
+
+    <!-- Invitation -->
+    <string name="invite_participants">Invite participants</string>
+    <string name="invitation_qr_code">QR Code</string>
+    <string name="scan_to_join">Scan to join</string>
+    <string name="invitation_link">Invitation link</string>
+    <string name="copy_link">Copy link</string>
+    <string name="link_copied">Link copied</string>
+    <string name="share_invitation_button">Share invitation</string>
+    <string name="share_event">Share event</string>
+    <string name="invitation_expired">This invitation has expired</string>
+    <string name="invitation_max_uses">This invitation has reached its maximum number of uses</string>
+    <string name="invitation_accepted">You have joined the event</string>
+    <string name="invitation_already_member">You are already participating in this event</string>
+    <string name="invitation_error">Error accepting the invitation</string>
+
+    <!-- Explore Screen -->
+    <string name="explore_title">Explore</string>
+    <string name="explore_search_hint">Search for an event…</string>
+    <string name="explore_results_count">%1$d results</string>
+    <string name="explore_trending">Trending</string>
+    <string name="explore_recommended">Recommended for you</string>
+    <string name="explore_event_ideas">Event ideas</string>
+    <string name="explore_planning_tips">Planning tips</string>
+    <string name="explore_empty_title">Nothing to explore yet</string>
+    <string name="explore_empty_subtitle">Events will appear here once they are created.\nStart by creating one!</string>
+    <string name="explore_no_results_title">No results for \"%1$s\"</string>
+    <string name="explore_no_results_hint">Try different keywords or adjust the filters.</string>
+    <string name="explore_use_template">Use this template</string>
+    <string name="explore_category_all">All</string>
+    <string name="explore_category_social">Social</string>
+    <string name="explore_category_sport">Sport</string>
+    <string name="explore_category_culture">Culture</string>
+    <string name="explore_category_professional">Pro</string>
+    <string name="explore_category_food">Food</string>
+    <string name="explore_category_wellness">Wellness</string>
+    <string name="explore_template_weekend_name">Weekend with friends</string>
+    <string name="explore_template_weekend_desc">2-3 day getaway with accommodation and activities</string>
+    <string name="explore_template_family_name">Family gathering</string>
+    <string name="explore_template_family_desc">Family reunion with meals and photos</string>
+    <string name="explore_template_trip_name">Group trip</string>
+    <string name="explore_template_trip_desc">Multi-day trip with transport and shared budget</string>
+    <string name="explore_template_sport_name">Sports event</string>
+    <string name="explore_template_sport_desc">Group competition or sports outing</string>
+    <string name="explore_tip_slots_title">Suggest multiple time slots</string>
+    <string name="explore_tip_slots_content">The more dates you suggest, the easier it is to find a consensus.</string>
+    <string name="explore_tip_deadline_title">Set a clear deadline</string>
+    <string name="explore_tip_deadline_content">A voting deadline encourages participants to respond quickly.</string>
+    <string name="explore_tip_scenarios_title">Create scenarios</string>
+    <string name="explore_tip_scenarios_content">Compare different options (destination, accommodation, activities) to optimize your event.</string>
+    <string name="explore_tip_budget_title">Share the budget early</string>
+    <string name="explore_tip_budget_content">Early cost transparency avoids unpleasant surprises.</string>
+
+    <!-- Notification Screen (new) -->
+    <string name="notification_date_today">Today</string>
+    <string name="notification_date_yesterday">Yesterday</string>
+    <string name="notification_date_this_week">This week</string>
+    <string name="notification_date_older">Older</string>
+    <string name="notification_just_now">Just now</string>
+    <string name="notification_minutes_ago">%1$d min ago</string>
+    <string name="notification_hours_ago">%1$dh ago</string>
+    <string name="notification_days_ago">%1$dd ago</string>
+    <string name="notification_empty_body">Your notifications will appear here when someone votes, comments, or updates an event.</string>
+
+    <!-- Notification Preferences -->
+    <string name="prefs_title">Preferences</string>
+    <string name="prefs_save">Save</string>
+    <string name="prefs_notification_types">Notification types</string>
+    <string name="prefs_votes_desc">Get notified when a participant votes</string>
+    <string name="prefs_comments_desc">Get notified for new comments</string>
+    <string name="prefs_status_changes">Status changes</string>
+    <string name="prefs_status_changes_desc">Get notified when an event changes status</string>
+    <string name="prefs_reminders">Reminders</string>
+    <string name="prefs_reminders_desc">Reminders on the day of the event</string>
+    <string name="prefs_deadlines">Deadlines</string>
+    <string name="prefs_deadlines_desc">Reminders before the poll deadline</string>
+    <string name="prefs_weekly_digest">Weekly digest</string>
+    <string name="prefs_weekly_digest_desc">Receive a summary every Monday</string>
+    <string name="prefs_general">General</string>
+    <string name="prefs_sound">Sound</string>
+    <string name="prefs_do_not_disturb">Do not disturb</string>
+    <string name="prefs_quiet_hours">Quiet hours</string>
+    <string name="prefs_quiet_hours_desc">Notifications will be muted during this period.</string>
+
+    <!-- Invitation Share (new) -->
+    <string name="invitation_copy">Copy</string>
+    <string name="invitation_share_text">Join the event \"%1$s\" on Wakeve!\n%2$s</string>
+    <string name="invitation_share_subject">Wakeve Invitation: %1$s</string>
+    <string name="invitation_qr_description">Invitation QR Code</string>
+    <string name="invitation_share_chooser">Share invitation</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Dashboard</string>
+    <string name="dashboard_overview">Overview</string>
+    <string name="dashboard_events_by_status">Events by status</string>
+    <string name="dashboard_my_events">My events</string>
+    <string name="dashboard_events">Events</string>
+    <string name="dashboard_avg_per_event">Avg / event</string>
+    <string name="dashboard_response_rate">Response rate</string>
+    <string name="dashboard_view_details">View details</string>
+    <string name="dashboard_participation_rate">Participation rate</string>
+    <string name="dashboard_voted_of_total">%1$d of %2$d participants voted</string>
+    <string name="dashboard_vote_timeline">Vote timeline</string>
+    <string name="dashboard_participant_timeline">Registration timeline</string>
+    <string name="dashboard_popular_slots">Most popular time slots</string>
+    <string name="dashboard_yes">Yes: %1$d</string>
+    <string name="dashboard_maybe">Maybe: %1$d</string>
+    <string name="dashboard_no">No: %1$d</string>
+    <string name="dashboard_votes_count">%1$d votes</string>
+    <string name="dashboard_status_draft">Draft</string>
+    <string name="dashboard_status_polling">Polling</string>
+    <string name="dashboard_status_comparing">Comparing</string>
+    <string name="dashboard_status_confirmed">Confirmed</string>
+    <string name="dashboard_status_organizing">Organizing</string>
+    <string name="dashboard_status_finalized">Finalized</string>
+    <string name="dashboard_mini_participants">Participants</string>
+    <string name="dashboard_mini_comm">Comm.</string>
+    <string name="dashboard_mini_resp">Resp.</string>
+
+    <!-- Profile Screen (new) -->
+    <string name="profile_title">Profile &amp; Achievements</string>
+    <string name="profile_total_points">Total Points</string>
+    <string name="profile_level">Level %1$d</string>
+    <string name="profile_badges_section">Achievements</string>
+    <string name="profile_badges_count">%1$d badges</string>
+    <string name="profile_locked">Locked</string>
+    <string name="profile_category_creation">Creation</string>
+    <string name="profile_category_voting">Voting</string>
+    <string name="profile_category_participation">Participation</string>
+    <string name="profile_category_engagement">Engagement</string>
+    <string name="profile_category_special">Special</string>
+    <string name="profile_leaderboard_all_time">All time</string>
+
+    <!-- Leaderboard Screen (new) -->
+    <string name="leaderboard_title">Leaderboard</string>
+    <string name="leaderboard_you">You</string>
+    <string name="leaderboard_badges">%1$d badges</string>
+    <string name="leaderboard_global">Global</string>
+
     <!-- iOS Specific -->
     <string name="loading_scenarios">Loading scenarios…</string>
     <string name="choose_scenario_title">Choose a scenario</string>

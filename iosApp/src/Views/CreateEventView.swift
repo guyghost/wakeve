@@ -29,17 +29,17 @@ struct CreateEventView: View {
                     dismiss()
                 }
             )
-            .navigationTitle("Créer un événement")
+            .navigationTitle(String(localized: "events.create"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") {
+                    Button(String(localized: "common.cancel")) {
                         dismiss()
                     }
                     .foregroundColor(.secondary)
                 }
             }
-            .alert("Erreur", isPresented: $showError) {
+            .alert(String(localized: "common.error"), isPresented: $showError) {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(errorMessage)
@@ -64,7 +64,7 @@ struct CreateEventView: View {
                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                     .scaleEffect(1.5)
                 
-                Text("Création en cours...")
+                Text(String(localized: "events.creating"))
                     .font(.subheadline.weight(.medium))
                     .foregroundColor(.white)
             }
@@ -127,7 +127,7 @@ struct CreateEventView: View {
                 // Show error to user
                 await MainActor.run {
                     isSaving = false
-                    errorMessage = "Impossible de créer l'événement: \(error.localizedDescription)"
+                    errorMessage = "\(String(localized: "events.create_error")): \(error.localizedDescription)"
                     showError = true
                 }
             }

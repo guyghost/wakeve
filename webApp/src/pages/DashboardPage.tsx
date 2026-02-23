@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 
 // ==================== Types ====================
@@ -82,9 +83,9 @@ const mockAnalytics: EventAnalytics = {
     { date: '05/10', count: 1 },
   ],
   popularTimeSlots: [
-    { label: 'Apres-midi', yesVotes: 12, maybeVotes: 3, noVotes: 2, totalVotes: 17 },
-    { label: 'Matin', yesVotes: 8, maybeVotes: 5, noVotes: 4, totalVotes: 17 },
-    { label: 'Soiree', yesVotes: 6, maybeVotes: 7, noVotes: 4, totalVotes: 17 },
+    { label: 'AFTERNOON', yesVotes: 12, maybeVotes: 3, noVotes: 2, totalVotes: 17 },
+    { label: 'MORNING', yesVotes: 8, maybeVotes: 5, noVotes: 4, totalVotes: 17 },
+    { label: 'EVENING', yesVotes: 6, maybeVotes: 7, noVotes: 4, totalVotes: 17 },
   ],
   pollCompletionRate: 85.0,
   totalParticipants: 15,
@@ -93,13 +94,20 @@ const mockAnalytics: EventAnalytics = {
 
 // ==================== Helpers ====================
 
-const statusLabels: Record<string, string> = {
-  DRAFT: 'Brouillon',
-  POLLING: 'Sondage',
-  COMPARING: 'Comparaison',
-  CONFIRMED: 'Confirme',
-  ORGANIZING: 'Organisation',
-  FINALIZED: 'Finalise',
+const STATUS_KEYS: Record<string, string> = {
+  DRAFT: 'events.statusDraft',
+  POLLING: 'events.statusPolling',
+  COMPARING: 'events.statusComparing',
+  CONFIRMED: 'events.statusConfirmed',
+  ORGANIZING: 'events.statusOrganizing',
+  FINALIZED: 'events.statusFinalized',
+};
+
+const TIME_SLOT_KEYS: Record<string, string> = {
+  AFTERNOON: 'events.timeAfternoon',
+  MORNING: 'events.timeMorning',
+  EVENING: 'events.timeEvening',
+  ALL_DAY: 'events.timeAllDay',
 };
 
 const statusColors: Record<string, string> = {
@@ -126,10 +134,9 @@ function SummaryCard({ icon, title, value, color }: { icon: string; title: strin
   );
 }
 
-function StatusBar({ status, count, total }: { status: string; count: number; total: number }) {
+function StatusBar({ status, count, total, label }: { status: string; count: number; total: number; label: string }) {
   const pct = total > 0 ? (count / total) * 100 : 0;
   const color = statusColors[status] || '#6B7280';
-  const label = statusLabels[status] || status;
 
   return (
     <div className="flex items-center gap-3">
@@ -212,6 +219,7 @@ function StackedBar({ yes, maybe, no, total }: { yes: number; maybe: number; no:
 // ==================== Event Detail Modal ====================
 
 function EventDetailModal({ event, onClose }: { event: DashboardEvent; onClose: () => void }) {
+  const { t } = useTranslation();
   const analytics = mockAnalytics;
 
   return (
@@ -222,33 +230,33 @@ function EventDetailModal({ event, onClose }: { event: DashboardEvent; onClose: 
       >
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-gray-900">{event.title}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none" aria-label="Fermer">&times;</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none" aria-label={t('dashboard.close')}>&times;</button>
         </div>
 
         {/* Poll Completion */}
         <div className="bg-gray-50 rounded-xl p-4 mb-4 flex flex-col items-center gap-3">
-          <h3 className="text-sm font-semibold text-gray-700">Taux de participation</h3>
+          <h3 className="text-sm font-semibold text-gray-700">{t('dashboard.participationRate')}</h3>
           <CircularProgress percentage={analytics.pollCompletionRate} />
           <p className="text-sm text-gray-500">
-            {analytics.votedParticipants} sur {analytics.totalParticipants} participants ont vote
+            {t('dashboard.participantsVoted', { voted: analytics.votedParticipants, total: analytics.totalParticipants })}
           </p>
         </div>
 
         {/* Vote Timeline */}
         <div className="bg-gray-50 rounded-xl p-4 mb-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Chronologie des votes</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('dashboard.voteTimeline')}</h3>
           <BarChart entries={analytics.voteTimeline} color="#2563EB" />
         </div>
 
         {/* Participant Timeline */}
         <div className="bg-gray-50 rounded-xl p-4 mb-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Chronologie des inscriptions</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('dashboard.participantTimeline')}</h3>
           <BarChart entries={analytics.participantTimeline} color="#16A34A" />
         </div>
 
         {/* Popular Time Slots */}
         <div className="bg-gray-50 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Creneaux les plus populaires</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('dashboard.popularSlots')}</h3>
           <div className="space-y-4">
             {analytics.popularTimeSlots.map((slot, idx) => (
               <div key={slot.label}>
@@ -259,19 +267,21 @@ function EventDetailModal({ event, onClose }: { event: DashboardEvent; onClose: 
                   >
                     #{idx + 1}
                   </span>
-                  <span className="text-sm font-medium text-gray-700 flex-1">{slot.label}</span>
-                  <span className="text-xs text-gray-400">{slot.totalVotes} votes</span>
+                  <span className="text-sm font-medium text-gray-700 flex-1">
+                    {TIME_SLOT_KEYS[slot.label] ? t(TIME_SLOT_KEYS[slot.label]) : slot.label}
+                  </span>
+                  <span className="text-xs text-gray-400">{t('common.vote', { count: slot.totalVotes })}</span>
                 </div>
                 <StackedBar yes={slot.yesVotes} maybe={slot.maybeVotes} no={slot.noVotes} total={slot.totalVotes} />
                 <div className="flex gap-4 mt-1">
                   <span className="flex items-center gap-1 text-[10px] text-gray-400">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#16A34A' }} />Oui: {slot.yesVotes}
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#16A34A' }} />{t('common.yes')}: {slot.yesVotes}
                   </span>
                   <span className="flex items-center gap-1 text-[10px] text-gray-400">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#EA580C' }} />Peut-etre: {slot.maybeVotes}
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#EA580C' }} />{t('common.maybe')}: {slot.maybeVotes}
                   </span>
                   <span className="flex items-center gap-1 text-[10px] text-gray-400">
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#DC2626' }} />Non: {slot.noVotes}
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: '#DC2626' }} />{t('common.no')}: {slot.noVotes}
                   </span>
                 </div>
               </div>
@@ -286,6 +296,7 @@ function EventDetailModal({ event, onClose }: { event: DashboardEvent; onClose: 
 // ==================== Main Page ====================
 
 export function DashboardPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState<DashboardEvent | null>(null);
 
@@ -295,40 +306,46 @@ export function DashboardPage() {
 
   return (
     <div className="pb-20 md:pb-0 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Tableau de bord</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">{t('dashboard.title')}</h1>
 
       {/* Summary Cards */}
       <section className="mb-6">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Vue d'ensemble</h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('dashboard.overview')}</h2>
         <div className="grid grid-cols-3 gap-3">
-          <SummaryCard icon="📅" title="Evenements" value={`${overview.totalEvents}`} color="#2563EB" />
-          <SummaryCard icon="👥" title="Participants" value={`${overview.totalParticipants}`} color="#16A34A" />
-          <SummaryCard icon="📊" title="Moy. / evt" value={overview.averageParticipants.toFixed(1)} color="#9333EA" />
-          <SummaryCard icon="👍" title="Votes" value={`${overview.totalVotes}`} color="#EA580C" />
-          <SummaryCard icon="💬" title="Commentaires" value={`${overview.totalComments}`} color="#0D9488" />
-          <SummaryCard icon="📈" title="Taux rep." value="78%" color="#DC2626" />
+          <SummaryCard icon="📅" title={t('dashboard.events')} value={`${overview.totalEvents}`} color="#2563EB" />
+          <SummaryCard icon="👥" title={t('dashboard.participants')} value={`${overview.totalParticipants}`} color="#16A34A" />
+          <SummaryCard icon="📊" title={t('dashboard.avgPerEvent')} value={overview.averageParticipants.toFixed(1)} color="#9333EA" />
+          <SummaryCard icon="👍" title={t('dashboard.votes')} value={`${overview.totalVotes}`} color="#EA580C" />
+          <SummaryCard icon="💬" title={t('dashboard.comments')} value={`${overview.totalComments}`} color="#0D9488" />
+          <SummaryCard icon="📈" title={t('dashboard.responseRate')} value="78%" color="#DC2626" />
         </div>
       </section>
 
       {/* Status Breakdown */}
       <section className="mb-6">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Evenements par statut</h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('dashboard.eventsByStatus')}</h2>
         <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
           {Object.entries(overview.eventsByStatus)
             .sort(([, a], [, b]) => b - a)
             .map(([status, count]) => (
-              <StatusBar key={status} status={status} count={count} total={total} />
+              <StatusBar
+                key={status}
+                status={status}
+                count={count}
+                total={total}
+                label={t(STATUS_KEYS[status] || 'events.statusDraft')}
+              />
             ))}
         </div>
       </section>
 
       {/* Events List */}
       <section>
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Mes evenements</h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('dashboard.myEvents')}</h2>
         <div className="space-y-3">
           {events.map((event) => {
             const color = statusColors[event.status] || '#6B7280';
-            const label = statusLabels[event.status] || event.status;
+            const label = t(STATUS_KEYS[event.status] || 'events.statusDraft');
 
             return (
               <button
@@ -348,19 +365,19 @@ export function DashboardPage() {
                 <div className="flex justify-between text-center">
                   <div>
                     <div className="text-sm font-semibold text-gray-900">{event.participantCount}</div>
-                    <div className="text-[10px] text-gray-400">Participants</div>
+                    <div className="text-[10px] text-gray-400">{t('dashboard.participants')}</div>
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-gray-900">{event.voteCount}</div>
-                    <div className="text-[10px] text-gray-400">Votes</div>
+                    <div className="text-[10px] text-gray-400">{t('dashboard.votes')}</div>
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-gray-900">{event.commentCount}</div>
-                    <div className="text-[10px] text-gray-400">Comm.</div>
+                    <div className="text-[10px] text-gray-400">{t('dashboard.comm')}</div>
                   </div>
                   <div>
                     <div className="text-sm font-semibold text-gray-900">{Math.round(event.responseRate)}%</div>
-                    <div className="text-[10px] text-gray-400">Rep.</div>
+                    <div className="text-[10px] text-gray-400">{t('dashboard.resp')}</div>
                   </div>
                 </div>
                 <div className="flex justify-end mt-2">

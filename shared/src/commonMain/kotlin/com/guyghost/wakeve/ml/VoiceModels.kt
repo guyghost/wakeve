@@ -154,7 +154,10 @@ enum class Language {
     DE,
 
     /** Italian */
-    IT
+    IT,
+
+    /** Portuguese */
+    PT
 }
 
 /**

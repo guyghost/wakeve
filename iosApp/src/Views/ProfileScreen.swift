@@ -9,7 +9,7 @@ struct ProfileScreen: View {
         NavigationStack {
             Group {
                 if viewModel.isLoading {
-                    ProgressView("Chargement...")
+                    ProgressView(String(localized: "common.loading"))
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ScrollView {
@@ -43,8 +43,8 @@ struct ProfileScreen: View {
                     }
                 }
             }
-            .navigationTitle("Profil & Succès")
-            .alert("Erreur", isPresented: .constant(viewModel.error != nil)) {
+            .navigationTitle(String(localized: "profile.achievements"))
+            .alert(String(localized: "common.error"), isPresented: .constant(viewModel.error != nil)) {
                 Button("OK") {
                     viewModel.clearError()
                 }
@@ -72,7 +72,7 @@ struct PointsSummaryCard: View {
                 // Header with total points
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Points Totaux")
+                        Text(String(localized: "gamification.total_points"))
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                         
@@ -105,10 +105,10 @@ struct PointsSummaryCard: View {
                     .padding(.vertical, 4)
                 
                 // Points breakdown
-                PointBreakdownRow(label: "Création d'événements", points: eventCreationPoints, color: .wakeveWarning)
-                PointBreakdownRow(label: "Votes", points: votingPoints, color: .wakeveSuccess)
-                PointBreakdownRow(label: "Commentaires", points: commentPoints, color: .wakeveAccent)
-                PointBreakdownRow(label: "Participation", points: participationPoints, color: .wakevePrimary)
+                PointBreakdownRow(label: String(localized: "gamification.event_creation"), points: eventCreationPoints, color: .wakeveWarning)
+                PointBreakdownRow(label: String(localized: "gamification.voting"), points: votingPoints, color: .wakeveSuccess)
+                PointBreakdownRow(label: String(localized: "gamification.commenting"), points: commentPoints, color: .wakeveAccent)
+                PointBreakdownRow(label: String(localized: "gamification.participation"), points: participationPoints, color: .wakevePrimary)
             }
         }
     }
@@ -152,14 +152,14 @@ struct BadgesSection: View {
                 Image(systemName: "trophy.fill")
                     .foregroundColor(.wakeveWarning)
                 
-                Text("Succès")
+                Text(String(localized: "gamification.achievements"))
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
-                Text("\(badges.count) badges")
+                Text(String(format: String(localized: "gamification.badges_count"), badges.count))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
@@ -277,7 +277,7 @@ struct LeaderboardSection: View {
                 Image(systemName: "chart.bar.fill")
                     .foregroundColor(.wakevePrimary)
                 
-                Text("Classement")
+                Text(String(localized: "gamification.leaderboard"))
                     .font(.title2)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
@@ -349,13 +349,13 @@ struct LeaderboardItemView: View {
                         
                         if entry.isFriend {
                             LiquidGlassBadge(
-                                text: "Ami",
+                                text: String(localized: "leaderboard.friend"),
                                 style: .accent
                             )
                         }
                     }
                     
-                    Text("\(entry.badgesCount) badges")
+                    Text(String(format: String(localized: "gamification.badges_count"), entry.badgesCount))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -376,8 +376,8 @@ struct LeaderboardItemView: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(entry.username), rang #\(entry.rank), \(entry.totalPoints) points")
-        .accessibilityHint(isCurrentUser ? "C'est vous" : "")
+        .accessibilityLabel(String(format: String(localized: "events.accessibility.rank"), entry.username, entry.rank, entry.totalPoints))
+        .accessibilityHint(isCurrentUser ? String(localized: "events.accessibility.its_you") : "")
     }
     
     private var rankBadgeStyle: LiquidGlassBadgeStyle {
@@ -400,18 +400,20 @@ struct LevelProgressSection: View {
     let totalPoints: Int
 
     // Level thresholds matching the shared Kotlin model
-    private let levelThresholds: [(points: Int, name: String)] = [
-        (0, "Debutant"),
-        (50, "Explorateur"),
-        (150, "Contributeur"),
-        (300, "Organisateur"),
-        (500, "Expert"),
-        (800, "Maitre"),
-        (1200, "Champion"),
-        (1800, "Legende"),
-        (2500, "Mythique"),
-        (3500, "Transcendant")
-    ]
+    private var levelThresholds: [(points: Int, name: String)] {
+        [
+            (0, String(localized: "gamification.level.beginner")),
+            (50, String(localized: "gamification.level.explorer")),
+            (150, String(localized: "gamification.level.contributor")),
+            (300, String(localized: "gamification.level.organizer")),
+            (500, String(localized: "gamification.level.expert")),
+            (800, String(localized: "gamification.level.master")),
+            (1200, String(localized: "gamification.level.champion")),
+            (1800, String(localized: "gamification.level.legend")),
+            (2500, String(localized: "gamification.level.mythic")),
+            (3500, String(localized: "gamification.level.transcendent"))
+        ]
+    }
 
     private var currentLevelIndex: Int {
         var idx = 0
@@ -444,7 +446,7 @@ struct LevelProgressSection: View {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Niveau \(level)")
+                        Text(String(format: String(localized: "gamification.level_format"), level))
                             .font(.headline)
                             .fontWeight(.bold)
                             .foregroundColor(.wakevePrimary)

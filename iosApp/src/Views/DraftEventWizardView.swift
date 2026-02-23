@@ -141,7 +141,7 @@ struct DraftEventWizardView: View {
                             HStack {
                                 Image(systemName: "square.and.arrow.down")
                                     .font(.system(size: 14, weight: .semibold))
-                                Text(NSLocalizedString("save_draft", tableName: nil, bundle: .main, value: "Enregistrer le brouillon", comment: "Save draft button"))
+                                Text(String(localized: "events.save_draft"))
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)

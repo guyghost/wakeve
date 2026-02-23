@@ -101,7 +101,7 @@ struct OrganizerDashboardView: View {
             }
             .padding()
         }
-        .navigationTitle("Tableau de bord")
+        .navigationTitle(String(localized: "dashboard.title"))
         .sheet(isPresented: $showEventDetail) {
             if let event = selectedEvent {
                 EventDetailedAnalyticsView(event: event)
@@ -117,7 +117,7 @@ struct SummaryCardsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Vue d'ensemble")
+            Text(String(localized: "dashboard.overview"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
@@ -128,19 +128,19 @@ struct SummaryCardsSection: View {
             ], spacing: 12) {
                 SummaryCard(
                     icon: "calendar.badge.plus",
-                    title: "Evenements",
+                    title: String(localized: "dashboard.events"),
                     value: "\(overview.totalEvents)",
                     color: .blue
                 )
                 SummaryCard(
                     icon: "person.3.fill",
-                    title: "Participants",
+                    title: String(localized: "dashboard.participants"),
                     value: "\(overview.totalParticipants)",
                     color: .green
                 )
                 SummaryCard(
                     icon: "chart.bar.fill",
-                    title: "Moy. / event",
+                    title: String(localized: "dashboard.avg_per_event"),
                     value: String(format: "%.1f", overview.averageParticipants),
                     color: .purple
                 )
@@ -153,19 +153,19 @@ struct SummaryCardsSection: View {
             ], spacing: 12) {
                 SummaryCard(
                     icon: "hand.thumbsup.fill",
-                    title: "Votes",
+                    title: String(localized: "dashboard.votes"),
                     value: "\(overview.totalVotes)",
                     color: .orange
                 )
                 SummaryCard(
                     icon: "bubble.left.fill",
-                    title: "Commentaires",
+                    title: String(localized: "dashboard.comments"),
                     value: "\(overview.totalComments)",
                     color: .teal
                 )
                 SummaryCard(
                     icon: "percent",
-                    title: "Taux rep.",
+                    title: String(localized: "dashboard.response_rate"),
                     value: overview.totalEvents > 0
                         ? String(format: "%.0f%%", overview.averageParticipants > 0 ? min(Double(overview.totalVotes) / Double(overview.totalParticipants) * 100.0 / max(overview.averageParticipants, 1.0), 100.0) : 0.0)
                         : "0%",
@@ -221,14 +221,16 @@ struct StatusBreakdownChart: View {
         "FINALIZED": .purple
     ]
 
-    private let statusLabels: [String: String] = [
-        "DRAFT": "Brouillon",
-        "POLLING": "Sondage",
-        "COMPARING": "Comparaison",
-        "CONFIRMED": "Confirme",
-        "ORGANIZING": "Organisation",
-        "FINALIZED": "Finalise"
-    ]
+    private var statusLabels: [String: String] {
+        [
+            "DRAFT": String(localized: "dashboard.status.draft"),
+            "POLLING": String(localized: "dashboard.status.polling"),
+            "COMPARING": String(localized: "dashboard.status.comparing"),
+            "CONFIRMED": String(localized: "dashboard.status.confirmed"),
+            "ORGANIZING": String(localized: "dashboard.status.organizing"),
+            "FINALIZED": String(localized: "dashboard.status.finalized")
+        ]
+    }
 
     private var total: Int {
         eventsByStatus.values.reduce(0, +)
@@ -236,7 +238,7 @@ struct StatusBreakdownChart: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Evenements par statut")
+            Text(String(localized: "dashboard.events_by_status"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
@@ -288,7 +290,7 @@ struct EventsAnalyticsListSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Mes evenements")
+            Text(String(localized: "dashboard.my_events"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
@@ -319,12 +321,12 @@ struct EventAnalyticsRow: View {
 
     private var statusLabel: String {
         switch event.status {
-        case "DRAFT": return "Brouillon"
-        case "POLLING": return "Sondage"
-        case "COMPARING": return "Comparaison"
-        case "CONFIRMED": return "Confirme"
-        case "ORGANIZING": return "Organisation"
-        case "FINALIZED": return "Finalise"
+        case "DRAFT": return String(localized: "dashboard.status.draft")
+        case "POLLING": return String(localized: "dashboard.status.polling")
+        case "COMPARING": return String(localized: "dashboard.status.comparing")
+        case "CONFIRMED": return String(localized: "dashboard.status.confirmed")
+        case "ORGANIZING": return String(localized: "dashboard.status.organizing")
+        case "FINALIZED": return String(localized: "dashboard.status.finalized")
         default: return event.status
         }
     }
@@ -446,7 +448,7 @@ struct EventDetailedAnalyticsView: View {
 
                     // Vote Timeline Chart
                     TimelineChartSection(
-                        title: "Chronologie des votes",
+                        title: String(localized: "dashboard.vote_timeline"),
                         icon: "hand.thumbsup.fill",
                         color: .blue,
                         entries: analytics.voteTimeline
@@ -454,7 +456,7 @@ struct EventDetailedAnalyticsView: View {
 
                     // Participant Timeline Chart
                     TimelineChartSection(
-                        title: "Chronologie des inscriptions",
+                        title: String(localized: "dashboard.registration_timeline"),
                         icon: "person.badge.plus",
                         color: .green,
                         entries: analytics.participantTimeline
@@ -469,7 +471,7 @@ struct EventDetailedAnalyticsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Fermer") {
+                    Button(String(localized: "dashboard.close")) {
                         dismiss()
                     }
                 }
@@ -487,7 +489,7 @@ struct PollCompletionSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Taux de participation au sondage")
+            Text(String(localized: "dashboard.poll_participation"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
@@ -514,7 +516,7 @@ struct PollCompletionSection: View {
                             .foregroundColor(.primary)
                     }
 
-                    Text("\(votedParticipants) sur \(totalParticipants) participants ont vote")
+                    Text(String(format: String(localized: "dashboard.participants_voted"), votedParticipants, totalParticipants))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
@@ -597,20 +599,22 @@ struct TimelineChartSection: View {
 struct PopularTimeSlotsSection: View {
     let slots: [PopularTimeSlotItem]
 
-    private let timeOfDayLabels: [String: String] = [
-        "MORNING": "Matin",
-        "AFTERNOON": "Apres-midi",
-        "EVENING": "Soiree",
-        "SPECIFIC": "Specifique",
-        "ALL_DAY": "Journee entiere"
-    ]
+    private var timeOfDayLabels: [String: String] {
+        [
+            "MORNING": String(localized: "dashboard.time.morning"),
+            "AFTERNOON": String(localized: "dashboard.time.afternoon"),
+            "EVENING": String(localized: "dashboard.time.evening"),
+            "SPECIFIC": String(localized: "dashboard.time.specific"),
+            "ALL_DAY": String(localized: "dashboard.time.all_day")
+        ]
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 6) {
                 Image(systemName: "clock.fill")
                     .foregroundColor(.purple)
-                Text("Creneaux les plus populaires")
+                Text(String(localized: "dashboard.popular_slots"))
                     .font(.headline)
                     .foregroundColor(.primary)
             }
@@ -643,7 +647,7 @@ struct PopularTimeSlotsSection: View {
 
                             Spacer()
 
-                            Text("\(slot.totalVotes) votes")
+                            Text(String(format: String(localized: "dashboard.votes_count"), slot.totalVotes))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -672,9 +676,9 @@ struct PopularTimeSlotsSection: View {
 
                         // Legend
                         HStack(spacing: 16) {
-                            VoteLegendItem(color: .green, label: "Oui", count: slot.yesVotes)
-                            VoteLegendItem(color: .orange, label: "Peut-etre", count: slot.maybeVotes)
-                            VoteLegendItem(color: .red, label: "Non", count: slot.noVotes)
+                            VoteLegendItem(color: .green, label: String(localized: "dashboard.vote.yes"), count: slot.yesVotes)
+                            VoteLegendItem(color: .orange, label: String(localized: "dashboard.vote.maybe"), count: slot.maybeVotes)
+                            VoteLegendItem(color: .red, label: String(localized: "dashboard.vote.no"), count: slot.noVotes)
                         }
                     }
                 }

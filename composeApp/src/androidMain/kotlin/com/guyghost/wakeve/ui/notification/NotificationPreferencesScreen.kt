@@ -47,6 +47,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.guyghost.wakeve.R
 
 // MARK: - Preference Item Data
 
@@ -71,43 +73,43 @@ fun NotificationPreferencesScreen(
             listOf(
                 PreferenceToggleItem(
                     id = "votes",
-                    label = "Votes",
-                    description = "Recevoir une notification lorsqu'un participant vote",
+                    label = stringResource(R.string.votes),
+                    description = stringResource(R.string.prefs_votes_desc),
                     icon = Icons.Filled.HowToVote,
                     isEnabled = true
                 ),
                 PreferenceToggleItem(
                     id = "comments",
-                    label = "Commentaires",
-                    description = "Recevoir une notification pour les nouveaux commentaires",
+                    label = stringResource(R.string.comments),
+                    description = stringResource(R.string.prefs_comments_desc),
                     icon = Icons.Filled.ChatBubble,
                     isEnabled = true
                 ),
                 PreferenceToggleItem(
                     id = "status_changes",
-                    label = "Changements de statut",
-                    description = "Etre notifie lorsqu'un evenement change de statut",
+                    label = stringResource(R.string.prefs_status_changes),
+                    description = stringResource(R.string.prefs_status_changes_desc),
                     icon = Icons.Filled.SwapHoriz,
                     isEnabled = true
                 ),
                 PreferenceToggleItem(
                     id = "reminders",
-                    label = "Rappels",
-                    description = "Rappels le jour de l'evenement",
+                    label = stringResource(R.string.prefs_reminders),
+                    description = stringResource(R.string.prefs_reminders_desc),
                     icon = Icons.Filled.Notifications,
                     isEnabled = true
                 ),
                 PreferenceToggleItem(
                     id = "deadlines",
-                    label = "Deadlines",
-                    description = "Rappels avant la date limite des sondages",
+                    label = stringResource(R.string.prefs_deadlines),
+                    description = stringResource(R.string.prefs_deadlines_desc),
                     icon = Icons.Filled.AccessTime,
                     isEnabled = true
                 ),
                 PreferenceToggleItem(
                     id = "weekly_digest",
-                    label = "Resume hebdomadaire",
-                    description = "Recevoir un resume chaque lundi",
+                    label = stringResource(R.string.prefs_weekly_digest),
+                    description = stringResource(R.string.prefs_weekly_digest_desc),
                     icon = Icons.Filled.Newspaper,
                     isEnabled = false
                 )
@@ -124,7 +126,7 @@ fun NotificationPreferencesScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Preferences",
+                        text = stringResource(R.string.prefs_title),
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -132,7 +134,7 @@ fun NotificationPreferencesScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Retour"
+                            contentDescription = stringResource(R.string.back)
                         )
                     }
                 },
@@ -141,7 +143,7 @@ fun NotificationPreferencesScreen(
                         // TODO: Appeler l'API PUT /api/notifications/preferences
                     }) {
                         Text(
-                            text = "Enregistrer",
+                            text = stringResource(R.string.prefs_save),
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -163,7 +165,7 @@ fun NotificationPreferencesScreen(
         ) {
             // Types de notifications
             Text(
-                text = "Types de notifications",
+                text = stringResource(R.string.prefs_notification_types),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -199,7 +201,7 @@ fun NotificationPreferencesScreen(
 
             // General
             Text(
-                text = "General",
+                text = stringResource(R.string.prefs_general),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -227,7 +229,7 @@ fun NotificationPreferencesScreen(
                     Spacer(modifier = Modifier.width(16.dp))
 
                     Text(
-                        text = "Son",
+                        text = stringResource(R.string.prefs_sound),
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.weight(1f)
                     )
@@ -241,7 +243,7 @@ fun NotificationPreferencesScreen(
 
             // Ne pas deranger
             Text(
-                text = "Ne pas deranger",
+                text = stringResource(R.string.prefs_do_not_disturb),
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -271,7 +273,7 @@ fun NotificationPreferencesScreen(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Heures silencieuses",
+                                text = stringResource(R.string.prefs_quiet_hours),
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             if (quietHoursEnabled) {
@@ -297,7 +299,7 @@ fun NotificationPreferencesScreen(
                         )
 
                         Text(
-                            text = "Les notifications seront mises en sourdine pendant cette periode.",
+                            text = stringResource(R.string.prefs_quiet_hours_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 56.dp, end = 16.dp, top = 8.dp, bottom = 12.dp)

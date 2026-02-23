@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.notification
 
 import com.guyghost.wakeve.DatabaseEventRepository
+import com.guyghost.wakeve.i18n.ServerLocalizer
 import kotlinx.coroutines.*
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -190,11 +191,14 @@ class NotificationScheduler(
             val participants = eventRepository.getParticipants(event.id) ?: continue
 
             for (participantId in participants) {
+                // TODO: resolve user's preferred locale from profile/preferences
+                val locale = "fr"
+
                 val request = NotificationRequest(
                     userId = participantId,
                     type = NotificationType.MEETING_REMINDER,
-                    title = "C'est aujourd'hui !",
-                    body = "\"${event.title}\" a lieu aujourd'hui. Bonne journee !",
+                    title = ServerLocalizer.t("notification.event_day.title", locale),
+                    body = ServerLocalizer.t("notification.event_day.body", locale, event.title),
                     eventId = event.id,
                     data = mapOf("eventId" to event.id)
                 )
@@ -234,18 +238,30 @@ class NotificationScheduler(
             val unreadNotifications = notificationService.getUnreadNotifications(userId)
             if (unreadNotifications.isEmpty()) continue
 
+            // TODO: resolve user's preferred locale from profile/preferences
+            val locale = "fr"
+
             val count = unreadNotifications.size
             val summary = buildString {
-                append("Vous avez $count notification${if (count > 1) "s" else ""} non lue${if (count > 1) "s" else ""}. ")
+                if (count == 1) {
+                    append(ServerLocalizer.t("notification.digest.unread_single", locale))
+                } else {
+                    append(ServerLocalizer.t("notification.digest.unread_multiple", locale, count))
+                }
                 val types = unreadNotifications.groupBy { it.type }
                 val parts = mutableListOf<String>()
                 types.forEach { (type, items) ->
                     val label = when (type.name) {
-                        "VOTE_SUBMITTED", "VOTE_CLOSE_REMINDER" -> "${items.size} vote(s)"
-                        "COMMENT_POSTED", "COMMENT_REPLY" -> "${items.size} commentaire(s)"
-                        "EVENT_UPDATE", "EVENT_CONFIRMED" -> "${items.size} mise(s) a jour"
-                        "DEADLINE_REMINDER" -> "${items.size} rappel(s)"
-                        else -> "${items.size} notification(s)"
+                        "VOTE_SUBMITTED", "VOTE_CLOSE_REMINDER" ->
+                            ServerLocalizer.t("notification.digest.votes", locale, items.size)
+                        "COMMENT_POSTED", "COMMENT_REPLY" ->
+                            ServerLocalizer.t("notification.digest.comments", locale, items.size)
+                        "EVENT_UPDATE", "EVENT_CONFIRMED" ->
+                            ServerLocalizer.t("notification.digest.updates", locale, items.size)
+                        "DEADLINE_REMINDER" ->
+                            ServerLocalizer.t("notification.digest.reminders", locale, items.size)
+                        else ->
+                            ServerLocalizer.t("notification.digest.notifications", locale, items.size)
                     }
                     parts.add(label)
                 }
@@ -255,7 +271,7 @@ class NotificationScheduler(
             val request = NotificationRequest(
                 userId = userId,
                 type = NotificationType.EVENT_UPDATE,
-                title = "Resume de la semaine",
+                title = ServerLocalizer.t("notification.digest.title", locale),
                 body = summary,
                 data = mapOf("digest" to "true")
             )

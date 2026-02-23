@@ -32,8 +32,8 @@ struct ProfileSettingsSheet: View {
                         settingsGroup {
                             SettingsRow(
                                 icon: "bell.fill",
-                                title: "Notifications",
-                                value: notificationsEnabled ? "Activées" : "Désactivées"
+                                title: String(localized: "settings_sheet.notifications"),
+                                value: notificationsEnabled ? String(localized: "settings_sheet.enabled") : String(localized: "settings_sheet.disabled")
                             )
                         }
                         
@@ -41,8 +41,8 @@ struct ProfileSettingsSheet: View {
                         settingsGroup {
                             SettingsRow(
                                 icon: "calendar",
-                                title: "Synchronisation du calendrier",
-                                value: calendarSyncEnabled ? "Oui" : "Non"
+                                title: String(localized: "settings_sheet.calendar_sync"),
+                                value: calendarSyncEnabled ? String(localized: "common.yes") : String(localized: "common.no")
                             )
                         }
                         
@@ -50,8 +50,8 @@ struct ProfileSettingsSheet: View {
                         settingsGroup {
                             SettingsRow(
                                 icon: "envelope.fill",
-                                title: "Notifications par e-mail",
-                                value: emailNotificationsEnabled ? "Activées" : "Désactivées"
+                                title: String(localized: "settings_sheet.email_notifications"),
+                                value: emailNotificationsEnabled ? String(localized: "settings_sheet.enabled") : String(localized: "settings_sheet.disabled")
                             )
                         }
                         
@@ -65,7 +65,7 @@ struct ProfileSettingsSheet: View {
                         onDismiss()
                         onSignOut()
                     }) {
-                        Text("Se déconnecter")
+                        Text(String(localized: "auth.sign_out"))
                             .font(.system(size: 17, weight: .medium))
                             .foregroundColor(.red)
                             .frame(maxWidth: .infinity)
@@ -80,7 +80,7 @@ struct ProfileSettingsSheet: View {
                 .padding(.vertical, 16)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Réglages")
+            .navigationTitle(String(localized: "settings_sheet.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -113,7 +113,7 @@ struct ProfileSettingsSheet: View {
             }
             
             VStack(alignment: .leading, spacing: 4) {
-                Text(userName ?? "Utilisateur")
+                Text(userName ?? String(localized: "profile.user"))
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(.primary)
                 
@@ -133,7 +133,7 @@ struct ProfileSettingsSheet: View {
     
     private var privacySection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Confidentialité et informations")
+            Text(String(localized: "settings_sheet.privacy"))
                 .font(.system(size: 13, weight: .regular))
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 16)
@@ -141,17 +141,17 @@ struct ProfileSettingsSheet: View {
             
             settingsGroup {
                 VStack(spacing: 0) {
-                    LinkRow(title: "Découvrez comment sont gérées vos données...")
+                    LinkRow(title: String(localized: "settings_sheet.data_management"))
                     
                     Divider()
                         .padding(.leading, 16)
                     
-                    LinkRow(title: "Aide")
+                    LinkRow(title: String(localized: "settings_sheet.help"))
                     
                     Divider()
                         .padding(.leading, 16)
                     
-                    LinkRow(title: "Conditions générales")
+                    LinkRow(title: String(localized: "settings_sheet.terms"))
                 }
             }
         }

@@ -39,10 +39,10 @@ struct ExploreTabView: View {
             .refreshable {
                 viewModel.refresh()
             }
-            .navigationTitle("Explorer")
+            .navigationTitle(String(localized: "explore.title"))
             .searchable(
                 text: $viewModel.searchText,
-                prompt: "Rechercher un evenement..."
+                prompt: String(localized: "explore.search_prompt")
             )
             .onChange(of: viewModel.searchText) { _, _ in
                 viewModel.search()
@@ -115,7 +115,7 @@ struct DiscoverySections: View {
             // Trending section
             if !viewModel.trendingEvents.isEmpty {
                 ExploreSection(
-                    title: "Tendances",
+                    title: String(localized: "explore.trending"),
                     icon: "flame.fill",
                     iconColor: .orange
                 ) {
@@ -126,7 +126,7 @@ struct DiscoverySections: View {
             // Nearby section (placeholder until geolocation is wired)
             if !viewModel.nearbyEvents.isEmpty {
                 ExploreSection(
-                    title: "Pres de vous",
+                    title: String(localized: "explore.nearby"),
                     icon: "location.fill",
                     iconColor: .blue
                 ) {
@@ -137,7 +137,7 @@ struct DiscoverySections: View {
             // Recommended section
             if !viewModel.recommendedEvents.isEmpty {
                 ExploreSection(
-                    title: "Recommandes pour vous",
+                    title: String(localized: "explore.recommended"),
                     icon: "sparkles",
                     iconColor: .wakeveAccent
                 ) {
@@ -278,7 +278,7 @@ struct ExploreEventCard: View {
                     Text("\(event.participantCount)/\(max)")
                         .font(.caption2)
                 } else {
-                    Text("\(event.participantCount) participants")
+                    Text(String(format: String(localized: "explore.participants_count"), event.participantCount))
                         .font(.caption2)
                 }
             }
@@ -298,7 +298,7 @@ struct SearchResultsSection: View {
             if results.isEmpty {
                 SearchEmptyStateView(searchText: searchText)
             } else {
-                Text("\(results.count) resultats")
+                Text(String(format: String(localized: "explore.results_count"), results.count))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 16)
@@ -403,12 +403,12 @@ struct ExploreEmptyStateView: View {
                 .font(.system(size: 56))
                 .foregroundColor(.wakeveAccent.opacity(0.5))
 
-            Text("Rien a explorer pour le moment")
+            Text(String(localized: "explore.empty_title"))
                 .font(.title3)
                 .fontWeight(.semibold)
                 .foregroundColor(.primary)
 
-            Text("Les evenements apparaitront ici des qu'ils seront crees. Commencez par en creer un !")
+            Text(String(localized: "explore.empty_subtitle"))
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -431,11 +431,11 @@ struct SearchEmptyStateView: View {
                 .font(.system(size: 48))
                 .foregroundColor(.secondary.opacity(0.5))
 
-            Text("Aucun resultat pour \"\(searchText)\"")
+            Text(String(format: String(localized: "explore.no_results"), searchText))
                 .font(.headline)
                 .foregroundColor(.primary)
 
-            Text("Essayez avec d'autres mots-cles ou modifiez les filtres.")
+            Text(String(localized: "explore.search_hint"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -453,7 +453,7 @@ struct LoadingStateView: View {
                 .frame(height: 80)
             ProgressView()
                 .scaleEffect(1.2)
-            Text("Chargement...")
+            Text(String(localized: "common.loading"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             Spacer()
@@ -465,22 +465,22 @@ struct LoadingStateView: View {
 
 struct EventIdeasSection: View {
     let eventIdeas = [
-        EventIdea(title: "Week-end entre amis",
-                  description: "Planifiez un week-end memorable avec vos amis les plus proches",
+        EventIdea(title: String(localized: "explore.ideas.weekend"),
+                  description: String(localized: "explore.ideas.weekend_desc"),
                   icon: "sun.max.fill",
-                  action: "Creer"),
-        EventIdea(title: "Team building",
-                  description: "Organisez une journee de cohesion d'equipe inoubliable",
+                  action: String(localized: "explore.ideas.create")),
+        EventIdea(title: String(localized: "explore.ideas.team_building"),
+                  description: String(localized: "explore.ideas.team_building_desc"),
                   icon: "person.3.fill",
-                  action: "Creer"),
-        EventIdea(title: "Anniversaire",
-                  description: "Celebrez un anniversaire special avec style",
+                  action: String(localized: "explore.ideas.create")),
+        EventIdea(title: String(localized: "explore.ideas.birthday"),
+                  description: String(localized: "explore.ideas.birthday_desc"),
                   icon: "cake.fill",
-                  action: "Creer"),
-        EventIdea(title: "Soiree",
-                  description: "Organisez une soiree reussie avec vos proches",
+                  action: String(localized: "explore.ideas.create")),
+        EventIdea(title: String(localized: "explore.ideas.party"),
+                  description: String(localized: "explore.ideas.party_desc"),
                   icon: "party.popper.fill",
-                  action: "Creer")
+                  action: String(localized: "explore.ideas.create"))
     ]
 
     var body: some View {
@@ -488,7 +488,7 @@ struct EventIdeasSection: View {
             HStack(spacing: 8) {
                 Image(systemName: "lightbulb.fill")
                     .foregroundColor(.yellow)
-                Text("Idees d'evenements")
+                Text(String(localized: "explore.event_ideas"))
                     .font(.title3)
                     .fontWeight(.bold)
                     .foregroundColor(.primary)

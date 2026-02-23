@@ -19,11 +19,11 @@ struct SettingsView: View {
                     VStack(spacing: 24) {
                         // Notification Preferences Section
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Notifications")
+                            Text(String(localized: "settings.notifications"))
                                 .font(.title2.weight(.semibold))
                                 .foregroundColor(.primary)
 
-                            Text("Gerez vos preferences de notifications")
+                            Text(String(localized: "settings.notifications_subtitle"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
@@ -39,7 +39,7 @@ struct SettingsView: View {
                                         .foregroundColor(.accentColor)
                                         .frame(width: 28)
 
-                                    Text("Preferences de notifications")
+                                    Text(String(localized: "settings.notification_preferences"))
                                         .font(.system(size: 16, weight: .medium))
                                         .foregroundColor(.primary)
 
@@ -56,11 +56,11 @@ struct SettingsView: View {
 
                         // Language Section Header
                         VStack(alignment: .leading, spacing: 8) {
-                            Text(NSLocalizedString("language_title", comment: "Language settings header"))
+                            Text(String(localized: "language_title"))
                                 .font(.title2.weight(.semibold))
                                 .foregroundColor(.primary)
 
-                            Text(NSLocalizedString("language_description", comment: "Language settings description"))
+                            Text(String(localized: "language_description"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
@@ -97,14 +97,14 @@ struct SettingsView: View {
                     .padding(.bottom, 20)
                 }
             }
-            .navigationTitle(NSLocalizedString("settings_title", comment: "Settings screen title"))
+            .navigationTitle(String(localized: "settings.title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: { dismiss() }) {
                         Image(systemName: "chevron.left")
                             .foregroundColor(.accentColor)
-                            .accessibilityLabel(NSLocalizedString("back", comment: "Back button"))
+                            .accessibilityLabel(String(localized: "common.back"))
                     }
                 }
             }
@@ -136,7 +136,7 @@ struct LanguageListItem: View {
         ) {
             if isSelected {
                 LiquidGlassBadge(
-                    text: NSLocalizedString("selected", comment: "Selected badge"),
+                    text: String(localized: "selected"),
                     icon: "checkmark.circle.fill",
                     style: .success
                 )
@@ -145,7 +145,7 @@ struct LanguageListItem: View {
         .onTapGesture(perform: onTap)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(locale.displayName), \(locale.nativeName)")
-        .accessibilityHint(isSelected ? NSLocalizedString("currently_selected", comment: "Currently selected language") : NSLocalizedString("tap_to_select", comment: "Tap to select this language"))
+        .accessibilityHint(isSelected ? String(localized: "currently_selected") : String(localized: "tap_to_select"))
     }
     
     private var iconColor: Color {
@@ -160,6 +160,10 @@ struct LanguageListItem: View {
         case .french:
             return "flag.fill"
         case .spanish:
+            return "flag.fill"
+        case .italian:
+            return "flag.fill"
+        case .portuguese:
             return "flag.fill"
         }
     }

@@ -100,43 +100,43 @@ struct OnboardingView: View {
     
     private let onboardingSteps = [
         OnboardingStep(
-            title: "Créez vos événements",
-            description: "Organisez facilement des événements entre amis et collègues. Définissez des dates, proposez des créneaux horaires et laissez les participants voter.",
+            title: String(localized: "onboarding.create_events_title"),
+            description: String(localized: "onboarding.create_events_desc"),
             icon: "calendar",
             features: [
-                "Création rapide d'événements",
-                "Sondage de disponibilité",
-                "Calcul automatique du meilleur créneau"
+                String(localized: "onboarding.feature.quick_creation"),
+                String(localized: "onboarding.feature.availability_poll"),
+                String(localized: "onboarding.feature.auto_calculate")
             ]
         ),
         OnboardingStep(
-            title: "Collaborez en équipe",
-            description: "Travaillez ensemble sur l'organisation de l'événement. Partagez les responsabilités et suivez la progression en temps réel.",
+            title: String(localized: "onboarding.collaborate_title"),
+            description: String(localized: "onboarding.collaborate_desc"),
             icon: "person.2",
             features: [
-                "Gestion des participants",
-                "Attribution des tâches",
-                "Suivi en temps réel"
+                String(localized: "onboarding.feature.participant_management"),
+                String(localized: "onboarding.feature.task_assignment"),
+                String(localized: "onboarding.feature.realtime_tracking")
             ]
         ),
         OnboardingStep(
-            title: "Organisez tout en un",
-            description: "Gérez l'hébergement, les repas, les activités et le budget. Tout au même endroit pour une organisation sans faille.",
+            title: String(localized: "onboarding.organize_title"),
+            description: String(localized: "onboarding.organize_desc"),
             icon: "target",
             features: [
-                "Planification d'hébergement",
-                "Organisation des repas",
-                "Suivi du budget"
+                String(localized: "onboarding.feature.accommodation_planning"),
+                String(localized: "onboarding.feature.meal_organization"),
+                String(localized: "onboarding.feature.budget_tracking")
             ]
         ),
         OnboardingStep(
-            title: "Profitez de vos événements",
-            description: "Une fois l'organisation terminée, profitez de l'événement avec vos proches sans stress.",
+            title: String(localized: "onboarding.enjoy_title"),
+            description: String(localized: "onboarding.enjoy_desc"),
             icon: "sparkles",
             features: [
-                "Vue d'ensemble",
-                "Rappels intégrés",
-                "Calendrier natif"
+                String(localized: "onboarding.feature.overview"),
+                String(localized: "onboarding.feature.built_in_reminders"),
+                String(localized: "onboarding.feature.native_calendar")
             ]
         )
     ]
@@ -159,7 +159,7 @@ struct OnboardingView: View {
                 Spacer()
                 HStack(spacing: 12) {
                     Button(action: onOnboardingComplete) {
-                        Text("Passer")
+                        Text(String(localized: "onboarding.skip"))
                             .font(.subheadline.weight(.semibold))
                             .foregroundColor(OnboardingColors.primary)
                             .frame(maxWidth: .infinity)
@@ -181,7 +181,7 @@ struct OnboardingView: View {
                         }
                     }) {
                         HStack(spacing: 8) {
-                            Text(currentPage < onboardingSteps.count - 1 ? "Suivant" : "Commencer")
+                            Text(currentPage < onboardingSteps.count - 1 ? String(localized: "onboarding.next") : String(localized: "onboarding.get_started"))
                                 .font(.subheadline.weight(.semibold))
                             
                             if currentPage < onboardingSteps.count - 1 {

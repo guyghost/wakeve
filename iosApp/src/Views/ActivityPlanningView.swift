@@ -113,17 +113,17 @@ struct ActivityFormSheet: View {
                     }
                 }
             }
-            .navigationTitle(activity == nil ? "Ajouter" : "Modifier")
+            .navigationTitle(activity == nil ? String(localized: "common.add") : String(localized: "common.edit"))
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
             #endif
             .toolbar {
                 #if os(iOS)
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Annuler") { dismiss() }
+                    Button(String(localized: "common.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(activity == nil ? "Ajouter" : "Modifier") {
+                    Button(activity == nil ? String(localized: "common.add") : String(localized: "common.edit")) {
                         saveActivity()
                     }
                     .disabled(!isValid)
@@ -228,7 +228,7 @@ struct ManageParticipantsSheet: View {
             .toolbar {
                 #if os(iOS)
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Fermer") {
+                    Button(String(localized: "common.close")) {
                         var updatedActivity = activity
                         updatedActivity.registeredCount = registeredIds.count
                         updatedActivity.isFull = activity.maxParticipants != nil && registeredIds.count >= activity.maxParticipants!
@@ -336,7 +336,7 @@ struct ActivityPlanningView: View {
             .toolbar {
                 #if os(iOS)
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Fermer") { dismiss() }
+                    Button(String(localized: "common.close")) { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack(spacing: 12) {
@@ -392,12 +392,12 @@ struct ActivityPlanningView: View {
                         .foregroundColor(.secondary)
                 }
             }
-            .alert("Supprimer l'activité", isPresented: $showDeleteAlert, presenting: activityToDelete) { activity in
-                Button("Supprimer", role: .destructive) {
+            .alert(String(localized: "activity.delete_title"), isPresented: $showDeleteAlert, presenting: activityToDelete) { activity in
+                Button(String(localized: "common.delete"), role: .destructive) {
                     activities.removeAll { $0.id == activity.id }
                     activityToDelete = nil
                 }
-                Button("Annuler", role: .cancel) {
+                Button(String(localized: "common.cancel"), role: .cancel) {
                     activityToDelete = nil
                 }
             } message: { activity in
@@ -478,15 +478,15 @@ struct ActivityPlanningView: View {
     @ViewBuilder
     private var createActivityButton: some View {
         LiquidGlassButton(
-            title: "Créer une activité",
+            title: String(localized: "activity.create"),
             style: .primary,
             size: .medium
         ) {
             selectedActivity = nil
             showAddActivitySheet = true
         }
-        .accessibilityLabel("Créer une nouvelle activité")
-        .accessibilityHint("Ajoute une nouvelle activité à l'événement")
+        .accessibilityLabel(String(localized: "activity.create_new"))
+        .accessibilityHint(String(localized: "activity.create_new_hint"))
     }
     
     // MARK: - Date Filter Row
@@ -667,7 +667,7 @@ struct ActivityPlanningView: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "pencil")
                                         .font(.caption2)
-                                    Text("Modifier")
+                                    Text(String(localized: "common.edit"))
                                         .font(.caption2)
                                 }
                                 .padding(.horizontal, 8)
@@ -687,7 +687,7 @@ struct ActivityPlanningView: View {
                                 HStack(spacing: 4) {
                                     Image(systemName: "trash")
                                         .font(.caption2)
-                                    Text("Supprimer")
+                                    Text(String(localized: "common.delete"))
                                         .font(.caption2)
                                 }
                                 .padding(.horizontal, 8)
@@ -736,7 +736,7 @@ struct ActivityPlanningView: View {
                 
                 if activities.isEmpty {
                     LiquidGlassButton(
-                        title: "Créer la première activité",
+                        title: String(localized: "activity.create_first"),
                         style: .primary,
                         size: .medium
                     ) {

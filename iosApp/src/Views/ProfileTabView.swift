@@ -48,7 +48,7 @@ struct ProfileTabView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Mon Profil")
+            .navigationTitle(String(localized: "profile.title"))
             .preferredColorScheme(darkMode ? .dark : .light)
             .sheet(isPresented: $showLeaderboard) {
                 LeaderboardView()
@@ -69,7 +69,7 @@ struct DashboardLinkSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Organisateur")
+            Text(String(localized: "profile.organizer"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
@@ -84,12 +84,12 @@ struct DashboardLinkSection: View {
                             .frame(width: 32, height: 32)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Tableau de bord")
+                            Text(String(localized: "profile.dashboard"))
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.primary)
 
-                            Text("Statistiques et analytiques de vos evenements")
+                            Text(String(localized: "profile.dashboard_subtitle"))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -155,7 +155,7 @@ struct PreferencesSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Mes Préférences")
+            Text(String(localized: "profile.preferences"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
@@ -164,8 +164,8 @@ struct PreferencesSection: View {
                     // Notifications Toggle
                     PreferenceToggleRow(
                         icon: "bell.fill",
-                        title: "Notifications push",
-                        description: "Recevoir des notifications sur l'appareil",
+                        title: String(localized: "profile.push_notifications"),
+                        description: String(localized: "profile.push_notifications_desc"),
                         isOn: $notificationsEnabled
                     )
                 }
@@ -181,7 +181,7 @@ struct AppearanceSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Apparence")
+            Text(String(localized: "profile.appearance"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
@@ -190,8 +190,8 @@ struct AppearanceSection: View {
                     // Dark Mode Toggle
                     PreferenceToggleRow(
                         icon: darkMode ? "moon.fill" : "sun.max.fill",
-                        title: darkMode ? "Mode sombre" : "Mode clair",
-                        description: darkMode ? "Utiliser le thème sombre" : "Utiliser le thème clair",
+                        title: darkMode ? String(localized: "profile.dark_mode") : String(localized: "profile.light_mode"),
+                        description: darkMode ? String(localized: "profile.dark_mode_desc") : String(localized: "profile.light_mode_desc"),
                         isOn: $darkMode
                     )
                 }
@@ -207,7 +207,7 @@ struct AboutSection: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("À propos")
+            Text(String(localized: "profile.about"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
@@ -216,7 +216,7 @@ struct AboutSection: View {
                     // Settings Link
                     AboutLinkRow(
                         icon: "gearshape.fill",
-                        title: "Paramètres",
+                        title: String(localized: "profile.settings"),
                         action: {
                             showSettings = true
                         }
@@ -227,7 +227,7 @@ struct AboutSection: View {
                     // Version
                     AboutRow(
                         icon: "info.circle.fill",
-                        title: "Version",
+                        title: String(localized: "profile.version"),
                         value: "1.0.0"
                     )
 
@@ -236,7 +236,7 @@ struct AboutSection: View {
                     // Documentation Link
                     AboutLinkRow(
                         icon: "book.fill",
-                        title: "Documentation",
+                        title: String(localized: "profile.documentation"),
                         action: {
                             // Open documentation URL
                             if let url = URL(string: "https://github.com/guyghost/wakeve") {
@@ -417,7 +417,7 @@ struct SignOutButton: View {
         }) {
             HStack(spacing: 8) {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
-                Text("Se déconnecter")
+                Text(String(localized: "auth.sign_out"))
             }
             .font(.headline)
             .foregroundColor(.white)
@@ -446,7 +446,7 @@ struct GamificationSummarySection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Points & Niveau")
+            Text(String(localized: "gamification.points_and_level"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
@@ -455,7 +455,7 @@ struct GamificationSummarySection: View {
                     // Total Points + Level
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Points Totaux")
+                            Text(String(localized: "gamification.total_points"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             Text("\(totalPoints)")
@@ -483,7 +483,7 @@ struct GamificationSummarySection: View {
                                     .foregroundColor(.white)
                             }
 
-                            Text("Nv. \(level)")
+                            Text(String(format: String(localized: "gamification.level_short"), level))
                                 .font(.caption2)
                                 .fontWeight(.bold)
                                 .foregroundColor(.blue)
@@ -530,10 +530,10 @@ struct GamificationSummarySection: View {
                     Divider()
 
                     // Points breakdown
-                    PointsBreakdownRow(label: "Creation d'evenements", points: eventCreationPoints, color: .red.opacity(0.8))
-                    PointsBreakdownRow(label: "Votes", points: votingPoints, color: .teal)
-                    PointsBreakdownRow(label: "Commentaires", points: commentPoints, color: .yellow.opacity(0.8))
-                    PointsBreakdownRow(label: "Participation", points: participationPoints, color: .green.opacity(0.7))
+                    PointsBreakdownRow(label: String(localized: "gamification.event_creation"), points: eventCreationPoints, color: .red.opacity(0.8))
+                    PointsBreakdownRow(label: String(localized: "gamification.voting"), points: votingPoints, color: .teal)
+                    PointsBreakdownRow(label: String(localized: "gamification.commenting"), points: commentPoints, color: .yellow.opacity(0.8))
+                    PointsBreakdownRow(label: String(localized: "gamification.participation"), points: participationPoints, color: .green.opacity(0.7))
                 }
             }
         }
@@ -569,23 +569,27 @@ struct PointsBreakdownRow: View {
 
 struct BadgesSection: View {
     // Mock data - in production, this comes from GamificationService
-    private let earnedBadges: [(id: String, name: String, icon: String, rarity: String)] = [
-        ("badge-first-event", "Premier Evenement", "\u{1F389}", "common"),
-        ("badge-super-organizer", "Super Organisateur", "\u{1F3C6}", "epic"),
-        ("badge-early-bird", "Early Bird", "\u{1F426}", "rare"),
-        ("badge-voting-master", "Maitre du Vote", "\u{1F5F3}\u{FE0F}", "rare"),
-        ("badge-active-participant", "Participant Actif", "\u{1F64B}", "common"),
-        ("badge-event-master", "Event Master", "\u{1F3AD}", "legendary"),
-        ("badge-commentator", "Bavard", "\u{1F4AC}", "rare"),
-        ("badge-dedicated", "Devoue", "\u{2B50}", "rare")
-    ]
+    private var earnedBadges: [(id: String, name: String, icon: String, rarity: String)] {
+        [
+            ("badge-first-event", String(localized: "gamification.badge.first_event"), "\u{1F389}", "common"),
+            ("badge-super-organizer", String(localized: "gamification.badge.super_organizer"), "\u{1F3C6}", "epic"),
+            ("badge-early-bird", String(localized: "gamification.badge.early_bird"), "\u{1F426}", "rare"),
+            ("badge-voting-master", String(localized: "gamification.badge.voting_master"), "\u{1F5F3}\u{FE0F}", "rare"),
+            ("badge-active-participant", String(localized: "gamification.badge.active_participant"), "\u{1F64B}", "common"),
+            ("badge-event-master", String(localized: "gamification.badge.event_master"), "\u{1F3AD}", "legendary"),
+            ("badge-commentator", String(localized: "gamification.badge.commentator"), "\u{1F4AC}", "rare"),
+            ("badge-dedicated", String(localized: "gamification.badge.dedicated"), "\u{2B50}", "rare")
+        ]
+    }
 
-    private let lockedBadges: [(id: String, name: String, rarity: String)] = [
-        ("badge-social-butterfly", "Papillon Social", "epic"),
-        ("badge-party-animal", "Feteur", "legendary"),
-        ("badge-century-club", "Club des Cent", "common"),
-        ("badge-millenium-club", "Club des Mille", "epic")
-    ]
+    private var lockedBadges: [(id: String, name: String, rarity: String)] {
+        [
+            ("badge-social-butterfly", String(localized: "gamification.badge.social_butterfly"), "epic"),
+            ("badge-party-animal", String(localized: "gamification.badge.party_animal"), "legendary"),
+            ("badge-century-club", String(localized: "gamification.badge.century_club"), "common"),
+            ("badge-millenium-club", String(localized: "gamification.badge.millennium_club"), "epic")
+        ]
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -659,7 +663,7 @@ struct BadgeItemView: View {
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
 
-            Text(isEarned ? rarity.capitalized : "Verrouille")
+            Text(isEarned ? rarity.capitalized : String(localized: "gamification.locked"))
                 .font(.caption2)
                 .foregroundColor(isEarned ? rarityColor : .gray)
                 .fontWeight(.medium)
@@ -688,7 +692,7 @@ struct LeaderboardLinkSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Classement")
+            Text(String(localized: "gamification.leaderboard"))
                 .font(.headline)
                 .foregroundColor(.primary)
 
@@ -703,12 +707,12 @@ struct LeaderboardLinkSection: View {
                             .frame(width: 32, height: 32)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Voir le classement")
+                            Text(String(localized: "gamification.view_leaderboard"))
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
                                 .foregroundColor(.primary)
 
-                            Text("Comparez vos points avec les autres participants")
+                            Text(String(localized: "gamification.leaderboard_subtitle"))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
