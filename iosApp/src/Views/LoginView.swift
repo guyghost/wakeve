@@ -257,15 +257,33 @@ struct LoginView: View {
                         idToken = String(data: identityTokenData, encoding: .utf8)
                     }
                     
+                    // Extract user info for first-time sign-in
+                    let email = appleIDCredential.email
+                    var fullName: String?
+                    if let nameComponents = appleIDCredential.fullName {
+                        let formatter = PersonNameComponentsFormatter()
+                        let formattedName = formatter.string(from: nameComponents)
+                        if !formattedName.isEmpty {
+                            fullName = formattedName
+                        }
+                    }
+
                     // Login with backend via AuthStateManager
                     await authStateManager.signIn(
                         provider: "apple",
                         authCode: authCode,
-                        userInfo: idToken
+                        userInfo: idToken,
+                        email: email,
+                        fullName: fullName
                     )
-                    
-                    // Success - AuthStateManager will update state
-                    print("Login successful")
+
+                    // Check if auth state manager reported an error
+                    if let authManagerError = authStateManager.authError {
+                        errorMessage = authManagerError
+                        showError = true
+                    } else if authStateManager.isAuthenticated {
+                        print("[LoginView] Login successful")
+                    }
                     
                 case .failure(let error):
                     if let authError = error as? ASAuthorizationError {

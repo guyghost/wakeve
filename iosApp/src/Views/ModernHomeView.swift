@@ -135,11 +135,13 @@ struct ModernHomeView: View {
     let onEventSelected: (Event) -> Void
     let onCreateEvent: () -> Void
     let onProfileClick: () -> Void
+    var onNotificationsClick: (() -> Void)? = nil
 
     @State private var events: [Event] = []
     @State private var isLoading = true
     @State private var showFilterMenu = false
     @State private var selectedFilter: HomeEventFilter = .upcoming
+    @State private var unreadNotificationCount: Int = 3
     @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
@@ -251,6 +253,28 @@ struct ModernHomeView: View {
                         Circle()
                             .fill(colorScheme == .dark ? Color(hex: "2A2A2A") : Color(hex: "E2E8F0"))
                     )
+            }
+
+            Button(action: { onNotificationsClick?() }) {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "bell.fill")
+                        .font(.system(size: 20, weight: .medium))
+                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                        .frame(width: 40, height: 40)
+                        .background(
+                            Circle()
+                                .fill(colorScheme == .dark ? Color(hex: "2A2A2A") : Color(hex: "E2E8F0"))
+                        )
+
+                    if unreadNotificationCount > 0 {
+                        Text(unreadNotificationCount > 9 ? "9+" : "\(unreadNotificationCount)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(minWidth: 16, minHeight: 16)
+                            .background(Circle().fill(Color.red))
+                            .offset(x: 4, y: -4)
+                    }
+                }
             }
 
             Button(action: onProfileClick) {

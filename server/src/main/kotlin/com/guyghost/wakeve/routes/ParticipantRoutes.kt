@@ -1,6 +1,8 @@
 package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.DatabaseEventRepository
+import com.guyghost.wakeve.gamification.GamificationService
+import com.guyghost.wakeve.gamification.PointsAction
 import com.guyghost.wakeve.models.AddParticipantRequest
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
@@ -10,7 +12,10 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
-fun Route.participantRoutes(repository: DatabaseEventRepository) {
+fun Route.participantRoutes(
+    repository: DatabaseEventRepository,
+    gamificationService: GamificationService? = null
+) {
     route("/events/{id}/participants") {
         // GET /api/events/{id}/participants - Get event participants
         get {
@@ -47,6 +52,20 @@ fun Route.participantRoutes(repository: DatabaseEventRepository) {
                 val result = repository.addParticipant(eventId, request.participantId)
                 
                 if (result.isSuccess) {
+                    // Award points for inviting a participant (+20 points to organizer)
+                    try {
+                        val event = repository.getEvent(eventId)
+                        if (event != null) {
+                            gamificationService?.awardPoints(
+                                userId = event.organizerId,
+                                action = PointsAction.INVITE_PARTICIPANT,
+                                eventId = eventId
+                            )
+                        }
+                    } catch (_: Exception) {
+                        // Non-blocking: don't fail participant addition if gamification fails
+                    }
+
                     val participants = repository.getParticipants(eventId) ?: emptyList()
                     call.respond(HttpStatusCode.Created, mapOf("participants" to participants))
                 } else {

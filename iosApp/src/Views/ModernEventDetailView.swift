@@ -27,6 +27,8 @@ struct ModernEventDetailView: View {
     @State private var showingHostOptions = false
     @State private var showingDeleteConfirmation = false
     @State private var isDeleting = false
+    @State private var showingInvitationSheet = false
+    @State private var invitationCode: String = ""
     
     /// Whether the current user is the organizer
     private var isOrganizer: Bool {
@@ -180,7 +182,17 @@ struct ModernEventDetailView: View {
                                 // Handle add to calendar
                             },
                             onShareInvitation: {
-                                // Handle share invitation
+                                generateAndShowInvitation()
+                            }
+                        )
+
+                        // Share / Invite Button
+                        HostActionButton(
+                            title: "Partager l'événement",
+                            icon: "square.and.arrow.up",
+                            color: .wakevePrimary,
+                            action: {
+                                generateAndShowInvitation()
                             }
                         )
                         
@@ -290,8 +302,29 @@ struct ModernEventDetailView: View {
         }
         .opacity(isDeleting ? 0 : 1)
         .animation(.easeOut(duration: 0.3), value: isDeleting)
+        .sheet(isPresented: $showingInvitationSheet) {
+            InvitationShareSheet(
+                eventId: event.id,
+                eventTitle: event.title,
+                invitationCode: invitationCode,
+                onDismiss: { showingInvitationSheet = false }
+            )
+            .presentationDetents([.large])
+        }
     }
     
+    // MARK: - Invitation Generation
+
+    /// Generate an invitation code and show the share sheet.
+    /// In production, this would call the server endpoint POST /api/events/{id}/invite.
+    /// For now, generates a local code for immediate use.
+    private func generateAndShowInvitation() {
+        // Generate a local invitation code (8 chars, alphanumeric)
+        let chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        invitationCode = String((0..<8).map { _ in chars.randomElement()! })
+        showingInvitationSheet = true
+    }
+
     // MARK: - Haptic Feedback & Delete Action
     
     /// Triggers heavy impact haptic feedback when delete is initiated

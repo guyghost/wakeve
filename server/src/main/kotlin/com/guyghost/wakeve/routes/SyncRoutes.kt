@@ -10,6 +10,7 @@ import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import kotlinx.datetime.Clock
 
 fun io.ktor.server.routing.Route.syncRoutes(syncService: SyncService) {
     route("/sync") {
@@ -49,7 +50,7 @@ fun io.ktor.server.routing.Route.syncRoutes(syncService: SyncService) {
                         success = false,
                         appliedChanges = 0,
                         conflicts = emptyList(),
-                        serverTimestamp = "2025-12-01T12:00:00Z", // Fixed for Phase 3
+                        serverTimestamp = Clock.System.now().toString(),
                         message = "Sync request failed: ${e.message}"
                     )
                 )

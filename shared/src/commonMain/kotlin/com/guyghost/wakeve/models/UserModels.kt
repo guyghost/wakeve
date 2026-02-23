@@ -19,7 +19,7 @@ data class User(
 )
 
 enum class OAuthProvider {
-    GOOGLE, APPLE
+    GOOGLE, APPLE, EMAIL, GUEST
 }
 
 /**

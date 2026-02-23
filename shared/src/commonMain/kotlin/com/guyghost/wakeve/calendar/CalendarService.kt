@@ -167,6 +167,19 @@ class CalendarService(
     }
 
     /**
+     * Supprime un événement du calendrier natif
+     */
+    suspend fun removeFromNativeCalendar(
+        eventId: String,
+        participantId: String
+    ): Result<Unit> {
+        database.eventQueries.selectById(eventId).executeAsOneOrNull()
+            ?: return Result.failure(EventNotFoundException(eventId))
+
+        return platformCalendarService.deleteEvent("${eventId}_${participantId}")
+    }
+
+    /**
      * Extrait la date de début depuis l'événement
      */
     private fun extractStartDate(event: Event): Instant {

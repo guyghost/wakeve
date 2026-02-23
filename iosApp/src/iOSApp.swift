@@ -4,6 +4,7 @@ import SwiftUI
 
 @main
 struct iOSApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var authStateManager: AuthStateManager
     @StateObject private var authService: AuthenticationService
     @StateObject private var deepLinkService: DeepLinkService
@@ -12,8 +13,8 @@ struct iOSApp: App {
         let authSvc = AuthenticationService()
         _authService = StateObject(wrappedValue: authSvc)
 
-        // Feature flag: Enable OAuth (set to false to disable)
-        let enableOAuth = false // TODO: Move to build config
+        // Feature flag: Enable OAuth authentication
+        let enableOAuth = true
         _authStateManager = StateObject(wrappedValue: AuthStateManager(
             authService: authSvc,
             enableOAuth: enableOAuth
@@ -35,6 +36,13 @@ struct iOSApp: App {
                 .onOpenURL { url in
                     // Handle incoming deep links
                     handleDeepLink(url)
+                }
+                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToEvent"))) { notification in
+                    // Handle notification tap deep link
+                    if let eventId = notification.userInfo?["eventId"] as? String {
+                        let url = URL(string: "wakeve://event/\(eventId)")!
+                        handleDeepLink(url)
+                    }
                 }
         }
     }
@@ -62,4 +70,3 @@ struct iOSApp: App {
         // and navigate accordingly
     }
 }
-

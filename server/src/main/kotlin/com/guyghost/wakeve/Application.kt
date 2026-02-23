@@ -11,6 +11,15 @@ import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.calendar.PlatformCalendarServiceImpl
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.metrics.AuthMetricsCollector
+import com.guyghost.wakeve.notification.EventNotificationTrigger
+import com.guyghost.wakeve.notification.NotificationPreferencesRepository
+import com.guyghost.wakeve.notification.NotificationScheduler
+import com.guyghost.wakeve.notification.ServerAPNsSender
+import com.guyghost.wakeve.notification.ServerFCMSender
+import com.guyghost.wakeve.gamification.BadgeEligibilityChecker
+import com.guyghost.wakeve.gamification.GamificationService
+import com.guyghost.wakeve.gamification.repository.InMemoryUserBadgesRepository
+import com.guyghost.wakeve.gamification.repository.InMemoryUserPointsRepository
 import com.guyghost.wakeve.routes.ChatService
 import com.guyghost.wakeve.routes.analyticsRoutes
 import com.guyghost.wakeve.routes.authRoutes
@@ -19,16 +28,23 @@ import com.guyghost.wakeve.routes.calendarRoutes
 import com.guyghost.wakeve.routes.chatRoutes
 import com.guyghost.wakeve.routes.chatWebSocketRoute
 import com.guyghost.wakeve.routes.commentRoutes
+import com.guyghost.wakeve.routes.dashboardRoutes
 import com.guyghost.wakeve.routes.eventRoutes
+import com.guyghost.wakeve.routes.gamificationRoutes
 import com.guyghost.wakeve.routes.accommodationRoutes
+import com.guyghost.wakeve.routes.invitationAcceptRoutes
+import com.guyghost.wakeve.routes.invitationRoutes
 import com.guyghost.wakeve.routes.mealRoutes
 import com.guyghost.wakeve.routes.meetingProxyRoutes
+import com.guyghost.wakeve.routes.notificationRoutes
 import com.guyghost.wakeve.routes.participantRoutes
 import com.guyghost.wakeve.routes.potentialLocationRoutes
+import com.guyghost.wakeve.routes.publicInvitationRoutes
 import com.guyghost.wakeve.routes.scenarioRoutes
 import com.guyghost.wakeve.routes.sessionRoutes
 import com.guyghost.wakeve.routes.syncRoutes
 import com.guyghost.wakeve.routes.voteRoutes
+import com.guyghost.wakeve.invitation.InvitationRepository
 import com.guyghost.wakeve.sync.SyncService
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -213,6 +229,31 @@ fun main() {
     // Initialize Analytics Dashboard
     val analyticsDashboard = AnalyticsDashboard(database)
 
+    // Initialize Gamification Service
+    val userPointsRepository = InMemoryUserPointsRepository()
+    val userBadgesRepository = InMemoryUserBadgesRepository()
+    val badgeEligibilityChecker = BadgeEligibilityChecker(userPointsRepository, userBadgesRepository)
+    val gamificationService = GamificationService(userPointsRepository, userBadgesRepository, badgeEligibilityChecker)
+
+    // Initialize Invitation Repository
+    val invitationRepository = InvitationRepository(database)
+
+    // Initialize Notification Service
+    val notificationPreferencesRepo = NotificationPreferencesRepository(database)
+    val fcmSender = ServerFCMSender()
+    val apnsSender = ServerAPNsSender()
+    val notificationService = com.guyghost.wakeve.notification.NotificationService(
+        database = database,
+        preferencesRepository = notificationPreferencesRepo,
+        fcmSender = fcmSender,
+        apnsSender = apnsSender
+    )
+    val eventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository)
+
+    // Initialize and start the notification scheduler
+    val notificationScheduler = NotificationScheduler(notificationService, eventNotificationTrigger, eventRepository)
+    notificationScheduler.start()
+
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = {
         module(
             database,
@@ -225,7 +266,11 @@ fun main() {
             calendarService,
             chatService,
             accommodationRepository,
-            analyticsDashboard
+            analyticsDashboard,
+            invitationRepository,
+            notificationService,
+            eventNotificationTrigger,
+            gamificationService
         )
     }).start(wait = true)
 }
@@ -241,7 +286,20 @@ fun Application.module(
     calendarService: CalendarService = CalendarService(database, PlatformCalendarServiceImpl()),
     chatService: ChatService = ChatService(database),
     accommodationRepository: com.guyghost.wakeve.accommodation.AccommodationRepository = com.guyghost.wakeve.accommodation.AccommodationRepository(database),
-    analyticsDashboard: AnalyticsDashboard = AnalyticsDashboard(database)
+    analyticsDashboard: AnalyticsDashboard = AnalyticsDashboard(database),
+    invitationRepository: InvitationRepository = InvitationRepository(database),
+    notificationService: com.guyghost.wakeve.notification.NotificationService = com.guyghost.wakeve.notification.NotificationService(
+        database = database,
+        preferencesRepository = NotificationPreferencesRepository(database),
+        fcmSender = ServerFCMSender(),
+        apnsSender = ServerAPNsSender()
+    ),
+    eventNotificationTrigger: EventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository),
+    gamificationService: GamificationService = GamificationService(
+        InMemoryUserPointsRepository(),
+        InMemoryUserBadgesRepository(),
+        BadgeEligibilityChecker(InMemoryUserPointsRepository(), InMemoryUserBadgesRepository())
+    )
 ) {
     // Initialize metrics
     val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -294,6 +352,18 @@ fun Application.module(
         jwtAudience = jwtAudience,
         googleService = googleOAuth2,
         appleService = appleOAuth2
+    )
+
+    // OTP manager pour l'authentification par email
+    val otpManager = com.guyghost.wakeve.auth.OtpManager()
+
+    // Nettoyage périodique des OTP expirés (toutes les 10 minutes)
+    java.util.Timer("otp-cleanup", true).scheduleAtFixedRate(
+        object : java.util.TimerTask() {
+            override fun run() { otpManager.cleanupExpired() }
+        },
+        600_000L, // délai initial: 10 minutes
+        600_000L  // intervalle: 10 minutes
     )
 
     val sessionRepository = SessionRepository(database)
@@ -390,7 +460,12 @@ fun Application.module(
 
         // Authentication endpoints (public but rate limited)
         rateLimit(RateLimitName("auth")) {
-            authRoutes(authService)
+            authRoutes(authService, otpManager)
+        }
+
+        // Public invitation routes (no auth required for resolving invitation codes)
+        route("/api") {
+            publicInvitationRoutes(invitationRepository, eventRepository)
         }
 
                 // API endpoints (protected by JWT authentication + blacklist check)
@@ -403,13 +478,13 @@ fun Application.module(
                                 this.jwtBlacklistCache = jwtBlacklistCache
                             }
 
-                            eventRoutes(eventRepository)
-                            participantRoutes(eventRepository)
-                            voteRoutes(eventRepository)
+                            eventRoutes(eventRepository, gamificationService, eventNotificationTrigger)
+                            participantRoutes(eventRepository, gamificationService)
+                            voteRoutes(eventRepository, eventNotificationTrigger, gamificationService)
                             scenarioRoutes(scenarioRepository)
                             budgetRoutes(budgetRepository, eventRepository)
                             mealRoutes(mealRepository)
-                            commentRoutes(commentRepository)
+                            commentRoutes(commentRepository, eventNotificationTrigger)
                             potentialLocationRoutes(locationRepository)
                             syncRoutes(syncService)
                             accommodationRoutes(accommodationRepository)
@@ -418,6 +493,11 @@ fun Application.module(
                             chatRoutes(chatService)
                             meetingProxyRoutes()
                             analyticsRoutes(analyticsDashboard)
+                            notificationRoutes(notificationService)
+                            invitationRoutes(invitationRepository, eventRepository, database)
+                            invitationAcceptRoutes(invitationRepository, eventRepository, database)
+                            gamificationRoutes(gamificationService)
+                            dashboardRoutes(database, eventRepository)
                         }
                     }
                 }

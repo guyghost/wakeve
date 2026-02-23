@@ -12,12 +12,27 @@ struct ProfileTabView: View {
     @AppStorage("darkMode") private var darkMode = false
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
 
+    @State private var showLeaderboard = false
+    @State private var showDashboard = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
                     // Profile Header
                     ProfileHeaderSection()
+
+                    // Organizer Dashboard Link
+                    DashboardLinkSection(showDashboard: $showDashboard)
+
+                    // Gamification: Points & Level
+                    GamificationSummarySection()
+
+                    // Gamification: Badges
+                    BadgesSection()
+
+                    // Leaderboard Link
+                    LeaderboardLinkSection(showLeaderboard: $showLeaderboard)
 
                     // Preferences Section
                     PreferencesSection()
@@ -35,6 +50,60 @@ struct ProfileTabView: View {
             }
             .navigationTitle("Mon Profil")
             .preferredColorScheme(darkMode ? .dark : .light)
+            .sheet(isPresented: $showLeaderboard) {
+                LeaderboardView()
+            }
+            .sheet(isPresented: $showDashboard) {
+                NavigationStack {
+                    OrganizerDashboardView()
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Dashboard Link Section
+
+struct DashboardLinkSection: View {
+    @Binding var showDashboard: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Organisateur")
+                .font(.headline)
+                .foregroundColor(.primary)
+
+            ProfileCard {
+                Button(action: {
+                    showDashboard = true
+                }) {
+                    HStack(spacing: 16) {
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.title2)
+                            .foregroundColor(.purple)
+                            .frame(width: 32, height: 32)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Tableau de bord")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+
+                            Text("Statistiques et analytiques de vos evenements")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 }
@@ -356,6 +425,304 @@ struct SignOutButton: View {
             .padding(.vertical, 16)
             .background(Color(red: 0.86, green: 0.15, blue: 0.15)) // Error red
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+}
+
+// MARK: - Gamification Summary Section
+
+struct GamificationSummarySection: View {
+    // Mock data - in production, this comes from GamificationService
+    private let totalPoints = 1250
+    private let level = 7
+    private let levelName = "Champion"
+    private let levelProgress: Double = 0.25 // 1250 of 1200-1800 range => (1250-1200)/(1800-1200) = 50/600
+    private let pointsToNextLevel = 1800
+
+    private let eventCreationPoints = 500
+    private let votingPoints = 300
+    private let commentPoints = 250
+    private let participationPoints = 200
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Points & Niveau")
+                .font(.headline)
+                .foregroundColor(.primary)
+
+            ProfileCard {
+                VStack(spacing: 16) {
+                    // Total Points + Level
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Points Totaux")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Text("\(totalPoints)")
+                                .font(.system(size: 32, weight: .bold, design: .rounded))
+                                .foregroundColor(.blue)
+                        }
+
+                        Spacer()
+
+                        // Level badge
+                        VStack(spacing: 2) {
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [.blue, .purple]),
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 56, height: 56)
+
+                                Image(systemName: "star.fill")
+                                    .font(.title2)
+                                    .foregroundColor(.white)
+                            }
+
+                            Text("Nv. \(level)")
+                                .font(.caption2)
+                                .fontWeight(.bold)
+                                .foregroundColor(.blue)
+                        }
+                    }
+
+                    // Level name + progress bar
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text(levelName)
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+
+                            Spacer()
+
+                            Text("\(totalPoints) / \(pointsToNextLevel) pts")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        // Progress bar
+                        GeometryReader { geometry in
+                            ZStack(alignment: .leading) {
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.gray.opacity(0.2))
+                                    .frame(height: 8)
+
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(
+                                        LinearGradient(
+                                            gradient: Gradient(colors: [.blue, .purple]),
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .frame(width: geometry.size.width * levelProgress, height: 8)
+                                    .animation(.easeInOut(duration: 0.8), value: levelProgress)
+                            }
+                        }
+                        .frame(height: 8)
+                    }
+
+                    Divider()
+
+                    // Points breakdown
+                    PointsBreakdownRow(label: "Creation d'evenements", points: eventCreationPoints, color: .red.opacity(0.8))
+                    PointsBreakdownRow(label: "Votes", points: votingPoints, color: .teal)
+                    PointsBreakdownRow(label: "Commentaires", points: commentPoints, color: .yellow.opacity(0.8))
+                    PointsBreakdownRow(label: "Participation", points: participationPoints, color: .green.opacity(0.7))
+                }
+            }
+        }
+    }
+}
+
+struct PointsBreakdownRow: View {
+    let label: String
+    let points: Int
+    let color: Color
+
+    var body: some View {
+        HStack {
+            Circle()
+                .fill(color)
+                .frame(width: 10, height: 10)
+
+            Text(label)
+                .font(.subheadline)
+                .foregroundColor(.primary)
+
+            Spacer()
+
+            Text("\(points)")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(color)
+        }
+    }
+}
+
+// MARK: - Badges Section
+
+struct BadgesSection: View {
+    // Mock data - in production, this comes from GamificationService
+    private let earnedBadges: [(id: String, name: String, icon: String, rarity: String)] = [
+        ("badge-first-event", "Premier Evenement", "\u{1F389}", "common"),
+        ("badge-super-organizer", "Super Organisateur", "\u{1F3C6}", "epic"),
+        ("badge-early-bird", "Early Bird", "\u{1F426}", "rare"),
+        ("badge-voting-master", "Maitre du Vote", "\u{1F5F3}\u{FE0F}", "rare"),
+        ("badge-active-participant", "Participant Actif", "\u{1F64B}", "common"),
+        ("badge-event-master", "Event Master", "\u{1F3AD}", "legendary"),
+        ("badge-commentator", "Bavard", "\u{1F4AC}", "rare"),
+        ("badge-dedicated", "Devoue", "\u{2B50}", "rare")
+    ]
+
+    private let lockedBadges: [(id: String, name: String, rarity: String)] = [
+        ("badge-social-butterfly", "Papillon Social", "epic"),
+        ("badge-party-animal", "Feteur", "legendary"),
+        ("badge-century-club", "Club des Cent", "common"),
+        ("badge-millenium-club", "Club des Mille", "epic")
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "trophy.fill")
+                    .foregroundColor(.orange)
+                Text("Badges")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                Spacer()
+                Text("\(earnedBadges.count) / \(earnedBadges.count + lockedBadges.count)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            // Earned badges
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(earnedBadges, id: \.id) { badge in
+                        BadgeItemView(
+                            name: badge.name,
+                            icon: badge.icon,
+                            rarity: badge.rarity,
+                            isEarned: true
+                        )
+                    }
+
+                    // Locked badges
+                    ForEach(lockedBadges, id: \.id) { badge in
+                        BadgeItemView(
+                            name: badge.name,
+                            icon: "\u{1F512}",
+                            rarity: badge.rarity,
+                            isEarned: false
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct BadgeItemView: View {
+    let name: String
+    let icon: String
+    let rarity: String
+    let isEarned: Bool
+
+    @State private var appeared = false
+
+    private var rarityColor: Color {
+        switch rarity {
+        case "common": return .gray
+        case "rare": return .blue
+        case "epic": return .purple
+        case "legendary": return .orange
+        default: return .gray
+        }
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Text(icon)
+                .font(.system(size: 32))
+                .frame(width: 48, height: 48)
+
+            Text(name)
+                .font(.caption2)
+                .fontWeight(.medium)
+                .foregroundColor(isEarned ? .primary : .secondary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+
+            Text(isEarned ? rarity.capitalized : "Verrouille")
+                .font(.caption2)
+                .foregroundColor(isEarned ? rarityColor : .gray)
+                .fontWeight(.medium)
+        }
+        .frame(width: 90, height: 110)
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(isEarned ? rarityColor.opacity(0.1) : Color.gray.opacity(0.05))
+        )
+        .opacity(isEarned ? 1.0 : 0.5)
+        .scaleEffect(appeared && isEarned ? 1.0 : 0.9)
+        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: appeared)
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                appeared = true
+            }
+        }
+    }
+}
+
+// MARK: - Leaderboard Link Section
+
+struct LeaderboardLinkSection: View {
+    @Binding var showLeaderboard: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Classement")
+                .font(.headline)
+                .foregroundColor(.primary)
+
+            ProfileCard {
+                Button(action: {
+                    showLeaderboard = true
+                }) {
+                    HStack(spacing: 16) {
+                        Image(systemName: "chart.bar.fill")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                            .frame(width: 32, height: 32)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Voir le classement")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+
+                            Text("Comparez vos points avec les autres participants")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
         }
     }
 }

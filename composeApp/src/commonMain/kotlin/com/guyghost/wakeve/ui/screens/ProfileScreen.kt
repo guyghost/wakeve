@@ -61,6 +61,7 @@ import com.guyghost.wakeve.gamification.BadgeCategory
 import com.guyghost.wakeve.gamification.BadgeRarity
 import com.guyghost.wakeve.gamification.LeaderboardEntry
 import com.guyghost.wakeve.gamification.LeaderboardType
+import com.guyghost.wakeve.gamification.UserLevel
 import com.guyghost.wakeve.theme.BadgeCommon
 import com.guyghost.wakeve.theme.BadgeEpic
 import com.guyghost.wakeve.theme.BadgeLegendary
@@ -139,6 +140,13 @@ fun ProfileScreen(
                     )
                 }
 
+                // Level Progress Card
+                uiState.userLevel?.let { level ->
+                    item {
+                        LevelProgressCard(userLevel = level)
+                    }
+                }
+
                 // Badges Section Header
                 item {
                     Row(
@@ -165,13 +173,15 @@ fun ProfileScreen(
                     }
                 }
 
-                // Badges by Category
+                // Badges by Category (showing earned + locked)
                 items(BadgeCategory.entries.toList(), key = { it.name }) { category ->
-                    val categoryBadges = uiState.userBadges.filter { it.category == category }
+                    val categoryBadges = uiState.allBadges.filter { it.category == category }
+                    val earnedIds = uiState.userBadges.map { it.id }.toSet()
                     if (categoryBadges.isNotEmpty()) {
                         BadgeCategorySection(
                             category = category,
-                            badges = categoryBadges
+                            badges = categoryBadges,
+                            earnedBadgeIds = earnedIds
                         )
                     }
                 }
@@ -360,12 +370,90 @@ fun PointBreakdownRow(
 }
 
 /**
+ * Card displaying user's level and progress to the next level.
+ */
+@Composable
+fun LevelProgressCard(
+    userLevel: UserLevel,
+    modifier: Modifier = Modifier
+) {
+    val animatedProgress by animateFloatAsState(
+        targetValue = userLevel.progressToNextLevel,
+        animationSpec = tween(800),
+        label = "levelProgress"
+    )
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = "Niveau ${userLevel.level}",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = userLevel.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Text(
+                    text = "${userLevel.currentPoints} / ${userLevel.pointsForNextLevel} pts",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // Progress bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(animatedProgress)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.primary,
+                                    MaterialTheme.colorScheme.tertiary
+                                )
+                            )
+                        )
+                )
+            }
+        }
+    }
+}
+
+/**
  * Section displaying badges for a specific category.
  */
 @Composable
 fun BadgeCategorySection(
     category: BadgeCategory,
     badges: List<Badge>,
+    earnedBadgeIds: Set<String> = emptySet(),
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -383,31 +471,41 @@ fun BadgeCategorySection(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(badges, key = { it.id }) { badge ->
-                BadgeItem(badge = badge)
+                BadgeItem(
+                    badge = badge,
+                    isEarned = badge.id in earnedBadgeIds
+                )
             }
         }
     }
 }
 
 /**
- * Individual badge display item.
+ * Individual badge display item with earned/locked state.
  */
 @Composable
 fun BadgeItem(
     badge: Badge,
+    isEarned: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val backgroundColor by animateColorAsState(
-        targetValue = getRarityColor(badge.rarity).copy(alpha = 0.2f),
+        targetValue = if (isEarned) {
+            getRarityColor(badge.rarity).copy(alpha = 0.2f)
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+        },
         animationSpec = tween(300),
         label = "badgeBackgroundColor"
     )
 
     val borderColor by animateColorAsState(
-        targetValue = getRarityColor(badge.rarity),
+        targetValue = if (isEarned) getRarityColor(badge.rarity) else Color.Gray.copy(alpha = 0.4f),
         animationSpec = tween(300),
         label = "badgeBorderColor"
     )
+
+    val contentAlpha = if (isEarned) 1f else 0.4f
 
     Card(
         modifier = modifier
@@ -425,7 +523,7 @@ fun BadgeItem(
         ) {
             // Badge icon
             Text(
-                text = badge.icon,
+                text = if (isEarned) badge.icon else "\uD83D\uDD12",
                 style = MaterialTheme.typography.displaySmall,
                 modifier = Modifier.size(40.dp)
             )
@@ -437,12 +535,16 @@ fun BadgeItem(
                 textAlign = TextAlign.Center,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha)
             )
 
-            // Rarity indicator
+            // Rarity indicator or locked text
             Text(
-                text = badge.rarity.name.lowercase().replaceFirstChar { it.uppercase() },
+                text = if (isEarned) {
+                    badge.rarity.name.lowercase().replaceFirstChar { it.uppercase() }
+                } else {
+                    "Verrouille"
+                },
                 style = MaterialTheme.typography.labelSmall,
                 color = borderColor,
                 fontWeight = FontWeight.Medium

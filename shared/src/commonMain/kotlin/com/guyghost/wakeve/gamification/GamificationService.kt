@@ -36,6 +36,9 @@ class GamificationService(
         /** Points awarded for voting on a scenario */
         const val POINTS_VOTE_SCENARIO = 3
 
+        /** Points awarded for inviting a participant */
+        const val POINTS_INVITE_PARTICIPANT = 20
+
         /** Days before point decay starts */
         const val DECAY_START_DAYS = 30
 
@@ -88,6 +91,9 @@ class GamificationService(
             PointsAction.VOTE_SCENARIO -> {
                 userPointsRepository.incrementVotingPoints(userId, points)
             }
+            PointsAction.INVITE_PARTICIPANT -> {
+                userPointsRepository.incrementParticipationPoints(userId, points)
+            }
         }
 
         val newTotal = userPointsRepository.getTotalPoints(userId)
@@ -119,7 +125,19 @@ class GamificationService(
             PointsAction.PARTICIPATE -> POINTS_PARTICIPATE
             PointsAction.CREATE_SCENARIO -> POINTS_CREATE_SCENARIO
             PointsAction.VOTE_SCENARIO -> POINTS_VOTE_SCENARIO
+            PointsAction.INVITE_PARTICIPANT -> POINTS_INVITE_PARTICIPANT
         }
+    }
+
+    /**
+     * Gets the user's current level based on total points.
+     *
+     * @param userId The user to get level for
+     * @return UserLevel with level info, or null if user has no points
+     */
+    suspend fun getUserLevel(userId: String): UserLevel? {
+        val points = userPointsRepository.getUserPoints(userId) ?: return null
+        return UserLevel.fromPoints(points.totalPoints)
     }
 
     /**

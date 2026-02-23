@@ -20,6 +20,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.Instant
+import kotlinx.datetime.minus
 import kotlinx.serialization.json.Json
 
 /**
@@ -251,13 +255,8 @@ class SyncManager(
     }
 
     private fun parseTimestamp(isoString: String): Long {
-        // Simplified timestamp parsing - in practice use kotlinx-datetime
         return try {
-            // Extract milliseconds from ISO string (simplified)
-            val datePart = isoString.substringBefore('T')
-            val timePart = isoString.substringAfter('T').substringBefore('Z')
-            // Very basic parsing - replace with proper library
-            (datePart.hashCode().toLong() + timePart.hashCode().toLong())
+            Instant.parse(isoString).toEpochMilliseconds()
         } catch (e: Exception) {
             0L
         }
@@ -280,19 +279,17 @@ class SyncManager(
     }
 
     /**
-     * Clean up old sync metadata
+     * Clean up old sync metadata (older than 30 days)
      */
     suspend fun cleanupOldSyncData(): Result<Unit> = runCatching {
-        val thirtyDaysAgo = "2025-10-20T00:00:00Z" // Simplified
+        val thirtyDaysAgo = Clock.System.now().minus(30, DateTimeUnit.DAY).toString()
         userRepository.cleanupOldSyncMetadata(thirtyDaysAgo)
     }
 
     /**
-     * Get current UTC timestamp (simplified)
+     * Get current UTC timestamp as ISO 8601 string
      */
-    private fun getCurrentUtcIsoString(): String {
-        return "2025-11-19T12:00:00Z"
-    }
+    private fun getCurrentUtcIsoString(): String = Clock.System.now().toString()
 
     /**
      * Get sync metrics for monitoring

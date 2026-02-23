@@ -497,6 +497,21 @@
     <string name="language_title">Langue</string>
     <string name="language_description">Sélectionnez la langue de l\'application</string>
 
+    <!-- Invitation -->
+    <string name="invite_participants">Inviter des participants</string>
+    <string name="invitation_qr_code">QR Code</string>
+    <string name="scan_to_join">Scannez pour rejoindre</string>
+    <string name="invitation_link">Lien d\'invitation</string>
+    <string name="copy_link">Copier le lien</string>
+    <string name="link_copied">Lien copié</string>
+    <string name="share_invitation_button">Partager l\'invitation</string>
+    <string name="share_event">Partager l\'événement</string>
+    <string name="invitation_expired">Cette invitation a expiré</string>
+    <string name="invitation_max_uses">Cette invitation a atteint son nombre maximum d\'utilisations</string>
+    <string name="invitation_accepted">Vous avez rejoint l\'événement</string>
+    <string name="invitation_already_member">Vous participez déjà à cet événement</string>
+    <string name="invitation_error">Erreur lors de l\'acceptation de l\'invitation</string>
+
     <!-- iOS Specific -->
     <string name="loading_scenarios">Chargement des scénarios…</string>
     <string name="choose_scenario_title">Choisir un scénario</string>

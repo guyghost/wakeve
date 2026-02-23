@@ -18,10 +18,12 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -58,7 +60,8 @@ import com.guyghost.wakeve.models.InboxItem
 fun InboxScreen(
     userId: String,
     onNotificationClick: (String) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToNotifications: (() -> Unit)? = null
 ) {
     var selectedFilter by remember { mutableStateOf(InboxFilterType.ALL) }
     val items = remember { getSampleInboxItems() }
@@ -82,6 +85,16 @@ fun InboxScreen(
                             fontWeight = FontWeight.Bold
                         )
                     )
+                },
+                actions = {
+                    if (onNavigateToNotifications != null) {
+                        IconButton(onClick = onNavigateToNotifications) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Preferences de notifications"
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,

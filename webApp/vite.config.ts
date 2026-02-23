@@ -8,5 +8,13 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
   },
-  server: { port: 8080 },
+  server: {
+    port: 3000,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
+  },
 });

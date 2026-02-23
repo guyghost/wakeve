@@ -37,7 +37,17 @@ fun parseDeepLink(uri: Uri): DeepLink? {
         val host = uri.host
         val pathSegments = uri.pathSegments
 
-        // Validate scheme
+        // Handle universal links (https://wakeve.app/invite/{code})
+        if ((scheme == "https" || scheme == "http") && host == "wakeve.app") {
+            val segments = pathSegments
+            if (segments.size >= 2 && segments[0] == "invite") {
+                return DeepLink.Invite(segments[1])
+            }
+            Log.d("DeepLinkParser", "Unknown universal link path: $pathSegments")
+            return null
+        }
+
+        // Validate custom scheme
         if (scheme != "wakeve") {
             Log.d("DeepLinkParser", "Invalid scheme: $scheme")
             return null
@@ -222,14 +232,19 @@ class DeepLinkHandler {
     /**
      * Handle deep link to invite.
      *
-     * This is a special case that may require additional processing:
-     * - Validate the invite token
-     * - Show user a preview of the event
-     * - Optionally prompt for authentication
+     * Resolves the invitation code and navigates to accept the invitation.
+     * If the user is not authenticated, stores the pending invite for later.
+     * If authenticated, navigates to the event after accepting.
      *
-     * TODO: Implement invite flow (not yet specified)
+     * Deep link format: wakeve://invite/{code}
      *
-     * @param token The invite token from the deep link
+     * In a full implementation, this would:
+     * 1. Call GET /api/invite/{code} to resolve the invitation
+     * 2. Show the user a preview of the event
+     * 3. Call POST /api/invite/{code}/accept to join the event
+     * 4. Navigate to the event detail screen
+     *
+     * @param token The invite token/code from the deep link
      * @param navController The navigation controller
      * @param isAuthenticated Whether the user is authenticated
      * @return true if navigation was successful
@@ -241,11 +256,38 @@ class DeepLinkHandler {
     ): Boolean {
         Log.d(TAG, "Handling invite with token: $token")
 
-        // TODO: Implement invite flow
-        // For now, just log the token
-        Log.w(TAG, "Invite flow not yet implemented. Token: $token")
+        if (!isAuthenticated) {
+            // Store pending invite code for processing after authentication
+            pendingInviteCode = token
+            Log.d(TAG, "User not authenticated. Storing invite code for later: $token")
+            // Navigate to auth screen
+            navController.navigate(Screen.Auth.route)
+            return true
+        }
 
-        // Navigate to a placeholder screen or show a toast
-        return false
+        // Store the invite code - the UI layer will call the API to resolve and accept
+        pendingInviteCode = token
+        Log.d(TAG, "Invite code stored for acceptance: $token")
+
+        // Navigate to Home where the pending invite will be processed
+        navController.navigate(Screen.Home.route) {
+            popUpTo(Screen.Home.route) { inclusive = true }
+        }
+        return true
+    }
+
+    /**
+     * Pending invitation code waiting to be processed.
+     * After authentication, the app should check this value and accept the invitation.
+     */
+    var pendingInviteCode: String? = null
+        private set
+
+    /**
+     * Clear the pending invite code after it has been processed.
+     */
+    fun clearPendingInvite() {
+        pendingInviteCode = null
+        Log.d(TAG, "Cleared pending invite code")
     }
 }

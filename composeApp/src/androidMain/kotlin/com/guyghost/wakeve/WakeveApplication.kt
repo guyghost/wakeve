@@ -7,6 +7,8 @@ import coil.disk.DiskCache
 import coil.memory.MemoryCache
 import coil.request.CachePolicy
 import coil.util.DebugLogger
+import com.guyghost.wakeve.notification.NotificationChannelManager
+import com.guyghost.wakeve.service.FCMService
 import com.guyghost.wakeve.workers.WorkManagerHelper
 import com.guyghost.wakeve.BuildConfig
 
@@ -16,13 +18,17 @@ import com.guyghost.wakeve.BuildConfig
  * Handles application-level initialization including:
  * - WorkManager for background token refresh
  * - Coil ImageLoader configuration with memory and disk caching
- * - Crash reporting (future)
- * - Analytics (future)
+ * - Notification channels for push notifications
+ * - FCM token management
  */
 class WakeveApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+
+        // Create notification channels (required for Android 8.0+)
+        // Must be done early, before any notification is sent
+        NotificationChannelManager(this).createAllChannels()
 
         // Initialize WorkManager for background tasks
         // Note: WorkManager initialization happens automatically via androidx.startup
@@ -62,17 +68,43 @@ class WakeveApplication : Application(), ImageLoaderFactory {
 
     /**
      * Called when user logs in.
-     * Schedule background token refresh.
+     * Schedule background token refresh and register FCM token with backend.
+     *
+     * @param accessToken The JWT access token for backend API calls
      */
-    fun onUserLoggedIn() {
+    fun onUserLoggedIn(accessToken: String? = null) {
         WorkManagerHelper.scheduleTokenRefresh(this)
+
+        // Register FCM token with backend now that user is authenticated
+        accessToken?.let { token ->
+            // Store access token for FCMService to use on token refresh
+            getSharedPreferences("wakeve_prefs", MODE_PRIVATE)
+                .edit()
+                .putString("access_token", token)
+                .apply()
+
+            FCMService.registerStoredTokenWithBackend(this, token)
+        }
     }
 
     /**
      * Called when user logs out.
-     * Cancel background token refresh.
+     * Cancel background token refresh and unregister FCM token.
      */
     fun onUserLoggedOut() {
         WorkManagerHelper.cancelTokenRefresh(this)
+
+        // Unregister FCM token from backend
+        val accessToken = getSharedPreferences("wakeve_prefs", MODE_PRIVATE)
+            .getString("access_token", null)
+        accessToken?.let {
+            FCMService.unregisterTokenFromBackend(it)
+        }
+
+        // Clear stored access token
+        getSharedPreferences("wakeve_prefs", MODE_PRIVATE)
+            .edit()
+            .remove("access_token")
+            .apply()
     }
 }

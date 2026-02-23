@@ -19,10 +19,29 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.delete
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
 
 /**
  * Firebase Cloud Messaging Service for Android.
- * Handles push notifications in foreground and background.
+ *
+ * Handles push notifications in foreground and background:
+ * - Token generation and refresh (registered with backend)
+ * - Data messages (app handles display)
+ * - Notification messages (system handles display in background)
+ * - Deep link navigation on notification tap
  */
 class FCMService : FirebaseMessagingService() {
 
@@ -33,6 +52,15 @@ class FCMService : FirebaseMessagingService() {
 
     companion object {
         private const val TAG = "FCMService"
+        private const val PREF_FCM_TOKEN = "fcm_device_token"
+
+        /**
+         * Get the server base URL.
+         */
+        private fun getBaseUrl(): String {
+            // TODO: Move to BuildConfig or remote config
+            return "http://10.0.2.2:8080/api" // Android emulator localhost
+        }
 
         /**
          * Request notification permission for Android 13+.
@@ -61,6 +89,83 @@ class FCMService : FirebaseMessagingService() {
                 true
             }
         }
+
+        /**
+         * Get stored FCM token.
+         */
+        fun getStoredToken(context: Context): String? {
+            return context.getSharedPreferences("wakeve_prefs", Context.MODE_PRIVATE)
+                .getString(PREF_FCM_TOKEN, null)
+        }
+
+        /**
+         * Register the stored FCM token with the backend.
+         * Call this after successful login.
+         *
+         * @param context Application context
+         * @param accessToken JWT access token for authentication
+         */
+        fun registerStoredTokenWithBackend(context: Context, accessToken: String) {
+            val token = getStoredToken(context) ?: return
+            val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+            scope.launch {
+                try {
+                    registerTokenWithBackendApi(token, accessToken)
+                    Log.i(TAG, "Stored FCM token registered with backend after login")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to register stored token: ${e.message}", e)
+                }
+            }
+        }
+
+        /**
+         * Unregister FCM token from backend on logout.
+         *
+         * @param accessToken JWT access token for authentication
+         */
+        fun unregisterTokenFromBackend(accessToken: String) {
+            val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+            scope.launch {
+                try {
+                    val client = createHttpClient()
+                    val response = client.delete("${getBaseUrl()}/notifications/unregister?platform=android") {
+                        header("Authorization", "Bearer $accessToken")
+                    }
+                    Log.i(TAG, "Token unregistered from backend: ${response.status}")
+                    client.close()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to unregister token: ${e.message}", e)
+                }
+            }
+        }
+
+        private fun createHttpClient(): HttpClient {
+            return HttpClient(CIO) {
+                install(ContentNegotiation) {
+                    json(Json { ignoreUnknownKeys = true })
+                }
+            }
+        }
+
+        /**
+         * Register token with the backend API.
+         */
+        private suspend fun registerTokenWithBackendApi(token: String, accessToken: String) {
+            val client = createHttpClient()
+            try {
+                val response = client.post("${getBaseUrl()}/notifications/register") {
+                    contentType(ContentType.Application.Json)
+                    header("Authorization", "Bearer $accessToken")
+                    setBody(Json.encodeToString(RegisterTokenBody(
+                        token = token,
+                        platform = "android"
+                    )))
+                }
+                Log.i(TAG, "Token registration response: ${response.status}")
+            } finally {
+                client.close()
+            }
+        }
     }
 
     override fun onCreate() {
@@ -72,7 +177,7 @@ class FCMService : FirebaseMessagingService() {
      * Called when a new message is received.
      */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
-        Log.d(TAG, "Received FCM message")
+        Log.d(TAG, "Received FCM message from: ${remoteMessage.from}")
 
         // Check if message contains a data payload
         if (remoteMessage.data.isNotEmpty()) {
@@ -89,11 +194,24 @@ class FCMService : FirebaseMessagingService() {
 
     /**
      * Called when a new token is generated or refreshed.
+     *
+     * This happens when:
+     * - The app is installed for the first time
+     * - The app is restored to a new device
+     * - The user uninstalls/reinstalls the app
+     * - The user clears app data
+     * - The token is periodically refreshed by FCM
      */
     override fun onNewToken(token: String) {
         Log.d(TAG, "New FCM token: ${token.take(10)}...")
 
-        // Register token with backend
+        // Store token locally
+        getSharedPreferences("wakeve_prefs", Context.MODE_PRIVATE)
+            .edit()
+            .putString(PREF_FCM_TOKEN, token)
+            .apply()
+
+        // Register token with backend if user is authenticated
         serviceScope.launch {
             try {
                 registerTokenWithBackend(token)
@@ -105,23 +223,25 @@ class FCMService : FirebaseMessagingService() {
 
     /**
      * Handle data-only messages.
-     * These are used when app is in foreground.
+     * These are always delivered to onMessageReceived (foreground + background).
      */
     private fun handleDataMessage(data: Map<String, String>) {
         val title = data["title"] ?: "Wakeve"
         val body = data["body"] ?: "New notification"
         val notificationId = data["notificationId"] ?: "unknown"
         val eventId = data["eventId"]
+        val deepLink = data["deepLink"]
 
-        Log.i(TAG, "Data message: title=$title, body=$body")
+        Log.i(TAG, "Data message: title=$title, body=$body, eventId=$eventId")
 
         // Show notification
-        showNotification(title, body, notificationId, eventId)
+        showNotification(title, body, notificationId, eventId, deepLink)
     }
 
     /**
      * Handle notification messages (with title and body).
-     * These are handled by system when app is in background.
+     * In background, system shows notification automatically.
+     * In foreground, we handle it here.
      */
     private fun handleNotificationMessage(
         notification: RemoteMessage.Notification,
@@ -131,31 +251,43 @@ class FCMService : FirebaseMessagingService() {
         val body = notification.body ?: "New notification"
         val notificationId = data["notificationId"] ?: "unknown"
         val eventId = data["eventId"]
+        val deepLink = data["deepLink"]
 
         Log.i(TAG, "Notification message: title=$title, body=$body")
 
-        showNotification(title, body, notificationId, eventId)
+        showNotification(title, body, notificationId, eventId, deepLink)
     }
 
     /**
-     * Show a system notification.
+     * Show a system notification with deep link intent.
      */
     private fun showNotification(
         title: String,
         body: String,
         notificationId: String,
-        eventId: String?
+        eventId: String?,
+        deepLink: String? = null
     ) {
-        // Create intent for deep link
-        val intent = if (eventId != null) {
-            Intent(this, MainActivity::class.java).apply {
-                action = Intent.ACTION_VIEW
-                data = android.net.Uri.parse("wakeve://event/$eventId")
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        // Create intent for deep link navigation
+        val intent = when {
+            deepLink != null -> {
+                Intent(this, MainActivity::class.java).apply {
+                    action = Intent.ACTION_VIEW
+                    this.data = android.net.Uri.parse(deepLink)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
             }
-        } else {
-            Intent(this, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            eventId != null -> {
+                Intent(this, MainActivity::class.java).apply {
+                    action = Intent.ACTION_VIEW
+                    this.data = android.net.Uri.parse("wakeve://event/$eventId")
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
+            }
+            else -> {
+                Intent(this, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                }
             }
         }
 
@@ -182,7 +314,7 @@ class FCMService : FirebaseMessagingService() {
             .setContentIntent(pendingIntent)
             .build()
 
-        // Show notification
+        // Show notification (with permission check)
         val notificationManager = NotificationManagerCompat.from(this)
         val canPostNotifications = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ActivityCompat.checkSelfPermission(
@@ -196,7 +328,7 @@ class FCMService : FirebaseMessagingService() {
         if (canPostNotifications) {
             notificationManager.notify(notificationId.hashCode(), notification)
         } else {
-            Log.w(TAG, "Notification permission not granted, skipping notification")
+            Log.w(TAG, "Notification permission not granted, skipping notification display")
         }
     }
 
@@ -224,39 +356,27 @@ class FCMService : FirebaseMessagingService() {
 
     /**
      * Register FCM token with backend.
-     * In production, use Ktor client to call /api/notifications/register.
+     * Gets the access token from SharedPreferences and sends to /api/notifications/register.
      */
     private suspend fun registerTokenWithBackend(token: String) {
-        // TODO: Integrate with actual backend API
-        // For now, this is a placeholder
+        // Get stored access token
+        val accessToken = getSharedPreferences("wakeve_prefs", Context.MODE_PRIVATE)
+            .getString("access_token", null)
 
-        Log.i(TAG, "Registering token with backend...")
-        Log.d(TAG, "Token (first 20 chars): ${token.take(20)}...")
-
-        // Example implementation with Ktor client:
-        /*
-        val client = HttpClient(CIO) {
-            install(ContentNegotiation) {
-                json(Json { ignoreUnknownKeys = true })
-            }
+        if (accessToken == null) {
+            Log.i(TAG, "User not authenticated, storing token for later registration")
+            return
         }
 
-        try {
-            val response = client.post("http://your-server/api/notifications/register") {
-                contentType(ContentType.Application.Json)
-                setBody(RegisterTokenRequest(
-                    userId = getUserId(), // Get from SessionManager
-                    token = token,
-                    platform = "android"
-                ))
-            }
-
-            Napier.i(tag = TAG, message = "Token registered successfully")
-        } catch (e: Exception) {
-            Napier.e(tag = TAG, message = "Failed to register token: ${e.message}")
-        } finally {
-            client.close()
-        }
-        */
+        registerTokenWithBackendApi(token, accessToken)
     }
 }
+
+/**
+ * Request body for token registration.
+ */
+@Serializable
+private data class RegisterTokenBody(
+    val token: String,
+    val platform: String
+)

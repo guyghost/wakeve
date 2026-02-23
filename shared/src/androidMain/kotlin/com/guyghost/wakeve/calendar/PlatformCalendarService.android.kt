@@ -9,7 +9,7 @@ import android.provider.CalendarContract
 import androidx.core.content.ContextCompat
 import com.guyghost.wakeve.models.EnhancedCalendarEvent
 
-class PlatforopwmCalendarServiceImpl(private val context: Context) : PlatformCalendarService {
+class PlatformCalendarServiceImpl(private val context: Context) : PlatformCalendarService {
 
     override fun addEvent(event: EnhancedCalendarEvent): Result<Unit> = runCatching {
         // Vérifier les permissions

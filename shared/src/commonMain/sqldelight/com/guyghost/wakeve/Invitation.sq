@@ -1,0 +1,43 @@
+-- Invitation table: shareable invitation links for events
+CREATE TABLE invitation (
+    id TEXT PRIMARY KEY NOT NULL,
+    code TEXT UNIQUE NOT NULL,
+    eventId TEXT NOT NULL,
+    createdBy TEXT NOT NULL,
+    expiresAt TEXT, -- ISO 8601 UTC timestamp, nullable for no expiry
+    maxUses INTEGER, -- nullable for unlimited uses
+    currentUses INTEGER NOT NULL DEFAULT 0,
+    createdAt TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+-- Indexes
+CREATE INDEX idx_invitation_code ON invitation(code);
+CREATE INDEX idx_invitation_event ON invitation(eventId);
+CREATE INDEX idx_invitation_created_by ON invitation(createdBy);
+
+-- Queries
+insertInvitation:
+INSERT INTO invitation (id, code, eventId, createdBy, expiresAt, maxUses, currentUses, createdAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+selectById:
+SELECT * FROM invitation WHERE id = ?;
+
+selectByCode:
+SELECT * FROM invitation WHERE code = ?;
+
+selectByEventId:
+SELECT * FROM invitation WHERE eventId = ? ORDER BY createdAt DESC;
+
+selectByCreatedBy:
+SELECT * FROM invitation WHERE createdBy = ? ORDER BY createdAt DESC;
+
+incrementCurrentUses:
+UPDATE invitation SET currentUses = currentUses + 1 WHERE code = ?;
+
+deleteById:
+DELETE FROM invitation WHERE id = ?;
+
+deleteByEventId:
+DELETE FROM invitation WHERE eventId = ?;

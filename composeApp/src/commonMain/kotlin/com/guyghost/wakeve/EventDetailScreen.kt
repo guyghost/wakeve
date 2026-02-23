@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -97,6 +98,7 @@ fun EventDetailScreen(
     onNavigateTo: (String) -> Unit = {},
     onShowToast: (String) -> Unit = {},
     onNavigateBack: () -> Unit = {},
+    onShareInvite: ((eventId: String, eventTitle: String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     // State from ViewModel
@@ -138,6 +140,15 @@ fun EventDetailScreen(
                     }
                 },
                 actions = {
+                    // Share / Invite button (always visible)
+                    IconButton(
+                        onClick = {
+                            val title = selectedEvent?.title ?: ""
+                            onShareInvite?.invoke(eventId, title)
+                        }
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = "Partager l'invitation")
+                    }
                     if (isOrganizer) {
                         IconButton(onClick = { onNavigateTo("edit_event/$eventId") }) {
                             Icon(Icons.Default.Edit, contentDescription = "Éditer")

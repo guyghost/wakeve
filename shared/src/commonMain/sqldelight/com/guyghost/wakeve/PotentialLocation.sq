@@ -34,3 +34,11 @@ DELETE FROM potentialLocation WHERE id = ?;
 
 deleteByEventId:
 DELETE FROM potentialLocation WHERE eventId = ?;
+
+-- Get first location for each event (for search result enrichment)
+selectFirstLocationByEventId:
+SELECT * FROM potentialLocation WHERE eventId = ? ORDER BY createdAt ASC LIMIT 1;
+
+-- Get all locations with coordinates (for nearby search)
+selectAllWithCoordinates:
+SELECT * FROM potentialLocation WHERE coordinates IS NOT NULL AND coordinates != '';

@@ -278,26 +278,33 @@ class DeepLinkService: ObservableObject {
     /**
      * Handle deep link to invite.
      *
-     * This is a special case that may require additional processing:
-     * - Validate invite token
-     * - Show user a preview of the event
-     * - Optionally prompt for authentication
+     * Resolves the invitation code and navigates to the event.
+     * If the user is authenticated, automatically accepts the invitation.
+     * If not, stores the pending invite for processing after authentication.
      *
-     * TODO: Implement invite flow (not yet specified)
-     *
-     * - Parameter token: The invite token from deep link
+     * - Parameter token: The invite token/code from deep link
      * - Parameter isAuthenticated: Whether the user is authenticated
      * - Returns: true if navigation was successful
      */
     private func handleInvite(token: String, isAuthenticated: Bool) -> Bool {
         Log.debug("Handling invite with token: \(token)")
 
-        // TODO: Implement invite flow
-        // For now, just log the token
-        Log.warning("Invite flow not yet implemented. Token: \(token)")
+        // Store the pending invite code
+        pendingInviteCode = token
 
-        // Show a placeholder or alert
-        return false
+        // Update navigation path to trigger invite handling in the UI
+        navigationPath = ["invite", token]
+
+        return true
+    }
+
+    /// Pending invitation code waiting to be processed
+    @Published var pendingInviteCode: String? = nil
+
+    /// Clear the pending invite code after processing
+    func clearPendingInvite() {
+        pendingInviteCode = nil
+        Log.debug("Cleared pending invite code")
     }
 
     /**

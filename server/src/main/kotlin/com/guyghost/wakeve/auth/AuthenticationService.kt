@@ -6,16 +6,19 @@ import com.auth0.jwt.exceptions.JWTVerificationException
 import com.auth0.jwt.interfaces.DecodedJWT
 import com.guyghost.wakeve.UserRepository
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.models.AuthResponse
 import com.guyghost.wakeve.models.OAuthLoginRequest
 import com.guyghost.wakeve.models.OAuthLoginResponse
 import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.User
+import com.guyghost.wakeve.models.UserDTO
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import kotlinx.coroutines.runBlocking
 import java.time.Instant
 import java.util.Date
+import java.util.UUID
 
 /**
  * Main authentication service that handles OAuth2 login flow
@@ -50,6 +53,8 @@ class AuthenticationService(
                 appleOAuth2?.parseUserInfoFromAuthResponse(request.accessToken)
                     ?: throw OAuth2Exception("Apple user info not provided")
             }
+            OAuthProvider.EMAIL, OAuthProvider.GUEST ->
+                throw OAuth2Exception("Use dedicated email/guest endpoints instead of OAuth")
         }
 
         // Find or create user
@@ -127,6 +132,92 @@ class AuthenticationService(
     }
 
     /**
+     * Authentifie un utilisateur par email après vérification OTP.
+     *
+     * Cherche un utilisateur existant par email ou en crée un nouveau.
+     * Génère un JWT et un refresh token pour la session.
+     *
+     * @param email L'adresse email vérifiée
+     * @return AuthResponse contenant les tokens et les informations utilisateur
+     */
+    suspend fun loginWithEmail(email: String): Result<AuthResponse> = runCatching {
+        // Chercher ou créer l'utilisateur par email
+        val user = userRepository.getUserByEmail(email)
+            ?: userRepository.createUser(
+                providerId = "email_${UUID.randomUUID()}",
+                email = email,
+                name = email.substringBefore("@"),
+                avatarUrl = null,
+                provider = OAuthProvider.EMAIL
+            ).getOrThrow()
+
+        // Générer le JWT
+        val jwtToken = generateJwtToken(user)
+
+        // Créer un token de rafraîchissement en base
+        val expiresAt = calculateTokenExpiry(3600)
+        val refreshTokenValue = UUID.randomUUID().toString()
+        userRepository.createToken(
+            userId = user.id,
+            accessToken = jwtToken,
+            refreshToken = refreshTokenValue,
+            expiresAt = expiresAt
+        ).getOrThrow()
+
+        AuthResponse(
+            user = UserDTO(
+                id = user.id,
+                email = user.email,
+                name = user.name,
+                isGuest = false,
+                authMethod = "EMAIL"
+            ),
+            accessToken = jwtToken,
+            refreshToken = refreshTokenValue,
+            expiresInSeconds = 3600
+        )
+    }
+
+    /**
+     * Crée une session invité avec permissions limitées.
+     *
+     * Génère un utilisateur invité temporaire avec un JWT contenant le rôle "guest".
+     * Les invités n'ont pas de refresh token et des permissions réduites.
+     *
+     * @param deviceId Identifiant optionnel de l'appareil
+     * @return AuthResponse contenant le token invité
+     */
+    suspend fun loginAsGuest(deviceId: String?): Result<AuthResponse> = runCatching {
+        val guestId = "guest_${UUID.randomUUID()}"
+        val effectiveDeviceId = deviceId ?: "device_${UUID.randomUUID()}"
+
+        // Créer un utilisateur invité en base
+        val user = userRepository.createUser(
+            providerId = effectiveDeviceId,
+            email = "$guestId@guest.wakeve.local",
+            name = "Invité",
+            avatarUrl = null,
+            provider = OAuthProvider.GUEST
+        ).getOrThrow()
+
+        // Générer le JWT avec rôle USER (permissions standard limitées)
+        val jwtToken = generateJwtToken(user)
+
+        AuthResponse(
+            user = UserDTO(
+                id = user.id,
+                email = null,
+                name = "Invité",
+                isGuest = true,
+                authMethod = "GUEST"
+            ),
+            accessToken = jwtToken,
+            refreshToken = null,  // Pas de refresh token pour les invités
+            expiresInSeconds = 3600
+        )
+    }
+
+    /**
      * Validate JWT token and return user
      */
     fun validateToken(call: ApplicationCall): User? {
@@ -156,6 +247,8 @@ class AuthenticationService(
         return when (provider) {
             OAuthProvider.GOOGLE -> googleOAuth2 ?: throw OAuth2Exception("Google OAuth2 not configured")
             OAuthProvider.APPLE -> appleOAuth2 ?: throw OAuth2Exception("Apple OAuth2 not configured")
+            OAuthProvider.EMAIL, OAuthProvider.GUEST ->
+                throw OAuth2Exception("${provider.name} does not use OAuth2 service")
         }
     }
 

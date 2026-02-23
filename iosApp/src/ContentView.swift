@@ -135,7 +135,11 @@ struct AuthenticatedView: View {
     
     // Profile sheet state
     @State private var showProfileSheet = false
-    
+
+    // Notifications sheet state
+    @State private var showNotificationsSheet = false
+    @State private var showNotificationPreferencesSheet = false
+
     // Get auth state from environment
     @EnvironmentObject var authStateManager: AuthStateManager
 
@@ -194,6 +198,17 @@ struct AuthenticatedView: View {
                 }
             )
         }
+        .sheet(isPresented: $showNotificationsSheet) {
+            NotificationsView(
+                userId: userId,
+                onDismiss: { showNotificationsSheet = false }
+            )
+        }
+        .sheet(isPresented: $showNotificationPreferencesSheet) {
+            NotificationPreferencesView(
+                onDismiss: { showNotificationPreferencesSheet = false }
+            )
+        }
     }
     
     // MARK: - Home Tab
@@ -216,6 +231,9 @@ struct AuthenticatedView: View {
                 onProfileClick: {
                     // Show profile settings sheet
                     showProfileSheet = true
+                },
+                onNotificationsClick: {
+                    showNotificationsSheet = true
                 }
             )
             

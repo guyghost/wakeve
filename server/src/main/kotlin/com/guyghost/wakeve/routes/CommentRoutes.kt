@@ -3,6 +3,7 @@ package com.guyghost.wakeve.routes
 import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.models.CommentRequest
 import com.guyghost.wakeve.models.CommentSection
+import com.guyghost.wakeve.notification.EventNotificationTrigger
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -23,7 +24,10 @@ import kotlinx.serialization.Serializable
  * - Comment statistics and analytics
  * - Top contributor tracking
  */
-fun io.ktor.server.routing.Route.commentRoutes(repository: CommentRepository) {
+fun io.ktor.server.routing.Route.commentRoutes(
+    repository: CommentRepository,
+    eventNotificationTrigger: EventNotificationTrigger? = null
+) {
     route("/events/{eventId}/comments") {
 
         // POST /api/events/{eventId}/comments - Create a new comment
@@ -48,6 +52,14 @@ fun io.ktor.server.routing.Route.commentRoutes(repository: CommentRepository) {
                     authorId = request.authorId,
                     authorName = request.authorName,
                     request = commentRequest
+                )
+
+                // Trigger notification for new comment (async, non-blocking)
+                eventNotificationTrigger?.onNewComment(
+                    eventId = eventId,
+                    authorId = request.authorId,
+                    authorName = request.authorName,
+                    commentPreview = request.content
                 )
 
                 call.respond(HttpStatusCode.Created, comment)

@@ -6,6 +6,8 @@ import com.guyghost.wakeve.notification.NotificationService
 import com.guyghost.wakeve.notification.Platform
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -13,30 +15,42 @@ import io.ktor.server.routing.*
 /**
  * Notification API routes.
  * Provides endpoints for managing push notifications and user preferences.
+ *
+ * All routes require JWT authentication. The userId is extracted from the JWT
+ * token for register/unregister to prevent token hijacking.
  */
 fun Route.notificationRoutes(
     notificationService: NotificationService
 ) {
-    route("/api/notifications") {
+    route("/notifications") {
 
         /**
          * Register device token for push notifications.
          * POST /api/notifications/register
+         *
+         * The userId is extracted from the JWT token for security.
          */
         post("/register") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                    ?: return@post call.respond(
+                        HttpStatusCode.Unauthorized,
+                        mapOf("error" to "Missing userId in token")
+                    )
+
                 val request = call.receive<RegisterTokenRequest>()
                 val platform = when (request.platform.lowercase()) {
                     "android" -> Platform.ANDROID
                     "ios" -> Platform.IOS
                     else -> return@post call.respond(
                         HttpStatusCode.BadRequest,
-                        ErrorResponse("Invalid platform: ${request.platform}")
+                        mapOf("error" to "Invalid platform: ${request.platform}. Must be 'android' or 'ios'")
                     )
                 }
 
                 notificationService.registerPushToken(
-                    userId = request.userId,
+                    userId = userId,
                     platform = platform,
                     token = request.token
                 )
@@ -45,28 +59,38 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    ErrorResponse("Failed to register token: ${e.message}")
+                    mapOf("error" to "Failed to register token: ${e.message}")
                 )
             }
         }
 
         /**
-         * Unregister device token.
-         * DELETE /api/notifications/unregister?userId={userId}&platform={platform}
+         * Unregister device token on logout.
+         * DELETE /api/notifications/unregister?platform={platform}
+         *
+         * The userId is extracted from the JWT token for security.
          */
         delete("/unregister") {
             try {
-                val userId = call.request.queryParameters["userId"]
-                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("userId required"))
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                    ?: return@delete call.respond(
+                        HttpStatusCode.Unauthorized,
+                        mapOf("error" to "Missing userId in token")
+                    )
+
                 val platformParam = call.request.queryParameters["platform"]
-                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("platform required"))
+                    ?: return@delete call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "platform query parameter required")
+                    )
 
                 val platform = when (platformParam.lowercase()) {
                     "android" -> Platform.ANDROID
                     "ios" -> Platform.IOS
                     else -> return@delete call.respond(
                         HttpStatusCode.BadRequest,
-                        ErrorResponse("Invalid platform: $platformParam")
+                        mapOf("error" to "Invalid platform: $platformParam")
                     )
                 }
 
@@ -76,13 +100,13 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    ErrorResponse("Failed to unregister token: ${e.message}")
+                    mapOf("error" to "Failed to unregister token: ${e.message}")
                 )
             }
         }
 
         /**
-         * Send a notification.
+         * Send a notification (server-internal or admin use).
          * POST /api/notifications/send
          */
         post("/send") {
@@ -93,7 +117,7 @@ fun Route.notificationRoutes(
                     .getOrElse { error ->
                         return@post call.respond(
                             HttpStatusCode.BadRequest,
-                            ErrorResponse("Failed to send notification: ${error.message}")
+                            mapOf("error" to "Failed to send notification: ${error.message}")
                         )
                     }
 
@@ -104,19 +128,23 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    ErrorResponse("Failed to send notification: ${e.message}")
+                    mapOf("error" to "Failed to send notification: ${e.message}")
                 )
             }
         }
 
         /**
-         * Get notification history for a user.
-         * GET /api/notifications?userId={userId}&limit={limit}
+         * Get notification history for the authenticated user.
+         * GET /api/notifications?limit={limit}
          */
         get {
             try {
-                val userId = call.request.queryParameters["userId"]
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("userId required"))
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                    ?: return@get call.respond(
+                        HttpStatusCode.Unauthorized,
+                        mapOf("error" to "Missing userId in token")
+                    )
                 val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 50
 
                 val notifications = notificationService.getNotifications(userId, limit)
@@ -125,19 +153,23 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    ErrorResponse("Failed to get notifications: ${e.message}")
+                    mapOf("error" to "Failed to get notifications: ${e.message}")
                 )
             }
         }
 
         /**
-         * Get unread notifications for a user.
-         * GET /api/notifications/unread?userId={userId}
+         * Get unread notifications for the authenticated user.
+         * GET /api/notifications/unread
          */
         get("/unread") {
             try {
-                val userId = call.request.queryParameters["userId"]
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("userId required"))
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                    ?: return@get call.respond(
+                        HttpStatusCode.Unauthorized,
+                        mapOf("error" to "Missing userId in token")
+                    )
 
                 val notifications = notificationService.getUnreadNotifications(userId)
 
@@ -145,7 +177,7 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    ErrorResponse("Failed to get unread notifications: ${e.message}")
+                    mapOf("error" to "Failed to get unread notifications: ${e.message}")
                 )
             }
         }
@@ -157,13 +189,16 @@ fun Route.notificationRoutes(
         put("/{id}/read") {
             try {
                 val id = call.parameters["id"]
-                    ?: return@put call.respond(HttpStatusCode.BadRequest, ErrorResponse("id required"))
+                    ?: return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "id required")
+                    )
 
                 notificationService.markAsRead(id)
                     .getOrElse { error ->
                         return@put call.respond(
                             HttpStatusCode.BadRequest,
-                            ErrorResponse("Failed to mark as read: ${error.message}")
+                            mapOf("error" to "Failed to mark as read: ${error.message}")
                         )
                     }
 
@@ -171,25 +206,29 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    ErrorResponse("Failed to mark as read: ${e.message}")
+                    mapOf("error" to "Failed to mark as read: ${e.message}")
                 )
             }
         }
 
         /**
-         * Mark all notifications as read for a user.
-         * PUT /api/notifications/read-all?userId={userId}
+         * Mark all notifications as read for the authenticated user.
+         * PUT /api/notifications/read-all
          */
         put("/read-all") {
             try {
-                val userId = call.request.queryParameters["userId"]
-                    ?: return@put call.respond(HttpStatusCode.BadRequest, ErrorResponse("userId required"))
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                    ?: return@put call.respond(
+                        HttpStatusCode.Unauthorized,
+                        mapOf("error" to "Missing userId in token")
+                    )
 
                 notificationService.markAllAsRead(userId)
                     .getOrElse { error ->
                         return@put call.respond(
                             HttpStatusCode.BadRequest,
-                            ErrorResponse("Failed to mark all as read: ${error.message}")
+                            mapOf("error" to "Failed to mark all as read: ${error.message}")
                         )
                     }
 
@@ -197,7 +236,7 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    ErrorResponse("Failed to mark all as read: ${e.message}")
+                    mapOf("error" to "Failed to mark all as read: ${e.message}")
                 )
             }
         }
@@ -209,13 +248,16 @@ fun Route.notificationRoutes(
         delete("/{id}") {
             try {
                 val id = call.parameters["id"]
-                    ?: return@delete call.respond(HttpStatusCode.BadRequest, ErrorResponse("id required"))
+                    ?: return@delete call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "id required")
+                    )
 
                 notificationService.deleteNotification(id)
                     .getOrElse { error ->
                         return@delete call.respond(
                             HttpStatusCode.BadRequest,
-                            ErrorResponse("Failed to delete notification: ${error.message}")
+                            mapOf("error" to "Failed to delete notification: ${error.message}")
                         )
                     }
 
@@ -223,37 +265,41 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    ErrorResponse("Failed to delete notification: ${e.message}")
+                    mapOf("error" to "Failed to delete notification: ${e.message}")
                 )
             }
         }
 
         /**
-         * Get notification preferences for a user.
-         * GET /api/notifications/preferences?userId={userId}
+         * Get notification preferences for the authenticated user.
+         * GET /api/notifications/preferences
          */
         get("/preferences") {
             try {
-                val userId = call.request.queryParameters["userId"]
-                    ?: return@get call.respond(HttpStatusCode.BadRequest, ErrorResponse("userId required"))
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                    ?: return@get call.respond(
+                        HttpStatusCode.Unauthorized,
+                        mapOf("error" to "Missing userId in token")
+                    )
 
                 val preferences = notificationService.getPreferences(userId)
 
                 if (preferences != null) {
                     call.respond(HttpStatusCode.OK, preferences)
                 } else {
-                    call.respond(HttpStatusCode.NotFound, ErrorResponse("Preferences not found"))
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Preferences not found"))
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    ErrorResponse("Failed to get preferences: ${e.message}")
+                    mapOf("error" to "Failed to get preferences: ${e.message}")
                 )
             }
         }
 
         /**
-         * Update notification preferences for a user.
+         * Update notification preferences for the authenticated user.
          * PUT /api/notifications/preferences
          */
         put("/preferences") {
@@ -264,7 +310,7 @@ fun Route.notificationRoutes(
                     .getOrElse { error ->
                         return@put call.respond(
                             HttpStatusCode.BadRequest,
-                            ErrorResponse("Failed to update preferences: ${error.message}")
+                            mapOf("error" to "Failed to update preferences: ${error.message}")
                         )
                     }
 
@@ -272,7 +318,7 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    ErrorResponse("Failed to update preferences: ${e.message}")
+                    mapOf("error" to "Failed to update preferences: ${e.message}")
                 )
             }
         }
@@ -284,15 +330,6 @@ fun Route.notificationRoutes(
  */
 @kotlinx.serialization.Serializable
 data class RegisterTokenRequest(
-    val userId: String,
     val token: String,
     val platform: String // "android" or "ios"
-)
-
-/**
- * Error response DTO.
- */
-@kotlinx.serialization.Serializable
-data class ErrorResponse(
-    val error: String
 )
