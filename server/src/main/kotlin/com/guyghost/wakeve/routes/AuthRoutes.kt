@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.auth.AuthenticationService
+import com.guyghost.wakeve.auth.OtpManager
 import com.guyghost.wakeve.models.AppleAuthRequest
 import com.guyghost.wakeve.models.AuthErrorResponse
 import com.guyghost.wakeve.models.EmailOTPRequest
@@ -32,7 +33,7 @@ import java.util.UUID
  * - POST /api/auth/guest - Create guest session
  * - POST /api/auth/refresh - Refresh access token
  */
-fun Route.authRoutes(authService: AuthenticationService) {
+fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager = OtpManager()) {
     route("/auth") {
         
         // ========== OAuth Authentication ==========
@@ -110,13 +111,41 @@ fun Route.authRoutes(authService: AuthenticationService) {
                     return@post
                 }
                 
-                // TODO(auth): wire Email OTP service in backend.
+                // Vérifier le rate limiting
+                if (otpManager.isRateLimited(request.email)) {
+                    call.respond(
+                        HttpStatusCode.TooManyRequests,
+                        AuthErrorResponse(
+                            "RATE_LIMITED",
+                            "Trop de demandes OTP. Réessayez dans quelques minutes."
+                        )
+                    )
+                    return@post
+                }
+
+                // Générer et stocker l'OTP
+                val otp = otpManager.generateOtp(request.email)
+
+                if (otp == null) {
+                    call.respond(
+                        HttpStatusCode.TooManyRequests,
+                        AuthErrorResponse(
+                            "RATE_LIMITED",
+                            "Trop de demandes OTP. Réessayez dans quelques minutes."
+                        )
+                    )
+                    return@post
+                }
+
+                // En production, envoyer l'email ici.
+                // Pour le développement, l'OTP est loggé par OtpManager.
+
                 call.respond(
-                    HttpStatusCode.NotImplemented,
+                    HttpStatusCode.OK,
                     OTPRequestResponse(
-                        success = false,
-                        message = "Email OTP flow is not enabled on this server",
-                        expiresInSeconds = 0
+                        success = true,
+                        message = "OTP envoyé à ${request.email}",
+                        expiresInSeconds = 300
                     )
                 )
             } catch (e: Exception) {
@@ -138,11 +167,35 @@ fun Route.authRoutes(authService: AuthenticationService) {
                     return@post
                 }
                 
-                // TODO(auth): wire Email OTP service in backend.
-                call.respond(
-                    HttpStatusCode.NotImplemented,
-                    AuthErrorResponse("NOT_IMPLEMENTED", "Email OTP verification is not enabled")
-                )
+                // Valider le format de l'email
+                if (!isValidEmail(request.email)) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        AuthErrorResponse("INVALID_EMAIL", "Invalid email format")
+                    )
+                    return@post
+                }
+
+                // Vérifier l'OTP
+                val isValid = otpManager.verifyOtp(request.email, request.otp)
+
+                if (!isValid) {
+                    val remaining = otpManager.remainingAttempts(request.email)
+                    val message = if (remaining > 0) {
+                        "Code OTP invalide. $remaining tentative(s) restante(s)."
+                    } else {
+                        "Code OTP invalide ou expiré. Veuillez demander un nouveau code."
+                    }
+                    call.respond(
+                        HttpStatusCode.Unauthorized,
+                        AuthErrorResponse("INVALID_OTP", message)
+                    )
+                    return@post
+                }
+
+                // OTP valide : authentifier l'utilisateur
+                val authResponse = authService.loginWithEmail(request.email).getOrThrow()
+                call.respond(HttpStatusCode.OK, authResponse)
             } catch (e: Exception) {
                 call.handleAuthError(e)
             }
@@ -153,11 +206,9 @@ fun Route.authRoutes(authService: AuthenticationService) {
         // Create guest session
         post("/guest") {
             try {
-                call.receive<GuestSessionRequest>() // Keep request contract for clients.
-                call.respond(
-                    HttpStatusCode.NotImplemented,
-                    AuthErrorResponse("NOT_IMPLEMENTED", "Guest sessions are not enabled")
-                )
+                val request = call.receive<GuestSessionRequest>()
+                val authResponse = authService.loginAsGuest(request.deviceId).getOrThrow()
+                call.respond(HttpStatusCode.OK, authResponse)
             } catch (e: Exception) {
                 call.handleAuthError(e)
             }

@@ -43,6 +43,11 @@ import com.guyghost.wakeve.ui.equipment.EquipmentChecklistScreen
 import com.guyghost.wakeve.ui.activity.ActivityPlanningScreen
 import com.guyghost.wakeve.ui.activity.ParticipantInfo
 import com.guyghost.wakeve.ui.comment.CommentsScreen
+import com.guyghost.wakeve.ui.invitation.InvitationShareScreen
+import com.guyghost.wakeve.ui.notification.NotificationsScreen
+import com.guyghost.wakeve.ui.notification.NotificationPreferencesScreen
+import com.guyghost.wakeve.ui.screens.LeaderboardScreen
+import com.guyghost.wakeve.ui.screens.OrganizerDashboardScreen
 import com.guyghost.wakeve.budget.BudgetRepository
 import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.meal.MealRepository
@@ -128,6 +133,9 @@ fun WakeveNavHost(
                 },
                 onNavigateToInbox = {
                     navController.navigate(Screen.Inbox.route)
+                },
+                onNavigateToDashboard = {
+                    navController.navigate(Screen.OrganizerDashboard.route)
                 },
                 onSignOut = {
                     authViewModel.signOut()
@@ -381,14 +389,45 @@ fun WakeveNavHost(
                 },
                 onNavigateBack = {
                     navController.navigateUp()
+                },
+                onShareInvite = { evtId, _ ->
+                    navController.navigate(Screen.InvitationShare.createRoute(evtId))
                 }
             )
         }
         
         // ========================================
+        // INVITATION SHARE
+        // ========================================
+
+        composable(
+            route = Screen.InvitationShare.route,
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+            val eventViewModel: EventManagementViewModel = koinInject()
+            val eventTitle = eventViewModel.state.value.selectedEvent?.title ?: "Événement"
+
+            // Generate a local invitation code (in production, call server API)
+            val invitationCode = remember {
+                val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+                (1..8).map { chars.random() }.joinToString("")
+            }
+
+            InvitationShareScreen(
+                eventId = eventId,
+                eventTitle = eventTitle,
+                invitationCode = invitationCode,
+                onDismiss = {
+                    navController.navigateUp()
+                }
+            )
+        }
+
+        // ========================================
         // PARTICIPANT & POLL MANAGEMENT
         // ========================================
-        
+
         composable(
             route = Screen.ParticipantManagement.route,
             arguments = listOf(navArgument("eventId") { type = NavType.StringType })
@@ -562,6 +601,9 @@ fun WakeveNavHost(
                 },
                 onBack = {
                     // Inbox is a main tab, no back navigation
+                },
+                onNavigateToNotifications = {
+                    navController.navigate(Screen.NotificationPreferences.route)
                 }
             )
         }
@@ -812,6 +854,56 @@ fun WakeveNavHost(
             )
         }
         
+        // ========================================
+        // NOTIFICATIONS
+        // ========================================
+
+        composable(Screen.Notifications.route) {
+            NotificationsScreen(
+                onBack = {
+                    navController.navigateUp()
+                },
+                onNavigateToPreferences = {
+                    navController.navigate(Screen.NotificationPreferences.route)
+                },
+                onNotificationClick = { eventId ->
+                    navController.navigate(Screen.EventDetail.createRoute(eventId))
+                }
+            )
+        }
+
+        composable(Screen.NotificationPreferences.route) {
+            NotificationPreferencesScreen(
+                onBack = {
+                    navController.navigateUp()
+                }
+            )
+        }
+
+        // ========================================
+        // GAMIFICATION
+        // ========================================
+
+        composable(Screen.Leaderboard.route) {
+            LeaderboardScreen(
+                onNavigateBack = {
+                    navController.navigateUp()
+                }
+            )
+        }
+
+        // ========================================
+        // ORGANIZER DASHBOARD
+        // ========================================
+
+        composable(Screen.OrganizerDashboard.route) {
+            OrganizerDashboardScreen(
+                onNavigateBack = {
+                    navController.navigateUp()
+                }
+            )
+        }
+
         // ========================================
         // SCENARIO MANAGEMENT (Additional)
         // ========================================

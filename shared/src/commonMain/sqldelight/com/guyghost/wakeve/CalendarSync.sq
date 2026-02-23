@@ -1,0 +1,40 @@
+-- CalendarSync table: suivi des événements ajoutés aux calendriers natifs
+CREATE TABLE calendarSync (
+    id TEXT PRIMARY KEY,
+    eventId TEXT NOT NULL,
+    participantId TEXT NOT NULL,
+    nativeCalendarEventId TEXT,
+    syncStatus TEXT NOT NULL DEFAULT 'pending',
+    lastSyncAt TEXT,
+    UNIQUE(eventId, participantId)
+);
+
+-- Indexes
+CREATE INDEX idx_calendar_sync_event ON calendarSync(eventId);
+CREATE INDEX idx_calendar_sync_participant ON calendarSync(participantId);
+CREATE INDEX idx_calendar_sync_status ON calendarSync(syncStatus);
+
+-- Queries
+insertCalendarSync:
+INSERT INTO calendarSync(id, eventId, participantId, nativeCalendarEventId, syncStatus, lastSyncAt)
+VALUES (?, ?, ?, ?, ?, ?);
+
+updateCalendarSync:
+UPDATE calendarSync
+SET nativeCalendarEventId = ?, syncStatus = ?, lastSyncAt = ?
+WHERE id = ?;
+
+selectByEventId:
+SELECT * FROM calendarSync WHERE eventId = ? ORDER BY lastSyncAt DESC;
+
+selectByParticipantId:
+SELECT * FROM calendarSync WHERE participantId = ? ORDER BY lastSyncAt DESC;
+
+selectByEventAndParticipant:
+SELECT * FROM calendarSync WHERE eventId = ? AND participantId = ?;
+
+deleteCalendarSync:
+DELETE FROM calendarSync WHERE id = ?;
+
+deleteByEventAndParticipant:
+DELETE FROM calendarSync WHERE eventId = ? AND participantId = ?;

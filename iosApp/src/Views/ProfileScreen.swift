@@ -23,7 +23,11 @@ struct ProfileScreen: View {
                                 participationPoints: viewModel.participationPoints
                             )
                             .padding(.horizontal)
-                            
+
+                            // Level Progress Section
+                            LevelProgressSection(totalPoints: viewModel.totalPoints)
+                                .padding(.horizontal)
+
                             // Badges Section
                             BadgesSection(badges: viewModel.badges)
                             
@@ -386,6 +390,98 @@ struct LeaderboardItemView: View {
             return .accent
         default:
             return .default
+        }
+    }
+}
+
+// MARK: - Level Progress Section
+
+struct LevelProgressSection: View {
+    let totalPoints: Int
+
+    // Level thresholds matching the shared Kotlin model
+    private let levelThresholds: [(points: Int, name: String)] = [
+        (0, "Debutant"),
+        (50, "Explorateur"),
+        (150, "Contributeur"),
+        (300, "Organisateur"),
+        (500, "Expert"),
+        (800, "Maitre"),
+        (1200, "Champion"),
+        (1800, "Legende"),
+        (2500, "Mythique"),
+        (3500, "Transcendant")
+    ]
+
+    private var currentLevelIndex: Int {
+        var idx = 0
+        for i in levelThresholds.indices {
+            if totalPoints >= levelThresholds[i].points {
+                idx = i
+            } else {
+                break
+            }
+        }
+        return idx
+    }
+
+    private var currentThreshold: Int { levelThresholds[currentLevelIndex].points }
+    private var nextThreshold: Int {
+        currentLevelIndex + 1 < levelThresholds.count
+            ? levelThresholds[currentLevelIndex + 1].points
+            : currentThreshold + 1000
+    }
+    private var levelName: String { levelThresholds[currentLevelIndex].name }
+    private var level: Int { currentLevelIndex + 1 }
+    private var progress: Double {
+        let needed = Double(nextThreshold - currentThreshold)
+        if needed <= 0 { return 1.0 }
+        return Double(totalPoints - currentThreshold) / needed
+    }
+
+    var body: some View {
+        LiquidGlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Niveau \(level)")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundColor(.wakevePrimary)
+
+                        Text(levelName)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    Text("\(totalPoints) / \(nextThreshold) pts")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                // Progress bar
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(height: 8)
+
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [.wakevePrimary, .wakeveAccent]),
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .frame(width: geometry.size.width * CGFloat(progress), height: 8)
+                            .animation(.easeInOut(duration: 0.8), value: progress)
+                    }
+                }
+                .frame(height: 8)
+            }
         }
     }
 }

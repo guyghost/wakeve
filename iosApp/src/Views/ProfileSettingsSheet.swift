@@ -26,28 +26,28 @@ struct ProfileSettingsSheet: View {
                     profileCard
                         .padding(.horizontal, 16)
                     
-                    // Settings Groups
-                    VStack(spacing: 24) {
-                        // Notifications & Sync
+                    // Settings Groups - Each item in separate card with spacing
+                    VStack(spacing: 16) {
+                        // Notifications
                         settingsGroup {
                             SettingsRow(
                                 icon: "bell.fill",
                                 title: "Notifications",
                                 value: notificationsEnabled ? "Activées" : "Désactivées"
                             )
-                            
-                            Divider()
-                                .padding(.leading, 48)
-                            
+                        }
+                        
+                        // Calendar Sync
+                        settingsGroup {
                             SettingsRow(
                                 icon: "calendar",
                                 title: "Synchronisation du calendrier",
                                 value: calendarSyncEnabled ? "Oui" : "Non"
                             )
-                            
-                            Divider()
-                                .padding(.leading, 48)
-                            
+                        }
+                        
+                        // Email Notifications
+                        settingsGroup {
                             SettingsRow(
                                 icon: "envelope.fill",
                                 title: "Notifications par e-mail",
@@ -132,25 +132,27 @@ struct ProfileSettingsSheet: View {
     // MARK: - Privacy Section
     
     private var privacySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Confidentialité et informations")
-                .font(.system(size: 14, weight: .medium))
+                .font(.system(size: 13, weight: .regular))
                 .foregroundColor(.secondary)
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
             
             settingsGroup {
-                LinkRow(title: "Découvrez comment sont gérées vos données...")
-                
-                Divider()
-                    .padding(.leading, 16)
-                
-                LinkRow(title: "Aide")
-                
-                Divider()
-                    .padding(.leading, 16)
-                
-                LinkRow(title: "Conditions générales")
+                VStack(spacing: 0) {
+                    LinkRow(title: "Découvrez comment sont gérées vos données...")
+                    
+                    Divider()
+                        .padding(.leading, 16)
+                    
+                    LinkRow(title: "Aide")
+                    
+                    Divider()
+                        .padding(.leading, 16)
+                    
+                    LinkRow(title: "Conditions générales")
+                }
             }
         }
     }

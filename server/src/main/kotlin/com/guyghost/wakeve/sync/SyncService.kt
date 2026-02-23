@@ -11,16 +11,20 @@ import com.guyghost.wakeve.models.SyncParticipantData
 import com.guyghost.wakeve.models.SyncRequest
 import com.guyghost.wakeve.models.SyncResponse
 import com.guyghost.wakeve.models.SyncVoteData
+import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 
 /**
- * Service for handling offline synchronization
+ * Service de synchronisation serveur pour le traitement des changements offline
  */
 class SyncService(private val db: WakeveDb) {
 
     private val eventRepository = DatabaseEventRepository(db)
     private val userRepository = UserRepository(db)
     private val json = Json { ignoreUnknownKeys = true }
+
+    private val participantQueries = db.participantQueries
+    private val voteQueries = db.voteQueries
 
     /**
      * Process a batch of sync changes from client
@@ -103,7 +107,7 @@ class SyncService(private val db: WakeveDb) {
                 val existing = eventRepository.getEvent(change.recordId)
                 if (existing == null) {
                     // Create a full Event object from the sync data
-                    val now = java.time.Instant.now().toString()
+                    val now = getCurrentUtcIsoString()
                     val event = com.guyghost.wakeve.models.Event(
                         id = eventData.id,
                         title = eventData.title,
@@ -120,11 +124,31 @@ class SyncService(private val db: WakeveDb) {
                 }
             }
             SyncOperation.UPDATE -> {
-                // For update, we need to update the event status or other fields
-                // Since the repository doesn't have a direct update method, we'll skip this for now
+                val existing = eventRepository.getEvent(change.recordId)
+                    ?: throw IllegalArgumentException("Event not found: ${change.recordId}")
+
+                // Conflit : si la version serveur est plus recente, le serveur gagne
+                if (existing.updatedAt > change.timestamp) {
+                    throw IllegalStateException("Server version is newer for event ${change.recordId}")
+                }
+
+                // Mettre a jour l'evenement avec les donnees du client
+                val updatedEvent = existing.copy(
+                    title = eventData.title,
+                    description = eventData.description,
+                    deadline = eventData.deadline,
+                    updatedAt = getCurrentUtcIsoString()
+                )
+                eventRepository.updateEvent(updatedEvent)
             }
             SyncOperation.DELETE -> {
-                // The repository doesn't have a delete method, so we'll skip this for now
+                // Supprimer l'evenement (cascade vers time slots, participants, votes)
+                // Si l'evenement n'existe plus, on ignore silencieusement
+                val existing = eventRepository.getEvent(change.recordId)
+                if (existing != null) {
+                    eventRepository.deleteEvent(change.recordId)
+                }
+                // Deja supprime : rien a faire
             }
         }
     }
@@ -141,10 +165,36 @@ class SyncService(private val db: WakeveDb) {
                 }
             }
             SyncOperation.UPDATE -> {
-                // The repository doesn't have an update participant method, so we'll skip this for now
+                // Mettre a jour le role/statut du participant
+                val participantRecord = participantQueries
+                    .selectByEventIdAndUserId(participantData.eventId, participantData.userId)
+                    .executeAsOneOrNull()
+                    ?: throw IllegalArgumentException("Participant not found: ${participantData.userId} in event ${participantData.eventId}")
+
+                // Conflit : si la version serveur est plus recente
+                if (participantRecord.updatedAt > change.timestamp) {
+                    throw IllegalStateException("Server version is newer for participant ${change.recordId}")
+                }
+
+                val now = getCurrentUtcIsoString()
+                participantQueries.updateParticipant(
+                    role = participantRecord.role,  // Conserver le role existant (le client ne peut pas changer le role via sync)
+                    hasValidatedDate = participantRecord.hasValidatedDate,
+                    updatedAt = now,
+                    id = participantRecord.id
+                )
             }
             SyncOperation.DELETE -> {
-                // The repository doesn't have a remove participant method, so we'll skip this for now
+                // Supprimer le participant de l'evenement
+                // Les votes associes seront supprimes en cascade (FK ON DELETE CASCADE)
+                val participantRecord = participantQueries
+                    .selectByEventIdAndUserId(participantData.eventId, participantData.userId)
+                    .executeAsOneOrNull()
+
+                if (participantRecord != null) {
+                    participantQueries.deleteParticipant(participantRecord.id)
+                }
+                // Deja supprime : rien a faire
             }
         }
     }
@@ -164,40 +214,76 @@ class SyncService(private val db: WakeveDb) {
                 }
             }
             SyncOperation.UPDATE -> {
-                // The repository doesn't have an update vote method, so we'll skip this for now
+                // Mettre a jour la preference du vote (last-write-wins sur le timestamp)
+                val voteId = "vote_${voteData.slotId}_${voteData.participantId}"
+                val existingVote = voteQueries.selectById(voteId).executeAsOneOrNull()
+                    ?: throw IllegalArgumentException("Vote not found: $voteId")
+
+                // Conflit : last-write-wins base sur le timestamp
+                if (existingVote.updatedAt > change.timestamp) {
+                    throw IllegalStateException("Server version is newer for vote $voteId")
+                }
+
+                val now = getCurrentUtcIsoString()
+                voteQueries.updateVote(
+                    vote = voteData.preference,
+                    updatedAt = now,
+                    id = voteId
+                )
             }
             SyncOperation.DELETE -> {
-                // The repository doesn't have a remove vote method, so we'll skip this for now
+                // Supprimer le vote
+                val voteId = "vote_${voteData.slotId}_${voteData.participantId}"
+                val existingVote = voteQueries.selectById(voteId).executeAsOneOrNull()
+
+                if (existingVote != null) {
+                    voteQueries.deleteVote(voteId)
+                }
+                // Deja supprime : rien a faire
             }
         }
     }
 
     /**
-     * Get current server data for conflict resolution
+     * Recuperer les donnees serveur actuelles pour la resolution de conflits
      */
     private suspend fun getServerData(table: String, recordId: String): String? {
         return when (table) {
             "events" -> eventRepository.getEvent(recordId)?.let { json.encodeToString(it) }
             "participants" -> {
-                // For participants, we need to find the event and check if the user is a participant
-                // This is more complex, so we'll return null for now
-                null
+                // Le recordId pour les participants est au format "part_{eventId}_{userId}"
+                val participantRecord = participantQueries.selectById(recordId).executeAsOneOrNull()
+                if (participantRecord != null) {
+                    json.encodeToString(SyncParticipantData(
+                        eventId = participantRecord.eventId,
+                        userId = participantRecord.userId
+                    ))
+                } else {
+                    null
+                }
             }
             "votes" -> {
-                // For votes, we don't have a direct way to get a single vote
-                // So we'll return null for now
-                null
+                // Le recordId pour les votes est au format "vote_{slotId}_{participantId}"
+                val voteRecord = voteQueries.selectById(recordId).executeAsOneOrNull()
+                if (voteRecord != null) {
+                    json.encodeToString(SyncVoteData(
+                        eventId = voteRecord.eventId,
+                        participantId = voteRecord.participantId,
+                        slotId = voteRecord.timeslotId,
+                        preference = voteRecord.vote
+                    ))
+                } else {
+                    null
+                }
             }
             else -> null
         }
     }
 
     /**
-     * Get current UTC timestamp as ISO string
+     * Horodatage UTC actuel au format ISO 8601
      */
     private fun getCurrentUtcIsoString(): String {
-        // For Phase 3 Sprint 2, we use a fixed test date
-        // In Phase 4, integrate with kotlinx.datetime for full timezone support
-        return "2025-12-01T12:00:00Z"
+        return Clock.System.now().toString()
     }
 }

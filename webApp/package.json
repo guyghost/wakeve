@@ -1,21 +1,26 @@
 {
-  "name": "webApp",
+  "name": "wakeve-web",
   "version": "1.0.0",
-  "description": "Web application that uses Kotlin Multiplatform Library",
+  "description": "Wakeve - Application web de planification d'evenements",
   "type": "module",
   "scripts": {
+    "dev": "vite",
     "build": "tsc && vite build",
-    "start": "vite"
+    "start": "vite",
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "shared": "0.0.0-unspecified"
+    "react-router-dom": "^6.20.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
     "typescript": "^5.0.2",
     "vite": "^7.1.6"
   }

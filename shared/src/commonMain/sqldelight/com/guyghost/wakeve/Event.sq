@@ -57,8 +57,80 @@ ORDER BY
     CASE WHEN :orderBy = 'STATUS_DESC' THEN status END DESC
 LIMIT :limit OFFSET :offset;
 
+-- Search events with full-text filtering on title and description
+-- TODO: Replace SQL LIKE with Meilisearch or FTS5 for better performance at scale
+searchEvents:
+SELECT e.*, COUNT(p.id) AS participantCount
+FROM event e
+LEFT JOIN participant p ON p.eventId = e.id
+WHERE
+    (CASE WHEN :query IS NOT NULL AND :query != '' THEN
+        (e.title LIKE '%' || :query || '%' OR e.description LIKE '%' || :query || '%')
+    ELSE 1 END)
+    AND (CASE WHEN :category IS NOT NULL AND :category != '' THEN e.eventType = :category ELSE 1 END)
+    AND (CASE WHEN :status IS NOT NULL AND :status != '' THEN e.status = :status ELSE 1 END)
+    AND (CASE WHEN :dateFrom IS NOT NULL AND :dateFrom != '' THEN e.deadline >= :dateFrom ELSE 1 END)
+    AND (CASE WHEN :dateTo IS NOT NULL AND :dateTo != '' THEN e.deadline <= :dateTo ELSE 1 END)
+GROUP BY e.id
+ORDER BY
+    CASE WHEN :sortBy = 'RELEVANCE' AND :query IS NOT NULL AND :query != '' THEN
+        CASE WHEN e.title LIKE '%' || :query || '%' THEN 0 ELSE 1 END
+    END ASC,
+    CASE WHEN :sortBy = 'RELEVANCE' THEN e.createdAt END DESC,
+    CASE WHEN :sortBy = 'DATE' THEN e.deadline END ASC,
+    CASE WHEN :sortBy = 'POPULARITY' THEN participantCount END DESC,
+    CASE WHEN :sortBy = 'NEWEST' THEN e.createdAt END DESC
+LIMIT :limit OFFSET :offset;
+
+-- Count total search results (for pagination metadata)
+countSearchEvents:
+SELECT COUNT(DISTINCT e.id)
+FROM event e
+WHERE
+    (CASE WHEN :query IS NOT NULL AND :query != '' THEN
+        (e.title LIKE '%' || :query || '%' OR e.description LIKE '%' || :query || '%')
+    ELSE 1 END)
+    AND (CASE WHEN :category IS NOT NULL AND :category != '' THEN e.eventType = :category ELSE 1 END)
+    AND (CASE WHEN :status IS NOT NULL AND :status != '' THEN e.status = :status ELSE 1 END)
+    AND (CASE WHEN :dateFrom IS NOT NULL AND :dateFrom != '' THEN e.deadline >= :dateFrom ELSE 1 END)
+    AND (CASE WHEN :dateTo IS NOT NULL AND :dateTo != '' THEN e.deadline <= :dateTo ELSE 1 END);
+
+-- Trending events: most participants in the last N days
+selectTrending:
+SELECT e.*, COUNT(p.id) AS participantCount
+FROM event e
+LEFT JOIN participant p ON p.eventId = e.id
+WHERE e.status NOT IN ('DRAFT')
+    AND e.createdAt >= :since
+GROUP BY e.id
+ORDER BY participantCount DESC
+LIMIT :limit;
+
+-- Events by event type (for recommendations)
+selectByEventType:
+SELECT e.*, COUNT(p.id) AS participantCount
+FROM event e
+LEFT JOIN participant p ON p.eventId = e.id
+WHERE e.eventType IN (:type1, :type2, :type3)
+    AND e.status NOT IN ('DRAFT')
+GROUP BY e.id
+ORDER BY e.createdAt DESC
+LIMIT :limit;
+
+-- Events by organizer for recommendation (get user's past event types)
+selectEventTypesByOrganizer:
+SELECT DISTINCT eventType FROM event WHERE organizerId = ?;
+
+-- Events by participant (for recommendation based on past participation)
+selectEventTypesByParticipant:
+SELECT DISTINCT e.eventType FROM event e
+INNER JOIN participant p ON p.eventId = e.id
+WHERE p.userId = ?;
+
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_event_organizer ON event(organizerId, createdAt DESC);
 CREATE INDEX IF NOT EXISTS idx_event_status ON event(status, createdAt DESC);
 CREATE INDEX IF NOT EXISTS idx_event_updated ON event(updatedAt);
 CREATE INDEX IF NOT EXISTS idx_event_created_title ON event(createdAt DESC, title);
+CREATE INDEX IF NOT EXISTS idx_event_type ON event(eventType, status);
+CREATE INDEX IF NOT EXISTS idx_event_title_desc ON event(title, description);

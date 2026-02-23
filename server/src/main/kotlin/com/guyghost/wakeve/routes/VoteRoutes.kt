@@ -1,9 +1,12 @@
 package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.DatabaseEventRepository
+import com.guyghost.wakeve.gamification.GamificationService
+import com.guyghost.wakeve.gamification.PointsAction
 import com.guyghost.wakeve.models.AddVoteRequest
 import com.guyghost.wakeve.models.PollResponse
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.notification.EventNotificationTrigger
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -12,7 +15,11 @@ import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
-fun Route.voteRoutes(repository: DatabaseEventRepository) {
+fun Route.voteRoutes(
+    repository: DatabaseEventRepository,
+    eventNotificationTrigger: EventNotificationTrigger? = null,
+    gamificationService: GamificationService? = null
+) {
     route("/events/{id}/poll") {
         // GET /api/events/{id}/poll - Get poll for event
         get {
@@ -64,6 +71,23 @@ fun Route.voteRoutes(repository: DatabaseEventRepository) {
                 val result = repository.addVote(eventId, request.participantId, request.slotId, vote)
                 
                 if (result.isSuccess) {
+                    // Award points for voting (+10 points)
+                    try {
+                        gamificationService?.awardPoints(
+                            userId = request.participantId,
+                            action = PointsAction.VOTE,
+                            eventId = eventId
+                        )
+                    } catch (_: Exception) {
+                        // Non-blocking: don't fail the vote if gamification fails
+                    }
+
+                    // Trigger notification for new vote (async, non-blocking)
+                    eventNotificationTrigger?.onVoteAdded(
+                        eventId = eventId,
+                        voterId = request.participantId
+                    )
+
                     val poll = repository.getPoll(eventId)
                     if (poll != null) {
                         val response = PollResponse(

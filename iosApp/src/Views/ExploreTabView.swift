@@ -2,184 +2,498 @@ import SwiftUI
 
 // Import the Wakeve color extensions
 
-/// Explore Tab View with suggestions, ideas, and new features
+/// Explore Tab View with search, filtering, and discovery sections.
+/// Sections: "Tendances", "Pres de vous", "Recommandes pour vous"
 struct ExploreTabView: View {
+    @StateObject private var viewModel = ExploreViewModel()
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
-                    DailySuggestionSection()
-                    EventIdeasSection()
-                    NewFeaturesSection()
+                VStack(spacing: 0) {
+                    // Category filter chips
+                    CategoryChipsRow(
+                        selectedCategory: $viewModel.selectedCategory,
+                        onSelect: { category in
+                            viewModel.selectCategory(category)
+                        }
+                    )
+                    .padding(.top, 8)
+
+                    // Content
+                    if viewModel.isLoading && viewModel.trendingEvents.isEmpty {
+                        LoadingStateView()
+                    } else if viewModel.isSearching {
+                        SearchResultsSection(
+                            results: viewModel.searchResults,
+                            searchText: viewModel.searchText
+                        )
+                    } else if viewModel.trendingEvents.isEmpty && viewModel.recommendedEvents.isEmpty {
+                        ExploreEmptyStateView()
+                    } else {
+                        DiscoverySections(viewModel: viewModel)
+                    }
                 }
-                .padding()
+                .padding(.bottom, 24)
+            }
+            .refreshable {
+                viewModel.refresh()
             }
             .navigationTitle("Explorer")
+            .searchable(
+                text: $viewModel.searchText,
+                prompt: "Rechercher un evenement..."
+            )
+            .onChange(of: viewModel.searchText) { _, _ in
+                viewModel.search()
+            }
         }
     }
 }
 
-// MARK: - Liquid Glass Card (Simplified version for local use)
-struct ExploreLiquidGlassCard<Content: View>: View {
-    let content: Content
-    let cornerRadius: CGFloat
-    
-    init(
-        cornerRadius: CGFloat = 20,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.cornerRadius = cornerRadius
-        self.content = content()
-    }
-    
+// MARK: - Category Filter Chips
+
+struct CategoryChipsRow: View {
+    @Binding var selectedCategory: EventCategoryItem
+    let onSelect: (EventCategoryItem) -> Void
+
     var body: some View {
-        if #available(iOS 26.0, *) {
-            content
-                .padding()
-                .glassEffect()
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        } else {
-            // Fallback for iOS < 26
-            content
-                .padding()
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                ForEach(EventCategoryItem.allCases) { category in
+                    CategoryChip(
+                        category: category,
+                        isSelected: selectedCategory == category,
+                        onTap: {
+                            selectedCategory = category
+                            onSelect(category)
+                        }
+                    )
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
         }
     }
 }
 
-// MARK: - Liquid Glass Button (Simplified version for local use)
-struct ExploreLiquidGlassButton: View {
+struct CategoryChip: View {
+    let category: EventCategoryItem
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 6) {
+                Image(systemName: category.icon)
+                    .font(.caption)
+                Text(category.displayName)
+                    .font(.subheadline)
+                    .fontWeight(isSelected ? .semibold : .regular)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .foregroundColor(isSelected ? .white : .primary)
+            .background(isSelected ? Color.wakeveAccent : Color.clear)
+            .clipShape(Capsule())
+            .overlay(
+                Capsule()
+                    .stroke(isSelected ? Color.clear : Color.secondary.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Discovery Sections
+
+struct DiscoverySections: View {
+    @ObservedObject var viewModel: ExploreViewModel
+
+    var body: some View {
+        VStack(spacing: 24) {
+            // Trending section
+            if !viewModel.trendingEvents.isEmpty {
+                ExploreSection(
+                    title: "Tendances",
+                    icon: "flame.fill",
+                    iconColor: .orange
+                ) {
+                    HorizontalEventCards(events: viewModel.trendingEvents)
+                }
+            }
+
+            // Nearby section (placeholder until geolocation is wired)
+            if !viewModel.nearbyEvents.isEmpty {
+                ExploreSection(
+                    title: "Pres de vous",
+                    icon: "location.fill",
+                    iconColor: .blue
+                ) {
+                    HorizontalEventCards(events: viewModel.nearbyEvents)
+                }
+            }
+
+            // Recommended section
+            if !viewModel.recommendedEvents.isEmpty {
+                ExploreSection(
+                    title: "Recommandes pour vous",
+                    icon: "sparkles",
+                    iconColor: .wakeveAccent
+                ) {
+                    HorizontalEventCards(events: viewModel.recommendedEvents)
+                }
+            }
+
+            // Ideas section (kept from original)
+            EventIdeasSection()
+                .padding(.horizontal, 16)
+        }
+        .padding(.top, 8)
+    }
+}
+
+// MARK: - Section Container
+
+struct ExploreSection<Content: View>: View {
     let title: String
-    let icon: String?
-    let action: () -> Void
-    
+    let icon: String
+    let iconColor: Color
+    let content: () -> Content
+
     init(
-        _ title: String,
-        icon: String? = nil,
-        action: @escaping () -> Void
+        title: String,
+        icon: String,
+        iconColor: Color,
+        @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
         self.icon = icon
-        self.action = action
+        self.iconColor = iconColor
+        self.content = content
     }
-    
+
     var body: some View {
-        Button(action: action) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 8) {
-                if let icon = icon {
-                    Image(systemName: icon)
-                }
+                Image(systemName: icon)
+                    .foregroundColor(iconColor)
                 Text(title)
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
             }
-            .font(.headline)
-            .foregroundColor(.primary)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+
+            content()
         }
-        .exploreLiquidGlassButtonStyle()
     }
 }
 
-// MARK: - Button Style with Liquid Glass
-struct ExploreLiquidGlassButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
+// MARK: - Horizontal Event Cards
+
+struct HorizontalEventCards: View {
+    let events: [ExploreEventItem]
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 14) {
+                ForEach(events) { event in
+                    ExploreEventCard(event: event)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+}
+
+// MARK: - Event Card
+
+struct ExploreEventCard: View {
+    let event: ExploreEventItem
+
+    var body: some View {
         if #available(iOS 26.0, *) {
-            configuration.label
-                .glassEffect(.regular.interactive())
-                .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-                .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
+            cardContent
+                .frame(width: 240)
+                .padding()
+                .glassEffect()
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         } else {
-            // Fallback for iOS < 26
-            configuration.label
+            cardContent
+                .frame(width: 240)
+                .padding()
                 .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
-                .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+        }
+    }
+
+    private var cardContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Type badge and icon
+            HStack {
+                Image(systemName: event.icon)
+                    .font(.title2)
+                    .foregroundColor(event.accentColor)
+                Spacer()
+                Text(event.eventTypeDisplayName)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(event.accentColor.opacity(0.15))
+                    .foregroundColor(event.accentColor)
+                    .clipShape(Capsule())
+            }
+
+            // Title
+            Text(event.title)
+                .font(.headline)
+                .foregroundColor(.primary)
+                .lineLimit(2)
+
+            // Description
+            Text(event.description)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(2)
+
+            // Location if available
+            if let locationName = event.locationName {
+                HStack(spacing: 4) {
+                    Image(systemName: "mappin")
+                        .font(.caption2)
+                    Text(locationName)
+                        .font(.caption2)
+                }
+                .foregroundColor(.secondary)
+            }
+
+            // Participant count
+            HStack(spacing: 4) {
+                Image(systemName: "person.2.fill")
+                    .font(.caption2)
+                if let max = event.maxParticipants {
+                    Text("\(event.participantCount)/\(max)")
+                        .font(.caption2)
+                } else {
+                    Text("\(event.participantCount) participants")
+                        .font(.caption2)
+                }
+            }
+            .foregroundColor(.secondary)
         }
     }
 }
 
-extension View {
-    func exploreLiquidGlassButtonStyle() -> some View {
-        self.buttonStyle(ExploreLiquidGlassButtonStyle())
-    }
-}
+// MARK: - Search Results Section
 
-// MARK: - Daily Suggestion Section
+struct SearchResultsSection: View {
+    let results: [ExploreEventItem]
+    let searchText: String
 
-struct DailySuggestionSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Suggestion du jour")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-            
-            ExploreLiquidGlassCard {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Large icon for the featured suggestion
-Image(systemName: "sparkles")
-                        .font(.system(size: 48))
-                        .foregroundColor(.wakeveAccent)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                    
-                    // Description
-                    Text("Découvrez de nouvelles expériences")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                        .multilineTextAlignment(.center)
-                    
-                    Text("Trouvez l'inspiration pour vos prochains événements grâce à nos suggestions personnalisées.")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(3)
-                    
-                    // Call to action button
-                    ExploreLiquidGlassButton("Créer ce type d'événement") {
-                        // Action to create this type of event
-                        print("Creating featured event type")
+            if results.isEmpty {
+                SearchEmptyStateView(searchText: searchText)
+            } else {
+                Text("\(results.count) resultats")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+
+                LazyVStack(spacing: 12) {
+                    ForEach(results) { event in
+                        SearchResultRow(event: event)
                     }
-                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 16)
             }
         }
     }
 }
 
-// MARK: - Event Ideas Section
+// MARK: - Search Result Row
+
+struct SearchResultRow: View {
+    let event: ExploreEventItem
+
+    var body: some View {
+        if #available(iOS 26.0, *) {
+            rowContent
+                .padding()
+                .glassEffect()
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        } else {
+            rowContent
+                .padding()
+                .background(.regularMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .shadow(color: .black.opacity(0.04), radius: 6, x: 0, y: 3)
+        }
+    }
+
+    private var rowContent: some View {
+        HStack(spacing: 12) {
+            // Event type icon
+            Image(systemName: event.icon)
+                .font(.title2)
+                .foregroundColor(event.accentColor)
+                .frame(width: 44, height: 44)
+                .background(event.accentColor.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(event.title)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+
+                Text(event.description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+
+                HStack(spacing: 12) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "person.2.fill")
+                            .font(.caption2)
+                        Text("\(event.participantCount)")
+                            .font(.caption2)
+                    }
+
+                    if let locationName = event.locationName {
+                        HStack(spacing: 3) {
+                            Image(systemName: "mappin")
+                                .font(.caption2)
+                            Text(locationName)
+                                .font(.caption2)
+                                .lineLimit(1)
+                        }
+                    }
+
+                    Text(event.eventTypeDisplayName)
+                        .font(.caption2)
+                        .fontWeight(.medium)
+                        .foregroundColor(event.accentColor)
+                }
+                .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+    }
+}
+
+// MARK: - Empty States
+
+struct ExploreEmptyStateView: View {
+    var body: some View {
+        VStack(spacing: 20) {
+            Spacer()
+                .frame(height: 60)
+
+            Image(systemName: "binoculars.fill")
+                .font(.system(size: 56))
+                .foregroundColor(.wakeveAccent.opacity(0.5))
+
+            Text("Rien a explorer pour le moment")
+                .font(.title3)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+
+            Text("Les evenements apparaitront ici des qu'ils seront crees. Commencez par en creer un !")
+                .font(.body)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+
+            Spacer()
+        }
+    }
+}
+
+struct SearchEmptyStateView: View {
+    let searchText: String
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer()
+                .frame(height: 60)
+
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary.opacity(0.5))
+
+            Text("Aucun resultat pour \"\(searchText)\"")
+                .font(.headline)
+                .foregroundColor(.primary)
+
+            Text("Essayez avec d'autres mots-cles ou modifiez les filtres.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+
+            Spacer()
+        }
+    }
+}
+
+struct LoadingStateView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Spacer()
+                .frame(height: 80)
+            ProgressView()
+                .scaleEffect(1.2)
+            Text("Chargement...")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            Spacer()
+        }
+    }
+}
+
+// MARK: - Event Ideas Section (kept from original)
 
 struct EventIdeasSection: View {
     let eventIdeas = [
-        EventIdea(title: "Week-end entre amis", 
-                  description: "Planifiez un week-end mémorable avec vos amis les plus proches", 
-                  icon: "sun.max.fill", 
-                  action: "Créer"),
-        EventIdea(title: "Team building", 
-                  description: "Organisez une journée de cohésion d'équipe inoubliable", 
-                  icon: "person.3.fill", 
-                  action: "Créer"),
-        EventIdea(title: "Anniversaire", 
-                  description: "Célébrez un anniversaire spécial avec style", 
-                  icon: "cake.fill", 
-                  action: "Créer"),
-        EventIdea(title: "Soirée", 
-                  description: "Organisez une soirée réussie avec vos proches", 
-                  icon: "party.popper.fill", 
-                  action: "Créer")
+        EventIdea(title: "Week-end entre amis",
+                  description: "Planifiez un week-end memorable avec vos amis les plus proches",
+                  icon: "sun.max.fill",
+                  action: "Creer"),
+        EventIdea(title: "Team building",
+                  description: "Organisez une journee de cohesion d'equipe inoubliable",
+                  icon: "person.3.fill",
+                  action: "Creer"),
+        EventIdea(title: "Anniversaire",
+                  description: "Celebrez un anniversaire special avec style",
+                  icon: "cake.fill",
+                  action: "Creer"),
+        EventIdea(title: "Soiree",
+                  description: "Organisez une soiree reussie avec vos proches",
+                  icon: "party.popper.fill",
+                  action: "Creer")
     ]
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Idées d'événements")
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-            
+            HStack(spacing: 8) {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundColor(.yellow)
+                Text("Idees d'evenements")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            }
+
             ForEach(eventIdeas, id: \.title) { idea in
                 EventIdeaCard(idea: idea)
             }
@@ -195,7 +509,7 @@ struct EventIdea: Identifiable {
     let description: String
     let icon: String
     let action: String
-    
+
     static let empty = EventIdea(title: "", description: "", icon: "questionmark", action: "")
 }
 
@@ -203,104 +517,45 @@ struct EventIdea: Identifiable {
 
 struct EventIdeaCard: View {
     let idea: EventIdea
-    
+
     var body: some View {
-        ExploreLiquidGlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Image(systemName: idea.icon)
-                        .font(.title2)
-                        .foregroundColor(.blue)
-                        .frame(width: 30)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(idea.title)
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        Text(idea.description)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
-                    }
-                    
-                    Spacer()
-                }
-                
-                ExploreLiquidGlassButton(idea.action) {
-                    // Action to create this event idea
-                    print("Creating \(idea.title)")
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
+        if #available(iOS 26.0, *) {
+            ideaContent
+                .padding()
+                .glassEffect()
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        } else {
+            ideaContent
+                .padding()
+                .background(.regularMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
         }
     }
-}
 
-// MARK: - New Features Section
-
-struct NewFeaturesSection: View {
-    let features = [
-        Feature(title: "Design Liquid Glass", 
-                description: "Découvrez l'interface moderne avec des effets de verre translucide", 
-                icon: "sparkles"),
-        Feature(title: "Navigation par tabs", 
-                description: "Naviguez facilement entre les différentes sections de l'application", 
-                icon: "rectangle.3.group.fill"),
-        Feature(title: "Cartes interactives", 
-                description: "Explorez les suggestions avec des cartes interactives et animées", 
-                icon: "rectangle.3.offgrid.bubble.left.fill")
-    ]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Nouvelles fonctionnalités")
+    private var ideaContent: some View {
+        HStack(spacing: 12) {
+            Image(systemName: idea.icon)
                 .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.primary)
-            
-            ForEach(features, id: \.title) { feature in
-                FeatureCard(feature: feature)
+                .foregroundColor(.blue)
+                .frame(width: 30)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(idea.title)
+                    .font(.headline)
+                    .foregroundColor(.primary)
+
+                Text(idea.description)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
             }
-        }
-    }
-}
 
-// MARK: - Feature Data Model
+            Spacer()
 
-struct Feature: Identifiable {
-    let id = UUID()
-    let title: String
-    let description: String
-    let icon: String
-}
-
-// MARK: - Feature Card
-
-struct FeatureCard: View {
-    let feature: Feature
-    
-    var body: some View {
-        ExploreLiquidGlassCard {
-            HStack(spacing: 12) {
-                Image(systemName: feature.icon)
-                    .font(.title3)
-                    .foregroundColor(.purple)
-                    .frame(width: 25)
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(feature.title)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
-                    Text(feature.description)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
-                }
-                
-                Spacer()
-            }
+            Image(systemName: "plus.circle.fill")
+                .font(.title3)
+                .foregroundColor(.wakeveAccent)
         }
     }
 }
@@ -315,14 +570,4 @@ struct FeatureCard: View {
 #Preview("ExploreTabView Dark") {
     ExploreTabView()
         .preferredColorScheme(.dark)
-}
-
-#Preview("Daily Suggestion Section") {
-    DailySuggestionSection()
-}
-
-#Preview("Event Ideas Section") {
-    ScrollView {
-        EventIdeasSection()
-    }
 }

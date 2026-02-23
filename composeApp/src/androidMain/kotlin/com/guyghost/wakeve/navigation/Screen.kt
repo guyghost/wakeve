@@ -91,6 +91,21 @@ sealed class Screen(val route: String) {
         fun createRoute(meetingId: String) = "meeting/$meetingId"
     }
     
+    // Invitation Share
+    data object InvitationShare : Screen("event/{eventId}/invite") {
+        fun createRoute(eventId: String) = "event/$eventId/invite"
+    }
+
     // Settings
     data object Settings : Screen("settings")
+
+    // Notifications
+    data object Notifications : Screen("notifications")
+    data object NotificationPreferences : Screen("notifications/preferences")
+
+    // Gamification
+    data object Leaderboard : Screen("leaderboard")
+
+    // Organizer Dashboard
+    data object OrganizerDashboard : Screen("organizer_dashboard")
 }

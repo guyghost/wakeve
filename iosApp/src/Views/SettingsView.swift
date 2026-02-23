@@ -7,21 +7,59 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedLocale: AppLocale = LocalizationService().getCurrentLocale()
-    
+    @State private var showNotificationPreferences = false
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(.systemBackground)
                     .ignoresSafeArea()
-                
+
                 ScrollView {
                     VStack(spacing: 24) {
+                        // Notification Preferences Section
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Notifications")
+                                .font(.title2.weight(.semibold))
+                                .foregroundColor(.primary)
+
+                            Text("Gerez vos preferences de notifications")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+
+                        LiquidGlassCard(cornerRadius: 20, padding: 16) {
+                            Button(action: { showNotificationPreferences = true }) {
+                                HStack(spacing: 14) {
+                                    Image(systemName: "bell.badge.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(.accentColor)
+                                        .frame(width: 28)
+
+                                    Text("Preferences de notifications")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(.primary)
+
+                                    Spacer()
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+
                         // Language Section Header
                         VStack(alignment: .leading, spacing: 8) {
                             Text(NSLocalizedString("language_title", comment: "Language settings header"))
                                 .font(.title2.weight(.semibold))
                                 .foregroundColor(.primary)
-                            
+
                             Text(NSLocalizedString("language_description", comment: "Language settings description"))
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
@@ -69,6 +107,11 @@ struct SettingsView: View {
                             .accessibilityLabel(NSLocalizedString("back", comment: "Back button"))
                     }
                 }
+            }
+            .sheet(isPresented: $showNotificationPreferences) {
+                NotificationPreferencesView(
+                    onDismiss: { showNotificationPreferences = false }
+                )
             }
         }
     }

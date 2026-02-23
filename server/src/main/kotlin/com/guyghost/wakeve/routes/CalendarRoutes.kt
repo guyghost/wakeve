@@ -180,14 +180,26 @@ fun io.ktor.server.routing.Route.calendarRoutes(calendarService: CalendarService
                 status = HttpStatusCode.BadRequest
             )
 
-            // Since we don't expose delete in CalendarService yet (only update/add), we might need to add it there first
-            // or just rely on platform specific client-side logic.
-            // For now, we'll keep the mock response or add the method to CalendarService if needed.
-            
-            // Note: The PlatformCalendarService interface has deleteEvent, but CalendarService doesn't expose it yet.
-            // Let's assume for now the client handles this or we add it later.
-            
-             call.respond(mapOf("success" to true))
+            try {
+                val result = calendarService.removeFromNativeCalendar(
+                    eventId = eventId,
+                    participantId = participantId
+                )
+
+                if (result.isSuccess) {
+                    call.respond(mapOf("success" to true))
+                } else {
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Unknown error"))
+                    )
+                }
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to (e.message ?: "Unknown error"))
+                )
+            }
         }
 
         /**

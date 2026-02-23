@@ -1,0 +1,97 @@
+-- Dashboard analytics queries for organizer dashboard
+-- These queries aggregate data across events, participants, votes, and comments
+
+-- Count total events created by an organizer
+countEventsByOrganizer:
+SELECT COUNT(*) AS totalEvents
+FROM event
+WHERE organizerId = ?;
+
+-- Count total participants across all events organized by a user
+countParticipantsByOrganizer:
+SELECT COUNT(DISTINCT p.id) AS totalParticipants
+FROM participant p
+INNER JOIN event e ON p.eventId = e.id
+WHERE e.organizerId = ?;
+
+-- Count events by status for an organizer
+countEventsByStatusForOrganizer:
+SELECT e.status, COUNT(*) AS count
+FROM event e
+WHERE e.organizerId = ?
+GROUP BY e.status
+ORDER BY count DESC;
+
+-- Count total votes received across all organizer's events
+countVotesByOrganizer:
+SELECT COUNT(v.id) AS totalVotes
+FROM vote v
+INNER JOIN event e ON v.eventId = e.id
+WHERE e.organizerId = ?;
+
+-- Count total comments received across all organizer's events
+countCommentsByOrganizer:
+SELECT COUNT(c.id) AS totalComments
+FROM comment c
+INNER JOIN event e ON c.event_id = e.id
+WHERE e.organizerId = ? AND c.is_deleted = 0;
+
+-- Per-event analytics: participant count, vote count, comment count for each organizer event
+selectEventAnalytics:
+SELECT
+    e.id AS eventId,
+    e.title,
+    e.status,
+    e.eventType,
+    e.createdAt,
+    e.deadline,
+    (SELECT COUNT(*) FROM participant p WHERE p.eventId = e.id) AS participantCount,
+    (SELECT COUNT(*) FROM vote v WHERE v.eventId = e.id) AS voteCount,
+    (SELECT COUNT(*) FROM comment c WHERE c.event_id = e.id AND c.is_deleted = 0) AS commentCount,
+    (SELECT COUNT(DISTINCT ts.id) FROM timeSlot ts WHERE ts.eventId = e.id) AS timeSlotCount
+FROM event e
+WHERE e.organizerId = ?
+ORDER BY e.createdAt DESC;
+
+-- Vote timeline: votes grouped by date for a specific event
+selectVoteTimeline:
+SELECT
+    DATE(v.createdAt) AS voteDate,
+    COUNT(*) AS voteCount
+FROM vote v
+WHERE v.eventId = ?
+GROUP BY DATE(v.createdAt)
+ORDER BY voteDate ASC;
+
+-- Participant join timeline: participants grouped by join date for a specific event
+selectParticipantTimeline:
+SELECT
+    DATE(p.joinedAt) AS joinDate,
+    COUNT(*) AS joinCount
+FROM participant p
+WHERE p.eventId = ?
+GROUP BY DATE(p.joinedAt)
+ORDER BY joinDate ASC;
+
+-- Most popular time slots: time slots ranked by YES votes for an event
+selectPopularTimeSlots:
+SELECT
+    ts.id AS slotId,
+    ts.startTime,
+    ts.endTime,
+    ts.timeOfDay,
+    COUNT(CASE WHEN v.vote = 'YES' THEN 1 END) AS yesVotes,
+    COUNT(CASE WHEN v.vote = 'MAYBE' THEN 1 END) AS maybeVotes,
+    COUNT(CASE WHEN v.vote = 'NO' THEN 1 END) AS noVotes,
+    COUNT(v.id) AS totalVotes
+FROM timeSlot ts
+LEFT JOIN vote v ON v.timeslotId = ts.id
+WHERE ts.eventId = ?
+GROUP BY ts.id
+ORDER BY yesVotes DESC, maybeVotes DESC;
+
+-- Poll completion rate: how many participants have voted vs total participants
+selectPollCompletionRate:
+SELECT
+    (SELECT COUNT(DISTINCT p.id) FROM participant p WHERE p.eventId = :eventId) AS totalParticipants,
+    (SELECT COUNT(DISTINCT v.participantId) FROM vote v WHERE v.eventId = :eventId) AS votedParticipants;

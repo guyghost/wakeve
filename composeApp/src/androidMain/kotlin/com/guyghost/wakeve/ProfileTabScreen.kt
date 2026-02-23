@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -72,6 +73,7 @@ fun ProfileTabScreen(
     userName: String? = null,
     onNavigateToSettings: () -> Unit,
     onNavigateToInbox: () -> Unit,
+    onNavigateToDashboard: () -> Unit = {},
     onSignOut: () -> Unit,
     onCreateAccount: () -> Unit = {}
 ) {
@@ -224,6 +226,16 @@ fun ProfileTabScreen(
                 )
             }
             
+            item {
+                ProfileActionItem(
+                    icon = Icons.Default.BarChart,
+                    title = "Tableau de bord",
+                    subtitle = "Statistiques et analytiques de vos evenements",
+                    onClick = onNavigateToDashboard,
+                    highlight = true
+                )
+            }
+
             item {
                 ProfileActionItem(
                     icon = Icons.Default.Notifications,
