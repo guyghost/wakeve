@@ -107,7 +107,8 @@ kotlin {
                 implementation(libs.ktor.clientCore)
                 implementation(libs.ktor.clientCio)
                 implementation(libs.ktor.clientContentNegotiation)
-                
+                implementation(libs.ktor.serialization)
+
                 // Firebase
                 implementation(libs.firebase.messaging)
                 

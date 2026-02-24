@@ -324,10 +324,15 @@ fun ExploreTabScreen(
                             iconTint = Color(0xFFFFC107)
                         )
                     }
-                    items(eventTemplates()) { template ->
-                        TemplateCard(template = template, onClick = {
-                            // TODO: Create event from template
-                        })
+                    item {
+                        val templates = eventTemplates()
+                        Column {
+                            templates.forEach { template ->
+                                TemplateCard(template = template, onClick = {
+                                    // TODO: Create event from template
+                                })
+                            }
+                        }
                     }
 
                     // Planning tips
@@ -339,8 +344,13 @@ fun ExploreTabScreen(
                             iconTint = MaterialTheme.colorScheme.secondary
                         )
                     }
-                    items(planningTips()) { tip ->
-                        TipCard(tip = tip)
+                    item {
+                        val tips = planningTips()
+                        Column {
+                            tips.forEach { tip ->
+                                TipCard(tip = tip)
+                            }
+                        }
                     }
                 }
             }

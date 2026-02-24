@@ -68,48 +68,61 @@ fun NotificationPreferencesScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val votesLabel = stringResource(R.string.votes)
+    val votesDesc = stringResource(R.string.prefs_votes_desc)
+    val commentsLabel = stringResource(R.string.comments)
+    val commentsDesc = stringResource(R.string.prefs_comments_desc)
+    val statusLabel = stringResource(R.string.prefs_status_changes)
+    val statusDesc = stringResource(R.string.prefs_status_changes_desc)
+    val remindersLabel = stringResource(R.string.prefs_reminders)
+    val remindersDesc = stringResource(R.string.prefs_reminders_desc)
+    val deadlinesLabel = stringResource(R.string.prefs_deadlines)
+    val deadlinesDesc = stringResource(R.string.prefs_deadlines_desc)
+    val weeklyLabel = stringResource(R.string.prefs_weekly_digest)
+    val weeklyDesc = stringResource(R.string.prefs_weekly_digest_desc)
+
     var preferences by remember {
         mutableStateOf(
             listOf(
                 PreferenceToggleItem(
                     id = "votes",
-                    label = stringResource(R.string.votes),
-                    description = stringResource(R.string.prefs_votes_desc),
+                    label = votesLabel,
+                    description = votesDesc,
                     icon = Icons.Filled.HowToVote,
                     isEnabled = true
                 ),
                 PreferenceToggleItem(
                     id = "comments",
-                    label = stringResource(R.string.comments),
-                    description = stringResource(R.string.prefs_comments_desc),
+                    label = commentsLabel,
+                    description = commentsDesc,
                     icon = Icons.Filled.ChatBubble,
                     isEnabled = true
                 ),
                 PreferenceToggleItem(
                     id = "status_changes",
-                    label = stringResource(R.string.prefs_status_changes),
-                    description = stringResource(R.string.prefs_status_changes_desc),
+                    label = statusLabel,
+                    description = statusDesc,
                     icon = Icons.Filled.SwapHoriz,
                     isEnabled = true
                 ),
                 PreferenceToggleItem(
                     id = "reminders",
-                    label = stringResource(R.string.prefs_reminders),
-                    description = stringResource(R.string.prefs_reminders_desc),
+                    label = remindersLabel,
+                    description = remindersDesc,
                     icon = Icons.Filled.Notifications,
                     isEnabled = true
                 ),
                 PreferenceToggleItem(
                     id = "deadlines",
-                    label = stringResource(R.string.prefs_deadlines),
-                    description = stringResource(R.string.prefs_deadlines_desc),
+                    label = deadlinesLabel,
+                    description = deadlinesDesc,
                     icon = Icons.Filled.AccessTime,
                     isEnabled = true
                 ),
                 PreferenceToggleItem(
                     id = "weekly_digest",
-                    label = stringResource(R.string.prefs_weekly_digest),
-                    description = stringResource(R.string.prefs_weekly_digest_desc),
+                    label = weeklyLabel,
+                    description = weeklyDesc,
                     icon = Icons.Filled.Newspaper,
                     isEnabled = false
                 )

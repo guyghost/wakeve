@@ -8,6 +8,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
+import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,18 +20,18 @@ import platform.Network.nw_path_monitor_set_update_handler
 import platform.Network.nw_path_monitor_start
 import platform.Network.nw_path_status_satisfied
 import platform.darwin.dispatch_queue_create
-import platform.darwin.DISPATCH_QUEUE_SERIAL
 
 /**
  * iOS network status detector utilisant NWPathMonitor (Network framework)
- * Surveille les changements de connectivité réseau en temps réel
+ * Surveille les changements de connectivite reseau en temps reel
  */
+@OptIn(ExperimentalForeignApi::class)
 class IosNetworkStatusDetector : NetworkStatusDetector {
     private val _isNetworkAvailable = MutableStateFlow(true)
     override val isNetworkAvailable: StateFlow<Boolean> = _isNetworkAvailable.asStateFlow()
 
     private val monitor = nw_path_monitor_create()
-    private val queue = dispatch_queue_create("com.guyghost.wakeve.network", DISPATCH_QUEUE_SERIAL)
+    private val queue = dispatch_queue_create("com.guyghost.wakeve.network", null)
 
     init {
         nw_path_monitor_set_update_handler(monitor) { path ->
@@ -42,7 +43,7 @@ class IosNetworkStatusDetector : NetworkStatusDetector {
     }
 
     /**
-     * Arrête la surveillance réseau et libère les ressources
+     * Arrete la surveillance reseau et libere les ressources
      */
     fun stop() {
         nw_path_monitor_cancel(monitor)

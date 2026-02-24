@@ -282,7 +282,7 @@ class SyncManager(
      * Clean up old sync metadata (older than 30 days)
      */
     suspend fun cleanupOldSyncData(): Result<Unit> = runCatching {
-        val thirtyDaysAgo = Clock.System.now().minus(30, DateTimeUnit.DAY).toString()
+        val thirtyDaysAgo = Clock.System.now().minus(30 * 24, DateTimeUnit.HOUR).toString()
         userRepository.cleanupOldSyncMetadata(thirtyDaysAgo)
     }
 
