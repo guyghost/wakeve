@@ -78,7 +78,8 @@ fun WakeveNavHost(
     modifier: Modifier = Modifier,
     startDestination: String = Screen.Home.route,
     userId: String,
-    onProfileClick: () -> Unit = {}
+    onProfileClick: () -> Unit = {},
+    onInboxUnreadCountChanged: ((Int) -> Unit)? = null
 ) {
     val context = LocalContext.current
     
@@ -604,7 +605,8 @@ fun WakeveNavHost(
                 },
                 onNavigateToNotifications = {
                     navController.navigate(Screen.NotificationPreferences.route)
-                }
+                },
+                onUnreadCountChanged = onInboxUnreadCountChanged
             )
         }
         

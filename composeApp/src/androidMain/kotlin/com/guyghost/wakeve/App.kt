@@ -88,6 +88,9 @@ fun App() {
     
     // Profile bottom sheet visibility
     var showProfileSheet by remember { mutableStateOf(false) }
+
+    // Inbox unread count for bottom bar badge
+    var inboxUnreadCount by remember { mutableStateOf(0) }
     
     // Check onboarding status on first composition
     LaunchedEffect(Unit) {
@@ -155,7 +158,10 @@ fun App() {
         Scaffold(
             bottomBar = {
                 if (showBottomBar) {
-                    WakeveBottomBar(navController = navController)
+                    WakeveBottomBar(
+                        navController = navController,
+                        inboxUnreadCount = inboxUnreadCount
+                    )
                 }
             }
         ) { paddingValues ->
@@ -164,7 +170,8 @@ fun App() {
                 modifier = Modifier.padding(paddingValues),
                 startDestination = startDestination,
                 userId = userId,
-                onProfileClick = { showProfileSheet = true }
+                onProfileClick = { showProfileSheet = true },
+                onInboxUnreadCountChanged = { count -> inboxUnreadCount = count }
             )
         }
         
