@@ -28,7 +28,7 @@ struct ExploreTabView: View {
                         )
                     } else {
                         // Scenario grid always visible
-                        ScenarioGridSection()
+                        ScenarioGridSection(selectedCategory: viewModel.selectedCategory)
                             .padding(.top, 8)
 
                         if viewModel.isLoading && viewModel.trendingEvents.isEmpty {
@@ -162,10 +162,20 @@ struct DiscoverySections: View {
 // MARK: - Scenario Grid Section ("A decouvrir")
 
 struct ScenarioGridSection: View {
+    let selectedCategory: EventCategoryItem
+
     let columns = [
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12)
     ]
+
+    private var filteredScenarios: [EventScenario] {
+        if selectedCategory == .all {
+            return EventScenario.allScenarios.filter { $0.isFeatured }
+        } else {
+            return EventScenario.allScenarios.filter { $0.category == selectedCategory }
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -180,7 +190,7 @@ struct ScenarioGridSection: View {
             .padding(.horizontal, 16)
 
             LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(EventScenario.allScenarios) { scenario in
+                ForEach(filteredScenarios) { scenario in
                     NavigationLink(value: scenario) {
                         ScenarioCard(scenario: scenario)
                     }

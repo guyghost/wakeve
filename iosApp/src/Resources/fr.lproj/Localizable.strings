@@ -684,3 +684,185 @@
 "scenario.afterwork.check2" = "Sonder les disponibilités";
 "scenario.afterwork.check3" = "Réserver une table si nécessaire";
 "scenario.afterwork.check4" = "Partager l'adresse et les détails";
+
+// MARK: - New Explore Scenarios
+
+// Picnic (Social)
+"scenario.picnic.title" = "Pique-nique au parc";
+"scenario.picnic.subtitle" = "Profitez du beau temps entre amis";
+"scenario.picnic.description" = "Organisez un pique-nique convivial dans votre parc préféré. Chacun apporte quelque chose et vous profitez ensemble d'un moment en plein air.";
+"scenario.picnic.suggested_title" = "Pique-nique entre amis";
+"scenario.picnic.check1" = "Choisir le parc et vérifier la météo";
+"scenario.picnic.check2" = "Répartir les plats à apporter";
+"scenario.picnic.check3" = "Trouver la date avec le sondage";
+"scenario.picnic.check4" = "Prévoir nappes, couverts et jeux";
+
+// Game Night (Social)
+"scenario.game_night.title" = "Soirée jeux de société";
+"scenario.game_night.subtitle" = "Défiez vos amis autour d'un plateau";
+"scenario.game_night.description" = "Réunissez vos amis pour une soirée jeux mémorable. Choisissez les jeux ensemble, préparez les snacks et que le meilleur gagne !";
+"scenario.game_night.suggested_title" = "Soirée jeux";
+"scenario.game_night.check1" = "Choisir les jeux à prévoir";
+"scenario.game_night.check2" = "Trouver la date avec le sondage";
+"scenario.game_night.check3" = "Organiser les snacks et boissons";
+"scenario.game_night.check4" = "Définir le lieu (chez qui ?)";
+
+// Dinner (Social)
+"scenario.dinner.title" = "Dîner entre amis";
+"scenario.dinner.subtitle" = "Partagez un bon repas ensemble";
+"scenario.dinner.description" = "Organisez un dîner chaleureux entre amis. Que ce soit au restaurant ou chez l'un d'entre vous, trouvez le créneau parfait pour vous retrouver.";
+"scenario.dinner.suggested_title" = "Dîner entre amis";
+"scenario.dinner.check1" = "Choisir restaurant ou hôte";
+"scenario.dinner.check2" = "Sonder les disponibilités";
+"scenario.dinner.check3" = "Réserver si nécessaire";
+"scenario.dinner.check4" = "Partager l'adresse et le menu";
+
+// Tournament (Sport)
+"scenario.tournament.title" = "Tournoi sportif entre amis";
+"scenario.tournament.subtitle" = "Organisez une compétition amicale";
+"scenario.tournament.description" = "Mettez en place un tournoi sportif entre amis. Foot, basket, pétanque ou badminton — trouvez le sport et la date qui plaisent à tous.";
+"scenario.tournament.suggested_title" = "Tournoi sportif";
+"scenario.tournament.check1" = "Choisir le sport et le format";
+"scenario.tournament.check2" = "Réserver un terrain ou un lieu";
+"scenario.tournament.check3" = "Former les équipes";
+"scenario.tournament.check4" = "Trouver la date avec le sondage";
+
+// Yoga (Sport)
+"scenario.yoga.title" = "Session yoga en groupe";
+"scenario.yoga.subtitle" = "Détendez-vous ensemble";
+"scenario.yoga.description" = "Organisez une session de yoga entre amis ou collègues. En plein air ou en salle, trouvez le moment idéal pour pratiquer ensemble.";
+"scenario.yoga.suggested_title" = "Yoga en groupe";
+"scenario.yoga.check1" = "Choisir le type de yoga et le niveau";
+"scenario.yoga.check2" = "Trouver un lieu ou un prof";
+"scenario.yoga.check3" = "Sonder les disponibilités";
+"scenario.yoga.check4" = "Prévoir tapis et bouteilles d'eau";
+
+// Cycling (Sport)
+"scenario.cycling.title" = "Sortie vélo en groupe";
+"scenario.cycling.subtitle" = "Pédalez entre amis";
+"scenario.cycling.description" = "Planifiez une sortie vélo en groupe. Choisissez l'itinéraire, le niveau de difficulté et partez à l'aventure ensemble.";
+"scenario.cycling.suggested_title" = "Sortie vélo";
+"scenario.cycling.check1" = "Choisir l'itinéraire et la distance";
+"scenario.cycling.check2" = "Vérifier le niveau de chacun";
+"scenario.cycling.check3" = "Trouver la date avec le sondage";
+"scenario.cycling.check4" = "Prévoir eau, crevaison et pause café";
+
+// Museum (Culture)
+"scenario.museum.title" = "Visite musée en groupe";
+"scenario.museum.subtitle" = "Explorez l'art et l'histoire ensemble";
+"scenario.museum.description" = "Organisez une visite culturelle en groupe. Musée, exposition ou galerie — trouvez la date et le lieu qui inspirent tout le monde.";
+"scenario.museum.suggested_title" = "Visite musée";
+"scenario.museum.check1" = "Choisir le musée ou l'exposition";
+"scenario.museum.check2" = "Vérifier les horaires et tarifs";
+"scenario.museum.check3" = "Sonder les disponibilités";
+"scenario.museum.check4" = "Réserver les billets si nécessaire";
+
+// Creative (Culture)
+"scenario.creative.title" = "Atelier créatif entre amis";
+"scenario.creative.subtitle" = "Libérez votre créativité ensemble";
+"scenario.creative.description" = "Organisez un atelier créatif : peinture, poterie, couture ou DIY. Partagez un moment artistique et repartez avec votre création.";
+"scenario.creative.suggested_title" = "Atelier créatif";
+"scenario.creative.check1" = "Choisir le type d'atelier";
+"scenario.creative.check2" = "Réserver auprès d'un animateur";
+"scenario.creative.check3" = "Trouver la date avec le sondage";
+"scenario.creative.check4" = "Prévoir le matériel nécessaire";
+
+// Theater (Culture)
+"scenario.theater.title" = "Sortie théâtre entre amis";
+"scenario.theater.subtitle" = "Vivez le spectacle ensemble";
+"scenario.theater.description" = "Planifiez une sortie au théâtre en groupe. Choisissez la pièce, réservez les places et passez une soirée culturelle mémorable.";
+"scenario.theater.suggested_title" = "Sortie théâtre";
+"scenario.theater.check1" = "Choisir le spectacle";
+"scenario.theater.check2" = "Vérifier les dates et disponibilités";
+"scenario.theater.check3" = "Réserver les places groupées";
+"scenario.theater.check4" = "Organiser le point de rendez-vous";
+
+// Hackathon (Professional)
+"scenario.hackathon.title" = "Hackathon d'équipe";
+"scenario.hackathon.subtitle" = "Innovez ensemble en un temps record";
+"scenario.hackathon.description" = "Organisez un hackathon pour stimuler la créativité de votre équipe. Définissez le thème, formez les équipes et codez ensemble.";
+"scenario.hackathon.suggested_title" = "Hackathon";
+"scenario.hackathon.check1" = "Définir le thème et les objectifs";
+"scenario.hackathon.check2" = "Réserver un espace de travail";
+"scenario.hackathon.check3" = "Former les équipes";
+"scenario.hackathon.check4" = "Prévoir repas et rafraîchissements";
+
+// Seminar (Professional)
+"scenario.seminar.title" = "Séminaire d'entreprise";
+"scenario.seminar.subtitle" = "Rassemblez votre équipe pour avancer";
+"scenario.seminar.description" = "Planifiez un séminaire d'entreprise productif. Trouvez le lieu, la date et le programme qui permettront à votre équipe de progresser.";
+"scenario.seminar.suggested_title" = "Séminaire d'entreprise";
+"scenario.seminar.check1" = "Définir les objectifs et le programme";
+"scenario.seminar.check2" = "Réserver le lieu et l'hébergement";
+"scenario.seminar.check3" = "Sonder les disponibilités de l'équipe";
+"scenario.seminar.check4" = "Organiser la logistique (transport, repas)";
+
+// Wine (Food)
+"scenario.wine.title" = "Dégustation de vins";
+"scenario.wine.subtitle" = "Découvrez de nouveaux crus ensemble";
+"scenario.wine.description" = "Organisez une dégustation de vins entre amis. Chez un caviste, dans un vignoble ou à domicile — partagez un moment œnologique convivial.";
+"scenario.wine.suggested_title" = "Dégustation de vins";
+"scenario.wine.check1" = "Choisir le lieu (cave, vignoble, maison)";
+"scenario.wine.check2" = "Sélectionner les vins ou le thème";
+"scenario.wine.check3" = "Trouver la date avec le sondage";
+"scenario.wine.check4" = "Prévoir fromages et accompagnements";
+
+// BBQ (Food)
+"scenario.bbq.title" = "Barbecue entre amis";
+"scenario.bbq.subtitle" = "Grillez et profitez ensemble";
+"scenario.bbq.description" = "Organisez un barbecue convivial. Choisissez le lieu, répartissez les courses et profitez d'un moment gourmand en plein air.";
+"scenario.bbq.suggested_title" = "Barbecue entre amis";
+"scenario.bbq.check1" = "Choisir le lieu (jardin, parc, terrasse)";
+"scenario.bbq.check2" = "Répartir les courses et grillades";
+"scenario.bbq.check3" = "Trouver la date avec le sondage";
+"scenario.bbq.check4" = "Vérifier la météo et prévoir un plan B";
+
+// Theme Dinner (Food)
+"scenario.theme_dinner.title" = "Dîner à thème";
+"scenario.theme_dinner.subtitle" = "Voyagez par les saveurs";
+"scenario.theme_dinner.description" = "Organisez un dîner à thème : cuisine italienne, japonaise, mexicaine... Choisissez le thème, répartissez les plats et régalez-vous.";
+"scenario.theme_dinner.suggested_title" = "Dîner à thème";
+"scenario.theme_dinner.check1" = "Choisir le thème culinaire";
+"scenario.theme_dinner.check2" = "Répartir les plats à préparer";
+"scenario.theme_dinner.check3" = "Trouver la date avec le sondage";
+"scenario.theme_dinner.check4" = "Prévoir la décoration assortie";
+
+// Retreat (Wellness)
+"scenario.retreat.title" = "Retraite bien-être";
+"scenario.retreat.subtitle" = "Ressourcez-vous en groupe";
+"scenario.retreat.description" = "Organisez une retraite bien-être entre amis. Yoga, méditation, nature — trouvez le lieu et le moment pour vous ressourcer ensemble.";
+"scenario.retreat.suggested_title" = "Retraite bien-être";
+"scenario.retreat.check1" = "Choisir le lieu et la durée";
+"scenario.retreat.check2" = "Définir le programme d'activités";
+"scenario.retreat.check3" = "Sonder les disponibilités";
+"scenario.retreat.check4" = "Organiser transport et hébergement";
+
+// Spa (Wellness)
+"scenario.spa.title" = "Journée spa entre amis";
+"scenario.spa.subtitle" = "Offrez-vous un moment de détente";
+"scenario.spa.description" = "Planifiez une journée spa relaxante. Hammam, sauna, massages — trouvez le spa et la date qui conviennent à tous pour décompresser.";
+"scenario.spa.suggested_title" = "Journée spa";
+"scenario.spa.check1" = "Choisir le spa et les soins";
+"scenario.spa.check2" = "Vérifier les tarifs et forfaits groupe";
+"scenario.spa.check3" = "Trouver la date avec le sondage";
+"scenario.spa.check4" = "Réserver les soins à l'avance";
+
+// Meditation (Wellness)
+"scenario.meditation.title" = "Méditation en groupe";
+"scenario.meditation.subtitle" = "Trouvez la sérénité ensemble";
+"scenario.meditation.description" = "Organisez une session de méditation guidée en groupe. En plein air ou en salle, trouvez le cadre idéal pour un moment de calme partagé.";
+"scenario.meditation.suggested_title" = "Méditation en groupe";
+"scenario.meditation.check1" = "Choisir le type de méditation";
+"scenario.meditation.check2" = "Trouver un guide ou une app";
+"scenario.meditation.check3" = "Sonder les disponibilités";
+"scenario.meditation.check4" = "Préparer le lieu (coussins, ambiance)";
+
+// Forest (Wellness)
+"scenario.forest.title" = "Balade en forêt";
+"scenario.forest.subtitle" = "Reconnectez-vous à la nature";
+"scenario.forest.description" = "Organisez une balade ressourçante en forêt. Marche douce, bain de forêt ou cueillette — profitez de la nature en bonne compagnie.";
+"scenario.forest.suggested_title" = "Balade en forêt";
+"scenario.forest.check1" = "Choisir le sentier et la durée";
+"scenario.forest.check2" = "Vérifier la météo";
+"scenario.forest.check3" = "Trouver la date avec le sondage";
+"scenario.forest.check4" = "Prévoir chaussures et pique-nique";
