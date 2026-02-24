@@ -88,12 +88,13 @@ kotlin {
             dependencies {
                 // SQLDelight
                 implementation(libs.sqldelight.iosDriver)
-                
+
                 // Ktor client
                 implementation(libs.ktor.clientCore)
                 implementation(libs.ktor.clientCio)
                 implementation(libs.ktor.clientContentNegotiation)
                 implementation(libs.ktor.clientWebsocket)
+                implementation(libs.ktor.serialization)
             }
         }
         

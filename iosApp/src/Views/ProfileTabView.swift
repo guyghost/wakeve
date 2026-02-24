@@ -29,7 +29,7 @@ struct ProfileTabView: View {
                     GamificationSummarySection()
 
                     // Gamification: Badges
-                    BadgesSection()
+                    ProfileTabBadgesSection()
 
                     // Leaderboard Link
                     LeaderboardLinkSection(showLeaderboard: $showLeaderboard)
@@ -567,7 +567,7 @@ struct PointsBreakdownRow: View {
 
 // MARK: - Badges Section
 
-struct BadgesSection: View {
+fileprivate struct ProfileTabBadgesSection: View {
     // Mock data - in production, this comes from GamificationService
     private var earnedBadges: [(id: String, name: String, icon: String, rarity: String)] {
         [
@@ -609,7 +609,7 @@ struct BadgesSection: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
                     ForEach(earnedBadges, id: \.id) { badge in
-                        BadgeItemView(
+                        ProfileTabBadgeItemView(
                             name: badge.name,
                             icon: badge.icon,
                             rarity: badge.rarity,
@@ -619,7 +619,7 @@ struct BadgesSection: View {
 
                     // Locked badges
                     ForEach(lockedBadges, id: \.id) { badge in
-                        BadgeItemView(
+                        ProfileTabBadgeItemView(
                             name: badge.name,
                             icon: "\u{1F512}",
                             rarity: badge.rarity,
@@ -632,7 +632,7 @@ struct BadgesSection: View {
     }
 }
 
-struct BadgeItemView: View {
+fileprivate struct ProfileTabBadgeItemView: View {
     let name: String
     let icon: String
     let rarity: String

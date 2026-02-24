@@ -94,6 +94,7 @@ class AndroidTextToSpeechService(
             Language.ES -> Locale("es")
             Language.DE -> Locale.GERMAN
             Language.IT -> Locale.ITALIAN
+            Language.PT -> Locale("pt")
         }
     }
     

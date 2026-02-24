@@ -577,16 +577,16 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
      */
     fun getRecommendedEvents(userId: String, limit: Int): RecommendedEventsResponse {
         // Get event types from user's organized events
-        val organizerTypes = eventQueries.selectEventTypesByOrganizer(userId)
+        val organizerTypes: List<String> = eventQueries.selectEventTypesByOrganizer(userId)
             .executeAsList()
-            .filterNotNull()
+            .mapNotNull { it?.toString() }
 
         // Get event types from user's participated events
-        val participantTypes = eventQueries.selectEventTypesByParticipant(userId)
+        val participantTypes: List<String> = eventQueries.selectEventTypesByParticipant(userId)
             .executeAsList()
-            .filterNotNull()
+            .mapNotNull { it?.toString() }
 
-        val preferredTypes = (organizerTypes + participantTypes).distinct()
+        val preferredTypes: List<String> = (organizerTypes + participantTypes).distinct()
 
         if (preferredTypes.isEmpty()) {
             // No history, return popular events as fallback
@@ -599,9 +599,9 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
         }
 
         // Pad types to 3 for the SQL query (uses :type1, :type2, :type3)
-        val type1 = preferredTypes.getOrElse(0) { preferredTypes.first() }
-        val type2 = preferredTypes.getOrElse(1) { type1 }
-        val type3 = preferredTypes.getOrElse(2) { type1 }
+        val type1: String = preferredTypes.getOrElse(0) { preferredTypes.first() }
+        val type2: String = preferredTypes.getOrElse(1) { type1 }
+        val type3: String = preferredTypes.getOrElse(2) { type1 }
 
         val rows = eventQueries.selectByEventType(
             type1 = type1,
@@ -824,8 +824,9 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
                     .selectWithTimeslotDetails(row.id)
                     .executeAsOneOrNull()
                 if (confirmedWithDetails != null) {
+                    val startTime = confirmedWithDetails.startTime ?: return@mapNotNull null
                     val dateMs = runCatching {
-                        kotlinx.datetime.Instant.parse(confirmedWithDetails.startTime).toEpochMilliseconds()
+                        kotlinx.datetime.Instant.parse(startTime).toEpochMilliseconds()
                     }.getOrNull() ?: return@mapNotNull null
                     // Meme jour (arrondi au jour)
                     val todayDay = todayMs / 86_400_000
