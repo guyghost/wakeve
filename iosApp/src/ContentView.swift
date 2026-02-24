@@ -136,8 +136,9 @@ struct AuthenticatedView: View {
     // Profile sheet state
     @State private var showProfileSheet = false
 
-    // Notifications sheet state
+    // Notifications state
     @State private var showNotificationPreferencesSheet = false
+    @State private var unreadInboxCount: Int = 0
 
     // Get auth state from environment
     @EnvironmentObject var authStateManager: AuthStateManager
@@ -157,7 +158,7 @@ struct AuthenticatedView: View {
                     Label("Inbox", systemImage: "tray.fill")
                 }
                 .tag(WakeveTab.inbox)
-                .badge(3) // TODO: Connect to real notification count
+                .badge(unreadInboxCount)
 
             tabContent(for: .explore)
                 .tabItem {
@@ -480,7 +481,8 @@ struct AuthenticatedView: View {
         case .inbox:
             InboxView(
                 userId: userId,
-                onBack: { /* Inbox handled by tab */ }
+                onBack: { /* Inbox handled by tab */ },
+                unreadCount: $unreadInboxCount
             )
         }
     }
@@ -495,7 +497,8 @@ struct AuthenticatedView: View {
         case .inbox:
             InboxView(
                 userId: userId,
-                onBack: { /* Inbox is main tab, no back action needed */ }
+                onBack: { /* Inbox is main tab, no back action needed */ },
+                unreadCount: $unreadInboxCount
             )
         case .explore:
             ExploreTabView()
