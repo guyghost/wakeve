@@ -19,7 +19,8 @@ import SwiftUI
 struct InboxView: View {
     let userId: String
     let onBack: () -> Void
-    
+    @Binding var unreadCount: Int
+
     @State private var selectedFilter: InboxFilter = .inbox
     @State private var showNotificationBanner = true
     @State private var items: [InboxItemModel] = []
@@ -118,6 +119,9 @@ struct InboxView: View {
             }
         }
         .onAppear(perform: loadItems)
+        .onChange(of: items) { _, newItems in
+            unreadCount = newItems.filter { !$0.isRead }.count
+        }
     }
     
     // MARK: - Header View
@@ -826,7 +830,7 @@ enum InboxFilter {
     case inbox, focused, unread, event
 }
 
-struct InboxItemModel: Identifiable {
+struct InboxItemModel: Identifiable, Equatable {
     let id: String
     var title: String
     var message: String
@@ -975,15 +979,15 @@ private let sampleInboxItems: [InboxItemModel] = [
 // MARK: - Preview
 
 #Preview("InboxView - Default") {
-    InboxView(userId: "preview-user") {
+    InboxView(userId: "preview-user", onBack: {
         print("Back tapped")
-    }
+    }, unreadCount: .constant(0))
 }
 
 #Preview("InboxView - Empty") {
-    InboxView(userId: "preview-user") {
+    InboxView(userId: "preview-user", onBack: {
         print("Back tapped")
-    }
+    }, unreadCount: .constant(0))
     .onAppear {
         // Simulate empty state
     }
