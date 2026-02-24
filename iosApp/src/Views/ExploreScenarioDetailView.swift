@@ -16,7 +16,7 @@ struct ExploreScenarioDetailView: View {
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
-                    .frame(height: 220)
+                    .frame(height: 260)
 
                     VStack(alignment: .leading, spacing: 8) {
                         Image(systemName: scenario.icon)
@@ -89,6 +89,7 @@ struct ExploreScenarioDetailView: View {
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 
     private func createEvent() {
