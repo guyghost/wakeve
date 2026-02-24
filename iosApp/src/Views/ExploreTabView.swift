@@ -20,22 +20,14 @@ struct ExploreTabView: View {
                     )
                     .padding(.top, 8)
 
-                    // Content
-                    if viewModel.isSearching {
-                        SearchResultsSection(
-                            results: viewModel.searchResults,
-                            searchText: viewModel.searchText
-                        )
-                    } else {
-                        // Scenario grid always visible
-                        ScenarioGridSection(selectedCategory: viewModel.selectedCategory)
-                            .padding(.top, 8)
+                    // Scenario grid always visible
+                    ScenarioGridSection(selectedCategory: viewModel.selectedCategory)
+                        .padding(.top, 8)
 
-                        if viewModel.isLoading && viewModel.trendingEvents.isEmpty {
-                            LoadingStateView()
-                        } else {
-                            DiscoverySections(viewModel: viewModel)
-                        }
+                    if viewModel.isLoading && viewModel.trendingEvents.isEmpty {
+                        LoadingStateView()
+                    } else {
+                        DiscoverySections(viewModel: viewModel)
                     }
                 }
                 .padding(.bottom, 24)
@@ -44,13 +36,6 @@ struct ExploreTabView: View {
                 viewModel.refresh()
             }
             .navigationTitle(String(localized: "explore.title"))
-            .searchable(
-                text: $viewModel.searchText,
-                prompt: String(localized: "explore.search_prompt")
-            )
-            .onChange(of: viewModel.searchText) { _, _ in
-                viewModel.search()
-            }
             .navigationDestination(for: EventScenario.self) { scenario in
                 ExploreScenarioDetailView(scenario: scenario)
             }
