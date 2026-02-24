@@ -21,17 +21,21 @@ struct ExploreTabView: View {
                     .padding(.top, 8)
 
                     // Content
-                    if viewModel.isLoading && viewModel.trendingEvents.isEmpty {
-                        LoadingStateView()
-                    } else if viewModel.isSearching {
+                    if viewModel.isSearching {
                         SearchResultsSection(
                             results: viewModel.searchResults,
                             searchText: viewModel.searchText
                         )
-                    } else if viewModel.trendingEvents.isEmpty && viewModel.recommendedEvents.isEmpty {
-                        ExploreEmptyStateView()
                     } else {
-                        DiscoverySections(viewModel: viewModel)
+                        // Scenario grid always visible
+                        ScenarioGridSection()
+                            .padding(.top, 8)
+
+                        if viewModel.isLoading && viewModel.trendingEvents.isEmpty {
+                            LoadingStateView()
+                        } else {
+                            DiscoverySections(viewModel: viewModel)
+                        }
                     }
                 }
                 .padding(.bottom, 24)
@@ -118,9 +122,6 @@ struct DiscoverySections: View {
 
     var body: some View {
         VStack(spacing: 24) {
-            // Scenario grid ("A decouvrir")
-            ScenarioGridSection()
-
             // Trending section
             if !viewModel.trendingEvents.isEmpty {
                 ExploreSection(
