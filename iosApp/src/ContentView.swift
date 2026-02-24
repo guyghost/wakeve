@@ -137,7 +137,6 @@ struct AuthenticatedView: View {
     @State private var showProfileSheet = false
 
     // Notifications sheet state
-    @State private var showNotificationsSheet = false
     @State private var showNotificationPreferencesSheet = false
 
     // Get auth state from environment
@@ -152,13 +151,13 @@ struct AuthenticatedView: View {
                     Label("Accueil", systemImage: "house.fill")
                 }
                 .tag(WakeveTab.home)
-                .badge(3) // TODO: Connect to real notification count
 
             tabContent(for: .inbox)
                 .tabItem {
                     Label("Inbox", systemImage: "tray.fill")
                 }
                 .tag(WakeveTab.inbox)
+                .badge(3) // TODO: Connect to real notification count
 
             tabContent(for: .explore)
                 .tabItem {
@@ -198,12 +197,6 @@ struct AuthenticatedView: View {
                 }
             )
         }
-        .sheet(isPresented: $showNotificationsSheet) {
-            NotificationsView(
-                userId: userId,
-                onDismiss: { showNotificationsSheet = false }
-            )
-        }
         .sheet(isPresented: $showNotificationPreferencesSheet) {
             NotificationPreferencesView(
                 onDismiss: { showNotificationPreferencesSheet = false }
@@ -231,9 +224,6 @@ struct AuthenticatedView: View {
                 onProfileClick: {
                     // Show profile settings sheet
                     showProfileSheet = true
-                },
-                onNotificationsClick: {
-                    showNotificationsSheet = true
                 }
             )
             
