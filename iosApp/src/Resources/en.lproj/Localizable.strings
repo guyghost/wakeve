@@ -619,3 +619,62 @@
 "status.organizing" = "Organizing";
 "status.planned" = "Planned";
 "status.searching" = "Searching";
+
+// MARK: - Explore Scenarios
+"explore.discover" = "Discover";
+"scenario.checklist_title" = "How to organize";
+"scenario.create_event" = "Create this event";
+
+"scenario.brunch.title" = "Organize a brunch with friends";
+"scenario.brunch.subtitle" = "Find the best time to brunch";
+"scenario.brunch.description" = "Nothing beats a brunch to catch up with friends. Pick the ideal time slot, plan the menu together, and enjoy a lovely meal with your crew.";
+"scenario.brunch.suggested_title" = "Brunch with friends";
+"scenario.brunch.check1" = "Choose a venue or host";
+"scenario.brunch.check2" = "Plan the menu and contributions";
+"scenario.brunch.check3" = "Find the ideal date with the poll";
+"scenario.brunch.check4" = "Send out invitations";
+
+"scenario.team_building.title" = "Plan your team building";
+"scenario.team_building.subtitle" = "Motivate your team";
+"scenario.team_building.description" = "Strengthen your team's bond with a memorable team building event. Find a time that works for everyone and organize an engaging activity.";
+"scenario.team_building.suggested_title" = "Team building event";
+"scenario.team_building.check1" = "Define the activity type";
+"scenario.team_building.check2" = "Book a venue or provider";
+"scenario.team_building.check3" = "Poll the team's availability";
+"scenario.team_building.check4" = "Confirm and share details";
+
+"scenario.birthday.title" = "Surprise birthday party";
+"scenario.birthday.subtitle" = "Coordinate the perfect surprise";
+"scenario.birthday.description" = "Organize a memorable birthday party in secret. Coordinate with guests to find the perfect time and prepare the surprise together.";
+"scenario.birthday.suggested_title" = "Surprise birthday";
+"scenario.birthday.check1" = "Create the guest list";
+"scenario.birthday.check2" = "Choose a theme and venue";
+"scenario.birthday.check3" = "Coordinate contributions (gift, cake)";
+"scenario.birthday.check4" = "Poll availability secretly";
+
+"scenario.cinema.title" = "Movie night at home";
+"scenario.cinema.subtitle" = "Invite your friends for a film night";
+"scenario.cinema.description" = "Host a movie night at your place or a friend's. Vote on the film together, prepare the snacks, and enjoy a relaxing evening with your crew.";
+"scenario.cinema.suggested_title" = "Movie night";
+"scenario.cinema.check1" = "Vote on which movie to watch";
+"scenario.cinema.check2" = "Pick the date with the poll";
+"scenario.cinema.check3" = "Organize snacks and drinks";
+"scenario.cinema.check4" = "Set up the viewing area (screen, sound)";
+
+"scenario.hiking.title" = "Weekend hiking trip";
+"scenario.hiking.subtitle" = "Plan a nature getaway";
+"scenario.hiking.description" = "Escape for a weekend in nature. Find the ideal date, choose the trail, and organize logistics together as a group.";
+"scenario.hiking.suggested_title" = "Group hiking trip";
+"scenario.hiking.check1" = "Choose the trail and difficulty level";
+"scenario.hiking.check2" = "Find a date that works for everyone";
+"scenario.hiking.check3" = "Organize transport and carpooling";
+"scenario.hiking.check4" = "Prepare the gear checklist";
+
+"scenario.afterwork.title" = "Afterwork with colleagues";
+"scenario.afterwork.subtitle" = "Unwind together";
+"scenario.afterwork.description" = "End the week on a high note with a casual afterwork. Find the perfect bar, poll your colleagues, and organize a relaxing moment after work.";
+"scenario.afterwork.suggested_title" = "Afterwork";
+"scenario.afterwork.check1" = "Choose a bar or restaurant";
+"scenario.afterwork.check2" = "Poll availability";
+"scenario.afterwork.check3" = "Book a table if needed";
+"scenario.afterwork.check4" = "Share the address and details";

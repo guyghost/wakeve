@@ -11,8 +11,8 @@ struct ExploreTabView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
-                    // Category filter chips
-                    CategoryChipsRow(
+                    // Category filter circles
+                    CategoryCirclesRow(
                         selectedCategory: $viewModel.selectedCategory,
                         onSelect: { category in
                             viewModel.selectCategory(category)
@@ -47,21 +47,24 @@ struct ExploreTabView: View {
             .onChange(of: viewModel.searchText) { _, _ in
                 viewModel.search()
             }
+            .navigationDestination(for: EventScenario.self) { scenario in
+                ExploreScenarioDetailView(scenario: scenario)
+            }
         }
     }
 }
 
-// MARK: - Category Filter Chips
+// MARK: - Category Circle Selectors
 
-struct CategoryChipsRow: View {
+struct CategoryCirclesRow: View {
     @Binding var selectedCategory: EventCategoryItem
     let onSelect: (EventCategoryItem) -> Void
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
+            HStack(spacing: 20) {
                 ForEach(EventCategoryItem.allCases) { category in
-                    CategoryChip(
+                    CategoryCircle(
                         category: category,
                         isSelected: selectedCategory == category,
                         onTap: {
@@ -72,36 +75,39 @@ struct CategoryChipsRow: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.vertical, 12)
         }
     }
 }
 
-struct CategoryChip: View {
+struct CategoryCircle: View {
     let category: EventCategoryItem
     let isSelected: Bool
     let onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
-            HStack(spacing: 6) {
-                Image(systemName: category.icon)
-                    .font(.caption)
+            VStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(isSelected ? category.tintColor : category.tintColor.opacity(0.12))
+                        .frame(width: 64, height: 64)
+
+                    Image(systemName: category.icon)
+                        .font(.title2)
+                        .foregroundColor(isSelected ? .white : category.tintColor)
+                }
+
                 Text(category.displayName)
-                    .font(.subheadline)
+                    .font(.caption)
                     .fontWeight(isSelected ? .semibold : .regular)
+                    .foregroundColor(isSelected ? .primary : .secondary)
+                    .lineLimit(1)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .foregroundColor(isSelected ? .white : .primary)
-            .background(isSelected ? Color.wakeveAccent : Color.clear)
-            .clipShape(Capsule())
-            .overlay(
-                Capsule()
-                    .stroke(isSelected ? Color.clear : Color.secondary.opacity(0.3), lineWidth: 1)
-            )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(category.displayName)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -112,6 +118,9 @@ struct DiscoverySections: View {
 
     var body: some View {
         VStack(spacing: 24) {
+            // Scenario grid ("A decouvrir")
+            ScenarioGridSection()
+
             // Trending section
             if !viewModel.trendingEvents.isEmpty {
                 ExploreSection(
@@ -144,12 +153,71 @@ struct DiscoverySections: View {
                     HorizontalEventCards(events: viewModel.recommendedEvents)
                 }
             }
-
-            // Ideas section (kept from original)
-            EventIdeasSection()
-                .padding(.horizontal, 16)
         }
         .padding(.top, 8)
+    }
+}
+
+// MARK: - Scenario Grid Section ("A decouvrir")
+
+struct ScenarioGridSection: View {
+    let columns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 8) {
+                Image(systemName: "sparkle")
+                    .foregroundColor(.wakeveAccent)
+                Text(String(localized: "explore.discover"))
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            }
+            .padding(.horizontal, 16)
+
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(EventScenario.allScenarios) { scenario in
+                    NavigationLink(value: scenario) {
+                        ScenarioCard(scenario: scenario)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+}
+
+struct ScenarioCard: View {
+    let scenario: EventScenario
+
+    var body: some View {
+        ZStack(alignment: .bottomLeading) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: scenario.gradientColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Spacer()
+                Text(scenario.title)
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                    .lineLimit(3)
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(14)
+        }
+        .frame(height: 140)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
@@ -457,105 +525,6 @@ struct LoadingStateView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             Spacer()
-        }
-    }
-}
-
-// MARK: - Event Ideas Section (kept from original)
-
-struct EventIdeasSection: View {
-    let eventIdeas = [
-        EventIdea(title: String(localized: "explore.ideas.weekend"),
-                  description: String(localized: "explore.ideas.weekend_desc"),
-                  icon: "sun.max.fill",
-                  action: String(localized: "explore.ideas.create")),
-        EventIdea(title: String(localized: "explore.ideas.team_building"),
-                  description: String(localized: "explore.ideas.team_building_desc"),
-                  icon: "person.3.fill",
-                  action: String(localized: "explore.ideas.create")),
-        EventIdea(title: String(localized: "explore.ideas.birthday"),
-                  description: String(localized: "explore.ideas.birthday_desc"),
-                  icon: "cake.fill",
-                  action: String(localized: "explore.ideas.create")),
-        EventIdea(title: String(localized: "explore.ideas.party"),
-                  description: String(localized: "explore.ideas.party_desc"),
-                  icon: "party.popper.fill",
-                  action: String(localized: "explore.ideas.create"))
-    ]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(spacing: 8) {
-                Image(systemName: "lightbulb.fill")
-                    .foregroundColor(.yellow)
-                Text(String(localized: "explore.event_ideas"))
-                    .font(.title3)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
-            }
-
-            ForEach(eventIdeas, id: \.title) { idea in
-                EventIdeaCard(idea: idea)
-            }
-        }
-    }
-}
-
-// MARK: - Event Idea Data Model
-
-struct EventIdea: Identifiable {
-    let id = UUID()
-    let title: String
-    let description: String
-    let icon: String
-    let action: String
-
-    static let empty = EventIdea(title: "", description: "", icon: "questionmark", action: "")
-}
-
-// MARK: - Event Idea Card
-
-struct EventIdeaCard: View {
-    let idea: EventIdea
-
-    var body: some View {
-        if #available(iOS 26.0, *) {
-            ideaContent
-                .padding()
-                .glassEffect()
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        } else {
-            ideaContent
-                .padding()
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
-        }
-    }
-
-    private var ideaContent: some View {
-        HStack(spacing: 12) {
-            Image(systemName: idea.icon)
-                .font(.title2)
-                .foregroundColor(.blue)
-                .frame(width: 30)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(idea.title)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-
-                Text(idea.description)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
-            }
-
-            Spacer()
-
-            Image(systemName: "plus.circle.fill")
-                .font(.title3)
-                .foregroundColor(.wakeveAccent)
         }
     }
 }

@@ -298,4 +298,133 @@ enum EventCategoryItem: String, CaseIterable, Identifiable {
         case .wellness: return ["WELLNESS_EVENT"]
         }
     }
+
+    var tintColor: Color {
+        switch self {
+        case .all: return .gray
+        case .social: return .blue
+        case .sport: return .green
+        case .culture: return .purple
+        case .professional: return .orange
+        case .food: return .red
+        case .wellness: return .pink
+        }
+    }
+}
+
+// MARK: - Event Scenario Model
+
+struct EventScenario: Identifiable, Hashable {
+    let id = UUID()
+    let title: String
+    let subtitle: String
+    let description: String
+    let eventType: String
+    let suggestedTitle: String
+    let checklistItems: [String]
+    let icon: String
+    let gradientColors: [Color]
+
+    static func == (lhs: EventScenario, rhs: EventScenario) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
+
+extension EventScenario {
+    static let allScenarios: [EventScenario] = [
+        EventScenario(
+            title: String(localized: "scenario.brunch.title"),
+            subtitle: String(localized: "scenario.brunch.subtitle"),
+            description: String(localized: "scenario.brunch.description"),
+            eventType: "FOOD_TASTING",
+            suggestedTitle: String(localized: "scenario.brunch.suggested_title"),
+            checklistItems: [
+                String(localized: "scenario.brunch.check1"),
+                String(localized: "scenario.brunch.check2"),
+                String(localized: "scenario.brunch.check3"),
+                String(localized: "scenario.brunch.check4")
+            ],
+            icon: "fork.knife",
+            gradientColors: [Color(hex: "F97316"), Color(hex: "DC2626")]
+        ),
+        EventScenario(
+            title: String(localized: "scenario.team_building.title"),
+            subtitle: String(localized: "scenario.team_building.subtitle"),
+            description: String(localized: "scenario.team_building.description"),
+            eventType: "TEAM_BUILDING",
+            suggestedTitle: String(localized: "scenario.team_building.suggested_title"),
+            checklistItems: [
+                String(localized: "scenario.team_building.check1"),
+                String(localized: "scenario.team_building.check2"),
+                String(localized: "scenario.team_building.check3"),
+                String(localized: "scenario.team_building.check4")
+            ],
+            icon: "person.3.fill",
+            gradientColors: [Color(hex: "2563EB"), Color(hex: "06B6D4")]
+        ),
+        EventScenario(
+            title: String(localized: "scenario.birthday.title"),
+            subtitle: String(localized: "scenario.birthday.subtitle"),
+            description: String(localized: "scenario.birthday.description"),
+            eventType: "BIRTHDAY",
+            suggestedTitle: String(localized: "scenario.birthday.suggested_title"),
+            checklistItems: [
+                String(localized: "scenario.birthday.check1"),
+                String(localized: "scenario.birthday.check2"),
+                String(localized: "scenario.birthday.check3"),
+                String(localized: "scenario.birthday.check4")
+            ],
+            icon: "cake.fill",
+            gradientColors: [Color(hex: "EC4899"), Color(hex: "8B5CF6")]
+        ),
+        EventScenario(
+            title: String(localized: "scenario.cinema.title"),
+            subtitle: String(localized: "scenario.cinema.subtitle"),
+            description: String(localized: "scenario.cinema.description"),
+            eventType: "PARTY",
+            suggestedTitle: String(localized: "scenario.cinema.suggested_title"),
+            checklistItems: [
+                String(localized: "scenario.cinema.check1"),
+                String(localized: "scenario.cinema.check2"),
+                String(localized: "scenario.cinema.check3"),
+                String(localized: "scenario.cinema.check4")
+            ],
+            icon: "film.fill",
+            gradientColors: [Color(hex: "065F46"), Color(hex: "10B981")]
+        ),
+        EventScenario(
+            title: String(localized: "scenario.hiking.title"),
+            subtitle: String(localized: "scenario.hiking.subtitle"),
+            description: String(localized: "scenario.hiking.description"),
+            eventType: "OUTDOOR_ACTIVITY",
+            suggestedTitle: String(localized: "scenario.hiking.suggested_title"),
+            checklistItems: [
+                String(localized: "scenario.hiking.check1"),
+                String(localized: "scenario.hiking.check2"),
+                String(localized: "scenario.hiking.check3"),
+                String(localized: "scenario.hiking.check4")
+            ],
+            icon: "figure.hiking",
+            gradientColors: [Color(hex: "0D9488"), Color(hex: "2563EB")]
+        ),
+        EventScenario(
+            title: String(localized: "scenario.afterwork.title"),
+            subtitle: String(localized: "scenario.afterwork.subtitle"),
+            description: String(localized: "scenario.afterwork.description"),
+            eventType: "PARTY",
+            suggestedTitle: String(localized: "scenario.afterwork.suggested_title"),
+            checklistItems: [
+                String(localized: "scenario.afterwork.check1"),
+                String(localized: "scenario.afterwork.check2"),
+                String(localized: "scenario.afterwork.check3"),
+                String(localized: "scenario.afterwork.check4")
+            ],
+            icon: "wineglass.fill",
+            gradientColors: [Color(hex: "7C3AED"), Color(hex: "4338CA")]
+        )
+    ]
 }

@@ -619,3 +619,62 @@
 "status.organizing" = "En organización";
 "status.planned" = "Planificado";
 "status.searching" = "Buscando";
+
+// MARK: - Explore Scenarios
+"explore.discover" = "Descubrir";
+"scenario.checklist_title" = "Cómo organizar";
+"scenario.create_event" = "Crear este evento";
+
+"scenario.brunch.title" = "Organiza un brunch con amigos";
+"scenario.brunch.subtitle" = "Encuentra el mejor momento para brunchar";
+"scenario.brunch.description" = "Nada mejor que un brunch para reencontrarse con amigos. Elige el horario ideal, planifica el menú juntos y disfruta de un momento agradable.";
+"scenario.brunch.suggested_title" = "Brunch con amigos";
+"scenario.brunch.check1" = "Elegir un lugar o anfitrión";
+"scenario.brunch.check2" = "Definir el menú y las contribuciones";
+"scenario.brunch.check3" = "Encontrar la fecha ideal con la encuesta";
+"scenario.brunch.check4" = "Enviar las invitaciones";
+
+"scenario.team_building.title" = "Planifica tu team building";
+"scenario.team_building.subtitle" = "Motiva a tu equipo";
+"scenario.team_building.description" = "Fortalece la cohesión de tu equipo con un evento memorable. Encuentra un horario que funcione para todos y organiza una actividad unificadora.";
+"scenario.team_building.suggested_title" = "Team building de equipo";
+"scenario.team_building.check1" = "Definir el tipo de actividad";
+"scenario.team_building.check2" = "Reservar un lugar o proveedor";
+"scenario.team_building.check3" = "Sondear la disponibilidad del equipo";
+"scenario.team_building.check4" = "Confirmar y compartir detalles";
+
+"scenario.birthday.title" = "Fiesta de cumpleaños sorpresa";
+"scenario.birthday.subtitle" = "Coordina la sorpresa perfecta";
+"scenario.birthday.description" = "Organiza una fiesta de cumpleaños memorable en secreto. Coordínate con los invitados para encontrar el momento perfecto y preparar la sorpresa.";
+"scenario.birthday.suggested_title" = "Cumpleaños sorpresa";
+"scenario.birthday.check1" = "Crear la lista de invitados";
+"scenario.birthday.check2" = "Elegir un tema y lugar";
+"scenario.birthday.check3" = "Coordinar contribuciones (regalo, pastel)";
+"scenario.birthday.check4" = "Sondear disponibilidad en secreto";
+
+"scenario.cinema.title" = "Noche de cine en casa";
+"scenario.cinema.subtitle" = "Invita a tus amigos a ver una película";
+"scenario.cinema.description" = "Organiza una noche de cine en tu casa o la de un amigo. Voten por la película juntos, preparen los snacks y disfruten de una velada relajante.";
+"scenario.cinema.suggested_title" = "Noche de cine";
+"scenario.cinema.check1" = "Votar por la película";
+"scenario.cinema.check2" = "Elegir la fecha con la encuesta";
+"scenario.cinema.check3" = "Organizar snacks y bebidas";
+"scenario.cinema.check4" = "Preparar la instalación (pantalla, sonido)";
+
+"scenario.hiking.title" = "Fin de semana de senderismo";
+"scenario.hiking.subtitle" = "Planifica una escapada a la naturaleza";
+"scenario.hiking.description" = "Escápate un fin de semana en plena naturaleza. Encuentra la fecha ideal, elige la ruta y organiza los detalles logísticos en grupo.";
+"scenario.hiking.suggested_title" = "Senderismo en grupo";
+"scenario.hiking.check1" = "Elegir la ruta y nivel de dificultad";
+"scenario.hiking.check2" = "Encontrar la fecha que convenga a todos";
+"scenario.hiking.check3" = "Organizar transporte y viaje compartido";
+"scenario.hiking.check4" = "Preparar la lista de material necesario";
+
+"scenario.afterwork.title" = "Afterwork con colegas";
+"scenario.afterwork.subtitle" = "Desconecten juntos";
+"scenario.afterwork.description" = "Termina la semana con un afterwork informal. Encuentra el bar ideal, sondea a los colegas y organiza un momento de relax después del trabajo.";
+"scenario.afterwork.suggested_title" = "Afterwork";
+"scenario.afterwork.check1" = "Elegir un bar o restaurante";
+"scenario.afterwork.check2" = "Sondear disponibilidad";
+"scenario.afterwork.check3" = "Reservar mesa si es necesario";
+"scenario.afterwork.check4" = "Compartir dirección y detalles";
