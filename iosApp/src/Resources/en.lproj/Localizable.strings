@@ -497,6 +497,8 @@
 "events.end" = "End";
 "events.location" = "Location";
 "events.preview" = "Preview";
+"events.preview.invitation_title" = "Invitation preview";
+"events.preview.invitation_description" = "This is the invitation your guests will see. In the next step, you will publish your invitation and invite people to your event.";
 "events.start" = "Start";
 "events.title_placeholder" = "Event\ntitle";
 

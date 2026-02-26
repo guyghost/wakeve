@@ -497,6 +497,8 @@
 "events.end" = "Fim";
 "events.location" = "Local";
 "events.preview" = "Pré-visualizar";
+"events.preview.invitation_title" = "Pré-visualização do convite";
+"events.preview.invitation_description" = "Este é o convite que seus convidados verão. Na próxima etapa, você publicará seu convite e convidará pessoas para o seu evento.";
 "events.start" = "Início";
 "events.title_placeholder" = "Título do\nevento";
 

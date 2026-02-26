@@ -29,6 +29,9 @@ struct CreateEventSheet: View {
     
     // Location sheet state
     @State private var showingLocationSheet = false
+
+    // Preview state
+    @State private var showingPreview = false
     
     var onEventCreated: (Event) -> Void = { _ in }
     
@@ -112,8 +115,22 @@ struct CreateEventSheet: View {
                 }
             )
         }
+        .fullScreenCover(isPresented: $showingPreview) {
+            EventPreviewSheet(
+                title: title,
+                description: description,
+                userName: userName,
+                selectedDate: selectedDate,
+                selectedLocation: selectedLocation,
+                isAllDay: isAllDay,
+                startDate: startDate,
+                startTime: startTime,
+                hasEndTime: hasEndTime,
+                endTime: endTime
+            )
+        }
     }
-    
+
     // MARK: - Gradient Background
     
     private var gradientBackground: some View {
@@ -149,15 +166,16 @@ struct CreateEventSheet: View {
             Spacer()
             
             // Preview button
-            Button(action: {}) {
+            Button(action: { showingPreview = true }) {
                 Text(String(localized: "events.preview"))
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white)
+                    .foregroundColor(title.isEmpty ? .white.opacity(0.3) : .white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(Color.white.opacity(0.15))
+                    .background(Color.white.opacity(title.isEmpty ? 0.05 : 0.15))
                     .cornerRadius(20)
             }
+            .disabled(title.isEmpty)
         }
     }
     
@@ -565,6 +583,218 @@ struct DetailRow: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 20)
         }
+    }
+}
+
+// MARK: - Event Preview Sheet
+
+struct EventPreviewSheet: View {
+    @Environment(\.dismiss) var dismiss
+
+    let title: String
+    let description: String
+    let userName: String?
+    let selectedDate: Date?
+    let selectedLocation: String?
+    let isAllDay: Bool
+    let startDate: Date
+    let startTime: Date
+    let hasEndTime: Bool
+    let endTime: Date
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            // Dark background behind everything
+            Color(hex: "0A0A1A")
+                .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                // Gradient hero card with rounded bottom corners
+                ZStack(alignment: .bottom) {
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color(hex: "FF6B35"),
+                            Color(hex: "FF4757"),
+                            Color(hex: "8B5CF6"),
+                            Color(hex: "6366F1"),
+                            Color(hex: "3B82F6"),
+                            Color(hex: "1E3A8A"),
+                        ]),
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .clipShape(RoundedCorner(radius: 32, corners: [.bottomLeft, .bottomRight]))
+
+                    VStack(spacing: 0) {
+                        // Header
+                        HStack {
+                            Button(action: { dismiss() }) {
+                                Image(systemName: "chevron.left")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 40, height: 40)
+                                    .background(Color.white.opacity(0.15))
+                                    .clipShape(Circle())
+                            }
+
+                            Spacer()
+
+                            Button(action: {}) {
+                                Text(String(localized: "onboarding.next"))
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(Color(hex: "1A1A3E"))
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 10)
+                                    .background(Color(hex: "F5F0E8"))
+                                    .cornerRadius(20)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 60)
+
+                        Spacer()
+
+                        // Event title at bottom of gradient
+                        VStack(spacing: 12) {
+                            Text(title)
+                                .font(.system(size: 34, weight: .bold))
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 24)
+
+                            if selectedDate != nil || selectedLocation != nil {
+                                VStack(spacing: 6) {
+                                    if selectedDate != nil {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "calendar")
+                                                .font(.system(size: 14))
+                                            Text(formattedDateTime())
+                                                .font(.system(size: 15, weight: .medium))
+                                        }
+                                        .foregroundColor(.white.opacity(0.9))
+                                    }
+
+                                    if let location = selectedLocation {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "mappin")
+                                                .font(.system(size: 14))
+                                            Text(location)
+                                                .font(.system(size: 15, weight: .medium))
+                                        }
+                                        .foregroundColor(.white.opacity(0.9))
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.bottom, 32)
+
+                        // RSVP buttons card inside gradient
+                        HStack(spacing: 0) {
+                            rsvpColumn(icon: "checkmark.circle", label: String(localized: "common.yes"))
+
+                            Rectangle()
+                                .fill(Color.white.opacity(0.15))
+                                .frame(width: 1, height: 40)
+
+                            rsvpColumn(icon: "xmark.circle", label: String(localized: "common.no"))
+
+                            Rectangle()
+                                .fill(Color.white.opacity(0.15))
+                                .frame(width: 1, height: 40)
+
+                            rsvpColumn(icon: "questionmark.circle", label: String(localized: "events.rsvp.maybe"))
+                        }
+                        .padding(.vertical, 14)
+                        .background(
+                            LinearGradient(
+                                colors: [Color(hex: "3B2078"), Color(hex: "2D1B69")],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .cornerRadius(20)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 48)
+                    }
+                }
+                .frame(height: UIScreen.main.bounds.height * 0.75)
+
+                // Bottom section - Invitation preview
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(String(localized: "events.preview.invitation_title"))
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+
+                    HStack(alignment: .top, spacing: 14) {
+                        Image(systemName: "text.below.photo.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(Color(hex: "8B5CF6"))
+                            .frame(width: 24)
+                            .padding(.top, 2)
+
+                        Text(String(localized: "events.preview.invitation_description"))
+                            .font(.system(size: 15))
+                            .foregroundColor(.white.opacity(0.6))
+                            .lineSpacing(4)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 24)
+
+                Spacer()
+            }
+        }
+    }
+
+    private func rsvpColumn(icon: String, label: String) -> some View {
+        VStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 22))
+                .foregroundColor(.white.opacity(0.9))
+            Text(label)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func formattedDateTime() -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .none
+        dateFormatter.locale = Locale(identifier: "fr_FR")
+
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm"
+
+        var result = dateFormatter.string(from: startDate)
+
+        if isAllDay {
+            result += " (\(String(localized: "events.all_day")))"
+        } else {
+            result += " à " + timeFormatter.string(from: startTime)
+            if hasEndTime {
+                result += " - " + timeFormatter.string(from: endTime)
+            }
+        }
+
+        return result
+    }
+}
+
+// MARK: - Rounded Corner Shape
+
+struct RoundedCorner: Shape {
+    var radius: CGFloat
+    var corners: UIRectCorner
+
+    func path(in rect: CGRect) -> Path {
+        let path = UIBezierPath(
+            roundedRect: rect,
+            byRoundingCorners: corners,
+            cornerRadii: CGSize(width: radius, height: radius)
+        )
+        return Path(path.cgPath)
     }
 }
 

@@ -497,6 +497,8 @@
 "events.end" = "Fin";
 "events.location" = "Lugar";
 "events.preview" = "Vista previa";
+"events.preview.invitation_title" = "Vista previa de la invitación";
+"events.preview.invitation_description" = "Esta es la invitación que verán tus invitados. En el siguiente paso, publicarás tu invitación e invitarás a personas a tu evento.";
 "events.start" = "Inicio";
 "events.title_placeholder" = "Título del\nevento";
 
