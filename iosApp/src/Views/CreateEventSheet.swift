@@ -66,7 +66,28 @@ struct CreateEventSheet: View {
                     Spacer(minLength: 40)
                 }
             }
+
+            // Date Picker Bottom Sheet Overlay
+            if showingDatePicker {
+                DateTimePickerPopup(
+                    isAllDay: $isAllDay,
+                    startDate: $startDate,
+                    startTime: $startTime,
+                    hasEndTime: $hasEndTime,
+                    endTime: $endTime,
+                    onSave: {
+                        showingDatePicker = false
+                        selectedDate = startDate
+                    },
+                    onCancel: {
+                        showingDatePicker = false
+                    }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .zIndex(100)
+            }
         }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showingDatePicker)
         .sheet(isPresented: $showingEventInfoSheet) {
             EventInfoSheet(
                 description: $description,
@@ -90,25 +111,6 @@ struct CreateEventSheet: View {
                     showingLocationSheet = false
                 }
             )
-        }
-        // Date Picker Popup Overlay
-        if showingDatePicker {
-            DateTimePickerPopup(
-                isAllDay: $isAllDay,
-                startDate: $startDate,
-                startTime: $startTime,
-                hasEndTime: $hasEndTime,
-                endTime: $endTime,
-                onSave: {
-                    showingDatePicker = false
-                    selectedDate = startDate
-                },
-                onCancel: {
-                    showingDatePicker = false
-                }
-            )
-            .transition(.opacity.combined(with: .scale(scale: 0.9)))
-            .zIndex(100)
         }
     }
     
@@ -380,15 +382,16 @@ struct DateTimePickerPopup: View {
     
     let onSave: () -> Void
     let onCancel: () -> Void
-    
+
     var body: some View {
-        ZStack {
+        ZStack(alignment: .bottom) {
             // Semi-transparent overlay to block interaction with background
-            Color.black.opacity(0.01)
+            Color.black.opacity(0.4)
                 .ignoresSafeArea()
                 .contentShape(Rectangle())
+                .onTapGesture { onCancel() }
             
-            // Liquid Glass Card - Centered compact popup with shadow
+            // Bottom sheet card
             VStack(spacing: 0) {
                 // Header
                 HStack(spacing: 0) {
@@ -399,15 +402,15 @@ struct DateTimePickerPopup: View {
                             .foregroundColor(.white)
                             .frame(width: 24, height: 24)
                     }
-                    
+
                     Spacer()
-                    
+
                     Text(String(localized: "events.date_and_time"))
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(.white)
-                    
+
                     Spacer()
-                    
+
                     // Save button
                     Button(action: onSave) {
                         Image(systemName: "checkmark")
@@ -418,114 +421,119 @@ struct DateTimePickerPopup: View {
                             .clipShape(Circle())
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 12)
-                
-                // All Day Toggle
-                HStack {
-                    Text(String(localized: "events.all_day"))
-                        .font(.system(size: 16))
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    Toggle("", isOn: $isAllDay)
-                        .toggleStyle(SwitchToggleStyle(tint: Color(hex: "34C759")))
-                        .frame(width: 48, height: 28)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                
-                Divider()
-                    .background(Color.white.opacity(0.1))
-                    .padding(.horizontal, 14)
-                
-                // Start Date/Time Section - Same row layout
-                HStack(spacing: 6) {
-                    Text(String(localized: "events.start"))
-                        .font(.system(size: 16))
-                        .foregroundColor(.white)
-                    
-                    Spacer()
-                    
-                    // Date Button
-                    Button(action: {}) {
-                        Text(formattedDate(startDate))
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 5)
-                            .background(Color.white.opacity(0.12))
-                            .cornerRadius(12)
-                    }
-                    
-                    if !isAllDay {
-                        // Time Button
-                        Button(action: {}) {
-                            Text(formattedTime(startTime))
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Color.white.opacity(0.12))
-                                .cornerRadius(12)
-                        }
-                    }
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                
-                if hasEndTime && !isAllDay {
-                    Divider()
-                        .background(Color.white.opacity(0.1))
-                        .padding(.horizontal, 14)
-                    
-                    HStack(spacing: 6) {
-                        Text(String(localized: "events.end"))
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 12)
+
+                // Grouped section with lighter background
+                VStack(spacing: 0) {
+                    // All Day Toggle
+                    HStack {
+                        Text(String(localized: "events.all_day"))
                             .font(.system(size: 16))
                             .foregroundColor(.white)
-                        
+
                         Spacer()
-                        
+
+                        Toggle("", isOn: $isAllDay)
+                            .toggleStyle(SwitchToggleStyle(tint: Color(hex: "34C759")))
+                            .frame(width: 48, height: 28)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+
+                    Divider()
+                        .background(Color.white.opacity(0.15))
+
+                    // Start Date/Time Section
+                    HStack(spacing: 6) {
+                        Text(String(localized: "events.start"))
+                            .font(.system(size: 16))
+                            .foregroundColor(.white)
+
+                        Spacer()
+
+                        // Date Button
                         Button(action: {}) {
-                            Text(formattedTime(endTime))
+                            Text(formattedDate(startDate))
                                 .font(.system(size: 14, weight: .medium))
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
+                                .padding(.vertical, 6)
                                 .background(Color.white.opacity(0.12))
-                                .cornerRadius(12)
+                                .cornerRadius(8)
+                        }
+
+                        if !isAllDay {
+                            // Time Button
+                            Button(action: {}) {
+                                Text(formattedTime(startTime))
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(Color.white.opacity(0.12))
+                                    .cornerRadius(8)
+                            }
                         }
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                }
-                
-                // Add End Time Link
-                if !hasEndTime && !isAllDay {
-                    Divider()
-                        .background(Color.white.opacity(0.1))
-                        .padding(.horizontal, 14)
-                    
-                    Button(action: { hasEndTime = true }) {
-                        Text(String(localized: "events.add_end_time"))
-                            .font(.system(size: 16))
-                            .foregroundColor(Color(hex: "0A84FF"))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+
+                    if hasEndTime && !isAllDay {
+                        Divider()
+                            .background(Color.white.opacity(0.15))
+
+                        HStack(spacing: 6) {
+                            Text(String(localized: "events.end"))
+                                .font(.system(size: 16))
+                                .foregroundColor(.white)
+
+                            Spacer()
+
+                            Button(action: {}) {
+                                Text(formattedTime(endTime))
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 6)
+                                    .background(Color.white.opacity(0.12))
+                                    .cornerRadius(8)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                    }
+
+                    // Add End Time Link
+                    if !hasEndTime && !isAllDay {
+                        Divider()
+                            .background(Color.white.opacity(0.15))
+
+                        Button(action: { hasEndTime = true }) {
+                            Text(String(localized: "events.add_end_time"))
+                                .font(.system(size: 16))
+                                .foregroundColor(Color(hex: "0A84FF"))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                        }
                     }
                 }
-                
+                .background(Color.white.opacity(0.08))
+                .cornerRadius(16)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 16)
             }
-            .frame(maxWidth: 320)
             .background(
                 RoundedRectangle(cornerRadius: 24)
-                    .fill(Color.white.opacity(0.15))
+                    .fill(Color(hex: "1A1A3E").opacity(0.95))
                     .background(.ultraThinMaterial)
             )
             .cornerRadius(24)
-            .shadow(color: Color.black.opacity(0.15), radius: 40, x: 0, y: 20)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 16)
+            .shadow(color: Color.black.opacity(0.25), radius: 40, x: 0, y: -10)
         }
     }
     
