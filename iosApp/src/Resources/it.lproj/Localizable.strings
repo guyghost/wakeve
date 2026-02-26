@@ -499,6 +499,8 @@
 "events.preview" = "Anteprima";
 "events.preview.invitation_title" = "Anteprima dell'invito";
 "events.preview.invitation_description" = "Ecco l'invito che vedranno i tuoi ospiti. Nel prossimo passaggio, pubblicherai il tuo invito e inviterai le persone al tuo evento.";
+"events.preview.weather" = "Meteo";
+"events.preview.itinerary" = "Indicazioni";
 "events.start" = "Inizio";
 "events.title_placeholder" = "Titolo\ndell'evento";
 
