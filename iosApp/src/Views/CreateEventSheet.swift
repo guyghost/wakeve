@@ -1,5 +1,6 @@
 import SwiftUI
 import Shared
+import MapKit
 
 // MARK: - Create Event Sheet
 
@@ -602,106 +603,63 @@ struct EventPreviewSheet: View {
     let hasEndTime: Bool
     let endTime: Date
 
+    @State private var mapPosition: MapCameraPosition = .automatic
+    @State private var geocodedCoordinate: CLLocationCoordinate2D?
+
     var body: some View {
-        ZStack(alignment: .top) {
-            // Dark background behind everything
-            Color(hex: "0A0A1A")
-                .ignoresSafeArea()
+        VStack(spacing: 0) {
+            // Scrollable gradient section
+            ZStack(alignment: .top) {
+                // Gradient background
+                LinearGradient(
+                    gradient: Gradient(colors: [
+                        Color(hex: "FF6B35"),
+                        Color(hex: "FF4757"),
+                        Color(hex: "8B5CF6"),
+                        Color(hex: "6366F1"),
+                        Color(hex: "3B82F6"),
+                        Color(hex: "1E3A8A"),
+                    ]),
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .ignoresSafeArea(edges: .top)
 
-            VStack(spacing: 0) {
-                // Gradient hero card with rounded bottom corners
-                ZStack(alignment: .bottom) {
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color(hex: "FF6B35"),
-                            Color(hex: "FF4757"),
-                            Color(hex: "8B5CF6"),
-                            Color(hex: "6366F1"),
-                            Color(hex: "3B82F6"),
-                            Color(hex: "1E3A8A"),
-                        ]),
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .clipShape(RoundedCorner(radius: 32, corners: [.bottomLeft, .bottomRight]))
+                // Scrollable content
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 16) {
+                        // Spacer for fixed header
+                        Color.clear.frame(height: 56)
 
-                    VStack(spacing: 0) {
-                        // Header
-                        HStack {
-                            Button(action: { dismiss() }) {
-                                Image(systemName: "chevron.left")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .frame(width: 40, height: 40)
-                                    .background(Color.white.opacity(0.15))
-                                    .clipShape(Circle())
-                            }
+                        // Event title
+                        Text(title)
+                            .font(.system(size: 34, weight: .bold))
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 8)
 
-                            Spacer()
-
-                            Button(action: {}) {
-                                Text(String(localized: "onboarding.next"))
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundColor(Color(hex: "1A1A3E"))
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 10)
-                                    .background(Color(hex: "F5F0E8"))
-                                    .cornerRadius(20)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 60)
-
-                        Spacer()
-
-                        // Event title at bottom of gradient
-                        VStack(spacing: 12) {
-                            Text(title)
-                                .font(.system(size: 34, weight: .bold))
-                                .foregroundColor(.white)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 24)
-
-                            if selectedDate != nil || selectedLocation != nil {
-                                VStack(spacing: 6) {
-                                    if selectedDate != nil {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "calendar")
-                                                .font(.system(size: 14))
-                                            Text(formattedDateTime())
-                                                .font(.system(size: 15, weight: .medium))
-                                        }
-                                        .foregroundColor(.white.opacity(0.9))
-                                    }
-
-                                    if let location = selectedLocation {
-                                        HStack(spacing: 6) {
-                                            Image(systemName: "mappin")
-                                                .font(.system(size: 14))
-                                            Text(location)
-                                                .font(.system(size: 15, weight: .medium))
-                                        }
-                                        .foregroundColor(.white.opacity(0.9))
-                                    }
+                        // Date and location
+                        if selectedDate != nil || selectedLocation != nil {
+                            VStack(spacing: 4) {
+                                if selectedDate != nil {
+                                    Text(formattedDateTime())
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.7))
+                                }
+                                if let location = selectedLocation {
+                                    Text(location)
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.7))
                                 }
                             }
                         }
-                        .padding(.bottom, 32)
 
-                        // RSVP buttons card inside gradient
+                        // RSVP card
                         HStack(spacing: 0) {
                             rsvpColumn(icon: "checkmark.circle", label: String(localized: "common.yes"))
-
-                            Rectangle()
-                                .fill(Color.white.opacity(0.15))
-                                .frame(width: 1, height: 40)
-
+                            Rectangle().fill(Color.white.opacity(0.15)).frame(width: 1, height: 40)
                             rsvpColumn(icon: "xmark.circle", label: String(localized: "common.no"))
-
-                            Rectangle()
-                                .fill(Color.white.opacity(0.15))
-                                .frame(width: 1, height: 40)
-
+                            Rectangle().fill(Color.white.opacity(0.15)).frame(width: 1, height: 40)
                             rsvpColumn(icon: "questionmark.circle", label: String(localized: "events.rsvp.maybe"))
                         }
                         .padding(.vertical, 14)
@@ -713,37 +671,146 @@ struct EventPreviewSheet: View {
                             )
                         )
                         .cornerRadius(20)
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 48)
+                        .padding(.top, 8)
+
+                        // Organizer card
+                        organizerPreviewCard
+
+                        // Itinerary card (when location is selected)
+                        if selectedLocation != nil {
+                            itineraryPreviewCard
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 32)
+                }
+
+                // Fixed header overlay
+                HStack {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 40, height: 40)
+                            .background(Color.white.opacity(0.15))
+                            .clipShape(Circle())
+                    }
+
+                    Spacer()
+
+                    Button(action: {}) {
+                        Text(String(localized: "onboarding.next"))
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(Color(hex: "1A1A3E"))
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(Color(hex: "F5F0E8"))
+                            .cornerRadius(20)
                     }
                 }
-                .frame(height: UIScreen.main.bounds.height * 0.75)
+                .padding(.horizontal, 16)
+                .padding(.top, 60)
+            }
+            .clipShape(RoundedCorner(radius: 32, corners: [.bottomLeft, .bottomRight]))
 
-                // Bottom section - Invitation preview
-                VStack(alignment: .leading, spacing: 16) {
-                    Text(String(localized: "events.preview.invitation_title"))
+            // Fixed bottom section
+            VStack(alignment: .leading, spacing: 16) {
+                Text(String(localized: "events.preview.invitation_title"))
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.white)
+
+                HStack(alignment: .top, spacing: 14) {
+                    Image(systemName: "text.below.photo.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(Color(hex: "8B5CF6"))
+                        .frame(width: 24)
+                        .padding(.top, 2)
+
+                    Text(String(localized: "events.preview.invitation_description"))
+                        .font(.system(size: 15))
+                        .foregroundColor(.white.opacity(0.6))
+                        .lineSpacing(4)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 24)
+
+            Spacer()
+        }
+        .background(Color(hex: "0A0A1A"))
+        .ignoresSafeArea(edges: .top)
+    }
+
+    // MARK: - Preview Cards
+
+    private var organizerPreviewCard: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: "FF6B35"))
+                    .frame(width: 48, height: 48)
+
+                if let name = userName {
+                    Text(String(name.prefix(1)).uppercased())
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.white)
-
-                    HStack(alignment: .top, spacing: 14) {
-                        Image(systemName: "text.below.photo.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(Color(hex: "8B5CF6"))
-                            .frame(width: 24)
-                            .padding(.top, 2)
-
-                        Text(String(localized: "events.preview.invitation_description"))
-                            .font(.system(size: 15))
-                            .foregroundColor(.white.opacity(0.6))
-                            .lineSpacing(4)
-                    }
+                } else {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(.white)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
+            }
 
-                Spacer()
+            Text(String(format: String(localized: "events.organized_by"), userName ?? String(localized: "leaderboard.you")))
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.white)
+
+            if !description.isEmpty {
+                Text(description)
+                    .font(.system(size: 15))
+                    .foregroundColor(.white.opacity(0.8))
             }
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
+        .background(Color(hex: "12143A").opacity(0.7))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.08), lineWidth: 1))
+        .cornerRadius(20)
+    }
+
+    private var itineraryPreviewCard: some View {
+        VStack(spacing: 12) {
+            Text(String(localized: "events.preview.itinerary"))
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(hex: "8B9FFF"))
+
+            if let location = selectedLocation {
+                Text(location)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 16)
+            }
+
+            // Map view
+            Map(position: $mapPosition) {
+                if let coord = geocodedCoordinate, let location = selectedLocation {
+                    Marker(location, coordinate: coord)
+                }
+            }
+            .frame(height: 180)
+            .cornerRadius(12)
+            .padding(.horizontal, 12)
+            .allowsHitTesting(false)
+            .onAppear {
+                geocodeLocation()
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 16)
+        .background(Color(hex: "12143A").opacity(0.7))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.08), lineWidth: 1))
+        .cornerRadius(20)
     }
 
     private func rsvpColumn(icon: String, label: String) -> some View {
@@ -779,6 +846,20 @@ struct EventPreviewSheet: View {
         }
 
         return result
+    }
+
+    private func geocodeLocation() {
+        guard let address = selectedLocation else { return }
+        let geocoder = CLGeocoder()
+        geocoder.geocodeAddressString(address) { placemarks, _ in
+            if let coordinate = placemarks?.first?.location?.coordinate {
+                geocodedCoordinate = coordinate
+                mapPosition = .region(MKCoordinateRegion(
+                    center: coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                ))
+            }
+        }
     }
 }
 
