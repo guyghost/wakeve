@@ -453,28 +453,14 @@ struct DateTimePickerPopup: View {
 
                         Spacer()
 
-                        // Date Button
-                        Button(action: {}) {
-                            Text(formattedDate(startDate))
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Color.white.opacity(0.12))
-                                .cornerRadius(8)
-                        }
+                        DatePicker("", selection: $startDate, displayedComponents: .date)
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
 
                         if !isAllDay {
-                            // Time Button
-                            Button(action: {}) {
-                                Text(formattedTime(startTime))
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(Color.white.opacity(0.12))
-                                    .cornerRadius(8)
-                            }
+                            DatePicker("", selection: $startTime, displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                                .datePickerStyle(.compact)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -491,15 +477,9 @@ struct DateTimePickerPopup: View {
 
                             Spacer()
 
-                            Button(action: {}) {
-                                Text(formattedTime(endTime))
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
-                                    .background(Color.white.opacity(0.12))
-                                    .cornerRadius(8)
-                            }
+                            DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute)
+                                .labelsHidden()
+                                .datePickerStyle(.compact)
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
@@ -524,6 +504,8 @@ struct DateTimePickerPopup: View {
                 .cornerRadius(16)
                 .padding(.horizontal, 12)
                 .padding(.bottom, 16)
+                .environment(\.colorScheme, .dark)
+                .tint(.white)
             }
             .background(
                 RoundedRectangle(cornerRadius: 24)
