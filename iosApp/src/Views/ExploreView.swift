@@ -310,22 +310,7 @@ struct CategoryPicker: View {
 // SectionHeader, LoadingView, EmptyStateView are defined in Components/SharedComponents.swift
 
 // MARK: - Previews
-
-#Preview("Explore - With Events") {
-    ExploreView(
-        userId: "preview-user",
-        repository: RepositoryProvider.shared.repository,
-        events: [EventFactory.complete, EventFactory.polling, EventFactory.withManyParticipants],
-        isLoading: false
-    )
-    .previewEnvironment()
-}
-
-#Preview("Explore - Loading") {
-    ExploreView(
-        userId: "preview-user",
-        repository: RepositoryProvider.shared.repository
-    )
-    .previewEnvironment()
-}
+// Note: ExploreView previews are not possible because the view depends on
+// KMP Shared framework types (EventRepositoryInterface, Event) whose ObjC
+// runtime metadata cannot be resolved in the SwiftUI Preview sandbox.
 
