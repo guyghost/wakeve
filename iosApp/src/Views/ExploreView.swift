@@ -9,6 +9,15 @@ import Shared
 /// - Discover new features
 /// - Search functionality
 struct ExploreView: View {
+    init(userId: String, repository: EventRepositoryInterface, searchText: String = "", events: [Event] = [], isLoading: Bool = true, selectedCategory: ExploreCategory = .all) {
+        self.userId = userId
+        self.repository = repository
+        _searchText = State(initialValue: searchText)
+        _events = State(initialValue: events)
+        _isLoading = State(initialValue: isLoading)
+        _selectedCategory = State(initialValue: selectedCategory)
+    }
+
     let userId: String
     let repository: EventRepositoryInterface
 
@@ -300,6 +309,23 @@ struct CategoryPicker: View {
 
 // SectionHeader, LoadingView, EmptyStateView are defined in Components/SharedComponents.swift
 
-// MARK: - Preview
-// Preview commented out due to API changes in shared module
-// TODO: Update preview when Event model is stabilized
+// MARK: - Previews
+
+#Preview("Explore - With Events") {
+    ExploreView(
+        userId: "preview-user",
+        repository: RepositoryProvider.shared.repository,
+        events: [EventFactory.complete, EventFactory.polling, EventFactory.withManyParticipants],
+        isLoading: false
+    )
+    .previewEnvironment()
+}
+
+#Preview("Explore - Loading") {
+    ExploreView(
+        userId: "preview-user",
+        repository: RepositoryProvider.shared.repository
+    )
+    .previewEnvironment()
+}
+

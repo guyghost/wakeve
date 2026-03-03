@@ -30,12 +30,12 @@ struct InboxView: View {
     @State private var isSelectionMode = false
     @State private var selectedItemIds: Set<String> = []
     @State private var showActionBar = false
-    
+
     // Sample events for the dropdown
     private let availableEvents = ["Week-end ski 2024", "Réunion famille", "Voyage Espagne", "Week-end montagne", "Anniversaire Alice"]
-    
+
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ZStack {
                 // System background adapts to light/dark mode (white like home page)
                 Color(.systemBackground)
@@ -425,19 +425,31 @@ struct InboxView: View {
             
             // Items list
             ForEach(filteredItems) { item in
-                InboxGitHubStyleRow(
-                    item: item,
-                    isSelectionMode: isSelectionMode,
-                    isSelected: selectedItemIds.contains(item.id)
-                )
-                .onTapGesture {
-                    if isSelectionMode {
+                if isSelectionMode {
+                    InboxGitHubStyleRow(
+                        item: item,
+                        isSelectionMode: true,
+                        isSelected: selectedItemIds.contains(item.id)
+                    )
+                    .onTapGesture {
                         toggleSelection(for: item.id)
-                    } else {
-                        handleItemTap(item)
                     }
+                } else {
+                    NavigationLink {
+                        InboxDetailView(item: item)
+                            .onAppear {
+                                markItemAsRead(item.id)
+                            }
+                    } label: {
+                        InboxGitHubStyleRow(
+                            item: item,
+                            isSelectionMode: false,
+                            isSelected: false
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
-                
+
                 if item.id != filteredItems.last?.id {
                     Divider()
                         .padding(.leading, isSelectionMode ? 68 : 56)
@@ -473,13 +485,10 @@ struct InboxView: View {
         }
     }
     
-    private func handleItemTap(_ item: InboxItemModel) {
-        // Mark as read
-        if let index = items.firstIndex(where: { $0.id == item.id }) {
+    private func markItemAsRead(_ itemId: String) {
+        if let index = items.firstIndex(where: { $0.id == itemId }) {
             items[index].isRead = true
         }
-        
-        // TODO: Navigate to relevant screen based on item type
     }
 }
 
@@ -830,14 +839,14 @@ enum InboxFilter {
     case inbox, focused, unread, event
 }
 
-struct InboxItemModel: Identifiable, Equatable {
+struct InboxItemModel: Identifiable, Equatable, Hashable {
     let id: String
     var title: String
     var message: String
     var timeAgo: String
     var type: InboxItemType
     var isRead: Bool
-    
+
     // GitHub-style properties
     var repository: String
     var number: Int
@@ -845,6 +854,7 @@ struct InboxItemModel: Identifiable, Equatable {
     var status: InboxItemStatus
     var isFocused: Bool
     var eventName: String?  // Optional event name for event filtering
+    var eventId: String?    // Optional event ID for navigation
     
     var requiresAction: Bool {
         switch type {
@@ -930,7 +940,8 @@ private let sampleInboxItems: [InboxItemModel] = [
         commentCount: 1,
         status: .open,
         isFocused: true,
-        eventName: "Week-end ski 2024"
+        eventName: "Week-end ski 2024",
+        eventId: "evt-001"
     ),
     InboxItemModel(
         id: "2",
@@ -944,7 +955,8 @@ private let sampleInboxItems: [InboxItemModel] = [
         commentCount: 29,
         status: .merged,
         isFocused: false,
-        eventName: "Réunion famille"
+        eventName: "Réunion famille",
+        eventId: "evt-002"
     ),
     InboxItemModel(
         id: "3",
@@ -958,7 +970,8 @@ private let sampleInboxItems: [InboxItemModel] = [
         commentCount: 2,
         status: .open,
         isFocused: true,
-        eventName: "Voyage Espagne"
+        eventName: "Voyage Espagne",
+        eventId: "evt-003"
     ),
     InboxItemModel(
         id: "4",
@@ -972,23 +985,19 @@ private let sampleInboxItems: [InboxItemModel] = [
         commentCount: 0,
         status: .open,
         isFocused: false,
-        eventName: "Week-end montagne"
+        eventName: "Week-end montagne",
+        eventId: "evt-004"
     )
 ]
 
-// MARK: - Preview
+// MARK: - Previews
 
-#Preview("InboxView - Default") {
-    InboxView(userId: "preview-user", onBack: {
-        print("Back tapped")
-    }, unreadCount: .constant(0))
+#Preview("Inbox - With Notifications") {
+    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(3))
+        .previewEnvironment()
 }
 
-#Preview("InboxView - Empty") {
-    InboxView(userId: "preview-user", onBack: {
-        print("Back tapped")
-    }, unreadCount: .constant(0))
-    .onAppear {
-        // Simulate empty state
-    }
+#Preview("Inbox - Empty") {
+    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0))
+        .previewEnvironment()
 }

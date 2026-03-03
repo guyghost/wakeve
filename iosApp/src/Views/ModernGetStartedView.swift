@@ -1,5 +1,4 @@
 import SwiftUI
-import Shared
 
 /**
  * ModernGetStartedView - Welcome screen for iOS
@@ -426,12 +425,9 @@ struct ScaleEffectOnPress: ViewModifier {
 
 // Colors are defined in Theme/WakeveColors.swift
 
-// MARK: - Preview
+// MARK: - Previews
 
-struct ModernGetStartedView_Previews: PreviewProvider {
-    static var previews: some View {
-        let authService = AuthenticationService()
-        ModernGetStartedView(onGetStarted: {})
-            .environmentObject(AuthStateManager(authService: authService, enableOAuth: false))
-    }
+#Preview("Get Started") {
+    ModernGetStartedView(onGetStarted: {})
+        .previewEnvironment(isAuthenticated: false)
 }
