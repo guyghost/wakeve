@@ -488,6 +488,11 @@
 
 // MARK: - Events (Extended)
 "events.add_background" = "Aggiungi uno sfondo";
+"events.background.photos" = "Foto";
+"events.background.camera" = "Fotocamera";
+"events.background.change" = "Cambia";
+"events.background.remove" = "Rimuovi";
+"events.background.modify" = "Modifica lo sfondo";
 "events.add_description" = "Aggiungi una descrizione";
 "events.add_end_time" = "Aggiungi un orario di fine";
 "events.all_day" = "Tutto il giorno";
