@@ -14,8 +14,8 @@ struct CreateEventSheet: View {
     @State private var description = ""
     @State private var selectedDate: Date?
     @State private var selectedLocation: String?
-    @State private var hasBackgroundImage = false
-    @State private var showingImagePicker = false
+    @State private var selectedBackground: EventBackground = .gradient
+    @State private var showingBackgroundPicker = false
     
     // Date picker sheet state
     @State private var showingDatePicker = false
@@ -50,11 +50,11 @@ struct CreateEventSheet: View {
                     
                     // Background Image Selector
                     backgroundImageSelector
-                        .padding(.top, 40)
+                        .padding(.top, hasCustomBackground ? 120 : 40)
                     
                     // Main Event Card (contains title, date, location)
                     mainEventCard
-                        .padding(.top, 32)
+                        .padding(.top, hasCustomBackground ? 24 : 32)
                         .padding(.horizontal, 16)
                     
                     // Organizer Card (separate card with organizer and description)
@@ -92,6 +92,10 @@ struct CreateEventSheet: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showingDatePicker)
+        .sheet(isPresented: $showingBackgroundPicker) {
+            BackgroundPickerSheet(selectedBackground: $selectedBackground)
+                .presentationDetents([.large])
+        }
         .sheet(isPresented: $showingEventInfoSheet) {
             EventInfoSheet(
                 description: $description,
@@ -134,20 +138,81 @@ struct CreateEventSheet: View {
 
     // MARK: - Gradient Background
     
+    @ViewBuilder
     private var gradientBackground: some View {
-        LinearGradient(
-            gradient: Gradient(colors: [
-                Color(hex: "FF6B35"),  // Orange
-                Color(hex: "FF4757"),  // Red-orange
-                Color(hex: "8B5CF6"),  // Purple
-                Color(hex: "6366F1"),  // Indigo
-                Color(hex: "3B82F6"),  // Blue
-                Color(hex: "1E3A8A"),  // Dark blue
-            ]),
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
+        switch selectedBackground {
+        case .gradient:
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color(hex: "FF6B35"),  // Orange
+                    Color(hex: "FF4757"),  // Red-orange
+                    Color(hex: "8B5CF6"),  // Purple
+                    Color(hex: "6366F1"),  // Indigo
+                    Color(hex: "3B82F6"),  // Blue
+                    Color(hex: "1E3A8A"),  // Dark blue
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            
+        case .preset(let bg):
+            GeometryReader { geometry in
+                let topHeight = geometry.size.height * 0.45
+                VStack(spacing: 0) {
+                    // Top half: background color + emojis
+                    ZStack {
+                        bg.backgroundColor
+                        EmojiScatterView(emojis: bg.emojis, density: .high)
+                    }
+                    .frame(height: topHeight)
+                    
+                    // Gradient fade from bg color to darker
+                    LinearGradient(
+                        colors: [
+                            bg.backgroundColor,
+                            bg.backgroundColor.opacity(0.85),
+                            darkenColor(bg.backgroundColor, by: 0.35)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 80)
+                    
+                    // Bottom half: darker shade, no emojis
+                    darkenColor(bg.backgroundColor, by: 0.35)
+                        .frame(maxHeight: .infinity)
+                }
+            }
+            .ignoresSafeArea()
+            
+        case .photo(let image):
+            GeometryReader { geometry in
+                let topHeight = geometry.size.height * 0.45
+                VStack(spacing: 0) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: topHeight)
+                        .clipped()
+                    
+                    // Gradient fade
+                    LinearGradient(
+                        colors: [
+                            Color(hex: "1A1A3E"),
+                            Color(hex: "0F1B3A")
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 60)
+                    
+                    Color(hex: "0F1B3A")
+                        .frame(maxHeight: .infinity)
+                }
+            }
+            .ignoresSafeArea()
+        }
     }
     
     // MARK: - Header View
@@ -184,28 +249,40 @@ struct CreateEventSheet: View {
     
     private var backgroundImageSelector: some View {
         VStack(spacing: 16) {
-            // Image icon
-            Button(action: { showingImagePicker = true }) {
-                ZStack {
-                    Circle()
-                        .fill(Color.white.opacity(0.1))
-                        .frame(width: 80, height: 80)
-                    
-                    Image(systemName: "photo")
-                        .font(.system(size: 32))
-                        .foregroundColor(.white.opacity(0.8))
+            if case .gradient = selectedBackground {
+                // Default state - show add background button
+                Button(action: { showingBackgroundPicker = true }) {
+                    ZStack {
+                        Circle()
+                            .fill(Color.white.opacity(0.1))
+                            .frame(width: 80, height: 80)
+                        
+                        Image(systemName: "photo")
+                            .font(.system(size: 32))
+                            .foregroundColor(.white.opacity(0.8))
+                    }
                 }
-            }
-            
-            // Add background button
-            Button(action: { showingImagePicker = true }) {
-                Text(String(localized: "events.add_background"))
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(Color.white.opacity(0.15))
-                    .cornerRadius(24)
+                
+                Button(action: { showingBackgroundPicker = true }) {
+                    Text(String(localized: "events.add_background"))
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.white.opacity(0.15))
+                        .cornerRadius(24)
+                }
+            } else {
+                // Background selected - single "Modifier l'arrière-plan" button
+                Button(action: { showingBackgroundPicker = true }) {
+                    Text(String(localized: "events.background.modify"))
+                        .font(.system(size: 15, weight: .medium))
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(.regularMaterial)
+                        .cornerRadius(22)
+                }
             }
         }
     }
@@ -344,8 +421,20 @@ struct CreateEventSheet: View {
     
     // MARK: - Helpers
     
+    private var hasCustomBackground: Bool {
+        if case .gradient = selectedBackground { return false }
+        return true
+    }
+    
     private var canCreate: Bool {
         !title.isEmpty
+    }
+    
+    private func darkenColor(_ color: Color, by amount: CGFloat) -> Color {
+        let uiColor = UIColor(color)
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        uiColor.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+        return Color(hue: Double(h), saturation: Double(min(s + 0.1, 1.0)), brightness: Double(max(b - amount, 0)), opacity: Double(a))
     }
     
     private func formattedDateTime() -> String {
