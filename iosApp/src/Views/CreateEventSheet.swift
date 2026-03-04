@@ -16,6 +16,8 @@ struct CreateEventSheet: View {
     @State private var selectedLocation: String?
     @State private var selectedBackground: EventBackground = .gradient
     @State private var showingBackgroundPicker = false
+    @State private var showingImageDescription = false
+    @State private var backgroundDescription = ""
     
     // Date picker sheet state
     @State private var showingDatePicker = false
@@ -37,24 +39,25 @@ struct CreateEventSheet: View {
     var onEventCreated: (Event) -> Void = { _ in }
     
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             // Gradient background
             gradientBackground
             
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
-                    // Header
-                    headerView
-                        .padding(.horizontal, 20)
-                        .padding(.top, 12)
+                    // Space for the fixed header
+                    Color.clear.frame(height: 56)
                     
-                    // Background Image Selector
+                    // Default gradient: original layout
                     backgroundImageSelector
-                        .padding(.top, hasCustomBackground ? 120 : 40)
+                        .padding(.top, 40)
                     
-                    // Main Event Card (contains title, date, location)
+                    Spacer()
+                        .frame(height: UIScreen.main.bounds.height * 0.25 - 120)
+                    
+                    // Cards start in the dark zone below the image
                     mainEventCard
-                        .padding(.top, hasCustomBackground ? 24 : 32)
+                        .padding(.top, 24)
                         .padding(.horizontal, 16)
                     
                     // Organizer Card (separate card with organizer and description)
@@ -71,6 +74,11 @@ struct CreateEventSheet: View {
                 }
             }
 
+            // Fixed header overlay
+            headerView
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+            
             // Date Picker Bottom Sheet Overlay
             if showingDatePicker {
                 DateTimePickerPopup(
@@ -95,6 +103,11 @@ struct CreateEventSheet: View {
         .sheet(isPresented: $showingBackgroundPicker) {
             BackgroundPickerSheet(selectedBackground: $selectedBackground)
                 .presentationDetents([.large])
+        }
+        .alert(String(localized: "events.background.edit_description"), isPresented: $showingImageDescription) {
+            TextField(String(localized: "events.background.description_placeholder"), text: $backgroundDescription)
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+            Button(String(localized: "common.save")) {}
         }
         .sheet(isPresented: $showingEventInfoSheet) {
             EventInfoSheet(
@@ -273,8 +286,26 @@ struct CreateEventSheet: View {
                         .cornerRadius(24)
                 }
             } else {
-                // Background selected - single "Modifier l'arrière-plan" button
-                Button(action: { showingBackgroundPicker = true }) {
+                // Background selected - context menu button
+                Menu {
+                    Button(action: { showingBackgroundPicker = true }) {
+                        Label(String(localized: "events.background.adjust"), systemImage: "crop")
+                    }
+                    
+                    Button(action: { showingBackgroundPicker = true }) {
+                        Label(String(localized: "events.background.modify"), systemImage: "photo.on.rectangle")
+                    }
+                    
+                    Button(action: { showingImageDescription = true }) {
+                        Label(String(localized: "events.background.edit_description"), systemImage: "text.below.photo")
+                    }
+                    
+                    Divider()
+                    
+                    Button(role: .destructive, action: { selectedBackground = .gradient }) {
+                        Label(String(localized: "events.background.delete"), systemImage: "trash")
+                    }
+                } label: {
                     Text(String(localized: "events.background.modify"))
                         .font(.system(size: 15, weight: .medium))
                         .foregroundColor(.primary)

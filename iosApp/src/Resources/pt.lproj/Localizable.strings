@@ -493,6 +493,10 @@
 "events.background.change" = "Alterar";
 "events.background.remove" = "Remover";
 "events.background.modify" = "Modificar o fundo";
+"events.background.adjust" = "Ajustar o fundo";
+"events.background.edit_description" = "Modificar a descrição da imagem";
+"events.background.description_placeholder" = "Descrição da imagem...";
+"events.background.delete" = "Remover o fundo";
 "events.add_description" = "Adicionar uma descrição";
 "events.add_end_time" = "Adicionar hora de fim";
 "events.all_day" = "Dia inteiro";

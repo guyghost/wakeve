@@ -493,6 +493,10 @@
 "events.background.change" = "Change";
 "events.background.remove" = "Remove";
 "events.background.modify" = "Change background";
+"events.background.adjust" = "Adjust background";
+"events.background.edit_description" = "Edit image description";
+"events.background.description_placeholder" = "Image description...";
+"events.background.delete" = "Delete background";
 "events.add_description" = "Add a description";
 "events.add_end_time" = "Add an end time";
 "events.all_day" = "All day";
