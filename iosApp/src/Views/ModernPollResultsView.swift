@@ -136,7 +136,7 @@ struct ModernPollResultsView: View {
                                     .padding(.bottom, 40)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .glassCard(cornerRadius: 20, material: .regularMaterial)
+                                .glassCard(cornerRadius: 20)
                             }
                         }
 
@@ -248,7 +248,7 @@ struct BestSlotCard: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity)
-        .glassCard(cornerRadius: 20, material: .regularMaterial)
+        .glassCard(cornerRadius: 20)
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(Color.yellow.opacity(0.3), lineWidth: 2)
@@ -329,7 +329,7 @@ struct ConfirmedDateCard: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity)
-        .glassCard(cornerRadius: 20, material: .regularMaterial)
+        .glassCard(cornerRadius: 20)
     }
     
     private func formatDate(_ dateString: String) -> String {
@@ -432,7 +432,7 @@ struct ModernSlotResultCard: View {
             }
         }
         .padding(16)
-        .glassCard(cornerRadius: 20, material: .regularMaterial)
+        .glassCard(cornerRadius: 20)
         .overlay(
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .stroke(isBest ? Color.blue.opacity(0.3) : Color.clear, lineWidth: 2)

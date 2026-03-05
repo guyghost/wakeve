@@ -34,21 +34,33 @@ struct GlassBadge: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)
-        .background {
-            if style == .filled {
-                color.opacity(0.15)
+        .foregroundColor(style == .filled ? color : .primary)
+        .modifier(GlassBadgeBackground(style: style, color: color))
+    }
+}
+
+// MARK: - Background Modifier
+
+private struct GlassBadgeBackground: ViewModifier {
+    let style: GlassBadge.BadgeStyle
+    let color: Color
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if style == .filled {
+            content
+                .background(color.opacity(0.15))
+                .continuousCornerRadius(8)
+        } else {
+            if #available(iOS 26.0, *) {
+                content
+                    .glassEffect(.regular, in: .rect(cornerRadius: 8))
             } else {
-                Color.clear.background(.ultraThinMaterial)
+                content
+                    .background(.ultraThinMaterial)
+                    .continuousCornerRadius(8)
             }
         }
-        .foregroundColor(style == .filled ? color : .primary)
-        .continuousCornerRadius(8)
-        .shadow(
-            color: .black.opacity(style == .filled ? 0.05 : 0.02),
-            radius: 2,
-            x: 0,
-            y: 1
-        )
     }
 }
 

@@ -109,7 +109,7 @@ struct ModernPollVotingView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(20)
-                            .glassCard(cornerRadius: 20, material: .regularMaterial)
+                            .glassCard(cornerRadius: 20)
                         } else {
                             // Voting Instructions Card
                             VStack(spacing: 16) {
@@ -149,7 +149,7 @@ struct ModernPollVotingView: View {
                                 }
                             }
                             .padding(20)
-                            .glassCard(cornerRadius: 20, material: .regularMaterial)
+                            .glassCard(cornerRadius: 20)
 
                             // Progress Indicator
                             HStack {
@@ -368,7 +368,7 @@ struct ModernTimeSlotVoteCard: View {
             }
         }
         .padding(20)
-        .glassCard(cornerRadius: 20, material: .regularMaterial)
+        .glassCard(cornerRadius: 20)
     }
 
     private func formatDate(_ dateString: String) -> String {

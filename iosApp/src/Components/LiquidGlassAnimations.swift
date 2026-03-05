@@ -82,60 +82,30 @@ extension View {
 
 // MARK: - Glass Card Modifier
 ///
-/// Applies Liquid Glass styling to any view with customizable
-/// corner radius, material, and shadow properties.
+/// Uses the native iOS 26+ `.glassEffect()` API with a
+/// `.regularMaterial` fallback for earlier versions.
 
 struct GlassCardModifier: ViewModifier {
     var cornerRadius: CGFloat = 16
-    var material: Material = .regularMaterial
-    var showShadow: Bool = true
-    var shadowOpacity: Double = 0.05
-    var shadowRadius: CGFloat = 8
-    
+
     @ViewBuilder
     func body(content: Content) -> some View {
-        if showShadow {
+        if #available(iOS 26.0, *) {
             content
-                .background(material)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                .shadow(
-                    color: Color.black.opacity(shadowOpacity),
-                    radius: shadowRadius,
-                    x: 0,
-                    y: shadowRadius / 2
-                )
+                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         } else {
             content
-                .background(material)
+                .background(.regularMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
         }
     }
 }
 
 extension View {
     /// Apply Liquid Glass card styling
-    /// - Parameters:
-    ///   - cornerRadius: Corner radius (default: 16)
-    ///   - material: Material to use (default: .regularMaterial)
-    ///   - showShadow: Whether to show shadow (default: true)
-    ///   - shadowOpacity: Shadow opacity (default: 0.05)
-    ///   - shadowRadius: Shadow radius (default: 8)
-    func glassCard(
-        cornerRadius: CGFloat = 16,
-        material: Material = .regularMaterial,
-        showShadow: Bool = true,
-        shadowOpacity: Double = 0.05,
-        shadowRadius: CGFloat = 8
-    ) -> some View {
-        modifier(
-            GlassCardModifier(
-                cornerRadius: cornerRadius,
-                material: material,
-                showShadow: showShadow,
-                shadowOpacity: shadowOpacity,
-                shadowRadius: shadowRadius
-            )
-        )
+    func glassCard(cornerRadius: CGFloat = 16) -> some View {
+        modifier(GlassCardModifier(cornerRadius: cornerRadius))
     }
 }
 
@@ -327,25 +297,15 @@ extension View {
 
 #Preview("Glass Card Modifier") {
     VStack(spacing: 20) {
-        Text("Regular Material")
+        Text("Glass Card (default)")
             .frame(maxWidth: .infinity)
             .padding(20)
-            .glassCard(cornerRadius: 16, material: .regularMaterial)
+            .glassCard()
         
-        Text("Thin Material")
+        Text("Glass Card (cornerRadius: 20)")
             .frame(maxWidth: .infinity)
             .padding(20)
-            .glassCard(cornerRadius: 16, material: .thinMaterial, showShadow: false)
-        
-        Text("Ultra Thin Material")
-            .frame(maxWidth: .infinity)
-            .padding(20)
-            .glassCard(cornerRadius: 16, material: .ultraThinMaterial, showShadow: false)
-        
-        Text("Thick Material")
-            .frame(maxWidth: .infinity)
-            .padding(20)
-            .glassCard(cornerRadius: 20, material: .thickMaterial, shadowRadius: 12)
+            .glassCard(cornerRadius: 20)
     }
     .padding()
 }

@@ -447,7 +447,7 @@ struct EventListView: View {
                         }
                     }
                     .padding(24)
-                    .liquidGlass(cornerRadius: 24, opacity: 0.9)
+                    .liquidGlass(cornerRadius: 24)
                     
                     // Events List
                     if isLoading {
@@ -567,7 +567,7 @@ struct EventCard: View {
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .liquidGlass(cornerRadius: 16, opacity: 0.9)
+        .liquidGlass(cornerRadius: 16)
     }
     
     private var statusText: String {
@@ -675,7 +675,7 @@ struct EventDetailView: View {
                         }
                     }
                     .padding(24)
-                    .liquidGlass(cornerRadius: 24, opacity: 0.9)
+                    .liquidGlass(cornerRadius: 24)
                     
                     // Action Buttons
                     VStack(spacing: 16) {
@@ -802,7 +802,7 @@ struct ActionButton: View {
             }
             .padding(20)
         }
-        .liquidGlass(cornerRadius: 16, opacity: 0.9)
+        .liquidGlass(cornerRadius: 16)
     }
 }
 

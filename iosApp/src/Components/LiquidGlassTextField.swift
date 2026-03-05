@@ -163,8 +163,7 @@ struct LiquidGlassTextField: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(.regularMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .modifier(LiquidGlassTextFieldBackground())
             
             // Error message
             if let errorMessage = errorMessage, !errorMessage.isEmpty {
@@ -229,6 +228,22 @@ struct LiquidGlassTextField: View {
             return .wakevePrimary
         } else {
             return .secondary
+        }
+    }
+}
+
+// MARK: - Background Modifier
+
+private struct LiquidGlassTextFieldBackground: ViewModifier {
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content
+                .glassEffect(.regular, in: .rect(cornerRadius: 16))
+        } else {
+            content
+                .background(.regularMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 }

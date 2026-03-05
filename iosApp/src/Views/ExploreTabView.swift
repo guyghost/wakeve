@@ -289,20 +289,10 @@ struct ExploreEventCard: View {
     let event: ExploreEventItem
 
     var body: some View {
-        if #available(iOS 26.0, *) {
-            cardContent
-                .frame(width: 240)
-                .padding()
-                .glassEffect()
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        } else {
-            cardContent
-                .frame(width: 240)
-                .padding()
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
-        }
+        cardContent
+            .frame(width: 240)
+            .padding()
+            .liquidGlass(cornerRadius: 16)
     }
 
     private var cardContent: some View {
@@ -397,18 +387,9 @@ struct SearchResultRow: View {
     let event: ExploreEventItem
 
     var body: some View {
-        if #available(iOS 26.0, *) {
-            rowContent
-                .padding()
-                .glassEffect()
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-        } else {
-            rowContent
-                .padding()
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .shadow(color: .black.opacity(0.04), radius: 6, x: 0, y: 3)
-        }
+        rowContent
+            .padding()
+            .liquidGlass(cornerRadius: 14)
     }
 
     private var rowContent: some View {
