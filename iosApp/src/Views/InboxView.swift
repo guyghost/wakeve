@@ -10,11 +10,7 @@ import SwiftUI
  * - Matches Android InboxScreen functionality
  *
  * Uses:
- * - LiquidGlassCard for cards
- * - LiquidGlassButton for actions
- * - LiquidGlassBadge for status badges
- * - LiquidGlassDivider for separators
- * - LiquidGlassListItem for items
+ * - GlassBadge for status badges
  */
 struct InboxView: View {
     let userId: String

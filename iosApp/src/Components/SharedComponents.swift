@@ -1,7 +1,6 @@
 import SwiftUI
 
-// Import the common UI components
-// LiquidGlassBadge, LiquidGlassButton, LiquidGlassDivider are defined in UIComponents/
+// MARK: - Shared UI Components
 
 // MARK: - Vote Enum
 
@@ -50,14 +49,16 @@ struct InfoRow: View {
     }
 }
 
-/// Status badge with color coding - Uses LiquidGlassBadge
+/// Status badge with color coding
 struct StatusBadge: View {
     let status: String
 
     var body: some View {
-        LiquidGlassBadge(
+        GlassBadge(
             text: statusText,
-            style: statusBadgeStyle
+            icon: nil,
+            color: statusColor,
+            style: .filled
         )
         .accessibilityLabel(statusText)
     }
@@ -73,14 +74,14 @@ struct StatusBadge: View {
         }
     }
 
-    private var statusBadgeStyle: LiquidGlassBadgeStyle {
+    private var statusColor: Color {
         switch status {
-        case "PLANNED": return .info
-        case "ASSIGNED": return .accent
-        case "IN_PROGRESS": return .warning
-        case "COMPLETED": return .success
-        case "CANCELLED": return .default
-        default: return .default
+        case "PLANNED": return .blue
+        case "ASSIGNED": return .purple
+        case "IN_PROGRESS": return .orange
+        case "COMPLETED": return .green
+        case "CANCELLED": return .gray
+        default: return .gray
         }
     }
 }
@@ -371,8 +372,14 @@ struct EmptyStateView: View {
                 .padding(.horizontal, 32)
 
             if let actionTitle = actionTitle, let action = action {
-                LiquidGlassButton(title: actionTitle, style: .primary) {
-                    action()
+                Button(action: { action() }) {
+                    Text(actionTitle)
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.wakevePrimary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .frame(width: 200)
                 .padding(.top, 8)

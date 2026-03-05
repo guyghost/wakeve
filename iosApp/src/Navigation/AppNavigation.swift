@@ -22,7 +22,6 @@ struct MainTabView: View {
                 }
                 .tag(AppTab.home)
 
-            ExploreTabContent()
                 .tabItem {
                     Label(AppTab.explore.title, systemImage: AppTab.explore.iconName)
                 }
@@ -63,23 +62,15 @@ struct MainTabView: View {
     }
 
     @ViewBuilder
-    private func ExploreTabContent() -> some View {
-        ExploreView(
-            userId: userId,
-            repository: repository
-        )
-    }
-
-    @ViewBuilder
     private func MessagesTabContent() -> some View {
-        MessagesView(
-            userId: userId
-        )
+        Text("Messages - Coming Soon")
+            .font(.title2)
+            .foregroundColor(.secondary)
     }
 
     @ViewBuilder
     private func ProfileTabContent() -> some View {
-        ProfileScreen()
+        ProfileTabView(userId: userId)
     }
 }
 
