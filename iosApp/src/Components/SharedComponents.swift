@@ -433,7 +433,7 @@ struct ActionRow: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .liquidGlass(cornerRadius: 12, opacity: 0.7, intensity: 0.8)
+            .liquidGlass(cornerRadius: 12)
         }
         .buttonStyle(.plain)
     }

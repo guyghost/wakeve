@@ -288,19 +288,9 @@ struct ProfileCard<Content: View>: View {
     }
 
     var body: some View {
-        if #available(iOS 26.0, *) {
-            content
-                .padding()
-                .glassEffect()
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-        } else {
-            // Fallback for iOS < 26
-            content
-                .padding()
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
-        }
+        content
+            .padding()
+            .liquidGlass(cornerRadius: 20)
     }
 }
 

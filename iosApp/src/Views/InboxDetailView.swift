@@ -83,7 +83,7 @@ struct InboxDetailView: View {
             }
         }
         .padding(16)
-        .glassCard(cornerRadius: 16, material: .regularMaterial)
+        .glassCard()
     }
 
     // MARK: - B. Type-Specific Content
@@ -132,7 +132,7 @@ struct InboxDetailView: View {
             }
         }
         .padding(16)
-        .glassCard(cornerRadius: 16, material: .regularMaterial)
+        .glassCard()
     }
 
     // MARK: Invitation Card
@@ -177,7 +177,7 @@ struct InboxDetailView: View {
             }
         }
         .padding(16)
-        .glassCard(cornerRadius: 16, material: .regularMaterial)
+        .glassCard()
     }
 
     // MARK: Comment Highlight
@@ -223,7 +223,7 @@ struct InboxDetailView: View {
             }
         }
         .padding(16)
-        .glassCard(cornerRadius: 16, material: .regularMaterial)
+        .glassCard()
     }
 
     // MARK: Event Update Summary
@@ -247,7 +247,7 @@ struct InboxDetailView: View {
             }
         }
         .padding(16)
-        .glassCard(cornerRadius: 16, material: .regularMaterial)
+        .glassCard()
     }
 
     // MARK: - C. Event Status Stepper
@@ -315,7 +315,7 @@ struct InboxDetailView: View {
             }
         }
         .padding(16)
-        .glassCard(cornerRadius: 16, material: .regularMaterial)
+        .glassCard()
     }
 
     // MARK: - D. Conversations
@@ -347,7 +347,7 @@ struct InboxDetailView: View {
             }
         }
         .padding(16)
-        .glassCard(cornerRadius: 16, material: .regularMaterial)
+        .glassCard()
     }
 }
 

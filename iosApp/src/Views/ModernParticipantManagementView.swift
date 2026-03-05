@@ -116,7 +116,7 @@ struct ModernParticipantManagementView: View {
                                 }
                             }
                             .padding(20)
-                            .glassCard(cornerRadius: 20, material: .regularMaterial)
+                            .glassCard(cornerRadius: 20)
                         }
 
                         // Status Banner
@@ -163,7 +163,7 @@ struct ModernParticipantManagementView: View {
                                 .padding(.bottom, 40)
                             }
                             .frame(maxWidth: .infinity)
-                            .glassCard(cornerRadius: 20, material: .regularMaterial)
+                            .glassCard(cornerRadius: 20)
                         } else {
                             VStack(spacing: 0) {
                                 ForEach(Array(participants.enumerated()), id: \.element) { index, participant in
@@ -175,7 +175,7 @@ struct ModernParticipantManagementView: View {
                                     }
                                 }
                             }
-                            .glassCard(cornerRadius: 20, material: .regularMaterial)
+                            .glassCard(cornerRadius: 20)
                         }
 
                         Spacer()
