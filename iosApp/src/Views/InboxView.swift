@@ -37,31 +37,51 @@ struct InboxView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                // System background adapts to light/dark mode (white like home page)
-                Color(.systemBackground)
-                    .ignoresSafeArea()
+            VStack(spacing: 0) {
+                // Filter chips
+                filterTabsView
                 
-                VStack(spacing: 0) {
-                    // Header
-                    headerView
-                    
-                    // Filter tabs
-                    filterTabsView
-                    
-                    // Content
-                    if isLoading {
-                        loadingView
-                    } else if filteredItems.isEmpty {
-                        emptyStateView
-                    } else {
-                        ScrollView {
-                            itemListView
+                // Content
+                if isLoading {
+                    loadingView
+                } else if filteredItems.isEmpty {
+                    emptyStateView
+                } else {
+                    List {
+                        ForEach(filteredItems) { item in
+                            if isSelectionMode {
+                                InboxRow(
+                                    item: item,
+                                    isSelectionMode: true,
+                                    isSelected: selectedItemIds.contains(item.id)
+                                )
+                                .onTapGesture {
+                                    toggleSelection(for: item.id)
+                                }
+                                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                            } else {
+                                NavigationLink {
+                                    InboxDetailView(item: item)
+                                        .onAppear {
+                                            markItemAsRead(item.id)
+                                        }
+                                } label: {
+                                    InboxRow(
+                                        item: item,
+                                        isSelectionMode: false,
+                                        isSelected: false
+                                    )
+                                }
+                                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                            }
                         }
                     }
+                    .listStyle(.plain)
                 }
             }
+            .navigationTitle(isSelectionMode ? "\(selectedItemIds.count) selected" : "Inbox")
             #if os(iOS)
+            .navigationBarTitleDisplayMode(isSelectionMode ? .inline : .large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if isSelectionMode {
@@ -120,32 +140,10 @@ struct InboxView: View {
         }
     }
     
-    // MARK: - Header View
-    
-    private var headerView: some View {
-        HStack {
-            if isSelectionMode {
-                Text("\(selectedItemIds.count) selected")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.primary)
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-    }
-    
     // MARK: - Filter Tabs View
     
     private var filterTabsView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Large title
-            Text("Inbox")
-                .font(.system(size: 34, weight: .bold))
-                .foregroundColor(.primary)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
-            
             // Filter chips row
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
@@ -291,44 +289,36 @@ struct InboxView: View {
     // MARK: - Action Bar View
     
     private var actionBarView: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                // Mark as Read button
-                ActionBarButton(
-                    title: "Mark as Read",
-                    isEnabled: !selectedItemIds.isEmpty,
-                    action: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            markSelectedAsRead()
-                            isSelectionMode = false
-                            showActionBar = false
-                            selectedItemIds.removeAll()
-                        }
+        HStack(spacing: 12) {
+            ActionBarButton(
+                title: "Mark as Read",
+                isEnabled: !selectedItemIds.isEmpty,
+                action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        markSelectedAsRead()
+                        isSelectionMode = false
+                        showActionBar = false
+                        selectedItemIds.removeAll()
                     }
-                )
-                
-                // Mark as Done button
-                ActionBarButton(
-                    title: "Mark as Done",
-                    isEnabled: !selectedItemIds.isEmpty,
-                    action: {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            markSelectedAsDone()
-                            isSelectionMode = false
-                            showActionBar = false
-                            selectedItemIds.removeAll()
-                        }
+                }
+            )
+            
+            ActionBarButton(
+                title: "Mark as Done",
+                isEnabled: !selectedItemIds.isEmpty,
+                action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        markSelectedAsDone()
+                        isSelectionMode = false
+                        showActionBar = false
+                        selectedItemIds.removeAll()
                     }
-                )
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .padding(.bottom, 34) // Extra padding for safe area
-            .background(
-                Color(.systemBackground)
-                    .ignoresSafeArea()
+                }
             )
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.bar)
     }
     
     private func markSelectedAsRead() {
@@ -344,46 +334,6 @@ struct InboxView: View {
         items.removeAll { selectedItemIds.contains($0.id) }
     }
     
-    // MARK: - Item List View
-    
-    private var itemListView: some View {
-        LazyVStack(spacing: 0) {
-            
-            // Items list
-            ForEach(filteredItems) { item in
-                if isSelectionMode {
-                    InboxGitHubStyleRow(
-                        item: item,
-                        isSelectionMode: true,
-                        isSelected: selectedItemIds.contains(item.id)
-                    )
-                    .onTapGesture {
-                        toggleSelection(for: item.id)
-                    }
-                } else {
-                    NavigationLink {
-                        InboxDetailView(item: item)
-                            .onAppear {
-                                markItemAsRead(item.id)
-                            }
-                    } label: {
-                        InboxGitHubStyleRow(
-                            item: item,
-                            isSelectionMode: false,
-                            isSelected: false
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                if item.id != filteredItems.last?.id {
-                    Divider()
-                        .padding(.leading, isSelectionMode ? 68 : 56)
-                }
-            }
-        }
-    }
-    
     private func toggleSelection(for itemId: String) {
         if selectedItemIds.contains(itemId) {
             selectedItemIds.remove(itemId)
@@ -395,19 +345,21 @@ struct InboxView: View {
     // MARK: - Actions
     
     private func loadItems() {
+        if let override = initialItems {
+            items = override
+            isLoading = false
+            return
+        }
+        
         isLoading = true
         
         // TODO: Load from repository when backend is available
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            if let override = initialItems {
-                items = override
-            } else {
-                #if DEBUG
-                items = InboxItemFactory.mixedList()
-                #else
-                items = []
-                #endif
-            }
+            #if DEBUG
+            items = InboxItemFactory.mixedList()
+            #else
+            items = []
+            #endif
             isLoading = false
         }
     }
@@ -432,31 +384,31 @@ struct FilterTabButton: View {
     let isSelected: Bool
     var hasDropdown: Bool = false
     var badge: String? = nil
-    let action: () -> Void
+    let action: @MainActor () -> Void
     
     var body: some View {
         Button(action: action) {
             HStack(spacing: 4) {
                 Text(title)
-                    .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
+                    .font(.subheadline.weight(isSelected ? .semibold : .regular))
                 
                 if let badge = badge {
                     Text(badge)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.white)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.white)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
-                        .background(Color.blue)
-                        .cornerRadius(4)
+                        .background(Color.accentColor)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
                 
                 if hasDropdown {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
                 }
             }
-            .foregroundColor(isSelected ? .primary : .secondary)
+            .foregroundStyle(isSelected ? .primary : .secondary)
             .padding(.vertical, 8)
         }
     }
@@ -466,13 +418,13 @@ struct FilterTabButton: View {
 
 struct ActiveFilterIndicator: View {
     let count: Int
-    let action: () -> Void
+    let action: @MainActor () -> Void
     
     var body: some View {
         Menu {
             Section {
                 Text(filterAppliedText)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
             
             Button(role: .destructive) {
@@ -483,15 +435,15 @@ struct ActiveFilterIndicator: View {
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: "line.3.horizontal.decrease")
-                    .font(.system(size: 14))
+                    .font(.footnote)
                 
                 Text("\(count)")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.white)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
                     .frame(width: 20, height: 20)
-                    .background(Circle().fill(Color.blue))
+                    .background(Circle().fill(Color.accentColor))
             }
-            .foregroundColor(.primary)
+            .foregroundStyle(.primary)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .background(
@@ -516,21 +468,21 @@ struct EventFilterTabButton: View {
     let title: String
     let isSelected: Bool
     var hasDropdown: Bool = false
-    let action: () -> Void
+    let action: @MainActor () -> Void
     
     var body: some View {
         Button(action: action) {
             HStack(spacing: 4) {
                 Text(title)
-                    .font(.system(size: 15, weight: isSelected ? .semibold : .regular))
+                    .font(.subheadline.weight(isSelected ? .semibold : .regular))
                 
                 if hasDropdown {
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.secondary)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
                 }
             }
-            .foregroundColor(isSelected ? .primary : .secondary)
+            .foregroundStyle(isSelected ? .primary : .secondary)
             .padding(.vertical, 8)
         }
     }
@@ -541,8 +493,8 @@ struct EventFilterTabButton: View {
 struct EventFilterSheet: View {
     let events: [String]
     @Binding var selectedEvent: String?
-    let onSelect: () -> Void
-    let onDismiss: () -> Void
+    let onSelect: @MainActor () -> Void
+    let onDismiss: @MainActor () -> Void
     
     var body: some View {
         NavigationView {
@@ -601,9 +553,9 @@ struct EventFilterSheet: View {
     }
 }
 
-// MARK: - GitHub Style Inbox Row
+// MARK: - Inbox Row
 
-struct InboxGitHubStyleRow: View {
+struct InboxRow: View {
     let item: InboxItemModel
     var isSelectionMode: Bool = false
     var isSelected: Bool = false
@@ -611,68 +563,62 @@ struct InboxGitHubStyleRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             if isSelectionMode {
-                // Selection checkbox
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.system(size: 22))
-                    .foregroundColor(isSelected ? .blue : .secondary)
+                    .font(.title2)
+                    .foregroundStyle(isSelected ? Color.accentColor : .secondary)
                     .padding(.top, 2)
-            } else {
-                // Status dot
-                Circle()
-                    .fill(item.statusColor)
-                    .frame(width: 8, height: 8)
-                    .padding(.top, 6)
             }
             
+            // Type icon
+            Image(systemName: item.icon)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(item.iconColor)
+                .frame(width: 28, height: 28)
+                .background(item.iconColor.opacity(0.12))
+                .clipShape(Circle())
+                .padding(.top, 2)
+            
             // Content
-            VStack(alignment: .leading, spacing: 4) {
-                // Top row: repo/time
+            VStack(alignment: .leading, spacing: 3) {
+                // Top row: event name / time
                 HStack {
-                    Text("\(item.repository) / \(item.repository)#\(item.number)")
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                    if let eventName = item.eventName {
+                        Text(eventName)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                     
                     Spacer()
                     
                     Text(item.timeAgo)
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
                 
-                // Title row
-                HStack(spacing: 8) {
-                    Text(item.title)
-                        .font(.system(size: 15, weight: item.isRead ? .regular : .semibold))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-                    
-                    if item.commentCount > 0 {
-                        Text("\(item.commentCount)")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 1)
-                            .background(Color(.systemGray5))
-                            .cornerRadius(10)
-                    }
-                }
+                // Title
+                Text(item.title)
+                    .font(.subheadline.weight(item.isRead ? .regular : .semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(2)
                 
-                // Subtitle row
-                HStack(spacing: 4) {
-                    Image(systemName: "person.circle.fill")
-                        .font(.system(size: 12))
-                        .foregroundColor(.secondary)
-                    
-                    Text(item.message)
-                        .font(.system(size: 13))
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
+                // Subtitle
+                Text(item.message)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            
+            // Unread indicator
+            if !item.isRead && !isSelectionMode {
+                Circle()
+                    .fill(Color.accentColor)
+                    .frame(width: 10, height: 10)
+                    .padding(.top, 6)
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(item.isRead || isSelectionMode ? Color.clear : Color.blue.opacity(0.03))
+        .padding(.vertical, 10)
+        .background(item.isRead || isSelectionMode ? Color.clear : Color.accentColor.opacity(0.04))
         .contentShape(Rectangle())
     }
 }
@@ -682,13 +628,13 @@ struct InboxGitHubStyleRow: View {
 struct ActionBarButton: View {
     let title: String
     let isEnabled: Bool
-    let action: () -> Void
+    let action: @MainActor () -> Void
     
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 16, weight: .regular))
-                .foregroundColor(.primary)
+                .font(.subheadline)
+                .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -700,69 +646,6 @@ struct ActionBarButton: View {
         .disabled(!isEnabled)
         .opacity(isEnabled ? 1.0 : 0.5)
         .animation(.easeInOut(duration: 0.2), value: isEnabled)
-    }
-}
-
-// MARK: - Legacy Inbox Item Row (kept for compatibility)
-
-struct InboxItemRow: View {
-    let item: InboxItemModel
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            // Icon with Liquid Glass effect
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                item.iconColor.opacity(0.2),
-                                item.iconColor.opacity(0.1)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 44, height: 44)
-                
-                Image(systemName: item.icon)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(item.iconColor)
-            }
-            .accessibilityHidden(true)
-            
-            // Content
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.title)
-                    .font(.subheadline)
-                    .fontWeight(item.isRead ? .regular : .semibold)
-                    .foregroundColor(.primary)
-                
-                Text(item.message)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
-                
-                HStack(spacing: 8) {
-                    Text(item.timeAgo)
-                        .font(.caption2)
-                        .foregroundColor(.secondary)
-                }
-            }
-            
-            Spacer()
-            
-            // Unread indicator
-            if !item.isRead {
-                Circle()
-                    .fill(Color.blue)
-                    .frame(width: 8, height: 8)
-            }
-        }
-        .padding(16)
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
-        .opacity(item.isRead ? 0.85 : 1.0)
     }
 }
 
@@ -779,15 +662,10 @@ struct InboxItemModel: Identifiable, Equatable, Hashable {
     var timeAgo: String
     var type: InboxItemType
     var isRead: Bool
-
-    // GitHub-style properties
-    var repository: String
-    var number: Int
     var commentCount: Int
-    var status: InboxItemStatus
     var isFocused: Bool
-    var eventName: String?  // Optional event name for event filtering
-    var eventId: String?    // Optional event ID for navigation
+    var eventName: String?
+    var eventId: String?
     
     var requiresAction: Bool {
         switch type {
@@ -816,15 +694,6 @@ struct InboxItemModel: Identifiable, Equatable, Hashable {
         }
     }
     
-    var statusColor: Color {
-        switch status {
-        case .open: return .green
-        case .closed: return .red
-        case .merged: return .purple
-        case .draft: return .gray
-        }
-    }
-    
     var accessibilityLabel: String {
         let typeLabel: String
         switch type {
@@ -850,20 +719,18 @@ struct InboxItemModel: Identifiable, Equatable, Hashable {
     }
 }
 
-enum InboxItemStatus {
-    case open, closed, merged, draft
-}
-
 enum InboxItemType {
     case invitation, pollUpdate, comment, eventUpdate
 }
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("Inbox - With Notifications") {
-    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(3))
+    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(3), initialItems: InboxItemFactory.mixedList())
         .previewEnvironment()
 }
+#endif
 
 #Preview("Inbox - Empty") {
     InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0), initialItems: [])

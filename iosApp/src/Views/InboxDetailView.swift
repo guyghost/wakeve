@@ -578,10 +578,7 @@ private let sampleComments: [SampleComment] = [
                 timeAgo: "17m",
                 type: .pollUpdate,
                 isRead: false,
-                repository: "wakeve",
-                number: 42,
                 commentCount: 3,
-                status: .open,
                 isFocused: true,
                 eventName: "Week-end ski 2024",
                 eventId: "evt-preview"
@@ -600,10 +597,7 @@ private let sampleComments: [SampleComment] = [
                 timeAgo: "3h",
                 type: .invitation,
                 isRead: false,
-                repository: "wakeve",
-                number: 10,
                 commentCount: 0,
-                status: .open,
                 isFocused: false,
                 eventName: "Réunion famille",
                 eventId: "evt-preview-2"
