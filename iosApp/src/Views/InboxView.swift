@@ -58,7 +58,7 @@ struct InboxView: View {
                                 .onTapGesture {
                                     toggleSelection(for: item.id)
                                 }
-                                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                                .listRowBackground(Color.clear)
                             } else {
                                 NavigationLink {
                                     InboxDetailView(item: item)
@@ -72,7 +72,9 @@ struct InboxView: View {
                                         isSelected: false
                                     )
                                 }
-                                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
+                                .listRowBackground(
+                                    item.isRead ? Color.clear : Color.accentColor.opacity(0.04)
+                                )
                             }
                         }
                     }
@@ -561,36 +563,32 @@ struct InboxRow: View {
     var isSelected: Bool = false
     
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: 10) {
             if isSelectionMode {
                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
                     .foregroundStyle(isSelected ? Color.accentColor : .secondary)
                     .padding(.top, 2)
+            } else {
+                // Unread indicator (like Mail.app)
+                Circle()
+                    .fill(item.isRead ? Color.clear : Color.accentColor)
+                    .frame(width: 10, height: 10)
+                    .padding(.top, 6)
             }
             
             // Type icon
             Image(systemName: item.icon)
-                .font(.subheadline.weight(.medium))
+                .font(.title3.weight(.medium))
                 .foregroundStyle(item.iconColor)
-                .frame(width: 28, height: 28)
-                .background(item.iconColor.opacity(0.12))
-                .clipShape(Circle())
+                .frame(width: 24)
                 .padding(.top, 2)
             
             // Content
             VStack(alignment: .leading, spacing: 3) {
-                // Top row: event name / time
-                HStack {
-                    if let eventName = item.eventName {
-                        Text(eventName)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    
-                    Spacer()
-                    
-                    Text(item.timeAgo)
+                // Event name
+                if let eventName = item.eventName {
+                    Text(eventName)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -608,18 +606,15 @@ struct InboxRow: View {
                     .lineLimit(1)
             }
             
-            // Unread indicator
-            if !item.isRead && !isSelectionMode {
-                Circle()
-                    .fill(Color.accentColor)
-                    .frame(width: 10, height: 10)
-                    .padding(.top, 6)
-            }
+            Spacer()
+            
+            // Timestamp
+            Text(item.timeAgo)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.top, 2)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(item.isRead || isSelectionMode ? Color.clear : Color.accentColor.opacity(0.04))
-        .contentShape(Rectangle())
+        .padding(.vertical, 6)
     }
 }
 
