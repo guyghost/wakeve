@@ -201,6 +201,18 @@ struct ScenarioCard: View {
                     )
                 )
 
+            // Icon in the top-trailing area
+            VStack {
+                HStack {
+                    Spacer()
+                    Image(systemName: scenario.icon)
+                        .font(.system(size: 36))
+                        .foregroundColor(.white.opacity(0.3))
+                }
+                Spacer()
+            }
+            .padding(14)
+
             VStack(alignment: .leading, spacing: 4) {
                 Spacer()
                 Text(scenario.title)
