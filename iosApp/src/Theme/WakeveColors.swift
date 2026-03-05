@@ -108,16 +108,16 @@ public struct WakeveColors {
     public static let onSecondaryContainer = Color.wakeveAccentDark
 
     // Surface
-    public static let surface = Color.wakeveSurfaceDark
-    public static let onSurface = Color.wakeveTextPrimaryDark
-    public static let onSurfaceVariant = Color.wakeveTextSecondaryDark
+    public static let surface = Color(uiColor: .secondarySystemBackground)
+    public static let onSurface = Color(uiColor: .label)
+    public static let onSurfaceVariant = Color(uiColor: .secondaryLabel)
 
     // Background
-    public static let background = Color.wakeveBackgroundDark
-    public static let onBackground = Color.wakeveTextPrimaryDark
+    public static let background = Color(uiColor: .systemBackground)
+    public static let onBackground = Color(uiColor: .label)
 
     // Outline
-    public static let outline = Color.wakeveBorderDark
+    public static let outline = Color(uiColor: .separator)
 
     // Error
     public static let error = Color.wakeveError

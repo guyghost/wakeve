@@ -89,11 +89,11 @@ struct ErrorView: View {
                 Text("Something went wrong")
                     .font(.title2)
                     .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
 
                 Text(message)
                     .font(.body)
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
 
@@ -415,11 +415,11 @@ struct EventListView: View {
             VStack(spacing: 8) {
                 Text("Wakeve")
                     .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 
                 Text("Collaborative Event Planning")
                     .font(.system(size: 16, weight: .medium, design: .rounded))
-                    .foregroundColor(.white.opacity(0.8))
+                    .foregroundColor(.secondary)
             }
             .padding(.top, 60)
             
@@ -435,11 +435,11 @@ struct EventListView: View {
                                 
                                 Text("Create New Event")
                                     .font(.system(size: 18, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(.primary)
                                 
                                 Text("Start planning your collaborative event")
                                     .font(.system(size: 14, design: .rounded))
-                                    .foregroundColor(.white.opacity(0.8))
+                                    .foregroundColor(.secondary)
                                     .multilineTextAlignment(.center)
                             }
                             .frame(maxWidth: .infinity)
@@ -453,26 +453,26 @@ struct EventListView: View {
                     if isLoading {
                         VStack(spacing: 16) {
                             ProgressView()
-                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .progressViewStyle(CircularProgressViewStyle(tint: .secondary))
                             
                             Text("Loading events...")
                                 .font(.system(size: 14, design: .rounded))
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.secondary)
                         }
                         .padding(.vertical, 40)
                     } else if events.isEmpty {
                         VStack(spacing: 16) {
                             Image(systemName: "calendar.badge.exclamationmark")
                                 .font(.system(size: 48))
-                                .foregroundColor(.white.opacity(0.6))
+                                .foregroundColor(Color(.tertiaryLabel))
                             
                             Text("No events yet")
                                 .font(.system(size: 16, weight: .medium, design: .rounded))
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.secondary)
                             
                             Text("Create your first event to get started")
                                 .font(.system(size: 14, design: .rounded))
-                                .foregroundColor(.white.opacity(0.6))
+                                .foregroundColor(Color(.tertiaryLabel))
                                 .multilineTextAlignment(.center)
                         }
                         .padding(.vertical, 40)
@@ -517,12 +517,12 @@ struct EventCard: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(event.title)
                             .font(.system(size: 18, weight: .semibold, design: .rounded))
-                            .foregroundColor(.white)
+                            .foregroundColor(.primary)
                         
                         if !event.description.isEmpty {
                             Text(event.description)
                                 .font(.system(size: 14, design: .rounded))
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.secondary)
                                 .lineLimit(2)
                         }
                     }
@@ -540,28 +540,28 @@ struct EventCard: View {
                         
                         Text("\(event.participants.count) participants")
                             .font(.system(size: 12, design: .rounded))
-                            .foregroundColor(.white.opacity(0.6))
+                            .foregroundColor(Color(.tertiaryLabel))
                     }
                 }
                 
                 HStack {
                     Image(systemName: "calendar")
                         .font(.system(size: 14))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(Color(.tertiaryLabel))
                     
                     Text("\(event.proposedSlots.count) time slots")
                         .font(.system(size: 14, design: .rounded))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.secondary)
                     
                     Spacer()
                     
                     Image(systemName: "clock")
                         .font(.system(size: 14))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(Color(.tertiaryLabel))
                     
                     Text(formatDeadline(event.deadline))
                         .font(.system(size: 14, design: .rounded))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.secondary)
                 }
             }
             .padding(20)
@@ -614,9 +614,9 @@ struct EventDetailView: View {
                 Button(action: onBack) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                         .padding(12)
-                        .background(Color.white.opacity(0.1))
+                        .background(Color(.tertiarySystemFill))
                         .clipShape(Circle())
                 }
                 
@@ -624,7 +624,7 @@ struct EventDetailView: View {
                 
                 Text(event.title)
                     .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
+                    .foregroundColor(.primary)
                 
                 Spacer()
             }
@@ -642,7 +642,7 @@ struct EventDetailView: View {
                             
                             Text("Status: \(statusText)")
                                 .font(.system(size: 18, weight: .semibold, design: .rounded))
-                                .foregroundColor(.white)
+                                .foregroundColor(.primary)
                             
                             Spacer()
                         }
@@ -650,28 +650,28 @@ struct EventDetailView: View {
                         if !event.description.isEmpty {
                             Text(event.description)
                                 .font(.system(size: 14, design: .rounded))
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.secondary)
                                 .multilineTextAlignment(.leading)
                         }
                         
                         HStack {
                             Image(systemName: "person.2")
                                 .font(.system(size: 16))
-                                .foregroundColor(.white.opacity(0.6))
+                                .foregroundColor(Color(.tertiaryLabel))
                             
                             Text("\(event.participants.count) participants")
                                 .font(.system(size: 14, design: .rounded))
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.secondary)
                             
                             Spacer()
                             
                             Image(systemName: "clock")
                                 .font(.system(size: 16))
-                                .foregroundColor(.white.opacity(0.6))
+                                .foregroundColor(Color(.tertiaryLabel))
                             
                             Text("Deadline: \(formatDeadline(event.deadline))")
                                 .font(.system(size: 14, design: .rounded))
-                                .foregroundColor(.white.opacity(0.8))
+                                .foregroundColor(.secondary)
                         }
                     }
                     .padding(24)
@@ -787,18 +787,18 @@ struct ActionButton: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(.white)
+                        .foregroundColor(.primary)
                     
                     Text(subtitle)
                         .font(.system(size: 14, design: .rounded))
-                        .foregroundColor(.white.opacity(0.8))
+                        .foregroundColor(.secondary)
                 }
                 
                 Spacer()
                 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.6))
+                    .foregroundColor(Color(.tertiaryLabel))
             }
             .padding(20)
         }

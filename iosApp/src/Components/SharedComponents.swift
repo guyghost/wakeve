@@ -152,7 +152,7 @@ struct FilterChip: View {
                         .padding(.vertical, 4)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
-                                .fill(isSelected ? Color.white.opacity(0.25) : Color.wakeveBorderLight.opacity(0.3))
+                                .fill(isSelected ? Color.white.opacity(0.25) : Color(.tertiarySystemFill))
                         )
                 }
             }
@@ -168,17 +168,10 @@ struct FilterChip: View {
                             endPoint: .bottomTrailing
                         )
                     } else {
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color.white.opacity(0.7),
-                                Color.white.opacity(0.5)
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+                        Color(.tertiarySystemFill)
                         .overlay(
                             RoundedRectangle(cornerRadius: 20)
-                                .strokeBorder(Color.wakeveBorderLight.opacity(0.5), lineWidth: 1)
+                                .strokeBorder(Color(.separator).opacity(0.5), lineWidth: 1)
                         )
                     }
                 }

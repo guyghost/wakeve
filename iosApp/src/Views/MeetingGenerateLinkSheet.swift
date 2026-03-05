@@ -235,7 +235,7 @@ private struct GenerateLinkPlatformOption: View {
                 endPoint: .bottomTrailing
             )
         } else {
-            Color.wakeveSurfaceLight
+            Color(.secondarySystemBackground)
         }
     }
     
@@ -256,7 +256,7 @@ private struct GenerateLinkPlatformOption: View {
                 )
         } else {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color.wakeveBorderLight, lineWidth: 1)
+                .stroke(Color(.separator), lineWidth: 1)
         }
     }
     
