@@ -15,8 +15,6 @@ import AuthenticationServices
  *
  * Design System:
  * - Gradient: .wakevePrimary → .wakeveAccent
- * - Cards: LiquidGlassCard with ultra-thin material
- * - Buttons: LiquidGlassButton with gradient background
  * - Colors: Full WakeveColors palette
  */
 struct LoginView: View {
@@ -184,13 +182,17 @@ struct LoginView: View {
     
     #if DEBUG
     private var developmentSkipButton: some View {
-        LiquidGlassButton(
-            title: String(localized: "auth.skip_dev"),
-            icon: "chevron.right",
-            style: .secondary,
-            size: .medium
-        ) {
-            skipAuthForDevelopment()
+        Button(action: { skipAuthForDevelopment() }) {
+            HStack(spacing: 8) {
+                Text(String(localized: "auth.skip_dev"))
+                Image(systemName: "chevron.right")
+            }
+            .font(.headline)
+            .foregroundColor(.secondary)
+            .padding(.horizontal, 24)
+            .padding(.vertical, 12)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .accessibilityLabel("Development mode: Skip authentication")
         .accessibilityHint("Creates a mock authenticated session for testing")

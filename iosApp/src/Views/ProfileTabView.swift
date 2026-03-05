@@ -53,11 +53,6 @@ struct ProfileTabView: View {
             .sheet(isPresented: $showLeaderboard) {
                 LeaderboardView()
             }
-            .sheet(isPresented: $showDashboard) {
-                NavigationStack {
-                    OrganizerDashboardView()
-                }
-            }
         }
     }
 }
@@ -266,7 +261,19 @@ struct AboutSection: View {
             }
         }
         .sheet(isPresented: $showSettings) {
-            SettingsView()
+            NavigationStack {
+                Text("Settings - Coming Soon")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+                    .navigationTitle(String(localized: "profile.settings"))
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(String(localized: "common.close")) {
+                                showSettings = false
+                            }
+                        }
+                    }
+            }
         }
     }
 }

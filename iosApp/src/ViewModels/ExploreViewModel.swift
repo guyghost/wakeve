@@ -195,7 +195,7 @@ struct ExploreEventItem: Identifiable, Equatable {
     /// Icon for the event type
     var icon: String {
         switch eventType {
-        case "BIRTHDAY": return "cake.fill"
+        case "BIRTHDAY": return "birthday.cake"
         case "WEDDING": return "heart.fill"
         case "TEAM_BUILDING": return "person.3.fill"
         case "CONFERENCE": return "building.2.fill"
@@ -207,7 +207,7 @@ struct ExploreEventItem: Identifiable, Equatable {
         case "OUTDOOR_ACTIVITY": return "leaf.fill"
         case "FOOD_TASTING": return "fork.knife"
         case "TECH_MEETUP": return "laptopcomputer"
-        case "WELLNESS_EVENT": return "heart.circle.fill"
+        case "WELLNESS_EVENT": return "figure.mind.and.body"
         case "CREATIVE_WORKSHOP": return "paintpalette.fill"
         default: return "calendar"
         }
@@ -351,7 +351,7 @@ extension EventScenario {
                 String(localized: "scenario.birthday.check3"),
                 String(localized: "scenario.birthday.check4")
             ],
-            icon: "cake.fill",
+            icon: "birthday.cake",
             gradientColors: [Color(hex: "EC4899"), Color(hex: "8B5CF6")],
             category: .social,
             isFeatured: true
@@ -455,7 +455,7 @@ extension EventScenario {
                 String(localized: "scenario.yoga.check3"),
                 String(localized: "scenario.yoga.check4")
             ],
-            icon: "figure.yoga",
+            icon: "figure.mind.and.body",
             gradientColors: [Color(hex: "06B6D4"), Color(hex: "8B5CF6")],
             category: .sport,
             isFeatured: false
@@ -472,7 +472,7 @@ extension EventScenario {
                 String(localized: "scenario.cycling.check3"),
                 String(localized: "scenario.cycling.check4")
             ],
-            icon: "figure.outdoor.cycle",
+            icon: "bicycle",
             gradientColors: [Color(hex: "059669"), Color(hex: "06B6D4")],
             category: .sport,
             isFeatured: false
@@ -612,7 +612,7 @@ extension EventScenario {
                 String(localized: "scenario.seminar.check3"),
                 String(localized: "scenario.seminar.check4")
             ],
-            icon: "person.line.dotted.person.fill",
+            icon: "person.2.wave.2",
             gradientColors: [Color(hex: "1E40AF"), Color(hex: "7C3AED")],
             category: .professional,
             isFeatured: false
@@ -759,3 +759,4 @@ extension EventScenario {
         )
     ]
 }
+

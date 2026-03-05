@@ -198,11 +198,6 @@ struct AuthenticatedView: View {
                 }
             )
         }
-        .sheet(isPresented: $showNotificationPreferencesSheet) {
-            NotificationPreferencesView(
-                onDismiss: { showNotificationPreferencesSheet = false }
-            )
-        }
     }
     
     // MARK: - Home Tab
@@ -229,35 +224,15 @@ struct AuthenticatedView: View {
             )
             
         case .eventCreation:
-            // Legacy full-screen creation (keep for backwards compatibility)
-            // Using DraftEventWizardView wrapped in CreateEventView
-            CreateEventView(
-                userId: userId,
-                repository: repository,
-                onEventCreated: { eventId in
-                    if let event = repository.getEvent(id: eventId) {
-                        selectedEvent = event
-                        currentView = .participantManagement
-                    }
-                }
-            )
+            Text("Event Creation - Coming Soon")
+                .font(.title2)
+                .foregroundColor(.secondary)
             
         case .eventDetail:
-            if let event = selectedEvent {
-                ModernEventDetailView(
-                    event: event,
-                    userId: userId,
-                    repository: repository,
-                    onBack: {
-                        currentView = .eventList
-                    },
-                    onVote: {
-                        currentView = .pollVoting
-                    },
-                    onManageParticipants: {
-                        currentView = .participantManagement
-                    }
-                )
+            if selectedEvent != nil {
+                Text("Event Detail - Coming Soon")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
             }
             
         case .participantManagement:
@@ -310,60 +285,24 @@ struct AuthenticatedView: View {
         // MARK: - New PRD Features Navigation Cases
             
         case .scenarioList:
-            if let event = selectedEvent {
-                ScenarioListView(
-                    event: event,
-                    participantId: userId,
-                    onScenarioTap: { scenario in
-                        selectedScenario = scenario
-                        // TODO: Navigate to scenario detail
-                    },
-                    onCompareTap: {
-                        // TODO: Navigate to scenario comparison
-                    },
-                    onCreateScenarioTap: {
-                        // TODO: Show create scenario sheet
-                    },
-                    onBack: {
-                        currentView = .eventDetail
-                    }
-                )
-            }
+            Text("Scenario List - Coming Soon")
+                .font(.title2)
+                .foregroundColor(.secondary)
             
         case .scenarioComparison:
-            if let event = selectedEvent {
-                ScenarioComparisonView(
-                    event: event,
-                    repository: ScenarioRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
-                    onBack: {
-                        currentView = .scenarioList
-                    }
-                )
-            }
+            Text("Scenario Comparison - Coming Soon")
+                .font(.title2)
+                .foregroundColor(.secondary)
             
         case .budgetOverview:
-            if let event = selectedEvent {
-                BudgetOverviewView(
-                    event: event,
-                    repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
-                    onBack: {
-                        currentView = .eventDetail
-                    },
-                    onViewDetails: {
-                        // TODO: Navigate to budget detail
-                    }
-                )
-            }
+            Text("Budget Overview - Coming Soon")
+                .font(.title2)
+                .foregroundColor(.secondary)
             
         case .accommodation:
-            if let event = selectedEvent {
-                AccommodationView(
-                    eventId: event.id,
-                    currentUserId: userId,
-                    currentUserName: "Current User" // TODO: Get actual user name
-                )
-                .navigationBarTitleDisplayMode(.inline)
-            }
+            Text("Accommodation - Coming Soon")
+                .font(.title2)
+                .foregroundColor(.secondary)
             
         case .mealPlanning:
             if selectedEvent != nil {
@@ -374,109 +313,36 @@ struct AuthenticatedView: View {
             }
             
         case .equipmentChecklist:
-            if let event = selectedEvent {
-                EquipmentChecklistView(
-                    eventId: event.id,
-                    currentUserId: userId,
-                    currentUserName: "Current User" // TODO: Get actual user name
-                )
-            }
-            
-        case .activityPlanning:
-            if let event = selectedEvent {
-                ActivityPlanningView(
-                    eventId: event.id,
-                    currentUserId: userId,
-                    currentUserName: "Current User" // TODO: Get actual user name
-                )
-            }
-            
-        case .scenarioDetail:
-            if let event = selectedEvent, let scenario = selectedScenario {
-                ScenarioDetailView(
-                    scenarioId: scenario.id,
-                    eventId: event.id,
-                    isOrganizer: event.organizerId == userId,
-                    currentUserId: userId,
-                    currentUserName: "Current User", // TODO: Get actual user name
-                    onBack: {
-                        currentView = .scenarioList
-                    },
-                    onDeleted: {
-                        selectedScenario = nil
-                        currentView = .scenarioList
-                    }
-                )
-            }
-            
-        case .budgetDetail:
-            if let event = selectedEvent, let budget = selectedBudget {
-                BudgetDetailView(
-                    budget: budget,
-                    eventId: event.id,
-                    repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
-                    currentUserId: userId,
-                    currentUserName: "Current User", // TODO: Get actual user name
-                    onBack: {
-                        currentView = .budgetOverview
-                    }
-                )
-            } else if let event = selectedEvent {
-                // Fallback: navigate to budget overview if no budget selected
-                BudgetOverviewView(
-                    event: event,
-                    repository: BudgetRepository(db: DatabaseProvider.shared.getDatabase(factory: IosDatabaseFactory())),
-                    onBack: {
-                        currentView = .eventDetail
-                    },
-                    onViewDetails: {
-                        // TODO: Navigate to budget detail with selected budget
-                    }
-                )
-            }
-            
-        case .meetingList:
-            if let event = selectedEvent {
-                MeetingListView(
-                    eventId: event.id,
-                    userId: userId,
-                    isOrganizer: event.organizerId == userId,
-                    onMeetingTap: { meetingId in
-                        // Store meeting ID and navigate to detail
-                        selectedMeetingId = meetingId
-                        currentView = .meetingDetail
-                    },
-                    onCreateMeeting: {
-                        // TODO: Show create meeting sheet
-                    },
-                    onBack: {
-                        currentView = .eventDetail
-                    }
-                )
-            }
-
-        case .meetingDetail:
-            if let meetingId = selectedMeetingId {
-                MeetingDetailView(
-                    meetingId: meetingId,
-                    userId: userId,
-                    onBack: {
-                        currentView = .meetingList
-                    },
-                    onJoinMeeting: { link in
-                        // Open meeting link
-                        if let url = URL(string: link) {
-                            #if canImport(UIKit)
-                            UIApplication.shared.open(url)
-                            #endif
-                        }
-                    }
-                )
-            } else {
-                Text("No meeting selected")
+            if selectedEvent != nil {
+                Text("Equipment Checklist - Coming Soon")
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
+            
+        case .activityPlanning:
+            Text("Activity Planning - Coming Soon")
+                .font(.title2)
+                .foregroundColor(.secondary)
+            
+        case .scenarioDetail:
+            Text("Scenario Detail - Coming Soon")
+                .font(.title2)
+                .foregroundColor(.secondary)
+            
+        case .budgetDetail:
+            Text("Budget Detail - Coming Soon")
+                .font(.title2)
+                .foregroundColor(.secondary)
+            
+        case .meetingList:
+            Text("Meeting List - Coming Soon")
+                .font(.title2)
+                .foregroundColor(.secondary)
+
+        case .meetingDetail:
+            Text("Meeting Detail - Coming Soon")
+                .font(.title2)
+                .foregroundColor(.secondary)
             
         case .inbox:
             InboxView(
