@@ -150,7 +150,6 @@ struct ModernHomeView: View {
     @State private var isLoading = true
     @State private var showFilterMenu = false
     @State private var selectedFilter: HomeEventFilter = .upcoming
-    @Environment(\.colorScheme) var colorScheme
 
     var body: some View {
         ZStack {
@@ -166,7 +165,6 @@ struct ModernHomeView: View {
                 } else if filteredEvents.isEmpty {
                     HomeEmptyStateView(
                         onCreateEvent: onCreateEvent,
-                        colorScheme: colorScheme,
                         title: emptyStateTitle,
                         subtitle: emptyStateSubtitle
                     )
@@ -183,7 +181,6 @@ struct ModernHomeView: View {
                 FilterDropdownMenu(
                     selectedFilter: $selectedFilter,
                     isShowing: $showFilterMenu,
-                    colorScheme: colorScheme,
                     draftCount: draftCount
                 )
                 .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .topLeading)))
@@ -242,11 +239,11 @@ struct ModernHomeView: View {
                 HStack(spacing: 4) {
                     Text(selectedFilter.displayName)
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                        .foregroundColor(.primary)
 
                     Image(systemName: showFilterMenu ? "chevron.up" : "chevron.down")
                         .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                        .foregroundColor(.primary)
                 }
             }
 
@@ -255,11 +252,11 @@ struct ModernHomeView: View {
             Button(action: onCreateEvent) {
                 Image(systemName: "plus")
                     .font(.system(size: 24, weight: .medium))
-                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                    .foregroundColor(.primary)
                     .frame(width: 40, height: 40)
                     .background(
                         Circle()
-                            .fill(colorScheme == .dark ? Color(hex: "2A2A2A") : Color(hex: "E2E8F0"))
+                            .fill(Color(.tertiarySystemFill))
                     )
             }
 
@@ -287,7 +284,6 @@ struct EventsCarouselView: View {
     let events: [Event]
     let onEventSelected: (Event) -> Void
     let userId: String
-    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -312,7 +308,6 @@ struct VisualEventCard: View {
     let event: Event
     let isOrganizer: Bool
     let onTap: () -> Void
-    @Environment(\.colorScheme) var colorScheme
     
     private var theme: EventTheme {
         EventTheme.theme(for: event.eventType.name)
@@ -384,7 +379,6 @@ struct VisualEventCard: View {
 struct FilterDropdownMenu: View {
     @Binding var selectedFilter: HomeEventFilter
     @Binding var isShowing: Bool
-    let colorScheme: ColorScheme
     let draftCount: Int
     
     var body: some View {
@@ -403,25 +397,25 @@ struct FilterDropdownMenu: View {
                                     if selectedFilter == filter {
                                         Image(systemName: "checkmark")
                                             .font(.system(size: 16, weight: .semibold))
-                                            .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                                            .foregroundColor(.primary)
                                     }
                                 }
                                 .frame(width: 24)
                                 
                                 Image(systemName: filter.icon)
                                     .font(.system(size: 18))
-                                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                                    .foregroundColor(.primary)
                                     .frame(width: 24)
                                 
                                 HStack(spacing: 4) {
                                     Text(filter.displayName)
                                         .font(.body.weight(.medium))
-                                        .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                                        .foregroundColor(.primary)
                                     
                                     if filter.showBadge && draftCount > 0 {
                                         Text("(\(draftCount))")
                                             .font(.body.weight(.medium))
-                                            .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                                            .foregroundColor(.primary)
                                     }
                                 }
                                 
@@ -433,7 +427,6 @@ struct FilterDropdownMenu: View {
                         
                         if index == 1 {
                             Divider()
-                                .background(colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1))
                                 .padding(.horizontal, 16)
                         }
                     }
@@ -442,7 +435,7 @@ struct FilterDropdownMenu: View {
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(colorScheme == .dark ? Color(hex: "1E293B").opacity(0.95) : Color.white.opacity(0.95))
+                        .fill(Color(.secondarySystemGroupedBackground).opacity(0.95))
                         .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 10)
                 )
                 .padding(.top, 60)
@@ -466,7 +459,6 @@ struct FilterDropdownMenu: View {
 
 struct HomeEmptyStateView: View {
     let onCreateEvent: () -> Void
-    let colorScheme: ColorScheme
     let title: String
     let subtitle: String
 
@@ -477,16 +469,16 @@ struct HomeEmptyStateView: View {
             VStack(spacing: 24) {
                 Image(systemName: "calendar")
                     .font(.system(size: 80, weight: .light))
-                    .foregroundColor(colorScheme == .dark ? Color(hex: "64748B") : Color(hex: "94A3B8"))
+                    .foregroundColor(.secondary)
 
                 Text(title)
                     .font(.title2.weight(.semibold))
-                    .foregroundColor(colorScheme == .dark ? .white : Color(hex: "0F172A"))
+                    .foregroundColor(.primary)
                     .multilineTextAlignment(.center)
 
                 Text(subtitle)
                     .font(.body)
-                    .foregroundColor(colorScheme == .dark ? Color(hex: "94A3B8") : Color(hex: "64748B"))
+                    .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
                     .padding(.horizontal, 32)
@@ -497,10 +489,10 @@ struct HomeEmptyStateView: View {
             Button(action: onCreateEvent) {
                 Text(String(localized: "home.create_event"))
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.black)
+                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
-                    .background(RoundedRectangle(cornerRadius: 28).fill(Color.white))
+                    .background(RoundedRectangle(cornerRadius: 28).fill(Color.wakevePrimary))
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 32)
