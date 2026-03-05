@@ -17,6 +17,9 @@ struct InboxView: View {
     let onBack: () -> Void
     @Binding var unreadCount: Int
 
+    /// Optional override for initial items (used by previews).
+    var initialItems: [InboxItemModel]? = nil
+
     @State private var selectedFilter: InboxFilter = .inbox
     @State private var showNotificationBanner = true
     @State private var items: [InboxItemModel] = []
@@ -27,8 +30,10 @@ struct InboxView: View {
     @State private var selectedItemIds: Set<String> = []
     @State private var showActionBar = false
 
-    // Sample events for the dropdown
-    private let availableEvents = ["Week-end ski 2024", "Réunion famille", "Voyage Espagne", "Week-end montagne", "Anniversaire Alice"]
+    // Derived from loaded items for the event filter dropdown
+    private var availableEvents: [String] {
+        Array(Set(items.compactMap { $0.eventName })).sorted()
+    }
 
     var body: some View {
         NavigationStack {
@@ -48,12 +53,7 @@ struct InboxView: View {
                     if isLoading {
                         loadingView
                     } else if filteredItems.isEmpty {
-                        ScrollView {
-                            if showNotificationBanner {
-                                notificationBanner
-                            }
-                            emptyStateView
-                        }
+                        emptyStateView
                     } else {
                         ScrollView {
                             itemListView
@@ -204,60 +204,6 @@ struct InboxView: View {
         }
     }
     
-    // MARK: - Notification Banner
-    
-    private var notificationBanner: some View {
-        HStack(alignment: .top, spacing: 12) {
-            // Bell icon
-            ZStack {
-                Circle()
-                    .fill(Color.red)
-                    .frame(width: 36, height: 36)
-                
-                Image(systemName: "bell.fill")
-                    .font(.system(size: 16))
-                    .foregroundColor(.white)
-            }
-            
-            // Content
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Never miss what's important to you.")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                Text("Customize your Notification experience with push notifications, working hours, and swipe actions.")
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
-                
-                Button(action: {
-                    // Configure action
-                }) {
-                    Text("Configure")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.blue)
-                        .padding(.vertical, 4)
-                }
-            }
-            
-            Spacer()
-            
-            // Close button
-            Button(action: {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    showNotificationBanner = false
-                }
-            }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .frame(width: 24, height: 24)
-            }
-        }
-        .padding(16)
-        .background(Color(.secondarySystemBackground))
-    }
-    
     // MARK: - Filtered Items
     
     private var filteredItems: [InboxItemModel] {
@@ -308,23 +254,11 @@ struct InboxView: View {
     // MARK: - Empty State View
     
     private var emptyStateView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: emptyStateIcon)
-                .font(.system(size: 64))
-                .foregroundColor(.wakevePrimary.opacity(0.3))
-            
-            Text(emptyStateTitle)
-                .font(.title3)
-                .fontWeight(.semibold)
-                .foregroundColor(.primary)
-            
-            Text(emptyStateSubtitle)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        ContentUnavailableView(
+            emptyStateTitle,
+            systemImage: emptyStateIcon,
+            description: Text(emptyStateSubtitle)
+        )
     }
     
     private var emptyStateIcon: String {
@@ -414,10 +348,6 @@ struct InboxView: View {
     
     private var itemListView: some View {
         LazyVStack(spacing: 0) {
-            // Notification banner
-            if showNotificationBanner && !isSelectionMode {
-                notificationBanner
-            }
             
             // Items list
             ForEach(filteredItems) { item in
@@ -467,10 +397,17 @@ struct InboxView: View {
     private func loadItems() {
         isLoading = true
         
-        // TODO: Load from repository
-        // For now, show sample data
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            items = sampleInboxItems
+        // TODO: Load from repository when backend is available
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            if let override = initialItems {
+                items = override
+            } else {
+                #if DEBUG
+                items = InboxItemFactory.mixedList()
+                #else
+                items = []
+                #endif
+            }
             isLoading = false
         }
     }
@@ -921,71 +858,6 @@ enum InboxItemType {
     case invitation, pollUpdate, comment, eventUpdate
 }
 
-// MARK: - Sample Data
-
-private let sampleInboxItems: [InboxItemModel] = [
-    InboxItemModel(
-        id: "1",
-        title: "Naming input with SavedModel format",
-        message: "System information:",
-        timeAgo: "17m",
-        type: .invitation,
-        isRead: false,
-        repository: "tensorflow",
-        number: 34070,
-        commentCount: 1,
-        status: .open,
-        isFocused: true,
-        eventName: "Week-end ski 2024",
-        eventId: "evt-001"
-    ),
-    InboxItemModel(
-        id: "2",
-        title: "Upgrade Electron from v5 to v7",
-        message: "Merged #8967 into development",
-        timeAgo: "3h",
-        type: .eventUpdate,
-        isRead: true,
-        repository: "desktop",
-        number: 8967,
-        commentCount: 29,
-        status: .merged,
-        isFocused: false,
-        eventName: "Réunion famille",
-        eventId: "evt-002"
-    ),
-    InboxItemModel(
-        id: "3",
-        title: "Adding docs for account creation",
-        message: "This screenshot: https://github.co...",
-        timeAgo: "1h",
-        type: .comment,
-        isRead: false,
-        repository: "storybookjs",
-        number: 8750,
-        commentCount: 2,
-        status: .open,
-        isFocused: true,
-        eventName: "Voyage Espagne",
-        eventId: "evt-003"
-    ),
-    InboxItemModel(
-        id: "4",
-        title: "Prisma Client connection pool issue",
-        message: "@matthewmueller commented",
-        timeAgo: "2h",
-        type: .pollUpdate,
-        isRead: true,
-        repository: "prisma",
-        number: 5920,
-        commentCount: 0,
-        status: .open,
-        isFocused: false,
-        eventName: "Week-end montagne",
-        eventId: "evt-004"
-    )
-]
-
 // MARK: - Previews
 
 #Preview("Inbox - With Notifications") {
@@ -994,6 +866,6 @@ private let sampleInboxItems: [InboxItemModel] = [
 }
 
 #Preview("Inbox - Empty") {
-    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0))
+    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0), initialItems: [])
         .previewEnvironment()
 }
