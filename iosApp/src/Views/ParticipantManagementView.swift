@@ -1,9 +1,9 @@
 import SwiftUI
 import Shared
 
-/// Modern participant management view inspired by Apple Invites
+/// Participant management view inspired by Apple Invites
 /// Features: Clean list design, easy participant management, clear status indicators
-struct ModernParticipantManagementView: View {
+struct ParticipantManagementView: View {
     let event: Event
     let repository: EventRepositoryInterface
     let onParticipantsUpdated: () -> Void
@@ -167,7 +167,7 @@ struct ModernParticipantManagementView: View {
                         } else {
                             VStack(spacing: 0) {
                                 ForEach(Array(participants.enumerated()), id: \.element) { index, participant in
-                                    ModernParticipantRowView(email: participant)
+                                    ParticipantRowView(email: participant)
 
                                     if index < participants.count - 1 {
                                         Divider()
@@ -287,9 +287,9 @@ struct ModernParticipantManagementView: View {
     }
 }
 
-// MARK: - Modern Participant Row
+// MARK: - Participant Row
 
-struct ModernParticipantRowView: View {
+struct ParticipantRowView: View {
     let email: String
 
     private var initials: String {

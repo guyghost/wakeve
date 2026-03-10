@@ -137,9 +137,9 @@ struct EventTheme {
     }
 }
 
-// MARK: - Modern Home View
+// MARK: - Home View
 
-struct ModernHomeView: View {
+struct HomeView: View {
     let userId: String
     let repository: EventRepositoryInterface
     let onEventSelected: (Event) -> Void

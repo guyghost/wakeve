@@ -1,7 +1,7 @@
 import SwiftUI
 
 /**
- * ModernGetStartedView - Welcome screen for iOS
+ * GetStartedView - Welcome screen for iOS
  *
  * First screen users see when opening the app
  * Uses Liquid Glass design system with spring animations
@@ -16,7 +16,7 @@ import SwiftUI
  * - Functional Core: State management for entrance animations
  * - Imperative Shell: UI rendering with Liquid Glass styling
  */
-struct ModernGetStartedView: View {
+struct GetStartedView: View {
     let onGetStarted: () -> Void
 
     // MARK: - Animation State
@@ -428,6 +428,6 @@ struct ScaleEffectOnPress: ViewModifier {
 // MARK: - Previews
 
 #Preview("Get Started") {
-    ModernGetStartedView(onGetStarted: {})
+    GetStartedView(onGetStarted: {})
         .previewEnvironment(isAuthenticated: false)
 }

@@ -1,9 +1,9 @@
 import SwiftUI
 import Shared
 
-/// Modern poll voting view inspired by Apple Invites
+/// Poll voting view inspired by Apple Invites
 /// Features: Clean design, card-based time slots, clear voting options
-struct ModernPollVotingView: View {
+struct PollVotingView: View {
     let event: Event
     let repository: EventRepositoryInterface
     let participantId: String
@@ -174,7 +174,7 @@ struct ModernPollVotingView: View {
                             // Time Slots
                             ForEach(event.proposedSlots.indices, id: \.self) { index in
                                 let slot = event.proposedSlots[index]
-                                ModernTimeSlotVoteCard(
+                                TimeSlotVoteCard(
                                     timeSlot: slot,
                                     selectedVote: votes[slot.id],
                                     onVoteSelected: { vote in
@@ -311,9 +311,9 @@ struct VoteGuideRow: View {
     }
 }
 
-// MARK: - Modern Time Slot Vote Card
+// MARK: - Time Slot Vote Card
 
-struct ModernTimeSlotVoteCard: View {
+struct TimeSlotVoteCard: View {
     let timeSlot: TimeSlot
     let selectedVote: PollVote?
     let onVoteSelected: (PollVote) -> Void
@@ -339,7 +339,7 @@ struct ModernTimeSlotVoteCard: View {
 
             // Vote buttons
             HStack(spacing: 12) {
-                ModernVoteButton(
+                VoteButton(
                     vote: .yes,
                     icon: "checkmark",
                     label: "Available",
@@ -348,7 +348,7 @@ struct ModernTimeSlotVoteCard: View {
                     action: { onVoteSelected(.yes) }
                 )
 
-                ModernVoteButton(
+                VoteButton(
                     vote: .maybe,
                     icon: "questionmark",
                     label: "Maybe",
@@ -357,7 +357,7 @@ struct ModernTimeSlotVoteCard: View {
                     action: { onVoteSelected(.maybe) }
                 )
 
-                ModernVoteButton(
+                VoteButton(
                     vote: .no,
                     icon: "xmark",
                     label: "Not Available",
@@ -390,9 +390,9 @@ struct ModernTimeSlotVoteCard: View {
     }
 }
 
-// MARK: - Modern Vote Button
+// MARK: - Vote Button
 
-struct ModernVoteButton: View {
+struct VoteButton: View {
     let vote: PollVote
     let icon: String
     let label: String
