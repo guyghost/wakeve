@@ -46,7 +46,7 @@ struct MainTabView: View {
 
     @ViewBuilder
     private func HomeTabContent() -> some View {
-        ModernHomeView(
+        HomeView(
             userId: userId,
             repository: repository,
             onEventSelected: { event in

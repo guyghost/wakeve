@@ -47,7 +47,7 @@ struct ContentView: View {
                 if hasSeenGetStarted {
                     LoginView()
                 } else {
-                    ModernGetStartedView(onGetStarted: {
+                    GetStartedView(onGetStarted: {
                         withAnimation(.easeInOut(duration: 0.3)) {
                             hasSeenGetStarted = true
                         }
@@ -206,7 +206,7 @@ struct AuthenticatedView: View {
     private var homeTabContent: some View {
         switch currentView {
         case .eventList:
-            ModernHomeView(
+            HomeView(
                 userId: userId,
                 repository: repository,
                 onEventSelected: { event in
@@ -237,7 +237,7 @@ struct AuthenticatedView: View {
             
         case .participantManagement:
             if let event = selectedEvent {
-                ModernParticipantManagementView(
+                ParticipantManagementView(
                     event: event,
                     repository: repository,
                     onParticipantsUpdated: {
@@ -254,7 +254,7 @@ struct AuthenticatedView: View {
             
         case .pollVoting:
             if let event = selectedEvent {
-                ModernPollVotingView(
+                PollVotingView(
                     event: event,
                     repository: repository,
                     participantId: userId,
@@ -269,7 +269,7 @@ struct AuthenticatedView: View {
             
         case .pollResults:
             if let event = selectedEvent {
-                ModernPollResultsView(
+                PollResultsView(
                     event: event,
                     repository: repository,
                     userId: userId,

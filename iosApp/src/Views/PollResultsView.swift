@@ -1,9 +1,9 @@
 import SwiftUI
 import Shared
 
-/// Modern poll results view inspired by Apple Invites
+/// Poll results view inspired by Apple Invites
 /// Features: Clean results visualization, progress indicators, clear winner highlighting
-struct ModernPollResultsView: View {
+struct PollResultsView: View {
     let event: Event
     let repository: EventRepositoryInterface
     let userId: String
@@ -81,7 +81,7 @@ struct ModernPollResultsView: View {
 
                                     ForEach(slotScores.sorted(by: { $0.totalScore > $1.totalScore }), id: \.slotId) { score in
                                         if let slot = event.proposedSlots.first(where: { $0.id == score.slotId }) {
-                                            ModernSlotResultCard(
+                                            SlotResultCard(
                                                 slot: slot,
                                                 score: score,
                                                 isBest: score.slotId == bestSlot?.id
@@ -351,9 +351,9 @@ struct ConfirmedDateCard: View {
     }
 }
 
-// MARK: - Modern Slot Result Card
+// MARK: - Slot Result Card
 
-struct ModernSlotResultCard: View {
+struct SlotResultCard: View {
     let slot: TimeSlot
     let score: PollLogic.SlotScore
     let isBest: Bool
