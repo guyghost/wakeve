@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.presentation.usecase
 
-import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.TimeSlot

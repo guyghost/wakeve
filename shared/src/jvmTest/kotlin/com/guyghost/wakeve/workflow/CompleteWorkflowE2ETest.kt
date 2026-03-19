@@ -1,9 +1,9 @@
 package com.guyghost.wakeve.workflow
 
-import com.guyghost.wakeve.DatabaseEventRepository
-import com.guyghost.wakeve.EventRepositoryInterface
-import com.guyghost.wakeve.PollLogic
-import com.guyghost.wakeve.ScenarioRepository
+import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.repository.EventRepositoryInterface
+import com.guyghost.wakeve.poll.PollLogic
+import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.meeting.MeetingRepository
 import com.guyghost.wakeve.models.Event

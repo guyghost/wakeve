@@ -1,8 +1,8 @@
 package com.guyghost.wakeve.di
 
-import com.guyghost.wakeve.DatabaseEventRepository
-import com.guyghost.wakeve.EventRepositoryInterface
-import com.guyghost.wakeve.ScenarioRepository
+import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.repository.EventRepositoryInterface
+import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.comment.CommentCache
 import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.database.WakeveDb

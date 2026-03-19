@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.services
 
-import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.ml.Language
 import com.guyghost.wakeve.ml.SessionStatus

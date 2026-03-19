@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.routes
 
-import com.guyghost.wakeve.PotentialLocationRepositoryInterface
+import com.guyghost.wakeve.repository.PotentialLocationRepositoryInterface
 import com.guyghost.wakeve.models.CreatePotentialLocationRequest
 import com.guyghost.wakeve.models.LocationType
 import com.guyghost.wakeve.models.PotentialLocation

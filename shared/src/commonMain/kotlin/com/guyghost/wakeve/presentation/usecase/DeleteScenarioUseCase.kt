@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.presentation.usecase
 
-import com.guyghost.wakeve.ScenarioRepository
+import com.guyghost.wakeve.repository.ScenarioRepository
 
 /**
  * Use case for deleting a scenario.

@@ -4,7 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.auth0.jwt.exceptions.JWTVerificationException
 import com.auth0.jwt.interfaces.DecodedJWT
-import com.guyghost.wakeve.UserRepository
+import com.guyghost.wakeve.repository.UserRepository
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.AuthResponse
 import com.guyghost.wakeve.models.OAuthLoginRequest

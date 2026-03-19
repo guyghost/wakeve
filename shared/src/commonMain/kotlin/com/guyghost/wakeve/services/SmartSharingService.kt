@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.services
 
-import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.models.Album
 import com.guyghost.wakeve.models.PhotoCategory
 import com.guyghost.wakeve.repository.AlbumRepository

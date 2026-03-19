@@ -1,4 +1,4 @@
-package com.guyghost.wakeve
+package com.guyghost.wakeve.poll
 
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.TimeSlot

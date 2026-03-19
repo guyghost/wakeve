@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.sync
 
-import com.guyghost.wakeve.DatabaseEventRepository
-import com.guyghost.wakeve.UserRepository
+import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.repository.UserRepository
 import com.guyghost.wakeve.createFreshTestDatabase
 import com.guyghost.wakeve.models.SyncOperation
 import com.guyghost.wakeve.models.SyncResponse

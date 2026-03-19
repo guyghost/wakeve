@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.routes
 
-import com.guyghost.wakeve.DatabaseEventRepository
+import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.database.WakeveDb
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal

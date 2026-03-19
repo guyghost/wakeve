@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.routes
 
-import com.guyghost.wakeve.DatabaseEventRepository
+import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.gamification.GamificationService
 import com.guyghost.wakeve.gamification.PointsAction
 import com.guyghost.wakeve.models.AddVoteRequest

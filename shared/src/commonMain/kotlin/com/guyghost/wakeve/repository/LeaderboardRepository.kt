@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.repository
 
-import com.guyghost.wakeve.UserRepository
+import com.guyghost.wakeve.repository.UserRepository
 import com.guyghost.wakeve.gamification.BadgeRarity
 import com.guyghost.wakeve.gamification.LeaderboardEntry
 import com.guyghost.wakeve.gamification.LeaderboardType

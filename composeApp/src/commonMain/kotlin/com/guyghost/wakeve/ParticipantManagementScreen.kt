@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import kotlinx.coroutines.launch
 
 data class ParticipantManagementState(

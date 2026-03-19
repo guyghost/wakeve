@@ -1,10 +1,10 @@
 package com.guyghost.wakeve.di
 
 import com.guyghost.wakeve.AndroidDatabaseFactory
-import com.guyghost.wakeve.DatabaseEventRepository
-import com.guyghost.wakeve.DatabaseFactory
-import com.guyghost.wakeve.DatabaseProvider
-import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.database.DatabaseFactory
+import com.guyghost.wakeve.database.DatabaseProvider
+import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.auth.shell.services.AndroidTokenStorage
 import com.guyghost.wakeve.auth.shell.services.AuthService
 import com.guyghost.wakeve.auth.shell.services.EmailAuthService

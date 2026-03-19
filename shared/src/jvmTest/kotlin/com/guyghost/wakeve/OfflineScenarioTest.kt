@@ -1,5 +1,6 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus

@@ -177,7 +177,7 @@ class StateMachineBasicTest {
     /**
      * Simple in-memory mock repository.
      */
-    private class MockRepository : com.guyghost.wakeve.EventRepositoryInterface {
+    private class MockRepository : com.guyghost.wakeve.repository.EventRepositoryInterface {
         val events = mutableMapOf<String, Event>()
         val polls = mutableMapOf<String, com.guyghost.wakeve.models.Poll>()
 

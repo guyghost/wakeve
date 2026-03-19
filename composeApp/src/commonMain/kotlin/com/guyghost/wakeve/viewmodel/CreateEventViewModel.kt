@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.guyghost.wakeve.EventRepository
+import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.analytics.AnalyticsEvent
 import com.guyghost.wakeve.analytics.AnalyticsProvider
 import com.guyghost.wakeve.models.Event

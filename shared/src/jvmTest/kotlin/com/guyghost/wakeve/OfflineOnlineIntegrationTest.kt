@@ -1,5 +1,7 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.repository.UserRepository
 import com.guyghost.wakeve.models.SyncResponse
 import com.guyghost.wakeve.sync.SyncManager
 import com.guyghost.wakeve.sync.SyncStatus

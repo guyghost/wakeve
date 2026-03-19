@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.notification
 
-import com.guyghost.wakeve.DatabaseEventRepository
+import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.i18n.ServerLocalizer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

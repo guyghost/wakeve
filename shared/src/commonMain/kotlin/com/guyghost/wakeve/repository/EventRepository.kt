@@ -1,4 +1,4 @@
-package com.guyghost.wakeve
+package com.guyghost.wakeve.repository
 
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus

@@ -1,4 +1,4 @@
-package com.guyghost.wakeve
+package com.guyghost.wakeve.repository
 
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Scenario

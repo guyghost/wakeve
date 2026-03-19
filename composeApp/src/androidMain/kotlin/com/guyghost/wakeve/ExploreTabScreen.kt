@@ -65,9 +65,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.EventSearchResult
+import com.guyghost.wakeve.models.RecommendedEventsResponse
 import com.guyghost.wakeve.models.SearchResultsResponse
 import com.guyghost.wakeve.models.TrendingEventsResponse
-import com.guyghost.wakeve.models.RecommendedEventsResponse
+import com.guyghost.wakeve.repository.DatabaseEventRepository
 import kotlinx.coroutines.launch
 
 /**
