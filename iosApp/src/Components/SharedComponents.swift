@@ -185,8 +185,9 @@ struct FilterChip: View {
     }
 }
 
-/// Vote button for poll voting (Yes/Maybe/No) - Liquid Glass enhanced
-struct VoteButton: View {
+/// Vote chip for poll voting previews (Yes/Maybe/No) - Liquid Glass enhanced
+/// Note: Production voting uses VoteButton in PollVotingView which has explicit icon/label/color params
+struct VoteChip: View {
     let vote: PollVote
     let isSelected: Bool
     let action: () -> Void
@@ -497,6 +498,17 @@ struct PriceDisplay: View {
     }
 }
 
+// MARK: - Button Styles
+
+/// Scale button style for press feedback
+struct ScaleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: configuration.isPressed)
+    }
+}
+
 // MARK: - Previews
 
 struct SharedComponents_Previews: PreviewProvider {
@@ -545,16 +557,16 @@ struct SharedComponents_Previews: PreviewProvider {
                 .padding()
                 .liquidGlass(cornerRadius: 16)
 
-                // VoteButton
+                // VoteChip
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("VoteButton")
+                    Text("VoteChip")
                         .font(.caption)
                         .foregroundColor(.secondary)
 
                     HStack(spacing: 20) {
-                        VoteButton(vote: .yes, isSelected: true, action: {})
-                        VoteButton(vote: .maybe, isSelected: false, action: {})
-                        VoteButton(vote: .no, isSelected: false, action: {})
+                        VoteChip(vote: .yes, isSelected: true, action: {})
+                        VoteChip(vote: .maybe, isSelected: false, action: {})
+                        VoteChip(vote: .no, isSelected: false, action: {})
                     }
                 }
                 .padding()
