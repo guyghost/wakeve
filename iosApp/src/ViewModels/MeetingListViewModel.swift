@@ -26,73 +26,28 @@ import Shared
 ///     }
 /// }
 /// ```
-@MainActor
-class MeetingListViewModel: ObservableObject {
-    // MARK: - Published Properties
-
-    /// Current state from state machine
-    @Published var state: MeetingManagementContract.State
-
-    /// Toast message to display (auto-clears after display)
-    @Published var toastMessage: String?
-
-    /// Navigation route to trigger (e.g., "detail/meeting-123")
-    @Published var navigationRoute: String?
-
-    /// Whether to pop back to previous screen
-    @Published var shouldNavigateBack = false
+class MeetingListViewModel: StateMachineViewModel<
+    MeetingManagementContract.State,
+    MeetingManagementContractIntent,
+    MeetingManagementContractSideEffect
+> {
 
     // MARK: - Private Properties
 
     /// The event ID this view is managing meetings for
     private let eventId: String
 
-    /// The observable state machine wrapper
-    private let stateMachineWrapper: ObservableStateMachine<
-        MeetingManagementContract.State,
-        MeetingManagementContractIntent,
-        MeetingManagementContractSideEffect
-    >
-
     // MARK: - Initialization
 
     init(eventId: String) {
         self.eventId = eventId
 
-        // Get the shared database from RepositoryProvider
         let database = RepositoryProvider.shared.database
-
-        // Create a state machine via iOS factory (IosFactory is an object/singleton)
-        self.stateMachineWrapper = IosFactory.shared.createMeetingStateMachine(database: database)
-
-        // Initialize state with current state from state machine
-        self.state = self.stateMachineWrapper.currentState!
-
-        // Observe state changes from the state machine
-        self.stateMachineWrapper.onStateChange = { [weak self] newState in
-            guard let self = self, let newState = newState else { return }
-
-            DispatchQueue.main.async {
-                self.state = newState
-            }
-        }
-
-        // Observe side effects from the state machine
-        self.stateMachineWrapper.onSideEffect = { [weak self] effect in
-            guard let self = self, let effect = effect else { return }
-
-            DispatchQueue.main.async {
-                self.handleSideEffect(effect)
-            }
-        }
+        let wrapper = IosFactory.shared.createMeetingStateMachine(database: database)
+        super.init(stateMachineWrapper: wrapper)
     }
 
     // MARK: - Public Methods
-
-    /// Dispatch an intent to the state machine
-    func dispatch(_ intent: MeetingManagementContractIntent) {
-        stateMachineWrapper.dispatch(intent: intent)
-    }
 
     /// Load meetings for the current event
     func loadMeetings() {
@@ -211,25 +166,35 @@ class MeetingListViewModel: ObservableObject {
         state.hasGeneratedLink
     }
 
-    // MARK: - Private Methods
+    // MARK: - Side Effect Mapping
 
-    /// Handle side effects emitted by state machine
-    private func handleSideEffect(_ effect: MeetingManagementContractSideEffect) {
+    override func mapSideEffect(_ effect: MeetingManagementContractSideEffect) -> MappedSideEffect {
         switch effect {
         case let showToast as MeetingManagementContractSideEffectShowToast:
-            toastMessage = showToast.message
+            return .toast(showToast.message)
         case let navigateTo as MeetingManagementContractSideEffectNavigateTo:
-            navigationRoute = navigateTo.route
+            return .navigate(navigateTo.route)
         case is MeetingManagementContractSideEffectNavigateBack:
-            shouldNavigateBack = true
+            return .back
         case let showError as MeetingManagementContractSideEffectShowError:
-            toastMessage = showError.message
+            return .toast(showError.message)
+        default:
+            return .unhandled(effect)
+        }
+    }
+
+    // MARK: - Additional Side Effect Handling
+
+    override func handleAdditionalSideEffect(_ effect: MeetingManagementContractSideEffect) {
+        switch effect {
         case let shareLink as MeetingManagementContractSideEffectShareMeetingLink:
             shareMeetingLink(url: shareLink.link)
         default:
             break
         }
     }
+
+    // MARK: - Private Methods
 
     /// Share a meeting link
     private func shareMeetingLink(url: String) {
@@ -239,12 +204,6 @@ class MeetingListViewModel: ObservableObject {
     /// Get the current user ID (placeholder)
     private func getCurrentUserId() -> String {
         return "user-placeholder"
-    }
-
-    // MARK: - Deinit
-
-    deinit {
-        stateMachineWrapper.dispose()
     }
 }
 

@@ -5,58 +5,34 @@ import Combine
 /// ViewModel for the ScenarioDetailView.
 ///
 /// Manages the state and intents for displaying detailed information about a single scenario.
-@MainActor
-class ScenarioDetailViewModel: ObservableObject {
+class ScenarioDetailViewModel: StateMachineViewModel<
+    ScenarioManagementContract.State,
+    ScenarioManagementContractIntent,
+    ScenarioManagementContractSideEffect
+> {
+
     // MARK: - Published Properties
 
-    @Published var state: ScenarioManagementContract.State
     @Published var scenario: Scenario_?
     @Published var scenarioWithVotes: ScenarioWithVotes?
-    @Published var toastMessage: String?
-    @Published var navigationRoute: String?
-    @Published var shouldNavigateBack = false
     @Published var isEditing = false
 
     // MARK: - Private Properties
 
     private let scenarioId: String
-    private let stateMachineWrapper: ObservableStateMachine<
-        ScenarioManagementContract.State,
-        ScenarioManagementContractIntent,
-        ScenarioManagementContractSideEffect
-    >
 
     // MARK: - Initialization
 
     init(scenarioId: String) {
         self.scenarioId = scenarioId
         let database = RepositoryProvider.shared.database
-        self.stateMachineWrapper = IosFactory.shared.createScenarioStateMachine(database: database)
-        self.state = self.stateMachineWrapper.currentState!
-
-        self.stateMachineWrapper.onStateChange = { [weak self] newState in
-            guard let self = self, let newState = newState else { return }
-            DispatchQueue.main.async {
-                self.state = newState
-                self.updateSelectedScenario()
-            }
-        }
-
-        self.stateMachineWrapper.onSideEffect = { [weak self] effect in
-            guard let self = self, let effect = effect else { return }
-            DispatchQueue.main.async {
-                self.handleSideEffect(effect)
-            }
-        }
+        let wrapper = IosFactory.shared.createScenarioStateMachine(database: database)
+        super.init(stateMachineWrapper: wrapper)
 
         loadScenarios()
     }
 
     // MARK: - Public Methods
-
-    func dispatch(_ intent: ScenarioManagementContractIntent) {
-        stateMachineWrapper.dispatch(intent: intent)
-    }
 
     func loadScenarios() {
         dispatch(ScenarioManagementContractIntentLoadScenarios.shared)
@@ -121,6 +97,12 @@ class ScenarioDetailViewModel: ObservableObject {
     var hasError: Bool { state.hasError }
     var errorMessage: String? { state.error }
 
+    // MARK: - State Change Hook
+
+    override func onStateDidChange() {
+        updateSelectedScenario()
+    }
+
     // MARK: - Private Methods
 
     private func updateSelectedScenario() {
@@ -128,16 +110,27 @@ class ScenarioDetailViewModel: ObservableObject {
         scenarioWithVotes = state.scenarios.first { $0.scenario.id == scenarioId }
     }
 
-    private func handleSideEffect(_ effect: ScenarioManagementContractSideEffect) {
+    // MARK: - Side Effect Mapping
+
+    override func mapSideEffect(_ effect: ScenarioManagementContractSideEffect) -> MappedSideEffect {
         switch effect {
         case let showToast as ScenarioManagementContractSideEffectShowToast:
-            toastMessage = showToast.message
+            return .toast(showToast.message)
         case let navigateTo as ScenarioManagementContractSideEffectNavigateTo:
-            navigationRoute = navigateTo.route
+            return .navigate(navigateTo.route)
         case is ScenarioManagementContractSideEffectNavigateBack:
-            shouldNavigateBack = true
+            return .back
         case let showError as ScenarioManagementContractSideEffectShowError:
-            toastMessage = showError.message
+            return .toast(showError.message)
+        default:
+            return .unhandled(effect)
+        }
+    }
+
+    // MARK: - Additional Side Effect Handling
+
+    override func handleAdditionalSideEffect(_ effect: ScenarioManagementContractSideEffect) {
+        switch effect {
         case let shareScenario as ScenarioManagementContractSideEffectShareScenario:
             shareScenarioInternal(scenario: shareScenario.scenario)
         default:
@@ -168,11 +161,5 @@ class ScenarioDetailViewModel: ObservableObject {
             text += "Total Score: \(votingResult.score)"
         }
         return text
-    }
-
-    // MARK: - Deinit
-
-    deinit {
-        stateMachineWrapper.dispose()
     }
 }
