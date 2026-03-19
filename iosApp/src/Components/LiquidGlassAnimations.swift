@@ -80,35 +80,6 @@ extension View {
     }
 }
 
-// MARK: - Glass Card Modifier
-///
-/// Uses the native iOS 26+ `.glassEffect()` API with a
-/// `.regularMaterial` fallback for earlier versions.
-
-struct GlassCardModifier: ViewModifier {
-    var cornerRadius: CGFloat = 16
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content
-                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-        } else {
-            content
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
-        }
-    }
-}
-
-extension View {
-    /// Apply Liquid Glass card styling
-    func glassCard(cornerRadius: CGFloat = 16) -> some View {
-        modifier(GlassCardModifier(cornerRadius: cornerRadius))
-    }
-}
-
 // MARK: - Pulse Effect Modifier
 ///
 /// Adds a subtle pulsing animation to views, useful for
@@ -293,21 +264,6 @@ extension View {
         }
     }
     .padding(30)
-}
-
-#Preview("Glass Card Modifier") {
-    VStack(spacing: 20) {
-        Text("Glass Card (default)")
-            .frame(maxWidth: .infinity)
-            .padding(20)
-            .glassCard()
-        
-        Text("Glass Card (cornerRadius: 20)")
-            .frame(maxWidth: .infinity)
-            .padding(20)
-            .glassCard(cornerRadius: 20)
-    }
-    .padding()
 }
 
 #Preview("Animated Badge") {

@@ -20,7 +20,7 @@ struct CommentItemView: View {
     @State private var showMenu: Bool = false
 
     var body: some View {
-        GlassCard(isPinned: isPinned) {
+        PinnableCard(isPinned: isPinned) {
             VStack(alignment: .leading, spacing: 8) {
                 // Header: Avatar + Name + Actions
                 HStack(alignment: .center) {
@@ -116,8 +116,8 @@ struct CommentItemView: View {
     }
 }
 
-/// Glass card with optional pinned styling
-struct GlassCard<Content: View>: View {
+/// Card with optional pinned styling for comment display
+struct PinnableCard<Content: View>: View {
     let isPinned: Bool
     @ViewBuilder let content: Content
 
