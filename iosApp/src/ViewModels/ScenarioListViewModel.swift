@@ -5,50 +5,21 @@ import Shared
 ///
 /// Manages the state and intents for displaying a list of scenarios.
 /// Uses the shared Kotlin state machine to handle all business logic.
-@MainActor
-class ScenarioListViewModel: ObservableObject {
-    // MARK: - Published Properties
-
-    @Published var state: ScenarioManagementContract.State
-    @Published var toastMessage: String?
-    @Published var navigationRoute: String?
-    @Published var shouldNavigateBack = false
-
-    // MARK: - Private Properties
-
-    private let stateMachineWrapper: ObservableStateMachine<
-        ScenarioManagementContract.State,
-        ScenarioManagementContractIntent,
-        ScenarioManagementContractSideEffect
-    >
+class ScenarioListViewModel: StateMachineViewModel<
+    ScenarioManagementContract.State,
+    ScenarioManagementContractIntent,
+    ScenarioManagementContractSideEffect
+> {
 
     // MARK: - Initialization
 
     init() {
         let database = RepositoryProvider.shared.database
-        self.stateMachineWrapper = IosFactory.shared.createScenarioStateMachine(database: database)
-        self.state = self.stateMachineWrapper.currentState!
-
-        self.stateMachineWrapper.onStateChange = { [weak self] newState in
-            guard let self = self, let newState = newState else { return }
-            DispatchQueue.main.async {
-                self.state = newState
-            }
-        }
-
-        self.stateMachineWrapper.onSideEffect = { [weak self] effect in
-            guard let self = self, let effect = effect else { return }
-            DispatchQueue.main.async {
-                self.handleSideEffect(effect)
-            }
-        }
+        let wrapper = IosFactory.shared.createScenarioStateMachine(database: database)
+        super.init(stateMachineWrapper: wrapper)
     }
 
     // MARK: - Public Methods
-
-    func dispatch(_ intent: ScenarioManagementContractIntent) {
-        stateMachineWrapper.dispatch(intent: intent)
-    }
 
     func initialize(eventId: String, participantId: String) {
         dispatch(ScenarioManagementContractIntentLoadScenariosForEvent(
@@ -129,24 +100,35 @@ class ScenarioListViewModel: ObservableObject {
     var hasError: Bool { state.hasError }
     var errorMessage: String? { state.error }
 
-    // MARK: - Private Methods
+    // MARK: - Side Effect Mapping
 
-    private func handleSideEffect(_ effect: ScenarioManagementContractSideEffect) {
+    override func mapSideEffect(_ effect: ScenarioManagementContractSideEffect) -> MappedSideEffect {
         switch effect {
         case let showToast as ScenarioManagementContractSideEffectShowToast:
-            toastMessage = showToast.message
+            return .toast(showToast.message)
         case let navigateTo as ScenarioManagementContractSideEffectNavigateTo:
-            navigationRoute = navigateTo.route
+            return .navigate(navigateTo.route)
         case is ScenarioManagementContractSideEffectNavigateBack:
-            shouldNavigateBack = true
+            return .back
         case let showError as ScenarioManagementContractSideEffectShowError:
-            toastMessage = showError.message
+            return .toast(showError.message)
+        default:
+            return .unhandled(effect)
+        }
+    }
+
+    // MARK: - Additional Side Effect Handling
+
+    override func handleAdditionalSideEffect(_ effect: ScenarioManagementContractSideEffect) {
+        switch effect {
         case let shareScenario as ScenarioManagementContractSideEffectShareScenario:
             shareScenarioInternal(scenario: shareScenario.scenario)
         default:
             break
         }
     }
+
+    // MARK: - Private Methods
 
     private func shareScenarioInternal(scenario: Scenario_) {
         let shareText = prepareShareText(scenario: scenario)
@@ -163,11 +145,5 @@ class ScenarioListViewModel: ObservableObject {
             text += "\nDescription:\n\(scenario.description_)"
         }
         return text
-    }
-
-    // MARK: - Deinit
-
-    deinit {
-        stateMachineWrapper.dispose()
     }
 }
