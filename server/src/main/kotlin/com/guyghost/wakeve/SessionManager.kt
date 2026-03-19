@@ -1,5 +1,7 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.auth.SessionData
+import com.guyghost.wakeve.auth.SessionRepository
 import com.guyghost.wakeve.database.WakeveDb
 
 /**

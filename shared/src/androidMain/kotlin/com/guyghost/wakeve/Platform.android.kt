@@ -1,6 +1,8 @@
 package com.guyghost.wakeve
 
 import android.os.Build
+import com.guyghost.wakeve.notification.DefaultNotificationService
+import com.guyghost.wakeve.notification.NotificationServiceInterface
 
 class AndroidPlatform : Platform {
     override val name: String = "Android ${Build.VERSION.SDK_INT}"
@@ -9,7 +11,7 @@ class AndroidPlatform : Platform {
 actual fun getPlatform(): Platform = AndroidPlatform()
 actual fun getCurrentTimeMillis(): Long = System.currentTimeMillis()
 actual fun getCurrentTimeNanos(): Long = System.nanoTime()
-actual fun getNotificationService(): NotificationService = DefaultNotificationService()
+actual fun getNotificationService(): NotificationServiceInterface = DefaultNotificationService()
 
 actual fun measureMemoryUsageMB(): Double? {
     return try {

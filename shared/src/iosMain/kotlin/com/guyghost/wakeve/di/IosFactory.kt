@@ -9,6 +9,7 @@ import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.meeting.MeetingRepository
 import com.guyghost.wakeve.meeting.MeetingService
 import com.guyghost.wakeve.meeting.MockMeetingPlatformProvider
+import com.guyghost.wakeve.notification.DefaultNotificationService
 import com.guyghost.wakeve.presentation.ObservableStateMachine
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.presentation.state.MeetingManagementContract
@@ -167,7 +168,7 @@ object IosFactory {
         // Create dependencies
         val platformCalendarService = com.guyghost.wakeve.calendar.PlatformCalendarServiceImpl()
         val calendarService = com.guyghost.wakeve.calendar.CalendarService(database, platformCalendarService)
-        val notificationService = com.guyghost.wakeve.DefaultNotificationService()
+        val notificationService = DefaultNotificationService()
         val meetingRepository = MeetingRepository(database)
         val meetingPlatformProvider = MockMeetingPlatformProvider() // Use mock for now, can be replaced with real provider
         val meetingService = MeetingService(

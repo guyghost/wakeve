@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.auth
 
-import com.guyghost.wakeve.currentTimeMillis
+import com.guyghost.wakeve.util.currentTimeMillis
 import com.guyghost.wakeve.gamification.BadgeNotificationService
 import com.guyghost.wakeve.models.BadgeCount
 import com.guyghost.wakeve.models.BadgeNotification

@@ -1,5 +1,7 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.notification.DefaultNotificationService
+import com.guyghost.wakeve.notification.NotificationServiceInterface
 import platform.UIKit.UIDevice
 
 class IOSPlatform: Platform {
@@ -12,7 +14,7 @@ actual fun getCurrentTimeMillis(): Long = 0L
 
 actual fun getCurrentTimeNanos(): Long = 0L
 
-actual fun getNotificationService(): NotificationService = DefaultNotificationService()
+actual fun getNotificationService(): NotificationServiceInterface = DefaultNotificationService()
 
 actual fun measureMemoryUsageMB(): Double? = null
 actual fun getMaxMemoryMB(): Double? = null

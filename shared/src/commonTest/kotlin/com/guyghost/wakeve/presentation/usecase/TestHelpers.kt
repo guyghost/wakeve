@@ -4,6 +4,7 @@ import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.meeting.MeetingPlatformProvider
 import com.guyghost.wakeve.meeting.MeetingService
 import com.guyghost.wakeve.models.MeetingPlatform
+import com.guyghost.wakeve.notification.DefaultNotificationService
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
@@ -60,7 +61,7 @@ fun createMockMeetingService(
         override fun deleteEvent(eventId: String): Result<Unit> = Result.success(Unit)
     }
     val calendarService = com.guyghost.wakeve.calendar.CalendarService(database, mockCalendarService)
-    val notificationService = com.guyghost.wakeve.DefaultNotificationService()
+    val notificationService = DefaultNotificationService()
     
     return MeetingService(
         database = database,

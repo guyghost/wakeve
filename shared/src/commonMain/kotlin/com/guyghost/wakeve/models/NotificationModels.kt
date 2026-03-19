@@ -36,14 +36,6 @@ data class PushToken(
     val registeredAt: String // ISO 8601
 )
 
-interface NotificationService {
-    suspend fun sendNotification(message: NotificationMessage): Result<Unit>
-    suspend fun registerPushToken(token: PushToken): Result<Unit>
-    suspend fun unregisterPushToken(userId: String, deviceId: String): Result<Unit>
-    suspend fun getUnreadNotifications(userId: String): List<NotificationMessage>
-    suspend fun markAsRead(notificationId: String): Result<Unit>
-}
-
 @Serializable
 data class NotificationRequest(
     val userId: String,

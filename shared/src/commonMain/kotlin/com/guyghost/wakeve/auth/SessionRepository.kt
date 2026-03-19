@@ -1,20 +1,12 @@
-package com.guyghost.wakeve
+package com.guyghost.wakeve.auth
 
+import com.guyghost.wakeve.Device_fingerprint
+import com.guyghost.wakeve.Session
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.util.currentTimeMillis
+import com.guyghost.wakeve.util.sha256Hash
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-/**
- * Compute SHA-256 hash of a string.
- * Platform-specific implementation.
- */
-expect fun sha256Hash(input: String): String
-
-/**
- * Get current time in milliseconds since epoch.
- * Platform-specific implementation.
- */
-expect fun currentTimeMillis(): Long
 
 /**
  * Session data model for application use.

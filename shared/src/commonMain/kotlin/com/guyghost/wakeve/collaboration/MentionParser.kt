@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.collaboration
 
 import com.guyghost.wakeve.models.Mention
-import com.guyghost.wakeve.currentTimeMillis
+import com.guyghost.wakeve.util.currentTimeMillis
 import kotlinx.serialization.Serializable
 
 /**

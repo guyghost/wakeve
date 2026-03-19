@@ -1,7 +1,6 @@
 package com.guyghost.wakeve.auth
 
-import com.guyghost.wakeve.SessionRepository
-import com.guyghost.wakeve.currentTimeMillis
+import com.guyghost.wakeve.util.currentTimeMillis
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

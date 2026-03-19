@@ -1,5 +1,6 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.notification.NotificationServiceInterface
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
@@ -10,7 +11,7 @@ interface Platform {
 expect fun getPlatform(): Platform
 expect fun getCurrentTimeMillis(): Long
 expect fun getCurrentTimeNanos(): Long
-expect fun getNotificationService(): NotificationService
+expect fun getNotificationService(): NotificationServiceInterface
 expect fun measureMemoryUsageMB(): Double?
 expect fun getMaxMemoryMB(): Double?
 
