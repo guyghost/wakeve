@@ -15,7 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.ParticipantManagementScreen
 import com.guyghost.wakeve.PollResultsScreen
 import com.guyghost.wakeve.PollVotingScreen

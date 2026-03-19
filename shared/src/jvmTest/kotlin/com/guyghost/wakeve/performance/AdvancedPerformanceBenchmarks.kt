@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.performance
 
-import com.guyghost.wakeve.EventRepository
-import com.guyghost.wakeve.PollLogic
+import com.guyghost.wakeve.repository.EventRepository
+import com.guyghost.wakeve.poll.PollLogic
 import com.guyghost.wakeve.deeplink.DeepLink
 import com.guyghost.wakeve.deeplink.DeepLinkFactory
 import com.guyghost.wakeve.models.Event

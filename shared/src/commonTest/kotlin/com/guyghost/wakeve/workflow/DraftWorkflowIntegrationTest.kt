@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.workflow
 
-import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType

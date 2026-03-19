@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.auth
 
-import com.guyghost.wakeve.DatabaseProvider
 import com.guyghost.wakeve.JvmDatabaseFactory
+import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.User

@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.routes
 
-import com.guyghost.wakeve.DatabaseEventRepository
+import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.invitation.InvitationRepository
 import com.guyghost.wakeve.models.CreateInvitationRequest

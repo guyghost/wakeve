@@ -1,8 +1,8 @@
 package com.guyghost.wakeve.logistics
 
-import com.guyghost.wakeve.DatabaseEventRepository
-import com.guyghost.wakeve.DatabaseProvider
 import com.guyghost.wakeve.TestDatabaseFactory
+import com.guyghost.wakeve.database.DatabaseProvider
+import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.CommentRequest

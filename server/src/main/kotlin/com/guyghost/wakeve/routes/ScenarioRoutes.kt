@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.routes
 
-import com.guyghost.wakeve.ScenarioRepository
+import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.models.CreateScenarioRequest
 import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioResponse

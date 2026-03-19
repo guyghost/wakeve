@@ -1,4 +1,4 @@
-package com.guyghost.wakeve
+package com.guyghost.wakeve.database
 
 import app.cash.sqldelight.db.SqlDriver
 import com.guyghost.wakeve.database.WakeveDb

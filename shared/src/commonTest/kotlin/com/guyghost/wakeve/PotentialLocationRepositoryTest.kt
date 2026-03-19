@@ -1,5 +1,7 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.repository.EventRepository
+import com.guyghost.wakeve.repository.PotentialLocationRepository
 import com.guyghost.wakeve.models.*
 import com.guyghost.wakeve.test.createTestEvent
 import kotlinx.coroutines.test.runTest

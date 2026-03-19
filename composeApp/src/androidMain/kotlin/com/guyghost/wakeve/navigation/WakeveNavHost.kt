@@ -55,7 +55,7 @@ import com.guyghost.wakeve.equipment.EquipmentRepository
 import com.guyghost.wakeve.activity.ActivityRepository
 import com.guyghost.wakeve.models.CommentSection
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
-import com.guyghost.wakeve.EventRepository
+import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.viewmodel.MeetingManagementViewModel
 import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
 import org.koin.compose.koinInject

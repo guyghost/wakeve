@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.viewmodel
 
-import com.guyghost.wakeve.EventRepository
+import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.analytics.AnalyticsEvent
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.Vote

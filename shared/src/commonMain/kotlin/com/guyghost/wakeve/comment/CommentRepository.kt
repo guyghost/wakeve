@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.comment
 
-import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.collaboration.MentionParser
 import com.guyghost.wakeve.models.Comment

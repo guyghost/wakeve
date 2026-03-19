@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.performance
 
-import com.guyghost.wakeve.EventRepository
+import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.Vote

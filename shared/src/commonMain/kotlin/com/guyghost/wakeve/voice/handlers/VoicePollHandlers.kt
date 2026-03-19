@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.voice.handlers
 
-import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.ml.VoiceCommand
 import com.guyghost.wakeve.ml.VoiceSession
 import com.guyghost.wakeve.models.EventStatus

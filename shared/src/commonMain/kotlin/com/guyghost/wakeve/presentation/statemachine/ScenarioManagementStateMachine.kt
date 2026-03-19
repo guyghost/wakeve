@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.presentation.statemachine
 
-import com.guyghost.wakeve.EventRepositoryInterface
-import com.guyghost.wakeve.ScenarioRepository
+import com.guyghost.wakeve.repository.EventRepositoryInterface
+import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent

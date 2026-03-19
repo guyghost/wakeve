@@ -1,5 +1,6 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.repository.PotentialLocationRepository
 import com.guyghost.wakeve.models.CreateEventRequest
 import com.guyghost.wakeve.models.CreatePotentialLocationRequest
 import com.guyghost.wakeve.models.CreateTimeSlotRequest

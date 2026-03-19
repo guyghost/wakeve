@@ -42,7 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.guyghost.wakeve.EventRepository
+import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.budget.BudgetRepository
 import com.guyghost.wakeve.models.Budget
 import com.guyghost.wakeve.models.BudgetCategory

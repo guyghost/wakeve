@@ -20,6 +20,8 @@ import com.guyghost.wakeve.gamification.BadgeEligibilityChecker
 import com.guyghost.wakeve.gamification.GamificationService
 import com.guyghost.wakeve.gamification.repository.InMemoryUserBadgesRepository
 import com.guyghost.wakeve.gamification.repository.InMemoryUserPointsRepository
+import com.guyghost.wakeve.repository.PotentialLocationRepository
+import com.guyghost.wakeve.repository.PotentialLocationRepositoryInterface
 import com.guyghost.wakeve.routes.ChatService
 import com.guyghost.wakeve.routes.analyticsRoutes
 import com.guyghost.wakeve.routes.authRoutes
@@ -46,6 +48,9 @@ import com.guyghost.wakeve.routes.syncRoutes
 import com.guyghost.wakeve.routes.voteRoutes
 import com.guyghost.wakeve.invitation.InvitationRepository
 import com.guyghost.wakeve.sync.SyncService
+import com.guyghost.wakeve.database.DatabaseProvider
+import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.repository.ScenarioRepository
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application

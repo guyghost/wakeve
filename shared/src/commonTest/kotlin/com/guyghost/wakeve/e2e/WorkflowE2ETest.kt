@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.e2e
 
-import com.guyghost.wakeve.EventRepository
-import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.repository.EventRepository
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType

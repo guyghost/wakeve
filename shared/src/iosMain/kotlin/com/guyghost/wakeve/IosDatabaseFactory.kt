@@ -2,6 +2,7 @@ package com.guyghost.wakeve
 
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.native.NativeSqliteDriver
+import com.guyghost.wakeve.database.DatabaseFactory
 import com.guyghost.wakeve.database.WakeveDb
 
 /**

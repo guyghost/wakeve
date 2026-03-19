@@ -88,7 +88,7 @@ import kotlinx.datetime.Clock
 class EventManagementStateMachine(
     private val loadEventsUseCase: LoadEventsUseCase,
     private val createEventUseCase: CreateEventUseCase,
-    private val eventRepository: com.guyghost.wakeve.EventRepositoryInterface?,
+    private val eventRepository: com.guyghost.wakeve.repository.EventRepositoryInterface?,
     scope: CoroutineScope
 ) : StateMachine<EventManagementContract.State, EventManagementContract.Intent, EventManagementContract.SideEffect>(
     initialState = EventManagementContract.State(),
@@ -952,7 +952,7 @@ class EventManagementStateMachine(
         )
 
         result.fold(
-            onSuccess = {
+            onSuccess = { _: Boolean ->
                 // Reload events to get updated status
                 loadEvents()
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event finalized successfully!"))

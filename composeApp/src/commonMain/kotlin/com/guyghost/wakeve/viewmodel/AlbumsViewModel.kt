@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.guyghost.wakeve.models.Album
 import com.guyghost.wakeve.models.Photo
 import com.guyghost.wakeve.repository.AlbumRepository
-import com.guyghost.wakeve.EventRepositoryInterface
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.repository.PhotoRepository
 import com.guyghost.wakeve.services.SharingSuggestion
 import com.guyghost.wakeve.services.SmartSharingService
