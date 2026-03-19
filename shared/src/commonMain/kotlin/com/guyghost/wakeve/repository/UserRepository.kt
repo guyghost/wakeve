@@ -2,7 +2,7 @@ package com.guyghost.wakeve.repository
 
 import com.guyghost.wakeve.auth.UserRole
 import com.guyghost.wakeve.database.WakeveDb
-import com.guyghost.wakeve.currentTimeMillis
+import com.guyghost.wakeve.util.currentTimeMillis
 import com.guyghost.wakeve.models.NotificationPreferences
 import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.SyncMetadata

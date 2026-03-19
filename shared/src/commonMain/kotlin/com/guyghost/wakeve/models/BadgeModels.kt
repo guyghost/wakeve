@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.models
 
-import com.guyghost.wakeve.currentTimeMillis
+import com.guyghost.wakeve.util.currentTimeMillis
 import kotlinx.serialization.Serializable
 
 /**

@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.meeting
 
-import com.guyghost.wakeve.NotificationService
+import com.guyghost.wakeve.notification.NotificationServiceInterface
 import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.EventStatus
@@ -33,7 +33,7 @@ import kotlin.time.Duration.Companion.minutes
 class MeetingService(
     private val database: WakeveDb,
     private val calendarService: CalendarService,
-    private val notificationService: NotificationService
+    private val notificationService: NotificationServiceInterface
 ) {
 
     private val eventQueries = database.eventQueries

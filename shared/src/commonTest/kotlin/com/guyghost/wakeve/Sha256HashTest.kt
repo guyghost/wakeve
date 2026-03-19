@@ -1,5 +1,6 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.util.sha256Hash
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

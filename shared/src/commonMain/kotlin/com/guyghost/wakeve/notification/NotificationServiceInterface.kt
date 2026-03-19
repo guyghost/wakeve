@@ -1,9 +1,9 @@
-package com.guyghost.wakeve
+package com.guyghost.wakeve.notification
 
 import com.guyghost.wakeve.models.NotificationMessage
 import com.guyghost.wakeve.models.PushToken
 
-interface NotificationService {
+interface NotificationServiceInterface {
     suspend fun sendNotification(message: NotificationMessage): Result<Unit>
     suspend fun registerPushToken(token: PushToken): Result<Unit>
     suspend fun unregisterPushToken(userId: String, deviceId: String): Result<Unit>
@@ -11,7 +11,7 @@ interface NotificationService {
     suspend fun markAsRead(notificationId: String): Result<Unit>
 }
 
-class DefaultNotificationService : NotificationService {
+class DefaultNotificationService : NotificationServiceInterface {
 
     // Mock storage - in real implementation, this would be database
     private val pushTokens = mutableMapOf<String, PushToken>()

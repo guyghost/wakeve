@@ -3,7 +3,7 @@ package com.guyghost.wakeve.collaboration
 import com.guyghost.wakeve.TestDatabaseFactory
 import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.repository.DatabaseEventRepository
-import com.guyghost.wakeve.NotificationService
+import com.guyghost.wakeve.notification.NotificationServiceInterface
 import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.budget.BudgetRepository
 import com.guyghost.wakeve.comment.CommentRepository
@@ -457,7 +457,7 @@ class CollaborationIntegrationTest {
      * 
      * Captures all notifications sent for verification in tests.
      */
-    private inner class MockNotificationService : NotificationService {
+    private inner class MockNotificationService : NotificationServiceInterface {
         private val sentNotifications = mutableListOf<NotificationMessage>()
         private val pushTokens = mutableMapOf<String, PushToken>()
         

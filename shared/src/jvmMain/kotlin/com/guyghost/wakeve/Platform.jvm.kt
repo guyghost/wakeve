@@ -1,5 +1,8 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.notification.DefaultNotificationService
+import com.guyghost.wakeve.notification.NotificationServiceInterface
+
 class JVMPlatform: Platform {
     override val name: String = "Java ${System.getProperty("java.version")}"
 }
@@ -7,7 +10,7 @@ class JVMPlatform: Platform {
 actual fun getPlatform(): Platform = JVMPlatform()
 actual fun getCurrentTimeMillis(): Long = System.currentTimeMillis()
 actual fun getCurrentTimeNanos(): Long = System.nanoTime()
-actual fun getNotificationService(): NotificationService = DefaultNotificationService()
+actual fun getNotificationService(): NotificationServiceInterface = DefaultNotificationService()
 
 actual fun measureMemoryUsageMB(): Double? {
     return try {

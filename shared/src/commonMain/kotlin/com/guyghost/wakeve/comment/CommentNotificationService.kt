@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.comment
 
 import com.guyghost.wakeve.repository.EventRepositoryInterface
-import com.guyghost.wakeve.NotificationService
+import com.guyghost.wakeve.notification.NotificationServiceInterface
 import com.guyghost.wakeve.models.Comment
 import com.guyghost.wakeve.models.CommentSection
 import com.guyghost.wakeve.models.NotificationMessage
@@ -17,7 +17,7 @@ import kotlin.random.Random
  * Handles sending notifications when comments are posted or replies are made.
  */
 class CommentNotificationService(
-    private val notificationService: NotificationService,
+    private val notificationService: NotificationServiceInterface,
     private val eventRepository: EventRepositoryInterface,
     private val commentRepository: CommentRepository
 ) {

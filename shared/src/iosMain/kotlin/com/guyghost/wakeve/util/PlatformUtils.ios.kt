@@ -1,4 +1,4 @@
-package com.guyghost.wakeve
+package com.guyghost.wakeve.util
 
 import kotlinx.datetime.Clock
 

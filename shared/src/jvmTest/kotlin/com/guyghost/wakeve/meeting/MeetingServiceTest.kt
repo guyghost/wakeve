@@ -1,6 +1,6 @@
 package com.guyghost.wakeve.meeting
 
-import com.guyghost.wakeve.DefaultNotificationService
+import com.guyghost.wakeve.notification.DefaultNotificationService
 import com.guyghost.wakeve.createFreshTestDatabase
 import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.calendar.PlatformCalendarService
