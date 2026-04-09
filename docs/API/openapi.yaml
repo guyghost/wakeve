@@ -1,0 +1,996 @@
+openapi: 3.0.3
+info:
+  title: Wakeve API
+  description: |
+    Event planning platform API. Organize events, vote on scenarios,
+    manage participants, and coordinate logistics.
+  version: 1.0.0
+  contact:
+    name: Wakeve Team
+
+servers:
+  - url: http://localhost:8080
+    description: Development
+  - url: https://api.wakeve.com
+    description: Production
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Health
+    description: System health checks
+  - name: Auth
+    description: Authentication (OAuth, Email, Guest)
+  - name: Events
+    description: Event CRUD and lifecycle
+  - name: Participants
+    description: Event participant management
+  - name: Polls & Votes
+    description: Voting on time slots and scenarios
+  - name: Scenarios
+    description: Destination/lodging scenario comparison
+  - name: Budget
+    description: Budget tracking per event
+  - name: Calendar
+    description: ICS generation and native calendar integration
+  - name: Chat
+    description: Real-time messaging via WebSocket
+  - name: Comments
+    description: Threaded comments with mentions
+  - name: Notifications
+    description: Push notification management
+  - name: Sync
+    description: Offline-first data synchronization
+  - name: Analytics
+    description: Usage metrics and dashboards
+  - name: Gamification
+    description: Badges, points, and leaderboards
+  - name: Accommodation
+    description: Lodging management per event
+  - name: Activities
+    description: Activity planning and scheduling
+  - name: Meals
+    description: Meal planning per event
+  - name: Equipment
+    description: Equipment checklist management
+  - name: Invitations
+    description: Event invitation sharing and acceptance
+  - name: Sessions
+    description: User session management
+  - name: Dashboard
+    description: Aggregated dashboard data
+
+paths:
+  # ── Health ──────────────────────────────────────────────
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "OK"
+
+  # ── Auth ────────────────────────────────────────────────
+  /auth/google:
+    post:
+      tags: [Auth]
+      summary: Google OAuth login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idToken]
+              properties:
+                idToken:
+                  type: string
+      responses:
+        '200':
+          description: Authenticated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid Google token
+
+  /auth/apple:
+    post:
+      tags: [Auth]
+      summary: Apple OAuth login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [authorizationCode, identityToken]
+              properties:
+                authorizationCode:
+                  type: string
+                identityToken:
+                  type: string
+      responses:
+        '200':
+          description: Authenticated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid Apple token
+
+  /auth/email/request:
+    post:
+      tags: [Auth]
+      summary: Request email OTP
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '429':
+          description: Rate limited
+
+  /auth/email/verify:
+    post:
+      tags: [Auth]
+      summary: Verify email OTP
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp]
+              properties:
+                email:
+                  type: string
+                  format: email
+                otp:
+                  type: string
+                  minLength: 6
+                  maxLength: 6
+      responses:
+        '200':
+          description: Verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid OTP
+
+  /auth/guest:
+    post:
+      tags: [Auth]
+      summary: Create guest session
+      security: []
+      responses:
+        '200':
+          description: Guest session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+      responses:
+        '200':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid or expired refresh token
+
+  /auth/google/url:
+    get:
+      tags: [Auth]
+      summary: Get Google OAuth URL
+      security: []
+      responses:
+        '200':
+          description: OAuth URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+
+  /auth/apple/url:
+    get:
+      tags: [Auth]
+      summary: Get Apple OAuth URL
+      security: []
+      responses:
+        '200':
+          description: OAuth URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+
+  # ── Events ──────────────────────────────────────────────
+  /api/events:
+    get:
+      tags: [Events]
+      summary: List all events
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/EventStatus'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+
+    post:
+      tags: [Events]
+      summary: Create event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventRequest'
+      responses:
+        '201':
+          description: Event created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Validation error
+
+  /api/events/{eventId}:
+    get:
+      tags: [Events]
+      summary: Get event by ID
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Event details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '404':
+          description: Event not found
+
+    put:
+      tags: [Events]
+      summary: Update event
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEventRequest'
+      responses:
+        '200':
+          description: Updated
+        '404':
+          description: Not found
+
+    delete:
+      tags: [Events]
+      summary: Delete event
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Deleted
+        '403':
+          description: Not organizer
+
+  /api/events/{eventId}/status:
+    put:
+      tags: [Events]
+      summary: Update event status
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  $ref: '#/components/schemas/EventStatus'
+      responses:
+        '200':
+          description: Status updated
+        '400':
+          description: Invalid transition
+
+  # ── Participants ────────────────────────────────────────
+  /api/events/{eventId}/participants:
+    get:
+      tags: [Participants]
+      summary: List participants
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Participant list
+
+    post:
+      tags: [Participants]
+      summary: Add participant
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [userId, name]
+              properties:
+                userId:
+                  type: string
+                name:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '201':
+          description: Participant added
+
+  # ── Votes ───────────────────────────────────────────────
+  /api/events/{eventId}/poll:
+    get:
+      tags: [Polls & Votes]
+      summary: Get poll results
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Poll data with voting results
+
+  /api/events/{eventId}/poll/votes:
+    post:
+      tags: [Polls & Votes]
+      summary: Submit vote
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slotId, vote]
+              properties:
+                slotId:
+                  type: string
+                vote:
+                  type: string
+                  enum: [YES, MAYBE, NO]
+                participantId:
+                  type: string
+      responses:
+        '200':
+          description: Vote recorded
+
+  # ── Scenarios ──────────────────────────────────────────
+  /api/events/{eventId}/scenarios:
+    get:
+      tags: [Scenarios]
+      summary: List scenarios
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Scenario list
+
+    post:
+      tags: [Scenarios]
+      summary: Create scenario
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, dateOrPeriod, location]
+              properties:
+                name:
+                  type: string
+                dateOrPeriod:
+                  type: string
+                location:
+                  type: string
+                duration:
+                  type: integer
+                estimatedBudgetPerPerson:
+                  type: number
+      responses:
+        '201':
+          description: Scenario created
+
+  # ── Budget ──────────────────────────────────────────────
+  /api/events/{eventId}/budget:
+    get:
+      tags: [Budget]
+      summary: Get event budget
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Budget details
+
+  /api/events/{eventId}/budget/items:
+    get:
+      tags: [Budget]
+      summary: List budget items
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Budget items
+
+    post:
+      tags: [Budget]
+      summary: Add budget item
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, amount, category]
+              properties:
+                name:
+                  type: string
+                amount:
+                  type: number
+                category:
+                  type: string
+                paidBy:
+                  type: string
+      responses:
+        '201':
+          description: Budget item added
+
+  # ── Calendar ────────────────────────────────────────────
+  /api/events/{eventId}/calendar/ics:
+    get:
+      tags: [Calendar]
+      summary: Generate ICS invitation
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: ICS file
+          content:
+            text/calendar:
+              schema:
+                type: string
+
+  # ── Comments ────────────────────────────────────────────
+  /api/events/{eventId}/comments:
+    get:
+      tags: [Comments]
+      summary: List comments
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+        - name: section
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Comment list
+
+    post:
+      tags: [Comments]
+      summary: Add comment
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                parentId:
+                  type: string
+                section:
+                  type: string
+                  enum: [TRANSPORT, ACCOMMODATION, FOOD, EQUIPMENT, ACTIVITIES, GENERAL]
+      responses:
+        '201':
+          description: Comment added
+
+  # ── Sync ────────────────────────────────────────────────
+  /api/sync:
+    post:
+      tags: [Sync]
+      summary: Sync local changes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SyncRequest'
+      responses:
+        '200':
+          description: Sync response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SyncResponse'
+
+  # ── Notifications ───────────────────────────────────────
+  /api/notifications/preferences:
+    get:
+      tags: [Notifications]
+      summary: Get notification preferences
+      responses:
+        '200':
+          description: Preferences
+
+    put:
+      tags: [Notifications]
+      summary: Update notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                eventInvites:
+                  type: boolean
+                pollReminders:
+                  type: boolean
+                meetingAlerts:
+                  type: boolean
+                deadlineReminders:
+                  type: boolean
+      responses:
+        '200':
+          description: Updated
+
+  # ── Analytics ───────────────────────────────────────────
+  /api/analytics/metrics:
+    get:
+      tags: [Analytics]
+      summary: Get usage metrics
+      responses:
+        '200':
+          description: Metrics summary
+
+  /api/analytics/export:
+    get:
+      tags: [Analytics]
+      summary: Export analytics data
+      responses:
+        '200':
+          description: CSV export
+
+  # ── Gamification ────────────────────────────────────────
+  /api/gamification/badges:
+    get:
+      tags: [Gamification]
+      summary: Get user badges
+      responses:
+        '200':
+          description: Badge list
+
+  /api/gamification/leaderboard:
+    get:
+      tags: [Gamification]
+      summary: Get leaderboard
+      responses:
+        '200':
+          description: Leaderboard
+
+  # ── Invitations ─────────────────────────────────────────
+  /api/invitations:
+    post:
+      tags: [Invitations]
+      summary: Create invitation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [eventId]
+              properties:
+                eventId:
+                  type: string
+                maxUses:
+                  type: integer
+                expiresInHours:
+                  type: integer
+      responses:
+        '201':
+          description: Invitation created
+
+  /api/invitations/{code}/accept:
+    post:
+      tags: [Invitations]
+      summary: Accept invitation
+      security: []
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invitation accepted
+
+  # ── Accommodation ───────────────────────────────────────
+  /api/events/{eventId}/accommodation:
+    get:
+      tags: [Accommodation]
+      summary: List accommodations
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Accommodation list
+
+    post:
+      tags: [Accommodation]
+      summary: Add accommodation
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '201':
+          description: Accommodation added
+
+  # ── Activities ──────────────────────────────────────────
+  /api/events/{eventId}/activities:
+    get:
+      tags: [Activities]
+      summary: List activities
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Activity list
+
+    post:
+      tags: [Activities]
+      summary: Create activity
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '201':
+          description: Activity created
+
+  # ── Meals ───────────────────────────────────────────────
+  /api/events/{eventId}/meals:
+    get:
+      tags: [Meals]
+      summary: List meals
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Meal list
+
+    post:
+      tags: [Meals]
+      summary: Plan a meal
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '201':
+          description: Meal planned
+
+  # ── Equipment ───────────────────────────────────────────
+  /api/events/{eventId}/equipment:
+    get:
+      tags: [Equipment]
+      summary: List equipment
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          description: Equipment list
+
+    post:
+      tags: [Equipment]
+      summary: Add equipment
+      parameters:
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '201':
+          description: Equipment added
+
+  # ── Sessions ────────────────────────────────────────────
+  /api/sessions:
+    get:
+      tags: [Sessions]
+      summary: List active sessions
+      responses:
+        '200':
+          description: Session list
+
+  /api/sessions/{sessionId}:
+    delete:
+      tags: [Sessions]
+      summary: Revoke session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session revoked
+
+  # ── Metrics (internal) ──────────────────────────────────
+  /metrics:
+    get:
+      tags: [Health]
+      summary: Prometheus metrics
+      security: []
+      responses:
+        '200':
+          description: Prometheus format metrics
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    EventId:
+      name: eventId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+        isGuest:
+          type: boolean
+          default: false
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          nullable: true
+        name:
+          type: string
+          nullable: true
+        authMethod:
+          type: string
+          enum: [GOOGLE, APPLE, EMAIL, GUEST]
+        isGuest:
+          type: boolean
+        createdAt:
+          type: integer
+          format: int64
+        lastLoginAt:
+          type: integer
+          format: int64
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        organizerId:
+          type: string
+        status:
+          $ref: '#/components/schemas/EventStatus'
+        eventType:
+          type: string
+          nullable: true
+        minParticipants:
+          type: integer
+          nullable: true
+        maxParticipants:
+          type: integer
+          nullable: true
+        expectedParticipants:
+          type: integer
+          nullable: true
+        deadline:
+          type: string
+          nullable: true
+        finalDate:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        participants:
+          type: array
+          items:
+            type: string
+
+    EventStatus:
+      type: string
+      enum:
+        - DRAFT
+        - POLLING
+        - CONFIRMED
+        - COMPARING
+        - ORGANIZING
+        - FINALIZED
+
+    CreateEventRequest:
+      type: object
+      required: [title, description]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        eventType:
+          type: string
+        eventTypeCustom:
+          type: string
+        minParticipants:
+          type: integer
+        maxParticipants:
+          type: integer
+        expectedParticipants:
+          type: integer
+
+    UpdateEventRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        deadline:
+          type: string
+        eventType:
+          type: string
+
+    SyncRequest:
+      type: object
+      required: [changes]
+      properties:
+        changes:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncChange'
+
+    SyncChange:
+      type: object
+      required: [id, table, operation, recordId, data, timestamp, userId]
+      properties:
+        id:
+          type: string
+        table:
+          type: string
+        operation:
+          type: string
+          enum: [CREATE, UPDATE, DELETE]
+        recordId:
+          type: string
+        data:
+          type: string
+        timestamp:
+          type: string
+        userId:
+          type: string
+
+    SyncResponse:
+      type: object
+      properties:
+        serverChanges:
+          type: array
+          items:
+            $ref: '#/components/schemas/SyncChange'
+        conflicts:
+          type: array
+          items:
+            type: object
+        syncTimestamp:
+          type: string
