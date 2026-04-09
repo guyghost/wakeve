@@ -30,13 +30,12 @@ interface UserBadgesRepository {
 class InMemoryUserBadgesRepository : UserBadgesRepository {
     private val userBadgesMap = mutableMapOf<String, MutableList<Badge>>()
     private val unlockedAtMap = mutableMapOf<String, MutableMap<String, String>>()
+    private val badgeDefinitions = mutableListOf<Badge>()
 
     init {
         // Seed badge definitions
         seedBadgeDefinitions()
     }
-
-    private val badgeDefinitions = mutableListOf<Badge>()
 
     private fun seedBadgeDefinitions() {
         // Creation badges
