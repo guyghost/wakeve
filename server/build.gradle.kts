@@ -5,9 +5,18 @@ plugins {
     application
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+// Use environment variables for configuration (set via env or test config)
+val jwtSecret = System.getenv("JWT_SECRET") ?: "dev-secret-change-in-production"
+val jwtIssuer = System.getenv("JWT_ISSUER") ?: "wakev-api"
+val jwtAudience = System.getenv("JWT_AUDIENCE") ?: "wakev-client"
+
+// Test configuration
+tasks.withType<Test> {
+    environment = mapOf(
+        "JWT_SECRET" to jwtSecret,
+        "JWT_ISSUER" to jwtIssuer,
+        "JWT_AUDIENCE" to jwtAudience
+    )
 }
 
 kotlin {

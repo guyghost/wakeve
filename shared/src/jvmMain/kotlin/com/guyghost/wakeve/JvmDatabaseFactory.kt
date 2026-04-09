@@ -3,6 +3,7 @@ package com.guyghost.wakeve
 import app.cash.sqldelight.db.SqlDriver
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.guyghost.wakeve.database.DatabaseFactory
+import com.guyghost.wakeve.database.WakeveDb
 import java.io.File
 
 /**
@@ -15,7 +16,7 @@ class JvmDatabaseFactory(private val dbPath: String = "wakev.db") : DatabaseFact
         
         // Initialize schema if database doesn't exist
         if (!dbFile.exists()) {
-            driver.execute(null, "VACUUM", 0)
+            WakeveDb.Schema.create(driver)
         }
         
         return driver
