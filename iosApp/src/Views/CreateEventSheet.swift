@@ -10,6 +10,8 @@ struct CreateEventSheet: View {
     let userName: String?
     
     @Environment(\.dismiss) var dismiss
+    @StateObject private var viewModel = CreateEventViewModel()
+
     @State private var title = ""
     @State private var description = ""
     @State private var selectedDate: Date?
@@ -18,7 +20,24 @@ struct CreateEventSheet: View {
     @State private var showingBackgroundPicker = false
     @State private var showingImageDescription = false
     @State private var backgroundDescription = ""
-    
+
+    // EventType selection
+    // EventType stored as index (KotlinEnum not directly @State-compatible)
+    @State private var selectedEventTypeIndex: Int = 0
+
+    private let eventTypes: [Shared.EventType] = [
+        Shared.EventType.other, Shared.EventType.birthday, Shared.EventType.wedding,
+        Shared.EventType.teamBuilding, Shared.EventType.conference, Shared.EventType.workshop,
+        Shared.EventType.party, Shared.EventType.sportsEvent, Shared.EventType.culturalEvent,
+        Shared.EventType.familyGathering, Shared.EventType.outdoorActivity,
+        Shared.EventType.foodTasting, Shared.EventType.techMeetup, Shared.EventType.wellnessEvent,
+        Shared.EventType.creativeWorkshop
+    ]
+
+    var selectedEventType: Shared.EventType { eventTypes[selectedEventTypeIndex] }
+    @State private var showingEventTypePicker = false
+    @State private var expectedParticipants: Int? = nil
+
     // Date picker sheet state
     @State private var showingDatePicker = false
     @State private var isAllDay = false
@@ -64,7 +83,12 @@ struct CreateEventSheet: View {
                     organizerCard
                         .padding(.top, 16)
                         .padding(.horizontal, 16)
-                    
+
+                    // Event Type selector
+                    eventTypeCard
+                        .padding(.top, 16)
+                        .padding(.horizontal, 16)
+
                     // Create Button
                     createButton
                         .padding(.top, 32)
@@ -144,7 +168,9 @@ struct CreateEventSheet: View {
                 startDate: startDate,
                 startTime: startTime,
                 hasEndTime: hasEndTime,
-                endTime: endTime
+                endTime: endTime,
+                eventType: selectedEventType,
+                expectedParticipants: expectedParticipants
             )
         }
     }
@@ -432,9 +458,47 @@ struct CreateEventSheet: View {
         .background(Color(hex: "0F1B3A").opacity(0.8))
         .cornerRadius(28)
     }
-    
 
-    
+    // MARK: - Event Type Selector
+
+    private var eventTypeCard: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Current selection
+            Button(action: { showingEventTypePicker = true }) {
+                HStack(spacing: 12) {
+                    Text(eventTypeEmoji(selectedEventType))
+                        .font(.system(size: 20))
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Type d'événement")
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.5))
+                        Text(selectedEventType == Shared.EventType.other ? "Choisir un type" : selectedEventType.displayName)
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(selectedEventType == Shared.EventType.other ? .white.opacity(0.5) : .white)
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.white.opacity(0.4))
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+            }
+        }
+        .background(Color(hex: "0F1B3A").opacity(0.8))
+        .cornerRadius(20)
+        .sheet(isPresented: $showingEventTypePicker) {
+            EventTypePickerSheet(
+                selectedIndex: $selectedEventTypeIndex,
+                types: eventTypes
+            )
+            .presentationDetents([.medium, .large])
+        }
+    }
+
     // MARK: - Create Button
     
     private var createButton: some View {
@@ -485,26 +549,27 @@ struct CreateEventSheet: View {
     }
     
     private func createEvent() {
-        let event = Event(
-            id: "event-\(Int(Date().timeIntervalSince1970 * 1000))",
+        let iso = ISO8601DateFormatter()
+        let selectedDateString: String? = selectedDate.map { iso.string(from: $0) }
+
+        viewModel.createEvent(
             title: title,
             description: description,
-            organizerId: userId,
-            participants: [],
-            proposedSlots: [],
-            deadline: ISO8601DateFormatter().string(from: Date()),
-            status: .draft,
-            finalDate: nil,
-            createdAt: ISO8601DateFormatter().string(from: Date()),
-            updatedAt: ISO8601DateFormatter().string(from: Date()),
-            eventType: .other,
-            eventTypeCustom: nil,
-            minParticipants: nil,
-            maxParticipants: nil,
-            expectedParticipants: nil,
-            heroImageUrl: nil
+            userId: userId,
+            eventType: selectedEventType,
+            selectedDate: selectedDateString,
+            expectedParticipants: expectedParticipants.map { Int32($0) }
         )
-        
+
+        // Also invoke callback for parent navigation
+        let event = EventFactory.make(
+            title: title,
+            description: description.isEmpty ? "" : description,
+            organizerId: userId,
+            status: .draft,
+            eventType: selectedEventType,
+            expectedParticipants: expectedParticipants.map { Int32($0) }
+        )
         onEventCreated(event)
         dismiss()
     }
@@ -722,6 +787,8 @@ struct EventPreviewSheet: View {
     let startTime: Date
     let hasEndTime: Bool
     let endTime: Date
+    var eventType: Shared.EventType = Shared.EventType.other
+    var expectedParticipants: Int? = nil
 
     @State private var mapPosition: MapCameraPosition = .automatic
     @State private var geocodedCoordinate: CLLocationCoordinate2D?
@@ -757,6 +824,22 @@ struct EventPreviewSheet: View {
                             .foregroundColor(.white)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 8)
+
+                        // EventType badge (if not default)
+                        if eventType != Shared.EventType.other && eventType != Shared.EventType.custom {
+                            HStack(spacing: 6) {
+                                Text(eventTypeEmoji(eventType))
+                                    .font(.system(size: 14))
+                                Text(eventType.displayName)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(Color.white.opacity(0.2))
+                            .clipShape(Capsule())
+                            .padding(.top, 4)
+                        }
 
                         // Date and location
                         if selectedDate != nil || selectedLocation != nil {
@@ -996,6 +1079,54 @@ struct RoundedCorner: Shape {
             cornerRadii: CGSize(width: radius, height: radius)
         )
         return Path(path.cgPath)
+    }
+}
+
+// MARK: - EventType Picker Sheet
+
+struct EventTypePickerSheet: View {
+    @Binding var selectedIndex: Int
+    let types: [Shared.EventType]
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        NavigationView {
+            List {
+                ForEach(Array(types.enumerated()), id: \.offset) { index, type in
+                    Button(action: {
+                        selectedIndex = index
+                        dismiss()
+                    }) {
+                        HStack(spacing: 14) {
+                            Text(eventTypeEmoji(type))
+                                .font(.system(size: 24))
+                                .frame(width: 36)
+
+                            Text(type.displayName)
+                                .font(.system(size: 16))
+                                .foregroundColor(.primary)
+
+                            Spacer()
+
+                            if selectedIndex == index {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(.accentColor)
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .listRowBackground(Color(uiColor: .secondarySystemGroupedBackground))
+                }
+            }
+            .navigationTitle("Type d'événement")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fermer") { dismiss() }
+                }
+            }
+        }
     }
 }
 
