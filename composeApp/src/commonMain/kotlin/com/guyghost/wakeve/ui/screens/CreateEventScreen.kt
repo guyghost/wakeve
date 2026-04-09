@@ -1,5 +1,8 @@
 package com.guyghost.wakeve.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +18,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -86,7 +90,12 @@ fun CreateEventScreen(
     var selectedDate by remember { mutableStateOf<String?>(null) }
     var selectedLocation by remember { mutableStateOf<String?>(null) }
     var hasBackgroundImage by remember { mutableStateOf(false) }
-    
+    var selectedEventType by remember { mutableStateOf(EventType.OTHER) }
+    var expectedParticipants by remember { mutableStateOf<Int?>(null) }
+
+    // Preview state
+    var showPreview by remember { mutableStateOf(false) }
+
     // Location sheet state
     var showLocationSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -119,7 +128,11 @@ fun CreateEventScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             // Header
-            HeaderRow(onClose = onClose)
+            HeaderRow(
+                onClose = onClose,
+                onPreview = { showPreview = true },
+                previewEnabled = title.isNotBlank()
+            )
             
             // Background Image Selector
             BackgroundImageSelector(
@@ -178,11 +191,11 @@ fun CreateEventScreen(
                         createdAt = Clock.System.now().toString(),
                         updatedAt = Clock.System.now().toString(),
                         finalDate = null,
-                        eventType = EventType.OTHER,
+                        eventType = selectedEventType,
                         eventTypeCustom = null,
                         minParticipants = null,
                         maxParticipants = null,
-                        expectedParticipants = null
+                        expectedParticipants = expectedParticipants
                     )
                     onEventCreated(event)
                 }
@@ -190,11 +203,33 @@ fun CreateEventScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
         }
+
+        // Preview overlay (animated)
+        AnimatedVisibility(
+            visible = showPreview,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            CreateEventPreview(
+                title = title,
+                description = description,
+                userName = userName,
+                selectedDate = selectedDate,
+                selectedLocation = selectedLocation,
+                eventType = selectedEventType,
+                expectedParticipants = expectedParticipants,
+                onDismiss = { showPreview = false }
+            )
+        }
     }
 }
 
 @Composable
-private fun HeaderRow(onClose: () -> Unit) {
+private fun HeaderRow(
+    onClose: () -> Unit,
+    onPreview: () -> Unit = {},
+    previewEnabled: Boolean = false
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -222,13 +257,16 @@ private fun HeaderRow(onClose: () -> Unit) {
         Surface(
             modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
-                .clickable { /* Preview mode */ },
-            color = Color.White.copy(alpha = 0.15f),
+                .clickable(enabled = previewEnabled) { onPreview() },
+            color = if (previewEnabled)
+                Color.White.copy(alpha = 0.15f)
+            else
+                Color.White.copy(alpha = 0.06f),
             shape = RoundedCornerShape(24.dp)
         ) {
             Text(
                 text = "Aperçu",
-                color = Color.White,
+                color = if (previewEnabled) Color.White else Color.White.copy(alpha = 0.3f),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
