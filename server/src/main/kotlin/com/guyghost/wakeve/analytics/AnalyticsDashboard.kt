@@ -4,6 +4,7 @@ import com.guyghost.wakeve.database.WakeveDb
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 
@@ -34,7 +35,7 @@ class AnalyticsDashboard(private val database: WakeveDb) {
      * @return Number of unique users active in the last 30 days
      */
     fun getMAU(): Int {
-        val thirtyDaysAgo = Clock.System.now().minus(30, DateTimeUnit.DAY)
+        val thirtyDaysAgo = Clock.System.now().minus(30, DateTimeUnit.DAY, TimeZone.UTC)
         return database.analyticsQueries
             .getActiveUsersSince(thirtyDaysAgo.toEpochMilliseconds())
             .executeAsOne()
@@ -48,7 +49,7 @@ class AnalyticsDashboard(private val database: WakeveDb) {
      */
     fun getDAU(): Int {
         val today = Clock.System.now().toLocalDateTime(TimeZone.UTC).date
-        val startOfDay = today.atTime(0, 0).toInstant(TimeZone.UTC)
+        val startOfDay = today.atStartOfDayIn(TimeZone.UTC)
 
         return database.analyticsQueries
             .getActiveUsersSince(startOfDay.toEpochMilliseconds())
@@ -65,7 +66,7 @@ class AnalyticsDashboard(private val database: WakeveDb) {
      * @return Retention rate as percentage (0-100)
      */
     fun getRetention(days: Int = 7): Double {
-        val cohortDate = Clock.System.now().minus(days, DateTimeUnit.DAY)
+        val cohortDate = Clock.System.now().minus(days, DateTimeUnit.DAY, TimeZone.UTC)
 
         val cohortUsers = database.analyticsQueries
             .getNewUsersOnDate(cohortDate.toLocalDateTime(TimeZone.UTC).date.toString())
@@ -148,7 +149,7 @@ class AnalyticsDashboard(private val database: WakeveDb) {
      * @return Number of events viewed in the last 30 days
      */
     private fun getActiveEventsCount(): Int {
-        val thirtyDaysAgo = Clock.System.now().minus(30, DateTimeUnit.DAY)
+        val thirtyDaysAgo = Clock.System.now().minus(30, DateTimeUnit.DAY, TimeZone.UTC)
         return database.analyticsQueries
             .getActiveEventsCount(thirtyDaysAgo.toEpochMilliseconds())
             .executeAsOne()

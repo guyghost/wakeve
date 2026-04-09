@@ -3,6 +3,7 @@ package com.guyghost.wakeve
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.guyghost.wakeve.auth.SessionRepository
+import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.database.WakeveDb
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
