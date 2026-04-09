@@ -1,7 +1,7 @@
 {
   "name": "wakeve-tests-production",
   "taskFile": ".ralph/wakeve-tests-production.md",
-  "iteration": 1,
+  "iteration": 2,
   "maxIterations": 50,
   "itemsPerIteration": 2,
   "reflectEvery": 3,
