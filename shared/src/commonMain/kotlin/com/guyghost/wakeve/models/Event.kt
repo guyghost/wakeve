@@ -1,7 +1,11 @@
 package com.guyghost.wakeve.models
 
+import kotlin.experimental.ExperimentalObjCName
+import kotlin.native.ObjCName
 import kotlinx.serialization.Serializable
 
+@OptIn(ExperimentalObjCName::class)
+@ObjCName(swiftName = "WakeveEvent")
 @Serializable
 data class Event(
     val id: String,

@@ -42,57 +42,31 @@ struct AddToCalendarButton: View {
 
 // MARK: - Preview
 
-#Preview {
-    VStack(spacing: 20) {
-        AddToCalendarButton(
-            event: Event(
-                id: "event-1",
-                title: "Team Meeting",
-                description: "Q4 Planning",
-                organizerId: "user-1",
-                participants: [],
-                proposedSlots: [],
-                deadline: ISO8601DateFormatter().string(from: Date()),
-                status: .confirmed,
-                finalDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(86400)),
-                createdAt: ISO8601DateFormatter().string(from: Date()),
-                updatedAt: ISO8601DateFormatter().string(from: Date()),
-                eventType: .teamBuilding,
-                eventTypeCustom: nil,
-                minParticipants: nil,
-                maxParticipants: nil,
-                expectedParticipants: nil,
-                heroImageUrl: nil
-            ),
-            isLoading: false,
-            isEnabled: true,
-            action: { print("Tapped add to calendar") }
-        )
-        
-        AddToCalendarButton(
-            event: Event(
-                id: "event-2",
-                title: "Team Meeting",
-                description: "Q4 Planning",
-                organizerId: "user-1",
-                participants: [],
-                proposedSlots: [],
-                deadline: ISO8601DateFormatter().string(from: Date()),
-                status: .polling,
-                finalDate: nil,
-                createdAt: ISO8601DateFormatter().string(from: Date()),
-                updatedAt: ISO8601DateFormatter().string(from: Date()),
-                eventType: .teamBuilding,
-                eventTypeCustom: nil,
-                minParticipants: nil,
-                maxParticipants: nil,
-                expectedParticipants: nil,
-                heroImageUrl: nil
-            ),
-            isLoading: true,
-            isEnabled: false,
-            action: { print("Tapped add to calendar") }
-        )
-    }
+#if DEBUG
+#Preview("Enabled") {
+    AddToCalendarButton(
+        event: EventFactory.make(
+            title: "Team Meeting",
+            status: .confirmed,
+            finalDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(86400))
+        ),
+        isLoading: false,
+        isEnabled: true,
+        action: {}
+    )
     .padding()
 }
+
+#Preview("Loading / Disabled") {
+    AddToCalendarButton(
+        event: EventFactory.make(
+            title: "Birthday Dinner",
+            status: .polling
+        ),
+        isLoading: true,
+        isEnabled: false,
+        action: {}
+    )
+    .padding()
+}
+#endif

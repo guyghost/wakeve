@@ -231,8 +231,8 @@ struct PollVotingView: View {
 
         for (slotId, pollVote) in votes {
             do {
-                // Convert PollVote to Shared.Vote
-                let sharedVote: Shared.Vote = {
+                // Convert PollVote to Shared.Vote_
+                let sharedVote: Vote_ = {
                     switch pollVote {
                     case .yes: return .yes
                     case .maybe: return .maybe
