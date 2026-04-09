@@ -170,8 +170,15 @@ tasks.withType<Test> {
     }
 }
 
+// KMP puts classes in build/classes/kotlin/jvm/main/
+val jvmMainClasses by lazy {
+    fileTree("${buildDir}/classes/kotlin/jvm/main") {
+        exclude(listOf("**/*Test*", "**/*\$inlined*", "**/coroutines/**"))
+    }
+}
+
 tasks.register<JacocoReport>("jacocoJvmTestReport") {
-    dependsOn(tasks.withType<Test>())
+    dependsOn("jvmTest")
     
     group = "Reporting"
     description = "Generate JaCoCo coverage report for JVM tests"
@@ -189,20 +196,15 @@ tasks.register<JacocoReport>("jacocoJvmTestReport") {
         )
     )
     
-    classDirectories.setFrom(
-        files(
-            fileTree("build/classes/kotlin/commonMain"),
-            fileTree("build/classes/kotlin/jvmMain")
-        )
-    )
+    classDirectories.setFrom(jvmMainClasses)
     
     executionData.setFrom(
-        files("build/jacoco/jvmTest.exec")
+        files("${buildDir}/jacoco/jvmTest.exec")
     )
 }
 
 tasks.register<JacocoCoverageVerification>("jacocoCoverageVerification") {
-    dependsOn(tasks.withType<Test>())
+    dependsOn("jvmTest", "jacocoJvmTestReport")
     
     group = "Verification"
     description = "Verify code coverage meets minimum requirements"
@@ -235,15 +237,10 @@ tasks.register<JacocoCoverageVerification>("jacocoCoverageVerification") {
         )
     )
     
-    classDirectories.setFrom(
-        files(
-            fileTree("build/classes/kotlin/commonMain"),
-            fileTree("build/classes/kotlin/jvmMain")
-        )
-    )
+    classDirectories.setFrom(jvmMainClasses)
     
     executionData.setFrom(
-        files("build/jacoco/jvmTest.exec")
+        files("${buildDir}/jacoco/jvmTest.exec")
     )
 }
 
