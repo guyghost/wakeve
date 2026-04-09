@@ -54,6 +54,8 @@ struct CreateEventSheet: View {
 
     // Preview state
     @State private var showingPreview = false
+    @State private var showValidationError = false
+    @State private var validationMessage: String? = nil
     
     var onEventCreated: (Event) -> Void = { _ in }
     
@@ -502,16 +504,35 @@ struct CreateEventSheet: View {
     // MARK: - Create Button
     
     private var createButton: some View {
-        Button(action: createEvent) {
-            Text(String(localized: "events.create_event_button"))
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(canCreate ? Color(hex: "6C5CE7") : .white.opacity(0.6))
-                .frame(maxWidth: .infinity)
-                .frame(height: 56)
-                .background(Color.white.opacity(canCreate ? 1.0 : 0.3))
-                .cornerRadius(28)
+        VStack(spacing: 8) {
+            Button(action: {
+                if canCreate {
+                    showValidationError = false
+                    validationMessage = nil
+                    createEvent()
+                } else {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showValidationError = true
+                        validationMessage = "Le titre est requis pour créer l'événement"
+                    }
+                }
+            }) {
+                Text(String(localized: "events.create_event_button"))
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(canCreate ? Color(hex: "6C5CE7") : .white.opacity(0.6))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(Color.white.opacity(canCreate ? 1.0 : 0.3))
+                    .cornerRadius(28)
+            }
+
+            if showValidationError, let msg = validationMessage {
+                Text(msg)
+                    .font(.system(size: 13))
+                    .foregroundColor(Color(hex: "FF6B6B"))
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
         }
-        .disabled(!canCreate)
     }
     
     // MARK: - Helpers
@@ -522,7 +543,7 @@ struct CreateEventSheet: View {
     }
     
     private var canCreate: Bool {
-        !title.isEmpty
+        !title.trimmingCharacters(in: .whitespaces).isEmpty
     }
     
     private func darkenColor(_ color: Color, by amount: CGFloat) -> Color {
