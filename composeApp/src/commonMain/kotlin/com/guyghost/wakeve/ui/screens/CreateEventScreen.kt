@@ -96,6 +96,9 @@ fun CreateEventScreen(
     var selectedEventType by remember { mutableStateOf(EventType.OTHER) }
     var expectedParticipants by remember { mutableStateOf<Int?>(null) }
 
+    // Validation state
+    var validationError by remember { mutableStateOf<String?>(null) }
+
     // Preview state
     var showPreview by remember { mutableStateOf(false) }
 
@@ -187,10 +190,29 @@ fun CreateEventScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // Validation error message
+            if (validationError != null) {
+                Text(
+                    text = validationError!!,
+                    color = Color(0xFFFF6B6B),
+                    fontSize = 13.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             // Create Button
             CreateEventButton(
-                enabled = title.isNotBlank(),
+                enabled = true, // Always enabled — validation happens on click
                 onClick = {
+                    if (title.isBlank()) {
+                        validationError = "Le titre est requis pour créer l'événement"
+                        return@CreateEventButton
+                    }
+                    validationError = null
                     val event = Event(
                         id = "event-${Clock.System.now().toEpochMilliseconds()}",
                         title = title,
