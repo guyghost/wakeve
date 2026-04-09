@@ -1,5 +1,7 @@
 package com.guyghost.wakeve
 
+import com.guyghost.wakeve.database.DatabaseProvider
+import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.models.SyncChange
 import com.guyghost.wakeve.models.SyncRequest
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation

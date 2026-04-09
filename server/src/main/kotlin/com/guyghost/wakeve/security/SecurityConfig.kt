@@ -172,6 +172,6 @@ val ApplicationCall.clientIp: String
         return request.headers["X-Forwarded-For"]
             ?.split(",")?.firstOrNull()?.trim()
             ?: request.headers["X-Real-IP"]
-            ?: request.origin.localHost?.host
+            ?: request.local.localAddress
             ?: "unknown"
     }

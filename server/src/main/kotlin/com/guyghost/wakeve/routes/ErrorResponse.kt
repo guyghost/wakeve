@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.routes
 
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.response.respond
 import kotlinx.serialization.Serializable
 
 /**

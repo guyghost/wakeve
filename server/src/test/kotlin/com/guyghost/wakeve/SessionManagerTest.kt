@@ -2,6 +2,8 @@ package com.guyghost.wakeve
 
 import com.guyghost.wakeve.auth.SessionData
 import com.guyghost.wakeve.auth.SessionRepository
+import com.guyghost.wakeve.database.DatabaseFactory
+import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.database.WakeveDb
 import kotlinx.coroutines.runBlocking
 import org.junit.After

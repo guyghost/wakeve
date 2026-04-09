@@ -48,6 +48,7 @@ import com.guyghost.wakeve.routes.syncRoutes
 import com.guyghost.wakeve.routes.voteRoutes
 import com.guyghost.wakeve.invitation.InvitationRepository
 import com.guyghost.wakeve.sync.SyncService
+import com.guyghost.wakeve.auth.SessionRepository
 import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.repository.ScenarioRepository
