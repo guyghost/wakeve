@@ -38,6 +38,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -172,9 +175,18 @@ fun CreateEventScreen(
                 description = description,
                 onDescriptionChange = { description = it }
             )
-            
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // EventType Selector
+            EventTypeSelectorCard(
+                selectedType = selectedEventType,
+                onTypeSelected = { selectedEventType = it },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
             // Create Button
             CreateEventButton(
                 enabled = title.isNotBlank(),
@@ -589,6 +601,130 @@ private fun CreateEventButton(
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold
             )
+        }
+    }
+}
+
+// ── EventType Selector ──────────────────────────────────────────────────────
+
+private val EVENT_TYPE_OPTIONS = listOf(
+    EventType.OTHER to "📅",
+    EventType.BIRTHDAY to "🎂",
+    EventType.WEDDING to "💍",
+    EventType.TEAM_BUILDING to "🤝",
+    EventType.CONFERENCE to "🎤",
+    EventType.WORKSHOP to "🛠",
+    EventType.PARTY to "🎉",
+    EventType.SPORTS_EVENT to "⚽",
+    EventType.CULTURAL_EVENT to "🎭",
+    EventType.FAMILY_GATHERING to "👨‍👩‍👧",
+    EventType.OUTDOOR_ACTIVITY to "🏔",
+    EventType.FOOD_TASTING to "🍷",
+    EventType.TECH_MEETUP to "💻",
+    EventType.WELLNESS_EVENT to "🧘",
+    EventType.CREATIVE_WORKSHOP to "🎨"
+)
+
+@Composable
+private fun EventTypeSelectorCard(
+    selectedType: EventType,
+    onTypeSelected: (EventType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedEmoji = EVENT_TYPE_OPTIONS.firstOrNull { it.first == selectedType }?.second ?: "📅"
+
+    Column(modifier = modifier) {
+        // Current selection row
+        Surface(
+            onClick = { expanded = !expanded },
+            shape = RoundedCornerShape(16.dp),
+            color = Color(0xFF0F1B3A).copy(alpha = 0.8f),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = selectedEmoji,
+                    fontSize = 20.sp,
+                    modifier = Modifier.width(28.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Type d'événement",
+                        fontSize = 11.sp,
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                    Text(
+                        text = if (selectedType == EventType.OTHER) "Choisir un type"
+                        else selectedType.displayName,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (selectedType == EventType.OTHER)
+                            Color.White.copy(alpha = 0.4f)
+                        else Color.White
+                    )
+                }
+                Text(
+                    text = if (expanded) "▲" else "▼",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.4f)
+                )
+            }
+        }
+
+        // Expanded grid of options
+        if (expanded) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFF0F1B3A).copy(alpha = 0.9f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(EVENT_TYPE_OPTIONS) { (type, emoji) ->
+                        val isSelected = type == selectedType
+                        Surface(
+                            onClick = {
+                                onTypeSelected(type)
+                                expanded = false
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) Color(0xFF6366F1).copy(alpha = 0.3f)
+                            else Color.Transparent,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            ) {
+                                Text(text = emoji, fontSize = 22.sp)
+                                Text(
+                                    text = type.displayName,
+                                    fontSize = 9.sp,
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
