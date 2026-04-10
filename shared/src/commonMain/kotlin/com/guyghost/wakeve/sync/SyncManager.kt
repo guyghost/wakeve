@@ -49,6 +49,9 @@ class SyncManager(
     private val _syncStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle)
     val syncStatus: StateFlow<SyncStatus> = _syncStatus
 
+    // Timestamp of the last successful sync — used for incremental sync (avoids full re-sync)
+    private var lastSuccessfulSyncTimestamp: String? = null
+
     // Network status from platform-specific detector
     val isNetworkAvailable: StateFlow<Boolean> = networkDetector.isNetworkAvailable
 
@@ -387,7 +390,7 @@ class SyncManager(
 
         val syncRequest = SyncRequest(
             changes = pendingChanges,
-            lastSyncTimestamp = null // TODO: Track last successful sync
+            lastSyncTimestamp = lastSuccessfulSyncTimestamp
         )
 
         // Make actual HTTP call to server
@@ -413,6 +416,8 @@ class SyncManager(
 
         val duration = getCurrentTimeMillis() - startTime
         if (response.success) {
+            // Update incremental sync timestamp so next sync only fetches new changes
+            lastSuccessfulSyncTimestamp = response.serverTimestamp
             metrics.recordSyncSuccess(duration, response.appliedChanges)
         } else {
             metrics.recordSyncFailure(duration, response.message ?: "Unknown error")
