@@ -92,6 +92,33 @@ jobs:
         continue-on-error: true  # Server tests have known NPE issues with in-memory DB
 
   # ──────────────────────────────────────────────
+  # Web App (SvelteKit) build
+  # ──────────────────────────────────────────────
+  web-build:
+    name: Web App Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        working-directory: webApp
+        run: pnpm install --frozen-lockfile
+
+      - name: Build SvelteKit app
+        working-directory: webApp
+        run: pnpm run build
+
+  # ──────────────────────────────────────────────
   # Code formatting check
   # ──────────────────────────────────────────────
   format-check:
