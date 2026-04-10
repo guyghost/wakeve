@@ -9,6 +9,8 @@ import com.guyghost.wakeve.models.SuggestionUserPreferences
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.datetime.Clock
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * Database-backed repository for managing user suggestion preferences.
@@ -28,6 +30,7 @@ class DatabaseSuggestionPreferencesRepository(
     }
 
      private val preferencesQueries = database.suggestionPreferencesQueries
+    private val interactionsQueries = database.suggestionInteractionsQueries
 
     /**
      * Get suggestion preferences for a user.
@@ -172,65 +175,117 @@ class DatabaseSuggestionPreferencesRepository(
       /**
        * Track user interaction for A/B testing and recommendation improvement.
        */
+      @OptIn(ExperimentalUuidApi::class)
       override fun trackInteraction(
           userId: String,
           suggestionId: String,
           interactionType: SuggestionInteractionType
       ) {
-          // TODO: Implement interaction tracking via suggestion_interactions table
-          // For now, this is a stub implementation
+          interactionsQueries.insertInteraction(
+              id = Uuid.random().toString(),
+              user_id = userId,
+              suggestion_id = suggestionId,
+              interaction_type = interactionType.name,
+              timestamp = Clock.System.now().toString(),
+              metadata = "{}"
+          )
       }
 
       /**
        * Track user interaction with metadata for enhanced analytics.
        */
+      @OptIn(ExperimentalUuidApi::class)
       override fun trackInteractionWithMetadata(
           userId: String,
           suggestionId: String,
           interactionType: SuggestionInteractionType,
           metadata: Map<String, String>
       ) {
-          // TODO: Implement interaction tracking with metadata
-          // For now, this is a stub implementation
+          interactionsQueries.insertInteraction(
+              id = Uuid.random().toString(),
+              user_id = userId,
+              suggestion_id = suggestionId,
+              interaction_type = interactionType.name,
+              timestamp = Clock.System.now().toString(),
+              metadata = json.encodeToString(metadata)
+          )
       }
 
       /**
        * Get interaction history for a user.
        */
       override fun getInteractionHistory(userId: String): List<SuggestionInteraction> {
-          // TODO: Implement interaction history retrieval
-          return emptyList()
+          return interactionsQueries
+              .selectInteractionsByUserId(userId)
+              .executeAsList()
+              .map { row ->
+                  SuggestionInteraction(
+                      userId = row.user_id,
+                      suggestionId = row.suggestion_id,
+                      interactionType = runCatching {
+                          SuggestionInteractionType.valueOf(row.interaction_type)
+                      }.getOrDefault(SuggestionInteractionType.VIEWED),
+                      timestamp = row.timestamp,
+                      metadata = runCatching {
+                          json.decodeFromString<Map<String, String>>(row.metadata)
+                      }.getOrDefault(emptyMap())
+                  )
+              }
       }
 
       /**
        * Get recent interactions for a user since a specific timestamp.
        */
       override fun getRecentInteractions(userId: String, sinceTimestamp: String): List<SuggestionInteraction> {
-          // TODO: Implement recent interactions filtering
-          return emptyList()
+          return interactionsQueries
+              .selectRecentInteractionsByUserId(user_id = userId, timestamp = sinceTimestamp)
+              .executeAsList()
+              .map { row ->
+                  SuggestionInteraction(
+                      userId = row.user_id,
+                      suggestionId = row.suggestion_id,
+                      interactionType = runCatching {
+                          SuggestionInteractionType.valueOf(row.interaction_type)
+                      }.getOrDefault(SuggestionInteractionType.VIEWED),
+                      timestamp = row.timestamp,
+                      metadata = runCatching {
+                          json.decodeFromString<Map<String, String>>(row.metadata)
+                      }.getOrDefault(emptyMap())
+                  )
+              }
       }
 
       /**
        * Get counts of interaction types for a user since a specific timestamp.
        */
       override fun getInteractionCountsByType(userId: String, sinceTimestamp: String): Map<SuggestionInteractionType, Long> {
-          // TODO: Implement interaction type counts
-          return emptyMap()
+          return interactionsQueries
+              .countInteractionsByType(user_id = userId, timestamp = sinceTimestamp)
+              .executeAsList()
+              .mapNotNull { row ->
+                  val type = runCatching {
+                      SuggestionInteractionType.valueOf(row.interaction_type)
+                  }.getOrNull() ?: return@mapNotNull null
+                  type to row.count
+              }
+              .toMap()
       }
 
       /**
        * Get top suggestions since a specific timestamp.
        */
       override fun getTopSuggestions(sinceTimestamp: String, limit: Int): List<Pair<String, Long>> {
-          // TODO: Implement top suggestions ranking
-          return emptyList()
+          return interactionsQueries
+              .getTopSuggestionsByInteractions(timestamp = sinceTimestamp, value_ = limit.toLong())
+              .executeAsList()
+              .map { row -> row.suggestion_id to row.count }
       }
 
       /**
        * Clean up old interactions older than a specific timestamp.
        */
       override suspend fun cleanupOldInteractions(olderThanTimestamp: String) {
-          // TODO: Implement old interactions cleanup
+          interactionsQueries.deleteOldInteractions(olderThanTimestamp)
       }
 
     // Private helper functions
