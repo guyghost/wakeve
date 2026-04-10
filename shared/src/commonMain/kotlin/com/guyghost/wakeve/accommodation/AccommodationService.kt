@@ -80,8 +80,13 @@ object AccommodationService {
         if (totalNights <= 0) return "Total nights must be positive"
         if (checkInDate.isBlank()) return "Check-in date is required"
         if (checkOutDate.isBlank()) return "Check-out date is required"
-        
-        // TODO: Add date validation (checkOut > checkIn)
+
+        // Validate that checkOut is strictly after checkIn
+        val checkInParsed = runCatching { kotlinx.datetime.Instant.parse(checkInDate) }.getOrNull()
+        val checkOutParsed = runCatching { kotlinx.datetime.Instant.parse(checkOutDate) }.getOrNull()
+        if (checkInParsed != null && checkOutParsed != null && checkOutParsed <= checkInParsed) {
+            return "Check-out date must be after check-in date"
+        }
         
         return null
     }

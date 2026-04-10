@@ -85,25 +85,42 @@ object SecurityConfig {
     }
 
     /**
-     * Check if an IP is in a CIDR range
+     * Check if an IP is in a CIDR range.
+     * Supports IPv4 (e.g. 10.0.0.0/8) and IPv4-mapped IPv6 (::ffff:10.0.0.1).
      */
     private fun ipInRange(ip: String, cidr: String): Boolean {
-        // Simple CIDR check for IPv4
-        // TODO: Implement proper CIDR matching for both IPv4 and IPv6
         val parts = cidr.split("/")
         if (parts.size != 2) return false
 
-        val rangeStart = parts[0]
+        val cidrBase = parts[0]
         val prefixLength = parts[1].toIntOrNull() ?: return false
 
-        // For now, do exact match if prefix is /32
-        return if (prefixLength == 32) {
-            ip == rangeStart
-        } else {
-            // Simple subnet match for common cases
-            val ipPrefix = ip.substringBeforeLast(".")
-            val rangePrefix = rangeStart.substringBeforeLast(".")
-            ipPrefix == rangePrefix
+        // Normalise IPv4-mapped IPv6 addresses (::ffff:a.b.c.d)
+        val normalised = normaliseIp(ip)
+        val cidrNorm = normaliseIp(cidrBase)
+
+        // Convert both to 32-bit integers for IPv4 comparison
+        val ipInt = ipv4ToInt(normalised) ?: return false
+        val cidrInt = ipv4ToInt(cidrNorm) ?: return false
+
+        val effectivePrefix = prefixLength.coerceIn(0, 32)
+        val mask = if (effectivePrefix == 0) 0 else (0xFFFFFFFFL.toInt() shl (32 - effectivePrefix))
+
+        return (ipInt and mask) == (cidrInt and mask)
+    }
+
+    /** Strip IPv4-mapped IPv6 prefix if present. */
+    private fun normaliseIp(ip: String): String =
+        if (ip.startsWith("::")) ip.removePrefix("::ffff:") else ip
+
+    /** Convert a dotted-decimal IPv4 string to a 32-bit Int, or null if invalid. */
+    private fun ipv4ToInt(ip: String): Int? {
+        val octets = ip.split(".")
+        if (octets.size != 4) return null
+        return octets.fold(0) { acc, part ->
+            val octet = part.toIntOrNull() ?: return null
+            if (octet !in 0..255) return null
+            (acc shl 8) or octet
         }
     }
 
