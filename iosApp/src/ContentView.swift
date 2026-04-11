@@ -295,9 +295,13 @@ struct AuthenticatedView: View {
                 .foregroundColor(.secondary)
             
         case .budgetOverview:
-            Text("Budget Overview - Coming Soon")
-                .font(.title2)
-                .foregroundColor(.secondary)
+            if let event = selectedEvent {
+                BudgetOverviewView(eventId: event.id)
+            } else {
+                Text("Sélectionnez un événement pour voir le budget")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
             
         case .accommodation:
             Text("Accommodation - Coming Soon")
@@ -330,9 +334,13 @@ struct AuthenticatedView: View {
                 .foregroundColor(.secondary)
             
         case .budgetDetail:
-            Text("Budget Detail - Coming Soon")
-                .font(.title2)
-                .foregroundColor(.secondary)
+            if let event = selectedEvent {
+                BudgetDetailView(eventId: event.id)
+            } else {
+                Text("Sélectionnez un événement pour voir les dépenses")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
             
         case .meetingList:
             Text("Meeting List - Coming Soon")
