@@ -343,14 +343,22 @@ struct AuthenticatedView: View {
             }
             
         case .meetingList:
-            Text("Meeting List - Coming Soon")
-                .font(.title2)
-                .foregroundColor(.secondary)
+            if let event = selectedEvent {
+                MeetingListView(eventId: event.id)
+            } else {
+                Text("Sélectionnez un événement pour voir les réunions")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
 
         case .meetingDetail:
-            Text("Meeting Detail - Coming Soon")
-                .font(.title2)
-                .foregroundColor(.secondary)
+            if let meetingId = selectedMeetingId, let event = selectedEvent {
+                MeetingDetailView(meetingId: meetingId, eventId: event.id)
+            } else {
+                Text("Sélectionnez une réunion")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
             
         case .inbox:
             InboxView(
