@@ -4,6 +4,8 @@ This document contains performance benchmarks for the Wakeve application to ensu
 
 ## Performance Targets
 
+### Core Metrics
+
 | Metric | Target | Measured | Status |
 |--------|--------|----------|--------|
 | App startup time | < 2s | TBD | 🔄 |
@@ -11,6 +13,20 @@ This document contains performance benchmarks for the Wakeve application to ensu
 | Event creation time | < 500ms | TBD | 🔄 |
 | Vote submission time | < 200ms | TBD | 🔄 |
 | Memory usage (idle) | < 100MB | TBD | 🔄 |
+
+### Store Submission Thresholds (v1.0.0)
+
+Required to pass App Store and Google Play quality reviews.
+
+| Metric | Android Target | iOS Target | Measured (Android) | Measured (iOS) | Status |
+|--------|---------------|------------|--------------------|----------------|--------|
+| Cold start time | < 2.0s (Pixel 8) | < 1.5s (iPhone 15) | TBD | TBD | 🔄 |
+| Memory usage (active) | < 150 MB | < 150 MB | TBD | TBD | 🔄 |
+| App size | < 30 MB (AAB) | < 50 MB (IPA) | TBD | TBD | 🔄 |
+| Crash-free sessions | ≥ 99.5% | ≥ 99.5% | TBD | TBD | 🔄 |
+| ANR rate | < 0.5% | N/A | TBD | N/A | 🔄 |
+| Network per session | < 1 MB | < 1 MB | TBD | TBD | 🔄 |
+| Battery impact | Minimal | Minimal | TBD | TBD | 🔄 |
 
 ## Benchmark Categories
 
@@ -293,5 +309,5 @@ When contributing code that may affect performance:
 
 ---
 
-*Last updated: 2025-02-11*  
+*Last updated: 2026-04-14*  
 *Version: 1.0.0*
