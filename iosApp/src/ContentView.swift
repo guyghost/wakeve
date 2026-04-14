@@ -198,6 +198,11 @@ struct AuthenticatedView: View {
                 }
             )
         }
+        .sheet(isPresented: $showNotificationPreferencesSheet) {
+            NavigationStack {
+                NotificationPreferencesView(userId: userId)
+            }
+        }
     }
     
     // MARK: - Home Tab

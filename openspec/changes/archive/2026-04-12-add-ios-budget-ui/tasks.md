@@ -12,7 +12,7 @@
 ## Tests
 
 - [x] **@tests** — `BudgetViewModelTests.swift` (état chargement, calculs, actions)
-- [ ] **@tests** — `BudgetOverviewViewTests.swift` (rendu, catégories, navigation)
+- [x] **@tests** — `BudgetOverviewViewTests.swift` (rendu, catégories, navigation)
 
 ## Intégration & Validation
 

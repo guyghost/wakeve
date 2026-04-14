@@ -22,10 +22,10 @@ Les ViewModels sont déjà prêts (`MeetingListViewModel.swift`, `MeetingDetailV
 - [x] @codegen — MeetingListView.swift + MeetingRowView.swift
 - [x] @codegen — MeetingDetailView.swift
 - [x] @codegen — Branchement ContentView.swift
-- [ ] @tests — MeetingViewModelTests.swift
-- [ ] @integrator — Cohérence design system
-- [ ] @validator — FC&IS + state machine patterns
-- [ ] @review — Verdict final
+- [x] @tests — MeetingViewModelTests.swift
+- [x] @integrator — Cohérence design system
+- [x] @validator — FC&IS + state machine patterns
+- [x] @review — Verdict final
 
 ## Verification
 ```bash
