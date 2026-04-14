@@ -1,0 +1,133 @@
+# Fastfile — Wakeve Store Deployment
+
+default_platform(:android)
+
+# ──────────────────────────────────────────────
+# Android Lanes
+# ──────────────────────────────────────────────
+
+platform :android do
+  desc "Build Android App Bundle for release"
+  lane :build do
+    gradle(
+      task: "bundleRelease",
+      project_dir: "composeApp"
+    )
+  end
+
+  desc "Run all tests before release"
+  lane :test do
+    gradle(
+      task: "shared:test",
+      project_dir: "."
+    )
+  end
+
+  desc "Upload AAB to Google Play Internal Testing"
+  lane :upload_internal do
+    build
+    upload_to_play_store(
+      track: "internal",
+      aab: "composeApp/build/outputs/bundle/release/composeApp-release.aab",
+      metadata_path: "composeApp/metadata/android",
+      skip_upload_metadata: false,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Upload AAB to Google Play Production"
+  lane :upload_production do
+    build
+    upload_to_play_store(
+      track: "production",
+      aab: "composeApp/build/outputs/bundle/release/composeApp-release.aab",
+      metadata_path: "composeApp/metadata/android"
+    )
+  end
+
+  desc "Validate store metadata"
+  lane :validate_metadata do
+    # Check required metadata files exist
+    validate_metadata_presence("composeApp/metadata/android")
+  end
+
+  desc "Full release pipeline: test → build → upload"
+  lane :release do
+    test
+    validate_metadata
+    upload_production
+  end
+end
+
+# ──────────────────────────────────────────────
+# iOS Lanes
+# ──────────────────────────────────────────────
+
+platform :ios do
+  desc "Build iOS IPA for release"
+  lane :build do
+    build_ios_app(
+      workspace: "iosApp/iosApp.xcworkspace",
+      scheme: "iosApp",
+      export_method: "app-store",
+      output_directory: "build/ios",
+      include_bitcode: false
+    )
+  end
+
+  desc "Upload IPA to App Store Connect / TestFlight"
+  lane :upload_testflight do
+    build
+    upload_to_testflight(
+      ipa: "build/ios/iosApp.ipa",
+      distribute_external: false,
+      notify_internal_testers: true
+    )
+  end
+
+  desc "Upload IPA to App Store for review"
+  lane :upload_appstore do
+    build
+    deliver(
+      ipa: "build/ios/iosApp.ipa",
+      metadata_path: "composeApp/metadata/ios",
+      skip_screenshots: true,
+      submit_for_review: true,
+      automatic_release: false
+    )
+  end
+
+  desc "Validate store metadata"
+  lane :validate_metadata do
+    validate_metadata_presence("composeApp/metadata/ios")
+  end
+
+  desc "Full release pipeline: build → upload → submit"
+  lane :release do
+    validate_metadata
+    upload_appstore
+  end
+end
+
+# ──────────────────────────────────────────────
+# Helpers
+# ──────────────────────────────────────────────
+
+def validate_metadata_presence(path)
+  required_files = ["title.txt", "description.txt"]
+  locales = Dir.glob("#{path}/*").select { |f| File.directory?(f) }
+
+  if locales.empty?
+    UI.user_error!("No locale directories found in #{path}")
+  end
+
+  locales.each do |locale|
+    required_files.each do |file|
+      filepath = File.join(locale, file)
+      unless File.exist?(filepath)
+        UI.user_error!("Missing #{file} in #{File.basename(locale)}")
+      end
+    end
+    UI.success("✅ #{File.basename(locale)} metadata valid")
+  end
+end

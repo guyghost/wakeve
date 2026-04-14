@@ -1,0 +1,10 @@
+# Appfile — Wakeve
+
+json_key_file("fastlane/service-account.json")  # Google Play service account
+package_name("com.guyghost.wakeve")              # Android application ID
+
+# iOS
+app_identifier("com.guyghost.wakeve")            # iOS Bundle ID
+apple_id(ENV["APPLE_ID"])                        # Apple Developer email
+itc_team_id(ENV["ITC_TEAM_ID"])                  # App Store Connect team
+team_id(ENV["TEAM_ID"])                          # Developer Portal team

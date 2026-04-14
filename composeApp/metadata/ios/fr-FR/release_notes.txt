@@ -1,0 +1,3 @@
+🎉 Bienvenue dans Wakeve 1.0 !
+
+Première version publique avec sondages intelligents, vote pondéré, synchronisation hors ligne et intégration calendrier natif. Planifiez ensemble, décidez ensemble.

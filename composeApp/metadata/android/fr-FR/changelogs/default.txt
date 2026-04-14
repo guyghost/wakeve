@@ -1,0 +1,12 @@
+🎉 Bienvenue dans Wakeve 1.0 !
+
+Notre première version publique :
+
+• Créez des événements et invitez des participants
+• Sondages intelligents avec créneaux flexibles
+• Vote pondéré — trouve le meilleur moment pour tout le monde
+• Fonctionne entièrement hors ligne — synchronisation automatique
+• Ajoutez les événements à votre calendrier natif
+• Confidentialité d'abord : vos données restent sur votre appareil
+
+On ne fait que commencer. Merci d'essayer Wakeve !
