@@ -87,7 +87,8 @@ class CancelMeetingUseCaseTest {
             eventTypeCustom = null,
             minParticipants = null,
             maxParticipants = null,
-            expectedParticipants = null
+            expectedParticipants = null,
+            isSample = 0L
         )
         // Note: id and userId must be equal so that meeting_reminder.participant_id
         // FK (references participant.id) is satisfied when MeetingService uses participant.userId

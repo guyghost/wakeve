@@ -125,11 +125,12 @@ object IosFactory {
         val loadEventsUseCase = LoadEventsUseCase(eventRepository)
         val createEventUseCase = CreateEventUseCase(eventRepository)
 
-        // Create state machine
+        // Create state machine with sample event seeder support
         val stateMachine = EventManagementStateMachine(
             loadEventsUseCase = loadEventsUseCase,
             createEventUseCase = createEventUseCase,
             eventRepository = eventRepository,
+            sampleEventSeeder = eventRepository as? com.guyghost.wakeve.presentation.statemachine.SampleEventSeeder,
             scope = scope
         )
 

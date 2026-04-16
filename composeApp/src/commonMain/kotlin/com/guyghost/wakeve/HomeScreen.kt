@@ -194,6 +194,8 @@ fun HomeScreen(
                 is EventManagementContract.SideEffect.NavigateTo -> onNavigateTo(effect.route)
                 is EventManagementContract.SideEffect.ShowToast -> onShowToast(effect.message)
                 is EventManagementContract.SideEffect.NavigateBack -> {}
+                is EventManagementContract.SideEffect.ConflictDetected ->
+                    onShowToast("⚠️ ${effect.criticalFieldCount} sync conflict(s) need your attention")
             }
         }
     }
@@ -202,6 +204,11 @@ fun HomeScreen(
 
     val filteredEvents = remember(state.events, selectedFilter) {
         filterEvents(state.events, selectedFilter)
+    }
+
+    // First-launch detection: show sample event CTA when no real events exist
+    val isFirstLaunch = remember(filteredEvents, selectedFilter) {
+        selectedFilter == HomeEventFilter.UPCOMING && filteredEvents.isEmpty()
     }
 
     val draftCount = remember(state.events) {
@@ -306,7 +313,11 @@ fun HomeScreen(
                         isDarkTheme = isDarkTheme,
                         onCreateEvent = { onNavigateTo("event_creation") },
                         title = getEmptyStateTitle(selectedFilter),
-                        subtitle = getEmptyStateSubtitle(selectedFilter)
+                        subtitle = getEmptyStateSubtitle(selectedFilter),
+                        isFistLaunch = isFirstLaunch,
+                        onTrySampleEvent = {
+                            viewModel.dispatch(EventManagementContract.Intent.SeedSampleEvent)
+                        }
                     )
                 } else {
                     EventsCarousel(
@@ -492,6 +503,10 @@ fun VisualEventCard(
         EventTheme.forEventType(event.eventType?.name)
     }
 
+    val isSample = remember(event.id) {
+        event.id.startsWith("sample-")
+    }
+
     Card(
         onClick = onClick,
         modifier = modifier
@@ -522,12 +537,36 @@ fun VisualEventCard(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Badge
-                if (isOrganizer) {
-                    Row(
-                        modifier = Modifier.padding(20.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                // Badges row
+                Row(
+                    modifier = Modifier.padding(20.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Sample event badge
+                    if (isSample) {
+                        Surface(
+                            color = Color.White.copy(alpha = 0.3f),
+                            shape = CircleShape
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            ) {
+                                Text(
+                                    text = "✨",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Sample Event",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                    } else if (isOrganizer) {
                         Surface(
                             color = Color.White.copy(alpha = 0.25f),
                             shape = CircleShape
@@ -550,8 +589,6 @@ fun VisualEventCard(
                             }
                         }
                     }
-                } else {
-                    Spacer(modifier = Modifier.height(20.dp))
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
@@ -638,7 +675,9 @@ fun EmptyState(
     onCreateEvent: () -> Unit,
     title: String,
     subtitle: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onTrySampleEvent: (() -> Unit)? = null,
+    isFistLaunch: Boolean = false
 ) {
     val backgroundColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -657,17 +696,26 @@ fun EmptyState(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            // Show festive illustration for first launch
+            if (isFistLaunch) {
+                Text(
+                    text = "🎉",
+                    fontSize = 80.sp,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
+
             Icon(
                 imageVector = Icons.Outlined.CalendarToday,
                 contentDescription = null,
-                modifier = Modifier.size(80.dp),
+                modifier = Modifier.size(if (isFistLaunch) 48.dp else 80.dp),
                 tint = iconColor
             )
             
             Spacer(modifier = Modifier.height(24.dp))
             
             Text(
-                text = title,
+                text = if (isFistLaunch) "Planifiez ensemble, en quelques secondes" else title,
                 style = MaterialTheme.typography.headlineSmall,
                 color = textColor,
                 textAlign = TextAlign.Center
@@ -676,31 +724,60 @@ fun EmptyState(
             Spacer(modifier = Modifier.height(12.dp))
             
             Text(
-                text = subtitle,
+                text = if (isFistLaunch) "Créez un évènement, votez pour les meilleures dates, et organisez tout ça ensemble." else subtitle,
                 style = MaterialTheme.typography.bodyLarge,
                 color = textSecondaryColor,
                 textAlign = TextAlign.Center
             )
         }
         
-        Button(
-            onClick = onCreateEvent,
+        // Bottom CTAs
+        Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 32.dp)
-                .height(56.dp),
-            shape = RoundedCornerShape(28.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color.White,
-                contentColor = Color.Black
-            )
+                .padding(horizontal = 24.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                text = "Créer un évènement",
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.Black
-            )
+            // Primary CTA: Try sample event (first launch only)
+            if (isFistLaunch && onTrySampleEvent != null) {
+                Button(
+                    onClick = onTrySampleEvent,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = HomeGradientOrange,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        text = "✨ Essayer un évènement exemple",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.White
+                    )
+                }
+            }
+
+            // Secondary CTA: Create own event
+            Button(
+                onClick = onCreateEvent,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                shape = RoundedCornerShape(28.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.White,
+                    contentColor = Color.Black
+                )
+            ) {
+                Text(
+                    text = "Créer un évènement",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.Black
+                )
+            }
         }
     }
 }
