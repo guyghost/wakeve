@@ -74,17 +74,32 @@ val appModule: Module = module {
         val createEventUseCase = get<CreateEventUseCase>()
         val repository = getOrNull<EventRepositoryInterface>()
 
+        // If the repository implements SampleEventSeeder (DatabaseEventRepository),
+        // pass it to the state machine for first-launch onboarding support
+        val sampleEventSeeder = repository as? com.guyghost.wakeve.presentation.statemachine.SampleEventSeeder
+
         // Create a CoroutineScope for the state machine that survives configuration changes
         val scope = kotlinx.coroutines.CoroutineScope(
             Dispatchers.Main.immediate + SupervisorJob()
         )
 
-        EventManagementStateMachine(
+        val stateMachine = EventManagementStateMachine(
             loadEventsUseCase = loadEventsUseCase,
             createEventUseCase = createEventUseCase,
             eventRepository = repository,
+            sampleEventSeeder = sampleEventSeeder,
             scope = scope
         )
+
+        // Wire SyncManager conflict callback → state machine side effect.
+        // When SyncManager detects critical conflicts it calls this lambda,
+        // which emits a ConflictDetected side effect to the UI layer.
+        // Hook: register via SyncManager.onCriticalConflictsDetected = { summary ->
+        //     stateMachine.dispatch(EventManagementContract.Intent.NotifyConflict(summary))
+        // }
+        // (Full wiring happens when SyncManager is added to the DI graph in a future phase.)
+
+        stateMachine
     }
 
     // ========================================================================

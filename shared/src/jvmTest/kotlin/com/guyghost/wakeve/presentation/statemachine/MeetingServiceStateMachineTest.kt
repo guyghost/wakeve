@@ -247,7 +247,8 @@ class MeetingServiceStateMachineTest {
             eventTypeCustom = null,
             minParticipants = null,
             maxParticipants = null,
-            expectedParticipants = null
+            expectedParticipants = null,
+            isSample = 0L
         )
         // participant.id must equal participant.userId (MeetingService FK convention)
         database.participantQueries.insertParticipant(
