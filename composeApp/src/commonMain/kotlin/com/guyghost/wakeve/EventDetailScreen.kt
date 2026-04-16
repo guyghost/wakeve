@@ -118,6 +118,10 @@ fun EventDetailScreen(
                 is EventManagementContract.SideEffect.NavigateBack -> {
                     onNavigateBack()
                 }
+                is EventManagementContract.SideEffect.ConflictDetected -> {
+                    // Conflict banner — full ConflictResolutionDialog wired in a follow-up
+                    onShowToast("⚠️ ${effect.criticalFieldCount} sync conflict(s) need your attention")
+                }
             }
         }
     }
