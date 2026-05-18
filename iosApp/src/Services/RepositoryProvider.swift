@@ -56,7 +56,8 @@ class RepositoryProvider {
             maxRetries: 3,
             baseRetryDelayMs: 1000,
             metrics: metrics,
-            alertManager: alertManager
+            alertManager: alertManager,
+            conflictResolutionEnabled: true
         )
 
         // Create the repository with the SyncManager enabled

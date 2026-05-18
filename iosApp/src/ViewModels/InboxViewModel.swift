@@ -33,16 +33,13 @@ class InboxViewModel: ObservableObject {
         Task {
             isLoading = true
             errorMessage = nil
-            do {
-                let notifications = database.notificationQueries.getNotifications(
-                    user_id: userId, value_: 50
-                ).executeAsList()
 
-                self.items = notifications.map { mapToInboxItem($0) }
-                self.unreadCount = items.filter { !$0.isRead }.count
-            } catch {
-                self.errorMessage = "Impossible de charger les notifications."
-            }
+            let notifications = database.notificationQueries.getNotifications(
+                user_id: userId, value_: 50
+            ).executeAsList()
+
+            self.items = notifications.map { mapToInboxItem($0) }
+            self.unreadCount = items.filter { !$0.isRead }.count
             isLoading = false
         }
     }
@@ -50,37 +47,31 @@ class InboxViewModel: ObservableObject {
     // MARK: - Actions
 
     func markAsRead(_ notificationId: String) {
-        Task {
-            database.notificationQueries.markAsRead(
-                read_at: KotlinLong(value: Int64(Date().timeIntervalSince1970 * 1000)),
-                id: notificationId
-            )
-            if let index = items.firstIndex(where: { $0.id == notificationId }) {
-                items[index].isRead = true
-                unreadCount = items.filter { !$0.isRead }.count
-            }
+        database.notificationQueries.markAsRead(
+            read_at: KotlinLong(value: Int64(Date().timeIntervalSince1970 * 1000)),
+            id: notificationId
+        )
+        if let index = items.firstIndex(where: { $0.id == notificationId }) {
+            items[index].isRead = true
+            unreadCount = items.filter { !$0.isRead }.count
         }
     }
 
     func markAllAsRead() {
-        Task {
-            database.notificationQueries.markAllAsRead(
-                read_at: KotlinLong(value: Int64(Date().timeIntervalSince1970 * 1000)),
-                user_id: userId
-            )
-            for index in items.indices {
-                items[index].isRead = true
-            }
-            unreadCount = 0
+        database.notificationQueries.markAllAsRead(
+            read_at: KotlinLong(value: Int64(Date().timeIntervalSince1970 * 1000)),
+            user_id: userId
+        )
+        for index in items.indices {
+            items[index].isRead = true
         }
+        unreadCount = 0
     }
 
     func deleteNotification(_ notificationId: String) {
-        Task {
-            database.notificationQueries.deleteNotification(id: notificationId)
-            items.removeAll { $0.id == notificationId }
-            unreadCount = items.filter { !$0.isRead }.count
-        }
+        database.notificationQueries.deleteNotification(id: notificationId)
+        items.removeAll { $0.id == notificationId }
+        unreadCount = items.filter { !$0.isRead }.count
     }
 
     // MARK: - Mapping: KMP Notification row → InboxItemModel

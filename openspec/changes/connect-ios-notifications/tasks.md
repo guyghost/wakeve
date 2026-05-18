@@ -17,9 +17,9 @@
 
 ## Phase 4 — Validation
 
-- [ ] **@integrator** — Vérification cohérence design system iOS + compilation
-- [ ] **@validator** — Vérification FC&IS et patterns KMP interop
-- [ ] **@review** — Verdict final
+- [x] **@integrator** — Vérification cohérence design system iOS + compilation
+- [x] **@validator** — Vérification FC&IS et patterns KMP interop
+- [x] **@review** — Verdict final
 
 ## Verification
 
