@@ -151,7 +151,7 @@ struct ParticipantManagementView: View {
                 .accessibilityLabel("Options participants")
             }
             .padding(.horizontal, WakeveTheme.Spacing.page)
-            .padding(.top, topInset + WakeveTheme.Spacing.sm)
+            .padding(.top, WakeveTheme.Navigation.controlTopPadding(safeAreaTop: topInset))
 
             Spacer()
         }

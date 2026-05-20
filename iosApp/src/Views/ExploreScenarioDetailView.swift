@@ -1,7 +1,4 @@
 import SwiftUI
-#if canImport(UIKit)
-import UIKit
-#endif
 
 /// Detail view for an event scenario/template from the Explore tab.
 /// Shows full description, planning checklist, and CTA to create event.
@@ -76,10 +73,10 @@ struct ExploreScenarioDetailView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 28)
-            .padding(.top, topSafeAreaInset + 64)
+            .padding(.top, WakeveTheme.Navigation.currentSafeAreaTop + 64)
             .padding(.trailing, 20)
         }
-        .frame(height: topSafeAreaInset + 250)
+        .frame(height: WakeveTheme.Navigation.currentSafeAreaTop + 250)
     }
 
     private var scenarioContent: some View {
@@ -135,7 +132,7 @@ struct ExploreScenarioDetailView: View {
             action: { dismiss() }
         )
         .padding(.leading, 24)
-        .padding(.top, topSafeAreaInset + 10)
+        .padding(.top, WakeveTheme.Navigation.controlTopPadding(safeAreaTop: WakeveTheme.Navigation.currentSafeAreaTop))
     }
 
     private var scenarioCTA: some View {
@@ -165,16 +162,4 @@ struct ExploreScenarioDetailView: View {
         dismiss()
     }
 
-    private var topSafeAreaInset: CGFloat {
-        #if canImport(UIKit)
-        let inset = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .first(where: \.isKeyWindow)?
-            .safeAreaInsets.top ?? 0
-        return max(inset, 44)
-        #else
-        return 44
-        #endif
-    }
 }

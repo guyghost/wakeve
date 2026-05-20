@@ -841,7 +841,7 @@ struct EventDetailView: View {
             .accessibilityLabel("Options organisateur")
         }
         .padding(.horizontal, 16)
-        .padding(.top, 54)
+        .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
     }
 
     private var bottomPrimaryAction: some View {

@@ -93,6 +93,28 @@ public enum WakeveTheme {
         public static let page: CGFloat = 16
     }
 
+    public enum Navigation {
+        public static let controlTopSpacing: CGFloat = Spacing.sm
+        public static let controlHorizontalPadding: CGFloat = Spacing.lg
+
+        public static func controlTopPadding(safeAreaTop: CGFloat) -> CGFloat {
+            safeAreaTop + controlTopSpacing
+        }
+
+        public static var currentSafeAreaTop: CGFloat {
+            #if canImport(UIKit)
+            let inset = UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap(\.windows)
+                .first(where: \.isKeyWindow)?
+                .safeAreaInsets.top ?? 0
+            return max(inset, 44)
+            #else
+            return 44
+            #endif
+        }
+    }
+
     public enum Radius {
         public static let sm: CGFloat = 12
         public static let md: CGFloat = 16

@@ -102,8 +102,8 @@ struct CreateEventSheet: View {
 
             // Fixed header overlay
             headerView
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
+                .padding(.horizontal, WakeveTheme.Navigation.controlHorizontalPadding)
+                .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
             
             // Date Picker Bottom Sheet Overlay
             if showingDatePicker {

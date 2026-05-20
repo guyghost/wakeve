@@ -37,7 +37,7 @@ struct PollResultsView: View {
                         Spacer()
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 12)
+                    .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
 
                     VStack(spacing: 8) {
                         Text("Results")

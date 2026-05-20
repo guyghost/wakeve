@@ -158,7 +158,7 @@ struct HomeView: View {
             VStack(spacing: 0) {
                 headerView
                     .padding(.horizontal, 16)
-                    .padding(.top, 8)
+                    .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
 
                 if isLoading {
                     LoadingEventsView()
