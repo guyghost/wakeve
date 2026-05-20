@@ -74,7 +74,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build iOS framework
-        run: ./gradlew composeApp:compileKotlinIosArm64 --no-configuration-cache
+        run: ./gradlew shared:compileKotlinIosArm64 --no-configuration-cache
 
   # ──────────────────────────────────────────────
   # Gate 2: Test Gate
