@@ -18,7 +18,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
-import com.guyghost.wakeve.deeplink.DeepLinkHandler
+import com.guyghost.wakeve.deeplink.AndroidNavigationDeepLinkHandler
 import com.guyghost.wakeve.deeplink.DeepLinkStateManager
 import com.guyghost.wakeve.navigation.Screen
 import com.guyghost.wakeve.navigation.WakeveBottomBar
@@ -98,7 +98,7 @@ fun App() {
     }
 
     // Handle deep links from DeepLinkStateManager
-    val deepLinkHandler = remember { DeepLinkHandler() }
+    val deepLinkHandler = remember { AndroidNavigationDeepLinkHandler() }
 
     // Collect deep links from state manager and handle them
     LaunchedEffect(Unit) {

@@ -1,3 +1,5 @@
+@file:JvmName("AndroidNavigationDeepLinkParser")
+
 package com.guyghost.wakeve.deeplink
 
 import android.net.Uri
@@ -16,11 +18,11 @@ import com.guyghost.wakeve.navigation.Screen
  *
  * Pattern: Functional Core (DeepLinkParser) + Imperative Shell (DeepLinkHandler)
  */
-sealed class DeepLink(val route: String) {
-    data class EventDetail(val eventId: String) : DeepLink("event")
-    data class PollVoting(val eventId: String) : DeepLink("poll")
-    data class MeetingDetail(val meetingId: String) : DeepLink("meeting")
-    data class Invite(val token: String) : DeepLink("invite")
+sealed class AndroidNavigationDeepLink(val route: String) {
+    data class EventDetail(val eventId: String) : AndroidNavigationDeepLink("event")
+    data class PollVoting(val eventId: String) : AndroidNavigationDeepLink("poll")
+    data class MeetingDetail(val meetingId: String) : AndroidNavigationDeepLink("meeting")
+    data class Invite(val token: String) : AndroidNavigationDeepLink("invite")
 }
 
 /**
@@ -31,7 +33,7 @@ sealed class DeepLink(val route: String) {
  * @param uri The deep link URI to parse
  * @return Parsed DeepLink object or null if invalid
  */
-fun parseDeepLink(uri: Uri): DeepLink? {
+fun parseDeepLink(uri: Uri): AndroidNavigationDeepLink? {
     return try {
         val scheme = uri.scheme
         val host = uri.host
@@ -41,7 +43,7 @@ fun parseDeepLink(uri: Uri): DeepLink? {
         if ((scheme == "https" || scheme == "http") && host == "wakeve.app") {
             val segments = pathSegments
             if (segments.size >= 2 && segments[0] == "invite") {
-                return DeepLink.Invite(segments[1])
+                return AndroidNavigationDeepLink.Invite(segments[1])
             }
             Log.d("DeepLinkParser", "Unknown universal link path: $pathSegments")
             return null
@@ -58,7 +60,7 @@ fun parseDeepLink(uri: Uri): DeepLink? {
                 // wakeve://event/{id}
                 val eventId = pathSegments.firstOrNull()
                 if (eventId != null) {
-                    DeepLink.EventDetail(eventId)
+                    AndroidNavigationDeepLink.EventDetail(eventId)
                 } else {
                     Log.d("DeepLinkParser", "Missing event ID in deep link")
                     null
@@ -68,7 +70,7 @@ fun parseDeepLink(uri: Uri): DeepLink? {
                 // wakeve://poll/{eventId}
                 val eventId = pathSegments.firstOrNull()
                 if (eventId != null) {
-                    DeepLink.PollVoting(eventId)
+                    AndroidNavigationDeepLink.PollVoting(eventId)
                 } else {
                     Log.d("DeepLinkParser", "Missing event ID in poll deep link")
                     null
@@ -78,7 +80,7 @@ fun parseDeepLink(uri: Uri): DeepLink? {
                 // wakeve://meeting/{meetingId}
                 val meetingId = pathSegments.firstOrNull()
                 if (meetingId != null) {
-                    DeepLink.MeetingDetail(meetingId)
+                    AndroidNavigationDeepLink.MeetingDetail(meetingId)
                 } else {
                     Log.d("DeepLinkParser", "Missing meeting ID in deep link")
                     null
@@ -88,7 +90,7 @@ fun parseDeepLink(uri: Uri): DeepLink? {
                 // wakeve://invite/{token}
                 val token = pathSegments.firstOrNull()
                 if (token != null) {
-                    DeepLink.Invite(token)
+                    AndroidNavigationDeepLink.Invite(token)
                 } else {
                     Log.d("DeepLinkParser", "Missing token in invite deep link")
                     null
@@ -117,7 +119,7 @@ fun parseDeepLink(uri: Uri): DeepLink? {
  * - Navigates to appropriate screen (side effect)
  * - Handles edge cases (invalid links, unauthenticated users, etc.)
  */
-class DeepLinkHandler {
+class AndroidNavigationDeepLinkHandler {
 
     companion object {
         private const val TAG = "DeepLinkHandler"
@@ -152,16 +154,16 @@ class DeepLinkHandler {
 
         // Handle the deep link based on type
         return when (deepLink) {
-            is DeepLink.EventDetail -> {
+            is AndroidNavigationDeepLink.EventDetail -> {
                 handleEventDetail(deepLink.eventId, navController, isAuthenticated)
             }
-            is DeepLink.PollVoting -> {
+            is AndroidNavigationDeepLink.PollVoting -> {
                 handlePollVoting(deepLink.eventId, navController, isAuthenticated)
             }
-            is DeepLink.MeetingDetail -> {
+            is AndroidNavigationDeepLink.MeetingDetail -> {
                 handleMeetingDetail(deepLink.meetingId, navController, isAuthenticated)
             }
-            is DeepLink.Invite -> {
+            is AndroidNavigationDeepLink.Invite -> {
                 handleInvite(deepLink.token, navController, isAuthenticated)
             }
         }
