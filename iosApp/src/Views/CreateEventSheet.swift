@@ -183,18 +183,7 @@ struct CreateEventSheet: View {
     private var gradientBackground: some View {
         switch selectedBackground {
         case .gradient:
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color(hex: "FF6B35"),  // Orange
-                    Color(hex: "FF4757"),  // Red-orange
-                    Color(hex: "8B5CF6"),  // Purple
-                    Color(hex: "6366F1"),  // Indigo
-                    Color(hex: "3B82F6"),  // Blue
-                    Color(hex: "1E3A8A"),  // Dark blue
-                ]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            WakeveTheme.EventGradient.invitation
             .ignoresSafeArea()
             
         case .preset(let bg):
@@ -260,27 +249,25 @@ struct CreateEventSheet: View {
     
     private var headerView: some View {
         HStack {
-            // Close button
-            Button(action: { dismiss() }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .background(Color.white.opacity(0.15))
-                    .clipShape(Circle())
+            WakeveCircleButton(
+                systemImage: "xmark",
+                accessibilityLabel: String(localized: "common.close"),
+                variant: .glass,
+                size: 48
+            ) {
+                dismiss()
             }
             
             Spacer()
             
-            // Preview button
             Button(action: { showingPreview = true }) {
                 Text(String(localized: "events.preview"))
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(title.isEmpty ? .white.opacity(0.3) : .white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.white.opacity(title.isEmpty ? 0.05 : 0.15))
-                    .cornerRadius(20)
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundColor(title.isEmpty ? WakeveTheme.ColorToken.eventLilacText.opacity(0.42) : WakeveTheme.ColorToken.eventLilacText)
+                    .padding(.horizontal, 24)
+                    .frame(height: 54)
+                    .background(WakeveTheme.ColorToken.eventLilacAction.opacity(title.isEmpty ? 0.42 : 1))
+                    .clipShape(Capsule())
             }
             .disabled(title.isEmpty)
         }
@@ -505,7 +492,11 @@ struct CreateEventSheet: View {
     
     private var createButton: some View {
         VStack(spacing: 8) {
-            Button(action: {
+            WakeveActionButton(
+                String(localized: "events.create_event_button"),
+                systemImage: "checkmark",
+                variant: .eventNext
+            ) {
                 if canCreate {
                     showValidationError = false
                     validationMessage = nil
@@ -516,14 +507,6 @@ struct CreateEventSheet: View {
                         validationMessage = "Le titre est requis pour créer l'événement"
                     }
                 }
-            }) {
-                Text(String(localized: "events.create_event_button"))
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(canCreate ? Color(hex: "6C5CE7") : .white.opacity(0.6))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Color.white.opacity(canCreate ? 1.0 : 0.3))
-                    .cornerRadius(28)
             }
 
             if showValidationError, let msg = validationMessage {

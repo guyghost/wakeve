@@ -3,6 +3,148 @@ import SwiftUI
 import UIKit
 #endif
 
+// MARK: - Wakeve Theme
+
+/// Central iOS design tokens for Wakeve.
+///
+/// These tokens capture the Apple Invites-inspired direction used by the iOS app:
+/// dark immersive pages, expressive event gradients, large rounded glass surfaces,
+/// circular controls, and capsule actions.
+public enum WakeveTheme {
+    public enum ColorToken {
+        public static let appDark = Color(hex: "111114")
+        public static let appDarkElevated = Color(hex: "1C1C1F")
+        public static let appDarkCard = Color.white.opacity(0.075)
+        public static let appLight = Color(hex: "F7F4F1")
+        public static let eventNight = Color(hex: "061B4F")
+        public static let eventNightElevated = Color(hex: "071A3E")
+        public static let eventLilacAction = Color(hex: "F6D8FF")
+        public static let eventLilacText = Color(hex: "1C0B24")
+        public static let permissionBlue = Color(hex: "3F8FF2")
+        public static let neutralCapsule = Color.white.opacity(0.18)
+        public static let neutralCapsuleDark = Color(hex: "5F6066")
+        public static let cardStroke = Color.white.opacity(0.14)
+        public static let cardStrokeLight = Color.black.opacity(0.08)
+        public static let mutedText = Color.white.opacity(0.62)
+        public static let mutedTextLight = Color(hex: "636674")
+        public static let profileWarmTop = Color(hex: "F47C27")
+        public static let profileWarmMid = Color(hex: "8B4312")
+        public static let profileWarmBottom = Color(hex: "171719")
+        public static let searchFieldDark = Color(hex: "34343A")
+        public static let searchFieldLight = Color.black.opacity(0.06)
+
+        public static func pageBackground(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? appDark : appLight
+        }
+
+        public static func primaryText(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? .white : Color(hex: "17171F")
+        }
+
+        public static func secondaryText(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? mutedText : mutedTextLight
+        }
+
+        public static func cardFill(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? appDarkCard : Color.white.opacity(0.84)
+        }
+
+        public static func cardBorder(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? cardStroke : cardStrokeLight
+        }
+    }
+
+    public enum Typography {
+        public static let display = Font.system(size: 54, weight: .bold, design: .default)
+        public static let hero = Font.system(size: 42, weight: .bold, design: .default)
+        public static let largeTitle = Font.system(size: 34, weight: .bold, design: .default)
+        public static let title = Font.system(size: 28, weight: .bold, design: .default)
+        public static let section = Font.system(size: 24, weight: .bold, design: .default)
+        public static let rowTitle = Font.system(size: 20, weight: .bold, design: .default)
+        public static let body = Font.system(size: 17, weight: .regular, design: .default)
+        public static let bodySemibold = Font.system(size: 17, weight: .semibold, design: .default)
+        public static let metadata = Font.system(size: 15, weight: .medium, design: .default)
+        public static let caption = Font.system(size: 13, weight: .semibold, design: .default)
+        public static let tiny = Font.system(size: 11, weight: .semibold, design: .default)
+    }
+
+    public enum Spacing {
+        public static let xxs: CGFloat = 4
+        public static let xs: CGFloat = 8
+        public static let sm: CGFloat = 12
+        public static let md: CGFloat = 16
+        public static let lg: CGFloat = 20
+        public static let xl: CGFloat = 24
+        public static let xxl: CGFloat = 32
+        public static let page: CGFloat = 16
+    }
+
+    public enum Radius {
+        public static let sm: CGFloat = 12
+        public static let md: CGFloat = 16
+        public static let lg: CGFloat = 20
+        public static let xl: CGFloat = 24
+        public static let panel: CGFloat = 34
+        public static let full: CGFloat = 999
+    }
+
+    public enum Shadow {
+        public static let card = ShadowStyle(color: .black.opacity(0.18), radius: 22, x: 0, y: 12)
+        public static let control = ShadowStyle(color: .black.opacity(0.18), radius: 16, x: 0, y: 8)
+        public static let subtle = ShadowStyle(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
+    }
+
+    public enum EventGradient {
+        public static let invitation = LinearGradient(
+            colors: [
+                Color(hex: "A71AA0"),
+                Color(hex: "6E13D8"),
+                Color(hex: "11137E"),
+                Color(hex: "061B4F")
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+
+        public static let profile = LinearGradient(
+            colors: [
+                ColorToken.profileWarmTop,
+                ColorToken.profileWarmMid,
+                ColorToken.profileWarmBottom
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+
+        public static let utility = LinearGradient(
+            colors: [
+                Color(hex: "202126"),
+                Color(hex: "16171A")
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+
+        public static let birthday = LinearGradient(
+            colors: [Color(hex: "FFB86B"), Color(hex: "F43F5E"), Color(hex: "061B4F")],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+
+        public static let outdoor = LinearGradient(
+            colors: [Color(hex: "FDE68A"), Color(hex: "0F766E"), Color(hex: "061B4F")],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+
+        public static let work = LinearGradient(
+            colors: [Color(hex: "67E8F9"), Color(hex: "2563EB"), Color(hex: "061B4F")],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
 // MARK: - Wakeve Design System v2.0
 // Modern mobile design system with light/dark mode support
 

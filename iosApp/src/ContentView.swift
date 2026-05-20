@@ -234,10 +234,24 @@ struct AuthenticatedView: View {
                 .foregroundColor(.secondary)
             
         case .eventDetail:
-            if selectedEvent != nil {
-                Text("Event Detail - Coming Soon")
-                    .font(.title2)
-                    .foregroundColor(.secondary)
+            if let event = selectedEvent {
+                EventDetailView(
+                    event: event,
+                    repository: repository,
+                    userId: userId,
+                    onManageParticipants: {
+                        currentView = .participantManagement
+                    },
+                    onVote: {
+                        currentView = .pollVoting
+                    },
+                    onViewResults: {
+                        currentView = .pollResults
+                    },
+                    onBack: {
+                        currentView = .eventList
+                    }
+                )
             }
             
         case .participantManagement:
@@ -621,209 +635,582 @@ struct EventCard: View {
 }
 
 struct EventDetailView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let event: Event
-    let repository: EventRepository
+    let repository: EventRepositoryInterface
+    let userId: String
     let onManageParticipants: () -> Void
     let onVote: () -> Void
     let onViewResults: () -> Void
     let onBack: () -> Void
-    
+
     var body: some View {
-        VStack(spacing: 0) {
-            // Header with back button
-            HStack {
-                Button(action: onBack) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .padding(12)
-                        .background(Color(.tertiarySystemFill))
-                        .clipShape(Circle())
-                }
-                
-                Spacer()
-                
-                Text(event.title)
-                    .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                
-                Spacer()
-            }
-            .padding(.top, 60)
-            .padding(.horizontal, 20)
-            
+        ZStack(alignment: .top) {
+            pageBackground
+                .ignoresSafeArea()
+
             ScrollView {
-                VStack(spacing: 24) {
-                    // Event Overview Card
-                    VStack(spacing: 16) {
-                        HStack {
-                            Image(systemName: statusIcon)
-                                .font(.system(size: 20))
-                                .foregroundColor(statusColor)
-                            
-                            Text("Status: \(statusText)")
-                                .font(.system(size: 18, weight: .semibold, design: .rounded))
-                                .foregroundColor(.primary)
-                            
-                            Spacer()
+                VStack(spacing: 0) {
+                    heroSection
+
+                    VStack(alignment: .leading, spacing: 18) {
+                        titleBlock
+                        organizerControls
+
+                        if let description = displayDescription {
+                            Text(description)
+                                .font(.system(size: 15, weight: .regular))
+                                .foregroundColor(secondaryText)
+                                .lineSpacing(3)
+                                .padding(.top, 2)
                         }
-                        
-                        if !event.description.isEmpty {
-                            Text(event.description)
-                                .font(.system(size: 14, design: .rounded))
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.leading)
-                        }
-                        
-                        HStack {
-                            Image(systemName: "person.2")
-                                .font(.system(size: 16))
-                                .foregroundColor(Color(.tertiaryLabel))
-                            
-                            Text("\(event.participants.count) participants")
-                                .font(.system(size: 14, design: .rounded))
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            Image(systemName: "clock")
-                                .font(.system(size: 16))
-                                .foregroundColor(Color(.tertiaryLabel))
-                            
-                            Text("Deadline: \(formatDeadline(event.deadline))")
-                                .font(.system(size: 14, design: .rounded))
-                                .foregroundColor(.secondary)
-                        }
+
+                        detailRows
+
+                        Text(footerHint)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.42))
+                            .frame(maxWidth: .infinity)
+                            .multilineTextAlignment(.center)
+                            .padding(.top, 20)
+                            .padding(.bottom, 84)
                     }
-                    .padding(24)
-                    .liquidGlass(cornerRadius: 24)
-                    
-                    // Action Buttons
-                    VStack(spacing: 16) {
-                        if event.status.name == "DRAFT" {
-                            ActionButton(
-                                title: "Manage Participants",
-                                subtitle: "Add or remove participants",
-                                icon: "person.2.circle",
-                                color: .green,
-                                action: onManageParticipants
-                            )
-                            
-                            ActionButton(
-                                title: "Start Poll",
-                                subtitle: "Begin voting on time slots",
-                                icon: "chart.bar.xaxis",
-                                color: .blue,
-                                action: onManageParticipants // This will trigger poll start
-                            )
-                        } else if event.status.name == "POLLING" {
-                            ActionButton(
-                                title: "Vote on Time Slots",
-                                subtitle: "Cast your vote for available times",
-                                icon: "checkmark.circle",
-                                color: .orange,
-                                action: onVote
-                            )
-                            
-                            ActionButton(
-                                title: "View Results",
-                                subtitle: "See current poll results",
-                                icon: "chart.bar",
-                                color: .purple,
-                                action: onViewResults
-                            )
-                        } else if event.status.name == "CONFIRMED" {
-                            ActionButton(
-                                title: "View Final Results",
-                                subtitle: "See confirmed event details",
-                                icon: "checkmark.circle.fill",
-                                color: .green,
-                                action: onViewResults
-                            )
-                        }
-                    }
-                    
-                    Spacer(minLength: 40)
+                    .padding(.horizontal, 16)
+                    .padding(.top, -34)
                 }
-                .padding(.horizontal, 20)
             }
+            .ignoresSafeArea(edges: .top)
+
+            topControls
+
+            bottomPrimaryAction
+        }
+        .toolbar(.hidden, for: .tabBar)
+    }
+
+    private var heroSection: some View {
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(
+                colors: heroColors,
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .overlay {
+                eventSymbol
+                    .font(.system(size: 118, weight: .black))
+                    .foregroundColor(.white.opacity(0.2))
+                    .rotationEffect(.degrees(-10))
+                    .offset(x: 86, y: -18)
+            }
+            .overlay(alignment: .bottom) {
+                LinearGradient(
+                    colors: [.clear, pageBackground.opacity(colorScheme == .dark ? 0.94 : 0.98)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 150)
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                statusBadge
+
+                HStack(spacing: 8) {
+                    Image(systemName: "person.2.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(participantRangeText)
+                        .font(.system(size: 15, weight: .semibold))
+                }
+                .foregroundColor(.white.opacity(0.86))
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 54)
+        }
+        .frame(height: 330)
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(event.title)
+                .font(.system(size: 32, weight: .bold))
+                .foregroundColor(primaryText)
+                .lineLimit(3)
+                .minimumScaleFactor(0.82)
+
+            Text(subtitleText)
+                .font(.system(size: 15, weight: .medium))
+                .foregroundColor(secondaryText)
+                .lineLimit(2)
         }
     }
-    
+
+    private var organizerControls: some View {
+        HStack(spacing: 10) {
+            OrganizerChip(
+                icon: "person.badge.plus",
+                title: "Inviter",
+                subtitle: "Participants",
+                tint: Color(hex: "7DD3FC"),
+                action: onManageParticipants
+            )
+
+            OrganizerChip(
+                icon: "chart.bar.xaxis",
+                title: "Sondage",
+                subtitle: pollDurationText,
+                tint: Color(hex: "FDE68A"),
+                action: event.status == .draft ? onManageParticipants : onViewResults
+            )
+        }
+    }
+
+    private var detailRows: some View {
+        VStack(spacing: 10) {
+            EventPreviewDetailRow(
+                icon: "timer",
+                label: "Temps imparti au sondage",
+                value: pollDurationText,
+                accessory: event.status == .draft ? "chevron.up.chevron.down" : nil,
+                action: onManageParticipants
+            )
+
+            EventPreviewDetailRow(
+                icon: "calendar",
+                label: "Créneaux proposés",
+                value: "\(event.proposedSlots.count) option\(event.proposedSlots.count > 1 ? "s" : "")",
+                accessory: "chevron.right",
+                action: event.status == .polling ? onVote : onViewResults
+            )
+
+            EventPreviewDetailRow(
+                icon: "person.crop.circle.fill",
+                label: "Participants",
+                value: participantSummary,
+                accessory: "chevron.right",
+                action: onManageParticipants
+            )
+        }
+        .padding(.top, 6)
+    }
+
+    private var topControls: some View {
+        HStack {
+            Button(action: onBack) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 44, height: 44)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+            }
+            .accessibilityLabel("Retour")
+
+            Spacer()
+
+            Menu {
+                Button(action: onManageParticipants) {
+                    Label("Ajouter des participants", systemImage: "person.badge.plus")
+                }
+
+                Button(action: event.status == .polling ? onViewResults : onManageParticipants) {
+                    Label("Régler le sondage", systemImage: "timer")
+                }
+
+                if event.status == .polling {
+                    Button(action: onViewResults) {
+                        Label("Voir les résultats", systemImage: "chart.bar.fill")
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 44, height: 44)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+            }
+            .accessibilityLabel("Options organisateur")
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 54)
+    }
+
+    private var bottomPrimaryAction: some View {
+        VStack {
+            Spacer()
+
+            Button(action: primaryAction) {
+                Text(primaryActionTitle)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(primaryButtonText)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(primaryActionDisabled ? primaryButtonBackground.opacity(0.54) : primaryButtonBackground)
+                    .clipShape(Capsule())
+            }
+            .disabled(primaryActionDisabled)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 20)
+            .background(
+                LinearGradient(
+                    colors: [pageBackground.opacity(0), pageBackground],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 130)
+                .allowsHitTesting(false)
+            )
+        }
+        .ignoresSafeArea(edges: .bottom)
+    }
+
+    private var statusBadge: some View {
+        HStack(spacing: 6) {
+            Image(systemName: statusIcon)
+                .font(.system(size: 13, weight: .bold))
+            Text(statusText)
+                .font(.system(size: 14, weight: .bold))
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(Color.black.opacity(0.26))
+        .clipShape(Capsule())
+    }
+
+    @ViewBuilder
+    private var eventSymbol: some View {
+        switch event.eventType {
+        case .sportsEvent:
+            Image(systemName: "sportscourt.fill")
+        case .birthday, .party:
+            Image(systemName: "party.popper.fill")
+        case .teamBuilding, .conference, .workshop, .techMeetup:
+            Image(systemName: "person.3.sequence.fill")
+        case .outdoorActivity:
+            Image(systemName: "map.fill")
+        case .familyGathering:
+            Image(systemName: "figure.2.and.child.holdinghands")
+        default:
+            Image(systemName: "sparkles")
+        }
+    }
+
     private var statusIcon: String {
         switch event.status {
-        case .draft: return "doc"
-        case .polling: return "chart.bar"
-        case .confirmed: return "checkmark.circle"
-        default: return "questionmark.circle"
+        case .draft: return "wand.and.stars"
+        case .polling: return "chart.bar.fill"
+        case .confirmed: return "checkmark.circle.fill"
+        case .organizing: return "calendar.badge.clock"
+        case .finalized: return "checkmark.seal.fill"
+        default: return "sparkles"
         }
     }
-    
-    private var statusColor: Color {
-        switch event.status {
-        case .draft: return .orange
-        case .polling: return .blue
-        case .confirmed: return .green
-        default: return .gray
-        }
-    }
-    
+
     private var statusText: String {
         switch event.status {
-        case .draft: return "Draft"
-        case .polling: return "Polling Active"
-        case .confirmed: return "Date Confirmed"
-        default: return "Unknown"
+        case .draft: return "Prévisualisation organisateur"
+        case .polling: return "Sondage actif"
+        case .confirmed: return "Date confirmée"
+        case .organizing: return "Organisation"
+        case .finalized: return "Finalisé"
+        default: return "Événement"
         }
     }
-    
-    private func formatDeadline(_ deadlineString: String) -> String {
-        if let date = ISO8601DateFormatter().date(from: deadlineString) {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .medium
-            formatter.timeStyle = .short
-            return formatter.string(from: date)
+
+    private var subtitleText: String {
+        if let firstSlot = event.proposedSlots.first {
+            return formatSlot(firstSlot)
         }
-        return deadlineString
+        return "Configurez les participants et la durée du sondage avant de publier."
+    }
+
+    private var participantRangeText: String {
+        if let min = event.minParticipants?.intValue, let max = event.maxParticipants?.intValue {
+            return "\(min) à \(max) participants"
+        }
+        if let expected = event.expectedParticipants?.intValue {
+            return "\(expected) participants attendus"
+        }
+        return "\(event.participants.count) participant\(event.participants.count > 1 ? "s" : "") invité\(event.participants.count > 1 ? "s" : "")"
+    }
+
+    private var participantSummary: String {
+        if event.participants.isEmpty {
+            return "Vous"
+        }
+        return "Vous + \(event.participants.count)"
+    }
+
+    private var pollDurationText: String {
+        guard let deadline = parseDate(event.deadline) else {
+            return "À définir"
+        }
+
+        let interval = deadline.timeIntervalSince(Date())
+        if interval <= 0 {
+            return "Terminé"
+        }
+
+        let days = Int(ceil(interval / 86_400))
+        if days >= 2 {
+            return "\(days) jours"
+        }
+
+        let hours = max(1, Int(ceil(interval / 3_600)))
+        return "\(hours) h"
+    }
+
+    private var footerHint: String {
+        switch event.status {
+        case .draft:
+            return "Ajoutez des participants et vérifiez la durée du sondage avant de lancer l’événement."
+        case .polling:
+            return "Suivez les votes en temps réel avant de confirmer le meilleur créneau."
+        default:
+            return "Les participants retrouvent ici le résumé de l’événement."
+        }
+    }
+
+    private var primaryActionTitle: String {
+        switch event.status {
+        case .draft: return "Lancer le sondage"
+        case .polling: return "Voir les résultats"
+        case .confirmed, .organizing, .finalized: return "Voir le récapitulatif"
+        default: return "Continuer"
+        }
+    }
+
+    private var primaryActionDisabled: Bool {
+        event.status == .draft && event.participants.isEmpty
+    }
+
+    private var heroColors: [Color] {
+        switch event.eventType {
+        case .sportsEvent:
+            return [Color(hex: "88D18A"), Color(hex: "2F855A"), pageBackground]
+        case .birthday, .party:
+            return [Color(hex: "FFB86B"), Color(hex: "F43F5E"), pageBackground]
+        case .teamBuilding, .conference, .workshop, .techMeetup:
+            return [Color(hex: "67E8F9"), Color(hex: "2563EB"), pageBackground]
+        case .outdoorActivity:
+            return [Color(hex: "FDE68A"), Color(hex: "0F766E"), pageBackground]
+        default:
+            return [Color(hex: "F6C177"), Color(hex: "7C3AED"), pageBackground]
+        }
+    }
+
+    private var pageBackground: Color {
+        colorScheme == .dark ? Color(hex: "111119") : Color(hex: "F7F4F1")
+    }
+
+    private var primaryText: Color {
+        colorScheme == .dark ? .white : Color(hex: "17171F")
+    }
+
+    private var secondaryText: Color {
+        colorScheme == .dark ? Color.white.opacity(0.62) : Color(hex: "4F5260")
+    }
+
+    private var primaryButtonBackground: Color {
+        colorScheme == .dark ? Color.white.opacity(0.9) : Color(hex: "17171F")
+    }
+
+    private var primaryButtonText: Color {
+        colorScheme == .dark ? Color(hex: "17171F") : .white
+    }
+
+    private var displayDescription: String? {
+        let raw = event.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { return nil }
+        if raw.hasPrefix("Event(") {
+            return extractEventDescription(from: raw)
+        }
+        return raw
+    }
+
+    private func extractEventDescription(from raw: String) -> String? {
+        guard let startRange = raw.range(of: "description=") else { return nil }
+        let afterDescription = raw[startRange.upperBound...]
+        let endRange = afterDescription.range(of: ", organizerId=")
+        let value = String(afterDescription[..<(endRange?.lowerBound ?? afterDescription.endIndex)])
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty || value == "null" ? nil : value
+    }
+
+    private func primaryAction() {
+        switch event.status {
+        case .draft:
+            onManageParticipants()
+        case .polling:
+            onViewResults()
+        default:
+            onViewResults()
+        }
+    }
+
+    private func parseDate(_ value: String) -> Date? {
+        let isoFormatter = ISO8601DateFormatter()
+        if let date = isoFormatter.date(from: value) {
+            return date
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+        return formatter.date(from: value)
+    }
+
+    private func formatSlot(_ slot: TimeSlot) -> String {
+        guard let startValue = slot.start, let start = parseDate(startValue) else {
+            return "Créneau à confirmer"
+        }
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "fr_FR")
+        dateFormatter.dateFormat = "d MMM"
+
+        let timeFormatter = DateFormatter()
+        timeFormatter.locale = Locale(identifier: "fr_FR")
+        timeFormatter.dateFormat = "HH:mm"
+
+        return "\(dateFormatter.string(from: start)) · \(timeFormatter.string(from: start))"
     }
 }
 
-struct ActionButton: View {
+private struct OrganizerChip: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let icon: String
     let title: String
     let subtitle: String
-    let icon: String
-    let color: Color
+    let tint: Color
     let action: () -> Void
-    
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(tint)
+                    .frame(width: 34, height: 34)
+                    .background(tint.opacity(0.16))
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(primaryText)
+                    Text(subtitle)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(secondaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity)
+            .background(surfaceColor)
+            .overlay(
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(borderColor, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var primaryText: Color {
+        colorScheme == .dark ? .white : Color(hex: "17171F")
+    }
+
+    private var secondaryText: Color {
+        colorScheme == .dark ? Color.white.opacity(0.55) : Color(hex: "646775")
+    }
+
+    private var surfaceColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.075) : Color.white.opacity(0.78)
+    }
+
+    private var borderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.08)
+    }
+}
+
+private struct EventPreviewDetailRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let icon: String
+    let label: String
+    let value: String
+    let accessory: String?
+    let action: () -> Void
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 16) {
                 Image(systemName: icon)
-                    .font(.system(size: 24))
-                    .foregroundColor(color)
-                    .frame(width: 40, height: 40)
-                    .background(color.opacity(0.1))
-                    .cornerRadius(20)
-                
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundColor(iconForeground)
+                    .frame(width: 42, height: 42)
+                    .background(iconBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .semibold, design: .rounded))
-                        .foregroundColor(.primary)
-                    
-                    Text(subtitle)
-                        .font(.system(size: 14, design: .rounded))
-                        .foregroundColor(.secondary)
+                    Text(label)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(secondaryText)
+
+                    Text(value)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(primaryText)
+                        .lineLimit(1)
                 }
-                
+
                 Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(Color(.tertiaryLabel))
+
+                if let accessory {
+                    Image(systemName: accessory)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(secondaryText)
+                }
             }
-            .padding(20)
+            .padding(13)
+            .frame(minHeight: 68)
+            .background(surfaceColor)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20)
+                    .stroke(borderColor, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20))
         }
-        .liquidGlass(cornerRadius: 16)
+        .buttonStyle(.plain)
+    }
+
+    private var primaryText: Color {
+        colorScheme == .dark ? .white : Color(hex: "17171F")
+    }
+
+    private var secondaryText: Color {
+        colorScheme == .dark ? Color.white.opacity(0.5) : Color(hex: "6B6E7D")
+    }
+
+    private var surfaceColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.07) : Color.white.opacity(0.84)
+    }
+
+    private var borderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.07) : Color.black.opacity(0.08)
+    }
+
+    private var iconForeground: Color {
+        colorScheme == .dark ? .white : Color(hex: "17171F")
+    }
+
+    private var iconBackground: Color {
+        colorScheme == .dark ? Color.white.opacity(0.14) : Color.black.opacity(0.08)
     }
 }
 
