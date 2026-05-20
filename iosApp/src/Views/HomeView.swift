@@ -229,8 +229,7 @@ struct HomeView: View {
     }
 
     private var backgroundView: some View {
-        Color(.systemBackground)
-            .ignoresSafeArea()
+        WakeveScreenBackground(style: .grouped)
     }
 
     private var headerView: some View {
@@ -249,24 +248,19 @@ struct HomeView: View {
 
             Spacer()
 
-            Button(action: onCreateEvent) {
-                Image(systemName: "plus")
-                    .font(.system(size: 24, weight: .medium))
-                    .foregroundColor(.primary)
-                    .frame(width: 40, height: 40)
-                    .background(
-                        Circle()
-                            .fill(Color(.tertiarySystemFill))
-                    )
-            }
+            WakeveCircleButton(
+                systemImage: "plus",
+                accessibilityLabel: String(localized: "home.create_event"),
+                variant: .light,
+                size: 44,
+                action: onCreateEvent
+            )
 
             Button(action: onProfileClick) {
-                Text("U")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 40, height: 40)
-                    .background(Circle().fill(Color(hex: "F97316")))
+                WakeveAvatar(initials: "U", size: 44)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Profil")
         }
     }
 
@@ -486,13 +480,12 @@ struct HomeEmptyStateView: View {
 
             Spacer()
 
-            Button(action: onCreateEvent) {
-                Text(String(localized: "home.create_event"))
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(RoundedRectangle(cornerRadius: 28).fill(Color.wakevePrimary))
+            WakeveActionButton(
+                String(localized: "home.create_event"),
+                systemImage: "plus",
+                variant: .primary
+            ) {
+                onCreateEvent()
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 32)

@@ -167,6 +167,7 @@ struct AuthenticatedView: View {
                 .tag(WakeveTab.explore)
         }
         .tint(.wakevePrimary)
+        .toolbar(tabBarVisibility, for: .tabBar)
         .fullScreenCover(isPresented: $showEventCreationSheet) {
             CreateEventSheet(
                 userId: userId,
@@ -203,6 +204,10 @@ struct AuthenticatedView: View {
                 NotificationPreferencesView(userId: userId)
             }
         }
+    }
+
+    private var tabBarVisibility: Visibility {
+        selectedTab == .home && currentView != .eventList ? .hidden : .visible
     }
     
     // MARK: - Home Tab
@@ -482,7 +487,7 @@ struct EventListView: View {
                         }
                     }
                     .padding(24)
-                    .liquidGlass(cornerRadius: 24)
+                    .glassCard(cornerRadius: 24)
                     
                     // Events List
                     if isLoading {
@@ -602,7 +607,7 @@ struct EventCard: View {
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .liquidGlass(cornerRadius: 16)
+        .glassCard(cornerRadius: 16)
     }
     
     private var statusText: String {
@@ -683,10 +688,11 @@ struct EventDetailView: View {
             .ignoresSafeArea(edges: .top)
 
             topControls
-
-            bottomPrimaryAction
         }
         .toolbar(.hidden, for: .tabBar)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            bottomPrimaryAction
+        }
     }
 
     private var heroSection: some View {
@@ -795,15 +801,13 @@ struct EventDetailView: View {
 
     private var topControls: some View {
         HStack {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
-            }
-            .accessibilityLabel("Retour")
+            WakeveCircleButton(
+                systemImage: "chevron.left",
+                accessibilityLabel: "Retour",
+                variant: .glass,
+                size: 44,
+                action: onBack
+            )
 
             Spacer()
 
@@ -822,12 +826,12 @@ struct EventDetailView: View {
                     }
                 }
             } label: {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(width: 44, height: 44)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
+                WakeveGlassControl {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                }
             }
             .accessibilityLabel("Options organisateur")
         }
@@ -836,8 +840,14 @@ struct EventDetailView: View {
     }
 
     private var bottomPrimaryAction: some View {
-        VStack {
-            Spacer()
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [pageBackground.opacity(0), pageBackground],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 36)
+            .allowsHitTesting(false)
 
             Button(action: primaryAction) {
                 Text(primaryActionTitle)
@@ -850,18 +860,10 @@ struct EventDetailView: View {
             }
             .disabled(primaryActionDisabled)
             .padding(.horizontal, 16)
-            .padding(.bottom, 20)
-            .background(
-                LinearGradient(
-                    colors: [pageBackground.opacity(0), pageBackground],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 130)
-                .allowsHitTesting(false)
-            )
+            .padding(.top, 8)
+            .padding(.bottom, 12)
+            .background(pageBackground)
         }
-        .ignoresSafeArea(edges: .bottom)
     }
 
     private var statusBadge: some View {

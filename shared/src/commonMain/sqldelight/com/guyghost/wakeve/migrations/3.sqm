@@ -1,0 +1,4 @@
+-- Migration 3: Mark sample/onboarding events without breaking existing installs
+-- Existing databases created before sample events do not have this column.
+
+ALTER TABLE event ADD COLUMN isSample INTEGER NOT NULL DEFAULT 0;
