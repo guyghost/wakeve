@@ -57,7 +57,7 @@ struct PollVotingView: View {
                         }
                     }
                     .padding(.horizontal, WakeveTheme.Spacing.lg)
-                    .padding(.top, 60)
+                    .padding(.top, 12)
 
                     VStack(spacing: WakeveTheme.Spacing.xs) {
                         Text(event.title)

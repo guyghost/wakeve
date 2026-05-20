@@ -37,7 +37,7 @@ struct PollResultsView: View {
                         Spacer()
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 60)
+                    .padding(.top, 12)
 
                     VStack(spacing: 8) {
                         Text("Results")
