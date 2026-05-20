@@ -4,6 +4,7 @@ import SwiftUI
 /// Shows full description, planning checklist, and CTA to create event.
 struct ExploreScenarioDetailView: View {
     let scenario: EventScenario
+    var onCreateEvent: (EventScenario) -> Void = { _ in }
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -113,8 +114,7 @@ struct ExploreScenarioDetailView: View {
     }
 
     private func createEvent() {
-        // TODO: Navigate to event creation pre-filled with scenario data
-        // scenario.eventType, scenario.suggestedTitle, scenario.description
+        onCreateEvent(scenario)
         dismiss()
     }
 }

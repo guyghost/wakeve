@@ -207,11 +207,22 @@ struct PollVotingView: View {
 
     private func checkExistingVotes() {
         if let poll = repository.getPoll(eventId: event.id) {
-            if let participantVoteMap = poll.votes[participantId] as? [String: PollVote] {
+            if let participantVoteMap = poll.votes[participantId] as? [String: Vote_] {
                 hasVoted = !participantVoteMap.isEmpty
 
                 if hasVoted {
-                    votes = participantVoteMap
+                    votes = participantVoteMap.reduce(into: [String: PollVote]()) { result, entry in
+                        switch entry.value {
+                        case .yes:
+                            result[entry.key] = .yes
+                        case .maybe:
+                            result[entry.key] = .maybe
+                        case .no:
+                            result[entry.key] = .no
+                        default:
+                            break
+                        }
+                    }
                 }
             }
         }
@@ -236,14 +247,15 @@ struct PollVotingView: View {
                     }
                 }()
                 
-                let result = try await repository.addVote(
+                _ = try await repository.addVote(
                     eventId: event.id,
                     participantId: participantId,
                     slotId: slotId,
                     vote: sharedVote
                 )
 
-                if let success = result as? Bool, success {
+                let submittedVotes = repository.getPoll(eventId: event.id)?.votes[participantId] as? [String: Vote_]
+                if submittedVotes?[slotId] != nil {
                     successCount += 1
                 }
             } catch {

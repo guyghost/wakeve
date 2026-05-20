@@ -172,7 +172,11 @@ struct CreateEventSheet: View {
                 hasEndTime: hasEndTime,
                 endTime: endTime,
                 eventType: selectedEventType,
-                expectedParticipants: expectedParticipants
+                expectedParticipants: expectedParticipants,
+                onNext: {
+                    showingPreview = false
+                    createEvent()
+                }
             )
         }
     }
@@ -792,6 +796,7 @@ struct EventPreviewSheet: View {
     let endTime: Date
     var eventType: Shared.EventType = Shared.EventType.other
     var expectedParticipants: Int? = nil
+    var onNext: () -> Void = {}
 
     @State private var mapPosition: MapCameraPosition = .automatic
     @State private var geocodedCoordinate: CLLocationCoordinate2D?
@@ -904,7 +909,7 @@ struct EventPreviewSheet: View {
 
                     Spacer()
 
-                    Button(action: {}) {
+                    Button(action: onNext) {
                         Text(String(localized: "onboarding.next"))
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(Color(hex: "1A1A3E"))
