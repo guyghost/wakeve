@@ -189,7 +189,7 @@ struct AuthenticatedView: View {
             }
         }
         .sheet(isPresented: $showProfileSheet) {
-            ProfileSettingsSheet(
+            ProfileTabView(
                 userId: userId,
                 userName: authStateManager.currentUser?.name,
                 userEmail: authStateManager.currentUser?.email,

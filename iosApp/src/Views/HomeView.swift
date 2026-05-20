@@ -248,13 +248,15 @@ struct HomeView: View {
 
             Spacer()
 
-            WakeveCircleButton(
-                systemImage: "plus",
-                accessibilityLabel: String(localized: "home.create_event"),
-                variant: .light,
-                size: 44,
-                action: onCreateEvent
-            )
+            if shouldShowHeaderCreateButton {
+                WakeveCircleButton(
+                    systemImage: "plus",
+                    accessibilityLabel: String(localized: "home.create_event"),
+                    variant: .light,
+                    size: 44,
+                    action: onCreateEvent
+                )
+            }
 
             Button(action: onProfileClick) {
                 WakeveAvatar(initials: "U", size: 44)
@@ -262,6 +264,10 @@ struct HomeView: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Profil")
         }
+    }
+
+    private var shouldShowHeaderCreateButton: Bool {
+        !isLoading && !filteredEvents.isEmpty
     }
 
     private func loadEvents() {

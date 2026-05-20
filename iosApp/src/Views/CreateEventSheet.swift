@@ -263,13 +263,14 @@ struct CreateEventSheet: View {
             Button(action: { showingPreview = true }) {
                 Text(String(localized: "events.preview"))
                     .font(WakeveTheme.Typography.bodySemibold)
-                    .foregroundColor(title.isEmpty ? WakeveTheme.ColorToken.eventLilacText.opacity(0.42) : WakeveTheme.ColorToken.eventLilacText)
+                    .foregroundColor(canCreate ? WakeveTheme.ColorToken.eventLilacText : .white.opacity(0.42))
                     .padding(.horizontal, 24)
                     .frame(height: 54)
-                    .background(WakeveTheme.ColorToken.eventLilacAction.opacity(title.isEmpty ? 0.42 : 1))
+                    .background(canCreate ? WakeveTheme.ColorToken.eventLilacAction : Color.white.opacity(0.12))
                     .clipShape(Capsule())
             }
-            .disabled(title.isEmpty)
+            .disabled(!canCreate)
+            .accessibilityLabel(String(localized: "events.preview"))
         }
     }
     
@@ -343,7 +344,7 @@ struct CreateEventSheet: View {
                     if title.isEmpty {
                         Text(String(localized: "events.title_placeholder"))
                             .font(.system(size: 32, weight: .bold))
-                            .foregroundColor(.white.opacity(0.4))
+                            .foregroundColor(.white.opacity(0.62))
                             .multilineTextAlignment(.center)
                             .lineSpacing(4)
                     }
@@ -354,6 +355,7 @@ struct CreateEventSheet: View {
                         .minimumScaleFactor(0.5)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 32)
+                        .accessibilityLabel(String(localized: "events.title_placeholder"))
                 }
 
                 Divider()
@@ -692,12 +694,16 @@ struct DateTimePickerPopup: View {
                             .background(Color.white.opacity(0.15))
 
                         Button(action: { hasEndTime = true }) {
-                            Text(String(localized: "events.add_end_time"))
-                                .font(.system(size: 16))
-                                .foregroundColor(Color(hex: "0A84FF"))
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 12)
+                            HStack(spacing: 8) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 15, weight: .semibold))
+                                Text(String(localized: "events.add_end_time"))
+                                    .font(.system(size: 16, weight: .semibold))
+                            }
+                            .foregroundColor(WakeveTheme.ColorToken.eventLilacAction)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
                         }
                     }
                 }

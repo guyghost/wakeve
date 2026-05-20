@@ -42,6 +42,7 @@ struct NotificationPreferencesView: View {
                     icon: toggle.iconName,
                     isOn: binding(for: toggle)
                 )
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
             }
         } header: {
             Text("Types de notification")
@@ -122,12 +123,17 @@ private struct ToggleRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .font(.title3)
+                .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(WakeveTheme.ColorToken.permissionBlue)
-                .frame(width: 28)
+                .frame(width: 34, height: 34)
+                .background(WakeveTheme.ColorToken.permissionBlue.opacity(0.12))
+                .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.sm, style: .continuous))
 
             Text(title)
-                .font(.subheadline)
+                .font(WakeveTheme.Typography.body)
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+                .minimumScaleFactor(0.88)
 
             Spacer()
 
@@ -135,6 +141,7 @@ private struct ToggleRow: View {
                 .labelsHidden()
                 .tint(WakeveTheme.ColorToken.permissionBlue)
         }
+        .frame(minHeight: 48)
     }
 }
 

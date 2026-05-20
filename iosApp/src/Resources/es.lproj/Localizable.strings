@@ -5,6 +5,7 @@
 
 // MARK: - Common
 "common.close" = "Cerrar";
+"common.done" = "Listo";
 "common.cancel" = "Cancelar";
 "common.save" = "Guardar";
 "common.delete" = "Eliminar";

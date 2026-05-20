@@ -62,34 +62,54 @@ struct ExploreScenarioDetailView: View {
                         }
                     }
 
-                    // CTA Button
-                    Button(action: createEvent) {
-                        HStack {
-                            Image(systemName: "plus.circle.fill")
-                            Text(String(localized: "scenario.create_event"))
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            LinearGradient(
-                                colors: scenario.gradientColors,
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
-                    .padding(.top, 8)
                 }
                 .padding(20)
+                .padding(.bottom, 104)
             }
         }
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
+                LinearGradient(
+                    colors: [Color.clear, Color(uiColor: .systemBackground)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 26)
+                .allowsHitTesting(false)
+
+                scenarioCTA
+                    .padding(.horizontal, 20)
+                    .padding(.top, 8)
+                    .padding(.bottom, 12)
+                    .background(Color(uiColor: .systemBackground))
+            }
+        }
+    }
+
+    private var scenarioCTA: some View {
+        Button(action: createEvent) {
+            HStack(spacing: 8) {
+                Image(systemName: "plus.circle.fill")
+                Text(String(localized: "scenario.create_event"))
+            }
+            .font(.headline)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .background(
+                LinearGradient(
+                    colors: scenario.gradientColors,
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     private func createEvent() {
