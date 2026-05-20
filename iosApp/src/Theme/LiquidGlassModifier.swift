@@ -32,36 +32,31 @@ struct LiquidGlassModifier: ViewModifier {
     }
 }
 
-// MARK: - Glass Card Modifier
+// MARK: - Content Surface Card Modifier
 ///
-/// Unified glass card modifier with iOS 26+ support.
+/// Unified content card modifier.
 ///
-/// Replaces duplicate implementations from LiquidGlassAnimations.swift
-/// and ViewExtensions.swift.
+/// Content surfaces should stay stable and readable. Liquid Glass is reserved
+/// for navigation, controls, and floating actions.
 struct GlassCardModifier: ViewModifier {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    @Environment(\.colorScheme) private var colorScheme
 
     var cornerRadius: CGFloat = 16
     var material: Material = .regularMaterial
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *), !reduceTransparency {
-            content
-                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-        } else {
-            content
-                .background(fallbackBackground)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
-        }
+        content
+            .background(fill)
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(WakeveTheme.ColorToken.cardBorder(for: colorScheme), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .shadow(color: WakeveTheme.Shadow.subtle.color, radius: WakeveTheme.Shadow.subtle.radius, x: WakeveTheme.Shadow.subtle.x, y: WakeveTheme.Shadow.subtle.y)
     }
 
-    private var fallbackBackground: AnyShapeStyle {
-        if reduceTransparency {
-            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
-        }
-        return AnyShapeStyle(material)
+    private var fill: Color {
+        colorScheme == .dark ? WakeveTheme.ColorToken.appDarkElevated.opacity(0.92) : Color.white.opacity(0.94)
     }
 }
 
@@ -156,10 +151,10 @@ extension View {
         modifier(LiquidGlassModifier(cornerRadius: cornerRadius))
     }
 
-    /// Apply glass card style following Apple's Liquid Glass guidelines
+    /// Apply the standard Wakeve content card style.
     /// - Parameters:
     ///   - cornerRadius: Corner radius (default: 16)
-    ///   - material: Material to use for fallback (default: .regularMaterial)
+    ///   - material: Kept for call-site compatibility; content cards are non-glass.
     func glassCard(
         cornerRadius: CGFloat = 16,
         material: Material = .regularMaterial

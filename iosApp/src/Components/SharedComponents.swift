@@ -427,7 +427,7 @@ struct ActionRow: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .liquidGlass(cornerRadius: 12)
+            .glassCard(cornerRadius: 12)
         }
         .buttonStyle(.plain)
     }
@@ -525,7 +525,7 @@ struct SharedComponents_Previews: PreviewProvider {
                     InfoRow(label: "Participants", value: "8 persons")
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
 
                 // StatusBadge
                 VStack(alignment: .leading, spacing: 8) {
@@ -540,7 +540,7 @@ struct SharedComponents_Previews: PreviewProvider {
                     }
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
 
                 // FilterChip
                 VStack(alignment: .leading, spacing: 8) {
@@ -555,7 +555,7 @@ struct SharedComponents_Previews: PreviewProvider {
                     }
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
 
                 // VoteChip
                 VStack(alignment: .leading, spacing: 8) {
@@ -570,7 +570,7 @@ struct SharedComponents_Previews: PreviewProvider {
                     }
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
 
                 // SectionHeader
                 VStack(alignment: .leading, spacing: 8) {
@@ -583,7 +583,7 @@ struct SharedComponents_Previews: PreviewProvider {
                     }
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
 
                 // ActionRow
                 VStack(alignment: .leading, spacing: 8) {
@@ -600,7 +600,7 @@ struct SharedComponents_Previews: PreviewProvider {
                     }
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
 
                 // Rating & Price
                 VStack(alignment: .leading, spacing: 8) {
@@ -615,7 +615,7 @@ struct SharedComponents_Previews: PreviewProvider {
                     }
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
             }
             .padding()
         }

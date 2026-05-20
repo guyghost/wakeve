@@ -34,7 +34,7 @@ struct WakeveScreenBackground: View {
     }
 }
 
-// MARK: - Glass Card
+// MARK: - Content Surface Card
 
 struct WakeveGlassCard<Content: View>: View {
     enum Prominence {
@@ -77,7 +77,6 @@ struct WakeveGlassCard<Content: View>: View {
                 x: WakeveTheme.Shadow.card.x,
                 y: prominence == .prominent ? 14 : 10
             )
-            .liquidGlass(cornerRadius: cornerRadius)
     }
 
     private var fill: Color {
@@ -89,6 +88,58 @@ struct WakeveGlassCard<Content: View>: View {
         case .prominent:
             return colorScheme == .dark ? Color.white.opacity(0.1) : Color.white.opacity(0.92)
         }
+    }
+}
+
+// MARK: - Glass Control Surface
+
+struct WakeveGlassControl<Content: View>: View {
+    let cornerRadius: CGFloat
+    let content: Content
+
+    init(cornerRadius: CGFloat = WakeveTheme.Radius.full, @ViewBuilder content: () -> Content) {
+        self.cornerRadius = cornerRadius
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .background(Color.white.opacity(0.14))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .liquidGlass(cornerRadius: cornerRadius)
+    }
+}
+
+// MARK: - Event Panel
+
+struct WakeveEventPanel<Content: View>: View {
+    let cornerRadius: CGFloat
+    let padding: CGFloat
+    let content: Content
+
+    init(
+        cornerRadius: CGFloat = WakeveTheme.Radius.xl,
+        padding: CGFloat = WakeveTheme.Spacing.lg,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.cornerRadius = cornerRadius
+        self.padding = padding
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(padding)
+            .background(WakeveTheme.ColorToken.eventNightElevated.opacity(0.82))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 }
 

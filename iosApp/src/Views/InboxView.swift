@@ -122,7 +122,7 @@ struct InboxView: View {
             }
             .toolbar(showActionBar ? .hidden : .visible, for: .tabBar)
             #endif
-            .overlay(alignment: .bottom) {
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 if showActionBar {
                     actionBarView
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -331,6 +331,7 @@ struct InboxView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(.bar)
+        .accessibilityElement(children: .contain)
     }
     
     private func markSelectedAsRead() {

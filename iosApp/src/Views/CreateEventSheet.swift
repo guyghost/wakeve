@@ -68,11 +68,11 @@ struct CreateEventSheet: View {
                 VStack(spacing: 0) {
                     // Space for the fixed header
                     Color.clear.frame(height: 56)
-                    
+
                     // Default gradient: original layout
                     backgroundImageSelector
                         .padding(.top, 40)
-                    
+
                     Spacer()
                         .frame(height: UIScreen.main.bounds.height * 0.25 - 120)
                     
@@ -290,7 +290,7 @@ struct CreateEventSheet: View {
                             .foregroundColor(.white.opacity(0.8))
                     }
                 }
-                
+
                 Button(action: { showingBackgroundPicker = true }) {
                     Text(String(localized: "events.add_background"))
                         .font(.system(size: 16, weight: .medium))
@@ -321,13 +321,13 @@ struct CreateEventSheet: View {
                         Label(String(localized: "events.background.delete"), systemImage: "trash")
                     }
                 } label: {
-                    Text(String(localized: "events.background.modify"))
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.primary)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(.regularMaterial)
-                        .cornerRadius(22)
+                    WakeveGlassControl {
+                        Text(String(localized: "events.background.modify"))
+                            .font(WakeveTheme.Typography.metadata)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                    }
                 }
             }
         }
@@ -336,149 +336,142 @@ struct CreateEventSheet: View {
     // MARK: - Main Event Card
     
     private var mainEventCard: some View {
-        VStack(spacing: 0) {
-            // Event Title Input (inside the card now)
-            ZStack(alignment: .center) {
-                if title.isEmpty {
-                    Text(String(localized: "events.title_placeholder"))
+        WakeveEventPanel(cornerRadius: 28, padding: 0) {
+            VStack(spacing: 0) {
+                // Event Title Input (inside the card now)
+                ZStack(alignment: .center) {
+                    if title.isEmpty {
+                        Text(String(localized: "events.title_placeholder"))
+                            .font(.system(size: 32, weight: .bold))
+                            .foregroundColor(.white.opacity(0.4))
+                            .multilineTextAlignment(.center)
+                            .lineSpacing(4)
+                    }
+                    TextField("", text: $title)
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white.opacity(0.4))
+                        .foregroundColor(.white)
                         .multilineTextAlignment(.center)
-                        .lineSpacing(4)
+                        .minimumScaleFactor(0.5)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 32)
                 }
-                
-                TextField("", text: $title)
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .minimumScaleFactor(0.5)
+
+                Divider()
+                    .background(Color.white.opacity(0.1))
                     .padding(.horizontal, 24)
-                    .padding(.vertical, 32)
-            }
-            
-            Divider()
-                .background(Color.white.opacity(0.1))
-                .padding(.horizontal, 24)
-            
-            // Date & Time Row
-            DetailRow(
-                icon: "calendar.badge.plus",
-                label: selectedDate != nil ? formattedDateTime() : String(localized: "events.date_and_time"),
-                isPlaceholder: selectedDate == nil,
-                iconColor: Color(hex: "8B5CF6")
-            ) {
-                showingDatePicker = true
-            }
-            
-            Divider()
-                .background(Color.white.opacity(0.1))
-                .padding(.horizontal, 24)
-            
-            // Location Row
-            DetailRow(
-                icon: "mappin.circle.fill",
-                label: selectedLocation ?? String(localized: "events.location"),
-                isPlaceholder: selectedLocation == nil,
-                iconColor: Color(hex: "6366F1")
-            ) {
-                showingLocationSheet = true
+
+                // Date & Time Row
+                DetailRow(
+                    icon: "calendar.badge.plus",
+                    label: selectedDate != nil ? formattedDateTime() : String(localized: "events.date_and_time"),
+                    isPlaceholder: selectedDate == nil,
+                    iconColor: WakeveTheme.ColorToken.eventLilacAction
+                ) {
+                    showingDatePicker = true
+                }
+
+                Divider()
+                    .background(Color.white.opacity(0.1))
+                    .padding(.horizontal, 24)
+
+                // Location Row
+                DetailRow(
+                    icon: "mappin.circle.fill",
+                    label: selectedLocation ?? String(localized: "events.location"),
+                    isPlaceholder: selectedLocation == nil,
+                    iconColor: WakeveTheme.ColorToken.permissionBlue
+                ) {
+                    showingLocationSheet = true
+                }
             }
         }
-        .background(Color(hex: "1A1A3E").opacity(0.7))
-        .cornerRadius(28)
     }
     
     // MARK: - Organizer Card (separate card)
     
     private var organizerCard: some View {
-        VStack(spacing: 16) {
-            // Profile photo
-            ZStack {
-                Circle()
-                    .fill(Color(hex: "FF6B35"))
-                    .frame(width: 56, height: 56)
+        WakeveEventPanel(cornerRadius: 28) {
+            VStack(spacing: 16) {
+                // Profile photo
+                ZStack {
+                    Circle()
+                        .fill(WakeveTheme.ColorToken.profileWarmTop)
+                        .frame(width: 56, height: 56)
+
+                    if let name = userName {
+                        Text(String(name.prefix(1)).uppercased())
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.white)
+                    } else {
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 24))
+                            .foregroundColor(.white)
+                    }
+                }
+
+                // Organizer text
+                Text(String(format: String(localized: "events.organized_by"), userName ?? String(localized: "leaderboard.you")))
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundColor(.white)
                 
-                if let name = userName {
-                    Text(String(name.prefix(1)).uppercased())
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(.white)
+                // Description or Button
+                if description.isEmpty {
+                    WakeveActionButton(
+                        String(localized: "events.add_description"),
+                        variant: .primary
+                    ) {
+                        showingEventInfoSheet = true
+                    }
+                    .frame(maxWidth: 260)
                 } else {
-                    Image(systemName: "person.fill")
-                        .font(.system(size: 24))
-                        .foregroundColor(.white)
+                    // Description text (tappable to edit)
+                    Button(action: {
+                        showingEventInfoSheet = true
+                    }) {
+                        Text(description)
+                            .font(WakeveTheme.Typography.body)
+                            .foregroundColor(.white.opacity(0.9))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 8)
+                    }
                 }
             }
-            
-            // Organizer text
-            Text(String(format: String(localized: "events.organized_by"), userName ?? String(localized: "leaderboard.you")))
-                .font(.system(size: 18, weight: .medium))
-                .foregroundColor(.white)
-            
-            // Description or Button
-            if description.isEmpty {
-                // Description button
-                Button(action: {
-                    showingEventInfoSheet = true
-                }) {
-                    Text(String(localized: "events.add_description"))
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(Color(hex: "1A1A3E"))
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
-                        .background(Color.white.opacity(0.9))
-                        .cornerRadius(24)
-                }
-            } else {
-                // Description text (tappable to edit)
-                Button(action: {
-                    showingEventInfoSheet = true
-                }) {
-                    Text(description)
-                        .font(.system(size: 16))
-                        .foregroundColor(.white.opacity(0.9))
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 8)
-                }
-            }
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
-        .background(Color(hex: "0F1B3A").opacity(0.8))
-        .cornerRadius(28)
     }
 
     // MARK: - Event Type Selector
 
     private var eventTypeCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Current selection
-            Button(action: { showingEventTypePicker = true }) {
-                HStack(spacing: 12) {
-                    Text(eventTypeEmoji(selectedEventType))
-                        .font(.system(size: 20))
+        WakeveEventPanel(cornerRadius: 20, padding: 0) {
+            VStack(alignment: .leading, spacing: 0) {
+                // Current selection
+                Button(action: { showingEventTypePicker = true }) {
+                    HStack(spacing: 12) {
+                        Text(eventTypeEmoji(selectedEventType))
+                            .font(.system(size: 20))
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Type d'événement")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.5))
-                        Text(selectedEventType == Shared.EventType.other ? "Choisir un type" : selectedEventType.displayName)
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(selectedEventType == Shared.EventType.other ? .white.opacity(0.5) : .white)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Type d'événement")
+                                .font(WakeveTheme.Typography.tiny)
+                                .foregroundColor(.white.opacity(0.5))
+                            Text(selectedEventType == Shared.EventType.other ? "Choisir un type" : selectedEventType.displayName)
+                                .font(WakeveTheme.Typography.bodySemibold)
+                                .foregroundColor(selectedEventType == Shared.EventType.other ? .white.opacity(0.5) : .white)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.white.opacity(0.4))
                     }
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(.white.opacity(0.4))
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 16)
             }
         }
-        .background(Color(hex: "0F1B3A").opacity(0.8))
-        .cornerRadius(20)
         .sheet(isPresented: $showingEventTypePicker) {
             EventTypePickerSheet(
                 selectedIndex: $selectedEventTypeIndex,

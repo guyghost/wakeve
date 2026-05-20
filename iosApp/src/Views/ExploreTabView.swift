@@ -292,7 +292,7 @@ struct ExploreEventCard: View {
         cardContent
             .frame(width: 240)
             .padding()
-            .liquidGlass(cornerRadius: 16)
+            .glassCard(cornerRadius: 16)
     }
 
     private var cardContent: some View {
@@ -389,7 +389,7 @@ struct SearchResultRow: View {
     var body: some View {
         rowContent
             .padding()
-            .liquidGlass(cornerRadius: 14)
+            .glassCard(cornerRadius: 14)
     }
 
     private var rowContent: some View {

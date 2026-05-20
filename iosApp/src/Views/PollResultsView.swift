@@ -20,22 +20,19 @@ struct PollResultsView: View {
 
     var body: some View {
         ZStack {
-            // Clean background
-            Color(.systemGroupedBackground)
-                .ignoresSafeArea()
+            WakeveScreenBackground(style: .grouped)
 
             VStack(spacing: 0) {
                 // Header
                 VStack(spacing: 16) {
                     HStack {
-                        Button(action: onBack) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.secondary)
-                                .frame(width: 36, height: 36)
-                                .background(Color(.tertiarySystemFill))
-                                .clipShape(Circle())
-                        }
+                        WakeveCircleButton(
+                            systemImage: "xmark",
+                            accessibilityLabel: "Fermer",
+                            variant: .light,
+                            size: 44,
+                            action: onBack
+                        )
 
                         Spacer()
                     }
@@ -92,27 +89,17 @@ struct PollResultsView: View {
 
                                 // Confirm Button
                                 if repository.isOrganizer(eventId: event.id, userId: userId), bestSlot != nil {
-                                    Button {
+                                    WakeveActionButton(
+                                        "Confirm This Date",
+                                        systemImage: "checkmark",
+                                        variant: .primary,
+                                        isDisabled: isLoading,
+                                        isLoading: isLoading
+                                    ) {
                                         Task {
                                             await confirmDate()
                                         }
-                                    } label: {
-                                        HStack {
-                                            if isLoading {
-                                                ProgressView()
-                                                    .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                            } else {
-                                                Text("Confirm This Date")
-                                                    .font(.system(size: 17, weight: .semibold))
-                                                    .foregroundColor(.white)
-                                            }
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 50)
-                                        .background(Color.blue)
-                                        .continuousCornerRadius(14)
                                     }
-                                    .disabled(isLoading)
                                     .padding(.top, 8)
                                 }
                             } else {
