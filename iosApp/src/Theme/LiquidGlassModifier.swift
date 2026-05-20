@@ -56,7 +56,7 @@ struct GlassCardModifier: ViewModifier {
     }
 
     private var fill: Color {
-        colorScheme == .dark ? WakeveTheme.ColorToken.appDarkElevated.opacity(0.92) : Color.white.opacity(0.94)
+        WakeveTheme.ColorToken.cardFill(for: colorScheme)
     }
 }
 

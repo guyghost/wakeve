@@ -66,7 +66,6 @@ struct ProfileTabView: View {
                     }
                 }
             }
-            .preferredColorScheme(darkMode ? .dark : .light)
             .sheet(isPresented: $showLeaderboard) {
                 LeaderboardView()
             }
@@ -123,6 +122,8 @@ struct DashboardLinkSection: View {
 // MARK: - Profile Header Section
 
 struct ProfileHeaderSection: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let userName: String?
     let userEmail: String?
 
@@ -172,10 +173,10 @@ struct ProfileHeaderSection: View {
 
             Text(String(localized: "profile.edit"))
                 .font(WakeveTheme.Typography.bodySemibold)
-                .foregroundColor(.primary)
+                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
                 .padding(.horizontal, WakeveTheme.Spacing.lg)
                 .frame(height: 44)
-                .background(Color.white.opacity(0.12))
+                .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
                 .clipShape(Capsule())
         }
         .padding(.vertical, WakeveTheme.Spacing.lg)
