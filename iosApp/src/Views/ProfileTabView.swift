@@ -17,38 +17,28 @@ struct ProfileTabView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-                    // Profile Header
-                    ProfileHeaderSection()
+            ZStack {
+                WakeveScreenBackground(style: darkMode ? .profile : .grouped)
 
-                    // Organizer Dashboard Link
-                    DashboardLinkSection(showDashboard: $showDashboard)
+                ScrollView {
+                    VStack(spacing: WakeveTheme.Spacing.xl) {
+                        ProfileHeaderSection()
 
-                    // Gamification: Points & Level
-                    GamificationSummarySection()
-
-                    // Gamification: Badges
-                    ProfileTabBadgesSection()
-
-                    // Leaderboard Link
-                    LeaderboardLinkSection(showLeaderboard: $showLeaderboard)
-
-                    // Preferences Section
-                    PreferencesSection()
-
-                    // Appearance Section
-                    AppearanceSection()
-
-                    // About Section
-                    AboutSection()
-
-                    // Sign Out Button
-                    SignOutButton()
+                        DashboardLinkSection(showDashboard: $showDashboard)
+                        GamificationSummarySection()
+                        ProfileTabBadgesSection()
+                        LeaderboardLinkSection(showLeaderboard: $showLeaderboard)
+                        PreferencesSection()
+                        AppearanceSection()
+                        AboutSection()
+                        SignOutButton()
+                    }
+                    .padding(WakeveTheme.Spacing.page)
+                    .padding(.top, WakeveTheme.Spacing.sm)
                 }
-                .padding()
             }
             .navigationTitle(String(localized: "profile.title"))
+            .toolbarBackground(.hidden, for: .navigationBar)
             .preferredColorScheme(darkMode ? .dark : .light)
             .sheet(isPresented: $showLeaderboard) {
                 LeaderboardView()
@@ -107,39 +97,31 @@ struct DashboardLinkSection: View {
 
 struct ProfileHeaderSection: View {
     var body: some View {
-        VStack(spacing: 16) {
-            // Avatar
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                Color(red: 0.15, green: 0.39, blue: 0.92), // Blue
-                                Color(red: 0.49, green: 0.23, blue: 0.93)  // Purple
-                            ]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 80, height: 80)
+        VStack(spacing: WakeveTheme.Spacing.md) {
+            WakeveAvatar(initials: "JD", size: 112, badgeSystemImage: "sparkles")
+                .shadow(color: .black.opacity(0.18), radius: 20, x: 0, y: 10)
 
-                Image(systemName: "person.fill")
-                    .font(.system(size: 40))
-                    .foregroundColor(.white)
-            }
-
-            // User Info
-            VStack(spacing: 4) {
+            VStack(spacing: WakeveTheme.Spacing.xs) {
                 Text("John Doe")
-                    .font(.title3)
+                    .font(WakeveTheme.Typography.largeTitle)
                     .fontWeight(.bold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
 
                 Text("john.doe@example.com")
-                    .font(.subheadline)
+                    .font(WakeveTheme.Typography.metadata)
                     .foregroundColor(.secondary)
             }
+
+            Text(String(localized: "profile.edit"))
+                .font(WakeveTheme.Typography.bodySemibold)
+                .foregroundColor(.primary)
+                .padding(.horizontal, WakeveTheme.Spacing.lg)
+                .frame(height: 44)
+                .background(Color.white.opacity(0.12))
+                .clipShape(Capsule())
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, WakeveTheme.Spacing.lg)
     }
 }
 
@@ -288,9 +270,9 @@ struct ProfileCard<Content: View>: View {
     }
 
     var body: some View {
-        content
-            .padding()
-            .liquidGlass(cornerRadius: 20)
+        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
+            content
+        }
     }
 }
 
@@ -307,7 +289,7 @@ struct PreferenceToggleRow: View {
             // Icon
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundColor(.blue)
+                .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
                 .frame(width: 32, height: 32)
 
             // Content
@@ -328,6 +310,7 @@ struct PreferenceToggleRow: View {
             // Toggle
             Toggle("", isOn: $isOn)
                 .labelsHidden()
+                .tint(WakeveTheme.ColorToken.permissionBlue)
         }
         .padding(.vertical, 12)
         .contentShape(Rectangle())
@@ -346,7 +329,7 @@ struct AboutRow: View {
             // Icon
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundColor(.purple)
+                .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
                 .frame(width: 32, height: 32)
 
             // Content
@@ -380,7 +363,7 @@ struct AboutLinkRow: View {
                 // Icon
                 Image(systemName: icon)
                     .font(.title3)
-                    .foregroundColor(.green)
+                    .foregroundColor(WakeveColors.success)
                     .frame(width: 32, height: 32)
 
                 // Content
@@ -409,19 +392,12 @@ struct SignOutButton: View {
     @EnvironmentObject var authStateManager: AuthStateManager
 
     var body: some View {
-        Button(action: {
+        WakeveActionButton(
+            String(localized: "auth.sign_out"),
+            systemImage: "rectangle.portrait.and.arrow.right",
+            variant: .destructive
+        ) {
             authStateManager.signOut()
-        }) {
-            HStack(spacing: 8) {
-                Image(systemName: "rectangle.portrait.and.arrow.right")
-                Text(String(localized: "auth.sign_out"))
-            }
-            .font(.headline)
-            .foregroundColor(.white)
-            .padding(.horizontal, 32)
-            .padding(.vertical, 16)
-            .background(Color(red: 0.86, green: 0.15, blue: 0.15)) // Error red
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
     }
 }

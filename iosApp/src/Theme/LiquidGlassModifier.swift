@@ -7,19 +7,28 @@ import SwiftUI
 /// Uses the native iOS 26+ `.glassEffect()` API with a
 /// `.regularMaterial` fallback for earlier versions.
 struct LiquidGlassModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     var cornerRadius: CGFloat = 20
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), !reduceTransparency {
             content
                 .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         } else {
             content
-                .background(.regularMaterial)
+                .background(fallbackBackground)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
         }
+    }
+
+    private var fallbackBackground: AnyShapeStyle {
+        if reduceTransparency {
+            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
+        }
+        return AnyShapeStyle(.regularMaterial)
     }
 }
 
@@ -30,75 +39,111 @@ struct LiquidGlassModifier: ViewModifier {
 /// Replaces duplicate implementations from LiquidGlassAnimations.swift
 /// and ViewExtensions.swift.
 struct GlassCardModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     var cornerRadius: CGFloat = 16
     var material: Material = .regularMaterial
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), !reduceTransparency {
             content
                 .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         } else {
             content
-                .background(material)
+                .background(fallbackBackground)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
         }
+    }
+
+    private var fallbackBackground: AnyShapeStyle {
+        if reduceTransparency {
+            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
+        }
+        return AnyShapeStyle(material)
     }
 }
 
 // MARK: - Thin Glass Modifier
 
 struct ThinGlassModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     var cornerRadius: CGFloat = 16
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), !reduceTransparency {
             content
                 .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         } else {
             content
-                .background(.thinMaterial)
+                .background(fallbackBackground)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
+    }
+
+    private var fallbackBackground: AnyShapeStyle {
+        if reduceTransparency {
+            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
+        }
+        return AnyShapeStyle(.thinMaterial)
     }
 }
 
 // MARK: - Ultra Thin Glass Modifier
 
 struct UltraThinGlassModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     var cornerRadius: CGFloat = 16
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), !reduceTransparency {
             content
                 .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         } else {
             content
-                .background(.ultraThinMaterial)
+                .background(fallbackBackground)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
+    }
+
+    private var fallbackBackground: AnyShapeStyle {
+        if reduceTransparency {
+            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
+        }
+        return AnyShapeStyle(.ultraThinMaterial)
     }
 }
 
 // MARK: - Thick Glass Modifier
 
 struct ThickGlassModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     var cornerRadius: CGFloat = 24
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), !reduceTransparency {
             content
                 .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         } else {
             content
-                .background(.thickMaterial)
+                .background(fallbackBackground)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
         }
+    }
+
+    private var fallbackBackground: AnyShapeStyle {
+        if reduceTransparency {
+            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
+        }
+        return AnyShapeStyle(.thickMaterial)
     }
 }
 

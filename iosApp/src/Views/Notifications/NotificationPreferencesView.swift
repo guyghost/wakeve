@@ -26,6 +26,9 @@ struct NotificationPreferencesView: View {
         }
         .navigationTitle("Notifications")
         .navigationBarTitleDisplayMode(.inline)
+        .scrollContentBackground(.hidden)
+        .background(WakeveScreenBackground(style: .grouped))
+        .tint(WakeveTheme.ColorToken.permissionBlue)
         .onAppear { viewModel.load() }
     }
 
@@ -52,7 +55,7 @@ struct NotificationPreferencesView: View {
     private var quietHoursSection: some View {
         Section {
             Toggle("Activer les heures silencieuses", isOn: $viewModel.quietHoursEnabled)
-                .tint(Color.wakevePrimary)
+                .tint(WakeveTheme.ColorToken.permissionBlue)
 
             if viewModel.quietHoursEnabled {
                 HStack {
@@ -84,11 +87,11 @@ struct NotificationPreferencesView: View {
     private var soundVibrationSection: some View {
         Section {
             Toggle("Son", isOn: $viewModel.soundEnabled)
-                .tint(Color.wakevePrimary)
+                .tint(WakeveTheme.ColorToken.permissionBlue)
                 .onChange(of: viewModel.soundEnabled) { _, _ in viewModel.save() }
 
             Toggle("Vibration", isOn: $viewModel.vibrationEnabled)
-                .tint(Color.wakevePrimary)
+                .tint(WakeveTheme.ColorToken.permissionBlue)
                 .onChange(of: viewModel.vibrationEnabled) { _, _ in viewModel.save() }
         } header: {
             Text("Son et vibration")
@@ -120,7 +123,7 @@ private struct ToggleRow: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundStyle(Color.wakevePrimary)
+                .foregroundStyle(WakeveTheme.ColorToken.permissionBlue)
                 .frame(width: 28)
 
             Text(title)
@@ -130,7 +133,7 @@ private struct ToggleRow: View {
 
             Toggle("", isOn: $isOn)
                 .labelsHidden()
-                .tint(Color.wakevePrimary)
+                .tint(WakeveTheme.ColorToken.permissionBlue)
         }
     }
 }

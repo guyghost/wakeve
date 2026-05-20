@@ -5,12 +5,14 @@ import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventSearchResult
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.NearbyEventResult
 import com.guyghost.wakeve.models.NearbyEventsResponse
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.RecommendedEventsResponse
 import com.guyghost.wakeve.models.SearchResultsResponse
 import com.guyghost.wakeve.models.SyncOperation
+import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.TrendingEventsResponse
 import com.guyghost.wakeve.models.Vote
@@ -114,36 +116,40 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
     }
 
     override fun getEvent(id: String): Event? {
-        val eventRow = eventQueries.selectById(id).executeAsOneOrNull() ?: return null
-        val participants = participantQueries.selectByEventId(id).executeAsList()
-        val timeSlots = timeSlotQueries.selectByEventId(id).executeAsList()
+        return try {
+            val eventRow = eventQueries.selectById(id).executeAsOneOrNull() ?: return null
+            val participants = participantQueries.selectByEventId(id).executeAsList()
+            val timeSlots = timeSlotQueries.selectByEventId(id).executeAsList()
 
-        return Event(
-            id = eventRow.id,
-            title = eventRow.title,
-            description = eventRow.description,
-            organizerId = eventRow.organizerId,
-            participants = participants.map { it.userId },
-            proposedSlots = timeSlots.map { 
-                TimeSlot(
-                    id = it.id,
-                    start = it.startTime,
-                    end = it.endTime,
-                    timezone = it.timezone,
-                    timeOfDay = com.guyghost.wakeve.models.TimeOfDay.valueOf(it.timeOfDay ?: "SPECIFIC")
-                )
-            },
-            deadline = eventRow.deadline,
-            status = EventStatus.valueOf(eventRow.status),
-            finalDate = null, // Will be populated from confirmedDate table if exists
-            createdAt = eventRow.createdAt,
-            updatedAt = eventRow.updatedAt,
-            eventType = com.guyghost.wakeve.models.EventType.valueOf(eventRow.eventType ?: "OTHER"),
-            eventTypeCustom = eventRow.eventTypeCustom,
-            minParticipants = eventRow.minParticipants?.toInt(),
-            maxParticipants = eventRow.maxParticipants?.toInt(),
-            expectedParticipants = eventRow.expectedParticipants?.toInt()
-        )
+            Event(
+                id = eventRow.id,
+                title = eventRow.title,
+                description = eventRow.description,
+                organizerId = eventRow.organizerId,
+                participants = participants.map { it.userId },
+                proposedSlots = timeSlots.map {
+                    TimeSlot(
+                        id = it.id,
+                        start = it.startTime,
+                        end = it.endTime,
+                        timezone = it.timezone,
+                        timeOfDay = parseTimeOfDay(it.timeOfDay)
+                    )
+                },
+                deadline = eventRow.deadline,
+                status = parseEventStatus(eventRow.status),
+                finalDate = null, // Will be populated from confirmedDate table if exists
+                createdAt = eventRow.createdAt,
+                updatedAt = eventRow.updatedAt,
+                eventType = parseEventType(eventRow.eventType),
+                eventTypeCustom = eventRow.eventTypeCustom,
+                minParticipants = eventRow.minParticipants?.toInt(),
+                maxParticipants = eventRow.maxParticipants?.toInt(),
+                expectedParticipants = eventRow.expectedParticipants?.toInt()
+            )
+        } catch (e: Exception) {
+            null
+        }
     }
 
     override fun getPoll(eventId: String): Poll? {
@@ -155,7 +161,7 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
         allVotes.forEach { voteRow ->
             val participantId = voteRow.userId
             val slotId = voteRow.timeslotId
-            val voteValue = Vote.valueOf(voteRow.vote)
+            val voteValue = parseVote(voteRow.vote)
 
             if (!votes.containsKey(participantId)) {
                 votes[participantId] = mutableMapOf()
@@ -448,9 +454,45 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
     }
 
     override fun getAllEvents(): List<Event> {
-        return eventQueries.selectAll().executeAsList().mapNotNull { eventRow ->
-            getEvent(eventRow.id)
+        return try {
+            eventQueries.selectAll().executeAsList().mapNotNull { eventRow ->
+                getEvent(eventRow.id)
+            }
+        } catch (e: Exception) {
+            emptyList()
         }
+    }
+
+    private fun parseEventStatus(value: String?): EventStatus {
+        return enumValueOrNull<EventStatus>(value) ?: EventStatus.DRAFT
+    }
+
+    private fun parseEventType(value: String?): EventType {
+        return enumValueOrNull<EventType>(value) ?: when (value?.trim()?.lowercase()) {
+            "sport", "sports" -> EventType.SPORTS_EVENT
+            "family_reunion", "family" -> EventType.FAMILY_GATHERING
+            "dinner", "dinner_party" -> EventType.PARTY
+            "outdoor_adventure", "outdoor" -> EventType.OUTDOOR_ACTIVITY
+            "networking", "corporate", "graduation", "holiday_party", "concert" -> EventType.OTHER
+            else -> EventType.OTHER
+        }
+    }
+
+    private fun parseTimeOfDay(value: String?): TimeOfDay {
+        return enumValueOrNull<TimeOfDay>(value) ?: when (value?.trim()?.lowercase()) {
+            "specific_time", "exact" -> TimeOfDay.SPECIFIC
+            "day", "all-day", "allday" -> TimeOfDay.ALL_DAY
+            else -> TimeOfDay.SPECIFIC
+        }
+    }
+
+    private fun parseVote(value: String?): Vote {
+        return enumValueOrNull<Vote>(value) ?: Vote.MAYBE
+    }
+
+    private inline fun <reified T : Enum<T>> enumValueOrNull(value: String?): T? {
+        val normalized = value?.trim()?.uppercase()?.replace('-', '_') ?: return null
+        return enumValues<T>().firstOrNull { it.name == normalized }
     }
 
     // MARK: - Search & Discovery

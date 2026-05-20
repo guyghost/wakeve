@@ -26,6 +26,7 @@ Bienvenue dans la documentation technique du projet Wakeve, une application mobi
 - [Koin Setup](guides/developer/koin-setup.md) - Configuration de l'injection de dépendances
 - [KMP Normalization Notes](guides/KMP_NORMALIZATION_NOTES.md) - Mapping des modules et chemins normalisés
 - [iOS Development](guides/ios/README.md) - Guides spécifiques iOS (voir aussi `wakeveApp/wakeveApp/`)
+- [iOS Design System](guides/ios/design-system.md) - Tokens et composants SwiftUI unifiés
 
 ### Migration & Refactoring
 - [Migration Index](migration/README.md) - Vue d'ensemble des migrations

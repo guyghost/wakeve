@@ -4,6 +4,8 @@ import Shared
 /// Participant management view inspired by Apple Invites
 /// Features: Clean list design, easy participant management, clear status indicators
 struct ParticipantManagementView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let event: Event
     let repository: EventRepositoryInterface
     let onParticipantsUpdated: () -> Void
@@ -17,190 +19,282 @@ struct ParticipantManagementView: View {
     @State private var showSuccess = false
 
     var body: some View {
-        ZStack {
-            // Clean background
-            Color(.systemGroupedBackground)
+        ZStack(alignment: .top) {
+            pageBackground
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 16) {
-                    HStack {
-                        Button(action: onBack) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.secondary)
-                                .frame(width: 36, height: 36)
-                                .background(Color(.tertiarySystemFill))
-                                .clipShape(Circle())
-                        }
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    heroSection
 
-                        Spacer()
-
-                        // Start Poll Button (if draft and has participants)
-                        if event.status == .draft && !participants.isEmpty {
-                            Button {
-                                Task {
-                                    await startPoll()
-                                }
-                            } label: {
-                                if isLoading {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle())
-                                } else {
-                                    Text("Start Poll")
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundColor(.blue)
-                                }
-                            }
-                            .disabled(isLoading)
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 60)
-
-                    VStack(spacing: 8) {
-                        Text("Participants")
-                            .font(.system(size: 34, weight: .bold))
-                            .foregroundColor(.primary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        Text(event.title)
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .padding(.horizontal, 20)
-                }
-
-                ScrollView {
-                    VStack(spacing: 16) {
-                        // Add Participant Card (only in draft)
+                    VStack(alignment: .leading, spacing: 18) {
                         if event.status == .draft {
-                            VStack(spacing: 16) {
-                                HStack {
-                                    Text("Add Participant")
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundColor(.primary)
-
-                                    Spacer()
-                                }
-
-                                HStack(spacing: 12) {
-                                    TextField("Email address", text: $newParticipantEmail)
-                                        .font(.system(size: 17))
-                                        .textFieldStyle(.plain)
-                                        .padding(14)
-                                        .background(Color(.tertiarySystemFill))
-                                        .continuousCornerRadius(12)
-                                        .keyboardType(.emailAddress)
-                                        .autocapitalization(.none)
-                                        .textContentType(.emailAddress)
-
-                                    Button {
-                                        Task {
-                                            await addParticipant()
-                                        }
-                                    } label: {
-                                        if isLoading {
-                                            ProgressView()
-                                                .progressViewStyle(CircularProgressViewStyle())
-                                                .frame(width: 44, height: 44)
-                                        } else {
-                                            Image(systemName: "plus.circle.fill")
-                                                .font(.system(size: 32))
-                                                .foregroundColor(.blue)
-                                        }
-                                    }
-                                    .disabled(newParticipantEmail.isEmpty || isLoading)
-                                }
-                            }
-                            .padding(20)
-                            .glassCard(cornerRadius: 20)
+                            addParticipantCard
                         }
 
-                        // Status Banner
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("\(participants.count) Participant\(participants.count == 1 ? "" : "s")")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(.primary)
+                        statusSummary
+                        participantsContent
 
-                                HStack(spacing: 6) {
-                                    Circle()
-                                        .fill(statusColor)
-                                        .frame(width: 8, height: 8)
-
-                                    Text(statusText)
-                                        .font(.system(size: 15))
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-
-                            Spacer()
-                        }
-                        .padding(.horizontal, 4)
-
-                        // Participants List
-                        if participants.isEmpty {
-                            VStack(spacing: 20) {
-                                Image(systemName: "person.2")
-                                    .font(.system(size: 56))
-                                    .foregroundColor(.secondary.opacity(0.5))
-                                    .padding(.top, 40)
-
-                                VStack(spacing: 8) {
-                                    Text("No Participants Yet")
-                                        .font(.system(size: 24, weight: .bold))
-                                        .foregroundColor(.primary)
-
-                                    Text(event.status == .draft ? "Add participants to start the event" : "No one has joined yet")
-                                        .font(.system(size: 17))
-                                        .foregroundColor(.secondary)
-                                        .multilineTextAlignment(.center)
-                                        .padding(.horizontal, 40)
-                                }
-                                .padding(.bottom, 40)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .glassCard(cornerRadius: 20)
-                        } else {
-                            VStack(spacing: 0) {
-                                ForEach(Array(participants.enumerated()), id: \.element) { index, participant in
-                                    ParticipantRowView(email: participant)
-
-                                    if index < participants.count - 1 {
-                                        Divider()
-                                            .padding(.leading, 60)
-                                    }
-                                }
-                            }
-                            .glassCard(cornerRadius: 20)
-                        }
-
-                        Spacer()
-                            .frame(height: 40)
+                        Spacer(minLength: 108)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
+                    .padding(.horizontal, 16)
+                    .padding(.top, -34)
                 }
             }
+            .ignoresSafeArea(edges: .top)
+
+            topControls
+
+            if event.status == .draft {
+                bottomPrimaryAction
+            }
         }
+        .toolbar(.hidden, for: .tabBar)
         .onAppear {
             loadParticipants()
         }
-        .alert("Error", isPresented: $showError) {
+        .alert("Erreur", isPresented: $showError) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
-        .alert("Success", isPresented: $showSuccess) {
+        .alert("Sondage lancé", isPresented: $showSuccess) {
             Button("OK", role: .cancel) {
                 onBack()
             }
         } message: {
-            Text("Poll started successfully!")
+            Text("Le sondage est maintenant ouvert aux participants.")
         }
+    }
+
+    private var heroSection: some View {
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(
+                colors: heroColors,
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .overlay(alignment: .trailing) {
+                Image(systemName: "person.2.fill")
+                    .font(.system(size: 116, weight: .black))
+                    .foregroundColor(.white.opacity(0.18))
+                    .rotationEffect(.degrees(-8))
+                    .offset(x: 32, y: -8)
+            }
+            .overlay(alignment: .bottom) {
+                LinearGradient(
+                    colors: [.clear, pageBackground.opacity(colorScheme == .dark ? 0.94 : 0.98)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 142)
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                statusBadge
+
+                Text("Participants")
+                    .font(.system(size: 42, weight: .bold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Text(event.title)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.72))
+                    .lineLimit(2)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 54)
+        }
+        .frame(height: 328)
+    }
+
+    private var topControls: some View {
+        HStack {
+            WakeveCircleButton(
+                systemImage: "xmark",
+                accessibilityLabel: "Fermer",
+                variant: .glass,
+                size: 48,
+                action: onBack
+            )
+
+            Spacer()
+
+            Menu {
+                Button {
+                    newParticipantEmail = ""
+                } label: {
+                    Label("Réinitialiser l’invitation", systemImage: "arrow.counterclockwise")
+                }
+
+                if event.status == .draft && !participants.isEmpty {
+                    Button {
+                        Task { await startPoll() }
+                    } label: {
+                        Label("Lancer le sondage", systemImage: "chart.bar.xaxis")
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 48, height: 48)
+                    .background(Color.white.opacity(0.14))
+                    .clipShape(Circle())
+            }
+            .accessibilityLabel("Options participants")
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 54)
+    }
+
+    private var addParticipantCard: some View {
+        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+            Text("Inviter un participant")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundColor(primaryText)
+
+            HStack(spacing: 12) {
+                TextField("Adresse email", text: $newParticipantEmail)
+                    .font(.system(size: 17, weight: .medium))
+                    .textFieldStyle(.plain)
+                    .padding(.horizontal, 16)
+                    .frame(height: 54)
+                    .foregroundColor(primaryText)
+                    .background(inputBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .keyboardType(.emailAddress)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .textContentType(.emailAddress)
+
+                Button {
+                    Task {
+                        await addParticipant()
+                    }
+                } label: {
+                    if isLoading {
+                        ProgressView()
+                            .tint(.white)
+                            .frame(width: 52, height: 52)
+                            .background(Color.blue.opacity(0.86))
+                            .clipShape(Circle())
+                    } else {
+                        Image(systemName: "plus")
+                            .font(.system(size: 24, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 52, height: 52)
+                            .background(newParticipantEmail.isEmpty ? Color.gray.opacity(0.35) : Color.blue)
+                            .clipShape(Circle())
+                    }
+                }
+                .disabled(newParticipantEmail.isEmpty || isLoading)
+                .accessibilityLabel("Ajouter le participant")
+            }
+        }
+        }
+    }
+
+    private var statusSummary: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(participantCountText)
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(primaryText)
+
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 8, height: 8)
+
+                Text(statusText)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundColor(secondaryText)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var participantsContent: some View {
+        if participants.isEmpty {
+            VStack(spacing: 18) {
+                Image(systemName: "person.crop.circle.badge.plus")
+                    .font(.system(size: 54, weight: .semibold))
+                    .foregroundColor(secondaryText.opacity(0.65))
+                    .padding(.top, 24)
+
+                VStack(spacing: 8) {
+                    Text("Aucun participant")
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(primaryText)
+
+                    Text(event.status == .draft ? "Ajoutez au moins un participant pour ouvrir le sondage." : "Personne n’a encore rejoint cet événement.")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(secondaryText)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(3)
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 26)
+            }
+            .frame(maxWidth: .infinity)
+            .background(cardBackground)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(cardBorder, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+        } else {
+            VStack(spacing: 10) {
+                ForEach(participants, id: \.self) { participant in
+                    ParticipantRowView(email: participant)
+                }
+            }
+        }
+    }
+
+    private var bottomPrimaryAction: some View {
+        VStack {
+            Spacer()
+
+            WakeveActionButton(
+                "Lancer le sondage",
+                systemImage: "chart.bar.xaxis",
+                variant: .primary,
+                isDisabled: !canStartPoll,
+                isLoading: isLoading
+            ) {
+                Task { await startPoll() }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 20)
+            .background(
+                LinearGradient(
+                    colors: [pageBackground.opacity(0), pageBackground],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 130)
+                .allowsHitTesting(false)
+            )
+        }
+        .ignoresSafeArea(edges: .bottom)
+    }
+
+    private var statusBadge: some View {
+        HStack(spacing: 6) {
+            Image(systemName: statusIcon)
+                .font(.system(size: 13, weight: .bold))
+            Text(statusTitle)
+                .font(.system(size: 14, weight: .bold))
+        }
+        .foregroundColor(.white)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(Color.black.opacity(0.25))
+        .clipShape(Capsule())
     }
 
     private var statusColor: Color {
@@ -214,11 +308,76 @@ struct ParticipantManagementView: View {
 
     private var statusText: String {
         switch event.status {
-        case .draft: return "Draft - Add participants to begin"
-        case .polling: return "Poll Active"
-        case .confirmed: return "Event Confirmed"
-        default: return "Unknown Status"
+        case .draft: return "Brouillon - ajoutez les participants pour commencer"
+        case .polling: return "Sondage actif"
+        case .confirmed: return "Événement confirmé"
+        default: return "Statut indisponible"
         }
+    }
+
+    private var statusTitle: String {
+        switch event.status {
+        case .draft: return "Préparation du sondage"
+        case .polling: return "Sondage actif"
+        case .confirmed: return "Date confirmée"
+        default: return "Participants"
+        }
+    }
+
+    private var statusIcon: String {
+        switch event.status {
+        case .draft: return "person.badge.plus"
+        case .polling: return "chart.bar.fill"
+        case .confirmed: return "checkmark.circle.fill"
+        default: return "person.2.fill"
+        }
+    }
+
+    private var participantCountText: String {
+        "\(participants.count) participant\(participants.count > 1 ? "s" : "")"
+    }
+
+    private var canStartPoll: Bool {
+        event.status == .draft && !participants.isEmpty
+    }
+
+    private var heroColors: [Color] {
+        switch event.eventType {
+        case .birthday, .party:
+            return [Color(hex: "FFB86B"), Color(hex: "F43F5E"), pageBackground]
+        case .sportsEvent, .sportEvent:
+            return [Color(hex: "88D18A"), Color(hex: "2F855A"), pageBackground]
+        case .teamBuilding, .conference, .workshop, .techMeetup:
+            return [Color(hex: "67E8F9"), Color(hex: "2563EB"), pageBackground]
+        case .outdoorActivity:
+            return [Color(hex: "FDE68A"), Color(hex: "0F766E"), pageBackground]
+        default:
+            return [Color(hex: "F6C177"), Color(hex: "7C3AED"), pageBackground]
+        }
+    }
+
+    private var pageBackground: Color {
+        WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+    }
+
+    private var primaryText: Color {
+        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+    }
+
+    private var secondaryText: Color {
+        WakeveTheme.ColorToken.secondaryText(for: colorScheme)
+    }
+
+    private var cardBackground: Color {
+        WakeveTheme.ColorToken.cardFill(for: colorScheme)
+    }
+
+    private var inputBackground: Color {
+        colorScheme == .dark ? WakeveTheme.ColorToken.searchFieldDark.opacity(0.72) : WakeveTheme.ColorToken.searchFieldLight
+    }
+
+    private var cardBorder: Color {
+        WakeveTheme.ColorToken.cardBorder(for: colorScheme)
     }
 
     private func loadParticipants() {
@@ -233,7 +392,7 @@ struct ParticipantManagementView: View {
         let emailPredicate = NSPredicate(format:"SELF MATCHES %@", emailRegex)
 
         guard emailPredicate.evaluate(with: newParticipantEmail) else {
-            errorMessage = "Please enter a valid email address"
+            errorMessage = "Saisissez une adresse email valide"
             showError = true
             return
         }
@@ -250,7 +409,7 @@ struct ParticipantManagementView: View {
                 onParticipantsUpdated()
             } else {
                 isLoading = false
-                errorMessage = "Failed to add participant"
+                errorMessage = "Impossible d’ajouter ce participant"
                 showError = true
             }
         } catch {
@@ -276,7 +435,7 @@ struct ParticipantManagementView: View {
                 onParticipantsUpdated()
             } else {
                 isLoading = false
-                errorMessage = "Failed to start poll"
+                errorMessage = "Impossible de lancer le sondage"
                 showError = true
             }
         } catch {
@@ -300,42 +459,20 @@ struct ParticipantRowView: View {
         return String(email.prefix(1).uppercased())
     }
 
-    private var avatarColor: Color {
-        let colors: [Color] = [.red, .orange, .yellow, .green, .blue, .purple, .pink]
-        let hash = abs(email.hashValue)
-        return colors[hash % colors.count]
-    }
-
     var body: some View {
-        HStack(spacing: 16) {
-            // Avatar
-            Circle()
-                .fill(avatarColor)
-                .frame(width: 44, height: 44)
-                .overlay(
-                    Text(initials)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.white)
-                )
-
-            // Email
-            VStack(alignment: .leading, spacing: 2) {
-                Text(email)
-                    .font(.system(size: 17))
-                    .foregroundColor(.primary)
-
-                Text("Participant")
-                    .font(.system(size: 13))
-                    .foregroundColor(.secondary)
-            }
-
-            Spacer()
-
-            // Status indicator
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 20))
-                .foregroundColor(.green)
+        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            WakeveListRow(
+                title: email,
+                subtitle: "Participant",
+                leading: {
+                    WakeveAvatar(initials: initials, size: 52)
+                },
+                trailing: {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundColor(WakeveColors.success)
+                }
+            )
         }
-        .padding(16)
     }
 }
