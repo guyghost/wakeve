@@ -19,23 +19,18 @@ struct PollVotingView: View {
 
     var body: some View {
         ZStack {
-            // Clean background
-            Color(.systemGroupedBackground)
-                .ignoresSafeArea()
+            WakeveScreenBackground(style: .event)
 
             VStack(spacing: 0) {
-                // Header
-                VStack(spacing: 16) {
+                VStack(spacing: WakeveTheme.Spacing.md) {
                     HStack {
-                        Button(action: onBack) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.secondary)
-                                .frame(width: 36, height: 36)
-                                .background(.thinMaterial)
-                                .clipShape(Circle())
-                                .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-                        }
+                        WakeveCircleButton(
+                            systemImage: "chevron.left",
+                            accessibilityLabel: "Retour",
+                            variant: .eventBack,
+                            size: 56,
+                            action: onBack
+                        )
 
                         Spacer()
 
@@ -49,36 +44,42 @@ struct PollVotingView: View {
                                     ProgressView()
                                         .progressViewStyle(CircularProgressViewStyle())
                                 } else {
-                                    Text("Submit")
-                                        .font(.system(size: 17, weight: .semibold))
-                                        .foregroundColor(.blue)
+                                    Text("Suivant")
+                                        .font(WakeveTheme.Typography.bodySemibold)
+                                        .foregroundColor(WakeveTheme.ColorToken.eventLilacText)
+                                        .padding(.horizontal, 28)
+                                        .frame(height: 54)
+                                        .background(WakeveTheme.ColorToken.eventLilacAction)
+                                        .clipShape(Capsule())
                                 }
                             }
                             .disabled(isLoading)
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, WakeveTheme.Spacing.lg)
                     .padding(.top, 60)
 
-                    VStack(spacing: 8) {
-                        Text("Vote on Times")
-                            .font(.system(size: 34, weight: .bold))
-                            .foregroundColor(.primary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
+                    VStack(spacing: WakeveTheme.Spacing.xs) {
                         Text(event.title)
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .font(WakeveTheme.Typography.display)
+                            .foregroundColor(.white)
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.68)
+
+                        Text("Choisissez vos disponibilités")
+                            .font(WakeveTheme.Typography.rowTitle)
+                            .foregroundColor(Color.white.opacity(0.68))
+                            .multilineTextAlignment(.center)
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, WakeveTheme.Spacing.lg)
                 }
 
                 ScrollView {
-                    VStack(spacing: 16) {
+                    VStack(spacing: WakeveTheme.Spacing.md) {
                         if hasVoted {
-                            // Success State
-                            VStack(spacing: 20) {
+                            WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
+                                VStack(spacing: WakeveTheme.Spacing.lg) {
                                 ZStack {
                                     Circle()
                                         .fill(Color.green.opacity(0.1))
@@ -91,35 +92,33 @@ struct PollVotingView: View {
                                 .padding(.top, 40)
 
                                 VStack(spacing: 8) {
-                                    Text("Votes Submitted")
-                                        .font(.system(size: 24, weight: .bold))
+                                    Text("Votes envoyés")
+                                        .font(WakeveTheme.Typography.section)
                                         .foregroundColor(.primary)
 
-                                    Text("Thank you for your response")
-                                        .font(.system(size: 17))
+                                    Text("Merci pour votre réponse")
+                                        .font(WakeveTheme.Typography.body)
                                         .foregroundColor(.secondary)
                                 }
 
-                                Text("The organizer will be notified when everyone has voted.")
-                                    .font(.system(size: 15))
+                                Text("L’organisateur sera prévenu quand tout le monde aura voté.")
+                                    .font(WakeveTheme.Typography.metadata)
                                     .foregroundColor(.secondary)
                                     .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 40)
-                                    .padding(.bottom, 40)
+                                    .padding(.horizontal, WakeveTheme.Spacing.xl)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(20)
-                            .glassCard(cornerRadius: 20)
+                                .frame(maxWidth: .infinity)
+                            }
                         } else {
-                            // Voting Instructions Card
-                            VStack(spacing: 16) {
+                            WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
+                                VStack(spacing: WakeveTheme.Spacing.md) {
                                 HStack {
                                     Image(systemName: "info.circle.fill")
                                         .font(.system(size: 20))
-                                        .foregroundColor(.blue)
+                                        .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
 
-                                    Text("How to Vote")
-                                        .font(.system(size: 17, weight: .semibold))
+                                    Text("Comment voter")
+                                        .font(WakeveTheme.Typography.bodySemibold)
                                         .foregroundColor(.primary)
 
                                     Spacer()
@@ -129,33 +128,31 @@ struct PollVotingView: View {
                                     VoteGuideRow(
                                         icon: "checkmark",
                                         color: .green,
-                                        title: "Available",
-                                        description: "This time works for me"
+                                        title: "Oui",
+                                        description: "Ce créneau me convient"
                                     )
 
                                     VoteGuideRow(
                                         icon: "questionmark",
                                         color: .orange,
-                                        title: "Maybe",
-                                        description: "Could work if needed"
+                                        title: "Peut-être",
+                                        description: "Possible si nécessaire"
                                     )
 
                                     VoteGuideRow(
                                         icon: "xmark",
                                         color: .red,
-                                        title: "Not Available",
-                                        description: "Can't make this time"
+                                        title: "Non",
+                                        description: "Je ne peux pas venir"
                                     )
                                 }
                             }
-                            .padding(20)
-                            .glassCard(cornerRadius: 20)
+                            }
 
-                            // Progress Indicator
                             HStack {
-                                Text("\(votes.count) of \(event.proposedSlots.count) voted")
-                                    .font(.system(size: 15, weight: .medium))
-                                    .foregroundColor(.secondary)
+                                Text("\(votes.count) / \(event.proposedSlots.count) créneaux votés")
+                                    .font(WakeveTheme.Typography.metadata)
+                                    .foregroundColor(Color.white.opacity(0.7))
 
                                 Spacer()
 
@@ -166,12 +163,11 @@ struct PollVotingView: View {
                                         Text(deadline)
                                             .font(.system(size: 13))
                                     }
-                                    .foregroundColor(.secondary)
+                                    .foregroundColor(Color.white.opacity(0.7))
                                 }
                             }
                             .padding(.horizontal, 4)
 
-                            // Time Slots
                             ForEach(event.proposedSlots.indices, id: \.self) { index in
                                 let slot = event.proposedSlots[index]
                                 TimeSlotVoteCard(
@@ -188,7 +184,7 @@ struct PollVotingView: View {
                             .frame(height: 40)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 16)
+                    .padding(.top, WakeveTheme.Spacing.md)
                 }
             }
         }
@@ -231,8 +227,8 @@ struct PollVotingView: View {
 
         for (slotId, pollVote) in votes {
             do {
-                // Convert PollVote to Shared.Vote
-                let sharedVote: Shared.Vote = {
+                // Convert PollVote to Shared.Vote_
+                let sharedVote: Vote_ = {
                     switch pollVote {
                     case .yes: return .yes
                     case .maybe: return .maybe
@@ -270,7 +266,7 @@ struct PollVotingView: View {
         if let date = ISO8601DateFormatter().date(from: deadlineString) {
             let formatter = DateFormatter()
             formatter.dateFormat = "MMM d"
-            return "Due " + formatter.string(from: date)
+            return "Avant le " + formatter.string(from: date)
         }
         return nil
     }
@@ -319,11 +315,11 @@ struct TimeSlotVoteCard: View {
     let onVoteSelected: (PollVote) -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
-            // Time slot header
-            VStack(spacing: 6) {
+        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
+            VStack(spacing: WakeveTheme.Spacing.md) {
+                VStack(spacing: 6) {
                 Text(formatDate(timeSlot.start ?? ""))
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(.primary)
 
                 HStack(spacing: 6) {
@@ -332,43 +328,17 @@ struct TimeSlotVoteCard: View {
                         .foregroundColor(.secondary)
 
                     Text("\(formatTime(timeSlot.start ?? "")) - \(formatTime(timeSlot.end ?? ""))")
-                        .font(.system(size: 15))
+                        .font(WakeveTheme.Typography.metadata)
                         .foregroundColor(.secondary)
                 }
             }
 
-            // Vote buttons
-            HStack(spacing: 12) {
-                VoteButton(
-                    vote: .yes,
-                    icon: "checkmark",
-                    label: "Available",
-                    color: .green,
-                    isSelected: selectedVote == .yes,
-                    action: { onVoteSelected(.yes) }
-                )
-
-                VoteButton(
-                    vote: .maybe,
-                    icon: "questionmark",
-                    label: "Maybe",
-                    color: .orange,
-                    isSelected: selectedVote == .maybe,
-                    action: { onVoteSelected(.maybe) }
-                )
-
-                VoteButton(
-                    vote: .no,
-                    icon: "xmark",
-                    label: "Not Available",
-                    color: .red,
-                    isSelected: selectedVote == .no,
-                    action: { onVoteSelected(.no) }
+                WakeveSegmentedVoteControl(
+                    selectedVote: selectedVote,
+                    onVoteSelected: onVoteSelected
                 )
             }
         }
-        .padding(20)
-        .glassCard(cornerRadius: 20)
     }
 
     private func formatDate(_ dateString: String) -> String {
@@ -387,49 +357,5 @@ struct TimeSlotVoteCard: View {
             return formatter.string(from: date)
         }
         return dateString
-    }
-}
-
-// MARK: - Vote Button
-
-struct VoteButton: View {
-    let vote: PollVote
-    let icon: String
-    let label: String
-    let color: Color
-    let isSelected: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 8) {
-                ZStack {
-                    // Background circle
-                    if isSelected {
-                        Circle()
-                            .fill(color)
-                            .frame(width: 44, height: 44)
-                    } else {
-                        // Non-selected state with ultraThinMaterial
-                        Circle()
-                            .frame(width: 44, height: 44)
-                            .background(.ultraThinMaterial)
-                            .clipShape(Circle())
-                    }
-
-                    Image(systemName: icon)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(isSelected ? .white : .secondary)
-                }
-
-                Text(label)
-                    .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
-                    .foregroundColor(isSelected ? color : .secondary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(ScaleButtonStyle())
     }
 }

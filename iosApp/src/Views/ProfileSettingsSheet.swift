@@ -30,11 +30,15 @@ struct ProfileSettingsSheet: View {
                     VStack(spacing: 16) {
                         // Notifications
                         settingsGroup {
-                            SettingsRow(
-                                icon: "bell.fill",
-                                title: String(localized: "settings_sheet.notifications"),
-                                value: notificationsEnabled ? String(localized: "settings_sheet.enabled") : String(localized: "settings_sheet.disabled")
-                            )
+                            NavigationLink {
+                                NotificationPreferencesView(userId: userId)
+                            } label: {
+                                SettingsRow(
+                                    icon: "bell.fill",
+                                    title: String(localized: "settings_sheet.notifications"),
+                                    value: notificationsEnabled ? String(localized: "settings_sheet.enabled") : String(localized: "settings_sheet.disabled")
+                                )
+                            }
                         }
                         
                         // Calendar Sync

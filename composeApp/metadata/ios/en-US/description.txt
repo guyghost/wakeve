@@ -1,0 +1,36 @@
+Wakeve is the easiest way to plan events with your friends, family, or team. Stop endless group chat debates — let everyone vote on the best date and time, then confirm in one tap.
+
+✨ KEY FEATURES
+
+🗓️ Smart Polling & Voting
+Create polls with flexible time slots (morning, afternoon, evening, or all-day). Participants vote YES, MAYBE, or NO. Wakeve automatically calculates the best time for everyone using weighted scoring.
+
+📱 Works Offline
+No signal? No problem. Wakeve works fully offline — your events, votes, and changes sync automatically when you're back online.
+
+🌍 Multi-Platform
+Share events with anyone — they'll have the best experience on their platform with native Android Material You design or iOS Liquid Glass.
+
+📅 Calendar Integration
+Add confirmed events directly to your native calendar with one tap. Get reminders and never miss an event.
+
+🎯 Flexible Event Types
+Birthday parties, team building, weddings, weekend trips, game nights, and more. Wakeve adapts to any event type with smart suggestions.
+
+👥 Participant Management
+Set minimum and maximum participants. Invite friends and let the group decide together.
+
+📍 Location Suggestions
+Add potential locations and let the group compare options side by side.
+
+🔒 Privacy First
+Your data stays on your device. Wakeve uses local-first architecture with encrypted sync — no data mining, no ads.
+
+🎯 PERFECT FOR
+• Friends planning a night out
+• Families organizing holidays
+• Teams scheduling offsites
+• Couples planning date nights
+• Anyone tired of "when works for you?" texts
+
+Download Wakeve and start planning together!

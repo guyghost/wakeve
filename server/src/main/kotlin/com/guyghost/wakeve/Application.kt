@@ -490,7 +490,7 @@ fun Application.module(
                             scenarioRoutes(scenarioRepository)
                             budgetRoutes(budgetRepository, eventRepository)
                             mealRoutes(mealRepository)
-                            commentRoutes(commentRepository, eventNotificationTrigger)
+                            commentRoutes(commentRepository, eventNotificationTrigger, eventRepository)
                             potentialLocationRoutes(locationRepository)
                             syncRoutes(syncService)
                             accommodationRoutes(accommodationRepository)

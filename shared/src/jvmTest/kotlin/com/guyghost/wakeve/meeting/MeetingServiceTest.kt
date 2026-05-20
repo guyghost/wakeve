@@ -297,7 +297,8 @@ class MeetingServiceTest {
             eventTypeCustom = null,
             minParticipants = null,
             maxParticipants = null,
-            expectedParticipants = null
+            expectedParticipants = null,
+            isSample = 0L
         )
     }
 

@@ -283,12 +283,15 @@ class NotificationSchedulerTest {
     @Test
     fun `NotificationPreferences shouldSend respects enabled types`() {
         val preferences = createTestPreferences(
-            enabledTypes = setOf(NotificationType.EVENT_INVITE)
+            enabledTypes = setOf(NotificationType.EVENT_INVITE),
+            quietHoursStart = null,
+            quietHoursEnd = null
         )
-        val now = Clock.System.now()
+        // Use a fixed noon time to avoid quiet-hours interference (deterministic)
+        val noon = Instant.parse("2026-01-15T12:00:00Z")
 
-        assertTrue(preferences.shouldSend(NotificationType.EVENT_INVITE, now))
-        assertFalse(preferences.shouldSend(NotificationType.VOTE_REMINDER, now))
+        assertTrue(preferences.shouldSend(NotificationType.EVENT_INVITE, noon))
+        assertFalse(preferences.shouldSend(NotificationType.VOTE_REMINDER, noon))
     }
 
     @Test

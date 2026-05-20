@@ -1,15 +1,5 @@
 import SwiftUI
 
-// Color scheme for onboarding using Wakeve design system
-struct OnboardingColors {
-    // Using hex values from WakeveColors design system
-    static let primary = Color(red: 0x25/255.0, green: 0x63/255.0, blue: 0xEB/255.0)      // #2563EB (wakevPrimary)
-    static let primaryLight = Color(red: 0x25/255.0, green: 0x63/255.0, blue: 0xEB/255.0).opacity(0.15)
-    static let success = Color(red: 0x05/255.0, green: 0x96/255.0, blue: 0x69/255.0)      // #059669 (wakevSuccess)
-    static let primaryText = Color.primary
-    static let secondaryText = Color.secondary
-}
-
 struct OnboardingStep {
     let title: String
     let description: String
@@ -23,24 +13,20 @@ struct OnboardingStepView: View {
     @State private var isAnimating = false
     
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: WakeveTheme.Spacing.xl) {
             Spacer()
             
-            // Icon with spring animation
             ZStack {
                 Circle()
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 120, height: 120)
-                    .overlay(
-                        Circle()
-                            .fill(OnboardingColors.primary.opacity(0.1))
-                    )
+                    .fill(Color.white.opacity(0.08))
+                    .frame(width: 132, height: 132)
+                    .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
                 
                 Image(systemName: step.icon)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 60, height: 60)
-                    .foregroundColor(OnboardingColors.primary)
+                    .frame(width: 62, height: 62)
+                    .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
                     .scaleEffect(isAnimating ? 1.1 : 1.0)
                     .animation(
                         Animation.spring(response: 1.0, dampingFraction: 0.7)
@@ -49,48 +35,47 @@ struct OnboardingStepView: View {
                     )
             }
             .clipShape(Circle())
-            .shadow(color: OnboardingColors.primary.opacity(0.2), radius: 20, x: 0, y: 8)
+            .shadow(color: WakeveTheme.ColorToken.permissionBlue.opacity(0.22), radius: 22, x: 0, y: 10)
             .onAppear { isAnimating = true }
             
-            // Title
             Text(step.title)
-                .font(.largeTitle.weight(.bold))
+                .font(WakeveTheme.Typography.largeTitle)
                 .multilineTextAlignment(.center)
-                .foregroundColor(.primary)
+                .foregroundColor(.white)
+                .lineLimit(3)
+                .minimumScaleFactor(0.82)
             
-            // Description
             Text(step.description)
-                .font(.body)
+                .font(WakeveTheme.Typography.body)
                 .multilineTextAlignment(.center)
-                .foregroundColor(.secondary)
-                .padding(.horizontal)
-                .lineSpacing(1.5)
+                .foregroundColor(Color.white.opacity(0.78))
+                .padding(.horizontal, WakeveTheme.Spacing.md)
+                .lineSpacing(3)
             
-            // Features
-            VStack(spacing: 12) {
+            VStack(spacing: WakeveTheme.Spacing.sm) {
                 ForEach(step.features, id: \.self) { feature in
-                    HStack(spacing: 12) {
+                    HStack(spacing: WakeveTheme.Spacing.sm) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(OnboardingColors.success)
+                            .foregroundColor(WakeveColors.success)
                         
                         Text(feature)
-                            .font(.body)
-                            .foregroundColor(.secondary)
+                            .font(WakeveTheme.Typography.metadata)
+                            .foregroundColor(Color.white.opacity(0.72))
                             .lineLimit(2)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .padding(.horizontal)
+            .padding(.horizontal, WakeveTheme.Spacing.md)
             
             Spacer()
         }
-        .padding(24)
-        .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
-        .padding()
+        .padding(WakeveTheme.Spacing.xl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.white.opacity(0.035))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.panel, style: .continuous))
+        .padding(WakeveTheme.Spacing.page)
     }
 }
 
@@ -143,6 +128,8 @@ struct OnboardingView: View {
     
     var body: some View {
         ZStack {
+            WakeveScreenBackground(style: .utility)
+
             TabView(selection: $currentPage) {
                 ForEach(0..<onboardingSteps.count, id: \.self) { index in
                     OnboardingStepView(step: onboardingSteps[index])
@@ -152,58 +139,44 @@ struct OnboardingView: View {
             #if os(iOS)
             .tabViewStyle(.page(indexDisplayMode: .automatic))
             #endif
-            .background(.ultraThinMaterial)
             
-            // Bottom buttons
             VStack {
                 Spacer()
-                HStack(spacing: 12) {
-                    Button(action: onOnboardingComplete) {
-                        Text(String(localized: "onboarding.skip"))
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(OnboardingColors.primary)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 44)
-                            .background(.ultraThinMaterial)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .stroke(OnboardingColors.primary.opacity(0.3), lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-                    }
-                    
-                    Button(action: {
+
+                VStack(spacing: WakeveTheme.Spacing.md) {
+                    WakeveActionButton(
+                        currentPage < onboardingSteps.count - 1 ? String(localized: "onboarding.next") : String(localized: "onboarding.get_started"),
+                        systemImage: currentPage < onboardingSteps.count - 1 ? "arrow.right" : "checkmark",
+                        variant: .primary
+                    ) {
                         if currentPage < onboardingSteps.count - 1 {
                             currentPage += 1
                         } else {
                             onOnboardingComplete()
                         }
-                    }) {
-                        HStack(spacing: 8) {
-                            Text(currentPage < onboardingSteps.count - 1 ? String(localized: "onboarding.next") : String(localized: "onboarding.get_started"))
-                                .font(.subheadline.weight(.semibold))
-                            
-                            if currentPage < onboardingSteps.count - 1 {
-                                Image(systemName: "arrow.right")
-                                    .font(.system(size: 14, weight: .semibold))
-                            }
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(OnboardingColors.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        .shadow(color: OnboardingColors.primary.opacity(0.4), radius: 12, x: 0, y: 6)
                     }
+
+                    Button(action: onOnboardingComplete) {
+                        Text(String(localized: "onboarding.skip"))
+                            .font(WakeveTheme.Typography.bodySemibold)
+                            .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
+                            .frame(height: 44)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 16)
-                .background(.regularMaterial)
-                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                .padding(.horizontal)
-                .padding(.bottom, 40)
+                .padding(WakeveTheme.Spacing.page)
+                .background(
+                    LinearGradient(
+                        colors: [Color.clear, WakeveTheme.ColorToken.appDark.opacity(0.98)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 168)
+                    .allowsHitTesting(false),
+                    alignment: .bottom
+                )
             }
+            .ignoresSafeArea(edges: .bottom)
         }
     }
 }

@@ -1,0 +1,12 @@
+🎉 Welcome to Wakeve 1.0!
+
+This is our first public release:
+
+• Create events and invite participants
+• Smart polling with flexible time slots
+• Weighted voting — finds the best time for everyone
+• Works fully offline — syncs when you're back online
+• Add events to your native calendar
+• Privacy-first: your data stays on your device
+
+We're just getting started. Thanks for trying Wakeve!

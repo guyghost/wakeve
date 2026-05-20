@@ -13,7 +13,8 @@ CREATE TABLE event (
     eventTypeCustom TEXT, -- Custom text if eventType = CUSTOM
     minParticipants INTEGER, -- Minimum expected participants
     maxParticipants INTEGER, -- Maximum expected participants
-    expectedParticipants INTEGER -- Expected number of participants
+    expectedParticipants INTEGER, -- Expected number of participants
+    isSample INTEGER NOT NULL DEFAULT 0 -- 1 = sample/onboarding event, excluded from sync
 );
 
 -- Queries
@@ -30,12 +31,12 @@ selectByStatus:
 SELECT * FROM event WHERE status = ? ORDER BY createdAt DESC;
 
 insertEvent:
-INSERT INTO event(id, organizerId, title, description, status, deadline, createdAt, updatedAt, version, eventType, eventTypeCustom, minParticipants, maxParticipants, expectedParticipants)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO event(id, organizerId, title, description, status, deadline, createdAt, updatedAt, version, eventType, eventTypeCustom, minParticipants, maxParticipants, expectedParticipants, isSample)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateEvent:
 UPDATE event
-SET title = ?, description = ?, status = ?, deadline = ?, updatedAt = ?, version = version + 1, eventType = ?, eventTypeCustom = ?, minParticipants = ?, maxParticipants = ?, expectedParticipants = ?
+SET title = ?, description = ?, status = ?, deadline = ?, updatedAt = ?, version = version + 1, eventType = ?, eventTypeCustom = ?, minParticipants = ?, maxParticipants = ?, expectedParticipants = ?, isSample = ?
 WHERE id = ?;
 
 updateEventStatus:
@@ -126,6 +127,17 @@ selectEventTypesByParticipant:
 SELECT DISTINCT e.eventType FROM event e
 INNER JOIN participant p ON p.eventId = e.id
 WHERE p.userId = ?;
+
+-- First-launch detection: check if any non-sample events exist
+hasAnyRealEvents:
+SELECT COUNT(*) FROM event WHERE isSample = 0;
+
+-- Sample event queries
+selectSampleEvents:
+SELECT * FROM event WHERE isSample = 1;
+
+deleteSampleEvents:
+DELETE FROM event WHERE isSample = 1;
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_event_organizer ON event(organizerId, createdAt DESC);
