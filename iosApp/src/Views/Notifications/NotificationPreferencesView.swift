@@ -8,6 +8,7 @@ struct NotificationPreferencesView: View {
 
     @StateObject private var viewModel: NotificationPreferencesViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     init(userId: String) {
         _viewModel = StateObject(wrappedValue: NotificationPreferencesViewModel(userId: userId))
@@ -43,6 +44,7 @@ struct NotificationPreferencesView: View {
                     isOn: binding(for: toggle)
                 )
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
+                .listRowBackground(WakeveTheme.ColorToken.cardFill(for: colorScheme))
             }
         } header: {
             Text("Types de notification")
@@ -57,6 +59,7 @@ struct NotificationPreferencesView: View {
         Section {
             Toggle("Activer les heures silencieuses", isOn: $viewModel.quietHoursEnabled)
                 .tint(WakeveTheme.ColorToken.permissionBlue)
+                .listRowBackground(WakeveTheme.ColorToken.cardFill(for: colorScheme))
 
             if viewModel.quietHoursEnabled {
                 HStack {
@@ -65,6 +68,7 @@ struct NotificationPreferencesView: View {
                     DatePicker("", selection: $viewModel.quietHoursStart, displayedComponents: .hourAndMinute)
                         .labelsHidden()
                 }
+                .listRowBackground(WakeveTheme.ColorToken.cardFill(for: colorScheme))
 
                 HStack {
                     Text("Fin")
@@ -72,6 +76,7 @@ struct NotificationPreferencesView: View {
                     DatePicker("", selection: $viewModel.quietHoursEnd, displayedComponents: .hourAndMinute)
                         .labelsHidden()
                 }
+                .listRowBackground(WakeveTheme.ColorToken.cardFill(for: colorScheme))
             }
         } header: {
             Text("Heures silencieuses")
@@ -90,10 +95,12 @@ struct NotificationPreferencesView: View {
             Toggle("Son", isOn: $viewModel.soundEnabled)
                 .tint(WakeveTheme.ColorToken.permissionBlue)
                 .onChange(of: viewModel.soundEnabled) { _, _ in viewModel.save() }
+                .listRowBackground(WakeveTheme.ColorToken.cardFill(for: colorScheme))
 
             Toggle("Vibration", isOn: $viewModel.vibrationEnabled)
                 .tint(WakeveTheme.ColorToken.permissionBlue)
                 .onChange(of: viewModel.vibrationEnabled) { _, _ in viewModel.save() }
+                .listRowBackground(WakeveTheme.ColorToken.cardFill(for: colorScheme))
         } header: {
             Text("Son et vibration")
         }

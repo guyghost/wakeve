@@ -380,6 +380,8 @@ struct FilterDropdownMenu: View {
     @Binding var selectedFilter: HomeEventFilter
     @Binding var isShowing: Bool
     let draftCount: Int
+
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         VStack {
@@ -435,7 +437,7 @@ struct FilterDropdownMenu: View {
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(Color(.secondarySystemGroupedBackground).opacity(0.95))
+                        .fill(WakeveTheme.ColorToken.cardFill(for: colorScheme))
                         .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 10)
                 )
                 .padding(.top, 60)

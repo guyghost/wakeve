@@ -39,6 +39,7 @@ struct ExploreTabView: View {
             .navigationDestination(for: EventScenario.self) { scenario in
                 ExploreScenarioDetailView(scenario: scenario)
             }
+            .background(WakeveScreenBackground(style: .grouped))
         }
     }
 }

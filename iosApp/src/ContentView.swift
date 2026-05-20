@@ -21,6 +21,7 @@ func markOnboardingComplete() {
 struct ContentView: View {
     @EnvironmentObject var authStateManager: AuthStateManager
     @EnvironmentObject var authService: AuthenticationService
+    @AppStorage("darkMode") private var darkMode = false
     @State private var hasSeenGetStarted = false
     @State private var hasOnboarded = false
 
@@ -59,6 +60,7 @@ struct ContentView: View {
         .onAppear {
             hasOnboarded = hasCompletedOnboarding()
         }
+        .preferredColorScheme(darkMode ? .dark : .light)
     }
 }
 

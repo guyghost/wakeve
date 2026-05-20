@@ -27,7 +27,7 @@ struct WakeveScreenBackground: View {
             case .event:
                 WakeveTheme.EventGradient.invitation
             case .grouped:
-                Color(uiColor: .systemGroupedBackground)
+                WakeveTheme.ColorToken.pageBackground(for: colorScheme)
             }
         }
         .ignoresSafeArea()
@@ -82,11 +82,11 @@ struct WakeveGlassCard<Content: View>: View {
     private var fill: Color {
         switch prominence {
         case .subtle:
-            return WakeveTheme.ColorToken.cardFill(for: colorScheme).opacity(0.72)
+            return WakeveTheme.ColorToken.subtleCardFill(for: colorScheme)
         case .regular:
             return WakeveTheme.ColorToken.cardFill(for: colorScheme)
         case .prominent:
-            return colorScheme == .dark ? Color.white.opacity(0.1) : Color.white.opacity(0.92)
+            return colorScheme == .dark ? Color(hex: "25252A") : Color.white
         }
     }
 }

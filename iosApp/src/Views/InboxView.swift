@@ -28,6 +28,7 @@ struct InboxView: View {
     @State private var isSelectionMode = false
     @State private var selectedItemIds: Set<String> = []
     @State private var showActionBar = false
+    @Environment(\.colorScheme) private var colorScheme
 
     init(userId: String, onBack: @escaping () -> Void, unreadCount: Binding<Int>, initialItems: [InboxItemModel]? = nil) {
         self.userId = userId
@@ -65,7 +66,7 @@ struct InboxView: View {
                                 .onTapGesture {
                                     toggleSelection(for: item.id)
                                 }
-                                .listRowBackground(Color.clear)
+                                .listRowBackground(WakeveTheme.ColorToken.pageBackground(for: colorScheme))
                             } else {
                                 NavigationLink {
                                     InboxDetailView(item: item)
@@ -80,14 +81,19 @@ struct InboxView: View {
                                     )
                                 }
                                 .listRowBackground(
-                                    item.isRead ? Color.clear : Color.accentColor.opacity(0.04)
+                                    item.isRead
+                                        ? WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                                        : WakeveTheme.ColorToken.permissionBlue.opacity(colorScheme == .dark ? 0.16 : 0.08)
                                 )
                             }
                         }
                     }
                     .listStyle(.plain)
+                    .scrollContentBackground(.hidden)
+                    .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme))
                 }
             }
+            .background(WakeveScreenBackground(style: .grouped))
             .navigationTitle(isSelectionMode ? "\(selectedItemIds.count) selected" : "Inbox")
             #if os(iOS)
             .navigationBarTitleDisplayMode(isSelectionMode ? .inline : .large)
@@ -331,7 +337,12 @@ struct InboxView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(.bar)
+        .background(WakeveTheme.ColorToken.cardFill(for: colorScheme))
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(WakeveTheme.ColorToken.separator(for: colorScheme))
+                .frame(height: 1)
+        }
         .accessibilityElement(children: .contain)
     }
     
@@ -623,6 +634,8 @@ struct ActionBarButton: View {
     let title: String
     let isEnabled: Bool
     let action: @MainActor () -> Void
+
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
         Button(action: action) {
@@ -634,7 +647,7 @@ struct ActionBarButton: View {
                 .padding(.vertical, 12)
                 .background(
                     Capsule()
-                        .fill(Color(.systemGray5))
+                        .fill(WakeveTheme.ColorToken.controlFill(for: colorScheme))
                 )
         }
         .disabled(!isEnabled)

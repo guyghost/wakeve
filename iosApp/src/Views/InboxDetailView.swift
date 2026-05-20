@@ -28,7 +28,7 @@ struct InboxDetailView: View {
             .padding(.horizontal, 20)
             .padding(.top, 16)
         }
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
+        .background(WakeveScreenBackground(style: .grouped))
         .navigationTitle(item.eventName ?? item.title)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)

@@ -27,6 +27,8 @@ public enum WakeveTheme {
         public static let cardStrokeLight = Color.black.opacity(0.08)
         public static let mutedText = Color.white.opacity(0.62)
         public static let mutedTextLight = Color(hex: "636674")
+        public static let appLightElevated = Color.white
+        public static let appLightControl = Color.black.opacity(0.06)
         public static let profileWarmTop = Color(hex: "F47C27")
         public static let profileWarmMid = Color(hex: "8B4312")
         public static let profileWarmBottom = Color(hex: "171719")
@@ -46,7 +48,19 @@ public enum WakeveTheme {
         }
 
         public static func cardFill(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? appDarkElevated : appLightElevated
+        }
+
+        public static func subtleCardFill(for colorScheme: ColorScheme) -> Color {
             colorScheme == .dark ? appDarkCard : Color.white.opacity(0.84)
+        }
+
+        public static func controlFill(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? Color.white.opacity(0.1) : appLightControl
+        }
+
+        public static func separator(for colorScheme: ColorScheme) -> Color {
+            colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
         }
 
         public static func cardBorder(for colorScheme: ColorScheme) -> Color {
