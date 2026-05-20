@@ -20,19 +20,26 @@ struct InboxView: View {
     /// Optional override for initial items (used by previews).
     var initialItems: [InboxItemModel]? = nil
 
+    @StateObject private var viewModel: InboxViewModel
     @State private var selectedFilter: InboxFilter = .inbox
     @State private var showNotificationBanner = true
-    @State private var items: [InboxItemModel] = []
-    @State private var isLoading = false
     @State private var selectedEventFilter: String? = nil
     @State private var showEventSheet = false
     @State private var isSelectionMode = false
     @State private var selectedItemIds: Set<String> = []
     @State private var showActionBar = false
 
+    init(userId: String, onBack: @escaping () -> Void, unreadCount: Binding<Int>, initialItems: [InboxItemModel]? = nil) {
+        self.userId = userId
+        self.onBack = onBack
+        self._unreadCount = unreadCount
+        self.initialItems = initialItems
+        self._viewModel = StateObject(wrappedValue: InboxViewModel(userId: userId))
+    }
+
     // Derived from loaded items for the event filter dropdown
     private var availableEvents: [String] {
-        Array(Set(items.compactMap { $0.eventName })).sorted()
+        Array(Set(viewModel.items.compactMap { $0.eventName })).sorted()
     }
 
     var body: some View {
@@ -42,7 +49,7 @@ struct InboxView: View {
                 filterTabsView
                 
                 // Content
-                if isLoading {
+                if viewModel.isLoading {
                     loadingView
                 } else if filteredItems.isEmpty {
                     emptyStateView
@@ -137,8 +144,11 @@ struct InboxView: View {
             }
         }
         .onAppear(perform: loadItems)
-        .onChange(of: items) { _, newItems in
+        .onChange(of: viewModel.items) { _, newItems in
             unreadCount = newItems.filter { !$0.isRead }.count
+        }
+        .refreshable {
+            viewModel.loadNotifications()
         }
     }
     
@@ -209,21 +219,21 @@ struct InboxView: View {
     private var filteredItems: [InboxItemModel] {
         switch selectedFilter {
         case .inbox:
-            return items
+            return viewModel.items
         case .focused:
-            return items.filter { $0.isFocused }
+            return viewModel.items.filter { $0.isFocused }
         case .unread:
-            return items.filter { !$0.isRead }
+            return viewModel.items.filter { !$0.isRead }
         case .event:
             if let eventName = selectedEventFilter {
-                return items.filter { $0.eventName?.contains(eventName) ?? false }
+                return viewModel.items.filter { $0.eventName?.contains(eventName) ?? false }
             }
-            return items.filter { $0.eventName != nil }
+            return viewModel.items.filter { $0.eventName != nil }
         }
     }
-    
+
     private var hasUnreadItems: Bool {
-        items.contains { !$0.isRead }
+        viewModel.items.contains { !$0.isRead }
     }
     
     private var activeFilterCount: Int {
@@ -324,16 +334,15 @@ struct InboxView: View {
     }
     
     private func markSelectedAsRead() {
-        for index in items.indices {
-            if selectedItemIds.contains(items[index].id) {
-                items[index].isRead = true
-            }
+        for id in selectedItemIds {
+            viewModel.markAsRead(id)
         }
     }
-    
+
     private func markSelectedAsDone() {
-        // Remove selected items from the list (mark as done/archived)
-        items.removeAll { selectedItemIds.contains($0.id) }
+        for id in selectedItemIds {
+            viewModel.deleteNotification(id)
+        }
     }
     
     private func toggleSelection(for itemId: String) {
@@ -345,37 +354,19 @@ struct InboxView: View {
     }
     
     // MARK: - Actions
-    
+
     private func loadItems() {
         if let override = initialItems {
-            items = override
-            isLoading = false
+            // Preview mode: use injected data
+            viewModel.items = override
+            viewModel.isLoading = false
             return
         }
-        
-        isLoading = true
-        
-        // TODO: Load from repository when backend is available
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            #if DEBUG
-            items = InboxItemFactory.mixedList()
-            #else
-            items = []
-            #endif
-            isLoading = false
-        }
+        viewModel.loadNotifications()
     }
-    
-    private func markAllAsRead() {
-        for index in items.indices {
-            items[index].isRead = true
-        }
-    }
-    
+
     private func markItemAsRead(_ itemId: String) {
-        if let index = items.firstIndex(where: { $0.id == itemId }) {
-            items[index].isRead = true
-        }
+        viewModel.markAsRead(itemId)
     }
 }
 

@@ -35,6 +35,16 @@ class NotificationServiceTest {
         service = NotificationService(database, preferencesRepository, fcmSender, apnsSender)
 
         seedUser("user123")
+
+        // Set deterministic preferences: all types enabled, no quiet hours
+        // This ensures tests are not affected by the current wall-clock time
+        preferencesRepository.setPreferences(
+            defaultNotificationPreferences("user123").copy(
+                enabledTypes = NotificationType.entries.toSet(),
+                quietHoursStart = null,
+                quietHoursEnd = null
+            )
+        )
     }
 
     // ==================== 1. registerPushToken Tests ====================
@@ -564,14 +574,16 @@ class NotificationServiceTest {
     fun sendNotification_filtersByType_votingRelated() = runTest {
         service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
 
-        // Enable only voting-related types
+        // Enable only voting-related types (no quiet hours for determinism)
         preferencesRepository.setPreferences(
             defaultNotificationPreferences("user123").copy(
                 enabledTypes = setOf(
                     NotificationType.VOTE_REMINDER,
                     NotificationType.VOTE_CLOSE_REMINDER,
                     NotificationType.DATE_CONFIRMED
-                )
+                ),
+                quietHoursStart = null,
+                quietHoursEnd = null
             )
         )
 
@@ -661,10 +673,12 @@ class NotificationServiceTest {
     fun getUnreadNotifications_correctlyMapsAllTypes() = runTest {
         service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
 
-        // Enable all notification types for this test
+        // Enable all notification types for this test (no quiet hours for determinism)
         preferencesRepository.setPreferences(
             defaultNotificationPreferences("user123").copy(
-                enabledTypes = NotificationType.entries.toSet()
+                enabledTypes = NotificationType.entries.toSet(),
+                quietHoursStart = null,
+                quietHoursEnd = null
             )
         )
 

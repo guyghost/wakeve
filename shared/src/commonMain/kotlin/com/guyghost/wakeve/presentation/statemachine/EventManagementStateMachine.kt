@@ -8,8 +8,17 @@ import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
 import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
+import com.guyghost.wakeve.sample.SampleEventFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.Clock
+
+/**
+ * Functional interface for seeding sample event data.
+ * Implemented by DatabaseEventRepository to insert sample data into SQLDelight.
+ */
+fun interface SampleEventSeeder {
+    suspend fun seedSampleEvent(): Result<com.guyghost.wakeve.models.Event>
+}
 
 /**
  * State Machine for event management workflows.
@@ -19,6 +28,7 @@ import kotlinx.datetime.Clock
  * - Creating, updating, deleting events
  * - Selecting events and loading their details
  * - Managing participants and poll results
+ * - Seeding sample events for first-launch onboarding
  *
  * ## Architecture
  *
@@ -83,12 +93,14 @@ import kotlinx.datetime.Clock
  * @property loadEventsUseCase Use case for loading events
  * @property createEventUseCase Use case for creating events
  * @property eventRepository Direct access to repository for additional operations (nullable)
+ * @property sampleEventSeeder Seeder for sample/onboarding event data (nullable)
  * @property scope CoroutineScope for launching async work
  */
 class EventManagementStateMachine(
     private val loadEventsUseCase: LoadEventsUseCase,
     private val createEventUseCase: CreateEventUseCase,
     private val eventRepository: com.guyghost.wakeve.repository.EventRepositoryInterface?,
+    private val sampleEventSeeder: SampleEventSeeder? = null,
     scope: CoroutineScope
 ) : StateMachine<EventManagementContract.State, EventManagementContract.Intent, EventManagementContract.SideEffect>(
     initialState = EventManagementContract.State(),
@@ -130,6 +142,7 @@ class EventManagementStateMachine(
                 intent.eventId,
                 intent.locationId
             )
+            is EventManagementContract.Intent.SeedSampleEvent -> seedSampleEvent()
         }
     }
 
@@ -959,6 +972,59 @@ class EventManagementStateMachine(
             },
             onFailure = { error ->
                 val errorMessage = error.message ?: "Failed to finalize event"
+                updateState { it.copy(isLoading = false, error = errorMessage) }
+                emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
+            }
+        )
+    }
+
+    // ========================================================================
+    // Sample Event Handler
+    // ========================================================================
+
+    /**
+     * Seed the sample event for first-launch onboarding.
+     *
+     * Creates a pre-populated birthday event in POLLING status
+     * with participants, time slots, and pre-cast votes.
+     * Idempotent — does nothing if sample already exists.
+     *
+     * Flow:
+     * 1. Check if sampleEventSeeder is available
+     * 2. Set isLoading = true
+     * 3. Call seeder.seedSampleEvent()
+     * 4. On success: reload events, navigate to event detail
+     * 5. On failure: set error, emit ShowToast
+     */
+    private suspend fun seedSampleEvent() {
+        if (sampleEventSeeder == null) {
+            updateState { it.copy(error = "Sample event seeder not available") }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast("Sample event not available"))
+            return
+        }
+
+        updateState { it.copy(isLoading = true, error = null) }
+
+        val result = sampleEventSeeder.seedSampleEvent()
+
+        result.fold(
+            onSuccess = { event ->
+                // Reload events to include the new sample
+                loadEvents()
+                emitSideEffect(
+                    EventManagementContract.SideEffect.ShowToast(
+                        "✨ Sample event created! Explore the full flow."
+                    )
+                )
+                // Navigate to the sample event detail
+                emitSideEffect(
+                    EventManagementContract.SideEffect.NavigateTo(
+                        "event/${event.id}"
+                    )
+                )
+            },
+            onFailure = { error ->
+                val errorMessage = error.message ?: "Failed to seed sample event"
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }

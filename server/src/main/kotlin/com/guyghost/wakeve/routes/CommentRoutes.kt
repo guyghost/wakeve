@@ -1,10 +1,14 @@
 package com.guyghost.wakeve.routes
 
+import com.guyghost.wakeve.auth.userId
 import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.models.CommentRequest
 import com.guyghost.wakeve.models.CommentSection
 import com.guyghost.wakeve.notification.EventNotificationTrigger
+import com.guyghost.wakeve.repository.DatabaseEventRepository
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.delete
@@ -26,7 +30,8 @@ import kotlinx.serialization.Serializable
  */
 fun io.ktor.server.routing.Route.commentRoutes(
     repository: CommentRepository,
-    eventNotificationTrigger: EventNotificationTrigger? = null
+    eventNotificationTrigger: EventNotificationTrigger? = null,
+    eventRepository: DatabaseEventRepository? = null
 ) {
     route("/events/{eventId}/comments") {
 
@@ -345,8 +350,18 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     return@post
                 }
 
-                // TODO: Check if user is organizer (requires auth context)
-                // For now, allow pinning for demo purposes
+                // Check if caller is the event organizer
+                val currentUserId = call.principal<JWTPrincipal>()?.userId
+                val event = eventRepository?.getEvent(eventId)
+                val isOrganizer = currentUserId != null && event?.organizerId == currentUserId
+
+                if (!isOrganizer) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the event organizer can pin comments")
+                    )
+                    return@post
+                }
 
                 val pinnedComment = repository.pinComment(commentId)
                 if (pinnedComment != null) {
@@ -393,8 +408,18 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     return@delete
                 }
 
-                // TODO: Check if user is organizer (requires auth context)
-                // For now, allow unpinning for demo purposes
+                // Check if caller is the event organizer
+                val currentUserId = call.principal<JWTPrincipal>()?.userId
+                val event = eventRepository?.getEvent(eventId)
+                val isOrganizer = currentUserId != null && event?.organizerId == currentUserId
+
+                if (!isOrganizer) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the event organizer can unpin comments")
+                    )
+                    return@delete
+                }
 
                 val unpinnedComment = repository.unpinComment(commentId)
                 if (unpinnedComment != null) {
@@ -441,8 +466,19 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     return@post
                 }
 
-                // TODO: Check if user is organizer or comment author (requires auth context)
-                // For now, allow restoring for demo purposes
+                // Check if caller is the organizer or the comment author
+                val currentUserId = call.principal<JWTPrincipal>()?.userId
+                val event = eventRepository?.getEvent(eventId)
+                val isOrganizer = currentUserId != null && event?.organizerId == currentUserId
+                val isAuthor = currentUserId != null && existingComment.authorId == currentUserId
+
+                if (!isOrganizer && !isAuthor) {
+                    call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer or the comment author can restore comments")
+                    )
+                    return@post
+                }
 
                 val restoredComment = repository.restoreComment(commentId)
                 if (restoredComment != null) {

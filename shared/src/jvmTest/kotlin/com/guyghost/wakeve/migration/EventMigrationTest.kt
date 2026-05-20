@@ -66,7 +66,8 @@ class EventMigrationTest {
             eventTypeCustom = null,
             minParticipants = null,
             maxParticipants = null,
-            expectedParticipants = null
+            expectedParticipants = null,
+            isSample = 0L
         )
 
         // ACT: Query the event
@@ -110,7 +111,8 @@ class EventMigrationTest {
             eventTypeCustom = null,
             minParticipants = 10,
             maxParticipants = 50,
-            expectedParticipants = 30
+            expectedParticipants = 30,
+            isSample = 0L
         )
 
         // ASSERT: Verify all fields are stored correctly
@@ -152,7 +154,8 @@ class EventMigrationTest {
             eventTypeCustom = null,
             minParticipants = null,
             maxParticipants = null,
-            expectedParticipants = null
+            expectedParticipants = null,
+            isSample = 0L
         )
 
         // Insert 3 time slots
@@ -209,7 +212,8 @@ class EventMigrationTest {
             eventTypeCustom = null,
             minParticipants = null,
             maxParticipants = null,
-            expectedParticipants = null
+            expectedParticipants = null,
+            isSample = 0L
         )
 
         // ACT: Create a flexible time slot
@@ -262,7 +266,8 @@ class EventMigrationTest {
             eventTypeCustom = null,
             minParticipants = null,
             maxParticipants = null,
-            expectedParticipants = null
+            expectedParticipants = null,
+            isSample = 0L
         )
 
         // ACT: Insert a potential location
@@ -313,7 +318,8 @@ class EventMigrationTest {
             eventTypeCustom = null,
             minParticipants = null,
             maxParticipants = null,
-            expectedParticipants = null
+            expectedParticipants = null,
+            isSample = 0L
         )
 
         // Insert 2 locations
@@ -379,7 +385,8 @@ class EventMigrationTest {
             eventTypeCustom = null,
             minParticipants = null,
             maxParticipants = null,
-            expectedParticipants = null
+            expectedParticipants = null,
+            isSample = 0L
         )
 
         // ACT: Query the event
@@ -431,7 +438,8 @@ class EventMigrationTest {
             eventTypeCustom = null,
             minParticipants = null,
             maxParticipants = null,
-            expectedParticipants = null
+            expectedParticipants = null,
+            isSample = 0L
         )
 
         // Create multiple time slots
@@ -520,7 +528,8 @@ class EventMigrationTest {
             eventTypeCustom = "Hackathon",
             minParticipants = 5,
             maxParticipants = 100,
-            expectedParticipants = 50
+            expectedParticipants = 50,
+            isSample = 0L
         )
 
         // ASSERT: Verify custom type is stored
@@ -561,7 +570,8 @@ class EventMigrationTest {
             eventTypeCustom = null,
             minParticipants = null,
             maxParticipants = null,
-            expectedParticipants = null
+            expectedParticipants = null,
+            isSample = 0L
         )
 
         // ACT: Create slots with different timeOfDay values

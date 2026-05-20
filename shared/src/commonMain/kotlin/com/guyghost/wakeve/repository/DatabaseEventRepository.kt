@@ -5,12 +5,14 @@ import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventSearchResult
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.NearbyEventResult
 import com.guyghost.wakeve.models.NearbyEventsResponse
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.RecommendedEventsResponse
 import com.guyghost.wakeve.models.SearchResultsResponse
 import com.guyghost.wakeve.models.SyncOperation
+import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.TrendingEventsResponse
 import com.guyghost.wakeve.models.Vote
@@ -29,7 +31,7 @@ import kotlin.math.sqrt
  * Database-backed event repository using SQLDelight for persistence.
  * Mirrors the EventRepository interface but stores data in SQLite.
  */
-class DatabaseEventRepository(private val db: WakeveDb, private val syncManager: SyncManager? = null) : EventRepositoryInterface {
+class DatabaseEventRepository(private val db: WakeveDb, private val syncManager: SyncManager? = null) : EventRepositoryInterface, com.guyghost.wakeve.presentation.statemachine.SampleEventSeeder {
     private val eventQueries = db.eventQueries
     private val timeSlotQueries = db.timeSlotQueries
     private val participantQueries = db.participantQueries
@@ -40,6 +42,9 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
     override suspend fun createEvent(event: Event): Result<Event> {
         return try {
             val now = getCurrentUtcIsoString()
+            // Determine isSample flag from ID prefix
+            val isSample = com.guyghost.wakeve.sample.SampleEventFactory.isSampleEventId(event.id)
+
             eventQueries.insertEvent(
                 id = event.id,
                 organizerId = event.organizerId,
@@ -54,7 +59,8 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
                 eventTypeCustom = event.eventTypeCustom,
                 minParticipants = event.minParticipants?.toLong(),
                 maxParticipants = event.maxParticipants?.toLong(),
-                expectedParticipants = event.expectedParticipants?.toLong()
+                expectedParticipants = event.expectedParticipants?.toLong(),
+                isSample = if (isSample) 1L else 0L
             )
 
             // Insert organizer as participant
@@ -110,36 +116,40 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
     }
 
     override fun getEvent(id: String): Event? {
-        val eventRow = eventQueries.selectById(id).executeAsOneOrNull() ?: return null
-        val participants = participantQueries.selectByEventId(id).executeAsList()
-        val timeSlots = timeSlotQueries.selectByEventId(id).executeAsList()
+        return try {
+            val eventRow = eventQueries.selectById(id).executeAsOneOrNull() ?: return null
+            val participants = participantQueries.selectByEventId(id).executeAsList()
+            val timeSlots = timeSlotQueries.selectByEventId(id).executeAsList()
 
-        return Event(
-            id = eventRow.id,
-            title = eventRow.title,
-            description = eventRow.description,
-            organizerId = eventRow.organizerId,
-            participants = participants.map { it.userId },
-            proposedSlots = timeSlots.map { 
-                TimeSlot(
-                    id = it.id,
-                    start = it.startTime,
-                    end = it.endTime,
-                    timezone = it.timezone,
-                    timeOfDay = com.guyghost.wakeve.models.TimeOfDay.valueOf(it.timeOfDay ?: "SPECIFIC")
-                )
-            },
-            deadline = eventRow.deadline,
-            status = EventStatus.valueOf(eventRow.status),
-            finalDate = null, // Will be populated from confirmedDate table if exists
-            createdAt = eventRow.createdAt,
-            updatedAt = eventRow.updatedAt,
-            eventType = com.guyghost.wakeve.models.EventType.valueOf(eventRow.eventType ?: "OTHER"),
-            eventTypeCustom = eventRow.eventTypeCustom,
-            minParticipants = eventRow.minParticipants?.toInt(),
-            maxParticipants = eventRow.maxParticipants?.toInt(),
-            expectedParticipants = eventRow.expectedParticipants?.toInt()
-        )
+            Event(
+                id = eventRow.id,
+                title = eventRow.title,
+                description = eventRow.description,
+                organizerId = eventRow.organizerId,
+                participants = participants.map { it.userId },
+                proposedSlots = timeSlots.map {
+                    TimeSlot(
+                        id = it.id,
+                        start = it.startTime,
+                        end = it.endTime,
+                        timezone = it.timezone,
+                        timeOfDay = parseTimeOfDay(it.timeOfDay)
+                    )
+                },
+                deadline = eventRow.deadline,
+                status = parseEventStatus(eventRow.status),
+                finalDate = null, // Will be populated from confirmedDate table if exists
+                createdAt = eventRow.createdAt,
+                updatedAt = eventRow.updatedAt,
+                eventType = parseEventType(eventRow.eventType),
+                eventTypeCustom = eventRow.eventTypeCustom,
+                minParticipants = eventRow.minParticipants?.toInt(),
+                maxParticipants = eventRow.maxParticipants?.toInt(),
+                expectedParticipants = eventRow.expectedParticipants?.toInt()
+            )
+        } catch (e: Exception) {
+            null
+        }
     }
 
     override fun getPoll(eventId: String): Poll? {
@@ -151,7 +161,7 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
         allVotes.forEach { voteRow ->
             val participantId = voteRow.userId
             val slotId = voteRow.timeslotId
-            val voteValue = Vote.valueOf(voteRow.vote)
+            val voteValue = parseVote(voteRow.vote)
 
             if (!votes.containsKey(participantId)) {
                 votes[participantId] = mutableMapOf()
@@ -276,6 +286,7 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
 
     override suspend fun updateEvent(event: Event): Result<Event> {
         return try {
+            val isSample = com.guyghost.wakeve.sample.SampleEventFactory.isSampleEventId(event.id)
             val now = getCurrentUtcIsoString()
             eventQueries.updateEvent(
                 title = event.title,
@@ -288,6 +299,7 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
                 minParticipants = event.minParticipants?.toLong(),
                 maxParticipants = event.maxParticipants?.toLong(),
                 expectedParticipants = event.expectedParticipants?.toLong(),
+                isSample = if (isSample) 1L else 0L,
                 id = event.id
             )
 
@@ -442,9 +454,45 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
     }
 
     override fun getAllEvents(): List<Event> {
-        return eventQueries.selectAll().executeAsList().mapNotNull { eventRow ->
-            getEvent(eventRow.id)
+        return try {
+            eventQueries.selectAll().executeAsList().mapNotNull { eventRow ->
+                getEvent(eventRow.id)
+            }
+        } catch (e: Exception) {
+            emptyList()
         }
+    }
+
+    private fun parseEventStatus(value: String?): EventStatus {
+        return enumValueOrNull<EventStatus>(value) ?: EventStatus.DRAFT
+    }
+
+    private fun parseEventType(value: String?): EventType {
+        return enumValueOrNull<EventType>(value) ?: when (value?.trim()?.lowercase()) {
+            "sport", "sports" -> EventType.SPORTS_EVENT
+            "family_reunion", "family" -> EventType.FAMILY_GATHERING
+            "dinner", "dinner_party" -> EventType.PARTY
+            "outdoor_adventure", "outdoor" -> EventType.OUTDOOR_ACTIVITY
+            "networking", "corporate", "graduation", "holiday_party", "concert" -> EventType.OTHER
+            else -> EventType.OTHER
+        }
+    }
+
+    private fun parseTimeOfDay(value: String?): TimeOfDay {
+        return enumValueOrNull<TimeOfDay>(value) ?: when (value?.trim()?.lowercase()) {
+            "specific_time", "exact" -> TimeOfDay.SPECIFIC
+            "day", "all-day", "allday" -> TimeOfDay.ALL_DAY
+            else -> TimeOfDay.SPECIFIC
+        }
+    }
+
+    private fun parseVote(value: String?): Vote {
+        return enumValueOrNull<Vote>(value) ?: Vote.MAYBE
+    }
+
+    private inline fun <reified T : Enum<T>> enumValueOrNull(value: String?): T? {
+        val normalized = value?.trim()?.uppercase()?.replace('-', '_') ?: return null
+        return enumValues<T>().firstOrNull { it.name == normalized }
     }
 
     // MARK: - Search & Discovery
@@ -856,6 +904,159 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
             (organizerIds + participantIds).distinct()
         } catch (e: Exception) {
             emptyList()
+        }
+    }
+
+    // MARK: - Sample Event Support
+
+    /**
+     * Check if any real (non-sample) events exist.
+     * Used for first-launch detection to decide whether to show empty state.
+     *
+     * @return true if at least one non-sample event exists
+     */
+    fun hasAnyRealEvents(): Boolean {
+        return try {
+            eventQueries.hasAnyRealEvents().executeAsOne() > 0
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Seed the sample event into the database.
+     *
+     * Inserts the event, participants, time slots, and pre-cast votes
+     * in a single transaction. Idempotent — checks if sample already exists.
+     *
+     * Sample events are marked with isSample = 1 and excluded from sync.
+     *
+     * @return Result containing the seeded Event, or an error
+     */
+    override suspend fun seedSampleEvent(): Result<Event> {
+        return try {
+            // Check if already seeded
+            val existing = eventQueries.selectById(
+                com.guyghost.wakeve.sample.SampleEventFactory.SAMPLE_EVENT_ID
+            ).executeAsOneOrNull()
+            if (existing != null) {
+                return Result.success(getEvent(existing.id)!!)
+            }
+
+            val factory = com.guyghost.wakeve.sample.SampleEventFactory
+            val event = factory.createSampleEvent()
+            val votes = factory.createSampleVotes()
+            val now = getCurrentUtcIsoString()
+
+            db.transaction {
+                // 1. Insert the event (createEvent handles isSample via ID prefix)
+                eventQueries.insertEvent(
+                    id = event.id,
+                    organizerId = event.organizerId,
+                    title = event.title,
+                    description = event.description,
+                    status = event.status.name,
+                    deadline = event.deadline,
+                    createdAt = event.createdAt,
+                    updatedAt = event.updatedAt,
+                    version = 1,
+                    eventType = event.eventType.name,
+                    eventTypeCustom = event.eventTypeCustom,
+                    minParticipants = event.minParticipants?.toLong(),
+                    maxParticipants = event.maxParticipants?.toLong(),
+                    expectedParticipants = event.expectedParticipants?.toLong(),
+                    isSample = 1L
+                )
+
+                // 2. Insert participants
+                val participantIds = factory.createParticipantIds()
+                participantIds.forEachIndexed { index, userId ->
+                    val role = if (index == 0) "ORGANIZER" else "PARTICIPANT"
+                    val participantId = "sample-part-${index}"
+                    participantQueries.insertParticipant(
+                        id = participantId,
+                        eventId = event.id,
+                        userId = userId,
+                        role = role,
+                        hasValidatedDate = 0,
+                        joinedAt = now,
+                        updatedAt = now
+                    )
+                }
+
+                // 3. Insert time slots
+                event.proposedSlots.forEach { slot ->
+                    timeSlotQueries.insertTimeSlot(
+                        id = slot.id,
+                        eventId = event.id,
+                        startTime = slot.start,
+                        endTime = slot.end,
+                        timezone = slot.timezone,
+                        proposedByParticipantId = null,
+                        createdAt = now,
+                        updatedAt = now,
+                        timeOfDay = slot.timeOfDay.name
+                    )
+                }
+
+                // 4. Insert pre-cast votes (NOT the organizer — they vote themselves)
+                votes.forEach { (userId, slotVotes) ->
+                    // Find the participant record ID for this user
+                    val participantRecord = participantQueries.selectByEventIdAndUserId(
+                        event.id, userId
+                    ).executeAsOneOrNull() ?: return@forEach
+
+                    slotVotes.forEach { (slotId, vote) ->
+                        voteQueries.insertVote(
+                            id = "sample-vote-${slotId}-${userId}",
+                            eventId = event.id,
+                            timeslotId = slotId,
+                            participantId = participantRecord.id,
+                            vote = vote.name,
+                            createdAt = now,
+                            updatedAt = now
+                        )
+                    }
+                }
+
+                // 5. Insert sync metadata for the event (but marked as sample)
+                // Note: SyncManager must filter out isSample events
+                syncMetadataQueries.insertSyncMetadata(
+                    id = "sync_sample_${event.id}",
+                    entityType = "event",
+                    entityId = event.id,
+                    operation = "CREATE",
+                    timestamp = now,
+                    synced = 0
+                )
+            }
+
+            Result.success(event)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Delete all sample events and their related data.
+     *
+     * Uses the existing cascade delete flow to ensure clean removal.
+     *
+     * @return Result with count of deleted events
+     */
+    suspend fun deleteSampleEvents(): Result<Int> {
+        return try {
+            val sampleEvents = eventQueries.selectSampleEvents().executeAsList()
+            var deletedCount = 0
+
+            sampleEvents.forEach { eventRow ->
+                deleteEvent(eventRow.id)
+                deletedCount++
+            }
+
+            Result.success(deletedCount)
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 }

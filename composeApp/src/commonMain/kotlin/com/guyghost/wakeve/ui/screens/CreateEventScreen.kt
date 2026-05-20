@@ -1,5 +1,8 @@
 package com.guyghost.wakeve.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +18,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +38,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -86,7 +93,15 @@ fun CreateEventScreen(
     var selectedDate by remember { mutableStateOf<String?>(null) }
     var selectedLocation by remember { mutableStateOf<String?>(null) }
     var hasBackgroundImage by remember { mutableStateOf(false) }
-    
+    var selectedEventType by remember { mutableStateOf(EventType.OTHER) }
+    var expectedParticipants by remember { mutableStateOf<Int?>(null) }
+
+    // Validation state
+    var validationError by remember { mutableStateOf<String?>(null) }
+
+    // Preview state
+    var showPreview by remember { mutableStateOf(false) }
+
     // Location sheet state
     var showLocationSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -119,7 +134,11 @@ fun CreateEventScreen(
                 .verticalScroll(rememberScrollState())
         ) {
             // Header
-            HeaderRow(onClose = onClose)
+            HeaderRow(
+                onClose = onClose,
+                onPreview = { showPreview = true },
+                previewEnabled = title.isNotBlank()
+            )
             
             // Background Image Selector
             BackgroundImageSelector(
@@ -159,13 +178,41 @@ fun CreateEventScreen(
                 description = description,
                 onDescriptionChange = { description = it }
             )
-            
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // EventType Selector
+            EventTypeSelectorCard(
+                selectedType = selectedEventType,
+                onTypeSelected = { selectedEventType = it },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
             Spacer(modifier = Modifier.height(32.dp))
-            
+
+            // Validation error message
+            if (validationError != null) {
+                Text(
+                    text = validationError!!,
+                    color = Color(0xFFFF6B6B),
+                    fontSize = 13.sp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
             // Create Button
             CreateEventButton(
-                enabled = title.isNotBlank(),
+                enabled = true, // Always enabled — validation happens on click
                 onClick = {
+                    if (title.isBlank()) {
+                        validationError = "Le titre est requis pour créer l'événement"
+                        return@CreateEventButton
+                    }
+                    validationError = null
                     val event = Event(
                         id = "event-${Clock.System.now().toEpochMilliseconds()}",
                         title = title,
@@ -178,11 +225,11 @@ fun CreateEventScreen(
                         createdAt = Clock.System.now().toString(),
                         updatedAt = Clock.System.now().toString(),
                         finalDate = null,
-                        eventType = EventType.OTHER,
+                        eventType = selectedEventType,
                         eventTypeCustom = null,
                         minParticipants = null,
                         maxParticipants = null,
-                        expectedParticipants = null
+                        expectedParticipants = expectedParticipants
                     )
                     onEventCreated(event)
                 }
@@ -190,11 +237,33 @@ fun CreateEventScreen(
             
             Spacer(modifier = Modifier.height(24.dp))
         }
+
+        // Preview overlay (animated)
+        AnimatedVisibility(
+            visible = showPreview,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            CreateEventPreview(
+                title = title,
+                description = description,
+                userName = userName,
+                selectedDate = selectedDate,
+                selectedLocation = selectedLocation,
+                eventType = selectedEventType,
+                expectedParticipants = expectedParticipants,
+                onDismiss = { showPreview = false }
+            )
+        }
     }
 }
 
 @Composable
-private fun HeaderRow(onClose: () -> Unit) {
+private fun HeaderRow(
+    onClose: () -> Unit,
+    onPreview: () -> Unit = {},
+    previewEnabled: Boolean = false
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -222,13 +291,16 @@ private fun HeaderRow(onClose: () -> Unit) {
         Surface(
             modifier = Modifier
                 .clip(RoundedCornerShape(24.dp))
-                .clickable { /* Preview mode */ },
-            color = Color.White.copy(alpha = 0.15f),
+                .clickable(enabled = previewEnabled) { onPreview() },
+            color = if (previewEnabled)
+                Color.White.copy(alpha = 0.15f)
+            else
+                Color.White.copy(alpha = 0.06f),
             shape = RoundedCornerShape(24.dp)
         ) {
             Text(
                 text = "Aperçu",
-                color = Color.White,
+                color = if (previewEnabled) Color.White else Color.White.copy(alpha = 0.3f),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp)
@@ -551,6 +623,130 @@ private fun CreateEventButton(
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold
             )
+        }
+    }
+}
+
+// ── EventType Selector ──────────────────────────────────────────────────────
+
+private val EVENT_TYPE_OPTIONS = listOf(
+    EventType.OTHER to "📅",
+    EventType.BIRTHDAY to "🎂",
+    EventType.WEDDING to "💍",
+    EventType.TEAM_BUILDING to "🤝",
+    EventType.CONFERENCE to "🎤",
+    EventType.WORKSHOP to "🛠",
+    EventType.PARTY to "🎉",
+    EventType.SPORTS_EVENT to "⚽",
+    EventType.CULTURAL_EVENT to "🎭",
+    EventType.FAMILY_GATHERING to "👨‍👩‍👧",
+    EventType.OUTDOOR_ACTIVITY to "🏔",
+    EventType.FOOD_TASTING to "🍷",
+    EventType.TECH_MEETUP to "💻",
+    EventType.WELLNESS_EVENT to "🧘",
+    EventType.CREATIVE_WORKSHOP to "🎨"
+)
+
+@Composable
+private fun EventTypeSelectorCard(
+    selectedType: EventType,
+    onTypeSelected: (EventType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedEmoji = EVENT_TYPE_OPTIONS.firstOrNull { it.first == selectedType }?.second ?: "📅"
+
+    Column(modifier = modifier) {
+        // Current selection row
+        Surface(
+            onClick = { expanded = !expanded },
+            shape = RoundedCornerShape(16.dp),
+            color = Color(0xFF0F1B3A).copy(alpha = 0.8f),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = selectedEmoji,
+                    fontSize = 20.sp,
+                    modifier = Modifier.width(28.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Type d'événement",
+                        fontSize = 11.sp,
+                        color = Color.White.copy(alpha = 0.5f)
+                    )
+                    Text(
+                        text = if (selectedType == EventType.OTHER) "Choisir un type"
+                        else selectedType.displayName,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (selectedType == EventType.OTHER)
+                            Color.White.copy(alpha = 0.4f)
+                        else Color.White
+                    )
+                }
+                Text(
+                    text = if (expanded) "▲" else "▼",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.4f)
+                )
+            }
+        }
+
+        // Expanded grid of options
+        if (expanded) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color(0xFF0F1B3A).copy(alpha = 0.9f),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(220.dp)
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(EVENT_TYPE_OPTIONS) { (type, emoji) ->
+                        val isSelected = type == selectedType
+                        Surface(
+                            onClick = {
+                                onTypeSelected(type)
+                                expanded = false
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isSelected) Color(0xFF6366F1).copy(alpha = 0.3f)
+                            else Color.Transparent,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(vertical = 8.dp)
+                            ) {
+                                Text(text = emoji, fontSize = 22.sp)
+                                Text(
+                                    text = type.displayName,
+                                    fontSize = 9.sp,
+                                    color = Color.White.copy(alpha = 0.7f),
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1
+                                )
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }

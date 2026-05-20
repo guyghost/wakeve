@@ -1,0 +1,271 @@
+{
+  "nav": {
+    "events": "Events",
+    "explore": "Explore",
+    "dashboard": "Dashboard",
+    "profile": "Profile",
+    "create": "Create",
+    "settings": "Settings",
+    "logout": "Log out",
+    "notifications": "Notifications",
+    "inbox": "Messages"
+  },
+  "auth": {
+    "title": "Welcome to Wakeve",
+    "subtitle": "Collaborative event planning",
+    "email": "Email address",
+    "emailPlaceholder": "your@email.com",
+    "sendCode": "Send code",
+    "verifyTitle": "Check your email",
+    "verifySubtitle": "Enter the code sent to {email}",
+    "otpLabel": "6-digit code",
+    "otpPlaceholder": "123456",
+    "verify": "Verify",
+    "resend": "Resend code",
+    "back": "Back",
+    "guest": "Continue as guest",
+    "loading": "Loading...",
+    "errors": {
+      "invalidEmail": "Invalid email address",
+      "otpFailed": "Incorrect or expired code",
+      "networkError": "Network error, please try again"
+    }
+  },
+  "events": {
+    "title": "My events",
+    "empty": "No events",
+    "emptyDesc": "Create your first event to start collaborative planning.",
+    "create": "Create an event",
+    "search": "Search events...",
+    "filterAll": "All statuses",
+    "participants": "participant(s)",
+    "slots": "slot(s)",
+    "deadline": "Deadline",
+    "loading": "Loading events...",
+    "error": "Could not load events",
+    "statuses": {
+      "DRAFT": "Draft",
+      "POLLING": "Voting open",
+      "COMPARING": "Comparing",
+      "CONFIRMED": "Confirmed",
+      "ORGANIZING": "Organizing",
+      "FINALIZED": "Finalized",
+      "EXPIRED": "Expired",
+      "DELETED": "Deleted"
+    },
+    "types": {
+      "BIRTHDAY": "Birthday",
+      "WEDDING": "Wedding",
+      "CORPORATE": "Corporate",
+      "TEAM_BUILDING": "Team Building",
+      "CONCERT": "Concert",
+      "SPORTS_EVENT": "Sports",
+      "SPORT_EVENT": "Sports",
+      "FAMILY_REUNION": "Family reunion",
+      "GRADUATION": "Graduation",
+      "HOLIDAY_PARTY": "Holiday party",
+      "NETWORKING": "Networking",
+      "CONFERENCE": "Conference",
+      "WORKSHOP": "Workshop",
+      "DINNER_PARTY": "Dinner party",
+      "OUTDOOR_ADVENTURE": "Outdoor adventure",
+      "CULTURAL_EVENT": "Cultural event",
+      "OTHER": "Other"
+    }
+  },
+  "eventDetail": {
+    "notFound": "Event not found",
+    "tabs": {
+      "info": "Info",
+      "poll": "Poll",
+      "comments": "Comments"
+    },
+    "info": {
+      "status": "Status",
+      "type": "Type",
+      "deadline": "Deadline",
+      "finalDate": "Final date",
+      "participants": "Participants",
+      "slots": "Proposed slots",
+      "description": "Description",
+      "noDescription": "No description"
+    },
+    "poll": {
+      "title": "Vote for a slot",
+      "yes": "Yes",
+      "maybe": "Maybe",
+      "no": "No",
+      "votes": "votes",
+      "noSlots": "No slots proposed",
+      "yourVote": "Your vote"
+    },
+    "comments": {
+      "title": "Comments",
+      "add": "Add a comment",
+      "placeholder": "Your comment...",
+      "submit": "Send",
+      "pinned": "Pinned",
+      "empty": "Be the first to comment!",
+      "section": "Section",
+      "sections": {
+        "GENERAL": "General",
+        "LOGISTICS": "Logistics",
+        "BUDGET": "Budget",
+        "ACCOMMODATION": "Accommodation",
+        "TRANSPORT": "Transport",
+        "MEAL": "Meal",
+        "ACTIVITY": "Activity",
+        "EQUIPMENT": "Equipment",
+        "OTHER": "Other"
+      }
+    },
+    "errors": {
+      "vote": "Error while voting, please try again.",
+      "comment": "Error while sending the comment."
+    }
+  },
+  "create": {
+    "title": "Create an event",
+    "steps": ["Information", "Slots", "Location", "Participants"],
+    "fields": {
+      "title": "Event title *",
+      "titlePlaceholder": "E.g. Marie's birthday party",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe your event...",
+      "type": "Event type",
+      "participants": "Expected number of participants",
+      "deadline": "Response deadline *"
+    },
+    "slots": {
+      "title": "Proposed slots",
+      "subtitle": "Suggest several slots for participants to vote on",
+      "add": "+ Add a slot",
+      "remove": "Remove",
+      "timeOfDay": "Time of day",
+      "date": "Date *",
+      "startTime": "Start time",
+      "endTime": "End time",
+      "slot": "Slot {n}",
+      "errors": {
+        "noDate": "Date is required",
+        "endBeforeStart": "End must be after start",
+        "noStartTime": "Start time is required",
+        "noEndTime": "End time is required"
+      }
+    },
+    "location": {
+      "title": "Location (coming soon)",
+      "subtitle": "Location selection will be available soon."
+    },
+    "participants": {
+      "title": "Invite participants",
+      "subtitle": "Add the emails of people to invite (optional)",
+      "emailPlaceholder": "email@example.com",
+      "add": "Add",
+      "remove": "Remove",
+      "empty": "No participants added"
+    },
+    "actions": {
+      "next": "Next",
+      "prev": "Back",
+      "submit": "Create event",
+      "submitting": "Creating..."
+    },
+    "errors": {
+      "titleRequired": "Title is required",
+      "deadlineRequired": "Deadline is required",
+      "slotsInvalid": "Some slots contain errors"
+    },
+    "success": "Event created successfully!"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "overview": {
+      "title": "Overview",
+      "totalEvents": "Events",
+      "totalParticipants": "Participants",
+      "avgParticipants": "Avg. / event",
+      "totalVotes": "Total votes",
+      "totalComments": "Comments",
+      "responseRate": "Response rate"
+    },
+    "statusBreakdown": "Breakdown by status",
+    "recentEvents": "Recent events",
+    "viewAnalytics": "View analytics",
+    "noEvents": "No events to display",
+    "analytics": {
+      "title": "Analytics",
+      "responseRate": "Response rate",
+      "totalParticipants": "Participants",
+      "totalVotes": "Votes",
+      "topSlots": "Top slots",
+      "commentsBySection": "Comments by section"
+    }
+  },
+  "profile": {
+    "title": "My profile",
+    "userId": "User ID",
+    "authMethod": "Sign-in method",
+    "accountType": "Account type",
+    "accountTypes": {
+      "GUEST": "Guest",
+      "REGISTERED": "Full account"
+    },
+    "authMethods": {
+      "EMAIL_OTP": "Email OTP",
+      "GOOGLE": "Google",
+      "APPLE": "Apple",
+      "GUEST": "Guest"
+    },
+    "language": "Language",
+    "languages": {
+      "fr": "Français",
+      "en": "English"
+    },
+    "logout": "Log out",
+    "dashboard": "Dashboard"
+  },
+  "explore": {
+    "title": "Explore",
+    "search": "Search...",
+    "sections": {
+      "ongoing": "🗳️ Votes in progress",
+      "upcoming": "✅ Upcoming events",
+      "preparation": "📝 In preparation"
+    },
+    "empty": "No events in this category"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language & region",
+    "notifications": "Notifications",
+    "account": "Account",
+    "dangerZone": "Danger zone",
+    "deleteAccount": "Delete my account",
+    "deleteConfirm": "This action is irreversible. Are you sure?"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "back": "Back",
+    "close": "Close",
+    "by": "by",
+    "at": "at",
+    "on": "on",
+    "yes": "Yes",
+    "no": "No",
+    "maybe": "Maybe"
+  },
+  "timeOfDay": {
+    "SPECIFIC": "Specific time",
+    "ALL_DAY": "All day",
+    "MORNING": "Morning",
+    "AFTERNOON": "Afternoon",
+    "EVENING": "Evening"
+  }
+}

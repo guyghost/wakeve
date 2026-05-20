@@ -1,4 +1,15 @@
 import SwiftUI
+import Shared
+
+// MARK: - KMP Type Aliases
+// The domain model `Event` from Kotlin is exposed as `WakeveEvent` in Swift
+// (to avoid collision with the SQLDelight DB entity named `Event`).
+// This alias restores the ergonomic `Event` name throughout the iOS codebase.
+typealias Event = WakeveEvent
+// TimeSlot domain model is exposed as TimeSlot_ due to DB entity collision
+typealias TimeSlot = TimeSlot_
+// Vote domain model is exposed as Vote_ due to DB entity collision
+typealias Vote = Vote_
 
 // MARK: - Shared Models for Wakeve iOS
 

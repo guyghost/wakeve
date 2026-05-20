@@ -9,6 +9,7 @@ La documentation iOS complète se trouve dans le dossier `iosApp/` à la racine 
 ## Documentation iOS Principale
 
 ### Design System - Liquid Glass
+- [Wakeve iOS Design System](design-system.md) - Tokens, composants, règles d'utilisation et migration
 - [Liquid Glass Guidelines](../../../iosApp/LIQUID_GLASS_GUIDELINES.md) - Guidelines complètes du design system
 - [LiquidGlassCard Reference](../../../iosApp/LIQUIDGLASSCARD_REFERENCE.md) - Référence du composant LiquidGlassCard
 - [LiquidGlassCard Usage Examples](../../../iosApp/LIQUIDGLASSCARD_USAGE_EXAMPLES.md) - Exemples d'utilisation
@@ -103,4 +104,4 @@ xcodebuild test -project iosApp/iosApp.xcodeproj -scheme iosApp
 
 ---
 
-**Note** : Pour toute modification de la documentation iOS, éditer directement les fichiers dans `iosApp/` plutôt que dans `docs/`.
+**Note** : La documentation de référence du design system vit dans `docs/guides/ios/design-system.md`. Les anciens rapports de migration restent dans `docs/migration/liquid-glass/`.
