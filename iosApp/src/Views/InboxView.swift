@@ -102,10 +102,12 @@ struct InboxView: View {
                             }
                         }
                     } else {
-                        Button("Select") {
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                isSelectionMode = true
-                                showActionBar = true
+                        if !filteredItems.isEmpty {
+                            Button("Select") {
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                    isSelectionMode = true
+                                    showActionBar = true
+                                }
                             }
                         }
                     }
@@ -146,6 +148,9 @@ struct InboxView: View {
         .onAppear(perform: loadItems)
         .onChange(of: viewModel.items) { _, newItems in
             unreadCount = newItems.filter { !$0.isRead }.count
+            if newItems.isEmpty {
+                exitSelectionMode()
+            }
         }
         .refreshable {
             viewModel.loadNotifications()
@@ -308,9 +313,7 @@ struct InboxView: View {
                 action: {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         markSelectedAsRead()
-                        isSelectionMode = false
-                        showActionBar = false
-                        selectedItemIds.removeAll()
+                        exitSelectionMode()
                     }
                 }
             )
@@ -321,9 +324,7 @@ struct InboxView: View {
                 action: {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         markSelectedAsDone()
-                        isSelectionMode = false
-                        showActionBar = false
-                        selectedItemIds.removeAll()
+                        exitSelectionMode()
                     }
                 }
             )
@@ -352,6 +353,12 @@ struct InboxView: View {
         } else {
             selectedItemIds.insert(itemId)
         }
+    }
+
+    private func exitSelectionMode() {
+        isSelectionMode = false
+        showActionBar = false
+        selectedItemIds.removeAll()
     }
     
     // MARK: - Actions

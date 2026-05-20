@@ -30,7 +30,7 @@ struct ExploreTabView: View {
                         DiscoverySections(viewModel: viewModel)
                     }
                 }
-                .padding(.bottom, 24)
+                .padding(.bottom, 118)
             }
             .refreshable {
                 viewModel.refresh()

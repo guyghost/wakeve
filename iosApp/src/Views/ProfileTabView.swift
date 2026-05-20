@@ -7,13 +7,29 @@ import UIKit
 
 struct ProfileTabView: View {
     let userId: String
-    @EnvironmentObject var authStateManager: AuthStateManager
+    let userName: String?
+    let userEmail: String?
+    var onDismiss: (() -> Void)?
+    var onSignOut: (() -> Void)?
 
     @AppStorage("darkMode") private var darkMode = false
-    @AppStorage("notificationsEnabled") private var notificationsEnabled = true
 
     @State private var showLeaderboard = false
     @State private var showDashboard = false
+
+    init(
+        userId: String,
+        userName: String? = nil,
+        userEmail: String? = nil,
+        onDismiss: (() -> Void)? = nil,
+        onSignOut: (() -> Void)? = nil
+    ) {
+        self.userId = userId
+        self.userName = userName
+        self.userEmail = userEmail
+        self.onDismiss = onDismiss
+        self.onSignOut = onSignOut
+    }
 
     var body: some View {
         NavigationStack {
@@ -22,23 +38,34 @@ struct ProfileTabView: View {
 
                 ScrollView {
                     VStack(spacing: WakeveTheme.Spacing.xl) {
-                        ProfileHeaderSection()
+                        ProfileHeaderSection(userName: userName, userEmail: userEmail)
 
                         DashboardLinkSection(showDashboard: $showDashboard)
                         GamificationSummarySection()
                         ProfileTabBadgesSection()
                         LeaderboardLinkSection(showLeaderboard: $showLeaderboard)
-                        PreferencesSection()
+                        PreferencesSection(userId: userId)
                         AppearanceSection()
                         AboutSection()
-                        SignOutButton()
+                        SignOutButton(onDismiss: onDismiss, onSignOut: onSignOut)
                     }
                     .padding(WakeveTheme.Spacing.page)
                     .padding(.top, WakeveTheme.Spacing.sm)
                 }
             }
             .navigationTitle(String(localized: "profile.title"))
+            .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                if let onDismiss {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(action: onDismiss) {
+                            Text(String(localized: "common.done"))
+                                .font(WakeveTheme.Typography.bodySemibold)
+                        }
+                    }
+                }
+            }
             .preferredColorScheme(darkMode ? .dark : .light)
             .sheet(isPresented: $showLeaderboard) {
                 LeaderboardView()
@@ -96,21 +123,51 @@ struct DashboardLinkSection: View {
 // MARK: - Profile Header Section
 
 struct ProfileHeaderSection: View {
+    let userName: String?
+    let userEmail: String?
+
+    private var displayName: String {
+        let trimmedName = userName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedName?.isEmpty == false ? trimmedName! : String(localized: "profile.user")
+    }
+
+    private var displayEmail: String? {
+        let trimmedEmail = userEmail?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedEmail?.isEmpty == false ? trimmedEmail : nil
+    }
+
+    private var initials: String {
+        let words = displayName
+            .split(separator: " ")
+            .prefix(2)
+            .compactMap { $0.first }
+
+        if words.isEmpty {
+            return "U"
+        }
+
+        return words.map { String($0) }.joined().uppercased()
+    }
+
     var body: some View {
         VStack(spacing: WakeveTheme.Spacing.md) {
-            WakeveAvatar(initials: "JD", size: 112, badgeSystemImage: "sparkles")
+            WakeveAvatar(initials: initials, size: 112, badgeSystemImage: "sparkles")
                 .shadow(color: .black.opacity(0.18), radius: 20, x: 0, y: 10)
 
             VStack(spacing: WakeveTheme.Spacing.xs) {
-                Text("John Doe")
+                Text(displayName)
                     .font(WakeveTheme.Typography.largeTitle)
                     .fontWeight(.bold)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
 
-                Text("john.doe@example.com")
-                    .font(WakeveTheme.Typography.metadata)
-                    .foregroundColor(.secondary)
+                if let displayEmail {
+                    Text(displayEmail)
+                        .font(WakeveTheme.Typography.metadata)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
             }
 
             Text(String(localized: "profile.edit"))
@@ -128,7 +185,11 @@ struct ProfileHeaderSection: View {
 // MARK: - Preferences Section
 
 struct PreferencesSection: View {
+    let userId: String
+
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
+    @AppStorage("calendarSyncEnabled") private var calendarSyncEnabled = false
+    @AppStorage("emailNotificationsEnabled") private var emailNotificationsEnabled = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -144,6 +205,37 @@ struct PreferencesSection: View {
                         title: String(localized: "profile.push_notifications"),
                         description: String(localized: "profile.push_notifications_desc"),
                         isOn: $notificationsEnabled
+                    )
+
+                    Divider()
+
+                    NavigationLink {
+                        NotificationPreferencesView(userId: userId)
+                    } label: {
+                        ProfileNavigationRow(
+                            icon: "bell.badge.fill",
+                            title: String(localized: "settings_sheet.notifications"),
+                            value: notificationsEnabled ? String(localized: "settings_sheet.enabled") : String(localized: "settings_sheet.disabled")
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider()
+
+                    PreferenceToggleRow(
+                        icon: "calendar",
+                        title: String(localized: "settings_sheet.calendar_sync"),
+                        description: calendarSyncEnabled ? String(localized: "settings_sheet.enabled") : String(localized: "settings_sheet.disabled"),
+                        isOn: $calendarSyncEnabled
+                    )
+
+                    Divider()
+
+                    PreferenceToggleRow(
+                        icon: "envelope.fill",
+                        title: String(localized: "settings_sheet.email_notifications"),
+                        description: emailNotificationsEnabled ? String(localized: "settings_sheet.enabled") : String(localized: "settings_sheet.disabled"),
+                        isOn: $emailNotificationsEnabled
                     )
                 }
             }
@@ -180,8 +272,6 @@ struct AppearanceSection: View {
 // MARK: - About Section
 
 struct AboutSection: View {
-    @State private var showSettings = false
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(String(localized: "profile.about"))
@@ -190,17 +280,6 @@ struct AboutSection: View {
 
             ProfileCard {
                 VStack(spacing: 0) {
-                    // Settings Link
-                    AboutLinkRow(
-                        icon: "gearshape.fill",
-                        title: String(localized: "profile.settings"),
-                        action: {
-                            showSettings = true
-                        }
-                    )
-                    
-                    Divider()
-                    
                     // Version
                     AboutRow(
                         icon: "info.circle.fill",
@@ -239,22 +318,28 @@ struct AboutSection: View {
                             }
                         }
                     )
+
+                    Divider()
+
+                    ProfilePlainLinkRow(
+                        icon: "hand.raised.fill",
+                        title: String(localized: "settings_sheet.data_management")
+                    )
+
+                    Divider()
+
+                    ProfilePlainLinkRow(
+                        icon: "questionmark.circle.fill",
+                        title: String(localized: "settings_sheet.help")
+                    )
+
+                    Divider()
+
+                    ProfilePlainLinkRow(
+                        icon: "doc.text.fill",
+                        title: String(localized: "settings_sheet.terms")
+                    )
                 }
-            }
-        }
-        .sheet(isPresented: $showSettings) {
-            NavigationStack {
-                Text("Settings - Coming Soon")
-                    .font(.title2)
-                    .foregroundColor(.secondary)
-                    .navigationTitle(String(localized: "profile.settings"))
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button(String(localized: "common.close")) {
-                                showSettings = false
-                            }
-                        }
-                    }
             }
         }
     }
@@ -386,9 +471,72 @@ struct AboutLinkRow: View {
     }
 }
 
+// MARK: - Profile Navigation Row
+
+struct ProfileNavigationRow: View {
+    let icon: String
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
+                .frame(width: 32, height: 32)
+
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+
+            Spacer(minLength: 12)
+
+            Text(value)
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.secondary)
+        }
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+    }
+}
+
+// MARK: - Profile Plain Link Row
+
+struct ProfilePlainLinkRow: View {
+    let icon: String
+    let title: String
+
+    var body: some View {
+        HStack(spacing: 16) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundColor(WakeveColors.success)
+                .frame(width: 32, height: 32)
+
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+                .multilineTextAlignment(.leading)
+
+            Spacer()
+        }
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+    }
+}
+
 // MARK: - Sign Out Button
 
 struct SignOutButton: View {
+    var onDismiss: (() -> Void)?
+    var onSignOut: (() -> Void)?
+
     @EnvironmentObject var authStateManager: AuthStateManager
 
     var body: some View {
@@ -397,7 +545,13 @@ struct SignOutButton: View {
             systemImage: "rectangle.portrait.and.arrow.right",
             variant: .destructive
         ) {
-            authStateManager.signOut()
+            onDismiss?()
+
+            if let onSignOut {
+                onSignOut()
+            } else {
+                authStateManager.signOut()
+            }
         }
     }
 }
