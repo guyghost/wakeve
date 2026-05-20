@@ -28,13 +28,13 @@ struct PollVotingView: View {
                             systemImage: "chevron.left",
                             accessibilityLabel: "Retour",
                             variant: .eventBack,
-                            size: 56,
+                            size: 44,
                             action: onBack
                         )
 
                         Spacer()
 
-                        if !hasVoted && votes.count == event.proposedSlots.count {
+                        if canSubmitVotes {
                             Button {
                                 Task {
                                     await submitVotes()
@@ -47,8 +47,8 @@ struct PollVotingView: View {
                                     Text("Suivant")
                                         .font(WakeveTheme.Typography.bodySemibold)
                                         .foregroundColor(WakeveTheme.ColorToken.eventLilacText)
-                                        .padding(.horizontal, 28)
-                                        .frame(height: 54)
+                                        .padding(.horizontal, 22)
+                                        .frame(height: 44)
                                         .background(WakeveTheme.ColorToken.eventLilacAction)
                                         .clipShape(Capsule())
                                 }
@@ -205,9 +205,13 @@ struct PollVotingView: View {
         }
     }
 
+    private var canSubmitVotes: Bool {
+        !hasVoted && !event.proposedSlots.isEmpty && votes.count == event.proposedSlots.count
+    }
+
     private func checkExistingVotes() {
         if let poll = repository.getPoll(eventId: event.id) {
-            if let participantVoteMap = poll.votes[participantId] as? [String: Vote_] {
+            if let participantVoteMap = poll.votes[participantId] {
                 hasVoted = !participantVoteMap.isEmpty
 
                 if hasVoted {
