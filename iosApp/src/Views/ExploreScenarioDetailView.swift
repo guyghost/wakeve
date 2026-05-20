@@ -15,75 +15,13 @@ struct ExploreScenarioDetailView: View {
             ZStack(alignment: .topLeading) {
                 ScrollView {
                     VStack(spacing: 0) {
-                        // Gradient header
-                        ZStack(alignment: .bottomLeading) {
-                            LinearGradient(
-                                colors: scenario.gradientColors,
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                            .frame(height: 260)
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Image(systemName: scenario.icon)
-                                    .font(.largeTitle)
-                                    .foregroundColor(.white.opacity(0.9))
-
-                                Text(scenario.title)
-                                    .font(.title)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-
-                                Text(scenario.subtitle)
-                                    .font(.subheadline)
-                                    .foregroundColor(.white.opacity(0.85))
-                            }
-                            .padding(20)
-                            .padding(.bottom, 8)
-                            .offset(y: 28)
-                        }
-
-                        VStack(alignment: .leading, spacing: 24) {
-                            // Description
-                            Text(scenario.description)
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                                .lineSpacing(4)
-
-                            // Checklist
-                            VStack(alignment: .leading, spacing: 16) {
-                                Text(String(localized: "scenario.checklist_title"))
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-
-                                ForEach(Array(scenario.checklistItems.enumerated()), id: \.offset) { index, item in
-                                    HStack(alignment: .top, spacing: 12) {
-                                        Image(systemName: "\(index + 1).circle.fill")
-                                            .font(.title3)
-                                            .foregroundColor(scenario.gradientColors.first ?? .blue)
-
-                                        Text(item)
-                                            .font(.body)
-                                            .foregroundColor(.primary)
-                                    }
-                                }
-                            }
-
-                        }
-                        .padding(20)
+                        scenarioHeader
+                        scenarioContent
                         .padding(.bottom, 104)
                     }
                 }
 
-                WakeveCircleButton(
-                    systemImage: "chevron.left",
-                    accessibilityLabel: "Retour",
-                    variant: .glass,
-                    size: 44,
-                    action: { dismiss() }
-                )
-                .padding(.leading, 16)
-                .padding(.top, topSafeAreaInset + 8)
+                backButton
             }
         }
         .ignoresSafeArea(edges: .top)
@@ -108,6 +46,96 @@ struct ExploreScenarioDetailView: View {
                     .background(Color(uiColor: .systemBackground))
             }
         }
+    }
+
+    private var scenarioHeader: some View {
+        ZStack(alignment: .topLeading) {
+            LinearGradient(
+                colors: scenario.gradientColors,
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            VStack(alignment: .leading, spacing: 14) {
+                Image(systemName: scenario.icon)
+                    .font(.system(size: 40, weight: .medium))
+                    .foregroundColor(.white.opacity(0.92))
+                    .frame(width: 44, height: 46, alignment: .leading)
+
+                Text(scenario.title)
+                    .font(.system(size: 30, weight: .bold))
+                    .foregroundColor(.white)
+                    .lineSpacing(2)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(scenario.subtitle)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(.white.opacity(0.86))
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.horizontal, 28)
+            .padding(.top, topSafeAreaInset + 64)
+            .padding(.trailing, 20)
+        }
+        .frame(height: topSafeAreaInset + 250)
+    }
+
+    private var scenarioContent: some View {
+        VStack(alignment: .leading, spacing: 26) {
+            Text(scenario.description)
+                .font(.system(size: 17, weight: .regular))
+                .foregroundColor(.secondary)
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 18) {
+                Text(String(localized: "scenario.checklist_title"))
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(.primary)
+
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(Array(scenario.checklistItems.enumerated()), id: \.offset) { index, item in
+                        checklistRow(index: index, item: item)
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 28)
+        .padding(.top, 28)
+    }
+
+    private func checklistRow(index: Int, item: String) -> some View {
+        HStack(alignment: .center, spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(scenario.gradientColors.first ?? .orange)
+                    .frame(width: 24, height: 24)
+
+                Text("\(index + 1)")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+            }
+
+            Text(item)
+                .font(.system(size: 17, weight: .regular))
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+        }
+    }
+
+    private var backButton: some View {
+        WakeveCircleButton(
+            systemImage: "chevron.left",
+            accessibilityLabel: "Retour",
+            variant: .glass,
+            size: 44,
+            action: { dismiss() }
+        )
+        .padding(.leading, 24)
+        .padding(.top, topSafeAreaInset + 10)
     }
 
     private var scenarioCTA: some View {
