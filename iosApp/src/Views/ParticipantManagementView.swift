@@ -413,12 +413,14 @@ struct ParticipantManagementView: View {
         isLoading = true
 
         do {
-            let result = try await repository.addParticipant(eventId: event.id, participantId: newParticipantEmail)
+            let participantEmail = newParticipantEmail
+            _ = try await repository.addParticipant(eventId: event.id, participantId: participantEmail)
+            let updatedParticipants = repository.getParticipants(eventId: event.id) ?? []
 
-            if let success = result as? Bool, success {
+            if updatedParticipants.contains(participantEmail) {
                 isLoading = false
                 newParticipantEmail = ""
-                loadParticipants()
+                participants = updatedParticipants
                 onParticipantsUpdated()
             } else {
                 isLoading = false
@@ -436,13 +438,14 @@ struct ParticipantManagementView: View {
         isLoading = true
 
         do {
-            let result = try await repository.updateEventStatus(
+            _ = try await repository.updateEventStatus(
                 id: event.id,
                 status: EventStatus.polling,
                 finalDate: nil
             )
+            let updatedEvent = repository.getEvent(id: event.id)
 
-            if let success = result as? Bool, success {
+            if updatedEvent?.status == EventStatus.polling {
                 isLoading = false
                 showSuccess = true
                 onParticipantsUpdated()

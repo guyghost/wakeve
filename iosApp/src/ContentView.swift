@@ -182,6 +182,7 @@ struct AuthenticatedView: View {
                         await MainActor.run {
                             // Navigate to participant management
                             selectedEvent = event
+                            selectedTab = .home
                             currentView = .participantManagement
                         }
                     } catch {
@@ -409,7 +410,9 @@ struct AuthenticatedView: View {
                 unreadCount: $unreadInboxCount
             )
         case .explore:
-            ExploreTabView()
+            ExploreTabView { _ in
+                showEventCreationSheet = true
+            }
         }
     }
 }

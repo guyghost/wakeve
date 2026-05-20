@@ -176,13 +176,14 @@ struct PollResultsView: View {
         isLoading = true
 
         do {
-            let result = try await repository.updateEventStatus(
+            _ = try await repository.updateEventStatus(
                 id: event.id,
                 status: EventStatus.confirmed,
                 finalDate: bestSlot.id
             )
+            let updatedEvent = repository.getEvent(id: event.id)
 
-            if let success = result as? Bool, success {
+            if updatedEvent?.status == EventStatus.confirmed {
                 isLoading = false
                 showSuccess = true
             } else {

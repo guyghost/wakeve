@@ -6,6 +6,7 @@ import SwiftUI
 /// Sections: "Tendances", "Pres de vous", "Recommandes pour vous"
 struct ExploreTabView: View {
     @StateObject private var viewModel = ExploreViewModel()
+    var onCreateEvent: (EventScenario) -> Void = { _ in }
 
     var body: some View {
         NavigationStack {
@@ -37,7 +38,10 @@ struct ExploreTabView: View {
             }
             .navigationTitle(String(localized: "explore.title"))
             .navigationDestination(for: EventScenario.self) { scenario in
-                ExploreScenarioDetailView(scenario: scenario)
+                ExploreScenarioDetailView(
+                    scenario: scenario,
+                    onCreateEvent: onCreateEvent
+                )
             }
             .background(WakeveScreenBackground(style: .grouped))
         }
