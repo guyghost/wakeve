@@ -116,13 +116,11 @@ struct EventTheme {
     static let defaultTheme = EventTheme(
         backgroundColor: Color(hex: "94A3B8"),
         accentColor: Color(hex: "475569"),
-        emojis: ["📅", "✨", "🎊", "🎈", "🎉"],
+        emojis: ["📅", "✨", "🎈"],
         emojiPositions: [
-            CGPoint(x: 0.5, y: 0.4),
-            CGPoint(x: 0.8, y: 0.2),
-            CGPoint(x: 0.2, y: 0.25),
-            CGPoint(x: 0.75, y: 0.75),
-            CGPoint(x: 0.25, y: 0.8)
+            CGPoint(x: 0.52, y: 0.34),
+            CGPoint(x: 0.78, y: 0.18),
+            CGPoint(x: 0.72, y: 0.67)
         ]
     )
     
@@ -182,6 +180,24 @@ struct HomeContentView: View {
     @State private var showFilterMenu = false
     @State private var selectedFilter: HomeEventFilter = .upcoming
 
+    init(
+        events: [Event],
+        isLoading: Bool,
+        userId: String,
+        initialSelectedFilter: HomeEventFilter = .upcoming,
+        onEventSelected: @escaping (Event) -> Void,
+        onCreateEvent: @escaping () -> Void,
+        onProfileClick: @escaping () -> Void
+    ) {
+        self.events = events
+        self.isLoading = isLoading
+        self.userId = userId
+        self.onEventSelected = onEventSelected
+        self.onCreateEvent = onCreateEvent
+        self.onProfileClick = onProfileClick
+        self._selectedFilter = State(initialValue: initialSelectedFilter)
+    }
+
     var body: some View {
         ZStack {
             backgroundView
@@ -205,6 +221,7 @@ struct HomeContentView: View {
                         onEventSelected: onEventSelected,
                         userId: userId
                     )
+                    .frame(maxHeight: .infinity, alignment: .center)
                 }
             }
             
@@ -309,18 +326,35 @@ struct EventsCarouselView: View {
     let userId: String
     
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 16) {
-                ForEach(events, id: \.id) { event in
-                    VisualEventCard(
-                        event: event,
-                        isOrganizer: event.organizerId == userId,
-                        onTap: { onEventSelected(event) }
-                    )
-                }
+        if events.count == 1, let event = events.first {
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                VisualEventCard(
+                    event: event,
+                    isOrganizer: event.organizerId == userId,
+                    onTap: { onEventSelected(event) }
+                )
+                Spacer(minLength: 0)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(events, id: \.id) { event in
+                            VisualEventCard(
+                                event: event,
+                                isOrganizer: event.organizerId == userId,
+                                onTap: { onEventSelected(event) }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+                Spacer(minLength: 0)
+            }
+            .frame(maxHeight: .infinity)
         }
     }
 }
@@ -331,6 +365,10 @@ struct VisualEventCard: View {
     let event: Event
     let isOrganizer: Bool
     let onTap: () -> Void
+
+    private let cardWidth: CGFloat = 340
+    private let cardHeight: CGFloat = 552
+    private let cardCornerRadius: CGFloat = 30
     
     private var theme: EventTheme {
         EventTheme.theme(for: event.eventType.name)
@@ -338,22 +376,10 @@ struct VisualEventCard: View {
     
     var body: some View {
         Button(action: onTap) {
-            ZStack {
-                // Background
-                RoundedRectangle(cornerRadius: 32)
-                    .fill(theme.backgroundColor)
-                
-                // Emoji decorations - scattered around
-                ForEach(0..<min(theme.emojis.count, theme.emojiPositions.count), id: \.self) { index in
-                    Text(theme.emojis[index])
-                        .font(.system(size: 90))
-                        .position(
-                            x: theme.emojiPositions[index].x * 360,
-                            y: theme.emojiPositions[index].y * 640
-                        )
-                        .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
-                }
-                
+            ZStack(alignment: .bottomLeading) {
+                backgroundLayer
+                decorationLayer
+                readabilityGradient
                 VStack(spacing: 0) {
                     HStack {
                         // Badge "Organisé par moi"
@@ -382,18 +408,93 @@ struct VisualEventCard: View {
                     
                     // Event title - large at bottom
                     Text(event.title)
-                        .font(.system(size: 52, weight: .bold))
+                        .font(.system(size: 42, weight: .bold))
                         .foregroundColor(.white)
-                        .shadow(color: Color.black.opacity(0.4), radius: 8, x: 0, y: 4)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.8)
+                        .shadow(color: Color.black.opacity(0.18), radius: 5, x: 0, y: 2)
                         .padding(.horizontal, 24)
                         .padding(.bottom, 32)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .frame(width: 360, height: 640)
-            .shadow(color: Color.black.opacity(0.2), radius: 20, x: 0, y: 10)
+            .frame(width: cardWidth, height: cardHeight)
+            .clipShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
+            )
+            .shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 8)
         }
         .buttonStyle(ScaleButtonStyle())
+    }
+
+    private var backgroundLayer: some View {
+        RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        theme.backgroundColor.opacity(0.98),
+                        theme.backgroundColor.opacity(0.88),
+                        theme.accentColor.opacity(0.58)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+    }
+
+    private var decorationLayer: some View {
+        GeometryReader { proxy in
+            ForEach(0..<decorationCount, id: \.self) { index in
+                Text(theme.emojis[index])
+                    .font(.system(size: decorationSize(for: index)))
+                    .opacity(decorationOpacity(for: index))
+                    .position(
+                        x: clampedX(for: index, in: proxy.size.width),
+                        y: clampedY(for: index, in: proxy.size.height)
+                    )
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: cardCornerRadius, style: .continuous))
+    }
+
+    private var readabilityGradient: some View {
+        LinearGradient(
+            colors: [
+                Color.black.opacity(0),
+                Color.black.opacity(0.08),
+                Color.black.opacity(0.30)
+            ],
+            startPoint: .center,
+            endPoint: .bottom
+        )
+    }
+
+    private var decorationCount: Int {
+        min(3, theme.emojis.count, theme.emojiPositions.count)
+    }
+
+    private func decorationSize(for index: Int) -> CGFloat {
+        switch index {
+        case 0: return 78
+        case 1: return 58
+        default: return 68
+        }
+    }
+
+    private func decorationOpacity(for index: Int) -> Double {
+        index == 0 ? 0.88 : 0.72
+    }
+
+    private func clampedX(for index: Int, in width: CGFloat) -> CGFloat {
+        let position = theme.emojiPositions[index].x * width
+        return min(max(position, 48), width - 48)
+    }
+
+    private func clampedY(for index: Int, in height: CGFloat) -> CGFloat {
+        let position = theme.emojiPositions[index].y * height
+        return min(max(position, 48), height - 72)
     }
 }
 
@@ -544,9 +645,9 @@ struct LoadingEventsView: View {
 // MARK: - Preview
 
 #if DEBUG
-#Preview("Home - Loaded Light") {
+#Preview("Home - One Card Light") {
     HomeContentView(
-        events: [EventFactory.polling, EventFactory.complete, EventFactory.withManyParticipants],
+        events: [EventFactory.polling],
         isLoading: false,
         userId: UserFactory.organizer.id,
         onEventSelected: { _ in },
@@ -556,9 +657,9 @@ struct LoadingEventsView: View {
     .preferredColorScheme(.light)
 }
 
-#Preview("Home - Loaded Dark") {
+#Preview("Home - One Card Dark") {
     HomeContentView(
-        events: [EventFactory.polling, EventFactory.complete, EventFactory.withManyParticipants],
+        events: [EventFactory.polling],
         isLoading: false,
         userId: UserFactory.organizer.id,
         onEventSelected: { _ in },
@@ -568,7 +669,79 @@ struct LoadingEventsView: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("Home - Empty") {
+#Preview("Home - Multiple Cards Light") {
+    HomeContentView(
+        events: [EventFactory.polling, EventFactory.complete, EventFactory.withManyParticipants],
+        isLoading: false,
+        userId: UserFactory.participant.id,
+        onEventSelected: { _ in },
+        onCreateEvent: {},
+        onProfileClick: {}
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Home - Multiple Cards Dark") {
+    HomeContentView(
+        events: [EventFactory.polling, EventFactory.complete, EventFactory.withManyParticipants],
+        isLoading: false,
+        userId: UserFactory.participant.id,
+        onEventSelected: { _ in },
+        onCreateEvent: {},
+        onProfileClick: {}
+    )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Home - Organized By Me") {
+    HomeContentView(
+        events: [EventFactory.withManyParticipants],
+        isLoading: false,
+        userId: UserFactory.organizer.id,
+        initialSelectedFilter: .organizedByMe,
+        onEventSelected: { _ in },
+        onCreateEvent: {},
+        onProfileClick: {}
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Home - Drafts") {
+    HomeContentView(
+        events: [
+            EventFactory.make(
+                id: "event-draft-home-preview",
+                title: "Voyage entre amis",
+                description: "Brouillon de voyage pour valider la vue d'accueil.",
+                status: .draft,
+                eventType: .outdoorActivity,
+                expectedParticipants: 8
+            )
+        ],
+        isLoading: false,
+        userId: UserFactory.organizer.id,
+        initialSelectedFilter: .drafts,
+        onEventSelected: { _ in },
+        onCreateEvent: {},
+        onProfileClick: {}
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Home - Past Events") {
+    HomeContentView(
+        events: [EventFactory.past],
+        isLoading: false,
+        userId: UserFactory.organizer.id,
+        initialSelectedFilter: .past,
+        onEventSelected: { _ in },
+        onCreateEvent: {},
+        onProfileClick: {}
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Home - Empty Light") {
     HomeContentView(
         events: [],
         isLoading: false,
@@ -577,6 +750,19 @@ struct LoadingEventsView: View {
         onCreateEvent: {},
         onProfileClick: {}
     )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Home - Empty Dark") {
+    HomeContentView(
+        events: [],
+        isLoading: false,
+        userId: UserFactory.organizer.id,
+        onEventSelected: { _ in },
+        onCreateEvent: {},
+        onProfileClick: {}
+    )
+    .preferredColorScheme(.dark)
 }
 
 #Preview("Home - Loading") {
@@ -588,5 +774,6 @@ struct LoadingEventsView: View {
         onCreateEvent: {},
         onProfileClick: {}
     )
+    .preferredColorScheme(.light)
 }
 #endif

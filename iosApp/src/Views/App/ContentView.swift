@@ -22,21 +22,15 @@ struct ContentView: View {
     @EnvironmentObject var authStateManager: AuthStateManager
     @EnvironmentObject var authService: AuthenticationService
     @AppStorage("darkMode") private var darkMode = false
-    @State private var hasSeenGetStarted = false
     @State private var hasOnboarded = false
 
     var body: some View {
         ZStack {
-            if authStateManager.isAuthenticated {
+            if !authStateManager.hasCheckedAuthStatus {
+                AuthLaunchLoadingView()
+            } else if authStateManager.isAuthenticated {
                 if let user = authStateManager.currentUser {
-                    if hasOnboarded {
-                        AuthenticatedView(userId: user.id)
-                    } else {
-                        OnboardingView(onOnboardingComplete: {
-                            markOnboardingComplete()
-                            hasOnboarded = true
-                        })
-                    }
+                    AuthenticatedView(userId: user.id)
                 } else {
                     ErrorView(message: "Authentication error: no user data", onRetry: {
                         Task {
@@ -44,23 +38,37 @@ struct ContentView: View {
                         }
                     })
                 }
+            } else if !hasOnboarded {
+                OnboardingView(onOnboardingComplete: completeOnboarding)
             } else {
-                if hasSeenGetStarted {
-                    LoginView()
-                } else {
-                    GetStartedView(onGetStarted: {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            hasSeenGetStarted = true
-                        }
-                    })
-                    .transition(.opacity)
-                }
+                LoginView()
             }
         }
         .onAppear {
             hasOnboarded = hasCompletedOnboarding()
         }
         .preferredColorScheme(darkMode ? .dark : .light)
+    }
+
+    private func completeOnboarding() {
+        markOnboardingComplete()
+
+        withAnimation(.easeInOut(duration: 0.25)) {
+            hasOnboarded = true
+        }
+    }
+}
+
+private struct AuthLaunchLoadingView: View {
+    var body: some View {
+        ZStack {
+            WakeveScreenBackground(style: .utility)
+
+            ProgressView()
+                .tint(WakeveTheme.ColorToken.permissionBlue)
+                .scaleEffect(1.2)
+        }
+        .ignoresSafeArea()
     }
 }
 
@@ -1223,12 +1231,14 @@ private struct EventPreviewDetailRow: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        Group {
-            ContentView()
-                .preferredColorScheme(.light)
-
-            ContentView()
-                .preferredColorScheme(.dark)
-        }
+        ContentView()
+            .previewEnvironment(isAuthenticated: true)
+            .preferredColorScheme(.light)
     }
+}
+
+#Preview("Content - Login") {
+    ContentView()
+        .previewEnvironment(isAuthenticated: false)
+        .preferredColorScheme(.dark)
 }
