@@ -421,7 +421,7 @@ struct AuthenticatedView: View {
 
 // MARK: - Explore Tab View
 
-// ProfileTabView is now in its own file: Views/ProfileTabView.swift
+// ProfileTabView is now in its own file: Views/Profile/ProfileTabView.swift
 
 enum AppView {
     case eventList
@@ -1223,6 +1223,12 @@ private struct EventPreviewDetailRow: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        Group {
+            ContentView()
+                .preferredColorScheme(.light)
+
+            ContentView()
+                .preferredColorScheme(.dark)
+        }
     }
 }

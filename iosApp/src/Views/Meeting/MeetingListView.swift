@@ -235,7 +235,13 @@ struct MeetingRowView: View {
 // MARK: - Preview
 
 #Preview {
-    MeetingListView(eventId: "preview-event")
+    Group {
+        MeetingListView(eventId: "preview-event")
+            .preferredColorScheme(.light)
+
+        MeetingListView(eventId: "preview-event")
+            .preferredColorScheme(.dark)
+    }
 }
 
 // MARK: - CreateMeetingSheet

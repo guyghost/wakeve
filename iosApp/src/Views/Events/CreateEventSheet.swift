@@ -1256,14 +1256,12 @@ struct CreateEventSheet_Previews: PreviewProvider {
                 userName: "Guy MANDINA NZEZA"
             )
             .preferredColorScheme(.light)
-            .previewDisplayName("Light")
 
             CreateEventSheet(
                 userId: "user-123",
                 userName: "Guy MANDINA NZEZA"
             )
             .preferredColorScheme(.dark)
-            .previewDisplayName("Dark")
         }
     }
 }

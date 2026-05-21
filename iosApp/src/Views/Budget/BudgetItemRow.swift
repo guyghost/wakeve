@@ -76,6 +76,17 @@ struct BudgetItemRow: View {
 // MARK: - Preview
 
 #Preview {
+    Group {
+        BudgetItemRowPreviewContent()
+            .preferredColorScheme(.light)
+
+        BudgetItemRowPreviewContent()
+            .preferredColorScheme(.dark)
+    }
+}
+
+private struct BudgetItemRowPreviewContent: View {
+    var body: some View {
     List {
         BudgetItemRow(
             item: BudgetItemModel(
@@ -113,5 +124,6 @@ struct BudgetItemRow: View {
             ),
             onMarkAsPaid: {}
         )
+    }
     }
 }

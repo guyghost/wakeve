@@ -322,11 +322,20 @@ struct MeetingGenerateLinkSheet_Previews: PreviewProvider {
             status: .scheduled
         )
 
-        return MeetingGenerateLinkSheet(
-            meeting: sampleMeeting,
-            onGenerate: { _ in },
-            onCancel: { }
-        )
-        .previewDisplayName("Meeting Generate Link Sheet")
+        return Group {
+            MeetingGenerateLinkSheet(
+                meeting: sampleMeeting,
+                onGenerate: { _ in },
+                onCancel: { }
+            )
+            .preferredColorScheme(.light)
+
+            MeetingGenerateLinkSheet(
+                meeting: sampleMeeting,
+                onGenerate: { _ in },
+                onCancel: { }
+            )
+            .preferredColorScheme(.dark)
+        }
     }
 }

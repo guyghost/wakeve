@@ -155,7 +155,15 @@ private struct ToggleRow: View {
 // MARK: - Preview
 
 #Preview {
-    NavigationStack {
-        NotificationPreferencesView(userId: "preview-user")
+    Group {
+        NavigationStack {
+            NotificationPreferencesView(userId: "preview-user")
+        }
+        .preferredColorScheme(.light)
+
+        NavigationStack {
+            NotificationPreferencesView(userId: "preview-user")
+        }
+        .preferredColorScheme(.dark)
     }
 }

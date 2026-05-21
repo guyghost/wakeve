@@ -868,12 +868,11 @@ struct ProfileTabView_Previews: PreviewProvider {
         Group {
             ProfileTabView(userId: "user-1")
                 .environmentObject(AuthStateManager(authService: authService))
-                .previewDisplayName("Light Mode")
+                .preferredColorScheme(.light)
             
             ProfileTabView(userId: "user-1")
                 .environmentObject(AuthStateManager(authService: authService))
                 .preferredColorScheme(.dark)
-                .previewDisplayName("Dark Mode")
         }
     }
 }
