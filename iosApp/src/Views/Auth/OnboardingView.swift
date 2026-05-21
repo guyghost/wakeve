@@ -183,12 +183,12 @@ struct OnboardingView: View {
 
 struct OnboardingView_Previews: PreviewProvider {
     static var previews: some View {
-        Group {
-            OnboardingView(onOnboardingComplete: {})
-                .preferredColorScheme(.light)
-
-            OnboardingView(onOnboardingComplete: {})
-                .preferredColorScheme(.dark)
-        }
+        OnboardingView(onOnboardingComplete: {})
+            .preferredColorScheme(.light)
     }
+}
+
+#Preview("Onboarding - Dark") {
+    OnboardingView(onOnboardingComplete: {})
+        .preferredColorScheme(.dark)
 }

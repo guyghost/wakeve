@@ -22,6 +22,9 @@ public class AuthStateManager: ObservableObject {
     /// Loading state during authentication
     @Published var isLoading: Bool = false
 
+    /// Whether the startup session restoration has completed.
+    @Published var hasCheckedAuthStatus: Bool = false
+
     /// Last authentication error message
     @Published var authError: String? = nil
 
@@ -104,6 +107,7 @@ public class AuthStateManager: ObservableObject {
                 avatarUrl: loginResponse.user.avatarUrl
             )
             self.authError = nil
+            self.hasCheckedAuthStatus = true
 
             // Register push token with backend now that user is authenticated
             APNsService.shared.registerTokenWithBackendIfAuthenticated()
@@ -115,11 +119,13 @@ public class AuthStateManager: ObservableObject {
             self.isAuthenticated = false
             self.currentUser = nil
             self.authError = error.localizedDescription
+            self.hasCheckedAuthStatus = true
         } catch {
             print("[AuthStateManager] Authentication failed: \(error)")
             self.isAuthenticated = false
             self.currentUser = nil
             self.authError = error.localizedDescription
+            self.hasCheckedAuthStatus = true
         }
 
         isLoading = false
@@ -146,6 +152,7 @@ public class AuthStateManager: ObservableObject {
         isAuthenticated = false
         currentUser = nil
         authError = nil
+        hasCheckedAuthStatus = true
 
         print("[AuthStateManager] User signed out")
     }
@@ -160,6 +167,12 @@ public class AuthStateManager: ObservableObject {
      */
     func checkAuthStatus() {
         Task {
+            isLoading = true
+            defer {
+                isLoading = false
+                hasCheckedAuthStatus = true
+            }
+
             let hasValidSession = await authService.isAuthenticated()
 
             if hasValidSession {
@@ -229,6 +242,7 @@ public class AuthStateManager: ObservableObject {
      */
     func setAuthStateForDevelopment(userId: String, accessToken: String) async {
         self.isAuthenticated = true
+        self.hasCheckedAuthStatus = true
         self.currentUser = User(
             id: userId,
             name: "Dev User",
