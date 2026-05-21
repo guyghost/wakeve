@@ -10,6 +10,7 @@ struct CreateEventSheet: View {
     let userName: String?
     
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @StateObject private var viewModel = CreateEventViewModel()
 
     @State private var title = ""
@@ -187,12 +188,13 @@ struct CreateEventSheet: View {
     private var gradientBackground: some View {
         switch selectedBackground {
         case .gradient:
-            WakeveTheme.EventGradient.invitation
-            .ignoresSafeArea()
+            eventBackgroundGradient
+                .ignoresSafeArea()
             
         case .preset(let bg):
             GeometryReader { geometry in
                 let topHeight = geometry.size.height * 0.45
+                let pageBackground = WakeveTheme.ColorToken.pageBackground(for: colorScheme)
                 VStack(spacing: 0) {
                     // Top half: background color + emojis
                     ZStack {
@@ -205,8 +207,8 @@ struct CreateEventSheet: View {
                     LinearGradient(
                         colors: [
                             bg.backgroundColor,
-                            bg.backgroundColor.opacity(0.85),
-                            darkenColor(bg.backgroundColor, by: 0.35)
+                            bg.backgroundColor.opacity(colorScheme == .dark ? 0.85 : 0.42),
+                            colorScheme == .dark ? darkenColor(bg.backgroundColor, by: 0.35) : pageBackground
                         ],
                         startPoint: .top,
                         endPoint: .bottom
@@ -214,7 +216,7 @@ struct CreateEventSheet: View {
                     .frame(height: 80)
                     
                     // Bottom half: darker shade, no emojis
-                    darkenColor(bg.backgroundColor, by: 0.35)
+                    (colorScheme == .dark ? darkenColor(bg.backgroundColor, by: 0.35) : pageBackground)
                         .frame(maxHeight: .infinity)
                 }
             }
@@ -223,6 +225,7 @@ struct CreateEventSheet: View {
         case .photo(let image):
             GeometryReader { geometry in
                 let topHeight = geometry.size.height * 0.45
+                let pageBackground = WakeveTheme.ColorToken.pageBackground(for: colorScheme)
                 VStack(spacing: 0) {
                     Image(uiImage: image)
                         .resizable()
@@ -233,15 +236,15 @@ struct CreateEventSheet: View {
                     // Gradient fade
                     LinearGradient(
                         colors: [
-                            Color(hex: "1A1A3E"),
-                            Color(hex: "0F1B3A")
+                            Color(hex: "1A1A3E").opacity(colorScheme == .dark ? 1 : 0.22),
+                            pageBackground
                         ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                     .frame(height: 60)
                     
-                    Color(hex: "0F1B3A")
+                    pageBackground
                         .frame(maxHeight: .infinity)
                 }
             }
@@ -256,7 +259,7 @@ struct CreateEventSheet: View {
             WakeveCircleButton(
                 systemImage: "xmark",
                 accessibilityLabel: String(localized: "common.close"),
-                variant: .glass,
+                variant: colorScheme == .dark || hasCustomBackground ? .glass : .light,
                 size: 48
             ) {
                 dismiss()
@@ -267,10 +270,10 @@ struct CreateEventSheet: View {
             Button(action: { showingPreview = true }) {
                 Text(String(localized: "events.preview"))
                     .font(WakeveTheme.Typography.bodySemibold)
-                    .foregroundColor(canCreate ? WakeveTheme.ColorToken.eventLilacText : .white.opacity(0.42))
+                    .foregroundColor(canCreate ? previewButtonForeground : disabledControlForeground)
                     .padding(.horizontal, 24)
                     .frame(height: 54)
-                    .background(canCreate ? WakeveTheme.ColorToken.eventLilacAction : Color.white.opacity(0.12))
+                    .background(canCreate ? previewButtonBackground : disabledControlBackground)
                     .clipShape(Capsule())
             }
             .disabled(!canCreate)
@@ -287,22 +290,22 @@ struct CreateEventSheet: View {
                 Button(action: { showingBackgroundPicker = true }) {
                     ZStack {
                         Circle()
-                            .fill(Color.white.opacity(0.1))
+                            .fill(heroControlBackground)
                             .frame(width: 80, height: 80)
                         
                         Image(systemName: "photo")
                             .font(.system(size: 32))
-                            .foregroundColor(.white.opacity(0.8))
+                            .foregroundColor(heroControlForeground.opacity(0.82))
                     }
                 }
 
                 Button(action: { showingBackgroundPicker = true }) {
                     Text(String(localized: "events.add_background"))
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(heroControlForeground)
                         .padding(.horizontal, 24)
                         .padding(.vertical, 12)
-                        .background(Color.white.opacity(0.15))
+                        .background(heroControlBackground)
                         .cornerRadius(24)
                 }
             } else {
@@ -329,7 +332,7 @@ struct CreateEventSheet: View {
                     WakeveGlassControl {
                         Text(String(localized: "events.background.modify"))
                             .font(WakeveTheme.Typography.metadata)
-                            .foregroundColor(.white)
+                            .foregroundColor(heroControlForeground)
                             .padding(.horizontal, 20)
                             .padding(.vertical, 10)
                     }
@@ -348,13 +351,13 @@ struct CreateEventSheet: View {
                     if title.isEmpty {
                         Text(String(localized: "events.title_placeholder"))
                             .font(.system(size: 32, weight: .bold))
-                            .foregroundColor(.white.opacity(0.62))
+                            .foregroundColor(placeholderTextColor)
                             .multilineTextAlignment(.center)
                             .lineSpacing(4)
                     }
                     TextField("", text: $title)
                         .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(primaryTextColor)
                         .multilineTextAlignment(.center)
                         .minimumScaleFactor(0.5)
                         .padding(.horizontal, 24)
@@ -363,7 +366,7 @@ struct CreateEventSheet: View {
                 }
 
                 Divider()
-                    .background(Color.white.opacity(0.1))
+                    .background(separatorColor)
                     .padding(.horizontal, 24)
 
                 // Date & Time Row
@@ -371,13 +374,13 @@ struct CreateEventSheet: View {
                     icon: "calendar.badge.plus",
                     label: selectedDate != nil ? formattedDateTime() : String(localized: "events.date_and_time"),
                     isPlaceholder: selectedDate == nil,
-                    iconColor: WakeveTheme.ColorToken.eventLilacAction
+                    iconColor: colorScheme == .dark ? WakeveTheme.ColorToken.eventLilacAction : WakeveTheme.ColorToken.permissionBlue
                 ) {
                     showingDatePicker = true
                 }
 
                 Divider()
-                    .background(Color.white.opacity(0.1))
+                    .background(separatorColor)
                     .padding(.horizontal, 24)
 
                 // Location Row
@@ -418,7 +421,7 @@ struct CreateEventSheet: View {
                 // Organizer text
                 Text(String(format: String(localized: "events.organized_by"), userName ?? String(localized: "leaderboard.you")))
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundColor(.white)
+                    .foregroundColor(primaryTextColor)
                 
                 // Description or Button
                 if description.isEmpty {
@@ -436,7 +439,7 @@ struct CreateEventSheet: View {
                     }) {
                         Text(description)
                             .font(WakeveTheme.Typography.body)
-                            .foregroundColor(.white.opacity(0.9))
+                            .foregroundColor(secondaryTextColor)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
                             .padding(.vertical, 8)
@@ -461,17 +464,17 @@ struct CreateEventSheet: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Type d'événement")
                                 .font(WakeveTheme.Typography.tiny)
-                                .foregroundColor(.white.opacity(0.5))
+                                .foregroundColor(secondaryTextColor)
                             Text(selectedEventType == Shared.EventType.other ? "Choisir un type" : selectedEventType.displayName)
                                 .font(WakeveTheme.Typography.bodySemibold)
-                                .foregroundColor(selectedEventType == Shared.EventType.other ? .white.opacity(0.5) : .white)
+                                .foregroundColor(selectedEventType == Shared.EventType.other ? placeholderTextColor : primaryTextColor)
                         }
 
                         Spacer()
 
                         Image(systemName: "chevron.right")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.white.opacity(0.4))
+                            .foregroundColor(secondaryTextColor.opacity(0.7))
                     }
                     .padding(.horizontal, 20)
                     .padding(.vertical, 16)
@@ -522,6 +525,63 @@ struct CreateEventSheet: View {
     private var hasCustomBackground: Bool {
         if case .gradient = selectedBackground { return false }
         return true
+    }
+
+    private var eventBackgroundGradient: LinearGradient {
+        if colorScheme == .dark {
+            return WakeveTheme.EventGradient.invitation
+        }
+
+        return LinearGradient(
+            colors: [
+                Color(hex: "FFF4FB"),
+                Color(hex: "E9DDFF"),
+                Color(hex: "D7E8FF"),
+                WakeveTheme.ColorToken.appLight
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
+    private var primaryTextColor: Color {
+        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+    }
+
+    private var secondaryTextColor: Color {
+        WakeveTheme.ColorToken.secondaryText(for: colorScheme)
+    }
+
+    private var placeholderTextColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.62) : Color(hex: "6F6475")
+    }
+
+    private var separatorColor: Color {
+        WakeveTheme.ColorToken.separator(for: colorScheme)
+    }
+
+    private var heroControlForeground: Color {
+        colorScheme == .dark || hasCustomBackground ? .white : primaryTextColor
+    }
+
+    private var heroControlBackground: Color {
+        colorScheme == .dark || hasCustomBackground ? Color.white.opacity(0.15) : Color.white.opacity(0.82)
+    }
+
+    private var previewButtonBackground: Color {
+        colorScheme == .dark ? WakeveTheme.ColorToken.eventLilacAction : WakeveTheme.ColorToken.permissionBlue
+    }
+
+    private var previewButtonForeground: Color {
+        colorScheme == .dark ? WakeveTheme.ColorToken.eventLilacText : .white
+    }
+
+    private var disabledControlBackground: Color {
+        colorScheme == .dark ? Color.white.opacity(0.12) : Color.black.opacity(0.08)
+    }
+
+    private var disabledControlForeground: Color {
+        colorScheme == .dark ? Color.white.opacity(0.42) : Color.black.opacity(0.34)
     }
     
     private var canCreate: Bool {
@@ -581,6 +641,8 @@ struct CreateEventSheet: View {
 // MARK: - Date Time Picker Popup
 
 struct DateTimePickerPopup: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     @Binding var isAllDay: Bool
     @Binding var startDate: Date
     @Binding var startTime: Date
@@ -606,7 +668,7 @@ struct DateTimePickerPopup: View {
                     Button(action: onCancel) {
                         Image(systemName: "xmark")
                             .font(.system(size: 17, weight: .medium))
-                            .foregroundColor(.white)
+                            .foregroundColor(primaryTextColor)
                             .frame(width: 24, height: 24)
                     }
 
@@ -614,7 +676,7 @@ struct DateTimePickerPopup: View {
 
                     Text(String(localized: "events.date_and_time"))
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(primaryTextColor)
 
                     Spacer()
 
@@ -622,9 +684,9 @@ struct DateTimePickerPopup: View {
                     Button(action: onSave) {
                         Image(systemName: "checkmark")
                             .font(.system(size: 17, weight: .semibold))
-                            .foregroundColor(.black)
+                            .foregroundColor(saveButtonForeground)
                             .frame(width: 28, height: 28)
-                            .background(Color.white)
+                            .background(saveButtonBackground)
                             .clipShape(Circle())
                     }
                 }
@@ -638,7 +700,7 @@ struct DateTimePickerPopup: View {
                     HStack {
                         Text(String(localized: "events.all_day"))
                             .font(.system(size: 16))
-                            .foregroundColor(.white)
+                            .foregroundColor(primaryTextColor)
 
                         Spacer()
 
@@ -650,13 +712,13 @@ struct DateTimePickerPopup: View {
                     .padding(.vertical, 12)
 
                     Divider()
-                        .background(Color.white.opacity(0.15))
+                        .background(separatorColor)
 
                     // Start Date/Time Section
                     HStack(spacing: 6) {
                         Text(String(localized: "events.start"))
                             .font(.system(size: 16))
-                            .foregroundColor(.white)
+                            .foregroundColor(primaryTextColor)
 
                         Spacer()
 
@@ -675,12 +737,12 @@ struct DateTimePickerPopup: View {
 
                     if hasEndTime && !isAllDay {
                         Divider()
-                            .background(Color.white.opacity(0.15))
+                            .background(separatorColor)
 
                         HStack(spacing: 6) {
                             Text(String(localized: "events.end"))
                                 .font(.system(size: 16))
-                                .foregroundColor(.white)
+                                .foregroundColor(primaryTextColor)
 
                             Spacer()
 
@@ -695,7 +757,7 @@ struct DateTimePickerPopup: View {
                     // Add End Time Link
                     if !hasEndTime && !isAllDay {
                         Divider()
-                            .background(Color.white.opacity(0.15))
+                            .background(separatorColor)
 
                         Button(action: { hasEndTime = true }) {
                             HStack(spacing: 8) {
@@ -704,23 +766,22 @@ struct DateTimePickerPopup: View {
                                 Text(String(localized: "events.add_end_time"))
                                     .font(.system(size: 16, weight: .semibold))
                             }
-                            .foregroundColor(WakeveTheme.ColorToken.eventLilacAction)
+                            .foregroundColor(colorScheme == .dark ? WakeveTheme.ColorToken.eventLilacAction : WakeveTheme.ColorToken.permissionBlue)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 12)
                         }
                     }
                 }
-                .background(Color.white.opacity(0.08))
+                .background(groupedSurfaceColor)
                 .cornerRadius(16)
                 .padding(.horizontal, 12)
                 .padding(.bottom, 16)
-                .environment(\.colorScheme, .dark)
-                .tint(.white)
+                .tint(colorScheme == .dark ? .white : WakeveTheme.ColorToken.permissionBlue)
             }
             .background(
                 RoundedRectangle(cornerRadius: 24)
-                    .fill(Color(hex: "1A1A3E").opacity(0.95))
+                    .fill(sheetSurfaceColor)
                     .background(.ultraThinMaterial)
             )
             .cornerRadius(24)
@@ -728,6 +789,30 @@ struct DateTimePickerPopup: View {
             .padding(.bottom, 16)
             .shadow(color: Color.black.opacity(0.25), radius: 40, x: 0, y: -10)
         }
+    }
+
+    private var primaryTextColor: Color {
+        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+    }
+
+    private var separatorColor: Color {
+        WakeveTheme.ColorToken.separator(for: colorScheme)
+    }
+
+    private var sheetSurfaceColor: Color {
+        colorScheme == .dark ? Color(hex: "1A1A3E").opacity(0.95) : Color.white.opacity(0.96)
+    }
+
+    private var groupedSurfaceColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.045)
+    }
+
+    private var saveButtonBackground: Color {
+        colorScheme == .dark ? Color.white : WakeveTheme.ColorToken.permissionBlue
+    }
+
+    private var saveButtonForeground: Color {
+        colorScheme == .dark ? .black : .white
     }
     
     private func formattedDate(_ date: Date) -> String {
@@ -748,6 +833,8 @@ struct DateTimePickerPopup: View {
 // MARK: - Detail Row
 
 struct DetailRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let icon: String
     let label: String
     let isPlaceholder: Bool
@@ -771,11 +858,19 @@ struct DetailRow: View {
                 
                 Text(label)
                     .font(.system(size: 18, weight: isPlaceholder ? .regular : .medium))
-                    .foregroundColor(isPlaceholder ? .white.opacity(0.9) : .white)
+                    .foregroundColor(isPlaceholder ? placeholderTextColor : primaryTextColor)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 20)
         }
+    }
+
+    private var primaryTextColor: Color {
+        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+    }
+
+    private var placeholderTextColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.9) : WakeveTheme.ColorToken.secondaryText(for: colorScheme)
     }
 }
 
@@ -783,6 +878,7 @@ struct DetailRow: View {
 
 struct EventPreviewSheet: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     let title: String
     let description: String
@@ -928,7 +1024,7 @@ struct EventPreviewSheet: View {
             VStack(alignment: .leading, spacing: 16) {
                 Text(String(localized: "events.preview.invitation_title"))
                     .font(.system(size: 20, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(previewPrimaryText)
 
                 HStack(alignment: .top, spacing: 14) {
                     Image(systemName: "text.below.photo.fill")
@@ -939,7 +1035,7 @@ struct EventPreviewSheet: View {
 
                     Text(String(localized: "events.preview.invitation_description"))
                         .font(.system(size: 15))
-                        .foregroundColor(.white.opacity(0.6))
+                        .foregroundColor(previewSecondaryText)
                         .lineSpacing(4)
                 }
             }
@@ -948,8 +1044,20 @@ struct EventPreviewSheet: View {
 
             Spacer()
         }
-        .background(Color(hex: "0A0A1A"))
+        .background(previewPageBackground)
         .ignoresSafeArea(edges: .top)
+    }
+
+    private var previewPageBackground: Color {
+        WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+    }
+
+    private var previewPrimaryText: Color {
+        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+    }
+
+    private var previewSecondaryText: Color {
+        WakeveTheme.ColorToken.secondaryText(for: colorScheme)
     }
 
     // MARK: - Preview Cards
@@ -1142,9 +1250,20 @@ struct EventTypePickerSheet: View {
 
 struct CreateEventSheet_Previews: PreviewProvider {
     static var previews: some View {
-        CreateEventSheet(
-            userId: "user-123",
-            userName: "Guy MANDINA NZEZA"
-        )
+        Group {
+            CreateEventSheet(
+                userId: "user-123",
+                userName: "Guy MANDINA NZEZA"
+            )
+            .preferredColorScheme(.light)
+            .previewDisplayName("Light")
+
+            CreateEventSheet(
+                userId: "user-123",
+                userName: "Guy MANDINA NZEZA"
+            )
+            .preferredColorScheme(.dark)
+            .previewDisplayName("Dark")
+        }
     }
 }
