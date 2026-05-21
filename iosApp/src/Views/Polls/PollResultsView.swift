@@ -19,6 +19,93 @@ struct PollResultsView: View {
     @State private var showSuccess = false
 
     var body: some View {
+        PollResultsContentView(
+            event: event,
+            slotScores: slotScores,
+            bestSlot: bestSlot,
+            canConfirmDate: repository.isOrganizer(eventId: event.id, userId: userId),
+            isLoading: isLoading,
+            onConfirmDate: {
+                Task { await confirmDate() }
+            },
+            onBack: onBack
+        )
+        .onAppear {
+            loadPollResults()
+        }
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
+        .alert("Success", isPresented: $showSuccess) {
+            Button("OK", role: .cancel) {
+                onDateConfirmed(event.id)
+            }
+        } message: {
+            Text("Event date confirmed successfully!")
+        }
+    }
+
+    private func loadPollResults() {
+        poll = repository.getPoll(eventId: event.id)
+
+        if let poll = poll {
+            slotScores = PollLogic.shared.getSlotScores(poll: poll, slots: event.proposedSlots)
+
+            if let bestResult = PollLogic.shared.getBestSlotWithScore(poll: poll, slots: event.proposedSlots) {
+                bestSlot = bestResult.first
+            }
+        }
+    }
+
+    private func confirmDate() async {
+        guard let bestSlot = bestSlot else { return }
+
+        guard repository.isOrganizer(eventId: event.id, userId: userId) else {
+            errorMessage = "Only the organizer can confirm the date"
+            showError = true
+            return
+        }
+
+        isLoading = true
+
+        do {
+            _ = try await repository.updateEventStatus(
+                id: event.id,
+                status: EventStatus.confirmed,
+                finalDate: bestSlot.id
+            )
+            let updatedEvent = repository.getEvent(id: event.id)
+
+            if updatedEvent?.status == EventStatus.confirmed {
+                isLoading = false
+                showSuccess = true
+            } else {
+                isLoading = false
+                errorMessage = "Failed to confirm date"
+                showError = true
+            }
+        } catch {
+            isLoading = false
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+}
+
+// MARK: - Poll Results Content View
+
+struct PollResultsContentView: View {
+    let event: Event
+    let slotScores: [PollLogic.SlotScore]
+    let bestSlot: TimeSlot?
+    let canConfirmDate: Bool
+    let isLoading: Bool
+    let onConfirmDate: () -> Void
+    let onBack: () -> Void
+
+    var body: some View {
         ZStack {
             WakeveScreenBackground(style: .grouped)
 
@@ -88,18 +175,14 @@ struct PollResultsView: View {
                                 }
 
                                 // Confirm Button
-                                if repository.isOrganizer(eventId: event.id, userId: userId), bestSlot != nil {
+                                if canConfirmDate, bestSlot != nil {
                                     WakeveActionButton(
                                         "Confirm This Date",
                                         systemImage: "checkmark",
                                         variant: .primary,
                                         isDisabled: isLoading,
                                         isLoading: isLoading
-                                    ) {
-                                        Task {
-                                            await confirmDate()
-                                        }
-                                    }
+                                    ) { onConfirmDate() }
                                     .padding(.top, 8)
                                 }
                             } else {
@@ -134,67 +217,6 @@ struct PollResultsView: View {
                     .padding(.top, 16)
                 }
             }
-        }
-        .onAppear {
-            loadPollResults()
-        }
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
-        }
-        .alert("Success", isPresented: $showSuccess) {
-            Button("OK", role: .cancel) {
-                onDateConfirmed(event.id)
-            }
-        } message: {
-            Text("Event date confirmed successfully!")
-        }
-    }
-
-    private func loadPollResults() {
-        poll = repository.getPoll(eventId: event.id)
-
-        if let poll = poll {
-            slotScores = PollLogic.shared.getSlotScores(poll: poll, slots: event.proposedSlots)
-
-            if let bestResult = PollLogic.shared.getBestSlotWithScore(poll: poll, slots: event.proposedSlots) {
-                bestSlot = bestResult.first
-            }
-        }
-    }
-
-    private func confirmDate() async {
-        guard let bestSlot = bestSlot else { return }
-
-        guard repository.isOrganizer(eventId: event.id, userId: userId) else {
-            errorMessage = "Only the organizer can confirm the date"
-            showError = true
-            return
-        }
-
-        isLoading = true
-
-        do {
-            _ = try await repository.updateEventStatus(
-                id: event.id,
-                status: EventStatus.confirmed,
-                finalDate: bestSlot.id
-            )
-            let updatedEvent = repository.getEvent(id: event.id)
-
-            if updatedEvent?.status == EventStatus.confirmed {
-                isLoading = false
-                showSuccess = true
-            } else {
-                isLoading = false
-                errorMessage = "Failed to confirm date"
-                showError = true
-            }
-        } catch {
-            isLoading = false
-            errorMessage = error.localizedDescription
-            showError = true
         }
     }
 }
@@ -466,3 +488,58 @@ struct VoteCountBadge: View {
         }
     }
 }
+
+// MARK: - Preview
+
+#if DEBUG
+#Preview("Poll Results - Loaded Light") {
+    PollResultsContentView(
+        event: EventFactory.polling,
+        slotScores: EventFactory.pollingPreviewScores,
+        bestSlot: EventFactory.polling.proposedSlots.first,
+        canConfirmDate: true,
+        isLoading: false,
+        onConfirmDate: {},
+        onBack: {}
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Poll Results - Loaded Dark") {
+    PollResultsContentView(
+        event: EventFactory.polling,
+        slotScores: EventFactory.pollingPreviewScores,
+        bestSlot: EventFactory.polling.proposedSlots.first,
+        canConfirmDate: true,
+        isLoading: false,
+        onConfirmDate: {},
+        onBack: {}
+    )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Poll Results - No Votes") {
+    PollResultsContentView(
+        event: EventFactory.polling,
+        slotScores: [],
+        bestSlot: nil,
+        canConfirmDate: true,
+        isLoading: false,
+        onConfirmDate: {},
+        onBack: {}
+    )
+}
+
+#Preview("Poll Results - Confirmed") {
+    let event = EventFactory.confirmedWithFinalSlot
+    PollResultsContentView(
+        event: event,
+        slotScores: [],
+        bestSlot: nil,
+        canConfirmDate: false,
+        isLoading: false,
+        onConfirmDate: {},
+        onBack: {}
+    )
+}
+#endif

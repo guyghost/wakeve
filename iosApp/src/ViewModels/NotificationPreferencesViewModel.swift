@@ -40,11 +40,17 @@ class NotificationPreferencesViewModel: ObservableObject {
     ]
 
     private let userId: String
-    private let database: WakeveDb
+    private let database: WakeveDb?
 
-    init(userId: String) {
+    init(
+        userId: String,
+        enabledTypeNames: Set<String>? = nil,
+        quietHoursEnabled: Bool = false,
+        soundEnabled: Bool = true,
+        vibrationEnabled: Bool = true
+    ) {
         self.userId = userId
-        self.database = RepositoryProvider.shared.database
+        self.database = enabledTypeNames == nil ? RepositoryProvider.shared.database : nil
 
         // Set default quiet hours (22:00 - 08:00)
         var components = DateComponents()
@@ -55,11 +61,19 @@ class NotificationPreferencesViewModel: ObservableObject {
         components.hour = 8
         components.minute = 0
         quietHoursEnd = Calendar.current.date(from: components) ?? Date()
+
+        if let enabledTypeNames {
+            self.enabledTypeNames = enabledTypeNames
+            self.quietHoursEnabled = quietHoursEnabled
+            self.soundEnabled = soundEnabled
+            self.vibrationEnabled = vibrationEnabled
+        }
     }
 
     // MARK: - Load
 
     func load() {
+        guard let database else { return }
         isLoading = true
         let record = database.userQueries.selectPreferencesByUserId(user_id: userId).executeAsList().first
         if let record = record {
@@ -101,6 +115,7 @@ class NotificationPreferencesViewModel: ObservableObject {
     // MARK: - Save
 
     func save() {
+        guard let database else { return }
         let typesArray = Array(enabledTypeNames)
         let typesJson = (try? JSONEncoder().encode(typesArray)).flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
         let startStr = quietHoursEnabled ? dateToQuietTimeString(quietHoursStart) : nil

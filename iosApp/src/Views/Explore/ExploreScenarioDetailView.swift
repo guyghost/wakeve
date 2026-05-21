@@ -162,3 +162,17 @@ struct ExploreScenarioDetailView: View {
     }
 
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("Scenario Detail - Birthday Light") {
+    ExploreScenarioDetailView(scenario: ScenarioFactory.birthday)
+        .preferredColorScheme(.light)
+}
+
+#Preview("Scenario Detail - Team Dark") {
+    ExploreScenarioDetailView(scenario: ScenarioFactory.teamBuilding)
+        .preferredColorScheme(.dark)
+}
+#endif

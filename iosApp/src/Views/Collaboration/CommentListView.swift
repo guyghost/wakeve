@@ -322,3 +322,39 @@ struct MentionAutocompleteView: View {
         .padding(.horizontal, 16)
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("Comments - Threaded Light") {
+    CommentListView(
+        eventId: EventFactory.polling.id,
+        section: .general,
+        comments: CommentFactory.threads,
+        currentUserId: UserFactory.organizer.id,
+        isOrganizer: true
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Comments - Threaded Dark") {
+    CommentListView(
+        eventId: EventFactory.polling.id,
+        section: .general,
+        comments: CommentFactory.threads,
+        currentUserId: UserFactory.organizer.id,
+        isOrganizer: true
+    )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Comments - Empty") {
+    CommentListView(
+        eventId: EventFactory.polling.id,
+        section: .poll,
+        comments: [],
+        currentUserId: UserFactory.participant.id,
+        isOrganizer: false
+    )
+}
+#endif

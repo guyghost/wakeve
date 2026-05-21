@@ -14,6 +14,26 @@ struct NotificationPreferencesView: View {
         _viewModel = StateObject(wrappedValue: NotificationPreferencesViewModel(userId: userId))
     }
 
+#if DEBUG
+    init(
+        previewUserId: String,
+        enabledTypeNames: Set<String>,
+        quietHoursEnabled: Bool,
+        soundEnabled: Bool,
+        vibrationEnabled: Bool
+    ) {
+        _viewModel = StateObject(
+            wrappedValue: NotificationPreferencesViewModel(
+                userId: previewUserId,
+                enabledTypeNames: enabledTypeNames,
+                quietHoursEnabled: quietHoursEnabled,
+                soundEnabled: soundEnabled,
+                vibrationEnabled: vibrationEnabled
+            )
+        )
+    }
+#endif
+
     var body: some View {
         Form {
             // Section: Notification Types
@@ -154,16 +174,39 @@ private struct ToggleRow: View {
 
 // MARK: - Preview
 
-#Preview {
-    Group {
-        NavigationStack {
-            NotificationPreferencesView(userId: "preview-user")
-        }
-        .preferredColorScheme(.light)
-
-        NavigationStack {
-            NotificationPreferencesView(userId: "preview-user")
-        }
-        .preferredColorScheme(.dark)
+#Preview("Notification Preferences - Light") {
+    NavigationStack {
+        NotificationPreferencesView(
+            previewUserId: "preview-user",
+            enabledTypeNames: [
+                "EVENT_INVITE",
+                "VOTE_REMINDER",
+                "DATE_CONFIRMED",
+                "NEW_COMMENT",
+                "MENTION",
+                "MEETING_REMINDER"
+            ],
+            quietHoursEnabled: true,
+            soundEnabled: true,
+            vibrationEnabled: true
+        )
     }
+    .preferredColorScheme(.light)
+}
+
+#Preview("Notification Preferences - Dark") {
+    NavigationStack {
+        NotificationPreferencesView(
+            previewUserId: "preview-user",
+            enabledTypeNames: [
+                "EVENT_INVITE",
+                "DATE_CONFIRMED",
+                "MEETING_REMINDER"
+            ],
+            quietHoursEnabled: true,
+            soundEnabled: false,
+            vibrationEnabled: true
+        )
+    }
+    .preferredColorScheme(.dark)
 }

@@ -141,6 +141,51 @@ enum EventFactory {
         )
     }
 
+    /// Vote selections that match the `polling` event slots for Canvas states.
+    static var pollingPreviewVotes: [String: PollVote] {
+        [
+            "slot-poll-1": .yes,
+            "slot-poll-2": .maybe,
+            "slot-poll-3": .no
+        ]
+    }
+
+    /// Scores that match the `polling` event slots for poll result previews.
+    static var pollingPreviewScores: [PollLogic.SlotScore] {
+        [
+            PollLogic.SlotScore(slotId: "slot-poll-1", yesCount: 5, maybeCount: 1, noCount: 0, totalScore: 11),
+            PollLogic.SlotScore(slotId: "slot-poll-2", yesCount: 3, maybeCount: 2, noCount: 1, totalScore: 7),
+            PollLogic.SlotScore(slotId: "slot-poll-3", yesCount: 1, maybeCount: 3, noCount: 2, totalScore: 3)
+        ]
+    }
+
+    /// Confirmed event whose `finalDate` matches a proposed slot id for result previews.
+    static var confirmedWithFinalSlot: Event {
+        let finalSlot = TimeSlot(
+            id: "slot-confirmed-final",
+            start: dateString(daysFromNow: 12, hour: 18),
+            end: dateString(daysFromNow: 12, hour: 22),
+            timezone: "Europe/Paris",
+            timeOfDay: .evening
+        )
+
+        return make(
+            id: "event-confirmed-preview",
+            title: "Diner terrasse",
+            description: "Date confirmee avec les participants pour valider le rendu Canvas.",
+            organizerId: UserFactory.organizer.id,
+            participants: UserFactory.group(count: 5).map(\.id),
+            proposedSlots: [finalSlot],
+            deadline: dateString(daysFromNow: 3),
+            status: .confirmed,
+            finalDate: finalSlot.id,
+            eventType: .foodTasting,
+            minParticipants: 4,
+            maxParticipants: 10,
+            expectedParticipants: 6
+        )
+    }
+
     /// Event with 15+ participants for testing large participant lists.
     static var withManyParticipants: Event {
         let participantIds = (0..<18).map { "user-crowd-\($0)" }

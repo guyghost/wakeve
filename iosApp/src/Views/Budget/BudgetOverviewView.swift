@@ -8,16 +8,37 @@ struct BudgetOverviewView: View {
 
     @StateObject private var viewModel: BudgetViewModel
     @State private var navigateToDetail = false
+    private let previewCategories: [BudgetCategoryModel]?
+    private let previewBalances: [ParticipantBalanceModel]?
+    private let previewParticipantCount: Int?
 
     init(eventId: String) {
         self.eventId = eventId
         self._viewModel = StateObject(wrappedValue: BudgetViewModel(eventId: eventId))
+        self.previewCategories = nil
+        self.previewBalances = nil
+        self.previewParticipantCount = nil
     }
+
+#if DEBUG
+    init(
+        eventId: String,
+        previewCategories: [BudgetCategoryModel],
+        previewBalances: [ParticipantBalanceModel],
+        previewParticipantCount: Int
+    ) {
+        self.eventId = eventId
+        self._viewModel = StateObject(wrappedValue: BudgetViewModel(eventId: eventId))
+        self.previewCategories = previewCategories
+        self.previewBalances = previewBalances
+        self.previewParticipantCount = previewParticipantCount
+    }
+#endif
 
     var body: some View {
         NavigationStack {
             Group {
-                if viewModel.isLoading {
+                if shouldShowLoading {
                     loadingView
                 } else if let error = viewModel.errorMessage {
                     errorView(message: error)
@@ -40,7 +61,10 @@ struct BudgetOverviewView: View {
                 BudgetDetailView(eventId: eventId)
             }
         }
-        .onAppear { viewModel.load() }
+        .onAppear {
+            guard !isPreviewing else { return }
+            viewModel.load()
+        }
     }
 
     // MARK: - Loading
@@ -78,10 +102,10 @@ struct BudgetOverviewView: View {
         ScrollView {
             LazyVStack(spacing: 16) {
                 summaryCard
-                if !viewModel.categoryModels.isEmpty {
+                if !categoryModels.isEmpty {
                     categoryBreakdownCard
                 }
-                if !viewModel.participantBalances.isEmpty {
+                if !participantBalances.isEmpty {
                     participantBalancesCard
                 }
                 detailButton
@@ -100,7 +124,7 @@ struct BudgetOverviewView: View {
                 Text("Résumé")
                     .font(.headline)
                 Spacer()
-                if viewModel.isOverBudget {
+                if isOverBudget {
                     Label("Dépassé", systemImage: "exclamationmark.circle.fill")
                         .font(.caption)
                         .foregroundStyle(.red)
@@ -114,12 +138,12 @@ struct BudgetOverviewView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text(String(format: "%.0f%%", viewModel.budgetUsagePercentage * 100))
+                    Text(String(format: "%.0f%%", budgetUsagePercentage * 100))
                         .font(.caption.bold())
-                        .foregroundStyle(viewModel.isOverBudget ? .red : .primary)
+                        .foregroundStyle(isOverBudget ? .red : .primary)
                 }
-                ProgressView(value: viewModel.budgetUsagePercentage)
-                    .tint(viewModel.isOverBudget ? .red : .blue)
+                ProgressView(value: budgetUsagePercentage)
+                    .tint(isOverBudget ? .red : .blue)
             }
 
             Divider()
@@ -128,24 +152,24 @@ struct BudgetOverviewView: View {
             HStack(spacing: 0) {
                 amountCell(
                     title: "Estimé",
-                    amount: viewModel.totalEstimated,
+                    amount: totalEstimated,
                     color: .secondary
                 )
                 Divider().frame(height: 44)
                 amountCell(
                     title: "Réel",
-                    amount: viewModel.totalActual,
-                    color: viewModel.isOverBudget ? .red : .green
+                    amount: totalActual,
+                    color: isOverBudget ? .red : .green
                 )
                 Divider().frame(height: 44)
                 amountCell(
                     title: "Restant",
-                    amount: viewModel.remainingBudget,
-                    color: viewModel.isOverBudget ? .red : .blue
+                    amount: remainingBudget,
+                    color: isOverBudget ? .red : .blue
                 )
             }
 
-            if viewModel.participantCount > 0 {
+            if participantCount > 0 {
                 Divider()
                 HStack {
                     Image(systemName: "person.2.fill")
@@ -155,7 +179,7 @@ struct BudgetOverviewView: View {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text(formatAmount(viewModel.costPerPerson))
+                    Text(formatAmount(costPerPerson))
                         .font(.caption.bold())
                 }
             }
@@ -187,9 +211,9 @@ struct BudgetOverviewView: View {
                     .font(.headline)
             }
 
-            ForEach(viewModel.categoryModels) { categoryModel in
+            ForEach(categoryModels) { categoryModel in
                 BudgetCategoryRow(model: categoryModel)
-                if categoryModel.id != viewModel.categoryModels.last?.id {
+                if categoryModel.id != categoryModels.last?.id {
                     Divider()
                 }
             }
@@ -209,7 +233,7 @@ struct BudgetOverviewView: View {
                     .font(.headline)
             }
 
-            ForEach(viewModel.participantBalances) { balance in
+            ForEach(participantBalances) { balance in
                 HStack {
                     Circle()
                         .fill(balance.owesMore ? Color.orange.opacity(0.2) : Color.green.opacity(0.2))
@@ -262,6 +286,52 @@ struct BudgetOverviewView: View {
     private func formatAmount(_ amount: Double) -> String {
         String(format: "%.2f €", amount)
     }
+
+    private var isPreviewing: Bool {
+        previewCategories != nil
+    }
+
+    private var shouldShowLoading: Bool {
+        !isPreviewing && viewModel.isLoading
+    }
+
+    private var categoryModels: [BudgetCategoryModel] {
+        previewCategories ?? viewModel.categoryModels
+    }
+
+    private var participantBalances: [ParticipantBalanceModel] {
+        previewBalances ?? viewModel.participantBalances
+    }
+
+    private var participantCount: Int {
+        previewParticipantCount ?? viewModel.participantCount
+    }
+
+    private var totalEstimated: Double {
+        isPreviewing ? categoryModels.reduce(0) { $0 + $1.estimated } : viewModel.totalEstimated
+    }
+
+    private var totalActual: Double {
+        isPreviewing ? categoryModels.reduce(0) { $0 + $1.actual } : viewModel.totalActual
+    }
+
+    private var budgetUsagePercentage: Double {
+        guard totalEstimated > 0 else { return 0 }
+        return min(totalActual / totalEstimated, 1.0)
+    }
+
+    private var isOverBudget: Bool {
+        totalActual > totalEstimated
+    }
+
+    private var remainingBudget: Double {
+        totalEstimated - totalActual
+    }
+
+    private var costPerPerson: Double {
+        guard participantCount > 0 else { return totalEstimated }
+        return totalEstimated / Double(participantCount)
+    }
 }
 
 // MARK: - BudgetCategoryRow
@@ -295,12 +365,22 @@ struct BudgetCategoryRow: View {
 
 // MARK: - Preview
 
-#Preview {
-    Group {
-        BudgetOverviewView(eventId: "preview-event-id")
-            .preferredColorScheme(.light)
+#Preview("Budget Overview - Light") {
+    BudgetOverviewView(
+        eventId: "preview-event-id",
+        previewCategories: BudgetFactory.categoryModels,
+        previewBalances: BudgetFactory.participantBalances,
+        previewParticipantCount: 3
+    )
+    .preferredColorScheme(.light)
+}
 
-        BudgetOverviewView(eventId: "preview-event-id")
-            .preferredColorScheme(.dark)
-    }
+#Preview("Budget Overview - Dark") {
+    BudgetOverviewView(
+        eventId: "preview-event-id",
+        previewCategories: BudgetFactory.categoryModels,
+        previewBalances: BudgetFactory.participantBalances,
+        previewParticipantCount: 3
+    )
+    .preferredColorScheme(.dark)
 }

@@ -9,20 +9,30 @@ struct BudgetDetailView: View {
     @State private var showAddItem = false
     @State private var itemToDelete: BudgetItemModel? = nil
     @State private var showDeleteConfirm = false
+    private let previewItems: [BudgetItemModel]?
 
     init(eventId: String) {
         self.eventId = eventId
         self._viewModel = StateObject(wrappedValue: BudgetViewModel(eventId: eventId))
+        self.previewItems = nil
     }
+
+#if DEBUG
+    init(eventId: String, previewItems: [BudgetItemModel]) {
+        self.eventId = eventId
+        self._viewModel = StateObject(wrappedValue: BudgetViewModel(eventId: eventId))
+        self.previewItems = previewItems
+    }
+#endif
 
     // All categories in display order
     private let categoryOrder = BudgetCategoryUI.allCases
 
     var body: some View {
         Group {
-            if viewModel.isLoading {
+            if shouldShowLoading {
                 loadingView
-            } else if viewModel.allItems.isEmpty {
+            } else if allItems.isEmpty {
                 emptyView
             } else {
                 listView
@@ -41,6 +51,7 @@ struct BudgetDetailView: View {
         }
         .sheet(isPresented: $showAddItem) {
             AddBudgetItemSheet { name, description, categoryUI, estimatedCost, sharedBy in
+                guard !isPreviewing else { return }
                 viewModel.addItem(
                     name: name,
                     description: description,
@@ -56,13 +67,16 @@ struct BudgetDetailView: View {
             titleVisibility: .visible
         ) {
             Button("Supprimer", role: .destructive) {
-                if let item = itemToDelete {
+                if let item = itemToDelete, !isPreviewing {
                     viewModel.deleteItem(itemId: item.id)
                 }
             }
             Button("Annuler", role: .cancel) {}
         }
-        .onAppear { viewModel.load() }
+        .onAppear {
+            guard !isPreviewing else { return }
+            viewModel.load()
+        }
     }
 
     // MARK: - Loading
@@ -110,19 +124,20 @@ struct BudgetDetailView: View {
             // Summary header
             Section {
                 BudgetSummaryRow(
-                    totalEstimated: viewModel.totalEstimated,
-                    totalActual: viewModel.totalActual,
-                    isOverBudget: viewModel.isOverBudget
+                    totalEstimated: totalEstimated,
+                    totalActual: totalActual,
+                    isOverBudget: isOverBudget
                 )
             }
 
             // Items grouped by category
             ForEach(categoryOrder, id: \.rawValue) { category in
-                let items = viewModel.itemsByCategoryName[category.rawValue] ?? []
+                let items = itemsByCategoryName[category.rawValue] ?? []
                 if !items.isEmpty {
                     Section(category.displayName) {
                         ForEach(items) { item in
                             BudgetItemRow(item: item) {
+                                guard !isPreviewing else { return }
                                 viewModel.markItemAsPaid(
                                     itemId: item.id,
                                     actualCost: item.estimatedCost,
@@ -153,6 +168,38 @@ struct BudgetDetailView: View {
             }
         }
         .listStyle(.insetGrouped)
+    }
+
+    private var isPreviewing: Bool {
+        previewItems != nil
+    }
+
+    private var shouldShowLoading: Bool {
+        !isPreviewing && viewModel.isLoading
+    }
+
+    private var allItems: [BudgetItemModel] {
+        previewItems ?? viewModel.allItems
+    }
+
+    private var itemsByCategoryName: [String: [BudgetItemModel]] {
+        if let previewItems {
+            Dictionary(grouping: previewItems, by: \.categoryName)
+        } else {
+            viewModel.itemsByCategoryName
+        }
+    }
+
+    private var totalEstimated: Double {
+        isPreviewing ? allItems.reduce(0) { $0 + $1.estimatedCost } : viewModel.totalEstimated
+    }
+
+    private var totalActual: Double {
+        isPreviewing ? allItems.filter(\.isPaid).reduce(0) { $0 + $1.actualCost } : viewModel.totalActual
+    }
+
+    private var isOverBudget: Bool {
+        totalActual > totalEstimated
     }
 }
 
@@ -193,16 +240,16 @@ struct BudgetSummaryRow: View {
 
 // MARK: - Preview
 
-#Preview {
-    Group {
-        NavigationStack {
-            BudgetDetailView(eventId: "preview-event-id")
-        }
-        .preferredColorScheme(.light)
-
-        NavigationStack {
-            BudgetDetailView(eventId: "preview-event-id")
-        }
-        .preferredColorScheme(.dark)
+#Preview("Budget Detail - Light") {
+    NavigationStack {
+        BudgetDetailView(eventId: "preview-event-id", previewItems: BudgetFactory.items)
     }
+    .preferredColorScheme(.light)
+}
+
+#Preview("Budget Detail - Dark") {
+    NavigationStack {
+        BudgetDetailView(eventId: "preview-event-id", previewItems: BudgetFactory.items)
+    }
+    .preferredColorScheme(.dark)
 }

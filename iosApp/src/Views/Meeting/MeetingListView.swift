@@ -9,18 +9,28 @@ struct MeetingListView: View {
     @StateObject private var viewModel: MeetingListViewModel
     @State private var showCreateSheet = false
     @State private var navigateToMeetingId: String? = nil
+    private let previewMeetings: [VirtualMeeting]?
 
     init(eventId: String) {
         self.eventId = eventId
         self._viewModel = StateObject(wrappedValue: MeetingListViewModel(eventId: eventId))
+        self.previewMeetings = nil
     }
+
+#if DEBUG
+    init(eventId: String, previewMeetings: [VirtualMeeting]) {
+        self.eventId = eventId
+        self._viewModel = StateObject(wrappedValue: MeetingListViewModel(eventId: eventId))
+        self.previewMeetings = previewMeetings
+    }
+#endif
 
     var body: some View {
         NavigationStack {
             Group {
-                if viewModel.isLoading {
+                if shouldShowLoading {
                     loadingView
-                } else if viewModel.isEmpty {
+                } else if meetings.isEmpty {
                     emptyView
                 } else {
                     listView
@@ -38,10 +48,18 @@ struct MeetingListView: View {
                 }
             }
             .navigationDestination(item: $navigateToMeetingId) { meetingId in
-                MeetingDetailView(meetingId: meetingId, eventId: eventId)
+                if let previewMeeting = meetings.first(where: { $0.id == meetingId }) {
+                    MeetingDetailView(meetingId: meetingId, eventId: eventId, previewMeeting: previewMeeting)
+                } else {
+                    MeetingDetailView(meetingId: meetingId, eventId: eventId)
+                }
             }
             .sheet(isPresented: $showCreateSheet) {
                 CreateMeetingSheet(eventId: eventId) { platform, title in
+                    guard !isPreviewing else {
+                        showCreateSheet = false
+                        return
+                    }
                     viewModel.createMeeting(
                         platform: platform,
                         title: title,
@@ -54,7 +72,10 @@ struct MeetingListView: View {
                 }
             }
         }
-        .onAppear { viewModel.loadMeetings() }
+        .onAppear {
+            guard !isPreviewing else { return }
+            viewModel.loadMeetings()
+        }
         .alert("Erreur", isPresented: .constant(viewModel.hasError)) {
             Button("OK") { viewModel.clearError() }
         } message: {
@@ -104,7 +125,7 @@ struct MeetingListView: View {
 
     private var listView: some View {
         List {
-            ForEach(viewModel.meetings, id: \.id) { meeting in
+            ForEach(meetings, id: \.id) { meeting in
                 MeetingRowView(meeting: meeting)
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -112,6 +133,7 @@ struct MeetingListView: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
+                            guard !isPreviewing else { return }
                             viewModel.cancelMeeting(meetingId: meeting.id)
                         } label: {
                             Label("Annuler", systemImage: "xmark.circle")
@@ -121,8 +143,21 @@ struct MeetingListView: View {
         }
         .listStyle(.insetGrouped)
         .refreshable {
+            guard !isPreviewing else { return }
             viewModel.loadMeetings()
         }
+    }
+
+    private var isPreviewing: Bool {
+        previewMeetings != nil
+    }
+
+    private var shouldShowLoading: Bool {
+        !isPreviewing && viewModel.isLoading
+    }
+
+    private var meetings: [VirtualMeeting] {
+        previewMeetings ?? viewModel.meetings
     }
 }
 
@@ -234,14 +269,14 @@ struct MeetingRowView: View {
 
 // MARK: - Preview
 
-#Preview {
-    Group {
-        MeetingListView(eventId: "preview-event")
-            .preferredColorScheme(.light)
+#Preview("Meeting List - Light") {
+    MeetingListView(eventId: "preview-event", previewMeetings: MeetingFactory.list)
+        .preferredColorScheme(.light)
+}
 
-        MeetingListView(eventId: "preview-event")
-            .preferredColorScheme(.dark)
-    }
+#Preview("Meeting List - Dark") {
+    MeetingListView(eventId: "preview-event", previewMeetings: MeetingFactory.list)
+        .preferredColorScheme(.dark)
 }
 
 // MARK: - CreateMeetingSheet

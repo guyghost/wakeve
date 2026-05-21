@@ -7,7 +7,8 @@ struct ParticipantManagementView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let event: Event
-    let repository: EventRepositoryInterface
+    let repository: EventRepositoryInterface?
+    let previewParticipants: [String]?
     let onParticipantsUpdated: () -> Void
     let onBack: () -> Void
 
@@ -17,6 +18,34 @@ struct ParticipantManagementView: View {
     @State private var errorMessage = ""
     @State private var showError = false
     @State private var showSuccess = false
+
+    init(
+        event: Event,
+        repository: EventRepositoryInterface,
+        onParticipantsUpdated: @escaping () -> Void,
+        onBack: @escaping () -> Void
+    ) {
+        self.event = event
+        self.repository = repository
+        self.previewParticipants = nil
+        self.onParticipantsUpdated = onParticipantsUpdated
+        self.onBack = onBack
+    }
+
+#if DEBUG
+    init(
+        event: Event,
+        previewParticipants: [String],
+        onParticipantsUpdated: @escaping () -> Void = {},
+        onBack: @escaping () -> Void = {}
+    ) {
+        self.event = event
+        self.repository = nil
+        self.previewParticipants = previewParticipants
+        self.onParticipantsUpdated = onParticipantsUpdated
+        self.onBack = onBack
+    }
+#endif
 
     var body: some View {
         GeometryReader { proxy in
@@ -394,7 +423,12 @@ struct ParticipantManagementView: View {
     }
 
     private func loadParticipants() {
-        participants = repository.getParticipants(eventId: event.id) ?? []
+        if let previewParticipants {
+            participants = previewParticipants
+            return
+        }
+
+        participants = repository?.getParticipants(eventId: event.id) ?? event.participants
     }
 
     private func addParticipant() async {
@@ -411,6 +445,14 @@ struct ParticipantManagementView: View {
         }
 
         isLoading = true
+
+        guard let repository else {
+            participants.append(newParticipantEmail)
+            newParticipantEmail = ""
+            isLoading = false
+            onParticipantsUpdated()
+            return
+        }
 
         do {
             let participantEmail = newParticipantEmail
@@ -437,6 +479,13 @@ struct ParticipantManagementView: View {
     private func startPoll() async {
         isLoading = true
 
+        guard let repository else {
+            isLoading = false
+            showSuccess = true
+            onParticipantsUpdated()
+            return
+        }
+
         do {
             _ = try await repository.updateEventStatus(
                 id: event.id,
@@ -461,6 +510,48 @@ struct ParticipantManagementView: View {
         }
     }
 }
+
+#if DEBUG
+#Preview("Participants - Draft") {
+    ParticipantManagementView(
+        event: EventFactory.make(
+            title: "Anniversaire sur le rooftop",
+            description: "Preparation du sondage avant invitation.",
+            participants: [
+                "marie@example.com",
+                "lucas@example.com",
+                "ines@example.com"
+            ],
+            status: .draft,
+            eventType: .birthday,
+            minParticipants: 3,
+            maxParticipants: 12,
+            expectedParticipants: 8
+        ),
+        previewParticipants: [
+            "marie@example.com",
+            "lucas@example.com",
+            "ines@example.com"
+        ]
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Participants - Confirmed") {
+    ParticipantManagementView(
+        event: EventFactory.withManyParticipants,
+        previewParticipants: [
+            "alexandre@example.com",
+            "camille@example.com",
+            "nora@example.com",
+            "samir@example.com",
+            "julie@example.com",
+            "theo@example.com"
+        ]
+    )
+    .preferredColorScheme(.dark)
+}
+#endif
 
 // MARK: - Participant Row
 
