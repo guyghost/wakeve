@@ -117,6 +117,8 @@ struct WakeveGlassControl<Content: View>: View {
 // MARK: - Event Panel
 
 struct WakeveEventPanel<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let cornerRadius: CGFloat
     let padding: CGFloat
     let content: Content
@@ -134,12 +136,18 @@ struct WakeveEventPanel<Content: View>: View {
     var body: some View {
         content
             .padding(padding)
-            .background(WakeveTheme.ColorToken.eventNightElevated.opacity(0.82))
+            .background(panelFill)
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                    .stroke(WakeveTheme.ColorToken.cardBorder(for: colorScheme), lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+
+    private var panelFill: Color {
+        colorScheme == .dark
+            ? WakeveTheme.ColorToken.eventNightElevated.opacity(0.82)
+            : WakeveTheme.ColorToken.appLightElevated.opacity(0.94)
     }
 }
 
