@@ -102,7 +102,15 @@ struct AddBudgetItemSheet: View {
 // MARK: - Preview
 
 #Preview {
-    AddBudgetItemSheet { name, description, category, cost, sharedBy in
-        print("Save: \(name) - \(cost)€ - \(category.displayName)")
+    Group {
+        AddBudgetItemSheet { name, description, category, cost, sharedBy in
+            print("Save: \(name) - \(cost)€ - \(category.displayName)")
+        }
+        .preferredColorScheme(.light)
+
+        AddBudgetItemSheet { name, description, category, cost, sharedBy in
+            print("Save: \(name) - \(cost)€ - \(category.displayName)")
+        }
+        .preferredColorScheme(.dark)
     }
 }

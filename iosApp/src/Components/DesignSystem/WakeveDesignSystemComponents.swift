@@ -25,12 +25,29 @@ struct WakeveScreenBackground: View {
             case .profile:
                 WakeveTheme.EventGradient.profile
             case .event:
-                WakeveTheme.EventGradient.invitation
+                eventBackground
             case .grouped:
                 WakeveTheme.ColorToken.pageBackground(for: colorScheme)
             }
         }
         .ignoresSafeArea()
+    }
+
+    private var eventBackground: LinearGradient {
+        if colorScheme == .dark {
+            return WakeveTheme.EventGradient.invitation
+        }
+
+        return LinearGradient(
+            colors: [
+                Color(hex: "FFF4FB"),
+                Color(hex: "E9DDFF"),
+                Color(hex: "D7E8FF"),
+                WakeveTheme.ColorToken.appLight
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 }
 

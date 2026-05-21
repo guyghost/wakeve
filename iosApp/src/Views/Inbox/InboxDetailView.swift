@@ -569,39 +569,81 @@ private let sampleComments: [SampleComment] = [
 // MARK: - Preview
 
 #Preview("InboxDetailView - Poll Update") {
-    NavigationStack {
-        InboxDetailView(
-            item: InboxItemModel(
-                id: "preview",
-                title: "Poll results updated",
-                message: "3 new votes on Week-end ski 2024",
-                timeAgo: "17m",
-                type: .pollUpdate,
-                isRead: false,
-                commentCount: 3,
-                isFocused: true,
-                eventName: "Week-end ski 2024",
-                eventId: "evt-preview"
+    Group {
+        NavigationStack {
+            InboxDetailView(
+                item: InboxItemModel(
+                    id: "preview",
+                    title: "Poll results updated",
+                    message: "3 new votes on Week-end ski 2024",
+                    timeAgo: "17m",
+                    type: .pollUpdate,
+                    isRead: false,
+                    commentCount: 3,
+                    isFocused: true,
+                    eventName: "Week-end ski 2024",
+                    eventId: "evt-preview"
+                )
             )
-        )
+        }
+        .preferredColorScheme(.light)
+
+        NavigationStack {
+            InboxDetailView(
+                item: InboxItemModel(
+                    id: "preview",
+                    title: "Poll results updated",
+                    message: "3 new votes on Week-end ski 2024",
+                    timeAgo: "17m",
+                    type: .pollUpdate,
+                    isRead: false,
+                    commentCount: 3,
+                    isFocused: true,
+                    eventName: "Week-end ski 2024",
+                    eventId: "evt-preview"
+                )
+            )
+        }
+        .preferredColorScheme(.dark)
     }
 }
 
 #Preview("InboxDetailView - Invitation") {
-    NavigationStack {
-        InboxDetailView(
-            item: InboxItemModel(
-                id: "preview-inv",
-                title: "You're invited to Réunion famille",
-                message: "Join the family reunion planning",
-                timeAgo: "3h",
-                type: .invitation,
-                isRead: false,
-                commentCount: 0,
-                isFocused: false,
-                eventName: "Réunion famille",
-                eventId: "evt-preview-2"
+    Group {
+        NavigationStack {
+            InboxDetailView(
+                item: InboxItemModel(
+                    id: "preview-inv",
+                    title: "You're invited to Réunion famille",
+                    message: "Join the family reunion planning",
+                    timeAgo: "3h",
+                    type: .invitation,
+                    isRead: false,
+                    commentCount: 0,
+                    isFocused: false,
+                    eventName: "Réunion famille",
+                    eventId: "evt-preview-2"
+                )
             )
-        )
+        }
+        .preferredColorScheme(.light)
+
+        NavigationStack {
+            InboxDetailView(
+                item: InboxItemModel(
+                    id: "preview-inv",
+                    title: "You're invited to Réunion famille",
+                    message: "Join the family reunion planning",
+                    timeAgo: "3h",
+                    type: .invitation,
+                    isRead: false,
+                    commentCount: 0,
+                    isFocused: false,
+                    eventName: "Réunion famille",
+                    eventId: "evt-preview-2"
+                )
+            )
+        }
+        .preferredColorScheme(.dark)
     }
 }

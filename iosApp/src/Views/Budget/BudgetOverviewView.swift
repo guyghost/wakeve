@@ -296,5 +296,11 @@ struct BudgetCategoryRow: View {
 // MARK: - Preview
 
 #Preview {
-    BudgetOverviewView(eventId: "preview-event-id")
+    Group {
+        BudgetOverviewView(eventId: "preview-event-id")
+            .preferredColorScheme(.light)
+
+        BudgetOverviewView(eventId: "preview-event-id")
+            .preferredColorScheme(.dark)
+    }
 }

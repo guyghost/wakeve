@@ -364,7 +364,15 @@ struct MeetingDetailView: View {
 // MARK: - Preview
 
 #Preview {
-    NavigationStack {
-        MeetingDetailView(meetingId: "preview-meeting", eventId: "preview-event")
+    Group {
+        NavigationStack {
+            MeetingDetailView(meetingId: "preview-meeting", eventId: "preview-event")
+        }
+        .preferredColorScheme(.light)
+
+        NavigationStack {
+            MeetingDetailView(meetingId: "preview-meeting", eventId: "preview-event")
+        }
+        .preferredColorScheme(.dark)
     }
 }

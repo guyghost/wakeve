@@ -291,8 +291,9 @@ struct LeaderboardEntryData: Identifiable {
 
 // MARK: - Previews
 
-#Preview("Leaderboard") {
+#Preview("Leaderboard Light") {
     LeaderboardView()
+        .preferredColorScheme(.light)
 }
 
 #Preview("Leaderboard Dark") {

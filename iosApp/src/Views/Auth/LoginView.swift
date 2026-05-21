@@ -391,9 +391,17 @@ enum AuthenticationError: LocalizedError {
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
         let authService = AuthenticationService()
-        LoginView()
-            .environmentObject(authService)
-            .environmentObject(AuthStateManager(authService: authService, enableOAuth: true))
+        Group {
+            LoginView()
+                .environmentObject(authService)
+                .environmentObject(AuthStateManager(authService: authService, enableOAuth: true))
+                .preferredColorScheme(.light)
+
+            LoginView()
+                .environmentObject(authService)
+                .environmentObject(AuthStateManager(authService: authService, enableOAuth: true))
+                .preferredColorScheme(.dark)
+        }
     }
 }
 #endif

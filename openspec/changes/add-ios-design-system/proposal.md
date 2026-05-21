@@ -16,10 +16,10 @@ The iOS app currently mixes system forms, bespoke gradients, local color helpers
   - `iosApp/src/Theme/WakeveColors.swift`
   - `iosApp/src/Theme/LiquidGlassModifier.swift`
   - `iosApp/src/Components/`
-  - `iosApp/src/Views/OnboardingView.swift`
-  - `iosApp/src/Views/ProfileTabView.swift`
-  - `iosApp/src/Views/ParticipantManagementView.swift`
-  - `iosApp/src/Views/PollVotingView.swift`
-  - `iosApp/src/Views/CreateEventSheet.swift`
+  - `iosApp/src/Views/Auth/OnboardingView.swift`
+  - `iosApp/src/Views/Profile/ProfileTabView.swift`
+  - `iosApp/src/Views/Events/ParticipantManagementView.swift`
+  - `iosApp/src/Views/Polls/PollVotingView.swift`
+  - `iosApp/src/Views/Events/CreateEventSheet.swift`
   - `iosApp/src/Views/Notifications/NotificationPreferencesView.swift`
   - `docs/guides/ios/`

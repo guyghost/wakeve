@@ -734,12 +734,26 @@ enum InboxItemType {
 
 #if DEBUG
 #Preview("Inbox - With Notifications") {
-    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(3), initialItems: InboxItemFactory.mixedList())
-        .previewEnvironment()
+    Group {
+        InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(3), initialItems: InboxItemFactory.mixedList())
+            .previewEnvironment()
+            .preferredColorScheme(.light)
+
+        InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(3), initialItems: InboxItemFactory.mixedList())
+            .previewEnvironment()
+            .preferredColorScheme(.dark)
+    }
 }
 #endif
 
 #Preview("Inbox - Empty") {
-    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0), initialItems: [])
-        .previewEnvironment()
+    Group {
+        InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0), initialItems: [])
+            .previewEnvironment()
+            .preferredColorScheme(.light)
+
+        InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0), initialItems: [])
+            .previewEnvironment()
+            .preferredColorScheme(.dark)
+    }
 }

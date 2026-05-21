@@ -194,7 +194,15 @@ struct BudgetSummaryRow: View {
 // MARK: - Preview
 
 #Preview {
-    NavigationStack {
-        BudgetDetailView(eventId: "preview-event-id")
+    Group {
+        NavigationStack {
+            BudgetDetailView(eventId: "preview-event-id")
+        }
+        .preferredColorScheme(.light)
+
+        NavigationStack {
+            BudgetDetailView(eventId: "preview-event-id")
+        }
+        .preferredColorScheme(.dark)
     }
 }

@@ -4,6 +4,8 @@ import Shared
 /// Poll voting view inspired by Apple Invites
 /// Features: Clean design, card-based time slots, clear voting options
 struct PollVotingView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let event: Event
     let repository: EventRepositoryInterface
     let participantId: String
@@ -27,7 +29,7 @@ struct PollVotingView: View {
                         WakeveCircleButton(
                             systemImage: "chevron.left",
                             accessibilityLabel: "Retour",
-                            variant: .eventBack,
+                            variant: colorScheme == .dark ? .eventBack : .light,
                             size: 44,
                             action: onBack
                         )
@@ -46,10 +48,10 @@ struct PollVotingView: View {
                                 } else {
                                     Text("Suivant")
                                         .font(WakeveTheme.Typography.bodySemibold)
-                                        .foregroundColor(WakeveTheme.ColorToken.eventLilacText)
+                                        .foregroundColor(nextButtonForeground)
                                         .padding(.horizontal, 22)
                                         .frame(height: 44)
-                                        .background(WakeveTheme.ColorToken.eventLilacAction)
+                                        .background(nextButtonBackground)
                                         .clipShape(Capsule())
                                 }
                             }
@@ -62,14 +64,14 @@ struct PollVotingView: View {
                     VStack(spacing: WakeveTheme.Spacing.xs) {
                         Text(event.title)
                             .font(WakeveTheme.Typography.display)
-                            .foregroundColor(.white)
+                            .foregroundColor(headerTextColor)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .minimumScaleFactor(0.68)
 
                         Text("Choisissez vos disponibilités")
                             .font(WakeveTheme.Typography.rowTitle)
-                            .foregroundColor(Color.white.opacity(0.68))
+                            .foregroundColor(headerSecondaryTextColor)
                             .multilineTextAlignment(.center)
                     }
                     .padding(.horizontal, WakeveTheme.Spacing.lg)
@@ -152,7 +154,7 @@ struct PollVotingView: View {
                             HStack {
                                 Text("\(votes.count) / \(event.proposedSlots.count) créneaux votés")
                                     .font(WakeveTheme.Typography.metadata)
-                                    .foregroundColor(Color.white.opacity(0.7))
+                                    .foregroundColor(headerSecondaryTextColor)
 
                                 Spacer()
 
@@ -163,7 +165,7 @@ struct PollVotingView: View {
                                         Text(deadline)
                                             .font(.system(size: 13))
                                     }
-                                    .foregroundColor(Color.white.opacity(0.7))
+                                    .foregroundColor(headerSecondaryTextColor)
                                 }
                             }
                             .padding(.horizontal, 4)
@@ -207,6 +209,22 @@ struct PollVotingView: View {
 
     private var canSubmitVotes: Bool {
         !hasVoted && !event.proposedSlots.isEmpty && votes.count == event.proposedSlots.count
+    }
+
+    private var headerTextColor: Color {
+        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+    }
+
+    private var headerSecondaryTextColor: Color {
+        WakeveTheme.ColorToken.secondaryText(for: colorScheme)
+    }
+
+    private var nextButtonBackground: Color {
+        colorScheme == .dark ? WakeveTheme.ColorToken.eventLilacAction : WakeveTheme.ColorToken.permissionBlue
+    }
+
+    private var nextButtonForeground: Color {
+        colorScheme == .dark ? WakeveTheme.ColorToken.eventLilacText : .white
     }
 
     private func checkExistingVotes() {
