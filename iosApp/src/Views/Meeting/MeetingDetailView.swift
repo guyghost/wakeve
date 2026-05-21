@@ -11,18 +11,29 @@ struct MeetingDetailView: View {
     @State private var showGenerateLinkSheet = false
     @State private var showDeleteConfirm = false
     @Environment(\.dismiss) private var dismiss
+    private let previewMeeting: VirtualMeeting?
 
     init(meetingId: String, eventId: String) {
         self.meetingId = meetingId
         self.eventId = eventId
         self._viewModel = StateObject(wrappedValue: MeetingDetailViewModel(meetingId: meetingId))
+        self.previewMeeting = nil
     }
+
+#if DEBUG
+    init(meetingId: String, eventId: String, previewMeeting: VirtualMeeting) {
+        self.meetingId = meetingId
+        self.eventId = eventId
+        self._viewModel = StateObject(wrappedValue: MeetingDetailViewModel(meetingId: meetingId))
+        self.previewMeeting = previewMeeting
+    }
+#endif
 
     var body: some View {
         Group {
-            if viewModel.isLoading {
+            if shouldShowLoading {
                 loadingView
-            } else if let meeting = viewModel.meeting {
+            } else if let meeting {
                 contentView(meeting: meeting)
             } else {
                 errorView
@@ -50,10 +61,14 @@ struct MeetingDetailView: View {
             }
         }
         .sheet(isPresented: $showGenerateLinkSheet) {
-            if let meeting = viewModel.meeting {
+            if let meeting {
                 MeetingGenerateLinkSheet(
                     meeting: meeting,
                     onGenerate: { platform in
+                        guard !isPreviewing else {
+                            showGenerateLinkSheet = false
+                            return
+                        }
                         viewModel.generateMeetingLink(platform: platform)
                         showGenerateLinkSheet = false
                     },
@@ -67,12 +82,17 @@ struct MeetingDetailView: View {
             titleVisibility: .visible
         ) {
             Button("Annuler la réunion", role: .destructive) {
-                viewModel.cancelMeeting()
+                if !isPreviewing {
+                    viewModel.cancelMeeting()
+                }
                 dismiss()
             }
             Button("Garder", role: .cancel) {}
         }
-        .onAppear { viewModel.loadMeetings() }
+        .onAppear {
+            guard !isPreviewing else { return }
+            viewModel.loadMeetings()
+        }
     }
 
     // MARK: - Loading
@@ -359,20 +379,40 @@ struct MeetingDetailView: View {
             root.present(av, animated: true)
         }
     }
+
+    private var isPreviewing: Bool {
+        previewMeeting != nil
+    }
+
+    private var shouldShowLoading: Bool {
+        !isPreviewing && viewModel.isLoading
+    }
+
+    private var meeting: VirtualMeeting? {
+        previewMeeting ?? viewModel.meeting
+    }
 }
 
 // MARK: - Preview
 
-#Preview {
-    Group {
-        NavigationStack {
-            MeetingDetailView(meetingId: "preview-meeting", eventId: "preview-event")
-        }
-        .preferredColorScheme(.light)
-
-        NavigationStack {
-            MeetingDetailView(meetingId: "preview-meeting", eventId: "preview-event")
-        }
-        .preferredColorScheme(.dark)
+#Preview("Meeting Detail - Light") {
+    NavigationStack {
+        MeetingDetailView(
+            meetingId: MeetingFactory.scheduled.id,
+            eventId: "preview-event",
+            previewMeeting: MeetingFactory.scheduled
+        )
     }
+    .preferredColorScheme(.light)
+}
+
+#Preview("Meeting Detail - Dark") {
+    NavigationStack {
+        MeetingDetailView(
+            meetingId: MeetingFactory.started.id,
+            eventId: "preview-event",
+            previewMeeting: MeetingFactory.started
+        )
+    }
+    .preferredColorScheme(.dark)
 }

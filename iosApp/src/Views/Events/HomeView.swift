@@ -148,6 +148,37 @@ struct HomeView: View {
 
     @State private var events: [Event] = []
     @State private var isLoading = true
+
+    var body: some View {
+        HomeContentView(
+            events: events,
+            isLoading: isLoading,
+            userId: userId,
+            onEventSelected: onEventSelected,
+            onCreateEvent: onCreateEvent,
+            onProfileClick: onProfileClick
+        )
+        .onAppear { loadEvents() }
+    }
+
+    private func loadEvents() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            events = repository.getAllEvents()
+            isLoading = false
+        }
+    }
+}
+
+// MARK: - Home Content View
+
+struct HomeContentView: View {
+    let events: [Event]
+    let isLoading: Bool
+    let userId: String
+    let onEventSelected: (Event) -> Void
+    let onCreateEvent: () -> Void
+    let onProfileClick: () -> Void
+
     @State private var showFilterMenu = false
     @State private var selectedFilter: HomeEventFilter = .upcoming
 
@@ -186,7 +217,6 @@ struct HomeView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .topLeading)))
             }
         }
-        .onAppear { loadEvents() }
     }
     
     private var filteredEvents: [Event] {
@@ -268,13 +298,6 @@ struct HomeView: View {
 
     private var shouldShowHeaderCreateButton: Bool {
         !isLoading && !filteredEvents.isEmpty
-    }
-
-    private func loadEvents() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            events = repository.getAllEvents()
-            isLoading = false
-        }
     }
 }
 
@@ -519,4 +542,51 @@ struct LoadingEventsView: View {
 }
 
 // MARK: - Preview
-// Preview commented out due to API changes in shared module
+
+#if DEBUG
+#Preview("Home - Loaded Light") {
+    HomeContentView(
+        events: [EventFactory.polling, EventFactory.complete, EventFactory.withManyParticipants],
+        isLoading: false,
+        userId: UserFactory.organizer.id,
+        onEventSelected: { _ in },
+        onCreateEvent: {},
+        onProfileClick: {}
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Home - Loaded Dark") {
+    HomeContentView(
+        events: [EventFactory.polling, EventFactory.complete, EventFactory.withManyParticipants],
+        isLoading: false,
+        userId: UserFactory.organizer.id,
+        onEventSelected: { _ in },
+        onCreateEvent: {},
+        onProfileClick: {}
+    )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Home - Empty") {
+    HomeContentView(
+        events: [],
+        isLoading: false,
+        userId: UserFactory.organizer.id,
+        onEventSelected: { _ in },
+        onCreateEvent: {},
+        onProfileClick: {}
+    )
+}
+
+#Preview("Home - Loading") {
+    HomeContentView(
+        events: [],
+        isLoading: true,
+        userId: UserFactory.organizer.id,
+        onEventSelected: { _ in },
+        onCreateEvent: {},
+        onProfileClick: {}
+    )
+}
+#endif

@@ -733,27 +733,27 @@ enum InboxItemType {
 // MARK: - Previews
 
 #if DEBUG
-#Preview("Inbox - With Notifications") {
-    Group {
-        InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(3), initialItems: InboxItemFactory.mixedList())
-            .previewEnvironment()
-            .preferredColorScheme(.light)
+#Preview("Inbox - With Notifications Light") {
+    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(3), initialItems: InboxItemFactory.mixedList())
+        .previewEnvironment()
+        .preferredColorScheme(.light)
+}
 
-        InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(3), initialItems: InboxItemFactory.mixedList())
-            .previewEnvironment()
-            .preferredColorScheme(.dark)
-    }
+#Preview("Inbox - With Notifications Dark") {
+    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(3), initialItems: InboxItemFactory.mixedList())
+        .previewEnvironment()
+        .preferredColorScheme(.dark)
 }
 #endif
 
-#Preview("Inbox - Empty") {
-    Group {
-        InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0), initialItems: [])
-            .previewEnvironment()
-            .preferredColorScheme(.light)
+#Preview("Inbox - Empty Light") {
+    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0), initialItems: [])
+        .previewEnvironment()
+        .preferredColorScheme(.light)
+}
 
-        InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0), initialItems: [])
-            .previewEnvironment()
-            .preferredColorScheme(.dark)
-    }
+#Preview("Inbox - Empty Dark") {
+    InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0), initialItems: [])
+        .previewEnvironment()
+        .preferredColorScheme(.dark)
 }

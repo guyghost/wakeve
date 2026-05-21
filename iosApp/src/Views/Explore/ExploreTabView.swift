@@ -5,8 +5,29 @@ import SwiftUI
 /// Explore Tab View with search, filtering, and discovery sections.
 /// Sections: "Tendances", "Pres de vous", "Recommandes pour vous"
 struct ExploreTabView: View {
-    @StateObject private var viewModel = ExploreViewModel()
-    var onCreateEvent: (EventScenario) -> Void = { _ in }
+    @StateObject private var viewModel: ExploreViewModel
+    var onCreateEvent: (EventScenario) -> Void
+
+    init(
+        onCreateEvent: @escaping (EventScenario) -> Void = { _ in },
+        previewData: ExplorePreviewData? = nil
+    ) {
+        self.onCreateEvent = onCreateEvent
+
+        if let previewData {
+            _viewModel = StateObject(
+                wrappedValue: ExploreViewModel(
+                    autoload: false,
+                    selectedCategory: previewData.selectedCategory,
+                    trendingEvents: previewData.trendingEvents,
+                    nearbyEvents: previewData.nearbyEvents,
+                    recommendedEvents: previewData.recommendedEvents
+                )
+            )
+        } else {
+            _viewModel = StateObject(wrappedValue: ExploreViewModel())
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -46,6 +67,13 @@ struct ExploreTabView: View {
             .background(WakeveScreenBackground(style: .grouped))
         }
     }
+}
+
+struct ExplorePreviewData {
+    let selectedCategory: EventCategoryItem
+    let trendingEvents: [ExploreEventItem]
+    let nearbyEvents: [ExploreEventItem]
+    let recommendedEvents: [ExploreEventItem]
 }
 
 // MARK: - Category Circle Selectors
@@ -526,11 +554,11 @@ struct LoadingStateView: View {
 // MARK: - Previews
 
 #Preview("ExploreTabView Light") {
-    ExploreTabView()
+    ExploreTabView(previewData: ExploreFactory.previewData)
         .preferredColorScheme(.light)
 }
 
 #Preview("ExploreTabView Dark") {
-    ExploreTabView()
+    ExploreTabView(previewData: ExploreFactory.previewData)
         .preferredColorScheme(.dark)
 }

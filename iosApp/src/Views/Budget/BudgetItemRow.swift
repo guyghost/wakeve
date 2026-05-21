@@ -75,14 +75,14 @@ struct BudgetItemRow: View {
 
 // MARK: - Preview
 
-#Preview {
-    Group {
-        BudgetItemRowPreviewContent()
-            .preferredColorScheme(.light)
+#Preview("Budget Item Row - Light") {
+    BudgetItemRowPreviewContent()
+        .preferredColorScheme(.light)
+}
 
-        BudgetItemRowPreviewContent()
-            .preferredColorScheme(.dark)
-    }
+#Preview("Budget Item Row - Dark") {
+    BudgetItemRowPreviewContent()
+        .preferredColorScheme(.dark)
 }
 
 private struct BudgetItemRowPreviewContent: View {

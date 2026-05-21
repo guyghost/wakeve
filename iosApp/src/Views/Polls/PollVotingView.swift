@@ -4,8 +4,6 @@ import Shared
 /// Poll voting view inspired by Apple Invites
 /// Features: Clean design, card-based time slots, clear voting options
 struct PollVotingView: View {
-    @Environment(\.colorScheme) private var colorScheme
-
     let event: Event
     let repository: EventRepositoryInterface
     let participantId: String
@@ -18,6 +16,115 @@ struct PollVotingView: View {
     @State private var showError = false
     @State private var showSuccess = false
     @State private var hasVoted = false
+
+    var body: some View {
+        PollVotingContentView(
+            event: event,
+            votes: $votes,
+            isLoading: isLoading,
+            hasVoted: hasVoted,
+            onSubmitVotes: {
+                Task { await submitVotes() }
+            },
+            onBack: onBack
+        )
+        .onAppear {
+            checkExistingVotes()
+        }
+        .alert("Error", isPresented: $showError) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(errorMessage)
+        }
+        .alert("Success", isPresented: $showSuccess) {
+            Button("OK", role: .cancel) {
+                onVoteSubmitted()
+            }
+        } message: {
+            Text("Your votes have been submitted successfully!")
+        }
+    }
+
+    private func checkExistingVotes() {
+        if let poll = repository.getPoll(eventId: event.id) {
+            if let participantVoteMap = poll.votes[participantId] {
+                hasVoted = !participantVoteMap.isEmpty
+
+                if hasVoted {
+                    votes = participantVoteMap.reduce(into: [String: PollVote]()) { result, entry in
+                        switch entry.value {
+                        case .yes:
+                            result[entry.key] = .yes
+                        case .maybe:
+                            result[entry.key] = .maybe
+                        case .no:
+                            result[entry.key] = .no
+                        default:
+                            break
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func submitVotes() async {
+        guard votes.count == event.proposedSlots.count else { return }
+
+        isLoading = true
+
+        var successCount = 0
+        var lastError: Error?
+
+        for (slotId, pollVote) in votes {
+            do {
+                let sharedVote: Vote_ = {
+                    switch pollVote {
+                    case .yes: return .yes
+                    case .maybe: return .maybe
+                    case .no: return .no
+                    }
+                }()
+
+                _ = try await repository.addVote(
+                    eventId: event.id,
+                    participantId: participantId,
+                    slotId: slotId,
+                    vote: sharedVote
+                )
+
+                let submittedVotes = repository.getPoll(eventId: event.id)?.votes[participantId] as? [String: Vote_]
+                if submittedVotes?[slotId] != nil {
+                    successCount += 1
+                }
+            } catch {
+                lastError = error
+            }
+        }
+
+        isLoading = false
+
+        if successCount == votes.count {
+            hasVoted = true
+            showSuccess = true
+        } else {
+            errorMessage = lastError?.localizedDescription ?? "Failed to submit some votes"
+            showError = true
+        }
+    }
+}
+
+// MARK: - Poll Voting Content View
+
+struct PollVotingContentView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let event: Event
+    @Binding var votes: [String: PollVote]
+    let isLoading: Bool
+    let hasVoted: Bool
+    let onSubmitVotes: () -> Void
+    let onBack: () -> Void
 
     var body: some View {
         ZStack {
@@ -37,11 +144,7 @@ struct PollVotingView: View {
                         Spacer()
 
                         if canSubmitVotes {
-                            Button {
-                                Task {
-                                    await submitVotes()
-                                }
-                            } label: {
+                            Button(action: onSubmitVotes) {
                                 if isLoading {
                                     ProgressView()
                                         .progressViewStyle(CircularProgressViewStyle())
@@ -190,21 +293,6 @@ struct PollVotingView: View {
                 }
             }
         }
-        .onAppear {
-            checkExistingVotes()
-        }
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(errorMessage)
-        }
-        .alert("Success", isPresented: $showSuccess) {
-            Button("OK", role: .cancel) {
-                onVoteSubmitted()
-            }
-        } message: {
-            Text("Your votes have been submitted successfully!")
-        }
     }
 
     private var canSubmitVotes: Bool {
@@ -225,75 +313,6 @@ struct PollVotingView: View {
 
     private var nextButtonForeground: Color {
         colorScheme == .dark ? WakeveTheme.ColorToken.eventLilacText : .white
-    }
-
-    private func checkExistingVotes() {
-        if let poll = repository.getPoll(eventId: event.id) {
-            if let participantVoteMap = poll.votes[participantId] {
-                hasVoted = !participantVoteMap.isEmpty
-
-                if hasVoted {
-                    votes = participantVoteMap.reduce(into: [String: PollVote]()) { result, entry in
-                        switch entry.value {
-                        case .yes:
-                            result[entry.key] = .yes
-                        case .maybe:
-                            result[entry.key] = .maybe
-                        case .no:
-                            result[entry.key] = .no
-                        default:
-                            break
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func submitVotes() async {
-        guard votes.count == event.proposedSlots.count else { return }
-
-        isLoading = true
-
-        var successCount = 0
-        var lastError: Error?
-
-        for (slotId, pollVote) in votes {
-            do {
-                // Convert PollVote to Shared.Vote_
-                let sharedVote: Vote_ = {
-                    switch pollVote {
-                    case .yes: return .yes
-                    case .maybe: return .maybe
-                    case .no: return .no
-                    }
-                }()
-                
-                _ = try await repository.addVote(
-                    eventId: event.id,
-                    participantId: participantId,
-                    slotId: slotId,
-                    vote: sharedVote
-                )
-
-                let submittedVotes = repository.getPoll(eventId: event.id)?.votes[participantId] as? [String: Vote_]
-                if submittedVotes?[slotId] != nil {
-                    successCount += 1
-                }
-            } catch {
-                lastError = error
-            }
-        }
-
-        isLoading = false
-
-        if successCount == votes.count {
-            hasVoted = true
-            showSuccess = true
-        } else {
-            errorMessage = lastError?.localizedDescription ?? "Failed to submit some votes"
-            showError = true
-        }
     }
 
     private func formatDeadlineShort(_ deadlineString: String) -> String? {
@@ -393,3 +412,64 @@ struct TimeSlotVoteCard: View {
         return dateString
     }
 }
+
+// MARK: - Preview
+
+#if DEBUG
+#Preview("Poll Voting - Empty Votes Light") {
+    PollVotingPreviewHarness(
+        event: EventFactory.polling,
+        initialVotes: [:],
+        hasVoted: false
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Poll Voting - Empty Votes Dark") {
+    PollVotingPreviewHarness(
+        event: EventFactory.polling,
+        initialVotes: [:],
+        hasVoted: false
+    )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Poll Voting - Ready To Submit") {
+    PollVotingPreviewHarness(
+        event: EventFactory.polling,
+        initialVotes: EventFactory.pollingPreviewVotes,
+        hasVoted: false
+    )
+}
+
+#Preview("Poll Voting - Already Voted") {
+    PollVotingPreviewHarness(
+        event: EventFactory.polling,
+        initialVotes: EventFactory.pollingPreviewVotes,
+        hasVoted: true
+    )
+}
+
+private struct PollVotingPreviewHarness: View {
+    let event: Event
+    @State private var votes: [String: PollVote]
+    let hasVoted: Bool
+
+    init(event: Event, initialVotes: [String: PollVote], hasVoted: Bool) {
+        self.event = event
+        self._votes = State(initialValue: initialVotes)
+        self.hasVoted = hasVoted
+    }
+
+    var body: some View {
+        PollVotingContentView(
+            event: event,
+            votes: $votes,
+            isLoading: false,
+            hasVoted: hasVoted,
+            onSubmitVotes: {},
+            onBack: {}
+        )
+    }
+}
+#endif

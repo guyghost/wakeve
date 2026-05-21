@@ -684,3 +684,51 @@ struct AddDietaryRestrictionSheet: View {
         onSave(restriction)
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+#Preview("Meal Form - Create Light") {
+    MealFormSheet(
+        eventId: EventFactory.polling.id,
+        meal: nil,
+        participants: ParticipantModel.samples,
+        onSave: { _ in }
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Meal Form - Edit Dark") {
+    MealFormSheet(
+        eventId: EventFactory.polling.id,
+        meal: MealModel.sample,
+        participants: ParticipantModel.samples,
+        onSave: { _ in }
+    )
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Auto Generate Meals") {
+    AutoGenerateMealsSheet(
+        eventId: EventFactory.polling.id,
+        participantCount: ParticipantModel.samples.count,
+        onGenerate: { _ in }
+    )
+}
+
+#Preview("Dietary Restrictions") {
+    DietaryRestrictionsPreviewHarness()
+}
+
+private struct DietaryRestrictionsPreviewHarness: View {
+    @State private var restrictions = DietaryRestrictionModel.samples
+
+    var body: some View {
+        DietaryRestrictionsSheet(
+            eventId: EventFactory.polling.id,
+            participants: ParticipantModel.samples,
+            restrictions: $restrictions
+        )
+    }
+}
+#endif

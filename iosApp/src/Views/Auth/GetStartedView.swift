@@ -427,14 +427,14 @@ struct ScaleEffectOnPress: ViewModifier {
 
 // MARK: - Previews
 
-#Preview("Get Started") {
-    Group {
-        GetStartedView(onGetStarted: {})
-            .previewEnvironment(isAuthenticated: false)
-            .preferredColorScheme(.light)
+#Preview("Get Started - Light") {
+    GetStartedView(onGetStarted: {})
+        .previewEnvironment(isAuthenticated: false)
+        .preferredColorScheme(.light)
+}
 
-        GetStartedView(onGetStarted: {})
-            .previewEnvironment(isAuthenticated: false)
-            .preferredColorScheme(.dark)
-    }
+#Preview("Get Started - Dark") {
+    GetStartedView(onGetStarted: {})
+        .previewEnvironment(isAuthenticated: false)
+        .preferredColorScheme(.dark)
 }

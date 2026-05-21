@@ -258,6 +258,45 @@ extension Comment_ {
 
 // MARK: - CommentThread Extensions
 
+#if DEBUG
+#Preview("Comment Item - Parent Light") {
+    CommentItemView(
+        comment: CommentFactory.organizerComment,
+        isPinned: true,
+        currentUserId: UserFactory.organizer.id,
+        isOrganizer: true,
+        isParent: true
+    )
+    .padding()
+    .background(WakeveScreenBackground(style: .grouped))
+    .preferredColorScheme(.light)
+}
+
+#Preview("Comment Item - Reply Dark") {
+    CommentItemView(
+        comment: CommentFactory.participantReply,
+        isPinned: false,
+        currentUserId: UserFactory.organizer.id,
+        isOrganizer: true,
+        isParent: false
+    )
+    .padding()
+    .background(WakeveScreenBackground(style: .grouped))
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Comment Item - Deleted") {
+    CommentItemView(
+        comment: CommentFactory.deletedComment,
+        isPinned: false,
+        currentUserId: UserFactory.organizer.id,
+        isOrganizer: true,
+        isParent: true
+    )
+    .padding()
+    .background(WakeveScreenBackground(style: .grouped))
+}
+#endif
 extension CommentThread {
     var hasMoreReplies: Bool { comment.replyCount > Int32(replies.count) }
 }
