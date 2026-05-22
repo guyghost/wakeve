@@ -6,6 +6,9 @@ import Shared
 struct MeetingDetailView: View {
     let meetingId: String
     let eventId: String
+    let currentUserId: String
+    let isOrganizer: Bool
+    let isReadOnly: Bool
 
     @StateObject private var viewModel: MeetingDetailViewModel
     @State private var showGenerateLinkSheet = false
@@ -13,19 +16,73 @@ struct MeetingDetailView: View {
     @Environment(\.dismiss) private var dismiss
     private let previewMeeting: VirtualMeeting?
 
-    init(meetingId: String, eventId: String) {
+    init(
+        meetingId: String,
+        eventId: String,
+        currentUserId: String,
+        isOrganizer: Bool,
+        isReadOnly: Bool
+    ) {
         self.meetingId = meetingId
         self.eventId = eventId
-        self._viewModel = StateObject(wrappedValue: MeetingDetailViewModel(meetingId: meetingId))
+        self.currentUserId = currentUserId
+        self.isOrganizer = isOrganizer
+        self.isReadOnly = isReadOnly
+        self._viewModel = StateObject(
+            wrappedValue: MeetingDetailViewModel(
+                meetingId: meetingId,
+                eventId: eventId,
+                currentUserId: currentUserId,
+                canMutateMeetings: isOrganizer && !isReadOnly
+            )
+        )
         self.previewMeeting = nil
     }
 
+    init(meetingId: String, eventId: String) {
+        self.init(
+            meetingId: meetingId,
+            eventId: eventId,
+            currentUserId: "anonymous-user",
+            isOrganizer: false,
+            isReadOnly: true
+        )
+    }
+
 #if DEBUG
-    init(meetingId: String, eventId: String, previewMeeting: VirtualMeeting) {
+    init(
+        meetingId: String,
+        eventId: String,
+        currentUserId: String,
+        isOrganizer: Bool,
+        isReadOnly: Bool,
+        previewMeeting: VirtualMeeting
+    ) {
         self.meetingId = meetingId
         self.eventId = eventId
-        self._viewModel = StateObject(wrappedValue: MeetingDetailViewModel(meetingId: meetingId))
+        self.currentUserId = currentUserId
+        self.isOrganizer = isOrganizer
+        self.isReadOnly = isReadOnly
+        self._viewModel = StateObject(
+            wrappedValue: MeetingDetailViewModel(
+                meetingId: meetingId,
+                eventId: eventId,
+                currentUserId: currentUserId,
+                canMutateMeetings: isOrganizer && !isReadOnly
+            )
+        )
         self.previewMeeting = previewMeeting
+    }
+
+    init(meetingId: String, eventId: String, previewMeeting: VirtualMeeting) {
+        self.init(
+            meetingId: meetingId,
+            eventId: eventId,
+            currentUserId: previewMeeting.organizerId,
+            isOrganizer: true,
+            isReadOnly: false,
+            previewMeeting: previewMeeting
+        )
     }
 #endif
 
@@ -42,21 +99,23 @@ struct MeetingDetailView: View {
         .navigationTitle("Réunion")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button {
-                        showGenerateLinkSheet = true
+            if canMutateMeetings {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button {
+                            showGenerateLinkSheet = true
+                        } label: {
+                            Label("Générer un lien", systemImage: "link")
+                        }
+                        Divider()
+                        Button(role: .destructive) {
+                            showDeleteConfirm = true
+                        } label: {
+                            Label("Annuler la réunion", systemImage: "xmark.circle")
+                        }
                     } label: {
-                        Label("Générer un lien", systemImage: "link")
+                        Image(systemName: "ellipsis.circle")
                     }
-                    Divider()
-                    Button(role: .destructive) {
-                        showDeleteConfirm = true
-                    } label: {
-                        Label("Annuler la réunion", systemImage: "xmark.circle")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
                 }
             }
         }
@@ -65,11 +124,16 @@ struct MeetingDetailView: View {
                 MeetingGenerateLinkSheet(
                     meeting: meeting,
                     onGenerate: { platform in
-                        guard !isPreviewing else {
+                        guard canMutateMeetings, !isPreviewing else {
                             showGenerateLinkSheet = false
                             return
                         }
-                        viewModel.generateMeetingLink(platform: platform)
+                        viewModel.generateMeetingLink(
+                            platform: platform,
+                            currentUserId: currentUserId,
+                            isOrganizer: isOrganizer,
+                            isReadOnly: isReadOnly
+                        )
                         showGenerateLinkSheet = false
                     },
                     onCancel: { showGenerateLinkSheet = false }
@@ -82,8 +146,8 @@ struct MeetingDetailView: View {
             titleVisibility: .visible
         ) {
             Button("Annuler la réunion", role: .destructive) {
-                if !isPreviewing {
-                    viewModel.cancelMeeting()
+                if canMutateMeetings && !isPreviewing {
+                    viewModel.cancelMeeting(currentUserId: currentUserId)
                 }
                 dismiss()
             }
@@ -391,6 +455,10 @@ struct MeetingDetailView: View {
     private var meeting: VirtualMeeting? {
         previewMeeting ?? viewModel.meeting
     }
+
+    private var canMutateMeetings: Bool {
+        isOrganizer && !isReadOnly
+    }
 }
 
 // MARK: - Preview
@@ -400,6 +468,9 @@ struct MeetingDetailView: View {
         MeetingDetailView(
             meetingId: MeetingFactory.scheduled.id,
             eventId: "preview-event",
+            currentUserId: MeetingFactory.scheduled.organizerId,
+            isOrganizer: true,
+            isReadOnly: false,
             previewMeeting: MeetingFactory.scheduled
         )
     }
@@ -411,6 +482,9 @@ struct MeetingDetailView: View {
         MeetingDetailView(
             meetingId: MeetingFactory.started.id,
             eventId: "preview-event",
+            currentUserId: MeetingFactory.started.organizerId,
+            isOrganizer: true,
+            isReadOnly: false,
             previewMeeting: MeetingFactory.started
         )
     }

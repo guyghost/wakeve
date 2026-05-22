@@ -1,5 +1,46 @@
 # Spécification: Collaboration Management
 
+## Purpose
+
+The Collaboration Management capability allows event participants and organizers to coordinate through comments, participant state, invitations, and moderated event-specific discussions.
+## Requirements
+
+*(Requirements are merged from archived changes; legacy implementation notes remain below.)*
+
+---
+
+### Requirement: Participant Invitation and RSVP Lifecycle
+Wakeve MUST manage event participants through invitation, join, RSVP, date validation, attendance confirmation, and decline states.
+
+#### Scenario: Invited participant joins and confirms attendance
+- **GIVEN** an organizer creates an invitation link for an event
+- **WHEN** an invited user opens the invitation, joins the event, votes on the poll, and confirms attendance for the retained date
+- **THEN** the participant is associated with the event
+- **AND** their RSVP and date-validation state is persisted locally
+- **AND** the update is queued for sync when offline
+- **AND** confirmed-attendee sections become available after the final date is confirmed
+
+### Requirement: Section-Based Collaboration
+Wakeve MUST provide collaboration threads scoped to organization sections such as poll, scenarios, destination, lodging, transport, meetings, budget, equipment, meals, and general discussion.
+
+#### Scenario: Confirmed participant comments on a transport plan
+- **GIVEN** an event has a confirmed date
+- **AND** the current user is a confirmed participant
+- **WHEN** the user posts a comment in the transport section
+- **THEN** the comment is stored with event id, section, author, timestamp, and optional section item id
+- **AND** relevant participants are notified according to their preferences
+- **AND** the comment remains visible offline from the local cache
+
+### Requirement: Collaboration Permissions
+Wakeve MUST enforce collaboration permissions by event membership, participant status, author ownership, and organizer role.
+
+#### Scenario: Pending participant attempts to read budget comments
+- **GIVEN** an event has entered organization
+- **AND** a participant has not confirmed attendance for the retained date
+- **WHEN** the participant opens budget collaboration
+- **THEN** the system denies access to budget comments
+- **AND** the UI explains that full details are available only to confirmed participants
+
 ## A. Vue d'ensemble
 
 ### Description
@@ -565,7 +606,6 @@ sequenceDiagram
     API-->>U: 201 Created
 ```
 
-
 ---
 
 ## Migration & Compatibilité
@@ -589,7 +629,6 @@ sequenceDiagram
 - Digest quotidien configurable
 - Recherche plein-texte sur commentaires
 - Notation et badge pour top contributors
-
 
 ---
 

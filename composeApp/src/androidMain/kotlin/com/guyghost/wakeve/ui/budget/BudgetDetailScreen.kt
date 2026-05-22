@@ -88,7 +88,12 @@ fun BudgetDetailScreen(
     currentUserId: String,
     eventParticipants: List<String>,
     onNavigateBack: () -> Unit,
-    onNavigateToComments: (eventId: String, section: CommentSection, sectionItemId: String?) -> Unit
+    onNavigateToComments: (eventId: String, section: CommentSection, sectionItemId: String?) -> Unit,
+    pendingSync: Boolean = false,
+    isOnline: Boolean = true,
+    isReadOnly: Boolean = false,
+    canManageBudget: Boolean = !isReadOnly,
+    canMutateBudget: Boolean = canManageBudget && !isReadOnly
 ) {
     var items by remember { mutableStateOf<List<BudgetItem>>(emptyList()) }
     var budget by remember { mutableStateOf<Budget?>(null) }
@@ -170,10 +175,12 @@ fun BudgetDetailScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddItemDialog = true }
-            ) {
-                Icon(Icons.Default.Add, "Ajouter un item")
+            if (canMutateBudget) {
+                FloatingActionButton(
+                    onClick = { showAddItemDialog = true }
+                ) {
+                    Icon(Icons.Default.Add, "Ajouter un item")
+                }
             }
         }
     ) { padding ->
@@ -183,6 +190,8 @@ fun BudgetDetailScreen(
                 .padding(padding)
         ) {
             // Summary header
+            OfflinePendingSyncBanner(pendingSync = pendingSync, isOnline = isOnline)
+
             budget?.let {
                 BudgetSummaryHeader(it)
             }
@@ -229,9 +238,11 @@ fun BudgetDetailScreen(
                     items(filteredItems, key = { it.id }) { item ->
                         BudgetItemCard(
                             item = item,
-                            onEdit = { itemToEdit = item },
-                            onDelete = { itemToDelete = item },
+                            canMutateBudget = canMutateBudget,
+                            onEdit = { if (canMutateBudget) itemToEdit = item },
+                            onDelete = { if (canMutateBudget) itemToDelete = item },
                             onMarkPaid = {
+                                if (!canMutateBudget) return@BudgetItemCard
                                 // Show mark as paid dialog
                                 // For now, just mark with estimated cost
                                 budgetRepository.markItemAsPaid(
@@ -248,7 +259,7 @@ fun BudgetDetailScreen(
         }
         
         // Dialogs
-        if (showAddItemDialog) {
+        if (showAddItemDialog && canMutateBudget) {
             BudgetItemDialog(
                 budgetId = budgetId,
                 budgetRepository = budgetRepository,
@@ -261,7 +272,7 @@ fun BudgetDetailScreen(
             )
         }
 
-        itemToEdit?.let { item ->
+        itemToEdit?.takeIf { canMutateBudget }?.let { item ->
             BudgetItemDialog(
                 budgetId = budgetId,
                 existingItem = item,
@@ -275,7 +286,7 @@ fun BudgetDetailScreen(
             )
         }
         
-        itemToDelete?.let { item ->
+        itemToDelete?.takeIf { canMutateBudget }?.let { item ->
             AlertDialog(
                 onDismissRequest = { itemToDelete = null },
                 title = { Text("Supprimer l'item ?") },
@@ -430,6 +441,7 @@ private fun BudgetFiltersRow(
 @Composable
 private fun BudgetItemCard(
     item: BudgetItem,
+    canMutateBudget: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onMarkPaid: () -> Unit
@@ -532,7 +544,7 @@ private fun BudgetItemCard(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (!item.isPaid) {
+                if (canMutateBudget && !item.isPaid) {
                     AssistChip(
                         onClick = onMarkPaid,
                         label = { Text("Marquer payé") },
@@ -540,20 +552,22 @@ private fun BudgetItemCard(
                     )
                 }
                 
-                AssistChip(
-                    onClick = onEdit,
-                    label = { Text("Modifier") },
-                    leadingIcon = { Icon(Icons.Default.Edit, null) }
-                )
-                
-                AssistChip(
-                    onClick = onDelete,
-                    label = { Text("Supprimer") },
-                    leadingIcon = { Icon(Icons.Default.Delete, null) },
-                    colors = AssistChipDefaults.assistChipColors(
-                        labelColor = MaterialTheme.colorScheme.error
+                if (canMutateBudget) {
+                    AssistChip(
+                        onClick = onEdit,
+                        label = { Text("Modifier") },
+                        leadingIcon = { Icon(Icons.Default.Edit, null) }
                     )
-                )
+
+                    AssistChip(
+                        onClick = onDelete,
+                        label = { Text("Supprimer") },
+                        leadingIcon = { Icon(Icons.Default.Delete, null) },
+                        colors = AssistChipDefaults.assistChipColors(
+                            labelColor = MaterialTheme.colorScheme.error
+                        )
+                    )
+                }
             }
         }
     }

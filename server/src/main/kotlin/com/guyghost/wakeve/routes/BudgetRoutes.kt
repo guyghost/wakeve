@@ -3,9 +3,14 @@ package com.guyghost.wakeve.routes
 import com.guyghost.wakeve.auth.userId
 import com.guyghost.wakeve.budget.BudgetCalculator
 import com.guyghost.wakeve.budget.BudgetRepository
+import com.guyghost.wakeve.budget.ExpenseRepository
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Budget
 import com.guyghost.wakeve.models.BudgetCategory
 import com.guyghost.wakeve.models.BudgetItem
+import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.payment.SettlementRecord
+import com.guyghost.wakeve.payment.SettlementRepository
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.principal
@@ -32,7 +37,14 @@ import kotlinx.serialization.Serializable
  *
  * **SECURITY**: All routes require JWT authentication via "auth-jwt"
  */
-fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, eventRepository: EventRepositoryInterface) {
+fun io.ktor.server.routing.Route.budgetRoutes(
+    repository: BudgetRepository,
+    eventRepository: EventRepositoryInterface,
+    database: WakeveDb
+) {
+    val expenseRepository = ExpenseRepository(database)
+    val settlementRepository = SettlementRepository(database)
+
     authenticate("auth-jwt") {
         route("/events/{eventId}/budget") {
         
@@ -49,11 +61,11 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, even
 
                 val userId = principal.userId
 
-                // Check if user has access to the event
-                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                // Organization budget details are limited to the organizer and confirmed attendees.
+                if (!hasConfirmedAttendeeBudgetAccess(eventRepository, database, eventId, userId)) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
-                        mapOf("error" to "You do not have access to this event")
+                        budgetAuditDenial(eventId, userId, "read_budget_details")
                     )
                 }
 
@@ -87,11 +99,20 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, even
 
                 val userId = principal.userId
 
-                // Check if user has access to the event
-                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                val event = eventRepository.getEvent(eventId) ?: return@put call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Event not found")
+                )
+                if (event.organizerId != userId) {
                     return@put call.respond(
                         HttpStatusCode.Forbidden,
-                        mapOf("error" to "You do not have access to this event")
+                        budgetAuditDenial(eventId, userId, "mutate_budget_baseline")
+                    )
+                }
+                if (event.status != EventStatus.ORGANIZING) {
+                    return@put call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Budget baseline can only be mutated while event is ORGANIZING")
                     )
                 }
 
@@ -143,8 +164,8 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, even
 
                 val userId = principal.userId
 
-                // Check if user has access to the event
-                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                // Budget routes are limited to the organizer and confirmed attendees.
+                if (!hasConfirmedAttendeeBudgetAccess(eventRepository, database, eventId, userId)) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
                         mapOf("error" to "You do not have access to this event")
@@ -216,11 +237,20 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, even
 
                 val userId = principal.userId
 
-                // Check if user has access to the event
-                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                val event = eventRepository.getEvent(eventId) ?: return@post call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Event not found")
+                )
+                if (event.organizerId != userId) {
                     return@post call.respond(
                         HttpStatusCode.Forbidden,
-                        mapOf("error" to "You do not have access to this event")
+                        budgetAuditDenial(eventId, userId, "create_budget_item")
+                    )
+                }
+                if (event.status != EventStatus.ORGANIZING) {
+                    return@post call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Budget items can only be mutated while event is ORGANIZING")
                     )
                 }
 
@@ -277,6 +307,100 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, even
             }
         }
 
+        // POST /api/events/{eventId}/budget/expenses - Record shared expense
+        post("/expenses") {
+            try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                val eventId = call.parameters["eventId"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+
+                val userId = principal.userId
+                if (!hasConfirmedAttendeeBudgetAccess(eventRepository, database, eventId, userId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        budgetAuditDenial(eventId, userId, "create_expense")
+                    )
+                }
+
+                val event = eventRepository.getEvent(eventId) ?: return@post call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Event not found")
+                )
+                if (event.status != EventStatus.ORGANIZING) {
+                    return@post call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Expenses can only be recorded while event is ORGANIZING")
+                    )
+                }
+
+                @Serializable
+                data class CreateExpenseRequest(
+                    val amount: Double,
+                    val category: String,
+                    val payerId: String,
+                    val splitParticipantIds: List<String>,
+                    val receiptMetadata: Map<String, String> = emptyMap(),
+                    val clientSyncState: String? = null
+                )
+
+                val request = call.receive<CreateExpenseRequest>()
+                if (request.payerId != userId) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        budgetAuditDenial(eventId, userId, "create_expense_for_other_payer")
+                    )
+                }
+
+                val category = try {
+                    BudgetCategory.valueOf(request.category.uppercase())
+                } catch (e: IllegalArgumentException) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Invalid category: ${request.category}")
+                    )
+                }
+
+                val confirmedParticipantIds = database.participantQueries
+                    .selectValidated(eventId)
+                    .executeAsList()
+                    .map { it.userId }
+                    .toSet() + event.organizerId
+                if (request.splitParticipantIds.any { it !in confirmedParticipantIds }) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        budgetAuditDenial(eventId, userId, "create_expense_with_unconfirmed_split")
+                    )
+                }
+
+                if (repository.getBudgetByEventId(eventId) == null) {
+                    repository.createBudget(eventId)
+                }
+
+                val expense = expenseRepository.createExpense(
+                    eventId = eventId,
+                    amount = request.amount,
+                    category = category,
+                    payerId = request.payerId,
+                    splitParticipantIds = request.splitParticipantIds,
+                    receiptMetadata = request.receiptMetadata,
+                    syncState = if (request.clientSyncState == "OFFLINE") "PENDING" else "SYNCED"
+                )
+
+                call.respond(HttpStatusCode.Created, expense)
+            } catch (e: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to e.message.orEmpty()))
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.InternalServerError,
+                    mapOf("error" to e.message.orEmpty())
+                )
+            }
+        }
+
         // GET /api/events/{eventId}/budget/items/{itemId} - Get specific item
         get("/items/{itemId}") {
             try {
@@ -290,8 +414,8 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, even
 
                 val userId = principal.userId
 
-                // Check if user has access to the event
-                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                // Budget routes are limited to the organizer and confirmed attendees.
+                if (!hasConfirmedAttendeeBudgetAccess(eventRepository, database, eventId, userId)) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
                         mapOf("error" to "You do not have access to this event")
@@ -339,11 +463,20 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, even
 
                 val userId = principal.userId
 
-                // Check if user has access to the event
-                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                val event = eventRepository.getEvent(eventId) ?: return@put call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Event not found")
+                )
+                if (event.organizerId != userId) {
                     return@put call.respond(
                         HttpStatusCode.Forbidden,
-                        mapOf("error" to "You do not have access to this event")
+                        budgetAuditDenial(eventId, userId, "update_budget_item")
+                    )
+                }
+                if (event.status != EventStatus.ORGANIZING) {
+                    return@put call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Budget items can only be mutated while event is ORGANIZING")
                     )
                 }
 
@@ -412,11 +545,20 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, even
 
                 val userId = principal.userId
 
-                // Check if user has access to the event
-                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                val event = eventRepository.getEvent(eventId) ?: return@delete call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Event not found")
+                )
+                if (event.organizerId != userId) {
                     return@delete call.respond(
                         HttpStatusCode.Forbidden,
-                        mapOf("error" to "You do not have access to this event")
+                        budgetAuditDenial(eventId, userId, "delete_budget_item")
+                    )
+                }
+                if (event.status != EventStatus.ORGANIZING) {
+                    return@delete call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Budget items can only be mutated while event is ORGANIZING")
                     )
                 }
 
@@ -470,8 +612,8 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, even
 
                 val userId = principal.userId
 
-                // Check if user has access to the event
-                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                // Budget routes are limited to the organizer and confirmed attendees.
+                if (!hasConfirmedAttendeeBudgetAccess(eventRepository, database, eventId, userId)) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
                         mapOf("error" to "You do not have access to this event")
@@ -528,8 +670,8 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, even
 
                 val userId = principal.userId
 
-                // Check if user has access to the event
-                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                // Budget routes are limited to the organizer and confirmed attendees.
+                if (!hasConfirmedAttendeeBudgetAccess(eventRepository, database, eventId, userId)) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
                         mapOf("error" to "You do not have access to this event")
@@ -541,18 +683,25 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, even
                     mapOf("error" to "Budget not found for event")
                 )
 
-                val settlements = repository.getSettlements(budget.id)
+                val settlements = settlementRepository.recalculateAndPersist(
+                    eventId = eventId,
+                    budgetId = budget.id,
+                    budgetRepository = repository
+                )
+                val event = eventRepository.getEvent(eventId)
+                val visibleSettlements = if (event?.organizerId == userId) {
+                    settlements
+                } else {
+                    settlementRepository.getSettlementsVisibleToParticipant(eventId, userId)
+                }
 
-                call.respond(HttpStatusCode.OK, mapOf(
-                    "settlements" to settlements.map { (from, to, amount) ->
-                        mapOf(
-                            "from" to from,
-                            "to" to to,
-                            "amount" to amount
-                        )
-                    },
-                    "count" to settlements.size
-                ))
+                call.respond(
+                    HttpStatusCode.OK,
+                    BudgetSettlementsResponse(
+                        settlements = visibleSettlements,
+                        count = visibleSettlements.size
+                    )
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -574,8 +723,8 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, even
 
                 val userId = principal.userId
 
-                // Check if user has access to the event
-                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                // Budget routes are limited to the organizer and confirmed attendees.
+                if (!hasConfirmedAttendeeBudgetAccess(eventRepository, database, eventId, userId)) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
                         mapOf("error" to "You do not have access to this event")
@@ -627,8 +776,8 @@ fun io.ktor.server.routing.Route.budgetRoutes(repository: BudgetRepository, even
 
                 val userId = principal.userId
 
-                // Check if user has access to the event
-                if (!hasEventAccess(eventRepository, eventId, userId)) {
+                // Budget routes are limited to the organizer and confirmed attendees.
+                if (!hasConfirmedAttendeeBudgetAccess(eventRepository, database, eventId, userId)) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
                         mapOf("error" to "You do not have access to this event")
@@ -678,15 +827,40 @@ private fun getCurrentIsoTimestamp(): String {
     return java.time.Instant.now().toString()
 }
 
+@Serializable
+private data class BudgetSettlementsResponse(
+    val settlements: List<SettlementRecord>,
+    val count: Int
+)
+
+private fun budgetAuditDenial(eventId: String, userId: String, action: String): Map<String, String> {
+    val auditRef = "audit-${eventId.take(12)}-${userId.take(12)}-${System.currentTimeMillis()}"
+    return mapOf(
+        "error" to "You do not have access to this event",
+        "auditReference" to auditRef,
+        "auditAction" to action
+    )
+}
+
 /**
- * Check if the authenticated user has access to the event.
- * User has access if they are the organizer or a participant.
+ * Check if the authenticated user can view protected organization budget details.
+ * Organizers always have access; participants must have confirmed attendance for the retained date.
  */
-private fun hasEventAccess(
+private fun hasConfirmedAttendeeBudgetAccess(
     eventRepository: EventRepositoryInterface,
+    database: WakeveDb,
     eventId: String,
     userId: String
 ): Boolean {
     val event = eventRepository.getEvent(eventId) ?: return false
-    return event.organizerId == userId || event.participants.contains(userId)
+    if (event.organizerId == userId) {
+        return true
+    }
+
+    val participant = database.participantQueries
+        .selectByEventIdAndUserId(eventId, userId)
+        .executeAsOneOrNull()
+        ?: return false
+
+    return participant.hasValidatedDate == 1L
 }

@@ -101,6 +101,7 @@ struct BudgetOverviewView: View {
     private var contentView: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
+                BudgetSyncBanner(pendingSync: viewModel.pendingSync, isOnline: viewModel.isOnline)
                 summaryCard
                 if !categoryModels.isEmpty {
                     categoryBreakdownCard
@@ -331,6 +332,24 @@ struct BudgetOverviewView: View {
     private var costPerPerson: Double {
         guard participantCount > 0 else { return totalEstimated }
         return totalEstimated / Double(participantCount)
+    }
+}
+
+struct BudgetSyncBanner: View {
+    let pendingSync: Bool
+    let isOnline: Bool
+
+    var body: some View {
+        if pendingSync || !isOnline {
+            Label(
+                pendingSync ? "Modifications locales en attente d'envoi" : "Données locales disponibles hors ligne",
+                systemImage: "arrow.triangle.2.circlepath"
+            )
+            .font(.footnote.weight(.semibold))
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.yellow.opacity(0.16), in: RoundedRectangle(cornerRadius: 12))
+        }
     }
 }
 

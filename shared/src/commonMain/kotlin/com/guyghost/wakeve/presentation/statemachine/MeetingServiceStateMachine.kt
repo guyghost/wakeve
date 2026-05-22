@@ -258,7 +258,7 @@ class MeetingServiceStateMachine(
      *
      * Flow:
      * 1. Set isLoading = true
-     * 2. Call cancelMeetingUseCase(meetingId, organizerId)
+     * 2. Call cancelMeetingUseCase(meetingId, currentUserId)
      * 3. On success: reload meetings, clear selectedMeeting, emit ShowToast + NavigateBack
      * 4. On failure: set error, emit ShowError, set isLoading = false
      *
@@ -267,15 +267,7 @@ class MeetingServiceStateMachine(
     private suspend fun handleCancelMeeting(intent: Intent.CancelMeeting) {
         updateState { it.copy(isLoading = true, error = null) }
 
-        // Need organizer ID - get from selected meeting
-        val organizerId = currentState.meetings.find { it.id == intent.meetingId }?.organizerId
-            ?: run {
-                emitSideEffect(SideEffect.ShowError("Cannot cancel meeting: not found"))
-                updateState { it.copy(isLoading = false) }
-                return
-            }
-
-        cancelMeetingUseCase(intent.meetingId, organizerId).fold(
+        cancelMeetingUseCase(intent.meetingId, intent.currentUserId).fold(
             onSuccess = { _ ->
                 // Reload meetings
                 reloadMeetings(currentState.eventId)

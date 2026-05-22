@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.presentation.statemachine
 
+import com.guyghost.wakeve.access.ParticipantAccessMapper
 import com.guyghost.wakeve.models.Coordinates
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
@@ -9,6 +10,8 @@ import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
 import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
 import com.guyghost.wakeve.sample.SampleEventFactory
+import com.guyghost.wakeve.workflow.WorkflowOutboxRecord
+import com.guyghost.wakeve.workflow.WorkflowOutboxType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.Clock
 
@@ -352,17 +355,24 @@ class EventManagementStateMachine(
      *
      * Flow:
      * 1. Check if repository is available
-     * 2. Call repository.getParticipants(eventId)
-     * 3. Update state with participant IDs
+     * 2. Call repository.getParticipantRecords(eventId)
+     * 3. Update state with participant IDs and access states
      *
      * @param eventId The ID of the event
      */
     private suspend fun loadParticipants(eventId: String) {
         if (eventRepository == null) return
 
-        val participantIds = eventRepository.getParticipants(eventId) ?: return
+        val participantRecords = eventRepository.getParticipantRecords(eventId) ?: return
+        val participantIds = participantRecords.map { it.userId }
+        val participantAccessStates = participantRecords.map(ParticipantAccessMapper::fromRepositoryRecord)
 
-        updateState { it.copy(participantIds = participantIds) }
+        updateState {
+            it.copy(
+                participantIds = participantIds,
+                participantAccessStates = participantAccessStates
+            )
+        }
     }
 
     /**
@@ -791,6 +801,13 @@ class EventManagementStateMachine(
             return
         }
 
+        if (eventRepository.isDeadlinePassed(event.deadline)) {
+            val errorMsg = "Cannot confirm date: Poll deadline has passed"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
         // Validate at least one vote exists
         val poll = eventRepository.getPoll(eventId)
         if (poll == null || poll.votes.isEmpty()) {
@@ -809,27 +826,54 @@ class EventManagementStateMachine(
             return
         }
 
-        // Update event status to CONFIRMED
-        val result = eventRepository.updateEventStatus(
-            id = eventId,
-            status = com.guyghost.wakeve.models.EventStatus.CONFIRMED,
-            finalDate = selectedSlot.start
+        val finalDate = selectedSlot.start
+        if (finalDate == null) {
+            val errorMsg = "Selected time slot has no confirmed start date"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
+        val result = eventRepository.confirmEventDate(
+            eventId = eventId,
+            slotId = slotId,
+            confirmedByOrganizerId = userId
         )
 
-        result.fold(
-            onSuccess = {
-                // Reload events to get updated status
-                loadEvents()
-                updateState { it.copy(scenariosUnlocked = true) }
-                emitSideEffect(EventManagementContract.SideEffect.ShowToast("Date confirmed successfully"))
-                emitSideEffect(EventManagementContract.SideEffect.NavigateTo("event/$eventId/scenarios"))
-            },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to confirm date"
-                updateState { it.copy(isLoading = false, error = errorMessage) }
-                emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
-            }
+        if (result.isFailure) {
+            val errorMessage = result.exceptionOrNull()?.message ?: "Failed to confirm date"
+            updateState { it.copy(isLoading = false, error = errorMessage) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
+            return
+        }
+
+        val notificationResult = eventRepository.queueWorkflowOutbox(
+            WorkflowOutboxRecord(
+                eventId = eventId,
+                type = WorkflowOutboxType.DATE_CONFIRMATION_NOTIFICATION,
+                finalDate = finalDate
+            )
         )
+        val calendarResult = eventRepository.queueWorkflowOutbox(
+            WorkflowOutboxRecord(
+                eventId = eventId,
+                type = WorkflowOutboxType.CALENDAR_INVITATION_ARTIFACT,
+                finalDate = finalDate
+            )
+        )
+        val outboxError = notificationResult.exceptionOrNull() ?: calendarResult.exceptionOrNull()
+        if (outboxError != null) {
+            val errorMessage = outboxError.message ?: "Failed to queue confirmation workflow"
+            updateState { it.copy(isLoading = false, error = errorMessage) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
+            return
+        }
+
+        // Reload events to get updated status
+        loadEvents()
+        updateState { it.copy(scenariosUnlocked = true) }
+        emitSideEffect(EventManagementContract.SideEffect.ShowToast("Date confirmed successfully"))
+        emitSideEffect(EventManagementContract.SideEffect.NavigateTo("event/$eventId/scenarios"))
     }
 
     /**

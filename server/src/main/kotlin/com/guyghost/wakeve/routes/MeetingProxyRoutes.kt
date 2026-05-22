@@ -1,7 +1,13 @@
 package com.guyghost.wakeve.routes
 
+import com.guyghost.wakeve.auth.userId
+import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.call
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -40,8 +46,37 @@ import kotlinx.serialization.Serializable
  * - ZOOM_API_SECRET: Zoom API secret
  * - GOOGLE_MEET_CREDENTIALS: Google Calendar API credentials (JSON)
  */
-fun Route.meetingProxyRoutes() {
-    route("/api/meetings/proxy") {
+fun Route.meetingProxyRoutes(
+    database: WakeveDb,
+    eventRepository: EventRepositoryInterface
+) {
+    route("/events/{eventId}/meetings") {
+        get {
+            val principal = call.principal<JWTPrincipal>()
+                ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+            val eventId = call.parameters["eventId"]
+                ?: return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "eventId is required"))
+            val userId = principal.userId
+
+            if (!hasMeetingDetailsAccess(database, eventRepository, eventId, userId)) {
+                return@get call.respond(
+                    HttpStatusCode.Forbidden,
+                    meetingAuditDenial(eventId, userId, "read_meeting_details")
+                )
+            }
+
+            val meetings = database.meetingQueries.selectByEventId(eventId).executeAsList()
+            call.respond(
+                HttpStatusCode.OK,
+                mapOf(
+                    "meetings" to meetings,
+                    "count" to meetings.size
+                )
+            )
+        }
+    }
+
+    route("/meetings/proxy") {
 
         // ============================================================
         // Zoom Meeting Endpoints
@@ -81,6 +116,8 @@ fun Route.meetingProxyRoutes() {
          */
         post("/zoom/create") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
                 val request = call.receive<CreateZoomMeetingRequest>()
 
                 // Validate required fields
@@ -88,6 +125,25 @@ fun Route.meetingProxyRoutes() {
                     return@post call.respond(
                         HttpStatusCode.BadRequest,
                         mapOf("error" to "title is required")
+                    )
+                }
+
+                if (request.eventId.isNullOrBlank()) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "eventId is required")
+                    )
+                }
+
+                val creationDenial = validateMeetingProxyCreation(
+                    eventRepository = eventRepository,
+                    eventId = request.eventId,
+                    userId = principal.userId
+                )
+                if (creationDenial != null) {
+                    return@post call.respond(
+                        creationDenial.status,
+                        meetingAuditDenial(request.eventId, principal.userId, creationDenial.auditAction)
                     )
                 }
 
@@ -107,11 +163,14 @@ fun Route.meetingProxyRoutes() {
                 // POST https://api.zoom.us/v2/users/me/meetings
                 // With Authorization: Bearer <JWT>
                 // For now, return a mock response
+                val meetingId = generateZoomMeetingId()
+                val password = generateZoomPassword()
+                val hostPassword = generateZoomPassword()
                 val response = CreateZoomMeetingResponse(
-                    meetingId = generateZoomMeetingId(),
-                    joinUrl = generateZoomJoinUrl(request.title),
-                    password = generateZoomPassword(),
-                    hostUrl = generateZoomHostUrl(),
+                    meetingId = meetingId,
+                    joinUrl = generateZoomJoinUrl(meetingId, password),
+                    password = password,
+                    hostUrl = generateZoomHostUrl(meetingId, hostPassword),
                     hostKey = generateHostKey(),
                     dialInNumber = "+33 1 23 45 67 89",
                     dialInPassword = "123456"
@@ -250,6 +309,8 @@ fun Route.meetingProxyRoutes() {
          */
         post("/google-meet/create") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
                 val request = call.receive<CreateGoogleMeetRequest>()
 
                 // Validate required fields
@@ -257,6 +318,25 @@ fun Route.meetingProxyRoutes() {
                     return@post call.respond(
                         HttpStatusCode.BadRequest,
                         mapOf("error" to "title is required")
+                    )
+                }
+
+                if (request.eventId.isNullOrBlank()) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "eventId is required")
+                    )
+                }
+
+                val creationDenial = validateMeetingProxyCreation(
+                    eventRepository = eventRepository,
+                    eventId = request.eventId,
+                    userId = principal.userId
+                )
+                if (creationDenial != null) {
+                    return@post call.respond(
+                        creationDenial.status,
+                        meetingAuditDenial(request.eventId, principal.userId, creationDenial.auditAction)
                     )
                 }
 
@@ -302,6 +382,7 @@ fun Route.meetingProxyRoutes() {
  */
 @Serializable
 data class CreateZoomMeetingRequest(
+    val eventId: String? = null,
     val title: String,
     val description: String? = null,
     val scheduledFor: String, // ISO-8601 datetime
@@ -320,6 +401,48 @@ data class CreateZoomMeetingRequest(
         require(description == null || description.length <= 5000) { "Description must not exceed 5000 characters" }
     }
 }
+
+private data class MeetingProxyCreationDenial(
+    val status: HttpStatusCode,
+    val auditAction: String
+)
+
+private fun validateMeetingProxyCreation(
+    eventRepository: EventRepositoryInterface,
+    eventId: String,
+    userId: String
+): MeetingProxyCreationDenial? {
+    val event = eventRepository.getEvent(eventId)
+        ?: return MeetingProxyCreationDenial(HttpStatusCode.Forbidden, "create_meeting_proxy_missing_event")
+    if (event.organizerId != userId) {
+        return MeetingProxyCreationDenial(HttpStatusCode.Forbidden, "create_meeting_proxy_non_organizer")
+    }
+    if (event.status != EventStatus.ORGANIZING) {
+        return MeetingProxyCreationDenial(HttpStatusCode.Conflict, "create_meeting_proxy_invalid_workflow")
+    }
+    return null
+}
+
+private fun hasMeetingDetailsAccess(
+    database: WakeveDb,
+    eventRepository: EventRepositoryInterface,
+    eventId: String,
+    userId: String
+): Boolean {
+    val event = eventRepository.getEvent(eventId) ?: return false
+    if (event.organizerId == userId) return true
+    return database.participantQueries
+        .selectByEventIdAndUserId(eventId, userId)
+        .executeAsOneOrNull()
+        ?.hasValidatedDate == 1L
+}
+
+private fun meetingAuditDenial(eventId: String, userId: String, action: String): Map<String, String> =
+    mapOf(
+        "error" to "You do not have access to this event",
+        "auditReference" to "audit-${eventId.take(12)}-${userId.take(12)}-${System.currentTimeMillis()}",
+        "auditAction" to action
+    )
 
 /**
  * Response from creating a Zoom meeting
@@ -352,6 +475,7 @@ data class ZoomMeetingStatusResponse(
  */
 @Serializable
 data class CreateGoogleMeetRequest(
+    val eventId: String? = null,
     val title: String,
     val description: String? = null,
     val scheduledFor: String, // ISO-8601 datetime
@@ -383,15 +507,11 @@ private fun generateZoomMeetingId(): String {
     return (1..10).map { (0..9).random() }.joinToString("")
 }
 
-private fun generateZoomJoinUrl(title: String): String {
-    val meetingId = generateZoomMeetingId()
-    val password = generateZoomPassword()
+private fun generateZoomJoinUrl(meetingId: String, password: String): String {
     return "https://zoom.us/j/$meetingId?pwd=$password"
 }
 
-private fun generateZoomHostUrl(): String {
-    val meetingId = generateZoomMeetingId()
-    val password = generateZoomPassword()
+private fun generateZoomHostUrl(meetingId: String, password: String): String {
     return "https://zoom.us/j/$meetingId?pwd=$password"
 }
 
@@ -405,7 +525,7 @@ private fun generateHostKey(): String {
 }
 
 private fun generateGoogleMeetCode(): String {
-    val chars = "abcdefghijklmnopqrstuvwxyz-"
+    val chars = "abcdefghijklmnopqrstuvwxyz"
     val part1 = (1..3).map { chars.random() }.joinToString("")
     val part2 = (1..3).map { chars.random() }.joinToString("")
     val part3 = (1..4).map { chars.random() }.joinToString("")

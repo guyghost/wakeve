@@ -40,11 +40,13 @@ import com.guyghost.wakeve.routes.mealRoutes
 import com.guyghost.wakeve.routes.meetingProxyRoutes
 import com.guyghost.wakeve.routes.notificationRoutes
 import com.guyghost.wakeve.routes.participantRoutes
+import com.guyghost.wakeve.routes.paymentRoutes
 import com.guyghost.wakeve.routes.potentialLocationRoutes
 import com.guyghost.wakeve.routes.publicInvitationRoutes
 import com.guyghost.wakeve.routes.scenarioRoutes
 import com.guyghost.wakeve.routes.sessionRoutes
 import com.guyghost.wakeve.routes.syncRoutes
+import com.guyghost.wakeve.routes.transportRoutes
 import com.guyghost.wakeve.routes.voteRoutes
 import com.guyghost.wakeve.invitation.InvitationRepository
 import com.guyghost.wakeve.sync.SyncService
@@ -52,6 +54,8 @@ import com.guyghost.wakeve.auth.SessionRepository
 import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.repository.ScenarioRepository
+import com.guyghost.wakeve.transport.TransportRepository
+import com.guyghost.wakeve.payment.TricountHandoffRepository
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
@@ -224,6 +228,8 @@ fun main() {
     val commentRepository = com.guyghost.wakeve.comment.CommentRepository(database)
     val locationRepository = PotentialLocationRepository(eventRepository)
     val accommodationRepository = com.guyghost.wakeve.accommodation.AccommodationRepository(database)
+    val transportRepository = TransportRepository(database)
+    val tricountHandoffRepository = TricountHandoffRepository(database)
     
     // Initialize Calendar Service
     val platformCalendarService = PlatformCalendarServiceImpl()
@@ -276,7 +282,8 @@ fun main() {
             invitationRepository,
             notificationService,
             eventNotificationTrigger,
-            gamificationService
+            gamificationService,
+            transportRepository
         )
     }).start(wait = true)
 }
@@ -305,7 +312,8 @@ fun Application.module(
         InMemoryUserPointsRepository(),
         InMemoryUserBadgesRepository(),
         BadgeEligibilityChecker(InMemoryUserPointsRepository(), InMemoryUserBadgesRepository())
-    )
+    ),
+    transportRepository: TransportRepository = TransportRepository(database)
 ) {
     // Initialize metrics
     val meterRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
@@ -376,6 +384,7 @@ fun Application.module(
     val sessionManager = SessionManager(database)
     val jwtBlacklistCache = JwtBlacklistCache()
     val syncService = SyncService(database)
+    val tricountHandoffRepository = TricountHandoffRepository(database)
 
     // Install plugins
     install(ContentNegotiation) {
@@ -484,20 +493,22 @@ fun Application.module(
                                 this.jwtBlacklistCache = jwtBlacklistCache
                             }
 
-                            eventRoutes(eventRepository, gamificationService, eventNotificationTrigger)
-                            participantRoutes(eventRepository, gamificationService)
+                            eventRoutes(eventRepository, gamificationService, eventNotificationTrigger, database)
+                            participantRoutes(eventRepository, gamificationService, database)
                             voteRoutes(eventRepository, eventNotificationTrigger, gamificationService)
-                            scenarioRoutes(scenarioRepository)
-                            budgetRoutes(budgetRepository, eventRepository)
+                            scenarioRoutes(scenarioRepository, database)
+                            transportRoutes(transportRepository, database)
+                            budgetRoutes(budgetRepository, eventRepository, database)
+                            paymentRoutes(tricountHandoffRepository, eventRepository, database)
                             mealRoutes(mealRepository)
                             commentRoutes(commentRepository, eventNotificationTrigger, eventRepository)
                             potentialLocationRoutes(locationRepository)
                             syncRoutes(syncService)
-                            accommodationRoutes(accommodationRepository)
+                            accommodationRoutes(accommodationRepository, database)
                             sessionRoutes(sessionManager)
-                            calendarRoutes(calendarService)
+                            calendarRoutes(calendarService, database)
                             chatRoutes(chatService)
-                            meetingProxyRoutes()
+                            meetingProxyRoutes(database, eventRepository)
                             analyticsRoutes(analyticsDashboard)
                             notificationRoutes(notificationService)
                             invitationRoutes(invitationRepository, eventRepository, database)

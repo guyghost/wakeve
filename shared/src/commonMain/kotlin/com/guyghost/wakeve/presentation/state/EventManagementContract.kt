@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.presentation.state
 
+import com.guyghost.wakeve.access.ParticipantAccessState
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.LocationType
@@ -49,6 +50,7 @@ object EventManagementContract {
         val events: List<Event> = emptyList(),
         val selectedEvent: Event? = null,
         val participantIds: List<String> = emptyList(),
+        val participantAccessStates: List<ParticipantAccessState> = emptyList(),
         val pollVotes: Map<String, Map<String, Vote>> = emptyMap(),
         val scenariosUnlocked: Boolean = false,
         val meetingsUnlocked: Boolean = false,

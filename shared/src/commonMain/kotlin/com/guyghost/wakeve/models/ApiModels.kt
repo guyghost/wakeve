@@ -83,6 +83,7 @@ data class PollResponse(
 data class UpdateEventStatusRequest(
     val eventId: String,
     val status: String,  // DRAFT, POLLING, CONFIRMED
+    val slotId: String? = null,
     val finalDate: String? = null
 )
 

@@ -66,6 +66,7 @@ fun ModernEventDetailView(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+    val openBudget = onNavigateToBudgetOverview
     
     Scaffold(
         topBar = {
@@ -100,25 +101,16 @@ fun ModernEventDetailView(
             
             // Action Buttons based on event status
             when (event.status) {
-                EventStatus.DRAFT -> {
-                    DraftModeActions(
-                        onNavigateToScenarioList = onNavigateToScenarioList,
-                        onNavigateToBudgetOverview = onNavigateToBudgetOverview
-                    )
-                }
-                EventStatus.POLLING -> {
-                    PollingModeActions()
-                }
                 EventStatus.COMPARING -> {
                     ComparingModeActions(
                         onNavigateToScenarioList = onNavigateToScenarioList,
-                        onNavigateToBudgetOverview = onNavigateToBudgetOverview
+                        onOpenBudget = openBudget
                     )
                 }
                 EventStatus.CONFIRMED -> {
                     ConfirmedModeActions(
                         onNavigateToScenarioList = onNavigateToScenarioList,
-                        onNavigateToBudgetOverview = onNavigateToBudgetOverview,
+                        onOpenBudget = openBudget,
                         onNavigateToAccommodation = onNavigateToAccommodation,
                         onNavigateToMealPlanning = onNavigateToMealPlanning,
                         onNavigateToEquipmentChecklist = onNavigateToEquipmentChecklist,
@@ -130,7 +122,7 @@ fun ModernEventDetailView(
                 EventStatus.ORGANIZING -> {
                     OrganizingModeActions(
                         onNavigateToScenarioList = onNavigateToScenarioList,
-                        onNavigateToBudgetOverview = onNavigateToBudgetOverview,
+                        onOpenBudget = openBudget,
                         onNavigateToAccommodation = onNavigateToAccommodation,
                         onNavigateToMealPlanning = onNavigateToMealPlanning,
                         onNavigateToEquipmentChecklist = onNavigateToEquipmentChecklist,
@@ -138,16 +130,15 @@ fun ModernEventDetailView(
                     )
                 }
                 EventStatus.FINALIZED -> {
-                    FinalizedModeActions(
-                        onNavigateToScenarioList = onNavigateToScenarioList,
-                        onNavigateToBudgetOverview = onNavigateToBudgetOverview,
-                        onNavigateToAccommodation = onNavigateToAccommodation,
-                        onNavigateToMealPlanning = onNavigateToMealPlanning,
-                        onNavigateToEquipmentChecklist = onNavigateToEquipmentChecklist,
-                        onNavigateToActivityPlanning = onNavigateToActivityPlanning,
-                        onAddToCalendar = onAddToCalendar,
-                        onShareInvite = onShareInvite
+                    FinalizedModeActions()
+                }
+                EventStatus.DRAFT -> {
+                    DraftModeActions(
+                        onNavigateToScenarioList = onNavigateToScenarioList
                     )
+                }
+                EventStatus.POLLING -> {
+                    PollingModeActions()
                 }
             }
         }
@@ -234,8 +225,7 @@ private fun EventDescriptionCard(event: Event) {
 
 @Composable
 private fun DraftModeActions(
-    onNavigateToScenarioList: () -> Unit,
-    onNavigateToBudgetOverview: () -> Unit
+    onNavigateToScenarioList: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -254,15 +244,6 @@ private fun DraftModeActions(
             Icon(Icons.Default.List, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text(stringResource(R.string.create_scenarios))
-        }
-        
-        Button(
-            onClick = onNavigateToBudgetOverview,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.Euro, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.configure_budget))
         }
     }
 }
@@ -290,7 +271,7 @@ private fun PollingModeActions() {
 @Composable
 private fun ComparingModeActions(
     onNavigateToScenarioList: () -> Unit,
-    onNavigateToBudgetOverview: () -> Unit
+    onOpenBudget: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -312,7 +293,7 @@ private fun ComparingModeActions(
         }
         
         Button(
-            onClick = onNavigateToBudgetOverview,
+            onClick = onOpenBudget,
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.Euro, contentDescription = null)
@@ -325,7 +306,7 @@ private fun ComparingModeActions(
 @Composable
 private fun ConfirmedModeActions(
     onNavigateToScenarioList: () -> Unit,
-    onNavigateToBudgetOverview: () -> Unit,
+    onOpenBudget: () -> Unit,
     onNavigateToAccommodation: () -> Unit,
     onNavigateToMealPlanning: () -> Unit,
     onNavigateToEquipmentChecklist: () -> Unit,
@@ -377,7 +358,7 @@ private fun ConfirmedModeActions(
         }
         
         Button(
-            onClick = onNavigateToBudgetOverview,
+            onClick = onOpenBudget,
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.Euro, contentDescription = null)
@@ -426,7 +407,7 @@ private fun ConfirmedModeActions(
 @Composable
 private fun OrganizingModeActions(
     onNavigateToScenarioList: () -> Unit,
-    onNavigateToBudgetOverview: () -> Unit,
+    onOpenBudget: () -> Unit,
     onNavigateToAccommodation: () -> Unit,
     onNavigateToMealPlanning: () -> Unit,
     onNavigateToEquipmentChecklist: () -> Unit,
@@ -452,7 +433,7 @@ private fun OrganizingModeActions(
         }
         
         Button(
-            onClick = onNavigateToBudgetOverview,
+            onClick = onOpenBudget,
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.Euro, contentDescription = null)
@@ -500,15 +481,10 @@ private fun OrganizingModeActions(
 
 @Composable
 private fun FinalizedModeActions(
-    onNavigateToScenarioList: () -> Unit,
-    onNavigateToBudgetOverview: () -> Unit,
-    onNavigateToAccommodation: () -> Unit,
-    onNavigateToMealPlanning: () -> Unit,
-    onNavigateToEquipmentChecklist: () -> Unit,
-    onNavigateToActivityPlanning: () -> Unit,
-    onAddToCalendar: () -> Unit,
-    onShareInvite: () -> Unit
 ) {
+    val readOnly = true
+    val viewOnly = readOnly
+    val mutationsDisabled = viewOnly
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -519,82 +495,14 @@ private fun FinalizedModeActions(
             fontWeight = FontWeight.Bold
         )
 
-        Button(
-            onClick = onAddToCalendar,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary
-            )
-        ) {
-            Icon(Icons.Default.CalendarMonth, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.add_to_calendar))
-        }
-
-        Button(
-            onClick = onShareInvite,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary
-            )
-        ) {
-            Icon(Icons.Default.Share, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.share_invitation))
-        }
-        
-        Button(
-            onClick = onNavigateToScenarioList,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.List, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.view_scenarios))
-        }
-        
-        Button(
-            onClick = onNavigateToBudgetOverview,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.Euro, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.view_budget))
-        }
-        
-        Button(
-            onClick = onNavigateToAccommodation,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.Hotel, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.view_accommodation))
-        }
-        
-        Button(
-            onClick = onNavigateToMealPlanning,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.Restaurant, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.view_meals))
-        }
-        
-        Button(
-            onClick = onNavigateToEquipmentChecklist,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.ShoppingBag, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.view_equipment))
-        }
-        
-        Button(
-            onClick = onNavigateToActivityPlanning,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.LocalActivity, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.view_activities))
-        }
+        Text(
+            text = if (mutationsDisabled) {
+                "Mode consultation. Cet événement est finalisé; les détails restent consultables."
+            } else {
+                "Organisation disponible."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

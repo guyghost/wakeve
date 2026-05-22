@@ -25,6 +25,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
+import java.nio.file.Files
+import java.nio.file.Paths
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -65,7 +67,7 @@ class MeetingServiceStateMachineTest {
             scope = testScope
         )
 
-        seedConfirmedEvent()
+        seedOrganizingEvent()
     }
 
     // ── LoadMeetings ─────────────────────────────────────────────────────────
@@ -175,7 +177,7 @@ class MeetingServiceStateMachineTest {
         assertEquals(1, stateMachine.state.value.meetings.size)
 
         // Cancel it
-        stateMachine.dispatch(Intent.CancelMeeting(meetingId))
+        stateMachine.dispatch(Intent.CancelMeeting(meetingId, currentUserId = "organizer-1"))
         testScope.advanceUntilIdle()
 
         val state = stateMachine.state.value
@@ -189,12 +191,33 @@ class MeetingServiceStateMachineTest {
         testScope.advanceUntilIdle()
 
         // Meeting not in current state -> ShowError side effect, state.error stays null
-        stateMachine.dispatch(Intent.CancelMeeting("non-existent-meeting-id"))
+        stateMachine.dispatch(Intent.CancelMeeting("non-existent-meeting-id", currentUserId = "organizer-1"))
         testScope.advanceUntilIdle()
 
         val state = stateMachine.state.value
         assertFalse(state.isLoading)
         assertTrue(state.meetings.isEmpty())
+    }
+
+    @Test
+    fun `CancelMeeting intent carries current actor instead of reconstructing organizer from meeting`() {
+        val contractSource = readProjectFile("shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/state/MeetingManagementContract.kt")
+        val stateMachineSource = readProjectFile("shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/statemachine/MeetingServiceStateMachine.kt")
+        val cancelIntent = contractSource.substringAfter("data class CancelMeeting").substringBefore("data class GenerateMeetingLink")
+        val cancelHandler = stateMachineSource.substringAfter("private suspend fun handleCancelMeeting").substringBefore("// ========================================================================\n    // Intent Handlers - Link Generation")
+
+        assertTrue(
+            cancelIntent.contains("currentUserId") || cancelIntent.contains("actorId") || cancelIntent.contains("cancelledBy"),
+            "CancelMeeting intent must carry the current actor so shared code can reject participant/non-organizer cancellations."
+        )
+        assertFalse(
+            cancelHandler.contains("currentState.meetings.find { it.id == intent.meetingId }?.organizerId"),
+            "MeetingServiceStateMachine must not reconstruct the actor from the meeting organizer; it must use the current actor from the intent."
+        )
+        assertTrue(
+            cancelHandler.contains("intent.currentUserId") || cancelHandler.contains("intent.actorId") || cancelHandler.contains("intent.cancelledBy"),
+            "MeetingServiceStateMachine must pass the intent actor into CancelMeetingUseCase."
+        )
     }
 
     // ── State helpers ────────────────────────────────────────────────────────
@@ -213,9 +236,15 @@ class MeetingServiceStateMachineTest {
     }
 
     @Test
-    fun `State canCreateMeetings returns true for CONFIRMED status`() {
-        val state = stateMachine.state.value.copy(eventStatus = EventStatus.CONFIRMED)
+    fun `State canCreateMeetings returns true for ORGANIZING status`() {
+        val state = stateMachine.state.value.copy(eventStatus = EventStatus.ORGANIZING)
         assertTrue(state.canCreateMeetings())
+    }
+
+    @Test
+    fun `State canCreateMeetings returns false for CONFIRMED status`() {
+        val state = stateMachine.state.value.copy(eventStatus = EventStatus.CONFIRMED)
+        assertFalse(state.canCreateMeetings())
     }
 
     @Test
@@ -231,14 +260,14 @@ class MeetingServiceStateMachineTest {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun seedConfirmedEvent() {
+    private fun seedOrganizingEvent() {
         val now = "2026-01-01T00:00:00Z"
         database.eventQueries.insertEvent(
             id = "event-1",
             organizerId = "organizer-1",
             title = "Test Event",
             description = "Description",
-            status = "CONFIRMED",
+            status = "ORGANIZING",
             deadline = now,
             createdAt = now,
             updatedAt = now,
@@ -260,6 +289,18 @@ class MeetingServiceStateMachineTest {
             joinedAt = now,
             updatedAt = now
         )
+    }
+
+    private fun readProjectFile(relativePath: String): String {
+        var directory = Paths.get("").toAbsolutePath()
+        while (true) {
+            val candidate = directory.resolve(relativePath)
+            if (Files.exists(candidate)) {
+                return Files.readString(candidate)
+            }
+
+            directory = directory.parent ?: error("Could not find project file: $relativePath")
+        }
     }
 }
 

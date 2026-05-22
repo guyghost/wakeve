@@ -2,11 +2,16 @@ package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.accommodation.AccommodationService
 import com.guyghost.wakeve.accommodation.AccommodationRepository
+import com.guyghost.wakeve.auth.userId
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Accommodation
 import com.guyghost.wakeve.models.AccommodationRequest
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.RoomAssignment
 import com.guyghost.wakeve.models.RoomAssignmentRequest
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -27,7 +32,7 @@ import java.util.UUID
  * - Booking status tracking
  * - Statistics and summaries
  */
-fun Route.accommodationRoutes(repository: AccommodationRepository) {
+fun Route.accommodationRoutes(repository: AccommodationRepository, database: WakeveDb) {
     route("/events/{eventId}/accommodation") {
 
         // GET /api/events/{eventId}/accommodation - Get all accommodations for event
@@ -37,6 +42,15 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!hasConfirmedAccommodationAccess(database, eventId, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to accommodation details")
+                    )
+                }
 
                 val accommodations = repository.getAccommodationsByEventId(eventId)
                 call.respond(HttpStatusCode.OK, accommodations)
@@ -56,6 +70,22 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isAccommodationOrganizer(database, eventId, principal.userId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can create accommodations")
+                    )
+                }
+
+                if (!isAccommodationCreationAllowed(database, eventId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Accommodations can only be created for CONFIRMED or COMPARING events")
+                    )
+                }
                 
                 val request = call.receive<AccommodationRequest>()
                 
@@ -120,17 +150,30 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Accommodation ID required")
                 )
+                val eventId = call.parameters["eventId"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!hasConfirmedAccommodationAccess(database, eventId, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to accommodation details")
+                    )
+                }
 
                 val accommodation = repository.getAccommodationById(accommodationId)
 
-                if (accommodation != null) {
-                    call.respond(HttpStatusCode.OK, accommodation)
-                } else {
-                    call.respond(
+                if (accommodation == null || accommodation.eventId != eventId) {
+                    return@get call.respond(
                         HttpStatusCode.NotFound,
                         mapOf("error" to "Accommodation not found")
                     )
                 }
+
+                call.respond(HttpStatusCode.OK, accommodation)
                 
             } catch (e: Exception) {
                 call.respond(
@@ -147,6 +190,19 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Accommodation ID required")
                 )
+                val eventId = call.parameters["eventId"] ?: return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isAccommodationOrganizer(database, eventId, principal.userId)) {
+                    return@put call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can update accommodations")
+                    )
+                }
                 
                 val request = call.receive<AccommodationRequest>()
                 
@@ -182,10 +238,23 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                         mapOf("error" to "Accommodation not found")
                     )
                 }
+                if (existing.eventId != eventId) {
+                    return@put call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Accommodation not found")
+                    )
+                }
+
+                if (isAccommodationEventFinalized(database, eventId)) {
+                    return@put call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Finalized events are read-only")
+                    )
+                }
 
                 val accommodation = Accommodation(
                     id = accommodationId,
-                    eventId = request.eventId,
+                    eventId = eventId,
                     name = request.name,
                     type = request.type,
                     address = request.address,
@@ -220,6 +289,34 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Accommodation ID required")
                 )
+                val eventId = call.parameters["eventId"] ?: return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isAccommodationOrganizer(database, eventId, principal.userId)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can delete accommodations")
+                    )
+                }
+
+                val existing = repository.getAccommodationById(accommodationId)
+                if (existing == null || existing.eventId != eventId) {
+                    return@delete call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Accommodation not found")
+                    )
+                }
+
+                if (isAccommodationEventFinalized(database, eventId)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Finalized events are read-only")
+                    )
+                }
 
                 // Delete from repository (will cascade to room assignments via foreign key)
                 repository.deleteAccommodation(accommodationId)
@@ -241,6 +338,27 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Accommodation ID required")
                 )
+                val eventId = call.parameters["eventId"] ?: return@get call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!hasConfirmedAccommodationAccess(database, eventId, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to room details")
+                    )
+                }
+
+                val accommodation = repository.getAccommodationById(accommodationId)
+                if (accommodation == null || accommodation.eventId != eventId) {
+                    return@get call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Accommodation not found")
+                    )
+                }
 
                 val rooms = repository.getRoomAssignmentsByAccommodationId(accommodationId)
 
@@ -261,6 +379,19 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Accommodation ID required")
                 )
+                val eventId = call.parameters["eventId"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isAccommodationOrganizer(database, eventId, principal.userId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can create room assignments")
+                    )
+                }
                 
                 val request = call.receive<RoomAssignmentRequest>()
                 
@@ -281,6 +412,12 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                 // Get accommodation to calculate price share
                 val accommodation = repository.getAccommodationById(accommodationId)
                 if (accommodation == null) {
+                    return@post call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Accommodation not found")
+                    )
+                }
+                if (accommodation.eventId != eventId) {
                     return@post call.respond(
                         HttpStatusCode.NotFound,
                         mapOf("error" to "Accommodation not found")
@@ -324,6 +461,23 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Room ID required")
                 )
+                val accommodationId = call.parameters["id"] ?: return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Accommodation ID required")
+                )
+                val eventId = call.parameters["eventId"] ?: return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isAccommodationOrganizer(database, eventId, principal.userId)) {
+                    return@put call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can update room assignments")
+                    )
+                }
                 
                 val request = call.receive<RoomAssignmentRequest>()
                 
@@ -357,6 +511,19 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     return@put call.respond(
                         HttpStatusCode.NotFound,
                         mapOf("error" to "Accommodation not found")
+                    )
+                }
+                if (existing.accommodationId != accommodationId || accommodation.eventId != eventId) {
+                    return@put call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Room assignment not found")
+                    )
+                }
+
+                if (isAccommodationEventFinalized(database, eventId)) {
+                    return@put call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Finalized events are read-only")
                     )
                 }
 
@@ -397,6 +564,45 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Room ID required")
                 )
+                val accommodationId = call.parameters["id"] ?: return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Accommodation ID required")
+                )
+                val eventId = call.parameters["eventId"] ?: return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isAccommodationOrganizer(database, eventId, principal.userId)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can delete room assignments")
+                    )
+                }
+
+                val existing = repository.getRoomAssignmentById(roomId)
+                if (existing == null || existing.accommodationId != accommodationId) {
+                    return@delete call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Room assignment not found")
+                    )
+                }
+                val accommodation = repository.getAccommodationById(existing.accommodationId)
+                if (accommodation == null || accommodation.eventId != eventId) {
+                    return@delete call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Room assignment not found")
+                    )
+                }
+
+                if (isAccommodationEventFinalized(database, eventId)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Finalized events are read-only")
+                    )
+                }
 
                 repository.deleteRoomAssignment(roomId)
 
@@ -417,6 +623,15 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!hasConfirmedAccommodationAccess(database, eventId, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to accommodation statistics")
+                    )
+                }
 
                 val stats = repository.getStatistics(eventId)
 
@@ -430,4 +645,40 @@ fun Route.accommodationRoutes(repository: AccommodationRepository) {
             }
         }
     }
+}
+
+private fun hasConfirmedAccommodationAccess(database: WakeveDb, eventId: String, userId: String): Boolean {
+    return isAccommodationOrganizer(database, eventId, userId) ||
+        isConfirmedAccommodationParticipant(database, eventId, userId)
+}
+
+private fun isAccommodationOrganizer(database: WakeveDb, eventId: String, userId: String): Boolean {
+    return database.eventQueries
+        .selectById(eventId)
+        .executeAsOneOrNull()
+        ?.organizerId == userId
+}
+
+private fun isConfirmedAccommodationParticipant(database: WakeveDb, eventId: String, userId: String): Boolean {
+    val participant = database.participantQueries
+        .selectByEventIdAndUserId(eventId, userId)
+        .executeAsOneOrNull()
+
+    return participant?.hasValidatedDate == 1L
+}
+
+private fun isAccommodationCreationAllowed(database: WakeveDb, eventId: String): Boolean {
+    val status = database.eventQueries
+        .selectById(eventId)
+        .executeAsOneOrNull()
+        ?.status
+
+    return status == EventStatus.CONFIRMED.name || status == EventStatus.COMPARING.name
+}
+
+private fun isAccommodationEventFinalized(database: WakeveDb, eventId: String): Boolean {
+    return database.eventQueries
+        .selectById(eventId)
+        .executeAsOneOrNull()
+        ?.status == EventStatus.FINALIZED.name
 }

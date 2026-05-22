@@ -112,6 +112,7 @@ fun MeetingDetailScreen(
     meetingId: String,
     viewModel: MeetingManagementViewModel,
     isOrganizer: Boolean = false,
+    currentUserId: String = "anonymous",
     onBack: () -> Unit,
     onDeleted: () -> Unit
 ) {
@@ -136,6 +137,7 @@ fun MeetingDetailScreen(
         state = state,
         meetingId = meetingId,
         isOrganizer = isOrganizer,
+        currentUserId = currentUserId,
         onDispatch = { viewModel.dispatch(it) },
         onBack = onBack,
         onDeleted = onDeleted
@@ -151,6 +153,7 @@ private fun MeetingDetailContent(
     state: MeetingManagementContract.State,
     meetingId: String,
     isOrganizer: Boolean,
+    currentUserId: String,
     onDispatch: (MeetingManagementContract.Intent) -> Unit,
     onBack: () -> Unit,
     onDeleted: () -> Unit
@@ -322,7 +325,7 @@ private fun MeetingDetailContent(
             confirmButton = {
                 Button(
                     onClick = {
-                        onDispatch(MeetingManagementContract.Intent.CancelMeeting(meetingId))
+                        onDispatch(MeetingManagementContract.Intent.CancelMeeting(meetingId, currentUserId))
                         showDeleteDialog = false
                         onDeleted()
                     },
@@ -406,7 +409,7 @@ private fun MeetingInfoCard(
             Divider()
 
             // Platform and time
-            MeetingDetailsRow(label = "Platform", value = meeting.platform.name)
+            MeetingDetailsRow(label = "Platform", value = platformDisplayLabel(meeting.platform))
             MeetingDetailsRow(label = "Date & Time", value = formatDateTime(meeting.scheduledFor))
             MeetingDetailsRow(label = "Duration", value = formatDuration(meeting.duration))
 
@@ -561,7 +564,32 @@ private fun MeetingDetailsRow(
  */
 private fun formatDateTime(instant: Instant): String {
     val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    return "${localDateTime.month.name.take(3)} ${localDateTime.dayOfMonth}, ${localDateTime.year} at ${localDateTime.hour.toString().padStart(2, '0')}:${localDateTime.minute.toString().padStart(2, '0')}"
+    val frenchMonths = listOf(
+        "janv.",
+        "févr.",
+        "mars",
+        "avr.",
+        "mai",
+        "juin",
+        "juil.",
+        "août",
+        "sept.",
+        "oct.",
+        "nov.",
+        "déc."
+    )
+    val month = frenchMonths.getOrElse(localDateTime.monthNumber - 1) { "" }
+    val hour = localDateTime.hour.toString().padStart(2, '0')
+    val minute = localDateTime.minute.toString().padStart(2, '0')
+    return "${localDateTime.dayOfMonth} $month ${localDateTime.year} à $hour:$minute"
+}
+
+private fun platformDisplayLabel(platform: MeetingPlatform): String = when (platform) {
+    MeetingPlatform.ZOOM -> "Zoom"
+    MeetingPlatform.GOOGLE_MEET -> "Google Meet"
+    MeetingPlatform.FACETIME -> "FaceTime"
+    MeetingPlatform.TEAMS -> "Microsoft Teams"
+    MeetingPlatform.WEBEX -> "Webex (réunion personnalisée)"
 }
 
 /**

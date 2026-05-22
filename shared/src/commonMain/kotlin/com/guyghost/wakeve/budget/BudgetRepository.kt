@@ -7,8 +7,29 @@ import com.guyghost.wakeve.models.BudgetItem
 import com.guyghost.wakeve.models.BudgetWithItems
 import com.guyghost.wakeve.models.ParticipantBudgetShare
 import kotlinx.datetime.Clock
+import kotlinx.serialization.Serializable
 import com.guyghost.wakeve.Budget as SqlBudget
 import com.guyghost.wakeve.BudgetItem as SqlBudgetItem
+
+@Serializable
+data class BudgetParticipantReadinessShare(
+    val participantId: String,
+    val totalOwed: Double,
+    val totalPaid: Double,
+    val balance: Double
+)
+
+@Serializable
+data class BudgetReadiness(
+    val eventId: String,
+    val budgetId: String?,
+    val complete: Boolean,
+    val blockers: List<String>,
+    val totalEstimated: Double,
+    val totalActual: Double,
+    val categoryTotals: Map<String, Double>,
+    val confirmedParticipantShares: List<BudgetParticipantReadinessShare>
+)
 
 /**
  * Budget Repository - Manages budget and budget items persistence.
@@ -384,6 +405,78 @@ class BudgetRepository(private val db: WakeveDb) {
     fun getParticipantBalances(budgetId: String): Map<String, Double> {
         val items = getBudgetItems(budgetId)
         return BudgetCalculator.calculateBalances(items)
+    }
+
+    /**
+     * Phase 5 readiness view for finalization gates.
+     *
+     * Baseline is complete once an event has a budget and at least one estimate.
+     * Participant shares are limited to confirmed attendees to avoid charging
+     * pending or declined invitees.
+     */
+    fun getBudgetReadinessForEvent(eventId: String): BudgetReadiness {
+        val baselineExplicitlyNotNeeded = db.organizationReadinessDecisionQueries
+            .selectByEventAndSection(eventId, "BUDGET_BASELINE")
+            .executeAsOneOrNull()
+            ?.notNeeded == 1L
+        val budget = getBudgetByEventId(eventId)
+            ?: return BudgetReadiness(
+                eventId = eventId,
+                budgetId = null,
+                complete = baselineExplicitlyNotNeeded,
+                blockers = if (baselineExplicitlyNotNeeded) emptyList() else listOf("BUDGET_REQUIRED"),
+                totalEstimated = 0.0,
+                totalActual = 0.0,
+                categoryTotals = emptyMap(),
+                confirmedParticipantShares = emptyList()
+            )
+
+        val confirmedParticipantIds = db.participantQueries
+            .selectValidated(eventId)
+            .executeAsList()
+            .map { it.userId }
+            .toSet()
+        val allItems = getBudgetItems(budget.id)
+        val confirmedItems = allItems.mapNotNull { item ->
+            val confirmedSharedBy = item.sharedBy.filter { it in confirmedParticipantIds }
+            if (confirmedSharedBy.isEmpty()) {
+                null
+            } else {
+                item.copy(sharedBy = confirmedSharedBy)
+            }
+        }
+
+        val categoryTotals = BudgetCategory.values().associate { category ->
+            category.name to confirmedItems
+                .filter { it.category == category }
+                .sumOf { it.estimatedCost }
+        }
+
+        val shares = confirmedParticipantIds.sorted().map { participantId ->
+            val share = BudgetCalculator.calculateParticipantBudgetShare(participantId, confirmedItems)
+            BudgetParticipantReadinessShare(
+                participantId = participantId,
+                totalOwed = share.totalOwed,
+                totalPaid = share.totalPaid,
+                balance = share.balance
+            )
+        }
+
+        val blockers = buildList {
+            if (budget.totalEstimated <= 0.0 && !baselineExplicitlyNotNeeded) add("BUDGET_BASELINE_REQUIRED")
+            if (confirmedParticipantIds.isEmpty()) add("CONFIRMED_PARTICIPANTS_REQUIRED")
+        }
+
+        return BudgetReadiness(
+            eventId = eventId,
+            budgetId = budget.id,
+            complete = blockers.isEmpty(),
+            blockers = blockers,
+            totalEstimated = budget.totalEstimated,
+            totalActual = budget.totalActual,
+            categoryTotals = categoryTotals,
+            confirmedParticipantShares = shares
+        )
     }
     
     /**

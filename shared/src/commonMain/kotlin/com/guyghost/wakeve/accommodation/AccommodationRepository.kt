@@ -19,6 +19,7 @@ class AccommodationRepository(private val db: com.guyghost.wakeve.database.Wakev
 
     private val accommodationQueries = db.accommodationQueries
     private val roomAssignmentQueries = db.roomAssignmentQueries
+    private val syncMetadataQueries = db.syncMetadataQueries
 
     // ==================== Accommodation Operations ====================
 
@@ -133,11 +134,36 @@ class AccommodationRepository(private val db: com.guyghost.wakeve.database.Wakev
      */
     fun updateBookingStatus(accommodationId: String, status: BookingStatus) {
         val now = AccommodationService.getCurrentUtcIsoString()
-        accommodationQueries.updateBookingStatus(
-            booking_status = status.name,
-            updated_at = now,
-            id = accommodationId
-        )
+        val accommodation = getAccommodationById(accommodationId) ?: return
+        db.transaction {
+            if (status == BookingStatus.CONFIRMED) {
+                getAccommodationsByEventId(accommodation.eventId)
+                    .filter { it.id != accommodationId && it.bookingStatus == BookingStatus.CONFIRMED }
+                    .forEach { competing ->
+                        accommodationQueries.updateBookingStatus(
+                            booking_status = BookingStatus.RESERVED.name,
+                            updated_at = now,
+                            id = competing.id
+                        )
+                    }
+            }
+
+            accommodationQueries.updateBookingStatus(
+                booking_status = status.name,
+                updated_at = now,
+                id = accommodationId
+            )
+
+            if (status == BookingStatus.CONFIRMED) {
+                queueSyncMetadata(
+                    id = "sync_lodging_selection_${accommodation.eventId}",
+                    entityType = "lodging_selection",
+                    entityId = accommodation.eventId,
+                    operation = "CONFLICT_RESOLVED",
+                    timestamp = "${now}_${accommodationId}"
+                )
+            }
+        }
     }
 
     /**
@@ -360,6 +386,34 @@ class AccommodationRepository(private val db: com.guyghost.wakeve.database.Wakev
             priceShare = price_share,
             createdAt = created_at,
             updatedAt = updated_at
+        )
+    }
+
+    private fun queueSyncMetadata(
+        id: String,
+        entityType: String,
+        entityId: String,
+        operation: String,
+        timestamp: String
+    ) {
+        val existingForEntity = syncMetadataQueries.selectByEntity(entityType, entityId).executeAsList()
+        val uniqueId = if (syncMetadataQueries.selectById(id).executeAsOneOrNull() == null) {
+            id
+        } else {
+            "${id}_${existingForEntity.size}"
+        }
+        val uniqueTimestamp = if (existingForEntity.none { it.timestamp == timestamp }) {
+            timestamp
+        } else {
+            "${timestamp}_${existingForEntity.size}"
+        }
+        syncMetadataQueries.insertSyncMetadata(
+            id = uniqueId,
+            entityType = entityType,
+            entityId = entityId,
+            operation = operation,
+            timestamp = uniqueTimestamp,
+            synced = 0
         )
     }
 }

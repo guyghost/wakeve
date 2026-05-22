@@ -15,10 +15,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Hotel
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.LocalActivity
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -42,7 +45,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.guyghost.wakeve.repository.EventRepository
+import com.guyghost.wakeve.payment.PaymentPotRecord
+import com.guyghost.wakeve.payment.PaymentPotRepository
+import com.guyghost.wakeve.payment.TricountHandoffRecord
+import com.guyghost.wakeve.payment.TricountHandoffRepository
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.budget.BudgetRepository
 import com.guyghost.wakeve.models.Budget
 import com.guyghost.wakeve.models.BudgetCategory
@@ -64,9 +71,17 @@ import com.guyghost.wakeve.models.BudgetWithItems
 fun BudgetOverviewScreen(
     eventId: String,
     budgetRepository: BudgetRepository,
-    eventRepository: EventRepository,
+    eventRepository: EventRepositoryInterface,
     onNavigateToDetail: (String) -> Unit,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onOpenPaymentPot: () -> Unit = {},
+    onOpenTricount: () -> Unit = {},
+    pendingSync: Boolean = false,
+    isOnline: Boolean = true,
+    isReadOnly: Boolean = false,
+    canCreateBudget: Boolean = !isReadOnly,
+    canManagePayment: Boolean = !isReadOnly,
+    canManageTricount: Boolean = !isReadOnly
 ) {
     var budgetState by remember { mutableStateOf<BudgetWithItems?>(null) }
     var participantCount by remember { mutableStateOf(0) }
@@ -122,13 +137,22 @@ fun BudgetOverviewScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Aucun budget pour cet événement")
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(
-                            onClick = {
-                                val newBudget = budgetRepository.createBudget(eventId)
-                                budgetState = budgetRepository.getBudgetWithItems(newBudget.id)
+                        if (canCreateBudget && !isReadOnly) {
+                            Button(
+                                enabled = canCreateBudget && !isReadOnly,
+                                onClick = {
+                                    val newBudget = budgetRepository.createBudget(eventId)
+                                    budgetState = budgetRepository.getBudgetWithItems(newBudget.id)
+                                }
+                            ) {
+                                Text("Créer un budget")
                             }
-                        ) {
-                            Text("Créer un budget")
+                        } else {
+                            Text(
+                                text = "Le budget est consultable une fois créé par l'organisateur.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -137,6 +161,13 @@ fun BudgetOverviewScreen(
                 BudgetOverviewContent(
                     budgetWithItems = budgetState!!,
                     participantCount = participantCount,
+                    pendingSync = pendingSync,
+                    isOnline = isOnline,
+                    onOpenPaymentPot = onOpenPaymentPot,
+                    onOpenTricount = onOpenTricount,
+                    isReadOnly = isReadOnly,
+                    canManagePayment = canManagePayment,
+                    canManageTricount = canManageTricount,
                     modifier = Modifier.padding(padding)
                 )
             }
@@ -148,6 +179,13 @@ fun BudgetOverviewScreen(
 private fun BudgetOverviewContent(
     budgetWithItems: BudgetWithItems,
     participantCount: Int,
+    pendingSync: Boolean,
+    isOnline: Boolean,
+    onOpenPaymentPot: () -> Unit,
+    onOpenTricount: () -> Unit,
+    isReadOnly: Boolean,
+    canManagePayment: Boolean,
+    canManageTricount: Boolean,
     modifier: Modifier = Modifier
 ) {
     val budget = budgetWithItems.budget
@@ -161,6 +199,10 @@ private fun BudgetOverviewContent(
     ) {
         // Total Budget Summary Card
         item {
+            OfflinePendingSyncBanner(pendingSync = pendingSync, isOnline = isOnline)
+        }
+
+        item {
             BudgetSummaryCard(budget, participantCount)
         }
         
@@ -172,6 +214,22 @@ private fun BudgetOverviewContent(
         // Status Card
         item {
             BudgetStatusCard(budget)
+        }
+
+        item {
+            PaymentPotEntryCard(
+                onOpenPaymentPot = onOpenPaymentPot,
+                isReadOnly = isReadOnly,
+                canManagePayment = canManagePayment
+            )
+        }
+
+        item {
+            TricountEntryCard(
+                onOpenTricount = onOpenTricount,
+                isReadOnly = isReadOnly,
+                canManageTricount = canManageTricount
+            )
         }
         
         // Category Breakdown
@@ -185,6 +243,351 @@ private fun BudgetOverviewContent(
         
         items(categoryBreakdown) { category ->
             CategoryBreakdownCard(category)
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun PaymentPotScreen(
+    eventId: String,
+    organizerId: String,
+    isOrganizer: Boolean,
+    isReadOnly: Boolean = false,
+    canManagePayment: Boolean = isOrganizer && !isReadOnly,
+    paymentPotRepository: PaymentPotRepository,
+    pendingSync: Boolean,
+    isOnline: Boolean,
+    onOpenPaymentPot: (PaymentPotRecord) -> Unit = {},
+    onNavigateBack: () -> Unit
+) {
+    var pot by remember(eventId) {
+        mutableStateOf<PaymentPotRecord?>(paymentPotRepository.getActivePotForEvent(eventId))
+    }
+    val mutationsEnabled = canManagePayment && !isReadOnly
+    fun createPaymentPot() {
+        if (!mutationsEnabled || pot != null) return
+        pot = paymentPotRepository.createPot(
+            eventId = eventId,
+            organizerId = organizerId,
+            goalAmount = 0.0,
+            title = "Cagnotte $eventId"
+        )
+    }
+    fun activatePaymentPot() {
+        if (!mutationsEnabled || pot != null) return
+        createPaymentPot()
+    }
+    fun closePaymentPot() {
+        val activePot = pot ?: return
+        if (!mutationsEnabled) return
+        pot = paymentPotRepository.closePot(activePot.id)
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Cagnotte") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, "Retour")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item { OfflinePendingSyncBanner(pendingSync = pendingSync, isOnline = isOnline) }
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.Payments, contentDescription = null)
+                        Text("Cagnotte", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            pot?.let { "Cagnotte active - ${it.goalAmount} ${it.currency}. Les changements sont enregistrés sur cet appareil." }
+                                ?: "Aucune cagnotte active pour l'événement $eventId.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Button(
+                            onClick = ::createPaymentPot,
+                            enabled = mutationsEnabled && pot == null,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Créer une cagnotte")
+                        }
+                        Button(
+                            onClick = ::activatePaymentPot,
+                            enabled = mutationsEnabled && pot == null,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Activer la cagnotte")
+                        }
+                        Button(
+                            onClick = { pot?.let(onOpenPaymentPot) },
+                            enabled = pot != null,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Ouvrir la cagnotte")
+                        }
+                        Button(
+                            onClick = ::closePaymentPot,
+                            enabled = mutationsEnabled && pot?.status == "ACTIVE",
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Clôturer la cagnotte")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+@OptIn(ExperimentalMaterial3Api::class)
+fun TricountHandoffScreen(
+    eventId: String,
+    currentUserId: String,
+    isOrganizer: Boolean,
+    isReadOnly: Boolean = false,
+    canManageTricount: Boolean = isOrganizer && !isReadOnly,
+    tricountHandoffRepository: TricountHandoffRepository,
+    pendingSync: Boolean,
+    isOnline: Boolean,
+    onOpenSafeTricount: (SafeExternalLink) -> Unit = {},
+    onNavigateBack: () -> Unit
+) {
+    var handoff by remember(eventId) {
+        mutableStateOf<TricountHandoffRecord?>(null)
+    }
+    val safeExternalLink = remember(handoff) {
+        handoff?.providerUrl?.let { url ->
+            SafeExternalLink.sanitize(
+                label = "Ouvrir Tricount",
+                provider = "TRICOUNT",
+                rawUrl = url,
+                verifier = tricountHandoffRepository::isTrustedProviderUrl
+            )
+        }
+    }
+
+    LaunchedEffect(eventId) {
+        handoff = tricountHandoffRepository.getHandoff(eventId)
+    }
+    val safeUrlOpener = remember(onOpenSafeTricount) {
+        SafeUrlOpener { link -> onOpenSafeTricount(link) }
+    }
+    val mutationsEnabled = canManageTricount && !isReadOnly
+    fun linkTricount() {
+        if (!mutationsEnabled) return
+        handoff = tricountHandoffRepository.linkHandoff(
+            eventId = eventId,
+            provider = "TRICOUNT",
+            providerId = "tricount-$eventId",
+            providerUrl = "https://tricount.com/group/$eventId",
+            syncStatus = "LINKED"
+        )
+    }
+    fun unlinkTricount() {
+        if (!mutationsEnabled) return
+        tricountHandoffRepository.unlinkHandoff(eventId)
+        handoff = null
+    }
+    fun markTricountNotNeeded() {
+        if (!mutationsEnabled) return
+        handoff = tricountHandoffRepository.markNotNeeded(eventId, currentUserId)
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Tricount") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, "Retour")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item { OfflinePendingSyncBanner(pendingSync = pendingSync, isOnline = isOnline) }
+            item {
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(Icons.Default.Link, contentDescription = null)
+                        Text("Lien Tricount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            if (handoff == null) {
+                                "Aucun lien Tricount n'est encore associé. Ajoutez un lien vérifié avant de rediriger les participants."
+                            } else {
+                                "Lien ${safeExternalLink?.verificationStatus ?: "non vérifié"} pour ${handoff?.provider ?: "Tricount"}."
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (safeExternalLink?.isVerified == true) {
+                            Button(onClick = { safeExternalLink?.let(safeUrlOpener::openSafeUrl) }) {
+                                Text(safeExternalLink.label)
+                            }
+                        }
+                        Button(
+                            onClick = ::linkTricount,
+                            enabled = mutationsEnabled,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Associer Tricount")
+                        }
+                        Button(
+                            onClick = ::unlinkTricount,
+                            enabled = mutationsEnabled && handoff?.providerUrl != null,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Dissocier Tricount")
+                        }
+                        Button(
+                            onClick = ::markTricountNotNeeded,
+                            enabled = mutationsEnabled,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Tricount non requis")
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fun interface SafeUrlOpener {
+    fun openSafeUrl(link: SafeExternalLink)
+}
+
+data class SafeExternalLink(
+    val label: String,
+    val provider: String,
+    val validatedURL: String,
+    val verificationStatus: String,
+    val isVerified: Boolean
+) {
+    companion object {
+        fun sanitize(
+            label: String,
+            provider: String,
+            rawUrl: String,
+            verifier: (String, String) -> Boolean
+        ): SafeExternalLink? {
+            val trimmed = rawUrl.trim()
+            return if (verifier(provider, trimmed)) {
+                SafeExternalLink(
+                    label = label,
+                    provider = provider,
+                    validatedURL = trimmed,
+                    verificationStatus = "vérifié",
+                    isVerified = true
+                )
+            } else {
+                null
+            }
+        }
+    }
+}
+
+@Composable
+fun OfflinePendingSyncBanner(
+    pendingSync: Boolean,
+    isOnline: Boolean,
+    modifier: Modifier = Modifier
+) {
+    if (!pendingSync && isOnline) return
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Sync, contentDescription = null)
+            Text(
+                text = when {
+                    pendingSync && !isOnline -> "Synchronisation en attente. Modifications locales en attente d'envoi."
+                    pendingSync -> "Modifications locales en attente d'envoi."
+                    else -> "Données locales disponibles hors ligne."
+                },
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+
+@Composable
+private fun PaymentPotEntryCard(
+    onOpenPaymentPot: () -> Unit,
+    isReadOnly: Boolean,
+    canManagePayment: Boolean
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Cagnotte", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Suivre la cagnotte et les contributions participants.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Button(
+                onClick = onOpenPaymentPot,
+                enabled = canManagePayment || isReadOnly,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Ouvrir la cagnotte")
+            }
+        }
+    }
+}
+
+@Composable
+private fun TricountEntryCard(
+    onOpenTricount: () -> Unit,
+    isReadOnly: Boolean,
+    canManageTricount: Boolean
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text("Tricount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text("Préparer le règlement partagé via un lien vérifié.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Button(
+                onClick = onOpenTricount,
+                enabled = canManageTricount || isReadOnly,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Ouvrir Tricount")
+            }
         }
     }
 }

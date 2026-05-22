@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Schedule
@@ -55,6 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.ScenarioVote
@@ -125,12 +127,30 @@ fun ScenarioDetailScreen(
     votes: List<ScenarioVote> = emptyList(),
     onSelectAsFinal: () -> Unit = {},
     onNavigateToMeetings: () -> Unit = {},
+    onNavigateToTransport: () -> Unit = {},
     onNavigateBack: () -> Unit = {},
     isOrganizer: Boolean = false,
+    isParticipantConfirmed: Boolean? = null,
+    eventStatus: EventStatus? = null,
     modifier: Modifier = Modifier
 ) {
     var isLoading by remember { mutableStateOf(false) }
     val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale.FRANCE) }
+    val canAccessDetails = isOrganizer || isParticipantConfirmed == true
+    val canNavigateToMeetings = eventStatus == EventStatus.ORGANIZING ||
+        eventStatus == EventStatus.FINALIZED
+    val canNavigateToTransport = eventStatus == EventStatus.ORGANIZING ||
+        eventStatus == EventStatus.FINALIZED
+    val openMeetings: () -> Unit = { onNavigateToMeetings() }
+    val openTransport: () -> Unit = { onNavigateToTransport() }
+
+    if (!canAccessDetails) {
+        ScenarioDetailLockedScreen(
+            onNavigateBack = onNavigateBack,
+            modifier = modifier
+        )
+        return
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -197,7 +217,7 @@ fun ScenarioDetailScreen(
 
             ScenarioInfoCard(
                 icon = Icons.Default.LocationOn,
-                label = "Location",
+                label = "Destination / lodging",
                 value = scenario.location
             )
 
@@ -283,21 +303,37 @@ fun ScenarioDetailScreen(
                     }
                 }
 
-                OutlinedButton(
-                    onClick = onNavigateToMeetings,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("View Meetings")
+                if (canNavigateToMeetings) {
+                    OutlinedButton(
+                        onClick = openMeetings,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("View Meetings")
+                    }
                 }
-            } else if (scenario.status == ScenarioStatus.SELECTED) {
+                if (canNavigateToTransport) {
+                    OutlinedButton(
+                        onClick = openTransport,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Place,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Open Transport")
+                    }
+                }
+            } else if (scenario.status == ScenarioStatus.SELECTED && canNavigateToMeetings) {
                 Button(
-                    onClick = onNavigateToMeetings,
+                    onClick = openMeetings,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary
@@ -310,6 +346,94 @@ fun ScenarioDetailScreen(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("View Meetings")
+                }
+                if (canNavigateToTransport) {
+                    OutlinedButton(
+                        onClick = openTransport,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Place,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Open Transport")
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScenarioDetailLockedScreen(
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Scenario Details",
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(MaterialTheme.colorScheme.background)
+                .padding(24.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Text(
+                        text = "Scenario access locked",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Text(
+                        text = "Confirm your attendance to view destination and lodging details.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
                 }
             }
         }

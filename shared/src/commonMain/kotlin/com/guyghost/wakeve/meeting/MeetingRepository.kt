@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.meeting
 
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.MeetingPlatform
 import kotlinx.datetime.Instant
 import kotlinx.serialization.builtins.ListSerializer
@@ -29,6 +30,11 @@ class MeetingRepository(private val database: WakeveDb) {
                 duration = meeting.duration.toString(),
                 platform = meeting.platform.name,
                 meetingLink = meeting.meetingLink,
+                provider = meeting.platform.name,
+                displayLabel = safeLinkDisplayLabel(meeting.platform),
+                targetUrl = meeting.meetingLink,
+                creatorId = meeting.organizerId,
+                verificationState = "VERIFIED",
                 hostMeetingId = meeting.hostMeetingId,
                 password = meeting.password,
                 invitedParticipants = invitedParticipantsJson,
@@ -59,6 +65,13 @@ class MeetingRepository(private val database: WakeveDb) {
                 status = MeetingStatus.valueOf(row.status),
                 createdAt = row.createdAt
             )
+        }
+    }
+
+    suspend fun getEventStatusForMeeting(id: String): EventStatus? {
+        val meeting = getMeetingById(id) ?: return null
+        return database.eventQueries.selectById(meeting.eventId).executeAsOneOrNull()?.status?.let {
+            EventStatus.valueOf(it)
         }
     }
     
@@ -120,4 +133,13 @@ class MeetingRepository(private val database: WakeveDb) {
             )
         }
     }
+
+    private fun safeLinkDisplayLabel(platform: MeetingPlatform): String =
+        when (platform) {
+            MeetingPlatform.ZOOM -> "Zoom meeting"
+            MeetingPlatform.GOOGLE_MEET -> "Google Meet"
+            MeetingPlatform.FACETIME -> "FaceTime call"
+            MeetingPlatform.TEAMS -> "Microsoft Teams meeting"
+            MeetingPlatform.WEBEX -> "Webex meeting"
+        }
 }

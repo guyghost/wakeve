@@ -32,8 +32,8 @@ class MeetingServiceTest {
     }
 
     @Test
-    fun createMeetingSucceedsForConfirmedEvent() = runTest {
-        seedEvent(eventId = "event-1", status = "CONFIRMED")
+    fun createMeetingSucceedsForOrganizingEvent() = runTest {
+        seedEvent(eventId = "event-1", status = "ORGANIZING")
         seedParticipant(eventId = "event-1", participantId = "participant-1", userId = "participant-1", validated = true)
 
         val result = service.createMeeting(
@@ -57,6 +57,25 @@ class MeetingServiceTest {
     }
 
     @Test
+    fun createMeetingFailsForConfirmedEvent() = runTest {
+        seedEvent(eventId = "event-1", status = "CONFIRMED")
+        seedParticipant(eventId = "event-1", participantId = "participant-1", userId = "participant-1", validated = true)
+
+        val result = service.createMeeting(
+            eventId = "event-1",
+            organizerId = "organizer-1",
+            platform = MeetingPlatform.ZOOM,
+            title = "Planning meeting",
+            description = null,
+            scheduledFor = Clock.System.now(),
+            duration = 1.hours,
+            timezone = "Europe/Paris"
+        )
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
     fun createMeetingFailsForDraftEvent() = runTest {
         seedEvent(eventId = "event-1", status = "DRAFT")
         seedParticipant(eventId = "event-1", participantId = "participant-1", userId = "participant-1", validated = true)
@@ -77,7 +96,7 @@ class MeetingServiceTest {
 
     @Test
     fun sendInvitationsInvitesOnlyValidatedParticipants() = runTest {
-        seedEvent(eventId = "event-1", status = "CONFIRMED")
+        seedEvent(eventId = "event-1", status = "ORGANIZING")
         seedParticipant(eventId = "event-1", participantId = "validated-user", userId = "validated-user", validated = true)
         seedParticipant(eventId = "event-1", participantId = "unvalidated-user", userId = "unvalidated-user", validated = false)
 
@@ -103,7 +122,7 @@ class MeetingServiceTest {
 
     @Test
     fun respondToInvitationUpdatesStatusAndTimestamps() = runTest {
-        seedEvent(eventId = "event-1", status = "CONFIRMED")
+        seedEvent(eventId = "event-1", status = "ORGANIZING")
         seedParticipant(eventId = "event-1", participantId = "participant-1", userId = "participant-1", validated = true)
 
         val meetingId = service.createMeeting(
@@ -133,7 +152,7 @@ class MeetingServiceTest {
 
     @Test
     fun createMeetingGeneratesGoogleMeetLink() = runTest {
-        seedEvent(eventId = "event-1", status = "CONFIRMED")
+        seedEvent(eventId = "event-1", status = "ORGANIZING")
         seedParticipant(eventId = "event-1", participantId = "participant-1", userId = "participant-1", validated = true)
 
         val result = service.createMeeting(
@@ -156,7 +175,7 @@ class MeetingServiceTest {
 
     @Test
     fun createMeetingGeneratesFaceTimeURL() = runTest {
-        seedEvent(eventId = "event-1", status = "CONFIRMED")
+        seedEvent(eventId = "event-1", status = "ORGANIZING")
         seedParticipant(eventId = "event-1", participantId = "participant-1", userId = "participant-1", validated = true)
 
         val result = service.createMeeting(
@@ -179,7 +198,7 @@ class MeetingServiceTest {
 
     @Test
     fun cancelMeetingUpdatesStatusToCancelled() = runTest {
-        seedEvent(eventId = "event-1", status = "CONFIRMED")
+        seedEvent(eventId = "event-1", status = "ORGANIZING")
         seedParticipant(eventId = "event-1", participantId = "participant-1", userId = "participant-1", validated = true)
 
         val meeting = service.createMeeting(
@@ -255,7 +274,7 @@ class MeetingServiceTest {
 
     @Test
     fun sendInvitationsCreatesNotificationsForValidatedParticipants() = runTest {
-        seedEvent(eventId = "event-1", status = "CONFIRMED")
+        seedEvent(eventId = "event-1", status = "ORGANIZING")
         seedParticipant(eventId = "event-1", participantId = "user-1", userId = "user-1", validated = true)
         seedParticipant(eventId = "event-1", participantId = "user-2", userId = "user-2", validated = true)
         seedParticipant(eventId = "event-1", participantId = "user-3", userId = "user-3", validated = false)

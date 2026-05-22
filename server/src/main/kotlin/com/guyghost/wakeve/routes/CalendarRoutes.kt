@@ -1,6 +1,8 @@
 package com.guyghost.wakeve.routes
 
+import com.guyghost.wakeve.auth.userId
 import com.guyghost.wakeve.calendar.CalendarService
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.ICSInvitationRequest
 import com.guyghost.wakeve.models.ICSInvitationResponse
 import com.guyghost.wakeve.models.MeetingReminderTiming
@@ -11,6 +13,8 @@ import io.ktor.http.ContentDisposition
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
@@ -24,8 +28,11 @@ import io.ktor.server.routing.route
 /**
  * Calendar routes for managing ICS invitations and native calendar integration
  */
-fun io.ktor.server.routing.Route.calendarRoutes(calendarService: CalendarService) {
-    route("/api/events/{id}/calendar") {
+fun io.ktor.server.routing.Route.calendarRoutes(
+    calendarService: CalendarService,
+    database: WakeveDb
+) {
+    route("/events/{id}/calendar") {
 
         /**
          * POST /api/events/{id}/calendar/ics - Generate ICS invitation
@@ -35,6 +42,15 @@ fun io.ktor.server.routing.Route.calendarRoutes(calendarService: CalendarService
                 "Event ID is required",
                 status = HttpStatusCode.BadRequest
             )
+
+            val principal = call.principal<JWTPrincipal>()
+                ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+            if (!hasCalendarAccess(database, eventId, principal.userId)) {
+                return@post call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to "You do not have access to this event calendar")
+                )
+            }
 
             val request = call.receive<ICSInvitationRequest>()
 
@@ -66,6 +82,15 @@ fun io.ktor.server.routing.Route.calendarRoutes(calendarService: CalendarService
                 "Event ID is required",
                 status = HttpStatusCode.BadRequest
             )
+
+            val principal = call.principal<JWTPrincipal>()
+                ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+            if (!hasCalendarAccess(database, eventId, principal.userId)) {
+                return@get call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to "You do not have access to this event calendar")
+                )
+            }
 
             try {
                 // Generate ICS for all participants by default or just generic one
@@ -212,6 +237,15 @@ fun io.ktor.server.routing.Route.calendarRoutes(calendarService: CalendarService
                 status = HttpStatusCode.BadRequest
             )
 
+            val principal = call.principal<JWTPrincipal>()
+                ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+            if (!hasCalendarAccess(database, eventId, principal.userId)) {
+                return@post call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to "You do not have access to this event calendar")
+                )
+            }
+
             val timingStr = call.parameters["timing"] ?: return@post call.respondText(
                 "Reminder timing is required",
                 status = HttpStatusCode.BadRequest
@@ -235,4 +269,17 @@ fun io.ktor.server.routing.Route.calendarRoutes(calendarService: CalendarService
             )
         }
     }
+}
+
+private fun hasCalendarAccess(database: WakeveDb, eventId: String, userId: String): Boolean {
+    val event = database.eventQueries.selectById(eventId).executeAsOneOrNull() ?: return false
+    if (event.organizerId == userId) {
+        return true
+    }
+
+    val participant = database.participantQueries
+        .selectByEventIdAndUserId(eventId, userId)
+        .executeAsOneOrNull()
+
+    return participant?.hasValidatedDate == 1L
 }

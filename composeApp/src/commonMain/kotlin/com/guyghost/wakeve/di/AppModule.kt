@@ -1,10 +1,19 @@
 package com.guyghost.wakeve.di
 
 import com.guyghost.wakeve.repository.EventRepositoryInterface
+import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
+import com.guyghost.wakeve.presentation.statemachine.ScenarioManagementStateMachine
 import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
+import com.guyghost.wakeve.presentation.usecase.CreateScenarioUseCase
+import com.guyghost.wakeve.presentation.usecase.DeleteScenarioUseCase
+import com.guyghost.wakeve.presentation.usecase.IScenarioRepositoryWrite
 import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
+import com.guyghost.wakeve.presentation.usecase.LoadScenariosUseCase
+import com.guyghost.wakeve.presentation.usecase.UpdateScenarioUseCase
+import com.guyghost.wakeve.presentation.usecase.VoteScenarioUseCase
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
+import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.module.Module
@@ -59,6 +68,51 @@ val appModule: Module = module {
         CreateEventUseCase(eventRepository = repository)
     }
 
+    factory {
+        val repository = getOrNull<ScenarioRepository>()
+        if (repository != null) {
+            LoadScenariosUseCase(repository)
+        } else {
+            LoadScenariosUseCase(get<IScenarioRepositoryWrite>())
+        }
+    }
+
+    factory {
+        val repository = getOrNull<ScenarioRepository>()
+        if (repository != null) {
+            CreateScenarioUseCase(repository)
+        } else {
+            CreateScenarioUseCase(get<IScenarioRepositoryWrite>())
+        }
+    }
+
+    factory {
+        val repository = getOrNull<ScenarioRepository>()
+        if (repository != null) {
+            UpdateScenarioUseCase(repository)
+        } else {
+            UpdateScenarioUseCase(get<IScenarioRepositoryWrite>())
+        }
+    }
+
+    factory {
+        val repository = getOrNull<ScenarioRepository>()
+        if (repository != null) {
+            DeleteScenarioUseCase(repository)
+        } else {
+            DeleteScenarioUseCase(get<IScenarioRepositoryWrite>())
+        }
+    }
+
+    factory {
+        val repository = getOrNull<ScenarioRepository>()
+        if (repository != null) {
+            VoteScenarioUseCase(repository)
+        } else {
+            VoteScenarioUseCase(get<IScenarioRepositoryWrite>())
+        }
+    }
+
     // ========================================================================
     // State Machines
     // ========================================================================
@@ -102,6 +156,26 @@ val appModule: Module = module {
         stateMachine
     }
 
+    /**
+     * Provide ScenarioManagementStateMachine singleton for destination and lodging scenarios.
+     */
+    single {
+        val scope = kotlinx.coroutines.CoroutineScope(
+            Dispatchers.Main.immediate + SupervisorJob()
+        )
+
+        ScenarioManagementStateMachine(
+            loadScenariosUseCase = get(),
+            createScenarioUseCase = get(),
+            voteScenarioUseCase = get(),
+            updateScenarioUseCase = get(),
+            deleteScenarioUseCase = get(),
+            eventRepository = getOrNull<EventRepositoryInterface>(),
+            scenarioRepository = getOrNull<ScenarioRepository>(),
+            scope = scope
+        )
+    }
+
     // ========================================================================
     // ViewModels
     // ========================================================================
@@ -126,5 +200,10 @@ val appModule: Module = module {
     factory {
         val stateMachine = get<EventManagementStateMachine>()
         EventManagementViewModel(stateMachine = stateMachine)
+    }
+
+    factory {
+        val stateMachine = get<ScenarioManagementStateMachine>()
+        ScenarioManagementViewModel(stateMachine = stateMachine)
     }
 }

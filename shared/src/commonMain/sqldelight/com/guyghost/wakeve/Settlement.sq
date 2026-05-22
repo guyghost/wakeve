@@ -1,0 +1,32 @@
+-- Phase 5 persisted settlement suggestions.
+CREATE TABLE settlement (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    budgetId TEXT NOT NULL,
+    fromParticipantId TEXT NOT NULL,
+    toParticipantId TEXT NOT NULL,
+    amount REAL NOT NULL,
+    status TEXT NOT NULL,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE,
+    FOREIGN KEY (budgetId) REFERENCES budget(id) ON DELETE CASCADE
+);
+
+CREATE INDEX settlement_eventId ON settlement(eventId);
+CREATE INDEX settlement_budgetId ON settlement(budgetId);
+
+selectByEventId:
+SELECT * FROM settlement WHERE eventId = ? ORDER BY createdAt DESC;
+
+selectByBudgetId:
+SELECT * FROM settlement WHERE budgetId = ? ORDER BY createdAt DESC;
+
+deleteByBudgetId:
+DELETE FROM settlement WHERE budgetId = ?;
+
+insertSettlement:
+INSERT INTO settlement(
+    id, eventId, budgetId, fromParticipantId, toParticipantId,
+    amount, status, createdAt, updatedAt
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);

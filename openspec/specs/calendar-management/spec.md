@@ -1,5 +1,34 @@
 # Calendar Management Specification
 
+## Purpose
+
+The Calendar Management capability generates standards-compliant event invitations and integrates confirmed Wakeve event details with native Android and iOS calendars.
+## Requirements
+
+*(Requirements are merged from archived changes; legacy implementation notes remain below.)*
+
+---
+
+### Requirement: Confirmed Event Calendar Artifacts
+Wakeve MUST generate calendar artifacts for the confirmed event date and update them when relevant logistics change.
+
+#### Scenario: Date confirmation creates calendar invitation
+- **GIVEN** an organizer confirms the final event date
+- **WHEN** calendar integration is enabled
+- **THEN** the system generates an ICS invitation with timezone-aware start/end, organizer, attendees, location, and reminders
+- **AND** confirmed participants can add the event to their native calendar
+- **AND** the calendar sync state is persisted per participant
+
+### Requirement: Calendar Updates and Cancellation
+Wakeve MUST update or cancel calendar artifacts when final event details change before finalization.
+
+#### Scenario: Selected lodging changes event location
+- **GIVEN** a confirmed event has calendar artifacts
+- **WHEN** the organizer changes the selected lodging or final location
+- **THEN** the system updates calendar location metadata
+- **AND** affected participants are notified
+- **AND** pending calendar updates are queued while offline
+
 ## Version
 **Version**: 1.0.0
 **Status**: ✅ Implémenté

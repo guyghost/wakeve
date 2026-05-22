@@ -62,6 +62,26 @@ groupées par catégorie. Elle SHALL permettre l'ajout et la suppression de dép
 - **THEN** une confirmation est demandée
 - **AND** après confirmation, l'item est supprimé via BudgetRepository
 
+### Requirement: Shared Event Budget Readiness
+Wakeve MUST maintain an event budget that aggregates estimates and actual expenses across transport, lodging, meals, activities, equipment, and other categories.
+
+#### Scenario: Logistics update changes budget summary
+- **GIVEN** an event is in `ORGANIZING`
+- **WHEN** a selected transport plan or lodging option changes cost
+- **THEN** the budget summary updates estimated category and total amounts
+- **AND** participant shares are recalculated for confirmed participants
+- **AND** the budget readiness item reflects whether required baseline estimates are complete
+
+### Requirement: Shared Expense Splitting
+Wakeve MUST allow confirmed participants to record shared expenses and calculate balances by participant.
+
+#### Scenario: Participant records a paid expense
+- **GIVEN** a confirmed participant paid for a group activity
+- **WHEN** they record an expense with amount, category, payer, split participants, and receipt metadata
+- **THEN** the expense is persisted locally
+- **AND** balances update for all affected participants
+- **AND** the expense is queued for sync when offline
+
 ## Key Features
 
 ### 1. Budget Creation & Management

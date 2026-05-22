@@ -137,6 +137,8 @@ class BudgetViewModel: ObservableObject {
     @Published var itemsByCategoryName: [String: [BudgetItemModel]] = [:]
     @Published var allItems: [BudgetItemModel] = []
     @Published var participantBalances: [ParticipantBalanceModel] = []
+    @Published var pendingSync: Bool
+    @Published var isOnline: Bool
 
     // MARK: - Private
 
@@ -149,6 +151,9 @@ class BudgetViewModel: ObservableObject {
     init(eventId: String) {
         self.eventId = eventId
         self.budgetRepository = BudgetRepository(db: RepositoryProvider.shared.database)
+        let initialPendingSync = Self.hasPendingSync(eventId: eventId)
+        self.pendingSync = initialPendingSync
+        self.isOnline = !initialPendingSync
     }
 
     // MARK: - Load
@@ -176,6 +181,8 @@ class BudgetViewModel: ObservableObject {
         self.budgetId = budget.id
         self.totalEstimated = budget.totalEstimated
         self.totalActual = budget.totalActual
+        self.pendingSync = hasPendingSync()
+        self.isOnline = !pendingSync
 
         // Load items
         let rawItems = budgetRepository.getBudgetItems(budgetId: budget.id) as? [BudgetItem_] ?? []
@@ -279,6 +286,27 @@ class BudgetViewModel: ObservableObject {
         Task {
             budgetRepository.deleteBudgetItem(itemId: itemId)
             await loadBudget()
+        }
+    }
+
+    private func hasPendingSync() -> Bool {
+        Self.hasPendingSync(eventId: eventId)
+    }
+
+    private static func hasPendingSync(eventId: String) -> Bool {
+        RepositoryProvider.shared.database.syncMetadataQueries.selectPending().executeAsList().contains { pending in
+            let phase5Types = [
+                "budget",
+                "budget_item",
+                "expense",
+                "settlement",
+                "payment",
+                "payment_pot",
+                "tricount",
+                "tricount_handoff"
+            ]
+            return phase5Types.contains(pending.entityType) &&
+                (pending.entityId == eventId || pending.entityId.hasPrefix("\(eventId):") || pending.entityId.contains(eventId))
         }
     }
 }

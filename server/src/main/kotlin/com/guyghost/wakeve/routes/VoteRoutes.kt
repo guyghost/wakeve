@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.routes
 
+import com.guyghost.wakeve.auth.userId
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.gamification.GamificationService
 import com.guyghost.wakeve.gamification.PointsAction
@@ -8,6 +9,8 @@ import com.guyghost.wakeve.models.PollResponse
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.notification.EventNotificationTrigger
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
@@ -58,6 +61,26 @@ fun Route.voteRoutes(
                 )
 
                 val request = call.receive<AddVoteRequest>()
+
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                val event = repository.getEvent(eventId) ?: return@post call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Event not found")
+                )
+
+                val callerId = principal.userId
+                val isOrganizer = event.organizerId == callerId
+                val isParticipantVotingForSelf = callerId == request.participantId &&
+                    event.participants.contains(request.participantId)
+
+                if (!isOrganizer && !isParticipantVotingForSelf) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to vote on this event")
+                    )
+                }
                 
                 val vote = try {
                     Vote.valueOf(request.vote)

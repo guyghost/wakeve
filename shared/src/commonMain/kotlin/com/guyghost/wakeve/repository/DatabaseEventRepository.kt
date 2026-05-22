@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.repository
 
+import com.guyghost.wakeve.access.ParticipantRepositoryRecord
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.models.Event
@@ -16,8 +17,10 @@ import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.TrendingEventsResponse
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.organization.EventOrganizationReadinessRepository
 import com.guyghost.wakeve.repository.OrderBy
 import com.guyghost.wakeve.sync.SyncManager
+import com.guyghost.wakeve.workflow.WorkflowOutboxRecord
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlin.math.PI
@@ -38,6 +41,7 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
     private val voteQueries = db.voteQueries
     private val confirmedDateQueries = db.confirmedDateQueries
     private val syncMetadataQueries = db.syncMetadataQueries
+    private val workflowOutbox = mutableListOf<WorkflowOutboxRecord>()
 
     override suspend fun createEvent(event: Event): Result<Event> {
         return try {
@@ -120,6 +124,7 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
             val eventRow = eventQueries.selectById(id).executeAsOneOrNull() ?: return null
             val participants = participantQueries.selectByEventId(id).executeAsList()
             val timeSlots = timeSlotQueries.selectByEventId(id).executeAsList()
+            val confirmedSlot = confirmedDateQueries.selectWithTimeslotDetails(id).executeAsOneOrNull()
 
             Event(
                 id = eventRow.id,
@@ -138,7 +143,7 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
                 },
                 deadline = eventRow.deadline,
                 status = parseEventStatus(eventRow.status),
-                finalDate = null, // Will be populated from confirmedDate table if exists
+                finalDate = confirmedSlot?.startTime,
                 createdAt = eventRow.createdAt,
                 updatedAt = eventRow.updatedAt,
                 eventType = parseEventType(eventRow.eventType),
@@ -223,6 +228,23 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
     override fun getParticipants(eventId: String): List<String>? {
         return try {
             participantQueries.selectByEventId(eventId).executeAsList().map { it.userId }
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    override fun getParticipantRecords(eventId: String): List<ParticipantRepositoryRecord>? {
+        return try {
+            participantQueries.selectByEventId(eventId).executeAsList().map { participant ->
+                ParticipantRepositoryRecord(
+                    id = participant.id,
+                    eventId = participant.eventId,
+                    userId = participant.userId,
+                    role = if (participant.role == "ORGANIZER") "ORGANIZER" else "MEMBER",
+                    rsvp = if (participant.hasValidatedDate == 1L) "ACCEPTED" else "PENDING",
+                    hasValidatedDate = participant.hasValidatedDate
+                )
+            }
         } catch (e: Exception) {
             null
         }
@@ -391,6 +413,20 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
         val event = getEvent(id) ?: return Result.failure(IllegalArgumentException("Event not found"))
 
         return try {
+            if (status == EventStatus.FINALIZED) {
+                if (event.status != EventStatus.ORGANIZING) {
+                    return Result.failure(
+                        IllegalStateException("Finalization blocked by EVENT_NOT_ORGANIZING")
+                    )
+                }
+                val readiness = EventOrganizationReadinessRepository(db).getReadiness(id)
+                if (!readiness.complete) {
+                    return Result.failure(
+                        IllegalStateException("Finalization blocked by ${readiness.blockers.joinToString(",")}")
+                    )
+                }
+            }
+
             val now = getCurrentUtcIsoString()
             eventQueries.updateEventStatus(
                 status = status.name,
@@ -430,6 +466,82 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
             Result.failure(e)
         }
     }
+
+    override suspend fun confirmEventDate(
+        eventId: String,
+        slotId: String,
+        confirmedByOrganizerId: String
+    ): Result<Boolean> {
+        val eventRow = eventQueries.selectById(eventId).executeAsOneOrNull()
+            ?: return Result.failure(IllegalArgumentException("Event not found"))
+        if (eventRow.organizerId != confirmedByOrganizerId) {
+            return Result.failure(IllegalStateException("Only event organizer can confirm dates"))
+        }
+
+        val selectedSlot = timeSlotQueries.selectById(slotId).executeAsOneOrNull()
+            ?: return Result.failure(IllegalArgumentException("Selected time slot not found"))
+        if (selectedSlot.eventId != eventId) {
+            return Result.failure(IllegalArgumentException("Selected time slot does not belong to event"))
+        }
+        val finalDate = selectedSlot.startTime
+            ?: return Result.failure(IllegalStateException("Selected time slot has no confirmed start date"))
+
+        return try {
+            val now = getCurrentUtcIsoString()
+            val confirmedId = "confirmed_${eventId}"
+
+            db.transaction {
+                eventQueries.updateEventStatus(
+                    status = EventStatus.CONFIRMED.name,
+                    updatedAt = now,
+                    id = eventId
+                )
+                confirmedDateQueries.deleteByEventId(eventId)
+                confirmedDateQueries.insertConfirmedDate(
+                    id = confirmedId,
+                    eventId = eventId,
+                    timeslotId = slotId,
+                    confirmedByOrganizerId = confirmedByOrganizerId,
+                    confirmedAt = now,
+                    updatedAt = now
+                )
+            }
+
+            syncManager?.recordLocalChange(
+                table = "events",
+                operation = SyncOperation.UPDATE,
+                recordId = eventId,
+                data = """{"id":"$eventId","status":"${EventStatus.CONFIRMED.name}","confirmedSlotId":"$slotId","finalDate":"$finalDate"}""",
+                userId = confirmedByOrganizerId
+            )
+
+            val syncSequence = syncMetadataQueries
+                .selectByEntity("event", eventId)
+                .executeAsList()
+                .size
+            val syncTimestamp = "${now}_${EventStatus.CONFIRMED.name}_${slotId}_$syncSequence"
+            syncMetadataQueries.insertSyncMetadata(
+                id = "sync_confirm_${eventId}_${slotId}_$syncSequence",
+                entityType = "event",
+                entityId = eventId,
+                operation = "UPDATE",
+                timestamp = syncTimestamp,
+                synced = 0
+            )
+
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun queueWorkflowOutbox(record: WorkflowOutboxRecord): Result<Boolean> {
+        workflowOutbox += record
+        return Result.success(true)
+    }
+
+    override fun getWorkflowOutbox(eventId: String): List<WorkflowOutboxRecord> =
+        workflowOutbox.filter { it.eventId == eventId }
 
     override fun isDeadlinePassed(deadline: String): Boolean {
         return try {

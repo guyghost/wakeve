@@ -54,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.ScenarioVotingResult
@@ -109,16 +110,28 @@ fun ScenarioComparisonScreen(
     scenarios: List<ScenarioWithVotes>,
     eventId: String,
     isOrganizer: Boolean = false,
+    eventStatus: EventStatus? = null,
+    isParticipantConfirmed: Boolean? = null,
     onVote: (String) -> Unit = {},
     onSelectWinner: (String) -> Unit = {},
     onNavigateBack: () -> Unit = {},
     onNavigateToMeetings: (String) -> Unit = {},
+    onNavigateToTransport: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedWinnerId by remember { mutableStateOf<String?>(null) }
     var votingForId by remember { mutableStateOf<String?>(null) }
 
     val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale.FRANCE) }
+    val canAccessDetails = isOrganizer || isParticipantConfirmed == true
+    val canVote = canAccessDetails
+    val canSelectFinal = isOrganizer && eventStatus == EventStatus.COMPARING
+    val canNavigateToMeetings = eventStatus == EventStatus.ORGANIZING ||
+        eventStatus == EventStatus.FINALIZED
+    val canNavigateToTransport = eventStatus == EventStatus.ORGANIZING ||
+        eventStatus == EventStatus.FINALIZED
+    val openMeetings: () -> Unit = { onNavigateToMeetings(eventId) }
+    val openTransport: () -> Unit = { onNavigateToTransport(eventId) }
 
     // Find winning scenario based on score
     val winningScenario = scenarios.maxByOrNull { it.votingResult.score }
@@ -180,56 +193,97 @@ fun ScenarioComparisonScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Header with winner highlight
-                winningScenario?.let { winner ->
-                    item {
-                        WinnerHighlightCard(
-                            scenarioName = winner.scenario.name,
-                            score = winner.votingResult.score,
-                            isOrganizer = isOrganizer,
-                            onSelectAsWinner = {
-                                selectedWinnerId = winner.scenario.id
-                                onSelectWinner(winner.scenario.id)
-                            },
-                            onViewMeetings = { onNavigateToMeetings(eventId) }
-                        )
-                    }
-                }
-
-                // Scenario comparison cards
-                items(
-                    items = scenarios.sortedByDescending { it.votingResult.score },
-                    key = { it.scenario.id }
-                ) { scenarioWithVotes ->
-                    ComparisonCard(
-                        scenarioWithVotes = scenarioWithVotes,
-                        isLeading = scenarioWithVotes.scenario.id == winningScenario?.scenario?.id,
-                        isSelectedWinner = selectedWinnerId == scenarioWithVotes.scenario.id,
-                        isVoting = votingForId == scenarioWithVotes.scenario.id,
-                        onVote = {
-                            votingForId = scenarioWithVotes.scenario.id
-                            onVote(scenarioWithVotes.scenario.id)
-                        },
-                        onVoteComplete = { votingForId = null },
-                        currencyFormat = currencyFormat
+                item {
+                    ComparisonWorkflowCard(
+                        eventStatus = eventStatus,
+                        isAccessLocked = !canAccessDetails
                     )
                 }
 
-                // Bottom actions
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                if (!canAccessDetails) {
+                    item {
+                        LockedComparisonAccessCard()
+                    }
+                } else {
+                    // Header with winner highlight
+                    winningScenario?.let { winner ->
+                        item {
+                            WinnerHighlightCard(
+                                scenarioName = winner.scenario.name,
+                                score = winner.votingResult.score,
+                                isOrganizer = canSelectFinal,
+                                canViewMeetings = canNavigateToMeetings,
+                                onSelectAsWinner = {
+                                    selectedWinnerId = winner.scenario.id
+                                    onSelectWinner(winner.scenario.id)
+                                },
+                                onViewMeetings = openMeetings
+                            )
+                        }
+                    }
 
-                    if (isOrganizer) {
-                        OutlinedButton(
-                            onClick = { onNavigateToMeetings(eventId) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Skip Comparison - Go to Meetings")
+                    // Scenario comparison cards
+                    items(
+                        items = scenarios.sortedByDescending { it.votingResult.score },
+                        key = { it.scenario.id }
+                    ) { scenarioWithVotes ->
+                        ComparisonCard(
+                            scenarioWithVotes = scenarioWithVotes,
+                            isLeading = scenarioWithVotes.scenario.id == winningScenario?.scenario?.id,
+                            isSelectedWinner = selectedWinnerId == scenarioWithVotes.scenario.id,
+                            isVoting = votingForId == scenarioWithVotes.scenario.id,
+                            canVote = canVote,
+                            onVote = {
+                                votingForId = scenarioWithVotes.scenario.id
+                                onVote(scenarioWithVotes.scenario.id)
+                            },
+                            onVoteComplete = { votingForId = null },
+                            currencyFormat = currencyFormat
+                        )
+                    }
+
+                    // Bottom actions
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        if (isOrganizer && canNavigateToMeetings) {
+                            OutlinedButton(
+                                onClick = openMeetings,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("View Meetings")
+                            }
+                        }
+                        if (isOrganizer && canNavigateToTransport) {
+                            Button(
+                                onClick = openTransport,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Open Transport")
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LockedComparisonAccessCard(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(
+            text = "Confirm attendance to compare scenario details.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.padding(16.dp)
+        )
     }
 }
 
@@ -241,6 +295,7 @@ private fun WinnerHighlightCard(
     scenarioName: String,
     score: Int,
     isOrganizer: Boolean,
+    canViewMeetings: Boolean,
     onSelectAsWinner: () -> Unit,
     onViewMeetings: () -> Unit,
     modifier: Modifier = Modifier
@@ -305,11 +360,13 @@ private fun WinnerHighlightCard(
                     Text("Select This Scenario")
                 }
 
-                OutlinedButton(
-                    onClick = onViewMeetings,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("View Meetings")
+                if (canViewMeetings) {
+                    OutlinedButton(
+                        onClick = onViewMeetings,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("View Meetings")
+                    }
                 }
             }
         }
@@ -325,6 +382,7 @@ private fun ComparisonCard(
     isLeading: Boolean,
     isSelectedWinner: Boolean,
     isVoting: Boolean,
+    canVote: Boolean,
     onVote: () -> Unit,
     onVoteComplete: () -> Unit,
     currencyFormat: NumberFormat,
@@ -412,6 +470,12 @@ private fun ComparisonCard(
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
+            Text(
+                text = "Destination / lodging: ${scenario.location}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
             // Quick stats row
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -444,13 +508,6 @@ private fun ComparisonCard(
                     modifier = Modifier.weight(1f)
                 )
             }
-
-            // Location
-            Text(
-                text = "📍 ${scenario.location}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
 
             // Description
             if (scenario.description.isNotBlank()) {
@@ -491,7 +548,7 @@ private fun ComparisonCard(
             }
 
             // Voting button
-            if (scenario.status != ScenarioStatus.SELECTED) {
+            if (scenario.status != ScenarioStatus.SELECTED && canVote) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                 SingleChoiceSegmentedButtonRow(
@@ -511,11 +568,68 @@ private fun ComparisonCard(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text("👍 Vote for this")
+                            Text("Vote for this")
                         }
                     }
                 }
+            } else if (!canVote) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Text(
+                    text = "Confirm attendance to vote and open scenario details.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun ComparisonWorkflowCard(
+    eventStatus: EventStatus?,
+    isAccessLocked: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isAccessLocked) {
+                MaterialTheme.colorScheme.errorContainer
+            } else {
+                MaterialTheme.colorScheme.secondaryContainer
+            }
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "Workflow: ${eventStatus?.name ?: "UNKNOWN"}",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = if (isAccessLocked) {
+                    MaterialTheme.colorScheme.onErrorContainer
+                } else {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                }
+            )
+            Text(
+                text = if (isAccessLocked) {
+                    "Scenario details are available only after attendance confirmation."
+                } else {
+                    "Compare destination, lodging, period, budget, duration and participant fit."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isAccessLocked) {
+                    MaterialTheme.colorScheme.onErrorContainer
+                } else {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                }
+            )
         }
     }
 }

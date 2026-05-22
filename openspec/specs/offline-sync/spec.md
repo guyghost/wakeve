@@ -5,6 +5,10 @@
 > **Status**: Active
 > **Last Updated**: 2026-02-08
 
+## Purpose
+
+The Offline Sync capability ensures Wakeve remains usable without network connectivity by treating the local database as the source of truth and replaying queued changes when connectivity returns.
+
 ## Overview
 
 This specification defines the offline-first synchronization strategy for Wakeve. The application uses SQLite as the local source of truth, with background synchronization to a remote backend. All operations work offline, with changes queued for later synchronization.
@@ -48,10 +52,10 @@ The Offline Sync capability ensures users can interact with Wakeve without netwo
 - **Offline Voting**: User votes on dates while at a remote cabin
 - **Background Sync**: Changes automatically sync when WiFi becomes available
 - **Conflict Resolution**: Two users edit the same event, system merges changes
-
 ## Requirements
-
 ### Requirement: Local-First Data Access
+The system SHALL read application data from the local SQLite database first.
+
 **ID**: `SYNC-001`
 
 The system SHALL read all data from the local SQLite database.
@@ -62,6 +66,8 @@ The system SHALL read all data from the local SQLite database.
 - **THEN** the system SHALL load events from local SQLite and display immediately
 
 ### Requirement: Write Operations with Sync Queue
+The system SHALL queue local write operations for background synchronization.
+
 **ID**: `SYNC-002`
 
 The system SHALL queue all write operations for background synchronization.
@@ -72,6 +78,8 @@ The system SHALL queue all write operations for background synchronization.
 - **THEN** the system SHALL insert into local SQLite and queue for sync
 
 ### Requirement: Conflict Resolution
+The system SHALL resolve synchronization conflicts deterministically.
+
 **ID**: `SYNC-003`
 
 The system SHALL resolve conflicts using last-write-wins based on updatedAt timestamp.
@@ -82,6 +90,8 @@ The system SHALL resolve conflicts using last-write-wins based on updatedAt time
 - **THEN** apply server changes and notify user
 
 ### Requirement: Sync Status Indicators
+The system SHALL display synchronization state to users.
+
 **ID**: `SYNC-004`
 
 The system SHALL display sync status to users.
@@ -92,14 +102,50 @@ The system SHALL display sync status to users.
 - **THEN** show "Offline" indicator
 
 ### Requirement: Retry Logic
+The system SHALL retry failed synchronization operations with backoff.
+
 **ID**: `SYNC-005`
 
 The system SHALL retry failed sync operations with exponential backoff (30s, 60s, 120s, 240s, max 1h).
 
+#### Scenario: Retry failed sync operation
+- **GIVEN** a queued sync operation fails due to a transient error
+- **WHEN** the retry delay elapses
+- **THEN** the system SHALL retry the operation using exponential backoff
+- **AND** preserve the operation until it succeeds or reaches the retry policy limit
+
 ### Requirement: Background Sync
+The system SHALL perform background synchronization when device and app conditions allow it.
+
 **ID**: `SYNC-006`
 
 The system SHALL perform background synchronization when conditions are met (app foreground, network available, periodic 15min).
+
+#### Scenario: Background sync runs when online
+- **GIVEN** pending sync operations exist
+- **WHEN** the app is foregrounded or the periodic background task runs with network connectivity
+- **THEN** the system SHALL replay pending operations in the background
+
+### Requirement: Critical Organization Offline Writes MUST be replayable
+Wakeve MUST support local-first writes and queued synchronization for every critical organization operation.
+
+#### Scenario: Organizer completes logistics while offline
+- **GIVEN** the organizer is offline during `ORGANIZING`
+- **WHEN** they select lodging, select transport, create a meeting, update budget, record a payment handoff, and schedule reminders
+- **THEN** each operation writes to local storage immediately
+- **AND** each operation creates a sync queue entry with entity type, operation type, payload, timestamp, and retry state
+- **AND** the UI shows pending sync status for affected sections
+
+### Requirement: Finalization Sync Safety MUST be enforced
+Wakeve MUST prevent finalization while blocking critical organization operations are unsynced or conflicted.
+
+#### Scenario: Finalization blocked by unresolved conflict
+- **GIVEN** an event is in `ORGANIZING`
+- **AND** a selected lodging update has an unresolved sync conflict
+- **WHEN** the organizer attempts to finalize
+- **THEN** finalization is blocked
+- **AND** the readiness summary points to the conflicted lodging update
+- **AND** the event remains editable until the conflict is resolved
 
 ## Data Models
 
