@@ -241,8 +241,19 @@ public class AuthStateManager: ObservableObject {
      *   - accessToken: Mock access token
      */
     func setAuthStateForDevelopment(userId: String, accessToken: String) async {
+        do {
+            try await authService.storeDevelopmentSession(userId: userId, accessToken: accessToken)
+        } catch {
+            self.isAuthenticated = false
+            self.currentUser = nil
+            self.authError = error.localizedDescription
+            self.hasCheckedAuthStatus = true
+            return
+        }
+
         self.isAuthenticated = true
         self.hasCheckedAuthStatus = true
+        self.authError = nil
         self.currentUser = User(
             id: userId,
             name: "Dev User",

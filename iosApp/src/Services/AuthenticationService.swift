@@ -267,6 +267,27 @@ public class AuthenticationService: ObservableObject {
         return await tokenStorage.getAccessToken()
     }
 
+    /**
+     * Store a local development session for simulator/manual testing.
+     *
+     * This keeps the SwiftUI auth state and the offline sync token provider aligned:
+     * the app can behave as authenticated without OAuth while SyncManager still has
+     * a bearer token to read from secure storage.
+     */
+    func storeDevelopmentSession(userId: String, accessToken: String) async throws {
+        let expiryTimestamp = Int64(Date().timeIntervalSince1970 * 1000) + (30 * 24 * 60 * 60 * 1000)
+
+        try await tokenStorage.storeAccessToken(accessToken)
+        try await tokenStorage.storeRefreshToken("dev-refresh-token")
+        try await tokenStorage.storeTokenExpiry(expiryTimestamp)
+        try await tokenStorage.storeUserId(userId)
+
+        UserDefaults.standard.set("Dev User", forKey: "wakeve_user_name")
+        UserDefaults.standard.set("dev@example.com", forKey: "wakeve_user_email")
+        UserDefaults.standard.removeObject(forKey: "wakeve_user_avatar")
+        UserDefaults.standard.set("development", forKey: "wakeve_user_provider")
+    }
+
     // MARK: - Private Helpers
 
     /**

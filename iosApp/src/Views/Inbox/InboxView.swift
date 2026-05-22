@@ -182,7 +182,7 @@ struct InboxView: View {
                     
                     // Inbox filter with dropdown
                     FilterTabButton(
-                        title: "Inbox",
+                        title: String(localized: "inbox.filter.inbox"),
                         isSelected: selectedFilter == .inbox && selectedEventFilter == nil,
                         hasDropdown: true,
                         action: { 
@@ -193,22 +193,22 @@ struct InboxView: View {
                     
                     // Focused filter with "New" badge
                     FilterTabButton(
-                        title: "Focused",
+                        title: String(localized: "inbox.filter.focused"),
                         isSelected: selectedFilter == .focused,
-                        badge: "New",
+                        badge: String(localized: "inbox.filter.new"),
                         action: { selectedFilter = .focused }
                     )
                     
                     // Unread filter
                     FilterTabButton(
-                        title: "Unread",
+                        title: String(localized: "inbox.filter.unread"),
                         isSelected: selectedFilter == .unread,
                         action: { selectedFilter = .unread }
                     )
                     
                     // Event filter with sheet
                     EventFilterTabButton(
-                        title: selectedEventFilter ?? "Event",
+                        title: selectedEventFilter ?? String(localized: "inbox.filter.event"),
                         isSelected: selectedFilter == .event,
                         hasDropdown: true,
                         action: {
@@ -442,7 +442,7 @@ struct ActiveFilterIndicator: View {
             Button(role: .destructive) {
                 action()
             } label: {
-                Text("Clear all filters")
+                Text(String(localized: "inbox.filter.clear_all"))
             }
         } label: {
             HStack(spacing: 6) {
@@ -467,9 +467,9 @@ struct ActiveFilterIndicator: View {
     
     private var filterAppliedText: String {
         if count == 1 {
-            return "One filter applied."
+            return String(localized: "inbox.filter.one_applied")
         } else {
-            return "\(count) filters applied."
+            return String(format: String(localized: "inbox.filter.many_applied"), count)
         }
     }
 }

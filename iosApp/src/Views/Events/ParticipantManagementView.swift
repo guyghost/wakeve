@@ -162,7 +162,7 @@ struct ParticipantManagementView: View {
                         Label("Réinitialiser l’invitation", systemImage: "arrow.counterclockwise")
                     }
 
-                    if event.status == .draft && !participantRows.isEmpty {
+                    if canStartPoll {
                         Button {
                             Task { await startPoll() }
                         } label: {
@@ -350,7 +350,7 @@ struct ParticipantManagementView: View {
 
     private var statusText: String {
         switch event.status {
-        case .draft: return "Brouillon - ajoutez les participants pour commencer"
+        case .draft: return draftStatusText
         case .polling: return "Sondage actif"
         case .confirmed: return "Événement confirmé"
         default: return "Statut indisponible"
@@ -380,7 +380,19 @@ struct ParticipantManagementView: View {
     }
 
     private var canStartPoll: Bool {
-        event.status == .draft && !participantRows.isEmpty
+        event.status == .draft && !participantRows.isEmpty && !event.proposedSlots.isEmpty
+    }
+
+    private var draftStatusText: String {
+        if participantRows.isEmpty {
+            return "Brouillon - ajoutez les participants pour commencer"
+        }
+
+        if event.proposedSlots.isEmpty {
+            return "Brouillon - ajoutez au moins un créneau"
+        }
+
+        return "Prêt à lancer le sondage"
     }
 
     private var heroColors: [Color] {
@@ -507,6 +519,14 @@ struct ParticipantManagementView: View {
     }
 
     private func startPoll() async {
+        guard canStartPoll else {
+            errorMessage = event.proposedSlots.isEmpty
+                ? "Ajoutez au moins un créneau avant de lancer le sondage"
+                : "Ajoutez au moins un participant avant de lancer le sondage"
+            showError = true
+            return
+        }
+
         isLoading = true
 
         guard let repository else {

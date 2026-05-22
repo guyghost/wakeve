@@ -25,16 +25,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         let apnsService = APNsService.shared
         UNUserNotificationCenter.current().delegate = apnsService
 
-        // Request notification authorization and register for remote notifications
-        apnsService.requestAuthorization { granted, error in
-            if granted {
-                print("[AppDelegate] Notification permission granted")
-                apnsService.registerForRemoteNotifications()
-            } else {
-                print("[AppDelegate] Notification permission denied: \(error?.localizedDescription ?? "unknown")")
-            }
-        }
-
         // Check if app was launched from a notification
         if let remoteNotification = launchOptions?[.remoteNotification] as? [AnyHashable: Any] {
             print("[AppDelegate] App launched from notification")

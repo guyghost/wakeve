@@ -12,6 +12,7 @@
 "common.back" = "Retour";
 "common.ok" = "OK";
 "common.error" = "Erreur";
+"common.success" = "Succès";
 "common.loading" = "Chargement...";
 "common.yes" = "Oui";
 "common.no" = "Non";
@@ -79,6 +80,24 @@
 "explore.event_type.wellness" = "Bien-être";
 "explore.event_type.creative" = "Créatif";
 "explore.event_type.other" = "Autre";
+
+// MARK: - Poll Results
+"poll.results.title" = "Résultats";
+"poll.results.all_options" = "Toutes les options";
+"poll.results.best_time" = "Meilleur créneau";
+"poll.results.confirm_date" = "Confirmer cette date";
+"poll.results.confirmed_title" = "Date confirmée";
+"poll.results.confirmed_subtitle" = "La date de l'événement est finalisée";
+"poll.results.date_confirmed" = "La date de l'événement a bien été confirmée.";
+"poll.results.score" = "Score";
+"poll.results.most_popular" = "Option préférée";
+"poll.results.vote.yes" = "Oui";
+"poll.results.vote.maybe" = "Peut-être";
+"poll.results.vote.no" = "Non";
+"poll.results.no_slots_title" = "Aucun créneau proposé";
+"poll.results.no_slots_subtitle" = "Ajoutez des créneaux avant d'ouvrir le sondage aux participants.";
+"poll.results.no_votes_title" = "Aucun vote pour le moment";
+"poll.results.no_votes_subtitle" = "En attente des votes des participants.";
 
 // MARK: - Notifications
 "notifications.title" = "Notifications";
@@ -171,6 +190,7 @@
 
 // MARK: - Profile
 "profile.title" = "Mon Profil";
+"profile.edit" = "Modifier";
 "profile.organizer" = "Organisateur";
 "profile.dashboard" = "Tableau de bord";
 "profile.dashboard_subtitle" = "Statistiques et analytiques de vos événements";
@@ -544,6 +564,14 @@
 "inbox.empty.notifications_subtitle" = "Vos notifications apparaîtront ici.";
 "inbox.empty.unread_subtitle" = "Vous avez lu tous vos messages.";
 "inbox.filter_by_event" = "Filtrer par événement";
+"inbox.filter.inbox" = "Inbox";
+"inbox.filter.focused" = "Prioritaires";
+"inbox.filter.new" = "Nouveau";
+"inbox.filter.unread" = "Non lus";
+"inbox.filter.event" = "Événement";
+"inbox.filter.clear_all" = "Effacer tous les filtres";
+"inbox.filter.one_applied" = "Un filtre appliqué.";
+"inbox.filter.many_applied" = "%lld filtres appliqués.";
 "inbox.type.comment" = "Commentaire";
 "inbox.type.event_update" = "Mise à jour de l'événement";
 "inbox.type.invitation" = "Invitation";

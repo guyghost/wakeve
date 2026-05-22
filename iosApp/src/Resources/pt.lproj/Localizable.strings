@@ -12,6 +12,7 @@
 "common.back" = "Voltar";
 "common.ok" = "OK";
 "common.error" = "Erro";
+"common.success" = "Sucesso";
 "common.loading" = "A carregar...";
 "common.yes" = "Sim";
 "common.no" = "Não";
@@ -79,6 +80,24 @@
 "explore.event_type.wellness" = "Bem-estar";
 "explore.event_type.creative" = "Criativo";
 "explore.event_type.other" = "Outro";
+
+// MARK: - Poll Results
+"poll.results.title" = "Resultados";
+"poll.results.all_options" = "Todas as opções";
+"poll.results.best_time" = "Melhor horário";
+"poll.results.confirm_date" = "Confirmar esta data";
+"poll.results.confirmed_title" = "Data confirmada";
+"poll.results.confirmed_subtitle" = "A data do evento foi finalizada";
+"poll.results.date_confirmed" = "A data do evento foi confirmada com sucesso.";
+"poll.results.score" = "Pontuação";
+"poll.results.most_popular" = "Opção preferida";
+"poll.results.vote.yes" = "Sim";
+"poll.results.vote.maybe" = "Talvez";
+"poll.results.vote.no" = "Não";
+"poll.results.no_slots_title" = "Sem horários propostos";
+"poll.results.no_slots_subtitle" = "Adicione horários antes de abrir a sondagem aos participantes.";
+"poll.results.no_votes_title" = "Sem votos por enquanto";
+"poll.results.no_votes_subtitle" = "A aguardar os votos dos participantes.";
 
 // MARK: - Notifications
 "notifications.title" = "Notificações";
@@ -188,6 +207,7 @@
 "profile.documentation" = "Documentação";
 "profile.achievements" = "Perfil e Conquistas";
 "profile.user" = "Utilizador";
+"profile.edit" = "Editar";
 
 // MARK: - Gamification
 "gamification.points_and_level" = "Pontos e Nível";
@@ -544,6 +564,14 @@
 "inbox.empty.notifications_subtitle" = "As suas notificações aparecerão aqui.";
 "inbox.empty.unread_subtitle" = "Leu todas as suas mensagens.";
 "inbox.filter_by_event" = "Filtrar por evento";
+"inbox.filter.inbox" = "Caixa de entrada";
+"inbox.filter.focused" = "Prioritárias";
+"inbox.filter.new" = "Novo";
+"inbox.filter.unread" = "Não lidas";
+"inbox.filter.event" = "Evento";
+"inbox.filter.clear_all" = "Limpar todos os filtros";
+"inbox.filter.one_applied" = "Um filtro aplicado.";
+"inbox.filter.many_applied" = "%lld filtros aplicados.";
 "inbox.type.comment" = "Comentário";
 "inbox.type.event_update" = "Atualização do evento";
 "inbox.type.invitation" = "Convite";

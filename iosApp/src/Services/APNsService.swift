@@ -15,7 +15,7 @@ import UIKit
  * Handles permission requests, token registration with the backend, and notification display.
  *
  * Token registration flow:
- * 1. App requests notification permission on launch (via AppDelegate)
+ * 1. A user-facing settings/onboarding action requests notification permission
  * 2. System calls didRegisterForRemoteNotifications with device token
  * 3. APNsService converts token to hex string and stores it locally
  * 4. When user is authenticated, token is sent to POST /api/notifications/register
@@ -58,7 +58,7 @@ import UIKit
 
     /**
      * Request notification permission from user.
-     * Call this on app launch.
+     * Call this only from an explicit user action.
      */
     public func requestAuthorization(completion: @escaping (Bool, Error?) -> Void) {
         let options: UNAuthorizationOptions = [.alert, .sound, .badge]
@@ -66,6 +66,18 @@ import UIKit
             DispatchQueue.main.async {
                 completion(granted, error)
             }
+        }
+    }
+
+    /**
+     * Request permission and register with APNs when granted.
+     */
+    public func requestAuthorizationAndRegister(completion: ((Bool, Error?) -> Void)? = nil) {
+        requestAuthorization { [weak self] granted, error in
+            if granted {
+                self?.registerForRemoteNotifications()
+            }
+            completion?(granted, error)
         }
     }
 

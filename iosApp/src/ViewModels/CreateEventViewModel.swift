@@ -41,7 +41,7 @@ class CreateEventViewModel: StateMachineViewModel<
     ///   - userId: ID of the organizer (current user)
     ///   - eventType: Type of event (default: OTHER)
     ///   - eventTypeCustom: Custom type description (required if eventType == CUSTOM)
-    ///   - selectedDate: ISO 8601 date string for the deadline (optional)
+    ///   - selectedDate: ISO 8601 date string used as the first proposed time slot (optional)
     ///   - minParticipants: Minimum expected participants (optional)
     ///   - maxParticipants: Maximum expected participants (optional)
     ///   - expectedParticipants: Expected participant count (optional)
@@ -60,7 +60,8 @@ class CreateEventViewModel: StateMachineViewModel<
 
         let iso8601 = ISO8601DateFormatter()
         let now = iso8601.string(from: Date())
-        let deadline = selectedDate ?? iso8601.string(from: Calendar.current.date(byAdding: .day, value: 7, to: Date())!)
+        let deadline = iso8601.string(from: Calendar.current.date(byAdding: .day, value: 7, to: Date())!)
+        let proposedSlots = EventTimeSlotFactory.proposedSlots(from: selectedDate)
 
         let event = WakeveEvent(
             id: "event-\(Int(Date().timeIntervalSince1970 * 1000))",
@@ -68,7 +69,7 @@ class CreateEventViewModel: StateMachineViewModel<
             description: description.trimmingCharacters(in: .whitespaces),
             organizerId: userId,
             participants: [],
-            proposedSlots: [],
+            proposedSlots: proposedSlots,
             deadline: deadline,
             status: .draft,
             finalDate: nil,
@@ -100,5 +101,33 @@ class CreateEventViewModel: StateMachineViewModel<
         default:
             return .unhandled(effect)
         }
+    }
+}
+
+enum EventTimeSlotFactory {
+    static func proposedSlots(from selectedDate: String?) -> [TimeSlot] {
+        guard let selectedDate, !selectedDate.isEmpty else {
+            return []
+        }
+
+        return [
+            TimeSlot(
+                id: "slot-\(UUID().uuidString.prefix(8))",
+                start: selectedDate,
+                end: defaultEndDate(for: selectedDate),
+                timezone: TimeZone.current.identifier,
+                timeOfDay: .specific
+            )
+        ]
+    }
+
+    private static func defaultEndDate(for start: String) -> String? {
+        let formatter = ISO8601DateFormatter()
+        guard let startDate = formatter.date(from: start),
+              let endDate = Calendar.current.date(byAdding: .hour, value: 1, to: startDate) else {
+            return nil
+        }
+
+        return formatter.string(from: endDate)
     }
 }

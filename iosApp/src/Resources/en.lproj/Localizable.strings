@@ -12,6 +12,7 @@
 "common.back" = "Back";
 "common.ok" = "OK";
 "common.error" = "Error";
+"common.success" = "Success";
 "common.loading" = "Loading...";
 "common.yes" = "Yes";
 "common.no" = "No";
@@ -79,6 +80,24 @@
 "explore.event_type.wellness" = "Wellness";
 "explore.event_type.creative" = "Creative";
 "explore.event_type.other" = "Other";
+
+// MARK: - Poll Results
+"poll.results.title" = "Results";
+"poll.results.all_options" = "All options";
+"poll.results.best_time" = "Best time";
+"poll.results.confirm_date" = "Confirm this date";
+"poll.results.confirmed_title" = "Date confirmed";
+"poll.results.confirmed_subtitle" = "The event date has been finalized";
+"poll.results.date_confirmed" = "Event date confirmed successfully.";
+"poll.results.score" = "Score";
+"poll.results.most_popular" = "Most popular";
+"poll.results.vote.yes" = "Yes";
+"poll.results.vote.maybe" = "Maybe";
+"poll.results.vote.no" = "No";
+"poll.results.no_slots_title" = "No proposed time slots";
+"poll.results.no_slots_subtitle" = "Add time slots before opening the poll to participants.";
+"poll.results.no_votes_title" = "No votes yet";
+"poll.results.no_votes_subtitle" = "Waiting for participants to vote.";
 
 // MARK: - Notifications
 "notifications.title" = "Notifications";
@@ -171,6 +190,7 @@
 
 // MARK: - Profile
 "profile.title" = "My Profile";
+"profile.edit" = "Edit";
 "profile.organizer" = "Organizer";
 "profile.dashboard" = "Dashboard";
 "profile.dashboard_subtitle" = "Statistics and analytics for your events";
@@ -544,6 +564,14 @@
 "inbox.empty.notifications_subtitle" = "Your notifications will appear here.";
 "inbox.empty.unread_subtitle" = "You have read all your messages.";
 "inbox.filter_by_event" = "Filter by event";
+"inbox.filter.inbox" = "Inbox";
+"inbox.filter.focused" = "Focused";
+"inbox.filter.new" = "New";
+"inbox.filter.unread" = "Unread";
+"inbox.filter.event" = "Event";
+"inbox.filter.clear_all" = "Clear all filters";
+"inbox.filter.one_applied" = "One filter applied.";
+"inbox.filter.many_applied" = "%lld filters applied.";
 "inbox.type.comment" = "Comment";
 "inbox.type.event_update" = "Event update";
 "inbox.type.invitation" = "Invitation";
