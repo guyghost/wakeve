@@ -1,10 +1,11 @@
 package com.guyghost.wakeve.repository
 
+import com.guyghost.wakeve.access.ParticipantRepositoryRecord
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.Vote
-import com.guyghost.wakeve.repository.OrderBy
+import com.guyghost.wakeve.workflow.WorkflowOutboxRecord
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 
@@ -14,9 +15,30 @@ interface EventRepositoryInterface {
     fun getPoll(eventId: String): Poll?
     suspend fun addParticipant(eventId: String, participantId: String): Result<Boolean>
     fun getParticipants(eventId: String): List<String>?
+    fun getParticipantRecords(eventId: String): List<ParticipantRepositoryRecord>? {
+        val event = getEvent(eventId)
+        return getParticipants(eventId)?.map { participantId ->
+            val isOrganizer = event?.organizerId == participantId
+            ParticipantRepositoryRecord(
+                id = "participant-record-$eventId-$participantId",
+                eventId = eventId,
+                userId = participantId,
+                role = if (isOrganizer) "ORGANIZER" else "MEMBER",
+                rsvp = if (isOrganizer) "ACCEPTED" else "PENDING",
+                hasValidatedDate = if (isOrganizer) 1L else 0L
+            )
+        }
+    }
     suspend fun addVote(eventId: String, participantId: String, slotId: String, vote: Vote): Result<Boolean>
     suspend fun updateEvent(event: Event): Result<Event>
     suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean>
+    suspend fun confirmEventDate(
+        eventId: String,
+        slotId: String,
+        confirmedByOrganizerId: String
+    ): Result<Boolean> = Result.failure(UnsupportedOperationException("Confirm event date is not supported"))
+    suspend fun queueWorkflowOutbox(record: WorkflowOutboxRecord): Result<Boolean> = Result.success(true)
+    fun getWorkflowOutbox(eventId: String): List<WorkflowOutboxRecord> = emptyList()
     suspend fun saveEvent(event: Event): Result<Event>
     
     /**
@@ -51,6 +73,7 @@ interface EventRepositoryInterface {
 class EventRepository : EventRepositoryInterface {
     private val events = mutableMapOf<String, Event>()
     private val polls = mutableMapOf<String, Poll>()
+    private val workflowOutbox = mutableListOf<WorkflowOutboxRecord>()
 
     override suspend fun createEvent(event: Event): Result<Event> {
         return try {
@@ -82,6 +105,21 @@ class EventRepository : EventRepositoryInterface {
     }
 
     override fun getParticipants(eventId: String): List<String>? = events[eventId]?.participants
+
+    override fun getParticipantRecords(eventId: String): List<ParticipantRepositoryRecord>? {
+        val event = events[eventId] ?: return null
+        return event.participants.map { participantId ->
+            val isOrganizer = event.organizerId == participantId
+            ParticipantRepositoryRecord(
+                id = "participant-record-$eventId-$participantId",
+                eventId = eventId,
+                userId = participantId,
+                role = if (isOrganizer) "ORGANIZER" else "MEMBER",
+                rsvp = if (isOrganizer) "ACCEPTED" else "PENDING",
+                hasValidatedDate = if (isOrganizer) 1L else 0L
+            )
+        }
+    }
 
     override suspend fun addVote(eventId: String, participantId: String, slotId: String, vote: Vote): Result<Boolean> {
         val event = events[eventId] ?: return Result.failure(IllegalArgumentException("Event not found"))
@@ -125,6 +163,36 @@ class EventRepository : EventRepositoryInterface {
         events[id] = event.copy(status = status, finalDate = finalDate)
         return Result.success(true)
     }
+
+    override suspend fun confirmEventDate(
+        eventId: String,
+        slotId: String,
+        confirmedByOrganizerId: String
+    ): Result<Boolean> {
+        val event = events[eventId] ?: return Result.failure(IllegalArgumentException("Event not found"))
+        if (event.organizerId != confirmedByOrganizerId) {
+            return Result.failure(IllegalStateException("Only event organizer can confirm dates"))
+        }
+
+        val selectedSlot = event.proposedSlots.find { it.id == slotId }
+            ?: return Result.failure(IllegalArgumentException("Selected time slot not found"))
+        val finalDate = selectedSlot.start
+            ?: return Result.failure(IllegalStateException("Selected time slot has no confirmed start date"))
+
+        events[eventId] = event.copy(
+            status = EventStatus.CONFIRMED,
+            finalDate = finalDate
+        )
+        return Result.success(true)
+    }
+
+    override suspend fun queueWorkflowOutbox(record: WorkflowOutboxRecord): Result<Boolean> {
+        workflowOutbox += record
+        return Result.success(true)
+    }
+
+    override fun getWorkflowOutbox(eventId: String): List<WorkflowOutboxRecord> =
+        workflowOutbox.filter { it.eventId == eventId }
 
     /**
      * Save an event (create if it doesn't exist, otherwise update).
@@ -213,6 +281,7 @@ class EventRepository : EventRepositoryInterface {
             // Remove event and associated poll
             events.remove(eventId)
             polls.remove(eventId)
+            workflowOutbox.removeAll { it.eventId == eventId }
 
             Result.success(Unit)
         } catch (e: Exception) {

@@ -228,6 +228,7 @@ object IosFactory {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
         // Create dependencies
+        val eventRepository: EventRepositoryInterface = DatabaseEventRepository(database)
         val scenarioRepository = ScenarioRepository(database)
         val loadScenariosUseCase = LoadScenariosUseCase(scenarioRepository)
         val createScenarioUseCase = CreateScenarioUseCase(scenarioRepository)
@@ -242,6 +243,8 @@ object IosFactory {
             updateScenarioUseCase = updateScenarioUseCase,
             deleteScenarioUseCase = deleteScenarioUseCase,
             voteScenarioUseCase = voteScenarioUseCase,
+            eventRepository = eventRepository,
+            scenarioRepository = scenarioRepository,
             scope = scope
         )
 

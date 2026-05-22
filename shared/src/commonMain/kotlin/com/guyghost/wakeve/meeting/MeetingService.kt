@@ -38,6 +38,7 @@ class MeetingService(
 
     private val eventQueries = database.eventQueries
     private val participantQueries = database.participantQueries
+    private val syncMetadataQueries = database.syncMetadataQueries
     private val meetingRepository: MeetingRepository = MeetingRepository(database)
 
     // Platform providers
@@ -66,15 +67,14 @@ class MeetingService(
                 ?: return Result.failure(MeetingException.EventNotFound(eventId))
 
             val eventStatus = EventStatus.valueOf(event.status)
-            if (eventStatus != EventStatus.CONFIRMED && eventStatus != EventStatus.ORGANIZING) {
+            if (eventStatus != EventStatus.ORGANIZING) {
                 return Result.failure(MeetingException.InvalidEventStatus(eventStatus))
             }
+            if (event.organizerId != organizerId) {
+                return Result.failure(MeetingException.UnauthorizedAccess())
+            }
 
-            val invitedParticipants = participantQueries
-                .selectByEventId(eventId)
-                .executeAsList()
-                .filter { it.hasValidatedDate == 1L }
-                .map { it.userId }
+            val invitedParticipants = getConfirmedParticipantIds(eventId)
 
             val meetingDetails = when (platform) {
                 MeetingPlatform.ZOOM -> createZoomMeetingDetails(
@@ -105,6 +105,9 @@ class MeetingService(
                 MeetingPlatform.TEAMS, MeetingPlatform.WEBEX ->
                     return Result.failure(Exception("Platform $platform is not supported"))
             }
+            if (!isTrustedMeetingLink(platform, meetingDetails.url)) {
+                return Result.failure(IllegalArgumentException("Unsafe meeting link rejected"))
+            }
 
             val meeting = com.guyghost.wakeve.meeting.Meeting(
                 id = generateId(),
@@ -124,12 +127,24 @@ class MeetingService(
             )
 
             meetingRepository.createMeeting(meeting)
+            queueMeetingCreateSync(meeting, meetingDetails)
 
             scheduleMeetingReminders(
                 meetingId = meeting.id,
                 eventId = eventId,
                 scheduledFor = scheduledFor,
-                timezone = timezone
+                timezone = timezone,
+                participantIds = invitedParticipants
+            )
+
+            prepareCalendarEntries(
+                eventId = eventId,
+                participantIds = invitedParticipants
+            )
+
+            notifyMeetingCreated(
+                meeting = meeting,
+                participantIds = invitedParticipants
             )
 
             val virtualMeeting = toVirtualMeeting(meeting, meetingDetails, timezone)
@@ -369,7 +384,8 @@ class MeetingService(
         meetingId: String,
         eventId: String,
         scheduledFor: Instant,
-        timezone: String
+        timezone: String,
+        participantIds: List<String> = getConfirmedParticipantIds(eventId)
     ) {
         val timings = listOf(
             MeetingReminderTiming.ONE_DAY_BEFORE,
@@ -378,18 +394,14 @@ class MeetingService(
             MeetingReminderTiming.FIVE_MINUTES_BEFORE
         )
 
-        val participants = participantQueries
-            .selectByEventId(eventId)
-            .executeAsList()
-
         timings.forEach { timing ->
             val scheduledTime = calculateReminderTime(scheduledFor, timing, timezone)
 
-            participants.forEach { participant ->
+            participantIds.forEach { participantId ->
                 database.meetingReminderQueries.insertMeetingReminder(
                     id = generateId(),
                     meeting_id = meetingId,
-                    participant_id = participant.userId,
+                    participant_id = participantId,
                     timing = timing.name,
                     scheduled_for = scheduledTime.toString(),
                     sent_at = null,
@@ -400,6 +412,48 @@ class MeetingService(
     }
 
     private suspend fun cancelMeetingReminders(meetingId: String) {
+    }
+
+    private fun getConfirmedParticipantIds(eventId: String): List<String> =
+        participantQueries
+            .selectByEventId(eventId)
+            .executeAsList()
+            .filter { it.hasValidatedDate == 1L }
+            .map { it.userId }
+            .distinct()
+
+    private suspend fun prepareCalendarEntries(
+        eventId: String,
+        participantIds: List<String>
+    ) {
+        participantIds.forEach { participantId ->
+            calendarService.addToNativeCalendar(
+                eventId = eventId,
+                participantId = participantId
+            )
+        }
+    }
+
+    private suspend fun notifyMeetingCreated(
+        meeting: com.guyghost.wakeve.meeting.Meeting,
+        participantIds: List<String>
+    ) {
+        participantIds.forEach { participantId ->
+            val notification = NotificationMessage(
+                id = generateId(),
+                userId = participantId,
+                type = NotificationType.EVENT_UPDATE,
+                title = "Réunion créée: ${meeting.title}",
+                body = "Une réunion virtuelle est prévue le ${formatDate(meeting.startTime)}",
+                data = mapOf(
+                    "eventId" to meeting.eventId,
+                    "meetingId" to meeting.id
+                ),
+                sentAt = Clock.System.now().toString(),
+                readAt = null
+            )
+            notificationService.sendNotification(notification)
+        }
     }
 
     private data class MeetingDetails(
@@ -425,8 +479,8 @@ class MeetingService(
     ): MeetingDetails {
         val meetingId = (1..10).map { Random.nextInt(0, 10) }.joinToString("")
         val password = generatePassword(6)
-        val url = "https://zoom.us/j/\$meetingId?pwd=\$password"
-        val dialIn = "+33 1 23 45 67 \${Random.nextInt(10, 99)}"
+        val url = "https://zoom.us/j/$meetingId?pwd=$password"
+        val dialIn = "+33 1 23 45 67 ${Random.nextInt(10, 99)}"
         val dialInPassword = meetingId.substring(0, 6)
         val hostKey = (1..6).map { Random.nextInt(0, 10) }.joinToString("")
 
@@ -449,12 +503,12 @@ class MeetingService(
         duration: Duration,
         timezone: String
     ): MeetingDetails {
-        val chars = "abcdefghijklmnopqrstuvwxyz-"
+        val chars = "abcdefghijklmnopqrstuvwxyz"
         val part1 = (1..3).map { chars.random() }.joinToString("")
         val part2 = (1..3).map { chars.random() }.joinToString("")
         val part3 = (1..4).map { chars.random() }.joinToString("")
-        val meetCode = "\$part1-\$part2-\$part3"
-        val url = "https://meet.google.com/\$meetCode"
+        val meetCode = "$part1-$part2-$part3"
+        val url = "https://meet.google.com/$meetCode"
 
         return MeetingDetails(
             url = url,
@@ -535,6 +589,61 @@ class MeetingService(
     private fun notifyParticipantsMeetingCancelled(meeting: com.guyghost.wakeve.meeting.Meeting) {
     }
 
+    private fun queueMeetingCreateSync(
+        meeting: com.guyghost.wakeve.meeting.Meeting,
+        details: MeetingDetails
+    ) {
+        val timestamp = Clock.System.now().toString()
+        val payload = buildString {
+            append("{")
+            appendJson("id", meeting.id)
+            append(",")
+            appendJson("eventId", meeting.eventId)
+            append(",")
+            appendJson("organizerId", meeting.organizerId)
+            append(",")
+            appendJson("platform", meeting.platform.name)
+            append(",")
+            appendJson("title", meeting.title)
+            append(",")
+            appendJson("meetingLink", meeting.meetingLink)
+            append(",")
+            appendJson("targetUrl", meeting.meetingLink)
+            append(",")
+            appendJson("hostMeetingId", meeting.hostMeetingId)
+            append(",")
+            appendJson("password", meeting.password)
+            append(",")
+            appendJson("status", meeting.status.name)
+            append(",")
+            appendJson("scheduledFor", meeting.startTime.toString())
+            append(",")
+            appendJson("duration", meeting.duration.toString())
+            append(",")
+            appendJson("dialInNumber", details.dialInNumber.orEmpty())
+            append("}")
+        }
+        syncMetadataQueries.insertSyncMetadataWithPayload(
+            id = "sync-meeting-create-${meeting.id}-$timestamp",
+            entityType = "meeting",
+            entityId = meeting.id,
+            operation = "CREATE",
+            payload = payload,
+            timestamp = timestamp,
+            retryState = "READY",
+            retryCount = 0,
+            synced = 0
+        )
+    }
+
+    private fun StringBuilder.appendJson(key: String, value: String) {
+        append("\"")
+        append(key)
+        append("\":\"")
+        append(value.replace("\\", "\\\\").replace("\"", "\\\""))
+        append("\"")
+    }
+
     private fun formatDate(instant: Instant): String {
         val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
         return "${localDateTime.date} ${localDateTime.time}"
@@ -548,6 +657,23 @@ class MeetingService(
     private fun generateId(): String {
         return "${Clock.System.now().toEpochMilliseconds()}_${Random.nextInt(1000, 9999)}"
     }
+
+    private fun isTrustedMeetingLink(platform: MeetingPlatform, url: String): Boolean {
+        if (containsTemplateMarker(url)) return false
+        return when (platform) {
+            MeetingPlatform.ZOOM -> Regex("""^https://zoom\.us/j/\d{10}\?pwd=[A-Z0-9]{6}$""").matches(url)
+            MeetingPlatform.GOOGLE_MEET -> Regex("""^https://meet\.google\.com/[a-z]{3}-[a-z]{3}-[a-z]{4}$""").matches(url)
+            MeetingPlatform.FACETIME -> url == "facetime://"
+            MeetingPlatform.TEAMS,
+            MeetingPlatform.WEBEX -> false
+        }
+    }
+
+    private fun containsTemplateMarker(value: String): Boolean =
+        value.contains("\${") ||
+            value.contains("{") ||
+            value.contains("}") ||
+            Regex("""\$[A-Za-z_][A-Za-z0-9_]*""").containsMatchIn(value)
 
     suspend fun getMeeting(meetingId: String): com.guyghost.wakeve.models.VirtualMeeting? {
         val meeting = meetingRepository.getMeetingById(meetingId) ?: return null

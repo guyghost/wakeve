@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.outlined.EventNote
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.PersonAdd
@@ -67,6 +68,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.ScenarioVoteType
@@ -105,6 +107,7 @@ fun ScenarioManagementScreen(
     eventId: String,
     participantId: String,
     isOrganizer: Boolean = false,
+    isParticipantConfirmed: Boolean? = null,
     modifier: Modifier = Modifier
 ) {
     // Snackbar state for showing messages
@@ -125,6 +128,9 @@ fun ScenarioManagementScreen(
     // Comparison state
     var selectedForComparison by remember { mutableStateOf(setOf<String>()) }
     var showComparisonMode by remember { mutableStateOf(false) }
+    val canAccessScenarioDetails = isOrganizer || isParticipantConfirmed == true
+    val canVote = canAccessScenarioDetails
+    val canCreateScenario = isOrganizer && state.canCreateScenarios()
 
     // Load scenarios on first composition
     LaunchedEffect(Unit) {
@@ -156,7 +162,7 @@ fun ScenarioManagementScreen(
                 onCompare = {
                     if (selectedForComparison.size >= 2) {
                         onDispatch(Intent.CompareScenarios(selectedForComparison.toList()))
-                        onNavigate("scenario/compare")
+                        onNavigate("event/$eventId/scenarios/compare")
                     } else {
                         scope.launch {
                             snackbarHostState.showSnackbar(
@@ -169,7 +175,7 @@ fun ScenarioManagementScreen(
             )
         },
         floatingActionButton = {
-            if (isOrganizer && !showComparisonMode) {
+            if (canCreateScenario && !showComparisonMode) {
                 FloatingActionButton(
                     onClick = { showCreateDialog = true },
                     containerColor = MaterialTheme.colorScheme.primary,
@@ -203,6 +209,8 @@ fun ScenarioManagementScreen(
                     // Empty state
                     ScenarioEmptyState(
                         modifier = Modifier.fillMaxSize(),
+                        canCreate = canCreateScenario,
+                        isAccessLocked = !canAccessScenarioDetails,
                         onCreateClick = { showCreateDialog = true }
                     )
                 }
@@ -216,45 +224,64 @@ fun ScenarioManagementScreen(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(
-                            items = state.getScenariosRanked(),
-                            key = { it.scenario.id }
-                        ) { scenarioWithVotes ->
-                            ScenarioCard(
-                                scenarioWithVotes = scenarioWithVotes,
-                                isSelected = scenarioWithVotes.scenario.id in selectedForComparison,
-                                isComparisonMode = showComparisonMode,
-                                onSelect = {
-                                    if (showComparisonMode) {
-                                        selectedForComparison = if (it in selectedForComparison) {
-                                            selectedForComparison - it
-                                        } else {
-                                            selectedForComparison + it
-                                        }
-                                    } else {
-                                        onDispatch(Intent.SelectScenario(it))
-                                        onNavigate("scenario/detail/$it")
-                                    }
-                                },
-                                onVote = { scenarioId, voteType ->
-                                    onDispatch(Intent.VoteScenario(scenarioId, voteType))
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            "Vote submitted",
-                                            duration = SnackbarDuration.Short
-                                        )
-                                    }
-                                },
-                                onEdit = {
-                                    editingScenario = scenarioWithVotes.scenario
-                                    showCreateDialog = true
-                                },
-                                onDelete = {
-                                    scenarioToDelete = scenarioWithVotes.scenario
-                                },
-                                isOrganizer = isOrganizer,
-                                isLocked = scenarioWithVotes.scenario.status == ScenarioStatus.SELECTED
+                        item {
+                            WorkflowStatusCard(
+                                eventStatus = state.eventStatus,
+                                isAccessLocked = !canAccessScenarioDetails,
+                                lockMessage = state.error.takeIf { it.isConfirmedParticipantAccessError() }
                             )
+                        }
+
+                        if (!canAccessScenarioDetails) {
+                            item {
+                                LockedAccessMessage(
+                                    message = "Confirm your attendance to view scenario details and vote.",
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        } else {
+                            items(
+                                items = state.getScenariosRanked(),
+                                key = { it.scenario.id }
+                            ) { scenarioWithVotes ->
+                                ScenarioCard(
+                                    scenarioWithVotes = scenarioWithVotes,
+                                    isSelected = scenarioWithVotes.scenario.id in selectedForComparison,
+                                    isComparisonMode = showComparisonMode,
+                                    onSelect = {
+                                        if (showComparisonMode) {
+                                            selectedForComparison = if (it in selectedForComparison) {
+                                                selectedForComparison - it
+                                            } else {
+                                                selectedForComparison + it
+                                            }
+                                        } else {
+                                            onDispatch(Intent.SelectScenario(it))
+                                            onNavigate("event/$eventId/scenario/$it")
+                                        }
+                                    },
+                                    onVote = { scenarioId, voteType ->
+                                        onDispatch(Intent.VoteScenario(scenarioId, voteType))
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                "Vote submitted",
+                                                duration = SnackbarDuration.Short
+                                            )
+                                        }
+                                    },
+                                    onEdit = {
+                                        editingScenario = scenarioWithVotes.scenario
+                                        showCreateDialog = true
+                                    },
+                                    onDelete = {
+                                        scenarioToDelete = scenarioWithVotes.scenario
+                                    },
+                                    isOrganizer = isOrganizer,
+                                    isLocked = scenarioWithVotes.scenario.status == ScenarioStatus.SELECTED,
+                                    canAccessDetails = canAccessScenarioDetails,
+                                    canVote = canVote
+                                )
+                            }
                         }
                     }
                 }
@@ -408,6 +435,8 @@ private fun ScenarioCard(
     onDelete: () -> Unit,
     isOrganizer: Boolean,
     isLocked: Boolean,
+    canAccessDetails: Boolean,
+    canVote: Boolean,
     modifier: Modifier = Modifier
 ) {
     val scenario = scenarioWithVotes.scenario
@@ -531,18 +560,18 @@ private fun ScenarioCard(
             ) {
                 DetailBadge(
                     icon = Icons.Outlined.EventNote,
-                    text = scenario.dateOrPeriod,
+                    text = "Period: ${scenario.dateOrPeriod}",
                     modifier = Modifier.weight(1f)
                 )
                 DetailBadge(
                     icon = Icons.Outlined.PersonAdd,
-                    text = "${scenario.estimatedParticipants} people",
+                    text = "${scenario.estimatedParticipants} participants",
                     modifier = Modifier.weight(1f)
                 )
             }
 
             Text(
-                text = "📍 ${scenario.location}",
+                text = "Destination / lodging: ${scenario.location}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -556,12 +585,12 @@ private fun ScenarioCard(
             ) {
                 DetailBadge(
                     icon = Icons.Outlined.Info,
-                    text = "${scenario.duration} days",
+                    text = "Duration: ${scenario.duration} days",
                     modifier = Modifier.weight(1f)
                 )
                 DetailBadge(
                     icon = Icons.Outlined.Info,
-                    text = "₹${scenario.estimatedBudgetPerPerson}/person",
+                    text = "Budget: ₹${scenario.estimatedBudgetPerPerson}/person",
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -577,42 +606,44 @@ private fun ScenarioCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             // Voting buttons
-            SingleChoiceSegmentedButtonRow(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                SegmentedButton(
-                    selected = false,
-                    onClick = {
-                        if (!isLocked) {
-                            onVote(scenario.id, ScenarioVoteType.PREFER)
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    label = { Text("👍 Prefer") },
-                    enabled = !isLocked
-                )
-                SegmentedButton(
-                    selected = false,
-                    onClick = {
-                        if (!isLocked) {
-                            onVote(scenario.id, ScenarioVoteType.NEUTRAL)
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    label = { Text("😐 Neutral") },
-                    enabled = !isLocked
-                )
-                SegmentedButton(
-                    selected = false,
-                    onClick = {
-                        if (!isLocked) {
-                            onVote(scenario.id, ScenarioVoteType.AGAINST)
-                        }
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    label = { Text("👎 Against") },
-                    enabled = !isLocked
-                )
+            if (canVote || isLocked) {
+                SingleChoiceSegmentedButtonRow(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    SegmentedButton(
+                        selected = false,
+                        onClick = {
+                            if (!isLocked && canVote) {
+                                onVote(scenario.id, ScenarioVoteType.PREFER)
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        label = { Text("Prefer") },
+                        enabled = !isLocked && canVote
+                    )
+                    SegmentedButton(
+                        selected = false,
+                        onClick = {
+                            if (!isLocked && canVote) {
+                                onVote(scenario.id, ScenarioVoteType.NEUTRAL)
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        label = { Text("Neutral") },
+                        enabled = !isLocked && canVote
+                    )
+                    SegmentedButton(
+                        selected = false,
+                        onClick = {
+                            if (!isLocked && canVote) {
+                                onVote(scenario.id, ScenarioVoteType.AGAINST)
+                            }
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        label = { Text("Against") },
+                        enabled = !isLocked && canVote
+                    )
+                }
             }
 
             if (isLocked) {
@@ -624,8 +655,15 @@ private fun ScenarioCard(
                 )
             }
 
+            if (!canAccessDetails) {
+                LockedAccessMessage(
+                    message = "Confirm your attendance to view details and vote.",
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             // Comparison checkbox
-            if (isComparisonMode) {
+            if (isComparisonMode && canAccessDetails) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -690,6 +728,94 @@ private fun DetailBadge(
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+private fun WorkflowStatusCard(
+    eventStatus: EventStatus?,
+    isAccessLocked: Boolean,
+    lockMessage: String?,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isAccessLocked) {
+                MaterialTheme.colorScheme.errorContainer
+            } else {
+                MaterialTheme.colorScheme.secondaryContainer
+            }
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isAccessLocked) {
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "Workflow: ${eventStatus?.name ?: "UNKNOWN"}",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isAccessLocked) {
+                        MaterialTheme.colorScheme.onErrorContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    }
+                )
+                Text(
+                    text = lockMessage ?: "Destination and lodging scenarios are available for comparison.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (isAccessLocked) {
+                        MaterialTheme.colorScheme.onErrorContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun LockedAccessMessage(
+    message: String,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.errorContainer,
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.size(16.dp)
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onErrorContainer
+            )
+        }
     }
 }
 
@@ -820,6 +946,8 @@ private fun VoteBreakdownRow(
 @Composable
 private fun ScenarioEmptyState(
     modifier: Modifier = Modifier,
+    canCreate: Boolean,
+    isAccessLocked: Boolean,
     onCreateClick: () -> Unit = {}
 ) {
     Column(
@@ -837,27 +965,38 @@ private fun ScenarioEmptyState(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "No scenarios yet",
+            text = if (isAccessLocked) "Scenario access locked" else "No scenarios yet",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Create a scenario to get started. Scenarios help participants vote on different planning options.",
+            text = if (isAccessLocked) {
+                "Confirm your attendance to access destination, lodging and voting details."
+            } else {
+                "Create a scenario to get started. Scenarios help participants vote on destination and lodging options."
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = onCreateClick
-        ) {
-            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Create Scenario")
+        if (canCreate) {
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = onCreateClick
+            ) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Create Scenario")
+            }
         }
     }
 }
+
+private fun String?.isConfirmedParticipantAccessError(): Boolean =
+    this?.contains("confirmed participants", ignoreCase = true) == true ||
+        this?.contains("confirmed participant", ignoreCase = true) == true ||
+        this?.contains("participant confirmé", ignoreCase = true) == true
 
 /**
  * Dialog for creating or editing a scenario

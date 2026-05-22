@@ -349,6 +349,22 @@ class ScenarioManagementViewModel(
     }
 
     /**
+     * Select a scenario as the final destination/lodging choice.
+     *
+     * Only the event organizer can perform this action. The state machine
+     * validates the event is in COMPARING and emits navigation to meetings.
+     */
+    fun selectScenarioAsFinal(eventId: String, scenarioId: String, userId: String) {
+        dispatch(
+            ScenarioManagementContract.Intent.SelectScenarioAsFinal(
+                eventId = eventId,
+                scenarioId = scenarioId,
+                userId = userId
+            )
+        )
+    }
+
+    /**
      * Clear scenario comparison mode.
      *
      * Used when the user navigates back from the comparison screen to return

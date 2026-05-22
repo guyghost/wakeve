@@ -1,0 +1,26 @@
+-- Phase 5 payment handoff state for Tricount or explicit not-needed decisions.
+CREATE TABLE tricountHandoff (
+    eventId TEXT PRIMARY KEY NOT NULL,
+    provider TEXT NOT NULL,
+    providerId TEXT,
+    providerUrl TEXT,
+    syncStatus TEXT NOT NULL,
+    trusted INTEGER NOT NULL DEFAULT 0,
+    explicitNotNeeded INTEGER NOT NULL DEFAULT 0,
+    lastSyncAt TEXT,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+selectByEventId:
+SELECT * FROM tricountHandoff WHERE eventId = ?;
+
+upsertHandoff:
+INSERT OR REPLACE INTO tricountHandoff(
+    eventId, provider, providerId, providerUrl, syncStatus,
+    trusted, explicitNotNeeded, lastSyncAt, createdAt, updatedAt
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteByEventId:
+DELETE FROM tricountHandoff WHERE eventId = ?;

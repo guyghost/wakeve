@@ -1,5 +1,34 @@
 # Destination Planning Specification
 
+## Purpose
+
+The Destination Planning capability helps organizers and confirmed participants compare destinations and lodging options for an event using group preferences, accessibility, cost, and seasonal criteria.
+## Requirements
+
+*(Requirements are merged from archived changes; legacy implementation notes remain below.)*
+
+---
+
+### Requirement: Destination and Lodging Selection
+Wakeve MUST support selecting a destination and lodging option for the retained scenario or directly for the event when scenarios are skipped.
+
+#### Scenario: Organizer selects lodging for the final scenario
+- **GIVEN** an event has a confirmed date and a scenario under comparison
+- **WHEN** the organizer selects a destination and lodging option
+- **THEN** the selection is linked to the event and scenario
+- **AND** capacity, dates, estimated cost, and provider metadata are persisted
+- **AND** budget estimates and transport planning receive the selected destination as input
+
+### Requirement: Destination and Lodging Offline Fallbacks
+Wakeve MUST keep destination and lodging planning usable offline with cached suggestions and manual entries.
+
+#### Scenario: Organizer adds lodging manually while offline
+- **GIVEN** the organizer is offline during scenario planning
+- **WHEN** they add a manual lodging option with name, location, capacity, and estimated cost
+- **THEN** the lodging option is saved locally
+- **AND** a sync operation is queued
+- **AND** provider enrichment is marked pending until network access returns
+
 ## Version
 **Version**: 1.0.0
 **Status**: ✅ Implémenté

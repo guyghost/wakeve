@@ -218,6 +218,38 @@ stateMachine.dispatch(Intent.AddTimeSlot(
 stateMachine.dispatch(Intent.StartPoll(eventId))
 ```
 
+### After StartPoll: Organizer and Participant Paths
+
+`StartPoll` is the boundary between event creation and collaborative planning. Once the event enters POLLING, the DRAFT wizard should hand off to the poll experience instead of continuing to mutate draft fields.
+
+**Organizer path**
+
+1. Review submitted votes from the poll screen.
+2. Select one proposed slot and confirm it with `Intent.ConfirmDate(eventId, slotId, userId)`.
+3. On success, route the organizer to `event/{eventId}/scenarios`.
+
+The confirmation guard is strict: the caller must be the organizer, the event must still be POLLING, the poll must contain votes, the selected slot must belong to the event, and the deadline must not have passed. If the deadline has passed, the event remains POLLING and no notification or calendar work is queued.
+
+**Participant path**
+
+1. Vote on available slots from the poll screen.
+2. Wait for the organizer to confirm the retained slot.
+3. Validate attendance for the confirmed date before opening restricted organization details.
+
+Restricted details include scenario logistics, meetings, transport, budget, and calendar artifacts. The backend mirrors this rule: calendar ICS access is limited to the organizer or participants with `hasValidatedDate == 1`.
+
+### Offline-First Confirmation Effects
+
+When a valid confirmation succeeds, the shared workflow updates local state first:
+
+- event status becomes CONFIRMED
+- `finalDate` is set from the selected slot start
+- `scenariosUnlocked` becomes true
+- `DATE_CONFIRMATION_NOTIFICATION` is queued
+- `CALENDAR_INVITATION_ARTIFACT` is queued
+
+The queued workflow records allow notification and calendar work to sync later if the device is offline or platform services are temporarily unavailable.
+
 ### Monitoring State Changes
 
 Observe state changes for progress tracking:

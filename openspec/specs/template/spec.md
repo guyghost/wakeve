@@ -48,9 +48,9 @@
 ## Requirements
 
 ### Requirement: [Brief requirement description]
-**ID**: `[feature-abbreviation]-XXX`
-
 [Detailed requirement description using SHALL/MUST/MAY keywords as appropriate.]
+
+**ID**: `[feature-abbreviation]-XXX`
 
 #### Scenario: [Scenario title]
 - **GIVEN** [Precondition]
@@ -64,9 +64,9 @@
 - **THEN** [Expected outcome]
 
 ### Requirement: [Brief requirement description with business rules]
-**ID**: `[feature-abbreviation]-XXX`
+[Detailed requirement description. The system SHALL enforce the business rules below.]
 
-[Detailed requirement description]
+**ID**: `[feature-abbreviation]-XXX`
 
 **Business Rules:**
 - [Rule 1]

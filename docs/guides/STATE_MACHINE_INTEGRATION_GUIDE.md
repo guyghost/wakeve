@@ -173,6 +173,38 @@ Intent.StartPoll(eventId: String)
 - Navigates to poll view
 - Notifies all participants
 
+#### ConfirmDate
+
+Confirms the selected poll slot and transitions the event from POLLING to CONFIRMED.
+
+```kotlin
+Intent.ConfirmDate(
+    eventId = "event-123",
+    slotId = "slot-456",
+    userId = "organizer-1"
+)
+```
+
+**Validates:**
+- Event must exist
+- Caller must be the organizer
+- Event must still be in POLLING status
+- Poll deadline must not have passed
+- At least one vote must exist
+- Selected slot must belong to the event and have a concrete start date
+
+**State Changes:**
+- Changes status from POLLING to CONFIRMED
+- Sets `finalDate` to the selected slot start
+- Sets `scenariosUnlocked` to `true`
+
+**Side Effects:**
+- Queues local-first workflow artifacts for notification and calendar
+- Shows confirmation feedback
+- Navigates to `event/{eventId}/scenarios`
+
+If the deadline has already passed, the state machine keeps the event in POLLING, exposes an error mentioning the deadline, and does not queue any workflow artifact.
+
 ### Intent Dispatch Pattern
 
 **Android (Kotlin):**
@@ -291,6 +323,7 @@ SideEffect.NavigateTo(route: String)
 SideEffect.NavigateTo("events")                  // Event list
 SideEffect.NavigateTo("draft/{eventId}/step/1")  // Step 1 of wizard
 SideEffect.NavigateTo("poll/{eventId}")          // Poll setup
+SideEffect.NavigateTo("event/{eventId}/scenarios") // Confirmed organization
 ```
 
 #### ShowToast
@@ -367,6 +400,53 @@ LaunchedEffect(Unit) {
 ```
 
 ## Integration Patterns
+
+### Polling to Confirmation Paths
+
+The DRAFT wizard ends at `StartPoll`; the next screen must handle two separate paths during POLLING.
+
+**Organizer path**
+
+1. Opens the poll view for the event.
+2. Reviews participant votes for each proposed slot.
+3. Dispatches `Intent.ConfirmDate(eventId, slotId, userId)` for the selected slot.
+4. On success, sees the event become CONFIRMED and is navigated to `event/{eventId}/scenarios`.
+
+The organizer cannot confirm if the poll deadline has passed. In that case the event stays in POLLING, `finalDate` remains unset, `scenariosUnlocked` stays false, and no notification/calendar outbox record is created.
+
+**Participant path**
+
+1. Opens the event poll after being invited or added as a participant.
+2. Submits a vote for a proposed slot.
+3. Waits for the organizer to confirm the date.
+4. Confirms attendance for the retained date before accessing organization details that are restricted to confirmed participants.
+
+Participants do not confirm the final date. They vote during POLLING and later validate attendance for the selected date, which unlocks participant-scoped details such as calendar access, budget, transport, meetings, and logistics.
+
+### Local-First Workflow Outbox
+
+`ConfirmDate` produces workflow work locally before network synchronization. The repository queues two `WorkflowOutboxRecord` entries:
+
+| Type | Purpose |
+|------|---------|
+| `DATE_CONFIRMATION_NOTIFICATION` | Notify participants that the event date has been confirmed |
+| `CALENDAR_INVITATION_ARTIFACT` | Prepare calendar invitation artifacts for later sync or platform handling |
+
+Both records carry the event ID, the selected final date, and a pending status. This keeps confirmation usable offline: the local event can move to CONFIRMED immediately, while notification delivery and calendar reconciliation can happen later.
+
+### Backend Contract for Polling and Calendar Access
+
+The server enforces the same product boundaries as the shared workflow:
+
+| Endpoint | Access rule | Notes |
+|----------|-------------|-------|
+| `POST /api/events/{id}/poll/votes` | JWT required; organizer or participant voting for self | Non-members receive `403 Forbidden` |
+| `PUT /api/events/{id}/status` with `status=CONFIRMED` | JWT required; organizer only | Requires a valid `slotId` that belongs to the event |
+| `GET /api/events/{id}/calendar/ics` | Organizer or participant with `hasValidatedDate == 1` | Returns the ICS file for the confirmed event |
+| `POST /api/events/{id}/calendar/ics` | Organizer or participant with `hasValidatedDate == 1` | Generates an ICS payload |
+| `POST /api/events/{id}/calendar/reminders/{timing}` | Organizer or participant with `hasValidatedDate == 1` | Authorization is checked before the current reminder implementation status |
+
+These routes are mounted under `/api`. UI and sync clients should not expose organization details to unconfirmed participants even if those details already exist locally.
 
 ### ViewModel Pattern
 

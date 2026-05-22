@@ -2,7 +2,6 @@ package com.guyghost.wakeve.presentation.statemachine
 
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.repository.ScenarioRepository
-import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract.SideEffect
@@ -176,6 +175,7 @@ class ScenarioManagementStateMachine(
                     it.copy(
                         isLoading = false,
                         scenarios = scenarios,
+                        eventStatus = eventRepository?.getEvent(eventId)?.status,
                         votingResults = scenarios.associate { swv ->
                             swv.scenario.id to swv.votingResult
                         }
@@ -220,6 +220,7 @@ class ScenarioManagementStateMachine(
                     it.copy(
                         isLoading = false,
                         scenarios = scenarios,
+                        eventStatus = eventRepository?.getEvent(intent.eventId)?.status,
                         votingResults = scenarios.associate { swv ->
                             swv.scenario.id to swv.votingResult
                         }
@@ -268,6 +269,9 @@ class ScenarioManagementStateMachine(
             onSuccess = { _ ->
                 // Reload scenarios
                 reloadScenarios(intent.scenario.eventId)
+                updateState {
+                    it.copy(eventStatus = eventRepository?.getEvent(intent.scenario.eventId)?.status)
+                }
                 emitSideEffect(SideEffect.ShowToast("Scenario created successfully"))
             },
             onFailure = { error ->
@@ -399,6 +403,12 @@ class ScenarioManagementStateMachine(
         val scenario = currentState.scenarios.find { it.scenario.id == intent.scenarioId }
 
         if (scenario != null) {
+            if (!canAccessScenarioDetails(scenario.scenario.eventId, currentState.participantId)) {
+                val errorMsg = "Scenario details are available only to confirmed participants"
+                updateState { it.copy(error = errorMsg) }
+                emitSideEffect(SideEffect.ShowError(errorMsg))
+                return
+            }
             updateState { it.copy(selectedScenario = scenario.scenario) }
             emitSideEffect(SideEffect.NavigateTo("scenario/${intent.scenarioId}"))
         } else {
@@ -472,10 +482,9 @@ class ScenarioManagementStateMachine(
             return
         }
 
-        // Update scenario status to SELECTED
-        val scenarioResult = scenarioRepository.updateScenarioStatus(
-            scenarioId = intent.scenarioId,
-            status = ScenarioStatus.SELECTED
+        val scenarioResult = scenarioRepository.selectFinalScenario(
+            eventId = intent.eventId,
+            scenarioId = intent.scenarioId
         )
 
         scenarioResult.fold(
@@ -538,6 +547,14 @@ class ScenarioManagementStateMachine(
         }
 
         updateState { it.copy(error = null) }
+
+        val scenario = scenarioRepository?.getScenarioById(intent.scenarioId)
+        if (scenario != null && !canAccessScenarioDetails(scenario.eventId, participantId)) {
+            val errorMsg = "Scenario voting is available only to confirmed participants"
+            updateState { it.copy(error = errorMsg) }
+            emitSideEffect(SideEffect.ShowError(errorMsg))
+            return
+        }
 
         voteScenarioUseCase(
             scenarioId = intent.scenarioId,
@@ -642,6 +659,7 @@ class ScenarioManagementStateMachine(
                     it.copy(
                         isLoading = false,
                         scenarios = scenarios,
+                        eventStatus = eventRepository?.getEvent(eventId)?.status,
                         votingResults = scenarios.associate { swv ->
                             swv.scenario.id to swv.votingResult
                         }
@@ -654,5 +672,16 @@ class ScenarioManagementStateMachine(
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
         )
+    }
+
+    private fun canAccessScenarioDetails(eventId: String, userId: String): Boolean {
+        if (userId.isBlank()) return false
+        val event = eventRepository?.getEvent(eventId) ?: return true
+        if (event.organizerId == userId) return true
+
+        val participantRecord = eventRepository.getParticipantRecords(eventId)
+            ?.firstOrNull { it.userId == userId }
+
+        return participantRecord?.hasValidatedDate == 1L
     }
 }

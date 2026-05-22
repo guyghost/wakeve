@@ -15,6 +15,8 @@ import com.guyghost.wakeve.models.ScenarioWithVotes
 class ScenarioRepository(private val db: WakeveDb) {
     private val scenarioQueries = db.scenarioQueries
     private val scenarioVoteQueries = db.scenarioVoteQueries
+    private val eventQueries = db.eventQueries
+    private val syncMetadataQueries = db.syncMetadataQueries
 
     /**
      * Create a new scenario in the database.
@@ -22,20 +24,47 @@ class ScenarioRepository(private val db: WakeveDb) {
     suspend fun createScenario(scenario: Scenario): Result<Scenario> {
         return try {
             val now = getCurrentUtcIsoString()
-            scenarioQueries.insertScenario(
-                id = scenario.id,
-                eventId = scenario.eventId,
-                name = scenario.name,
-                dateOrPeriod = scenario.dateOrPeriod,
-                location = scenario.location,
-                duration = scenario.duration.toLong(),
-                estimatedParticipants = scenario.estimatedParticipants.toLong(),
-                estimatedBudgetPerPerson = scenario.estimatedBudgetPerPerson,
-                description = scenario.description,
-                status = scenario.status.name,
-                createdAt = scenario.createdAt,
-                updatedAt = now
-            )
+            db.transaction {
+                val scenarioCountBeforeInsert = scenarioQueries.countByEventId(scenario.eventId).executeAsOne()
+                scenarioQueries.insertScenario(
+                    id = scenario.id,
+                    eventId = scenario.eventId,
+                    name = scenario.name,
+                    dateOrPeriod = scenario.dateOrPeriod,
+                    location = scenario.location,
+                    duration = scenario.duration.toLong(),
+                    estimatedParticipants = scenario.estimatedParticipants.toLong(),
+                    estimatedBudgetPerPerson = scenario.estimatedBudgetPerPerson,
+                    description = scenario.description,
+                    status = scenario.status.name,
+                    createdAt = scenario.createdAt,
+                    updatedAt = now
+                )
+
+                val event = eventQueries.selectById(scenario.eventId).executeAsOneOrNull()
+                if (scenarioCountBeforeInsert == 0L && event?.status == "CONFIRMED") {
+                    eventQueries.updateEventStatus(
+                        status = "COMPARING",
+                        updatedAt = now,
+                        id = scenario.eventId
+                    )
+                    queueSyncMetadata(
+                        id = "sync_scenario_compare_${scenario.eventId}_${scenario.id}",
+                        entityType = "event",
+                        entityId = scenario.eventId,
+                        operation = "UPDATE",
+                        timestamp = "${now}_COMPARING_${scenario.id}"
+                    )
+                }
+
+                queueSyncMetadata(
+                    id = "sync_scenario_${scenario.id}",
+                    entityType = "scenario",
+                    entityId = scenario.id,
+                    operation = "CREATE",
+                    timestamp = "${now}_CREATE_${scenario.id}"
+                )
+            }
             Result.success(scenario)
         } catch (e: Exception) {
             Result.failure(e)
@@ -173,6 +202,50 @@ class ScenarioRepository(private val db: WakeveDb) {
     }
 
     /**
+     * Select one final scenario for an event and explicitly reject all competitors.
+     */
+    suspend fun selectFinalScenario(eventId: String, scenarioId: String): Result<Unit> {
+        return try {
+            val now = getCurrentUtcIsoString()
+            val event = eventQueries.selectById(eventId).executeAsOneOrNull()
+                ?: return Result.failure(IllegalArgumentException("Event not found"))
+            if (event.status == "FINALIZED") {
+                return Result.failure(IllegalStateException("Finalized events are read-only"))
+            }
+            val scenarios = getScenariosByEventId(eventId)
+            if (scenarios.none { it.id == scenarioId }) {
+                return Result.failure(IllegalArgumentException("Scenario not found"))
+            }
+
+            db.transaction {
+                scenarios.forEach { scenario ->
+                    val status = if (scenario.id == scenarioId) {
+                        ScenarioStatus.SELECTED
+                    } else {
+                        ScenarioStatus.REJECTED
+                    }
+                    scenarioQueries.updateScenarioStatus(
+                        status = status.name,
+                        updatedAt = now,
+                        id = scenario.id
+                    )
+                }
+                queueSyncMetadata(
+                    id = "sync_scenario_selection_${eventId}_$scenarioId",
+                    entityType = "scenario_selection",
+                    entityId = eventId,
+                    operation = "UPSERT",
+                    timestamp = "${now}_SELECTED_$scenarioId"
+                )
+            }
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Delete a scenario (cascade deletes votes).
      */
     suspend fun deleteScenario(scenarioId: String): Result<Unit> {
@@ -213,6 +286,13 @@ class ScenarioRepository(private val db: WakeveDb) {
                     createdAt = vote.createdAt
                 )
             }
+            queueSyncMetadata(
+                id = "sync_scenario_vote_${vote.scenarioId}_${vote.participantId}",
+                entityType = "scenario_vote",
+                entityId = "${vote.scenarioId}:${vote.participantId}",
+                operation = "UPSERT",
+                timestamp = "${getCurrentUtcIsoString()}_UPSERT_${vote.scenarioId}_${vote.participantId}"
+            )
             Result.success(vote)
         } catch (e: Exception) {
             Result.failure(e)
@@ -341,5 +421,33 @@ class ScenarioRepository(private val db: WakeveDb) {
         // This is a simplified implementation
         // In production, use kotlinx-datetime or platform-specific date APIs
         return "2025-11-25T10:00:00Z"
+    }
+
+    private fun queueSyncMetadata(
+        id: String,
+        entityType: String,
+        entityId: String,
+        operation: String,
+        timestamp: String
+    ) {
+        val existingForEntity = syncMetadataQueries.selectByEntity(entityType, entityId).executeAsList()
+        val uniqueId = if (syncMetadataQueries.selectById(id).executeAsOneOrNull() == null) {
+            id
+        } else {
+            "${id}_${existingForEntity.size}"
+        }
+        val uniqueTimestamp = if (existingForEntity.none { it.timestamp == timestamp }) {
+            timestamp
+        } else {
+            "${timestamp}_${existingForEntity.size}"
+        }
+        syncMetadataQueries.insertSyncMetadata(
+            id = uniqueId,
+            entityType = entityType,
+            entityId = entityId,
+            operation = operation,
+            timestamp = uniqueTimestamp,
+            synced = 0
+        )
     }
 }

@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -109,6 +110,10 @@ fun MeetingListScreen(
     viewModel: MeetingManagementViewModel,
     eventId: String? = null,
     isOrganizer: Boolean = false,
+    isReadOnly: Boolean = false,
+    canCreateMeetings: Boolean = isOrganizer && !isReadOnly,
+    pendingSync: Boolean = false,
+    isOnline: Boolean = true,
     onNavigateToDetail: (String) -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -145,11 +150,11 @@ fun MeetingListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Meetings") },
+                title = { Text("Réunions") },
                 actions = {
-                    if (isOrganizer) {
+                    if (canCreateMeetings) {
                         IconButton(onClick = { showCreateDialog = true }) {
-                            Icon(Icons.Default.Add, contentDescription = "Create meeting")
+                            Icon(Icons.Default.Add, contentDescription = "Créer une réunion")
                         }
                     }
                 }
@@ -162,6 +167,11 @@ fun MeetingListScreen(
                 .padding(paddingValues)
                 .background(MaterialTheme.colorScheme.background)
         ) {
+            MeetingOfflinePendingSyncBanner(
+                pendingSync = pendingSync,
+                isOnline = isOnline,
+                modifier = Modifier.padding(16.dp)
+            )
             when {
                 state.isLoading && state.isEmpty -> {
                     Box(
@@ -174,7 +184,7 @@ fun MeetingListScreen(
 
                 state.isEmpty -> {
                     EmptyStateContent(
-                        isOrganizer = isOrganizer,
+                        canCreateMeetings = canCreateMeetings,
                         onCreateClick = { showCreateDialog = true }
                     )
                 }
@@ -183,7 +193,7 @@ fun MeetingListScreen(
                     MeetingsListContent(
                         state = state,
                         onDispatch = { viewModel.dispatch(it) },
-                        isOrganizer = isOrganizer,
+                        canMutateMeetings = canCreateMeetings,
                         onEditClick = { meeting ->
                             editingMeeting = meeting
                             showEditDialog = true
@@ -199,7 +209,7 @@ fun MeetingListScreen(
     }
 
     // Edit Meeting Dialog
-    if (showEditDialog && editingMeeting != null) {
+    if (!isReadOnly && showEditDialog && editingMeeting != null) {
         EditMeetingDialog(
             meeting = editingMeeting!!,
             onDismiss = {
@@ -221,7 +231,7 @@ fun MeetingListScreen(
     }
 
     // Generate Link Dialog
-    if (showGenerateLinkDialog && generatingMeeting != null) {
+    if (!isReadOnly && showGenerateLinkDialog && generatingMeeting != null) {
         GenerateLinkDialog(
             meeting = generatingMeeting!!,
             onDismiss = {
@@ -237,6 +247,38 @@ fun MeetingListScreen(
     }
 }
 
+@Composable
+private fun MeetingOfflinePendingSyncBanner(
+    pendingSync: Boolean,
+    isOnline: Boolean,
+    modifier: Modifier = Modifier
+) {
+    if (!pendingSync && isOnline) return
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.Sync, contentDescription = null)
+            Text(
+                text = when {
+                    pendingSync && !isOnline -> "Synchronisation en attente. Modifications locales en attente d'envoi."
+                    pendingSync -> "Modifications locales en attente d'envoi."
+                    else -> "Données locales disponibles hors ligne."
+                },
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+}
+
 /**
  * Meeting list content component
  */
@@ -244,7 +286,7 @@ fun MeetingListScreen(
 private fun MeetingsListContent(
     state: MeetingManagementContract.State,
     onDispatch: (MeetingManagementContract.Intent) -> Unit,
-    isOrganizer: Boolean,
+    canMutateMeetings: Boolean,
     onEditClick: (VirtualMeeting) -> Unit = {},
     onGenerateLinkClick: (VirtualMeeting) -> Unit = {}
 ) {
@@ -260,7 +302,7 @@ private fun MeetingsListContent(
             MeetingCard(
                 meeting = meeting,
                 onClick = { onDispatch(MeetingManagementContract.Intent.SelectMeeting(meeting.id)) },
-                isOrganizer = isOrganizer,
+                canMutateMeetings = canMutateMeetings,
                 onEditClick = onEditClick,
                 onGenerateLinkClick = onGenerateLinkClick
             )
@@ -275,7 +317,7 @@ private fun MeetingsListContent(
 private fun MeetingCard(
     meeting: VirtualMeeting,
     onClick: () -> Unit,
-    isOrganizer: Boolean,
+    canMutateMeetings: Boolean,
     onEditClick: (VirtualMeeting) -> Unit = {},
     onGenerateLinkClick: (VirtualMeeting) -> Unit = {}
 ) {
@@ -302,7 +344,7 @@ private fun MeetingCard(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = meeting.platform.name,
+                    text = platformDisplayLabel(meeting.platform),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -325,21 +367,21 @@ private fun MeetingCard(
             // Platform link (if exists)
             if (meeting.meetingUrl.isNotEmpty()) {
                 Text(
-                    text = "Link: ${meeting.meetingUrl}",
+                    text = "Lien : ${meeting.meetingUrl}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
 
-            // Actions for organizer
-            if (isOrganizer) {
+            // Actions for mutable organization state
+            if (canMutateMeetings) {
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedButton(onClick = { onEditClick(meeting) }) {
-                        Text("Edit")
+                        Text("Modifier")
                     }
 
                     Button(
@@ -348,7 +390,7 @@ private fun MeetingCard(
                             containerColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
-                        Text("Share Link")
+                        Text("Partager le lien")
                     }
                 }
             }
@@ -361,7 +403,7 @@ private fun MeetingCard(
  */
 @Composable
 private fun EmptyStateContent(
-    isOrganizer: Boolean,
+    canCreateMeetings: Boolean,
     onCreateClick: () -> Unit
 ) {
     Box(
@@ -375,10 +417,10 @@ private fun EmptyStateContent(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = if (isOrganizer) {
-                    "No meetings yet"
+                text = if (canCreateMeetings) {
+                    "Aucune réunion planifiée"
                 } else {
-                    "No meetings"
+                    "Aucune réunion"
                 },
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -387,16 +429,16 @@ private fun EmptyStateContent(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = if (isOrganizer) {
-                    "Create a meeting to get started with virtual collaboration"
+                text = if (canCreateMeetings) {
+                    "Créez une réunion virtuelle pour coordonner les participants."
                 } else {
-                    "When organizer creates a meeting, it will appear here"
+                    "Les réunions créées par l'organisateur apparaîtront ici."
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
-            if (isOrganizer) {
+            if (canCreateMeetings) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Button(
@@ -407,7 +449,7 @@ private fun EmptyStateContent(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Create Meeting")
+                    Text("Créer une réunion")
                 }
             }
         }
@@ -419,7 +461,32 @@ private fun EmptyStateContent(
  */
 private fun formatDateTime(instant: Instant): String {
     val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    return "${localDateTime.month.name.take(3)} ${localDateTime.dayOfMonth}, ${localDateTime.hour.toString().padStart(2, '0')}:${localDateTime.minute.toString().padStart(2, '0')}"
+    val frenchMonths = listOf(
+        "janv.",
+        "févr.",
+        "mars",
+        "avr.",
+        "mai",
+        "juin",
+        "juil.",
+        "août",
+        "sept.",
+        "oct.",
+        "nov.",
+        "déc."
+    )
+    val month = frenchMonths.getOrElse(localDateTime.monthNumber - 1) { "" }
+    val hour = localDateTime.hour.toString().padStart(2, '0')
+    val minute = localDateTime.minute.toString().padStart(2, '0')
+    return "${localDateTime.dayOfMonth} $month, $hour:$minute"
+}
+
+private fun platformDisplayLabel(platform: MeetingPlatform): String = when (platform) {
+    MeetingPlatform.ZOOM -> "Zoom"
+    MeetingPlatform.GOOGLE_MEET -> "Google Meet"
+    MeetingPlatform.FACETIME -> "FaceTime"
+    MeetingPlatform.TEAMS -> "Microsoft Teams"
+    MeetingPlatform.WEBEX -> "Webex"
 }
 
 /**
@@ -432,7 +499,7 @@ private fun formatDuration(duration: Duration): String {
 }
 
 /**
- * Edit Meeting Dialog
+ * Dialog for updating meeting details.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -447,7 +514,7 @@ private fun EditMeetingDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Meeting") },
+        title = { Text("Modifier la réunion") },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -455,7 +522,7 @@ private fun EditMeetingDialog(
                 OutlinedTextField(
                     value = title,
                     onValueChange = { title = it },
-                    label = { Text("Title") },
+                    label = { Text("Titre") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -474,7 +541,7 @@ private fun EditMeetingDialog(
                         val hours = input.removeSuffix("h").toIntOrNull() ?: 1
                         duration = hours.hours
                     },
-                    label = { Text("Duration (hours)") },
+                    label = { Text("Durée (heures)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -484,19 +551,19 @@ private fun EditMeetingDialog(
             Button(onClick = {
                 onConfirm(title, description, meeting.scheduledFor, duration)
             }) {
-                Text("Save")
+                Text("Enregistrer")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Annuler")
             }
         }
     )
 }
 
 /**
- * Generate Link Dialog
+ * Dialog for generating a meeting link.
  */
 @Composable
 private fun GenerateLinkDialog(
@@ -505,24 +572,25 @@ private fun GenerateLinkDialog(
     onGenerate: (MeetingPlatform) -> Unit
 ) {
     var selectedPlatform by remember { mutableStateOf(meeting.platform) }
+    val availablePlatforms = listOf(
+        MeetingPlatform.ZOOM to "Zoom",
+        MeetingPlatform.GOOGLE_MEET to "Google Meet",
+        MeetingPlatform.FACETIME to "FaceTime"
+    )
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Generate Meeting Link") },
+        title = { Text("Générer un lien de réunion") },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Select platform to generate a new meeting link:",
+                    text = "Choisissez la plateforme pour créer un nouveau lien de réunion :",
                     style = MaterialTheme.typography.bodyMedium
                 )
 
-                listOf(
-                    MeetingPlatform.ZOOM,
-                    MeetingPlatform.GOOGLE_MEET,
-                    MeetingPlatform.FACETIME
-                ).forEach { platform ->
+                availablePlatforms.forEach { (platform, label) ->
                     Button(
                         onClick = {
                             selectedPlatform = platform
@@ -537,14 +605,14 @@ private fun GenerateLinkDialog(
                             }
                         )
                     ) {
-                        Text(platform.name)
+                        Text(label)
                     }
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text("Fermer")
             }
         }
     )

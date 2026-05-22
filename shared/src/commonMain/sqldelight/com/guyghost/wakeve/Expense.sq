@@ -1,0 +1,46 @@
+-- Phase 5 shared expenses: local-first records with receipt metadata and sync state.
+CREATE TABLE expense (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    budgetId TEXT NOT NULL,
+    amount REAL NOT NULL,
+    category TEXT NOT NULL,
+    payerId TEXT NOT NULL,
+    splitParticipantIds TEXT NOT NULL,
+    receiptMetadata TEXT NOT NULL,
+    syncState TEXT NOT NULL,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE,
+    FOREIGN KEY (budgetId) REFERENCES budget(id) ON DELETE CASCADE
+);
+
+CREATE INDEX expense_eventId ON expense(eventId);
+CREATE INDEX expense_budgetId ON expense(budgetId);
+CREATE INDEX expense_payerId ON expense(payerId);
+
+selectAll:
+SELECT * FROM expense;
+
+selectById:
+SELECT * FROM expense WHERE id = ?;
+
+selectByEventId:
+SELECT * FROM expense WHERE eventId = ? ORDER BY createdAt DESC;
+
+selectByBudgetId:
+SELECT * FROM expense WHERE budgetId = ? ORDER BY createdAt DESC;
+
+insertExpense:
+INSERT INTO expense(
+    id, eventId, budgetId, amount, category, payerId,
+    splitParticipantIds, receiptMetadata, syncState, createdAt, updatedAt
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateSyncState:
+UPDATE expense
+SET syncState = ?, updatedAt = ?
+WHERE id = ?;
+
+deleteExpense:
+DELETE FROM expense WHERE id = ?;

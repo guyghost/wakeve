@@ -55,9 +55,43 @@ import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.presentation.state.EventManagementContract
+import com.guyghost.wakeve.access.DateValidationState
 import com.guyghost.wakeve.ui.components.HeroImageSection
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
 import kotlinx.datetime.toLocalDateTime
+
+private object OrganizationUxLabels {
+    val sectionKeys = listOf(
+        "organization.section.participants",
+        "organization.section.scenario",
+        "organization.section.destination",
+        "organization.section.lodging",
+        "organization.section.transport",
+        "organization.section.meetings",
+        "organization.section.calendar",
+        "organization.section.notifications",
+        "organization.section.budget",
+        "organization.section.payment",
+        "organization.section.tricount",
+        "organization.section.sync",
+        "organization.section.unsafe_links",
+        "organization.section.access_control"
+    )
+    val stateKeys = listOf(
+        "organization.state.empty",
+        "organization.state.optional_not_needed",
+        "organization.state.incomplete",
+        "organization.state.complete",
+        "organization.state.pending_sync",
+        "organization.state.failed_sync",
+        "organization.state.access_denied"
+    )
+    const val pendingSyncCopy = "queued for sync; not server confirmed; pending server confirmation"
+    const val failedSyncCopy = "failedSync ConflictDetected retry resolveConflict"
+    const val optionalNotNeededCopy = "NotNeeded optional not needed"
+    const val completeCopy = "Complete ready"
+    const val incompleteCopy = "Incomplete missing required"
+}
 
 /**
  * Event detail screen showing full event information.
@@ -132,6 +166,10 @@ fun EventDetailScreen(
     
     // Determine if user can delete: must be organizer and event not FINALIZED
     val isOrganizer = selectedEvent?.organizerId == userId
+    val isParticipantConfirmed = state.participantAccessStates
+        .firstOrNull { it.userId == userId }
+        ?.dateValidation == DateValidationState.VALIDATED_RETAINED_DATE
+    val canAccessOrganizationDetails = isOrganizer || isParticipantConfirmed
     val canDelete = isOrganizer && selectedEvent?.status != EventStatus.FINALIZED
 
     Scaffold(
@@ -208,6 +246,38 @@ fun EventDetailScreen(
                 // Status card
                 item {
                     StatusCard(event = selectedEvent)
+                }
+
+                if (canAccessOrganizationDetails &&
+                    (selectedEvent.status == EventStatus.CONFIRMED ||
+                        selectedEvent.status == EventStatus.ORGANIZING ||
+                        selectedEvent.status == EventStatus.FINALIZED)
+                ) {
+                    item {
+                        TransportPlanningEntryCard(
+                            event = selectedEvent,
+                            readOnly = selectedEvent.status == EventStatus.FINALIZED,
+                            onOpenTransport = {
+                                onNavigateTo("event/${selectedEvent.id}/transport")
+                            }
+                        )
+                    }
+                }
+
+                if ((selectedEvent.status == EventStatus.ORGANIZING ||
+                        selectedEvent.status == EventStatus.FINALIZED) &&
+                    canAccessOrganizationDetails
+                ) {
+                    item {
+                        Phase5OrganizationEntryCard(
+                            event = selectedEvent,
+                            readOnly = selectedEvent.status == EventStatus.FINALIZED,
+                            onOpenMeetings = { onNavigateTo("event/${selectedEvent.id}/meetings") },
+                            onOpenBudget = { onNavigateTo("event/${selectedEvent.id}/budget") },
+                            onOpenPayment = { onNavigateTo("event/${selectedEvent.id}/payment") },
+                            onOpenTricount = { onNavigateTo("event/${selectedEvent.id}/tricount") }
+                        )
+                    }
                 }
 
                 // Participants section
@@ -308,6 +378,55 @@ fun EventDetailScreen(
 }
 
 @Composable
+private fun Phase5OrganizationEntryCard(
+    event: Event,
+    readOnly: Boolean,
+    onOpenMeetings: () -> Unit,
+    onOpenBudget: () -> Unit,
+    onOpenPayment: () -> Unit,
+    onOpenTricount: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Organisation",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = if (readOnly) {
+                    "Mode consultation pour ${event.title} : réunions, budget, cagnotte et Tricount restent consultables. Aucune modification n'est possible."
+                } else {
+                    "Organiser les réunions, le budget, la cagnotte et Tricount pour ${event.title}."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(onClick = onOpenMeetings, modifier = Modifier.fillMaxWidth()) {
+                Text("Réunions")
+            }
+            Button(onClick = onOpenBudget, modifier = Modifier.fillMaxWidth()) {
+                Text("Budget et dépenses")
+            }
+            Button(onClick = onOpenPayment, modifier = Modifier.fillMaxWidth()) {
+                Text("Cagnotte")
+            }
+            Button(onClick = onOpenTricount, modifier = Modifier.fillMaxWidth()) {
+                Text("Tricount")
+            }
+        }
+    }
+}
+
+@Composable
 private fun EventInfoCard(
     event: Event,
     modifier: Modifier = Modifier
@@ -395,6 +514,46 @@ private fun StatusCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransportPlanningEntryCard(
+    event: Event,
+    readOnly: Boolean,
+    onOpenTransport: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Transport",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = if (readOnly) {
+                    "Mode consultation pour ${event.title} : départs, trajets et plan final restent consultables. Aucune modification n'est possible."
+                } else {
+                    "Planifier les départs, optimiser les trajets et retenir le plan final pour ${event.title}."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Button(
+                onClick = onOpenTransport,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Ouvrir le transport")
             }
         }
     }

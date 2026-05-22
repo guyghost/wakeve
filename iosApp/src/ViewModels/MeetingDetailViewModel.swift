@@ -9,7 +9,7 @@ import Shared
 /// ## Usage
 ///
 /// ```swift
-/// @StateObject private var viewModel = MeetingDetailViewModel(meetingId: "meeting-123")
+/// @StateObject private var viewModel = MeetingDetailViewModel(meetingId: "meeting-123", eventId: "event-123")
 ///
 /// var body: some View {
 ///     if viewModel.isLoading {
@@ -42,11 +42,17 @@ class MeetingDetailViewModel: StateMachineViewModel<
 
     /// The meeting ID passed to this view model
     private let meetingId: String
+    private let eventId: String
+    private let currentUserId: String
+    private let canMutateMeetings: Bool
 
     // MARK: - Initialization
 
-    init(meetingId: String) {
+    init(meetingId: String, eventId: String, currentUserId: String, canMutateMeetings: Bool) {
         self.meetingId = meetingId
+        self.eventId = eventId
+        self.currentUserId = currentUserId
+        self.canMutateMeetings = canMutateMeetings
 
         let database = RepositoryProvider.shared.database
         let wrapper = IosFactory.shared.createMeetingStateMachine(database: database)
@@ -56,11 +62,19 @@ class MeetingDetailViewModel: StateMachineViewModel<
         loadMeetings()
     }
 
+    convenience init(meetingId: String) {
+        self.init(meetingId: meetingId, eventId: meetingId, currentUserId: "anonymous-user", canMutateMeetings: false)
+    }
+
+    convenience init(meetingId: String, eventId: String) {
+        self.init(meetingId: meetingId, eventId: eventId, currentUserId: "anonymous-user", canMutateMeetings: false)
+    }
+
     // MARK: - Public Methods
 
     /// Load meetings
     func loadMeetings() {
-        dispatch(MeetingManagementContractIntentLoadMeetings(eventId: ""))
+        dispatch(MeetingManagementContractIntentLoadMeetings(eventId: eventId))
     }
 
     /// Update the meeting
@@ -81,13 +95,23 @@ class MeetingDetailViewModel: StateMachineViewModel<
     }
 
     /// Cancel the meeting
-    func cancelMeeting() {
-        dispatch(MeetingManagementContractIntentCancelMeeting(meetingId: meetingId))
+    func cancelMeeting(currentUserId: String? = nil) {
+        guard canMutateMeetings else { return }
+        let actorId = currentUserId ?? self.currentUserId
+        guard !actorId.isEmpty else { return }
+        dispatch(MeetingManagementContractIntentCancelMeeting(meetingId: meetingId, currentUserId: actorId))
         showDeleteConfirm = false
     }
 
     /// Generate a meeting link
-    func generateMeetingLink(platform: Shared.MeetingPlatform) {
+    func generateMeetingLink(
+        platform: Shared.MeetingPlatform,
+        currentUserId: String? = nil,
+        isOrganizer: Bool,
+        isReadOnly: Bool
+    ) {
+        let actorId = currentUserId ?? self.currentUserId
+        guard canMutateMeetings && isOrganizer && !isReadOnly && !actorId.isEmpty else { return }
         dispatch(MeetingManagementContractIntentGenerateMeetingLink(meetingId: meetingId, platform: platform))
     }
 
@@ -114,7 +138,7 @@ class MeetingDetailViewModel: StateMachineViewModel<
 
     // MARK: - Convenience Properties
 
-    var isOrganizer: Bool { true }
+    var isOrganizer: Bool { canMutateMeetings }
     var isLoaded: Bool { meeting != nil }
     var isEmpty: Bool { state.meetings.isEmpty }
     var isLoading: Bool { state.isLoading }

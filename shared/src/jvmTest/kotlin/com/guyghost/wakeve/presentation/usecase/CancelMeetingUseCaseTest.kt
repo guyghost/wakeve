@@ -6,6 +6,7 @@ import com.guyghost.wakeve.createFreshTestDatabase
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.meeting.MeetingRepository
 import com.guyghost.wakeve.meeting.MeetingService
+import com.guyghost.wakeve.meeting.MeetingStatus
 import com.guyghost.wakeve.models.EnhancedCalendarEvent
 import com.guyghost.wakeve.models.MeetingPlatform
 import com.guyghost.wakeve.notification.DefaultNotificationService
@@ -40,7 +41,7 @@ class CancelMeetingUseCaseTest {
             meetingService = meetingService,
             repository = MeetingRepository(database)
         )
-        seedConfirmedEvent()
+        seedOrganizingEvent()
     }
 
     @Test
@@ -69,16 +70,81 @@ class CancelMeetingUseCaseTest {
         assertFalse(result.isSuccess)
     }
 
+    @Test
+    fun `invoke rejects cancellation when current actor is not meeting organizer`() = runTest {
+        seedParticipant("participant-1")
+        val meeting = meetingService.createMeeting(
+            eventId = "event-1",
+            organizerId = "organizer-1",
+            platform = MeetingPlatform.ZOOM,
+            title = "Organizer owned meeting",
+            description = null,
+            scheduledFor = Clock.System.now(),
+            duration = 1.hours,
+            timezone = "UTC"
+        ).getOrThrow()
+
+        val result = useCase(meeting.id, organizerId = "participant-1")
+        val persistedMeeting = MeetingRepository(database).getMeetingById(meeting.id)
+
+        assertFalse(result.isSuccess, "A participant/non-organizer must not be able to cancel an organizer-owned meeting.")
+        assertTrue(
+            result.exceptionOrNull()?.message?.contains("organizer", ignoreCase = true) == true ||
+                result.exceptionOrNull()?.message?.contains("unauthorized", ignoreCase = true) == true,
+            "Cancellation failure should explain that the current actor is not authorized."
+        )
+        assertTrue(persistedMeeting != null, "Unauthorized cancellation must not delete the meeting.")
+        assertTrue(
+            persistedMeeting?.status == MeetingStatus.SCHEDULED,
+            "Unauthorized cancellation must leave the meeting scheduled."
+        )
+    }
+
+    @Test
+    fun `invoke rejects organizer cancellation when event is finalized read only`() = runTest {
+        val meeting = meetingService.createMeeting(
+            eventId = "event-1",
+            organizerId = "organizer-1",
+            platform = MeetingPlatform.ZOOM,
+            title = "Finalized event meeting",
+            description = null,
+            scheduledFor = Clock.System.now(),
+            duration = 1.hours,
+            timezone = "UTC"
+        ).getOrThrow()
+        database.eventQueries.updateEventStatus(
+            status = "FINALIZED",
+            updatedAt = "2026-01-01T01:00:00Z",
+            id = "event-1"
+        )
+
+        val result = useCase(meeting.id, organizerId = "organizer-1")
+        val persistedMeeting = MeetingRepository(database).getMeetingById(meeting.id)
+
+        assertFalse(result.isSuccess, "Even the real organizer must not cancel meetings after the event is FINALIZED/read-only.")
+        assertTrue(
+            result.exceptionOrNull()?.message?.contains("finalized", ignoreCase = true) == true ||
+                result.exceptionOrNull()?.message?.contains("read-only", ignoreCase = true) == true ||
+                result.exceptionOrNull()?.message?.contains("organizing", ignoreCase = true) == true,
+            "Cancellation failure should explain that the event is no longer mutable."
+        )
+        assertTrue(persistedMeeting != null, "Read-only cancellation must not delete the meeting.")
+        assertTrue(
+            persistedMeeting?.status == MeetingStatus.SCHEDULED,
+            "Read-only cancellation must leave the meeting scheduled."
+        )
+    }
+
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private fun seedConfirmedEvent() {
+    private fun seedOrganizingEvent() {
         val now = "2026-01-01T00:00:00Z"
         database.eventQueries.insertEvent(
             id = "event-1",
             organizerId = "organizer-1",
             title = "Test Event",
             description = "Description",
-            status = "CONFIRMED",
+            status = "ORGANIZING",
             deadline = now,
             createdAt = now,
             updatedAt = now,
@@ -97,6 +163,19 @@ class CancelMeetingUseCaseTest {
             eventId = "event-1",
             userId = "organizer-1",
             role = "ORGANIZER",
+            hasValidatedDate = 1L,
+            joinedAt = now,
+            updatedAt = now
+        )
+    }
+
+    private fun seedParticipant(userId: String) {
+        val now = "2026-01-01T00:00:00Z"
+        database.participantQueries.insertParticipant(
+            id = userId,
+            eventId = "event-1",
+            userId = userId,
+            role = "PARTICIPANT",
             hasValidatedDate = 1L,
             joinedAt = now,
             updatedAt = now

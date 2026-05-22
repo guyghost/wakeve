@@ -122,6 +122,8 @@ struct BudgetDetailView: View {
     private var listView: some View {
         List {
             // Summary header
+            BudgetSyncBanner(pendingSync: viewModel.pendingSync, isOnline: viewModel.isOnline)
+
             Section {
                 BudgetSummaryRow(
                     totalEstimated: totalEstimated,

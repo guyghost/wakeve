@@ -29,15 +29,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.access.ParticipantAccessMapper
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.presentation.participants.ParticipantManagementPresentationMapper
+import com.guyghost.wakeve.presentation.participants.ParticipantManagementRow
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import kotlinx.coroutines.launch
 
 data class ParticipantManagementState(
     val eventId: String = "",
     val newParticipantEmail: String = "",
-    val participants: List<String> = emptyList(),
+    val participants: List<ParticipantManagementRow> = emptyList(),
     val isError: Boolean = false,
     val errorMessage: String = ""
 )
@@ -53,7 +56,7 @@ fun ParticipantManagementScreen(
         mutableStateOf(
             ParticipantManagementState(
                 eventId = event.id,
-                participants = repository.getParticipants(event.id) ?: emptyList()
+                participants = loadParticipantRows(repository, event.id)
             )
         )
     }
@@ -116,7 +119,7 @@ fun ParticipantManagementScreen(
                                         errorMessage = "Email is required"
                                     )
                                 }
-                                state.participants.contains(email) -> {
+                                state.participants.any { it.userIdOrEmail == email } -> {
                                     state = state.copy(
                                         isError = true,
                                         errorMessage = "Participant already added"
@@ -133,7 +136,7 @@ fun ParticipantManagementScreen(
                                         val result = repository.addParticipant(event.id, email)
                                         if (result.isSuccess) {
                                             state = state.copy(
-                                                participants = state.participants + email,
+                                                participants = loadParticipantRows(repository, event.id),
                                                 newParticipantEmail = "",
                                                 isError = false
                                             )
@@ -188,7 +191,7 @@ fun ParticipantManagementScreen(
                     .padding(bottom = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(state.participants) { email ->
+                items(state.participants) { participant ->
                     Card(
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -200,9 +203,12 @@ fun ParticipantManagementScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column {
-                                Text(email, style = MaterialTheme.typography.bodyMedium)
                                 Text(
-                                    "Not yet voted",
+                                    participant.userIdOrEmail,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    participant.subtitleLabel(),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -210,7 +216,9 @@ fun ParticipantManagementScreen(
                             TextButton(
                                 onClick = {
                                     state = state.copy(
-                                        participants = state.participants.filter { it != email }
+                                        participants = state.participants.filter {
+                                            it.userIdOrEmail != participant.userIdOrEmail
+                                        }
                                     )
                                 }
                             ) {
@@ -272,3 +280,34 @@ fun ParticipantManagementScreen(
 private fun isValidEmail(email: String): Boolean {
     return email.contains("@") && email.contains(".")
 }
+
+private fun loadParticipantRows(
+    repository: EventRepositoryInterface,
+    eventId: String
+): List<ParticipantManagementRow> {
+    val participantRecords = repository.getParticipantRecords(eventId).orEmpty()
+    if (participantRecords.isNotEmpty()) {
+        return ParticipantManagementPresentationMapper.map(
+            participantRecords.map(ParticipantAccessMapper::fromRepositoryRecord)
+        )
+    }
+
+    return repository.getParticipants(eventId).orEmpty().map { participantId ->
+        ParticipantManagementRow(
+            userIdOrEmail = participantId,
+            roleLabel = "Member",
+            statusLabel = "Pending",
+            canAccessOrganizationDetails = false
+        )
+    }
+}
+
+private fun ParticipantManagementRow.detailsAccessLabel(): String =
+    if (canAccessOrganizationDetails) {
+        "Details unlocked"
+    } else {
+        "Details locked"
+    }
+
+private fun ParticipantManagementRow.subtitleLabel(): String =
+    "$roleLabel - $statusLabel - ${detailsAccessLabel()}"

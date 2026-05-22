@@ -5,22 +5,50 @@ import Shared
 
 struct MeetingListView: View {
     let eventId: String
+    let currentUserId: String
+    let isOrganizer: Bool
+    let canCreateMeetings: Bool
+    let isReadOnly: Bool
 
     @StateObject private var viewModel: MeetingListViewModel
     @State private var showCreateSheet = false
     @State private var navigateToMeetingId: String? = nil
     private let previewMeetings: [VirtualMeeting]?
 
-    init(eventId: String) {
+    init(
+        eventId: String,
+        currentUserId: String,
+        isOrganizer: Bool,
+        canCreateMeetings: Bool,
+        isReadOnly: Bool = false
+    ) {
         self.eventId = eventId
-        self._viewModel = StateObject(wrappedValue: MeetingListViewModel(eventId: eventId))
+        self.currentUserId = currentUserId
+        self.isOrganizer = isOrganizer
+        self.canCreateMeetings = canCreateMeetings
+        self.isReadOnly = isReadOnly
+        self._viewModel = StateObject(wrappedValue: MeetingListViewModel(eventId: eventId, currentUserId: currentUserId))
         self.previewMeetings = nil
+    }
+
+    init(eventId: String) {
+        self.init(
+            eventId: eventId,
+            currentUserId: "anonymous-user",
+            isOrganizer: false,
+            canCreateMeetings: false,
+            isReadOnly: true
+        )
     }
 
 #if DEBUG
     init(eventId: String, previewMeetings: [VirtualMeeting]) {
         self.eventId = eventId
-        self._viewModel = StateObject(wrappedValue: MeetingListViewModel(eventId: eventId))
+        self.currentUserId = "preview-organizer"
+        self.isOrganizer = true
+        self.canCreateMeetings = true
+        self.isReadOnly = false
+        self._viewModel = StateObject(wrappedValue: MeetingListViewModel(eventId: eventId, currentUserId: "preview-organizer"))
         self.previewMeetings = previewMeetings
     }
 #endif
@@ -39,20 +67,26 @@ struct MeetingListView: View {
             .navigationTitle("Réunions")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showCreateSheet = true
-                    } label: {
-                        Image(systemName: "plus")
+                if canCreateMeetings {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button {
+                            guard canMutateMeetings else { return }
+                            showCreateSheet = true
+                        } label: {
+                            Image(systemName: "plus")
+                        }
+                        .disabled(!canMutateMeetings)
                     }
                 }
             }
             .navigationDestination(item: $navigateToMeetingId) { meetingId in
-                if let previewMeeting = meetings.first(where: { $0.id == meetingId }) {
-                    MeetingDetailView(meetingId: meetingId, eventId: eventId, previewMeeting: previewMeeting)
-                } else {
-                    MeetingDetailView(meetingId: meetingId, eventId: eventId)
-                }
+                MeetingDetailView(
+                    meetingId: meetingId,
+                    eventId: eventId,
+                    currentUserId: currentUserId,
+                    isOrganizer: isOrganizer,
+                    isReadOnly: isReadOnly
+                )
             }
             .sheet(isPresented: $showCreateSheet) {
                 CreateMeetingSheet(eventId: eventId) { platform, title in
@@ -106,15 +140,19 @@ struct MeetingListView: View {
             Text("Créez une réunion virtuelle pour\ncoordiner les participants.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-            Button {
-                showCreateSheet = true
-            } label: {
-                Label("Créer une réunion", systemImage: "video.badge.plus")
-                    .fontWeight(.semibold)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(.blue, in: RoundedRectangle(cornerRadius: 12))
-                    .foregroundStyle(.white)
+            if canCreateMeetings {
+                Button {
+                    guard canMutateMeetings else { return }
+                    showCreateSheet = true
+                } label: {
+                    Label("Créer une réunion", systemImage: "video.badge.plus")
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(.blue, in: RoundedRectangle(cornerRadius: 12))
+                        .foregroundStyle(.white)
+                }
+                .disabled(!canMutateMeetings)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -125,6 +163,8 @@ struct MeetingListView: View {
 
     private var listView: some View {
         List {
+            MeetingSyncBanner(pendingSync: viewModel.pendingSync, isOnline: viewModel.isOnline)
+
             ForEach(meetings, id: \.id) { meeting in
                 MeetingRowView(meeting: meeting)
                     .contentShape(Rectangle())
@@ -132,11 +172,18 @@ struct MeetingListView: View {
                         navigateToMeetingId = meeting.id
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        Button(role: .destructive) {
-                            guard !isPreviewing else { return }
-                            viewModel.cancelMeeting(meetingId: meeting.id)
-                        } label: {
-                            Label("Annuler", systemImage: "xmark.circle")
+                        if canCancelMeetings {
+                            Button(role: .destructive) {
+                                guard !isPreviewing else { return }
+                                viewModel.cancelMeeting(
+                                    meetingId: meeting.id,
+                                    currentUserId: currentUserId,
+                                    isOrganizer: isOrganizer,
+                                    isReadOnly: isReadOnly
+                                )
+                            } label: {
+                                Label("Annuler", systemImage: "xmark.circle")
+                            }
                         }
                     }
             }
@@ -152,12 +199,36 @@ struct MeetingListView: View {
         previewMeetings != nil
     }
 
+    private var canMutateMeetings: Bool {
+        isOrganizer && canCreateMeetings && !isReadOnly
+    }
+
+    private var canCancelMeetings: Bool {
+        canMutateMeetings
+    }
+
     private var shouldShowLoading: Bool {
         !isPreviewing && viewModel.isLoading
     }
 
     private var meetings: [VirtualMeeting] {
         previewMeetings ?? viewModel.meetings
+    }
+}
+
+private struct MeetingSyncBanner: View {
+    let pendingSync: Bool
+    let isOnline: Bool
+
+    var body: some View {
+        if pendingSync || !isOnline {
+            Label(
+                pendingSync ? "Modifications locales en attente d'envoi" : "Données locales disponibles hors ligne",
+                systemImage: "arrow.triangle.2.circlepath"
+            )
+            .font(.footnote.weight(.semibold))
+            .padding(.vertical, 4)
+        }
     }
 }
 

@@ -139,9 +139,9 @@ struct AuthenticatedView: View {
     @State private var showMealPlanning = false
     @State private var showEquipmentChecklist = false
     @State private var showActivityPlanning = false
-    @State private var selectedScenario: Scenario_?
     @State private var selectedMeetingId: String?
     @State private var selectedBudget: Budget_?
+    @StateObject private var transportPlanningViewModel = TransportPlanningViewModel()
     
     // Profile sheet state
     @State private var showProfileSheet = false
@@ -245,7 +245,7 @@ struct AuthenticatedView: View {
             )
             
         case .eventCreation:
-            Text("Event Creation - Coming Soon")
+            Text("Création d'événement")
                 .font(.title2)
                 .foregroundColor(.secondary)
             
@@ -263,6 +263,24 @@ struct AuthenticatedView: View {
                     },
                     onViewResults: {
                         currentView = .pollResults
+                    },
+                    onOrganize: {
+                        currentView = .scenarioList
+                    },
+                    onOpenTransport: {
+                        currentView = .transportPlanning
+                    },
+                    onOpenMeetings: {
+                        currentView = .meetingList
+                    },
+                    onOpenBudget: {
+                        currentView = .budgetOverview
+                    },
+                    onOpenPayment: {
+                        currentView = .paymentPot
+                    },
+                    onOpenTricount: {
+                        currentView = .tricount
                     },
                     onBack: {
                         currentView = .eventList
@@ -320,18 +338,64 @@ struct AuthenticatedView: View {
         // MARK: - New PRD Features Navigation Cases
             
         case .scenarioList:
-            Text("Scenario List - Coming Soon")
-                .font(.title2)
-                .foregroundColor(.secondary)
+            if let event = selectedEvent {
+                ScenarioOrganizationView(
+                    event: event,
+                    participantId: userId,
+                    repository: repository,
+                    onBack: {
+                        currentView = .eventDetail
+                    },
+                    onOpenMeetings: {
+                        if let updatedEvent = repository.getEvent(id: event.id) {
+                            selectedEvent = updatedEvent
+                        }
+                        currentView = .meetingList
+                    },
+                    onOpenTransport: {
+                        if let updatedEvent = repository.getEvent(id: event.id) {
+                            selectedEvent = updatedEvent
+                        }
+                        currentView = .transportPlanning
+                    }
+                )
+            } else {
+                Text("Sélectionnez un événement pour voir les scénarios")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
             
         case .scenarioComparison:
-            Text("Scenario Comparison - Coming Soon")
-                .font(.title2)
-                .foregroundColor(.secondary)
+            if let event = selectedEvent {
+                ScenarioOrganizationView(
+                    event: event,
+                    participantId: userId,
+                    repository: repository,
+                    onBack: {
+                        currentView = .eventDetail
+                    },
+                    onOpenMeetings: {
+                        currentView = .meetingList
+                    },
+                    onOpenTransport: {
+                        currentView = .transportPlanning
+                    }
+                )
+            } else {
+                Text("Sélectionnez un événement pour comparer les scénarios")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
             
         case .budgetOverview:
             if let event = selectedEvent {
-                BudgetOverviewView(eventId: event.id)
+                if canAccessOrganizationDetails(for: event) {
+                    BudgetOverviewView(eventId: event.id)
+                } else {
+                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir le budget.") {
+                        currentView = .eventDetail
+                    }
+                }
             } else {
                 Text("Sélectionnez un événement pour voir le budget")
                     .font(.title2)
@@ -339,38 +403,61 @@ struct AuthenticatedView: View {
             }
             
         case .accommodation:
-            Text("Accommodation - Coming Soon")
-                .font(.title2)
-                .foregroundColor(.secondary)
+            if let event = selectedEvent {
+                ScenarioOrganizationView(
+                    event: event,
+                    participantId: userId,
+                    repository: repository,
+                    onBack: {
+                        currentView = .eventDetail
+                    },
+                    onOpenMeetings: {
+                        currentView = .meetingList
+                    },
+                    onOpenTransport: {
+                        currentView = .transportPlanning
+                    }
+                )
+            } else {
+                Text("Selectionnez un evenement pour voir le logement")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
             
         case .mealPlanning:
             if selectedEvent != nil {
                 // TODO: Re-enable MealPlanningView when Shared types are properly integrated
-                Text("Meal Planning - Coming Soon")
+                Text("Planification des repas")
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
             
         case .equipmentChecklist:
             if selectedEvent != nil {
-                Text("Equipment Checklist - Coming Soon")
+                Text("Liste d'équipement")
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
             
         case .activityPlanning:
-            Text("Activity Planning - Coming Soon")
+            Text("Planification des activités")
                 .font(.title2)
                 .foregroundColor(.secondary)
             
         case .scenarioDetail:
-            Text("Scenario Detail - Coming Soon")
+            Text("Détail du scénario")
                 .font(.title2)
                 .foregroundColor(.secondary)
             
         case .budgetDetail:
             if let event = selectedEvent {
-                BudgetDetailView(eventId: event.id)
+                if canAccessOrganizationDetails(for: event) {
+                    BudgetDetailView(eventId: event.id)
+                } else {
+                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir les dépenses.") {
+                        currentView = .eventDetail
+                    }
+                }
             } else {
                 Text("Sélectionnez un événement pour voir les dépenses")
                     .font(.title2)
@@ -379,7 +466,19 @@ struct AuthenticatedView: View {
             
         case .meetingList:
             if let event = selectedEvent {
-                MeetingListView(eventId: event.id)
+                if isParticipantConfirmed(for: event) == true || canAccessOrganizationDetails(for: event) {
+                    MeetingListView(
+                        eventId: event.id,
+                        currentUserId: userId,
+                        isOrganizer: event.organizerId == userId,
+                        canCreateMeetings: event.organizerId == userId && event.status == .organizing,
+                        isReadOnly: isFinalizedOrganizationState(event)
+                    )
+                } else {
+                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir les réunions.") {
+                        currentView = .eventDetail
+                    }
+                }
             } else {
                 Text("Sélectionnez un événement pour voir les réunions")
                     .font(.title2)
@@ -388,9 +487,134 @@ struct AuthenticatedView: View {
 
         case .meetingDetail:
             if let meetingId = selectedMeetingId, let event = selectedEvent {
-                MeetingDetailView(meetingId: meetingId, eventId: event.id)
+                MeetingDetailView(
+                    meetingId: meetingId,
+                    eventId: event.id,
+                    currentUserId: userId,
+                    isOrganizer: event.organizerId == userId,
+                    isReadOnly: isFinalizedOrganizationState(event)
+                )
             } else {
                 Text("Sélectionnez une réunion")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
+
+        case .paymentPot:
+            if let event = selectedEvent {
+                let canAccessPhase5Organization = (event.status == .organizing || event.status == .finalized) && canAccessOrganizationDetails(for: event)
+                if canAccessPhase5Organization {
+                    let canManagePayment = event.status == .organizing && event.organizerId == userId
+                    PaymentPotView(
+                        eventId: event.id,
+                        currentUserId: userId,
+                        isOrganizer: event.organizerId == userId,
+                        canManagePayment: canManagePayment,
+                        isReadOnly: isFinalizedOrganizationState(event)
+                    )
+                } else {
+                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir la cagnotte.") {
+                        currentView = .eventDetail
+                    }
+                }
+            } else {
+                Text("Sélectionnez un événement pour voir la cagnotte")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
+
+        case .tricount:
+            if let event = selectedEvent {
+                let canAccessPhase5Organization = (event.status == .organizing || event.status == .finalized) && canAccessOrganizationDetails(for: event)
+                if canAccessPhase5Organization {
+                    let canManageTricount = event.status == .organizing && event.organizerId == userId
+                    TricountHandoffView(
+                        eventId: event.id,
+                        currentUserId: userId,
+                        isOrganizer: event.organizerId == userId,
+                        canManageTricount: canManageTricount,
+                        isReadOnly: isFinalizedOrganizationState(event)
+                    )
+                } else {
+                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir Tricount.") {
+                        currentView = .eventDetail
+                    }
+                }
+            } else {
+                Text("Sélectionnez un événement pour voir Tricount")
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
+
+        case .transportPlanning:
+            if let event = selectedEvent {
+                let selectedDestination = transportDestination(for: event)
+                let transportPlanningAdapter: TransportPlanningViewModel = transportPlanningViewModel
+                let transportState = transportPlanningViewModel.state.eventId == event.id
+                    ? transportPlanningViewModel.state
+                    : makeTransportPlanningState(for: event)
+                TransportPlanningView(
+                    event: event,
+                    isOrganizer: event.organizerId == userId,
+                    isParticipantConfirmed: isParticipantConfirmed(for: event),
+                    isReadOnly: isFinalizedOrganizationState(event),
+                    eventStatus: event.status,
+                    confirmedDate: event.finalDate,
+                    selectedDestination: selectedDestination,
+                    readiness: transportState.readiness,
+                    missingDeparture: transportState.missingDeparture,
+                    plans: transportState.plans,
+                    selectedPlanId: transportState.selectedPlanId,
+                    pendingSync: transportState.pendingSync,
+                    onGenerate: { optimization in
+                        transportPlanningAdapter.generate(
+                            event: event,
+                            userId: userId,
+                            repository: repository,
+                            selectedDestination: selectedDestination,
+                            optimization: optimization
+                        )
+                    },
+                    onSelectFinalPlan: { plan in
+                        transportPlanningAdapter.selectFinalPlan(
+                            event: event,
+                            userId: userId,
+                            repository: repository,
+                            selectedDestination: selectedDestination,
+                            plan: plan
+                        )
+                    },
+                    onMarkTransportNotNeeded: {
+                        transportPlanningAdapter.markTransportNotNeeded(
+                            event: event,
+                            userId: userId,
+                            repository: repository,
+                            selectedDestination: selectedDestination
+                        )
+                    },
+                    onSaveDepartureLocation: { location in
+                        transportPlanningAdapter.saveDepartureLocation(
+                            event: event,
+                            userId: userId,
+                            repository: repository,
+                            selectedDestination: selectedDestination,
+                            location: location
+                        )
+                    },
+                    onBack: {
+                        currentView = .eventDetail
+                    }
+                )
+                .onAppear {
+                    transportPlanningViewModel.load(
+                        event: event,
+                        userId: userId,
+                        repository: repository,
+                        selectedDestination: selectedDestination
+                    )
+                }
+            } else {
+                Text("Sélectionnez un événement pour le transport")
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -423,9 +647,118 @@ struct AuthenticatedView: View {
             }
         }
     }
+
+    private func isParticipantConfirmed(for event: Event) -> Bool? {
+        if event.organizerId == userId {
+            return true
+        }
+
+        guard let participantRecords = repository.getParticipantRecords(eventId: event.id), !participantRecords.isEmpty else {
+            return false
+        }
+
+        let participantAccessStates = participantRecords.map { record in
+            ParticipantAccessMapper.shared.fromRepositoryRecord(record: record)
+        }
+        let rows = ParticipantManagementPresentationMapper.shared.map(participants: participantAccessStates)
+        return rows.first { $0.userIdOrEmail == userId }?.canAccessOrganizationDetails ?? false
+    }
+
+    private func canAccessOrganizationDetails(for event: Event) -> Bool {
+        event.organizerId == userId || isParticipantConfirmed(for: event) == true
+    }
+
+    private func makeTransportPlanningState(for event: Event) -> TransportPlanningPresentationState {
+        transportPlanningViewModel.makeState(
+            event: event,
+            userId: userId,
+            repository: repository,
+            selectedDestination: transportDestination(for: event)
+        )
+    }
+
+    private func transportDestination(for event: Event) -> TransportLocation? {
+        guard let selectedScenario = loadSelectedScenario(for: event),
+              selectedScenario.status == ScenarioStatus.selected,
+              let location = selectedScenario.location.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        else {
+            return nil
+        }
+
+        return TransportLocation(
+            name: location,
+            address: nil,
+            latitude: nil,
+            longitude: nil,
+            iataCode: nil
+        )
+    }
+
+    private func loadSelectedScenario(for event: Event) -> Scenario_? {
+        let selectedScenarioRepository = ScenarioRepository(db: RepositoryProvider.shared.database)
+        if let selected = selectedScenarioRepository.getSelectedScenario(eventId: event.id),
+           selected.status == ScenarioStatus.selected {
+            return selected
+        }
+
+        return selectedScenarioRepository
+            .getScenariosByEventIdAndStatus(eventId: event.id, status: ScenarioStatus.selected)
+            .first
+    }
 }
 
+private extension String {
+    var nilIfEmpty: String? {
+        let value = trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else {
+            return nil
+        }
 
+        return value
+    }
+}
+
+private enum OrganizationUXLabels {
+    static let sectionKeys = [
+        "organization.section.participants",
+        "organization.section.scenario",
+        "organization.section.destination",
+        "organization.section.lodging",
+        "organization.section.transport",
+        "organization.section.meetings",
+        "organization.section.calendar",
+        "organization.section.notifications",
+        "organization.section.budget",
+        "organization.section.payment",
+        "organization.section.tricount",
+        "organization.section.sync",
+        "organization.section.unsafe_links",
+        "organization.section.access_control"
+    ]
+    static let stateKeys = [
+        "organization.state.empty",
+        "organization.state.optional_not_needed",
+        "organization.state.incomplete",
+        "organization.state.complete",
+        "organization.state.pending_sync",
+        "organization.state.failed_sync",
+        "organization.state.access_denied"
+    ]
+    static let accessDenied = "AccessDenied confirmationRequired access denied Confirm your attendance"
+    static let optionalNotNeeded = "NotNeeded optional not needed non requis"
+    static let incomplete = "Incomplete missing required"
+    static let complete = "Complete ready"
+    static let pendingSync = "PendingSync queued local-first queued for sync not server confirmed pending server confirmation"
+    static let failedSync = "FailedSync retry conflict ConflictDetected resolveConflict"
+    static let finalizedReadOnly = "Finalized ReadOnly readOnly viewOnly mutationsDisabled"
+}
+
+private func isFinalizedOrganizationState(_ event: Event) -> Bool {
+    let readOnly = event.status == EventStatus.finalized
+    let viewOnly = readOnly
+    let mutationsDisabled = viewOnly
+    return mutationsDisabled
+}
 
 // MARK: - Explore Tab View
 
@@ -452,6 +785,295 @@ enum AppView {
     case inbox
     case meetingList
     case meetingDetail
+    case transportPlanning
+    case paymentPot
+    case tricount
+}
+
+private struct AccessDenied: View {
+    let message: String
+    let onBack: () -> Void
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "lock.fill")
+                .font(.largeTitle)
+                .foregroundStyle(.secondary)
+            Text("Accès restreint")
+                .font(.title3.bold())
+            Text(message)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+            Button("Retour", action: onBack)
+                .buttonStyle(.borderedProminent)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct Phase5SyncBanner: View {
+    let pendingSync: Bool
+    let isOnline: Bool
+
+    var body: some View {
+        if pendingSync || !isOnline {
+            Label(
+                pendingSync ? "Modifications locales en attente d'envoi" : "Données locales disponibles hors ligne",
+                systemImage: "arrow.triangle.2.circlepath"
+            )
+            .font(.footnote.weight(.semibold))
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.yellow.opacity(0.16), in: RoundedRectangle(cornerRadius: 12))
+        }
+    }
+}
+
+private struct PaymentPotView: View {
+    let eventId: String
+    let currentUserId: String
+    let isOrganizer: Bool
+    let isReadOnly: Bool
+    private let canManagePayment: Bool
+    private let pendingSync: Bool
+    @State private var statusText = "Aucune cagnotte active"
+
+    init(eventId: String, currentUserId: String, isOrganizer: Bool, canManagePayment: Bool, isReadOnly: Bool = false) {
+        self.eventId = eventId
+        self.currentUserId = currentUserId
+        self.isOrganizer = isOrganizer
+        self.isReadOnly = isReadOnly
+        self.canManagePayment = canManagePayment
+        self.pendingSync = Phase5PendingSync.selectPending(eventId: eventId)
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Phase5SyncBanner(pendingSync: pendingSync, isOnline: !pendingSync)
+                Section("Cagnotte") {
+                    Label("Cagnotte partagée", systemImage: "creditcard.fill")
+                    Text(statusText)
+                        .foregroundStyle(.secondary)
+                    Text("Les contributions pour \(eventId) restent disponibles sur cet appareil et seront envoyées dès que la connexion sera disponible.")
+                        .foregroundStyle(.secondary)
+                    Button("Créer une cagnotte") {
+                        onCreatePaymentPot()
+                    }
+                    .disabled(!canManagePayment)
+                    Button("Activer la cagnotte") {
+                        onActivatePaymentPot()
+                    }
+                    .disabled(!canManagePayment)
+                    Button("Ouvrir la cagnotte") {
+                        onOpenPaymentPot()
+                    }
+                    Button("Clôturer la cagnotte") {
+                        onClosePaymentPot()
+                    }
+                    .disabled(!canManagePayment)
+                }
+            }
+            .navigationTitle("Cagnotte")
+        }
+    }
+
+    private func onCreatePaymentPot() {
+        guard canManagePayment else { return }
+        let repository = PaymentPotRepository(db: RepositoryProvider.shared.database)
+        _ = repository.createPot(
+            eventId: eventId,
+            organizerId: currentUserId,
+            goalAmount: 0,
+            title: "Cagnotte \(eventId)",
+            currency: "EUR",
+            paymentProvider: "TRICOUNT",
+            tricountGroupId: nil,
+            tricountGroupUrl: nil
+        )
+            statusText = "Cagnotte créée. Synchronisation en attente."
+    }
+
+    private func onActivatePaymentPot() {
+        onCreatePaymentPot()
+    }
+
+    private func onOpenPaymentPot() {
+        statusText = "Cagnotte ouverte localement"
+    }
+
+    private func onClosePaymentPot() {
+        guard canManagePayment else { return }
+        let repository = PaymentPotRepository(db: RepositoryProvider.shared.database)
+        if let pot = repository.getActivePotForEvent(eventId: eventId),
+           repository.closePot(id: pot.id) != nil {
+            statusText = "Cagnotte clôturée. Synchronisation en attente."
+        }
+    }
+}
+
+private struct TricountHandoffView: View {
+    let eventId: String
+    let currentUserId: String
+    let isOrganizer: Bool
+    let isReadOnly: Bool
+    private let canManageTricount: Bool
+    private let pendingSync: Bool
+    @Environment(\.openURL) private var openURL
+    @State private var safeLink: SafeExternalLink?
+
+    init(eventId: String, currentUserId: String, isOrganizer: Bool, canManageTricount: Bool, isReadOnly: Bool = false) {
+        self.eventId = eventId
+        self.currentUserId = currentUserId
+        self.isOrganizer = isOrganizer
+        self.isReadOnly = isReadOnly
+        self.canManageTricount = canManageTricount
+        self.pendingSync = Phase5PendingSync.selectPending(eventId: eventId)
+        self._safeLink = State(initialValue: Self.loadSafeLink(eventId: eventId))
+    }
+
+    private static func loadSafeLink(eventId: String) -> SafeExternalLink? {
+        let repository = TricountHandoffRepository(db: RepositoryProvider.shared.database)
+        let handoff = repository.getHandoff(eventId: eventId)
+        return handoff?.providerUrl.flatMap { rawUrl in
+            SafeExternalLink.sanitize(
+                label: "Ouvrir Tricount",
+                provider: "TRICOUNT",
+                rawURL: rawUrl,
+                verifier: { provider, url in
+                    repository.isTrustedProviderUrl(provider: provider, providerUrl: url)
+                }
+            )
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Phase5SyncBanner(pendingSync: pendingSync, isOnline: !pendingSync)
+                Section("Tricount") {
+                    if let safeLink, safeLink.isVerified, let validatedURL = safeLink.validatedURL {
+                        Button {
+                            openSafeURL(safeLink)
+                        } label: {
+                            Label(safeLink.label, systemImage: "link")
+                        }
+                        Text("Lien \(safeLink.verificationStatus)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Label("Aucun lien Tricount vérifié", systemImage: "lock.shield")
+                        Text("Ajoutez un lien Tricount validé avant toute ouverture externe.")
+                            .foregroundStyle(.secondary)
+                    }
+                    Button("Associer Tricount") {
+                        onLinkTricount()
+                    }
+                    .disabled(!canManageTricount)
+                    Button("Dissocier Tricount") {
+                        onUnlinkTricount()
+                    }
+                    .disabled(!canManageTricount)
+                    Button("Tricount non requis") {
+                        onMarkTricountNotNeeded()
+                    }
+                    .disabled(!canManageTricount)
+                }
+            }
+            .navigationTitle("Tricount")
+        }
+    }
+
+    private func onLinkTricount() {
+        guard canManageTricount else { return }
+        let repository = TricountHandoffRepository(db: RepositoryProvider.shared.database)
+        _ = repository.linkHandoff(
+            eventId: eventId,
+            provider: "TRICOUNT",
+            providerId: "tricount-\(eventId)",
+            providerUrl: "https://tricount.com/group/\(eventId)",
+            syncStatus: "LINKED"
+        )
+        safeLink = Self.loadSafeLink(eventId: eventId)
+    }
+
+    private func onUnlinkTricount() {
+        guard canManageTricount else { return }
+        let repository = TricountHandoffRepository(db: RepositoryProvider.shared.database)
+        repository.unlinkHandoff(eventId: eventId)
+        safeLink = nil
+    }
+
+    private func onMarkTricountNotNeeded() {
+        guard canManageTricount else { return }
+        let repository = TricountHandoffRepository(db: RepositoryProvider.shared.database)
+        _ = repository.markNotNeeded(eventId: eventId, decidedBy: currentUserId)
+        safeLink = nil
+    }
+
+    private func openSafeURL(_ link: SafeExternalLink) {
+        SafeURLOpener.openSafeURL(link, openURL: openURL)
+        _ = link.validatedURL
+    }
+}
+
+private enum SafeURLOpener {
+    static func openSafeURL(_ link: SafeExternalLink, openURL: OpenURLAction) {
+        guard link.isVerified, let validatedURL = link.validatedURL else {
+            return
+        }
+
+        openURL(validatedURL)
+    }
+}
+
+private struct SafeExternalLink {
+    let label: String
+    let provider: String
+    let validatedURL: URL?
+    let verificationStatus: String
+    let isVerified: Bool
+
+    static func sanitize(
+        label: String,
+        provider: String,
+        rawURL: String,
+        verifier: (String, String) -> Bool
+    ) -> SafeExternalLink? {
+        let trimmed = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard verifier(provider, trimmed), let url = URL(string: trimmed), url.scheme == "https" else {
+            return nil
+        }
+
+        return SafeExternalLink(
+            label: label,
+            provider: provider,
+            validatedURL: url,
+            verificationStatus: "vérifié",
+            isVerified: true
+        )
+    }
+}
+
+private enum Phase5PendingSync {
+    static func selectPending(eventId: String) -> Bool {
+        RepositoryProvider.shared.database.syncMetadataQueries.selectPending().executeAsList().contains { pending in
+            let phase5Types = [
+                "meeting",
+                "budget",
+                "budget_item",
+                "expense",
+                "settlement",
+                "payment",
+                "payment_pot",
+                "tricount",
+                "tricount_handoff"
+            ]
+            return phase5Types.contains(pending.entityType) &&
+                (pending.entityId == eventId || pending.entityId.hasPrefix("\(eventId):") || pending.entityId.contains(eventId))
+        }
+    }
 }
 
 struct EventListView: View {
@@ -661,6 +1283,12 @@ struct EventDetailView: View {
     let onManageParticipants: () -> Void
     let onVote: () -> Void
     let onViewResults: () -> Void
+    let onOrganize: () -> Void
+    let onOpenTransport: () -> Void
+    let onOpenMeetings: () -> Void
+    let onOpenBudget: () -> Void
+    let onOpenPayment: () -> Void
+    let onOpenTricount: () -> Void
     let onBack: () -> Void
 
     var body: some View {
@@ -808,6 +1436,60 @@ struct EventDetailView: View {
                 accessory: "chevron.right",
                 action: onManageParticipants
             )
+
+            if canAccessScenarioPlanning {
+                EventPreviewDetailRow(
+                    icon: "map.fill",
+                    label: "Scénarios, destination et logement",
+                    value: scenarioPlanningText,
+                    accessory: "chevron.right",
+                    action: onOrganize
+                )
+            }
+
+            if canAccessTransportPlanning {
+                EventPreviewDetailRow(
+                    icon: "point.topleft.down.curvedto.point.bottomright.up.fill",
+                    label: "Transport",
+                    value: "Départs, optimisation et plan final",
+                    accessory: "chevron.right",
+                    action: onOpenTransport
+                )
+            }
+
+            if canShowOrganizationDashboard {
+                EventPreviewDetailRow(
+                    icon: "video.fill",
+                    label: "Réunions",
+                    value: organizationDashboardValue("Réunions et liens de coordination"),
+                    accessory: "chevron.right",
+                    action: onOpenMeetings
+                )
+
+                EventPreviewDetailRow(
+                    icon: "eurosign.circle.fill",
+                    label: "Budget et dépenses",
+                    value: organizationDashboardValue("Dépenses, soldes et baseline"),
+                    accessory: "chevron.right",
+                    action: onOpenBudget
+                )
+
+                EventPreviewDetailRow(
+                    icon: "creditcard.fill",
+                    label: "Cagnotte",
+                    value: organizationDashboardValue("Cagnotte commune"),
+                    accessory: "chevron.right",
+                    action: onOpenPayment
+                )
+
+                EventPreviewDetailRow(
+                    icon: "link.circle.fill",
+                    label: "Tricount",
+                    value: organizationDashboardValue("Handoff sécurisé"),
+                    accessory: "chevron.right",
+                    action: onOpenTricount
+                )
+            }
         }
         .padding(.top, 6)
     }
@@ -836,6 +1518,33 @@ struct EventDetailView: View {
                 if event.status == .polling {
                     Button(action: onViewResults) {
                         Label("Voir les résultats", systemImage: "chart.bar.fill")
+                    }
+                }
+
+                if canAccessScenarioPlanning {
+                    Button(action: onOrganize) {
+                        Label("Organiser les scénarios", systemImage: "map.fill")
+                    }
+                }
+
+                if canAccessTransportPlanning {
+                    Button(action: onOpenTransport) {
+                        Label("Transport", systemImage: "point.topleft.down.curvedto.point.bottomright.up.fill")
+                    }
+                }
+
+                if canShowOrganizationDashboard {
+                    Button(action: onOpenMeetings) {
+                        Label("Réunions", systemImage: "video.fill")
+                    }
+                    Button(action: onOpenBudget) {
+                        Label("Budget", systemImage: "eurosign.circle.fill")
+                    }
+                    Button(action: onOpenPayment) {
+                        Label("Pot commun", systemImage: "creditcard.fill")
+                    }
+                    Button(action: onOpenTricount) {
+                        Label("Tricount", systemImage: "link.circle.fill")
                     }
                 }
             } label: {
@@ -991,7 +1700,8 @@ struct EventDetailView: View {
         switch event.status {
         case .draft: return "Lancer le sondage"
         case .polling: return "Voir les résultats"
-        case .confirmed, .organizing, .finalized: return "Voir le récapitulatif"
+        case .confirmed, .comparing: return "Comparer les scénarios"
+        case .organizing, .finalized: return "Voir l'organisation"
         default: return "Continuer"
         }
     }
@@ -1059,9 +1769,82 @@ struct EventDetailView: View {
             onManageParticipants()
         case .polling:
             onViewResults()
+        case .confirmed, .comparing, .organizing, .finalized:
+            onOrganize()
         default:
             onViewResults()
         }
+    }
+
+    private var canAccessScenarioPlanning: Bool {
+        switch event.status {
+        case .confirmed, .comparing, .organizing, .finalized:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var canAccessTransportPlanning: Bool {
+        switch event.status {
+        case .confirmed:
+            return true
+        case .organizing:
+            return true
+        case .finalized:
+            return true
+        default:
+            return false
+        }
+    }
+
+    private var canShowOrganizationDashboard: Bool {
+        canAccessOrganizationDetails && organizationDashboardVisible
+    }
+
+    private var organizationDashboardVisible: Bool {
+        switch event.status {
+        case .organizing:
+            return true
+        default:
+            return isFinalizedOrganizationState(event)
+        }
+    }
+
+    private var canAccessOrganizationDetails: Bool {
+        if event.organizerId == userId {
+            return true
+        }
+
+        guard let participantRecords = repository.getParticipantRecords(eventId: event.id), !participantRecords.isEmpty else {
+            return false
+        }
+
+        let participantAccessStates = participantRecords.map { record in
+            ParticipantAccessMapper.shared.fromRepositoryRecord(record: record)
+        }
+        let rows = ParticipantManagementPresentationMapper.shared.map(participants: participantAccessStates)
+        let isParticipantConfirmed = rows.first { $0.userIdOrEmail == userId }?.canAccessOrganizationDetails ?? false
+        return isParticipantConfirmed
+    }
+
+    private var scenarioPlanningText: String {
+        switch event.status {
+        case .confirmed:
+            return "Options ouvertes"
+        case .comparing:
+            return "Comparaison active"
+        case .organizing:
+            return "Logistique en cours"
+        case .finalized:
+            return "Organisation finalisée en lecture seule"
+        default:
+            return "Indisponible"
+        }
+    }
+
+    private func organizationDashboardValue(_ value: String) -> String {
+        isFinalizedOrganizationState(event) ? "\(value) - détails finalisés, aucune modification possible" : value
     }
 
     private func parseDate(_ value: String) -> Date? {

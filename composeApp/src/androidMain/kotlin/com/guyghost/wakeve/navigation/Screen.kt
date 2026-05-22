@@ -54,13 +54,19 @@ sealed class Screen(val route: String) {
         fun createRoute(eventId: String) = "event/$eventId/scenarios/manage"
     }
     
-    // Budget Management
+    // Budget, Payment & Tricount Management
     data object BudgetOverview : Screen("event/{eventId}/budget") {
         fun createRoute(eventId: String) = "event/$eventId/budget"
     }
     data object BudgetDetail : Screen("event/{eventId}/budget/{budgetItemId}") {
         fun createRoute(eventId: String, budgetItemId: String) = 
             "event/$eventId/budget/$budgetItemId"
+    }
+    data object PaymentPot : Screen("event/{eventId}/payment") {
+        fun createRoute(eventId: String) = "event/$eventId/payment"
+    }
+    data object Tricount : Screen("event/{eventId}/tricount") {
+        fun createRoute(eventId: String) = "event/$eventId/tricount"
     }
     
     // Logistics & Planning
@@ -75,6 +81,9 @@ sealed class Screen(val route: String) {
     }
     data object ActivityPlanning : Screen("event/{eventId}/activities") {
         fun createRoute(eventId: String) = "event/$eventId/activities"
+    }
+    data object TransportPlanning : Screen("event/{eventId}/transport") {
+        fun createRoute(eventId: String) = "event/$eventId/transport"
     }
     
     // Communication

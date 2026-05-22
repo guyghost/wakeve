@@ -75,6 +75,14 @@ class ScenarioListViewModel: StateMachineViewModel<
         dispatch(ScenarioManagementContractIntentVoteScenario(scenarioId: scenarioId, vote: voteType))
     }
 
+    func selectScenarioAsFinal(eventId: String, scenarioId: String, userId: String) {
+        dispatch(ScenarioManagementContractIntentSelectScenarioAsFinal(
+            eventId: eventId,
+            scenarioId: scenarioId,
+            userId: userId
+        ))
+    }
+
     func compareScenarios(scenarioIds: [String]) {
         dispatch(ScenarioManagementContractIntentCompareScenarios(scenarioIds: scenarioIds))
     }
@@ -96,6 +104,8 @@ class ScenarioListViewModel: StateMachineViewModel<
     var isEmpty: Bool { scenarios.isEmpty }
     var isComparing: Bool { comparison != nil }
     var scenariosRanked: [ScenarioWithVotes] { state.getScenariosRanked() }
+    var eventStatus: EventStatus? { state.eventStatus }
+    var canSelectScenarioAsFinal: Bool { state.canSelectScenarioAsFinal() }
     var isLoading: Bool { state.isLoading }
     var hasError: Bool { state.hasError }
     var errorMessage: String? { state.error }

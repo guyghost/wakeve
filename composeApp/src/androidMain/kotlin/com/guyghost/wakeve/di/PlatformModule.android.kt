@@ -12,6 +12,7 @@ import com.guyghost.wakeve.auth.shell.services.GuestModeService
 import com.guyghost.wakeve.auth.shell.services.TokenStorage
 import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.ui.auth.AuthViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -76,6 +77,14 @@ fun platformModule(): Module = module {
     single<EventRepositoryInterface> {
         val database = get<WakeveDb>()
         DatabaseEventRepository(db = database, syncManager = null)
+    }
+
+    /**
+     * Provide ScenarioRepository for scenario comparison and final selection.
+     */
+    single {
+        val database = get<WakeveDb>()
+        ScenarioRepository(database)
     }
     
     // ========================================================================

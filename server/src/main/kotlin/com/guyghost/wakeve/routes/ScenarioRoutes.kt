@@ -1,7 +1,10 @@
 package com.guyghost.wakeve.routes
 
+import com.guyghost.wakeve.auth.userId
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.models.CreateScenarioRequest
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioResponse
 import com.guyghost.wakeve.models.ScenarioStatus
@@ -13,6 +16,8 @@ import com.guyghost.wakeve.models.ScenarioVotingResultResponse
 import com.guyghost.wakeve.models.ScenarioWithVotesResponse
 import com.guyghost.wakeve.models.UpdateScenarioRequest
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.delete
@@ -21,7 +26,7 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.put
 import io.ktor.server.routing.route
 
-fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository) {
+fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, database: WakeveDb) {
     route("/scenarios") {
         
         // GET /api/scenarios/{id} - Get specific scenario
@@ -36,6 +41,15 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository) 
                     HttpStatusCode.NotFound,
                     mapOf("error" to "Scenario not found")
                 )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!hasConfirmedScenarioAccess(database, scenario.eventId, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to scenario details")
+                    )
+                }
 
                 val response = ScenarioResponse(
                     id = scenario.id,
@@ -73,6 +87,22 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository) 
                     HttpStatusCode.NotFound,
                     mapOf("error" to "Scenario not found")
                 )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isScenarioOrganizer(database, existing.eventId, principal.userId)) {
+                    return@put call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can update scenarios")
+                    )
+                }
+
+                if (isScenarioFinalized(database, existing.eventId)) {
+                    return@put call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Finalized events are read-only")
+                    )
+                }
 
                 val now = java.time.Instant.now().toString()
                 val updated = existing.copy(
@@ -125,6 +155,26 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Scenario ID required")
                 )
+                val existing = repository.getScenarioById(scenarioId) ?: return@delete call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Scenario not found")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@delete call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isScenarioOrganizer(database, existing.eventId, principal.userId)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can delete scenarios")
+                    )
+                }
+
+                if (isScenarioFinalized(database, existing.eventId)) {
+                    return@delete call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Finalized events are read-only")
+                    )
+                }
 
                 val result = repository.deleteScenario(scenarioId)
                 if (result.isSuccess) {
@@ -150,8 +200,22 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Scenario ID required")
                 )
+                val scenario = repository.getScenarioById(scenarioId) ?: return@post call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Scenario not found")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
 
                 val request = call.receive<ScenarioVoteRequest>()
+                if (principal.userId != request.participantId ||
+                    !isConfirmedScenarioParticipant(database, scenario.eventId, request.participantId)
+                ) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to vote on this scenario")
+                    )
+                }
                 val voteType = try {
                     ScenarioVoteType.valueOf(request.vote)
                 } catch (e: IllegalArgumentException) {
@@ -200,6 +264,19 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Scenario ID required")
                 )
+                val scenario = repository.getScenarioById(scenarioId) ?: return@get call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Scenario not found or no votes yet")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!hasConfirmedScenarioAccess(database, scenario.eventId, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to scenario votes")
+                    )
+                }
 
                 val result = repository.getVotingResult(scenarioId)
                 if (result != null) {
@@ -240,6 +317,15 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!hasConfirmedScenarioAccess(database, eventId, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to scenario details")
+                    )
+                }
 
                 val scenarios = repository.getScenariosByEventId(eventId)
                 val responses = scenarios.map { scenario ->
@@ -274,6 +360,22 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isScenarioOrganizer(database, eventId, principal.userId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can create scenarios")
+                    )
+                }
+
+                if (!isScenarioCreationAllowed(database, eventId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Scenarios can only be created for CONFIRMED or COMPARING events")
+                    )
+                }
 
                 val request = call.receive<CreateScenarioRequest>()
                 val now = java.time.Instant.now().toString()
@@ -331,6 +433,15 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository) 
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!hasConfirmedScenarioAccess(database, eventId, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to scenario votes")
+                    )
+                }
 
                 val scenariosWithVotes = repository.getScenariosWithVotes(eventId)
                 val responses = scenariosWithVotes.map { swv ->
@@ -380,4 +491,40 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository) 
             }
         }
     }
+}
+
+private fun hasConfirmedScenarioAccess(database: WakeveDb, eventId: String, userId: String): Boolean {
+    return isScenarioOrganizer(database, eventId, userId) ||
+        isConfirmedScenarioParticipant(database, eventId, userId)
+}
+
+private fun isScenarioOrganizer(database: WakeveDb, eventId: String, userId: String): Boolean {
+    return database.eventQueries
+        .selectById(eventId)
+        .executeAsOneOrNull()
+        ?.organizerId == userId
+}
+
+private fun isConfirmedScenarioParticipant(database: WakeveDb, eventId: String, userId: String): Boolean {
+    val participant = database.participantQueries
+        .selectByEventIdAndUserId(eventId, userId)
+        .executeAsOneOrNull()
+
+    return participant?.hasValidatedDate == 1L
+}
+
+private fun isScenarioCreationAllowed(database: WakeveDb, eventId: String): Boolean {
+    val status = database.eventQueries
+        .selectById(eventId)
+        .executeAsOneOrNull()
+        ?.status
+
+    return status == EventStatus.CONFIRMED.name || status == EventStatus.COMPARING.name
+}
+
+private fun isScenarioFinalized(database: WakeveDb, eventId: String): Boolean {
+    return database.eventQueries
+        .selectById(eventId)
+        .executeAsOneOrNull()
+        ?.status == EventStatus.FINALIZED.name
 }

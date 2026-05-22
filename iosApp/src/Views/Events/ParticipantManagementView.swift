@@ -13,7 +13,7 @@ struct ParticipantManagementView: View {
     let onBack: () -> Void
 
     @State private var newParticipantEmail = ""
-    @State private var participants: [String] = []
+    @State private var participantRows: [ParticipantPresentationRow] = []
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showError = false
@@ -162,7 +162,7 @@ struct ParticipantManagementView: View {
                         Label("Réinitialiser l’invitation", systemImage: "arrow.counterclockwise")
                     }
 
-                    if event.status == .draft && !participants.isEmpty {
+                    if event.status == .draft && !participantRows.isEmpty {
                         Button {
                             Task { await startPoll() }
                         } label: {
@@ -254,7 +254,7 @@ struct ParticipantManagementView: View {
 
     @ViewBuilder
     private var participantsContent: some View {
-        if participants.isEmpty {
+        if participantRows.isEmpty {
             VStack(spacing: 18) {
                 Image(systemName: "person.crop.circle.badge.plus")
                     .font(.system(size: 54, weight: .semibold))
@@ -284,8 +284,8 @@ struct ParticipantManagementView: View {
             .clipShape(RoundedRectangle(cornerRadius: 24))
         } else {
             VStack(spacing: 10) {
-                ForEach(participants, id: \.self) { participant in
-                    ParticipantRowView(email: participant)
+                ForEach(participantRows) { participant in
+                    ParticipantRowView(participant: participant)
                 }
             }
         }
@@ -376,11 +376,11 @@ struct ParticipantManagementView: View {
     }
 
     private var participantCountText: String {
-        "\(participants.count) participant\(participants.count > 1 ? "s" : "")"
+        "\(participantRows.count) participant\(participantRows.count > 1 ? "s" : "")"
     }
 
     private var canStartPoll: Bool {
-        event.status == .draft && !participants.isEmpty
+        event.status == .draft && !participantRows.isEmpty
     }
 
     private var heroColors: [Color] {
@@ -424,11 +424,34 @@ struct ParticipantManagementView: View {
 
     private func loadParticipants() {
         if let previewParticipants {
-            participants = previewParticipants
+            participantRows = makeFallbackRows(from: previewParticipants)
             return
         }
 
-        participants = repository?.getParticipants(eventId: event.id) ?? event.participants
+        if let participantRecords = repository?.getParticipantRecords(eventId: event.id), !participantRecords.isEmpty {
+            let participantAccessStates = participantRecords.map { record in
+                ParticipantAccessMapper.shared.fromRepositoryRecord(record: record)
+            }
+            participantRows = ParticipantManagementPresentationMapper.shared
+                .map(participants: participantAccessStates)
+                .map { ParticipantPresentationRow(sharedRow: $0) }
+            return
+        }
+
+        let fallbackParticipants = repository?.getParticipants(eventId: event.id) ?? event.participants
+        participantRows = makeFallbackRows(from: fallbackParticipants)
+    }
+
+    private func makeFallbackRows(from participants: [String]) -> [ParticipantPresentationRow] {
+        participants.map { participant in
+            ParticipantPresentationRow(
+                id: participant,
+                email: participant,
+                roleLabel: participant == event.organizerId ? "Organizer" : "Member",
+                statusLabel: participant == event.organizerId ? "Confirmed" : "Pending",
+                canAccessOrganizationDetails: participant == event.organizerId
+            )
+        }
     }
 
     private func addParticipant() async {
@@ -447,7 +470,15 @@ struct ParticipantManagementView: View {
         isLoading = true
 
         guard let repository else {
-            participants.append(newParticipantEmail)
+            participantRows.append(
+                ParticipantPresentationRow(
+                    id: newParticipantEmail,
+                    email: newParticipantEmail,
+                    roleLabel: "Member",
+                    statusLabel: "Pending",
+                    canAccessOrganizationDetails: false
+                )
+            )
             newParticipantEmail = ""
             isLoading = false
             onParticipantsUpdated()
@@ -457,12 +488,11 @@ struct ParticipantManagementView: View {
         do {
             let participantEmail = newParticipantEmail
             _ = try await repository.addParticipant(eventId: event.id, participantId: participantEmail)
-            let updatedParticipants = repository.getParticipants(eventId: event.id) ?? []
+            loadParticipants()
 
-            if updatedParticipants.contains(participantEmail) {
+            if participantRows.contains(where: { $0.email == participantEmail }) {
                 isLoading = false
                 newParticipantEmail = ""
-                participants = updatedParticipants
                 onParticipantsUpdated()
             } else {
                 isLoading = false
@@ -555,29 +585,90 @@ struct ParticipantManagementView: View {
 
 // MARK: - Participant Row
 
-struct ParticipantRowView: View {
+private struct ParticipantPresentationRow: Identifiable, Equatable {
+    let id: String
     let email: String
+    let roleLabel: String
+    let statusLabel: String
+    let canAccessOrganizationDetails: Bool
+
+    init(
+        id: String,
+        email: String,
+        roleLabel: String,
+        statusLabel: String,
+        canAccessOrganizationDetails: Bool
+    ) {
+        self.id = id
+        self.email = email
+        self.roleLabel = roleLabel
+        self.statusLabel = statusLabel
+        self.canAccessOrganizationDetails = canAccessOrganizationDetails
+    }
+
+    init(sharedRow: ParticipantManagementRow) {
+        self.id = sharedRow.userIdOrEmail
+        self.email = sharedRow.userIdOrEmail
+        self.roleLabel = sharedRow.roleLabel
+        self.statusLabel = sharedRow.statusLabel
+        self.canAccessOrganizationDetails = sharedRow.canAccessOrganizationDetails
+    }
+}
+
+private struct ParticipantRowView: View {
+    let participant: ParticipantPresentationRow
 
     private var initials: String {
-        let components = email.components(separatedBy: "@")
+        let components = participant.email.components(separatedBy: "@")
         if let name = components.first, !name.isEmpty {
             return String(name.prefix(1).uppercased())
         }
-        return String(email.prefix(1).uppercased())
+        return String(participant.email.prefix(1).uppercased())
+    }
+
+    private var statusColor: Color {
+        switch participant.statusLabel {
+        case "Confirmed":
+            return WakeveColors.success
+        case "Declined":
+            return WakeveColors.error
+        default:
+            return WakeveColors.warning
+        }
+    }
+
+    private var accessIconName: String {
+        participant.canAccessOrganizationDetails ? "lock.open.fill" : "lock.fill"
+    }
+
+    private var accessColor: Color {
+        participant.canAccessOrganizationDetails ? WakeveColors.success : WakeveColors.onSurfaceVariant
+    }
+
+    private var subtitleText: String {
+        "\(participant.roleLabel) · \(participant.statusLabel)"
     }
 
     var body: some View {
         WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             WakeveListRow(
-                title: email,
-                subtitle: "Participant",
+                title: participant.email,
+                subtitle: subtitleText,
                 leading: {
                     WakeveAvatar(initials: initials, size: 52)
                 },
                 trailing: {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 24, weight: .semibold))
-                        .foregroundColor(WakeveColors.success)
+                    HStack(spacing: 10) {
+                        Circle()
+                            .fill(statusColor)
+                            .frame(width: 9, height: 9)
+
+                        Image(systemName: accessIconName)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(accessColor)
+                            .frame(width: 24, height: 24)
+                    }
+                    .accessibilityLabel(participant.canAccessOrganizationDetails ? "Détails déverrouillés" : "Détails verrouillés")
                 }
             )
         }
