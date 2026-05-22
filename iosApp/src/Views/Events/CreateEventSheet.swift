@@ -465,7 +465,7 @@ struct CreateEventSheet: View {
                             Text("Type d'événement")
                                 .font(WakeveTheme.Typography.tiny)
                                 .foregroundColor(secondaryTextColor)
-                            Text(selectedEventType == Shared.EventType.other ? "Choisir un type" : selectedEventType.displayName)
+                            Text(selectedEventType == Shared.EventType.other ? "Choisir un type" : eventTypeDisplayName(selectedEventType))
                                 .font(WakeveTheme.Typography.bodySemibold)
                                 .foregroundColor(selectedEventType == Shared.EventType.other ? placeholderTextColor : primaryTextColor)
                         }
@@ -613,7 +613,8 @@ struct CreateEventSheet: View {
     
     private func createEvent() {
         let iso = ISO8601DateFormatter()
-        let selectedDateString: String? = selectedDate.map { iso.string(from: $0) }
+        let selectedDateString: String? = selectedDate.map { _ in iso.string(from: selectedStartDateTime()) }
+        let proposedSlots = EventTimeSlotFactory.proposedSlots(from: selectedDateString)
 
         viewModel.createEvent(
             title: title,
@@ -629,12 +630,32 @@ struct CreateEventSheet: View {
             title: title,
             description: description.isEmpty ? "" : description,
             organizerId: userId,
+            proposedSlots: proposedSlots,
             status: .draft,
             eventType: selectedEventType,
             expectedParticipants: expectedParticipants.map { Int32($0) }
         )
         onEventCreated(event)
         dismiss()
+    }
+
+    private func selectedStartDateTime() -> Date {
+        guard !isAllDay else {
+            return startDate
+        }
+
+        let calendar = Calendar.current
+        let dateComponents = calendar.dateComponents([.year, .month, .day], from: startDate)
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: startTime)
+
+        var components = DateComponents()
+        components.year = dateComponents.year
+        components.month = dateComponents.month
+        components.day = dateComponents.day
+        components.hour = timeComponents.hour
+        components.minute = timeComponents.minute
+
+        return calendar.date(from: components) ?? startDate
     }
 }
 
@@ -896,6 +917,7 @@ struct EventPreviewSheet: View {
 
     @State private var mapPosition: MapCameraPosition = .automatic
     @State private var geocodedCoordinate: CLLocationCoordinate2D?
+    private let previewHeaderReservedHeight: CGFloat = 108
 
     var body: some View {
         VStack(spacing: 0) {
@@ -920,21 +942,23 @@ struct EventPreviewSheet: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
                         // Spacer for fixed header
-                        Color.clear.frame(height: 56)
+                        Color.clear.frame(height: previewHeaderReservedHeight)
 
                         // Event title
                         Text(title)
                             .font(.system(size: 34, weight: .bold))
                             .foregroundColor(.white)
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, 8)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.74)
+                            .padding(.horizontal, 64)
 
                         // EventType badge (if not default)
                         if eventType != Shared.EventType.other && eventType != Shared.EventType.custom {
                             HStack(spacing: 6) {
                                 Text(eventTypeEmoji(eventType))
                                     .font(.system(size: 14))
-                                Text(eventType.displayName)
+                                Text(eventTypeDisplayName(eventType))
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(.white)
                             }
@@ -1218,7 +1242,7 @@ struct EventTypePickerSheet: View {
                                 .font(.system(size: 24))
                                 .frame(width: 36)
 
-                            Text(type.displayName)
+                            Text(eventTypeDisplayName(type))
                                 .font(.system(size: 16))
                                 .foregroundColor(.primary)
 

@@ -33,17 +33,17 @@ struct PollResultsView: View {
         .onAppear {
             loadPollResults()
         }
-        .alert("Error", isPresented: $showError) {
+        .alert(String(localized: "common.error"), isPresented: $showError) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
-        .alert("Success", isPresented: $showSuccess) {
+        .alert(String(localized: "common.success"), isPresented: $showSuccess) {
             Button("OK", role: .cancel) {
                 onDateConfirmed(event.id)
             }
         } message: {
-            Text("Event date confirmed successfully!")
+            Text(String(localized: "poll.results.date_confirmed"))
         }
     }
 
@@ -127,7 +127,7 @@ struct PollResultsContentView: View {
                     .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
 
                     VStack(spacing: 8) {
-                        Text("Results")
+                        Text(String(localized: "poll.results.title"))
                             .font(.system(size: 34, weight: .bold))
                             .foregroundColor(.primary)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -158,7 +158,7 @@ struct PollResultsContentView: View {
 
                                 // Results List
                                 VStack(alignment: .leading, spacing: 12) {
-                                    Text("All Options")
+                                    Text(String(localized: "poll.results.all_options"))
                                         .font(.system(size: 20, weight: .semibold))
                                         .foregroundColor(.primary)
                                         .padding(.horizontal, 4)
@@ -177,7 +177,7 @@ struct PollResultsContentView: View {
                                 // Confirm Button
                                 if canConfirmDate, bestSlot != nil {
                                     WakeveActionButton(
-                                        "Confirm This Date",
+                                        String(localized: "poll.results.confirm_date"),
                                         systemImage: "checkmark",
                                         variant: .primary,
                                         isDisabled: isLoading,
@@ -194,11 +194,15 @@ struct PollResultsContentView: View {
                                         .padding(.top, 40)
 
                                     VStack(spacing: 8) {
-                                        Text("No Votes Yet")
+                                        Text(event.proposedSlots.isEmpty
+                                             ? String(localized: "poll.results.no_slots_title")
+                                             : String(localized: "poll.results.no_votes_title"))
                                             .font(.system(size: 24, weight: .bold))
                                             .foregroundColor(.primary)
 
-                                        Text("Waiting for participants to vote")
+                                        Text(event.proposedSlots.isEmpty
+                                             ? String(localized: "poll.results.no_slots_subtitle")
+                                             : String(localized: "poll.results.no_votes_subtitle"))
                                             .font(.system(size: 17))
                                             .foregroundColor(.secondary)
                                             .multilineTextAlignment(.center)
@@ -233,7 +237,7 @@ struct BestSlotCard: View {
                     .font(.system(size: 20))
                     .foregroundColor(.yellow)
                 
-                Text("Best Time")
+                Text(String(localized: "poll.results.best_time"))
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(.primary)
                 
@@ -268,7 +272,8 @@ struct BestSlotCard: View {
     private func formatDate(_ dateString: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
-            formatter.dateFormat = "EEEE, MMM d"
+            formatter.locale = Locale.current
+            formatter.setLocalizedDateFormatFromTemplate("EEEEdMMMM")
             return formatter.string(from: date)
         }
         return dateString
@@ -305,11 +310,11 @@ struct ConfirmedDateCard: View {
             
             // Title
             VStack(spacing: 8) {
-                Text("Date Confirmed!")
+                Text(String(localized: "poll.results.confirmed_title"))
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.primary)
                 
-                Text("The event date has been finalized")
+                Text(String(localized: "poll.results.confirmed_subtitle"))
                     .font(.system(size: 15))
                     .foregroundColor(.secondary)
             }
@@ -345,7 +350,8 @@ struct ConfirmedDateCard: View {
     private func formatDate(_ dateString: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
-            formatter.dateFormat = "EEEE, MMM d, yyyy"
+            formatter.locale = Locale.current
+            formatter.setLocalizedDateFormatFromTemplate("EEEEdMMMMy")
             return formatter.string(from: date)
         }
         return dateString
@@ -390,19 +396,19 @@ struct SlotResultCard: View {
             // Vote Breakdown
             HStack(spacing: 16) {
                 VoteCountBadge(
-                    label: "Available",
+                    label: String(localized: "poll.results.vote.yes"),
                     count: Int(score.yesCount),
                     color: .green
                 )
 
                 VoteCountBadge(
-                    label: "Maybe",
+                    label: String(localized: "poll.results.vote.maybe"),
                     count: Int(score.maybeCount),
                     color: .orange
                 )
 
                 VoteCountBadge(
-                    label: "No",
+                    label: String(localized: "poll.results.vote.no"),
                     count: Int(score.noCount),
                     color: .red
                 )
@@ -411,7 +417,7 @@ struct SlotResultCard: View {
 
                 // Total Score
                 VStack(spacing: 4) {
-                    Text("Score")
+                    Text(String(localized: "poll.results.score"))
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(.secondary)
                         .textCase(.uppercase)
@@ -429,7 +435,7 @@ struct SlotResultCard: View {
                         .font(.system(size: 12))
                         .foregroundColor(.yellow)
 
-                    Text("Most Popular")
+                    Text(String(localized: "poll.results.most_popular"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(.primary)
 
@@ -452,7 +458,8 @@ struct SlotResultCard: View {
     private func formatDate(_ dateString: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
-            formatter.dateFormat = "EEE, MMM d"
+            formatter.locale = Locale.current
+            formatter.setLocalizedDateFormatFromTemplate("EEEdMMM")
             return formatter.string(from: date)
         }
         return dateString
