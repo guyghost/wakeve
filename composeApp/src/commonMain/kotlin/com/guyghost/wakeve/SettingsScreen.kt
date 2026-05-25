@@ -113,7 +113,7 @@ fun SettingsScreen(
         sessions = listOf(
             SessionDisplayData(
                 id = currentSessionId,
-                deviceName = "Current Device",
+                deviceName = "Appareil actuel",
                 deviceId = "device-1",
                 ipAddress = "192.168.1.100",
                 createdAt = "2025-11-20T10:00:00Z",
@@ -148,7 +148,7 @@ fun SettingsScreen(
             onDismissRequest = { showRevokeAllDialog = false },
             title = { Text("Revoke All Other Sessions?") },
             text = {
-                Text("This will sign out all other devices. You will remain signed in on this device.")
+                Text("Tous les autres appareils seront déconnectés. Vous resterez connecté sur celui-ci.")
             },
             confirmButton = {
                 TextButton(
@@ -160,12 +160,12 @@ fun SettingsScreen(
                         }
                     }
                 ) {
-                    Text("Revoke All", color = MaterialTheme.colorScheme.error)
+                    Text("Tout révoquer", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showRevokeAllDialog = false }) {
-                    Text("Cancel")
+                    Text("Annuler")
                 }
             }
         )
@@ -175,9 +175,9 @@ fun SettingsScreen(
     sessionToRevoke?.let { session ->
         AlertDialog(
             onDismissRequest = { sessionToRevoke = null },
-            title = { Text("Revoke Session?") },
+            title = { Text("Révoquer la session ?") },
             text = {
-                Text("This will sign out ${session.deviceName}. This action cannot be undone.")
+                Text("${session.deviceName} sera déconnecté. Cette action est irréversible.")
             },
             confirmButton = {
                 TextButton(
@@ -189,12 +189,12 @@ fun SettingsScreen(
                         }
                     }
                 ) {
-                    Text("Revoke", color = MaterialTheme.colorScheme.error)
+                    Text("Révoquer", color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { sessionToRevoke = null }) {
-                    Text("Cancel")
+                    Text("Annuler")
                 }
             }
         )
@@ -257,7 +257,7 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "Active Sessions (${sessions.size})",
+                                "Sessions actives (${sessions.size})",
                                 style = MaterialTheme.typography.titleMedium
                             )
 
@@ -266,7 +266,7 @@ fun SettingsScreen(
                                     onClick = { showRevokeAllDialog = true }
                                 ) {
                                     Text(
-                                        "Revoke All Others",
+                                        "Révoquer les autres",
                                         color = MaterialTheme.colorScheme.error
                                     )
                                 }
@@ -310,7 +310,7 @@ fun SettingsScreen(
                     modifier = Modifier.padding(16.dp),
                     action = {
                         TextButton(onClick = { errorMessage = null }) {
-                            Text("Dismiss")
+                            Text("Fermer")
                         }
                     }
                 ) {
@@ -351,7 +351,7 @@ fun SessionCard(
                         if (session.isCurrent) {
                             AssistChip(
                                 onClick = {},
-                                label = { Text("Current", style = MaterialTheme.typography.labelSmall) },
+                                label = { Text("Actuelle", style = MaterialTheme.typography.labelSmall) },
                                 modifier = Modifier.padding(start = 8.dp),
                                 colors = AssistChipDefaults.assistChipColors(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -371,13 +371,13 @@ fun SessionCard(
                     }
 
                     Text(
-                        "Last active: ${formatTimestamp(session.lastAccessed)}",
+                        "Dernière activité : ${formatTimestamp(session.lastAccessed)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
 
                     Text(
-                        "Signed in: ${formatTimestamp(session.createdAt)}",
+                        "Connexion : ${formatTimestamp(session.createdAt)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -386,7 +386,7 @@ fun SessionCard(
                 if (!session.isCurrent) {
                     TextButton(onClick = onRevokeSession) {
                         Text(
-                            "Revoke",
+                            "Révoquer",
                             color = MaterialTheme.colorScheme.error
                         )
                     }

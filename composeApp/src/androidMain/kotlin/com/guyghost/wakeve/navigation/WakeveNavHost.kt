@@ -116,6 +116,14 @@ fun WakeveNavHost(
     onInboxUnreadCountChanged: ((Int) -> Unit)? = null
 ) {
     val context = LocalContext.current
+    fun navigateBackOrHome() {
+        if (!navController.navigateUp()) {
+            navController.navigate(Screen.Home.route) {
+                popUpTo(Screen.Home.route) { inclusive = false }
+                launchSingleTop = true
+            }
+        }
+    }
     
     NavHost(
         navController = navController,
@@ -400,7 +408,7 @@ fun WakeveNavHost(
                     }
                 },
                 onCancel = {
-                    navController.navigateUp()
+                    navigateBackOrHome()
                 }
             )
         }
@@ -423,7 +431,7 @@ fun WakeveNavHost(
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 },
                 onNavigateBack = {
-                    navController.navigateUp()
+                    navigateBackOrHome()
                 },
                 onShareInvite = { evtId, _ ->
                     navController.navigate(Screen.InvitationShare.createRoute(evtId))
@@ -454,7 +462,7 @@ fun WakeveNavHost(
                 eventTitle = eventTitle,
                 invitationCode = invitationCode,
                 onDismiss = {
-                    navController.navigateUp()
+                    navigateBackOrHome()
                 }
             )
         }
@@ -478,7 +486,7 @@ fun WakeveNavHost(
                     navController.navigate(Screen.PollVoting.createRoute(eventId))
                 },
                 onBack = {
-                    navController.navigateUp()
+                    navigateBackOrHome()
                 }
             )
         }
@@ -496,7 +504,7 @@ fun WakeveNavHost(
                     navController.navigate(Screen.PollResults.createRoute(eventId))
                 },
                 onBack = {
-                    navController.navigateUp()
+                    navigateBackOrHome()
                 }
             )
         }
@@ -516,7 +524,7 @@ fun WakeveNavHost(
                     }
                 },
                 onBack = {
-                    navController.navigateUp()
+                    navigateBackOrHome()
                 }
             )
         }

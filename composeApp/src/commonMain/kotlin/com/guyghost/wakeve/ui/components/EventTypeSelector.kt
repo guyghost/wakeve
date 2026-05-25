@@ -22,7 +22,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.R
 import com.guyghost.wakeve.models.EventType
 
 /**
@@ -51,20 +53,22 @@ fun EventTypeSelector(
     var expanded by remember { mutableStateOf(false) }
     
     Column(modifier = modifier) {
+        val selectedTypeName = eventTypeDisplayName(selectedType)
+
         // Dropdown button
         ExposedDropdownMenuBox(
             expanded = expanded,
             onExpandedChange = { if (enabled) expanded = it }
         ) {
             OutlinedTextField(
-                value = selectedType.displayName,
+                value = selectedTypeName,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Event Type") },
+                label = { Text(stringResource(R.string.event_type)) },
                 trailingIcon = {
                     Icon(
                         imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = "Select event type"
+                        contentDescription = stringResource(R.string.select_event_type)
                     )
                 },
                 modifier = Modifier
@@ -80,7 +84,7 @@ fun EventTypeSelector(
             ) {
                 EventType.entries.forEach { type ->
                     DropdownMenuItem(
-                        text = { Text(type.displayName) },
+                        text = { Text(eventTypeDisplayName(type)) },
                         onClick = {
                             onTypeSelected(type)
                             expanded = false
@@ -89,7 +93,7 @@ fun EventTypeSelector(
                             if (type == selectedType) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected"
+                                    contentDescription = stringResource(R.string.selected)
                                 )
                             }
                         }
@@ -105,9 +109,9 @@ fun EventTypeSelector(
             OutlinedTextField(
                 value = customTypeValue,
                 onValueChange = onCustomTypeChanged,
-                label = { Text("Custom Event Type") },
-                placeholder = { Text("e.g., Charity Gala, Product Launch") },
-                supportingText = { Text("Describe your event type") },
+                label = { Text(stringResource(R.string.custom_event_type)) },
+                placeholder = { Text(stringResource(R.string.custom_event_type_example)) },
+                supportingText = { Text(stringResource(R.string.custom_event_type_supporting)) },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = enabled,
                 singleLine = true,
@@ -116,12 +120,35 @@ fun EventTypeSelector(
             
             if (customTypeValue.isBlank()) {
                 Text(
-                    text = "Custom event type is required",
+                    text = stringResource(R.string.custom_event_type_required),
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(start = 16.dp, top = 4.dp)
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun eventTypeDisplayName(type: EventType): String {
+    return when (type) {
+        EventType.BIRTHDAY -> stringResource(R.string.event_type_birthday)
+        EventType.WEDDING -> stringResource(R.string.event_type_wedding)
+        EventType.TEAM_BUILDING -> stringResource(R.string.event_type_team_building)
+        EventType.CONFERENCE -> stringResource(R.string.event_type_conference)
+        EventType.WORKSHOP -> stringResource(R.string.event_type_workshop)
+        EventType.PARTY -> stringResource(R.string.event_type_party)
+        EventType.SPORTS_EVENT -> stringResource(R.string.event_type_sports_event)
+        EventType.CULTURAL_EVENT -> stringResource(R.string.event_type_cultural_event)
+        EventType.FAMILY_GATHERING -> stringResource(R.string.event_type_family_gathering)
+        EventType.SPORT_EVENT -> stringResource(R.string.event_type_sport_event)
+        EventType.OUTDOOR_ACTIVITY -> stringResource(R.string.event_type_outdoor_activity)
+        EventType.FOOD_TASTING -> stringResource(R.string.event_type_food_tasting)
+        EventType.TECH_MEETUP -> stringResource(R.string.event_type_tech_meetup)
+        EventType.WELLNESS_EVENT -> stringResource(R.string.event_type_wellness_event)
+        EventType.CREATIVE_WORKSHOP -> stringResource(R.string.event_type_creative_workshop)
+        EventType.CUSTOM -> stringResource(R.string.event_type_custom)
+        EventType.OTHER -> stringResource(R.string.event_type_other)
     }
 }

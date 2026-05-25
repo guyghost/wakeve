@@ -87,7 +87,7 @@ fun PotentialLocationsList(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Potential Locations",
+                        text = "Lieux potentiels",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -113,11 +113,11 @@ fun PotentialLocationsList(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "Add location",
+                        contentDescription = "Ajouter un lieu",
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Add")
+                    Text("Ajouter")
                 }
             }
             
@@ -144,12 +144,12 @@ fun PotentialLocationsList(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                         )
                         Text(
-                            text = "No locations yet",
+                            text = "Aucun lieu pour l'instant",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                         )
                         Text(
-                            text = "Add potential venues, cities, or regions",
+                            text = "Ajoutez des lieux, villes ou régions possibles",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
@@ -257,7 +257,7 @@ private fun LocationListItem(
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Remove location",
+                    contentDescription = "Retirer le lieu",
                     tint = MaterialTheme.colorScheme.error
                 )
             }

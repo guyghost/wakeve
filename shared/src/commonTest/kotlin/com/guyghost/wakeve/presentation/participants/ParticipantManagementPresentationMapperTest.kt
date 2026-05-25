@@ -19,8 +19,8 @@ class ParticipantManagementPresentationMapperTest {
         assertEquals(1, rows.size)
         val row = rows.single()
         assertEquals("organizer@example.com", row.userIdOrEmail)
-        assertEquals("Organizer", row.roleLabel)
-        assertEquals("Confirmed", row.statusLabel)
+        assertEquals("Organisateur", row.roleLabel)
+        assertEquals("Confirmé", row.statusLabel)
         assertTrue(row.canAccessOrganizationDetails)
     }
 
@@ -39,8 +39,8 @@ class ParticipantManagementPresentationMapperTest {
         assertEquals(1, rows.size)
         val row = rows.single()
         assertEquals("validated-member@example.com", row.userIdOrEmail)
-        assertEquals("Member", row.roleLabel)
-        assertEquals("Confirmed", row.statusLabel)
+        assertEquals("Membre", row.roleLabel)
+        assertEquals("Confirmé", row.statusLabel)
         assertTrue(row.canAccessOrganizationDetails)
     }
 
@@ -53,8 +53,8 @@ class ParticipantManagementPresentationMapperTest {
         assertEquals(1, rows.size)
         val row = rows.single()
         assertEquals("pending-member@example.com", row.userIdOrEmail)
-        assertEquals("Member", row.roleLabel)
-        assertEquals("Pending", row.statusLabel)
+        assertEquals("Membre", row.roleLabel)
+        assertEquals("En attente", row.statusLabel)
         assertFalse(row.canAccessOrganizationDetails)
     }
 
@@ -73,8 +73,8 @@ class ParticipantManagementPresentationMapperTest {
         assertEquals(1, rows.size)
         val row = rows.single()
         assertEquals("unvalidated-member@example.com", row.userIdOrEmail)
-        assertEquals("Member", row.roleLabel)
-        assertEquals("Pending", row.statusLabel)
+        assertEquals("Membre", row.roleLabel)
+        assertEquals("En attente", row.statusLabel)
         assertFalse(row.canAccessOrganizationDetails)
     }
 
@@ -87,8 +87,8 @@ class ParticipantManagementPresentationMapperTest {
         assertEquals(1, rows.size)
         val row = rows.single()
         assertEquals("declined-member@example.com", row.userIdOrEmail)
-        assertEquals("Member", row.roleLabel)
-        assertEquals("Declined", row.statusLabel)
+        assertEquals("Membre", row.roleLabel)
+        assertEquals("Refusé", row.statusLabel)
         assertFalse(row.canAccessOrganizationDetails)
     }
 }

@@ -230,7 +230,6 @@ class EventManagementStateMachine(
                 // Refresh events list
                 loadEvents()
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event created successfully"))
-                emitSideEffect(EventManagementContract.SideEffect.NavigateBack)
             },
             onFailure = { error ->
                 val errorMessage = error.message ?: "Failed to create event"
@@ -261,12 +260,12 @@ class EventManagementStateMachine(
 
         updateState { it.copy(isLoading = true, error = null) }
 
-        val result = eventRepository.updateEvent(event)
+        val result = eventRepository.saveEvent(event)
 
         result.fold(
             onSuccess = {
                 // Update in state
-                val updatedEvents = currentState.events.map { if (it.id == event.id) event else it }
+                val updatedEvents = currentState.events.filterNot { it.id == event.id } + event
                 updateState { it.copy(isLoading = false, events = updatedEvents, selectedEvent = event) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event updated successfully"))
             },

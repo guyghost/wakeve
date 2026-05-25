@@ -311,6 +311,7 @@ fun InboxScreen(
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             LargeTopAppBar(
                 title = {
@@ -319,7 +320,7 @@ fun InboxScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = if (isSelectionMode) "${selectedIds.size} sélectionné(s)" else "Inbox",
+                            text = if (isSelectionMode) "${selectedIds.size} sélectionné(s)" else "Notifications",
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -486,12 +487,16 @@ fun InboxScreen(
             PullToRefreshBox(
                 isRefreshing = isRefreshing,
                 onRefresh = { refresh() },
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
             ) {
                 when {
                     isLoading -> {
                         Box(
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background),
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator()

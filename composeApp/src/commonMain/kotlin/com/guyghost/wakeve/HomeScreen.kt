@@ -82,7 +82,6 @@ import com.guyghost.wakeve.theme.HomeTextPrimaryDark
 import com.guyghost.wakeve.theme.HomeTextPrimaryLight
 import com.guyghost.wakeve.theme.HomeTextSecondaryDark
 import com.guyghost.wakeve.theme.HomeTextSecondaryLight
-import com.guyghost.wakeve.ui.screens.CreateEventScreen
 import kotlinx.datetime.toLocalDateTime
 
 enum class HomeEventFilter(
@@ -182,7 +181,6 @@ fun HomeScreen(
     var showMenu by remember { mutableStateOf(false) }
     var showFilterDropdown by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf(HomeEventFilter.UPCOMING) }
-    var showCreateEventScreen by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.dispatch(EventManagementContract.Intent.LoadEvents)
@@ -238,7 +236,7 @@ fun HomeScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { showCreateEventScreen = true },
+                        onClick = { onNavigateTo("event_creation") },
                         modifier = Modifier
                             .size(40.dp)
                             .background(
@@ -353,25 +351,11 @@ fun HomeScreen(
         )
     }
     
-    // Create Event Screen (Full screen)
-    if (showCreateEventScreen) {
-        CreateEventScreen(
-            userId = "currentUser", // TODO: Get from auth state
-            userName = "Utilisateur",
-            onClose = { showCreateEventScreen = false },
-            onEventCreated = { event ->
-                viewModel.dispatch(
-                    EventManagementContract.Intent.CreateEvent(event)
-                )
-                showCreateEventScreen = false
-            }
-        )
-    }
 }
 
-private fun filterEvents(events: List<Event>, filter: HomeEventFilter): List<Event> {
+internal fun filterEvents(events: List<Event>, filter: HomeEventFilter): List<Event> {
     return when (filter) {
-        HomeEventFilter.UPCOMING -> events.filter { it.status != EventStatus.FINALIZED && it.status != EventStatus.DRAFT }
+        HomeEventFilter.UPCOMING -> events.filter { it.status != EventStatus.FINALIZED }
         HomeEventFilter.PAST -> events.filter { it.status == EventStatus.FINALIZED }
         HomeEventFilter.DRAFTS -> events.filter { it.status == EventStatus.DRAFT }
         HomeEventFilter.ORGANIZED_BY_ME -> events.filter { it.organizerId == "currentUser" }

@@ -70,12 +70,12 @@ fun ParticipantManagementScreen(
             .padding(16.dp)
     ) {
         Text(
-            "Manage Participants",
+            "Gérer les participants",
             style = MaterialTheme.typography.headlineLarge,
             modifier = Modifier.padding(bottom = 8.dp)
         )
         Text(
-            "Event: ${event.title}",
+            "Événement : ${event.title}",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 24.dp)
@@ -89,7 +89,7 @@ fun ParticipantManagementScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Add Participant",
+                    "Ajouter un participant",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
@@ -116,19 +116,19 @@ fun ParticipantManagementScreen(
                                 email.isEmpty() -> {
                                     state = state.copy(
                                         isError = true,
-                                        errorMessage = "Email is required"
+                                        errorMessage = "L'e-mail est requis"
                                     )
                                 }
                                 state.participants.any { it.userIdOrEmail == email } -> {
                                     state = state.copy(
                                         isError = true,
-                                        errorMessage = "Participant already added"
+                                        errorMessage = "Participant déjà ajouté"
                                     )
                                 }
                                 !isValidEmail(email) -> {
                                     state = state.copy(
                                         isError = true,
-                                        errorMessage = "Invalid email format"
+                                        errorMessage = "Format d'e-mail invalide"
                                     )
                                 }
                                 else -> {
@@ -143,7 +143,7 @@ fun ParticipantManagementScreen(
                                         } else {
                                             state = state.copy(
                                                 isError = true,
-                                                errorMessage = result.exceptionOrNull()?.message ?: "Failed to add participant"
+                                                errorMessage = result.exceptionOrNull()?.message ?: "Impossible d'ajouter le participant"
                                             )
                                         }
                                     }
@@ -154,7 +154,7 @@ fun ParticipantManagementScreen(
                             .align(Alignment.CenterVertically)
                             .height(56.dp)
                     ) {
-                        Text("Add")
+                        Text("Ajouter")
                     }
                 }
 
@@ -222,7 +222,7 @@ fun ParticipantManagementScreen(
                                     )
                                 }
                             ) {
-                                Text("Remove")
+                                Text("Retirer")
                             }
                         }
                     }
@@ -236,7 +236,7 @@ fun ParticipantManagementScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    "No participants added yet",
+                "Aucun participant ajouté",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -256,7 +256,7 @@ fun ParticipantManagementScreen(
                     .height(48.dp),
                 colors = ButtonDefaults.outlinedButtonColors()
             ) {
-                Text("Back")
+                Text("Retour")
             }
             Button(
                 onClick = {
@@ -271,7 +271,7 @@ fun ParticipantManagementScreen(
                     .height(48.dp),
                 enabled = state.participants.isNotEmpty()
             ) {
-                Text("Start Poll")
+                Text("Démarrer le sondage")
             }
         }
     }
@@ -295,8 +295,8 @@ private fun loadParticipantRows(
     return repository.getParticipants(eventId).orEmpty().map { participantId ->
         ParticipantManagementRow(
             userIdOrEmail = participantId,
-            roleLabel = "Member",
-            statusLabel = "Pending",
+            roleLabel = "Membre",
+            statusLabel = "En attente",
             canAccessOrganizationDetails = false
         )
     }
@@ -304,9 +304,9 @@ private fun loadParticipantRows(
 
 private fun ParticipantManagementRow.detailsAccessLabel(): String =
     if (canAccessOrganizationDetails) {
-        "Details unlocked"
+        "Détails débloqués"
     } else {
-        "Details locked"
+        "Détails verrouillés"
     }
 
 private fun ParticipantManagementRow.subtitleLabel(): String =

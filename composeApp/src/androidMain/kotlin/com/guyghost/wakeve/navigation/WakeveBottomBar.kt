@@ -48,9 +48,9 @@ fun WakeveBottomBar(
         ),
         BottomNavItem(
             screen = Screen.Inbox,
-            label = "Inbox",
+            label = "Notifications",
             icon = Icons.Filled.Inbox,
-            contentDescription = "Inbox - Notifications, tâches et messages"
+            contentDescription = "Notifications - Notifications, tâches et messages"
         ),
         BottomNavItem(
             screen = Screen.Explore,
