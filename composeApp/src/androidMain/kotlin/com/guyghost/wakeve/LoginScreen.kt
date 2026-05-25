@@ -29,10 +29,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import android.content.Intent
 import android.net.Uri
+import com.guyghost.wakeve.R
 
 /**
  * State for the login screen.
@@ -93,14 +95,14 @@ fun LoginScreen(
 
             // Welcome Text
             Text(
-                text = "Welcome to Wakeve",
+                text = stringResource(R.string.welcome_to_wakeve),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center
             )
 
             Text(
-                text = "Collaborative event planning made easy",
+                text = stringResource(R.string.auth_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center,
@@ -116,7 +118,7 @@ fun LoginScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Signing in...",
+                    text = stringResource(R.string.signing_in),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     modifier = Modifier.padding(top = 16.dp)
@@ -167,7 +169,7 @@ fun LoginScreen(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "Sign-in Failed",
+                            text = stringResource(R.string.sign_in_failed),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
@@ -187,7 +189,7 @@ fun LoginScreen(
                             ),
                             modifier = Modifier.align(Alignment.End)
                         ) {
-                            Text("Try Again")
+                            Text(stringResource(R.string.try_again))
                         }
                     }
                 }
@@ -202,7 +204,7 @@ fun LoginScreen(
                 modifier = Modifier.padding(bottom = 16.dp)
             ) {
                 Text(
-                    text = "By signing in, you agree to our",
+                    text = stringResource(R.string.sign_in_terms_prefix),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
@@ -216,12 +218,12 @@ fun LoginScreen(
                         }
                     ) {
                         Text(
-                            text = "Privacy Policy",
+                            text = stringResource(R.string.privacy_policy),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
                     Text(
-                        text = " and ",
+                        text = stringResource(R.string.and_separator),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                         modifier = Modifier.align(Alignment.CenterVertically)
@@ -233,7 +235,7 @@ fun LoginScreen(
                         }
                     ) {
                         Text(
-                            text = "Terms of Service",
+                            text = stringResource(R.string.terms_of_service),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -293,7 +295,7 @@ fun LoadingScreen(modifier: Modifier = Modifier) {
             )
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-                text = "Loading...",
+                text = stringResource(R.string.loading),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
             )
@@ -332,7 +334,7 @@ fun ErrorScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Something went wrong",
+                    text = stringResource(R.string.generic_error_title),
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onErrorContainer,
                     textAlign = TextAlign.Center
@@ -351,10 +353,9 @@ fun ErrorScreen(
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Retry")
+                    Text(stringResource(R.string.retry))
                 }
             }
         }
     }
 }
-

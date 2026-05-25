@@ -1,6 +1,8 @@
 package com.guyghost.wakeve
 
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -33,6 +35,7 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
+import java.util.Locale
 
 class MainActivity : ComponentActivity(), AuthCallbacks {
 
@@ -78,6 +81,12 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
                 showToast("Erreur lors de la connexion Google: ${e.message}")
             }
         }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val config = Configuration(newBase.resources.configuration)
+        config.setLocale(Locale.FRANCE)
+        super.attachBaseContext(newBase.createConfigurationContext(config))
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -147,10 +147,10 @@ fun TimeSlotInputAndroid(
     
     // Format helpers
     val dateFormatter = remember { 
-        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault())
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.FRENCH)
     }
     val timeFormatter = remember {
-        DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.getDefault())
+        DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.FRENCH)
     }
     
     fun formatDate(date: LocalDate): String {

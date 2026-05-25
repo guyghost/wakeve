@@ -139,34 +139,33 @@ fun DraftEventWizard(
         stringResource(R.string.step_preview)
     )
     
+    val eventFactory = remember(initialEvent) {
+        DraftEventWizardEventFactory(
+            initialEvent = initialEvent,
+            generatedId = "event-${Clock.System.now().toEpochMilliseconds()}",
+            nowIso = { Clock.System.now().toString() }
+        )
+    }
+
     // Formatters for preview
     val dateFormatter = remember { 
-        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault())
+        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.FRENCH)
     }
     val timeFormatter = remember {
-        DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.getDefault())
+        DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.FRENCH)
     }
     
     // Build current event
-    fun buildEvent(): Event {
-        val participantCountInt = participantCount.toIntOrNull()
-        return Event(
-            id = initialEvent?.id ?: "event-${Clock.System.now().toEpochMilliseconds()}",
+    fun buildEvent(status: EventStatus = EventStatus.DRAFT): Event {
+        return eventFactory.buildEvent(
+            userId = userId,
             title = title,
             description = description,
-            organizerId = initialEvent?.organizerId ?: userId,
-            participants = initialEvent?.participants ?: emptyList(),
-            proposedSlots = timeSlots,
-            deadline = initialEvent?.deadline ?: Clock.System.now().toString(), // TODO: Set proper deadline
-            status = EventStatus.DRAFT,
-            createdAt = initialEvent?.createdAt ?: Clock.System.now().toString(),
-            updatedAt = Clock.System.now().toString(),
-            finalDate = null,
             eventType = eventType,
-            eventTypeCustom = if (eventType == EventType.CUSTOM) eventTypeCustom else null,
-            minParticipants = null,
-            maxParticipants = null,
-            expectedParticipants = participantCountInt
+            eventTypeCustom = eventTypeCustom,
+            participantCount = participantCount,
+            timeSlots = timeSlots,
+            status = status
         )
     }
     
@@ -529,7 +528,7 @@ fun DraftEventWizard(
                                                     val instant = Instant.parse(startIso)
                                                     val localDate = instant.toLocalDateTime(TimeZone.of(slot.timezone)).date
                                                     val javaDate = java.time.LocalDate.of(localDate.year, localDate.monthNumber, localDate.dayOfMonth)
-                                                    val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault())
+                                                    val dateFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.FRENCH)
                                                     javaDate.format(dateFormatter)
                                                 } catch (e: Exception) {
                                                     startIso
@@ -554,7 +553,7 @@ fun DraftEventWizard(
                                                             val endInstant = Instant.parse(slot.end!!)
                                                             val startLocalTime = startInstant.toLocalDateTime(TimeZone.of(slot.timezone)).time
                                                             val endLocalTime = endInstant.toLocalDateTime(TimeZone.of(slot.timezone)).time
-                                                            val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.getDefault())
+                                                            val timeFormatter = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.FRENCH)
                                                             val javaStartTime = java.time.LocalTime.of(startLocalTime.hour, startLocalTime.minute)
                                                             val javaEndTime = java.time.LocalTime.of(endLocalTime.hour, endLocalTime.minute)
                                                             "${javaStartTime.format(timeFormatter)} - ${javaEndTime.format(timeFormatter)}"

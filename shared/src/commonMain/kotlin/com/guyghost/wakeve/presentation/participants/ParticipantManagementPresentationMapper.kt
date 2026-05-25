@@ -24,21 +24,21 @@ object ParticipantManagementPresentationMapper {
 
     private fun ParticipantAccessState.Role.toRoleLabel(): String =
         when (this) {
-            ParticipantAccessState.Role.ORGANIZER -> "Organizer"
+            ParticipantAccessState.Role.ORGANIZER -> "Organisateur"
             ParticipantAccessState.Role.MEMBER,
-            ParticipantAccessState.Role.NON_MEMBER -> "Member"
+            ParticipantAccessState.Role.NON_MEMBER -> "Membre"
         }
 
     private fun ParticipantAccessState.toStatusLabel(): String =
         when (rsvp) {
-            ParticipantRsvp.DECLINED -> "Declined"
+            ParticipantRsvp.DECLINED -> "Refusé"
             ParticipantRsvp.ACCEPTED ->
                 if (canAccessOrganizationDetails()) {
-                    "Confirmed"
+                    "Confirmé"
                 } else {
-                    "Pending"
+                    "En attente"
                 }
-            ParticipantRsvp.PENDING -> "Pending"
+            ParticipantRsvp.PENDING -> "En attente"
         }
 
     private fun ParticipantAccessState.canAccessOrganizationDetails(): Boolean =

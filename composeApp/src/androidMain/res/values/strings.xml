@@ -70,6 +70,14 @@
     <string name="continue_with_apple">Continuer avec Apple</string>
     <string name="skip">Passer</string>
     <string name="terms_notice">En continuant, vous acceptez nos conditions d\'utilisation et notre politique de confidentialité</string>
+    <string name="signing_in">Connexion…</string>
+    <string name="sign_in_failed">Échec de la connexion</string>
+    <string name="try_again">Réessayer</string>
+    <string name="sign_in_terms_prefix">En vous connectant, vous acceptez notre</string>
+    <string name="privacy_policy">Politique de confidentialité</string>
+    <string name="and_separator"> et nos </string>
+    <string name="terms_of_service">Conditions d\'utilisation</string>
+    <string name="generic_error_title">Une erreur est survenue</string>
     <string name="enter_your_email">Entrez votre adresse e-mail</string>
     <string name="email_otp_notice">Nous vous enverrons un code à 6 chiffres pour vérifier votre compte</string>
     <string name="email">E-mail</string>
@@ -123,7 +131,11 @@
     <string name="event_type_custom">Autre</string>
     <string name="event_type_custom_hint">Entrez le type d\'événement</string>
     <string name="custom_event_type">Type d\'événement personnalisé</string>
+    <string name="custom_event_type_example">Ex. gala caritatif, lancement produit</string>
+    <string name="custom_event_type_supporting">Décrivez votre type d\'événement</string>
     <string name="custom_event_type_required">Le type d\'événement personnalisé est requis</string>
+    <string name="select_event_type">Sélectionner le type d\'événement</string>
+    <string name="selected">Sélectionné</string>
 
     <!-- Wizard Steps -->
     <string name="step_basic_info">Informations de base</string>
