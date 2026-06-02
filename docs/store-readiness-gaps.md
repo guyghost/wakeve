@@ -1,5 +1,9 @@
 # Store Readiness Gap Analysis — Wakeve v1.0.0
 
+> **Superseded for iOS App Store work as of 2026-05-27.**
+> Use [APP_STORE_READINESS.md](./APP_STORE_READINESS.md), [APP_STORE_SUBMISSION_RUNBOOK.md](./APP_STORE_SUBMISSION_RUNBOOK.md), and [APP_STORE_LAUNCH_CHECKLIST.md](./APP_STORE_LAUNCH_CHECKLIST.md) for the current iOS App Store submission state.
+> This older gap analysis predates the current App Store preflight work and contains stale blockers that have since been fixed, including privacy/legal pages, iOS app icons, iOS screenshots, Fastlane, Release binary checks, and iOS permission purpose strings.
+
 > **Date:** 2026-04-14  
 > **Baseline:** Current `main` branch state  
 > **Reference:** [store-readiness-checklist.md](./store-readiness-checklist.md)

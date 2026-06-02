@@ -123,32 +123,20 @@ class ExploreViewModel: ObservableObject {
 
     private func loadTrending() async {
         guard let repository else { return }
-        do {
-            let response = repository.getTrendingEvents(limit: 10)
-            let items = response.events.map { mapToExploreItem($0) }
-            await MainActor.run {
-                self.trendingEvents = items
-            }
-        } catch {
-            await MainActor.run {
-                self.errorMessage = error.localizedDescription
-            }
+        let response = repository.getTrendingEvents(limit: 10)
+        let items = response.events.map { mapToExploreItem($0) }
+        await MainActor.run {
+            self.trendingEvents = items
         }
     }
 
     private func loadRecommended() async {
         guard let repository else { return }
         // Use a placeholder userId. In production, this comes from auth.
-        do {
-            let response = repository.getRecommendedEvents(userId: "current_user", limit: 10)
-            let items = response.events.map { mapToExploreItem($0) }
-            await MainActor.run {
-                self.recommendedEvents = items
-            }
-        } catch {
-            await MainActor.run {
-                self.errorMessage = error.localizedDescription
-            }
+        let response = repository.getRecommendedEvents(userId: "current_user", limit: 10)
+        let items = response.events.map { mapToExploreItem($0) }
+        await MainActor.run {
+            self.recommendedEvents = items
         }
     }
 
@@ -157,26 +145,20 @@ class ExploreViewModel: ObservableObject {
         let query = searchText.trimmingCharacters(in: .whitespaces)
         let categoryFilter: String? = selectedCategory == .all ? nil : selectedCategory.eventTypes.first
 
-        do {
-            let response = repository.searchEvents(
-                query: query.isEmpty ? nil : query,
-                category: categoryFilter,
-                location: nil,
-                dateFrom: nil,
-                dateTo: nil,
-                status: nil,
-                sortBy: "RELEVANCE",
-                offset: 0,
-                limit: 30
-            )
-            let items = response.events.map { mapToExploreItem($0) }
-            await MainActor.run {
-                self.searchResults = items
-            }
-        } catch {
-            await MainActor.run {
-                self.errorMessage = error.localizedDescription
-            }
+        let response = repository.searchEvents(
+            query: query.isEmpty ? nil : query,
+            category: categoryFilter,
+            location: nil,
+            dateFrom: nil,
+            dateTo: nil,
+            status: nil,
+            sortBy: "RELEVANCE",
+            offset: 0,
+            limit: 30
+        )
+        let items = response.events.map { mapToExploreItem($0) }
+        await MainActor.run {
+            self.searchResults = items
         }
     }
 

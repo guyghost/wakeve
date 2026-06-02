@@ -7,7 +7,7 @@
 
   const { value, placeholder = 'Rechercher…', onsearch }: Props = $props()
 
-  let inputValue = $state(value)
+  let inputValue = $state('')
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
   $effect(() => {

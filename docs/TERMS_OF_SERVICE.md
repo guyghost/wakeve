@@ -135,10 +135,7 @@ Our total liability shall not exceed the amount you paid to use the App (which i
 
 ### 9.1 By You
 
-You may stop using the App at any time. To delete your account:
-
-1. Open Wakeve → Profile Settings → Delete Account
-2. Or email legal@wakeve.app
+You may stop using the App at any time. To request account deletion, email legal@wakeve.app or privacy@wakeve.app.
 
 ### 9.2 By Us
 

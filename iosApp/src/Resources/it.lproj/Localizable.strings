@@ -28,6 +28,8 @@
 "auth.privacy_policy" = "Informativa sulla privacy";
 "auth.terms_of_service" = "Condizioni d'uso";
 "auth.and" = "e";
+"auth.continue_as_guest" = "Continua come ospite";
+"auth.guest_display_name" = "Ospite";
 "auth.skip_dev" = "Salta (Sviluppo)";
 
 // MARK: - Explore

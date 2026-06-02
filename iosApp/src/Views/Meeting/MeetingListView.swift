@@ -340,6 +340,7 @@ struct MeetingRowView: View {
 
 // MARK: - Preview
 
+#if DEBUG
 #Preview("Meeting List - Light") {
     MeetingListView(eventId: "preview-event", previewMeetings: MeetingFactory.list)
         .preferredColorScheme(.light)
@@ -349,6 +350,7 @@ struct MeetingRowView: View {
     MeetingListView(eventId: "preview-event", previewMeetings: MeetingFactory.list)
         .preferredColorScheme(.dark)
 }
+#endif
 
 // MARK: - CreateMeetingSheet
 

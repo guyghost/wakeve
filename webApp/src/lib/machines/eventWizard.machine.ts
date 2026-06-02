@@ -7,6 +7,7 @@ import type {
 } from '$lib/types/api'
 import * as eventsApi from '$lib/api/events.api'
 import { validateSlot, buildSlotRequest } from '$lib/utils/slot'
+import { actorError, actorOutput } from './actor-event'
 
 export interface WizardSlot {
   id: string
@@ -111,7 +112,7 @@ export const eventWizardMachine = setup({
   actions: {
     assignFormError: assign({
       formError: ({ event }) =>
-        String((event as { error: unknown }).error)
+        actorError(event)
     }),
     clearFormError: assign({ formError: null }),
 
@@ -177,7 +178,7 @@ export const eventWizardMachine = setup({
 
     assignCreatedEventId: assign({
       createdEventId: ({ event }) =>
-        (event as { output: EventResponse }).output.id
+        actorOutput<EventResponse>(event).id
     })
   }
 }).createMachine({

@@ -114,7 +114,7 @@ struct EventInfoSheet: View {
                             .fill(Color(hex: "FF6B35"))
                             .frame(width: 44, height: 44)
                         
-                        if let photoUrl = organizerPhotoUrl {
+                        if organizerPhotoUrl != nil {
                             // AsyncImage would go here
                             Text(String(tempName.prefix(1)).uppercased())
                                 .font(.system(size: 18, weight: .bold))

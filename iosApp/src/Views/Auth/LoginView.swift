@@ -10,6 +10,7 @@ import AuthenticationServices
  * - Sign in with Apple button (native ASAuthorizationAppleIDButton)
  * - Liquid Glass UI components for modern glassmorphism aesthetic
  * - App branding and welcome message
+ * - Release-safe guest access for local-only exploration
  * - Loading indicator during authentication
  * - Error handling with retry option
  *
@@ -21,6 +22,7 @@ struct LoginView: View {
     @StateObject private var appleSignInHelper = AppleSignInHelper()
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var authStateManager: AuthStateManager
+    @Environment(\.openURL) private var openURL
     
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -168,6 +170,8 @@ struct LoginView: View {
             .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
             .accessibilityLabel("Sign in with Apple")
             .accessibilityHint("Use your Apple ID to authenticate")
+
+            guestAccessButton
             
             #if DEBUG
             // Development Mode - Skip Authentication
@@ -178,6 +182,27 @@ struct LoginView: View {
             privacyTermsView
         }
         .padding(.horizontal, 40)
+    }
+
+    private var guestAccessButton: some View {
+        Button(action: { continueAsGuest() }) {
+            HStack(spacing: 8) {
+                Text(String(localized: "auth.continue_as_guest"))
+                Image(systemName: "chevron.right")
+            }
+            .font(.headline)
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 15)
+            .background(.white.opacity(0.18))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(.white.opacity(0.28), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .accessibilityLabel("Continue as guest")
+        .accessibilityHint("Creates a local-only guest session without signing in")
     }
     
     #if DEBUG
@@ -207,7 +232,7 @@ struct LoginView: View {
             
             HStack(spacing: 6) {
                 Button {
-                    // TODO: Open privacy policy
+                    openLegalURL("https://wakeve.app/privacy")
                 } label: {
                     Text(String(localized: "auth.privacy_policy"))
                         .font(.system(size: 13, weight: .medium))
@@ -220,7 +245,7 @@ struct LoginView: View {
                     .foregroundColor(.white.opacity(0.7))
                 
                 Button {
-                    // TODO: Open terms
+                    openLegalURL("https://wakeve.app/terms")
                 } label: {
                     Text(String(localized: "auth.terms_of_service"))
                         .font(.system(size: 13, weight: .medium))
@@ -232,7 +257,27 @@ struct LoginView: View {
     }
     
     // MARK: - Actions
-    
+
+    private func openLegalURL(_ urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+        openURL(url)
+    }
+
+    private func continueAsGuest() {
+        isLoading = true
+
+        Task {
+            await authStateManager.continueAsGuest()
+
+            if let authManagerError = authStateManager.authError {
+                errorMessage = authManagerError
+                showError = true
+            }
+
+            isLoading = false
+        }
+    }
+
     /**
      * Handle Apple Sign-In result.
      */
@@ -284,7 +329,7 @@ struct LoginView: View {
                         errorMessage = authManagerError
                         showError = true
                     } else if authStateManager.isAuthenticated {
-                        print("[LoginView] Login successful")
+                        debugLog("[LoginView] Login successful")
                     }
                     
                 case .failure(let error):

@@ -3,6 +3,7 @@ import type { EventResponse, PollResponse, Comment, VoteValue, CommentSection } 
 import { get as getEvent } from '$lib/api/events.api'
 import { get as getPoll, vote as castVote } from '$lib/api/poll.api'
 import { list as listComments, create as createComment, deleteComment } from '$lib/api/comments.api'
+import { actorError, actorOutput } from './actor-event'
 
 export type DetailTab = 'info' | 'poll' | 'comments'
 
@@ -82,9 +83,9 @@ export const eventDetailMachine = setup({
 
   actions: {
     assignData: assign({
-      event: ({ event }) => (event as { output: LoadAllOutput }).output.event,
-      poll: ({ event }) => (event as { output: LoadAllOutput }).output.poll,
-      comments: ({ event }) => (event as { output: LoadAllOutput }).output.comments,
+      event: ({ event }) => actorOutput<LoadAllOutput>(event).event,
+      poll: ({ event }) => actorOutput<LoadAllOutput>(event).poll,
+      comments: ({ event }) => actorOutput<LoadAllOutput>(event).comments,
       error: null
     }),
 
@@ -94,27 +95,27 @@ export const eventDetailMachine = setup({
     }),
 
     assignPoll: assign({
-      poll: ({ event }) => (event as { output: PollResponse }).output,
+      poll: ({ event }) => actorOutput<PollResponse>(event),
       voteError: null,
       isVoting: false
     }),
 
     assignVoteError: assign({
-      voteError: ({ event }) => String((event as { error: unknown }).error),
+      voteError: ({ event }) => actorError(event),
       isVoting: false
     }),
 
     appendComment: assign({
       comments: ({ context, event }) => [
         ...context.comments,
-        (event as { output: Comment }).output
+        actorOutput<Comment>(event)
       ],
       commentError: null,
       isCommenting: false
     }),
 
     assignCommentError: assign({
-      commentError: ({ event }) => String((event as { error: unknown }).error),
+      commentError: ({ event }) => actorError(event),
       isCommenting: false
     }),
 
@@ -133,7 +134,7 @@ export const eventDetailMachine = setup({
     clearDeletingId: assign({ deletingCommentId: null }),
 
     assignLoadError: assign({
-      error: ({ event }) => String((event as { error: unknown }).error)
+      error: ({ event }) => actorError(event)
     })
   }
 }).createMachine({

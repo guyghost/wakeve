@@ -5,6 +5,7 @@ import type {
   EventDetailedAnalyticsResponse
 } from '$lib/types/api'
 import * as dashboardApi from '$lib/api/dashboard.api'
+import { actorError, actorOutput } from './actor-event'
 
 interface DashboardContext {
   overview: DashboardOverviewResponse | null
@@ -53,13 +54,13 @@ export const dashboardMachine = setup({
   actions: {
     assignDashboard: assign({
       overview: ({ event }) =>
-        (event as { output: LoadDashboardOutput }).output.overview,
+        actorOutput<LoadDashboardOutput>(event).overview,
       events: ({ event }) =>
-        (event as { output: LoadDashboardOutput }).output.events
+        actorOutput<LoadDashboardOutput>(event).events
     }),
 
     assignLoadError: assign({
-      error: ({ event }) => String((event as { error: unknown }).error)
+      error: ({ event }) => actorError(event)
     }),
 
     assignSelectedEventId: assign({
@@ -71,13 +72,13 @@ export const dashboardMachine = setup({
 
     assignAnalytics: assign({
       analytics: ({ event }) =>
-        (event as { output: EventDetailedAnalyticsResponse }).output,
+        actorOutput<EventDetailedAnalyticsResponse>(event),
       analyticsError: null
     }),
 
     assignAnalyticsError: assign({
       analyticsError: ({ event }) =>
-        String((event as { error: unknown }).error)
+        actorError(event)
     }),
 
     clearSelection: assign({

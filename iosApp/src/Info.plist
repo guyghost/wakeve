@@ -20,8 +20,21 @@
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.guyghost.wakeve</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>wakeve</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>INIntentsSupported</key>
 	<array>
 		<string>WakeveCreateEventIntent</string>
@@ -41,11 +54,17 @@
 	<true/>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Wakeve needs access to your calendar to add confirmed events and send you reminders. No existing calendar data is read or shared.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Wakeve uses the camera only when you choose to take a photo for an event background.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Wakeve utilise la reconnaissance vocale pour vous permettre de créer et gérer des événements en utilisant votre voix. Vos commandes vocales sont traitées localement sur votre appareil et ne sont pas envoyées à des serveurs tiers.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Wakeve may save event images to your photo library only when you explicitly request it.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Wakeve uses your photo library only when you choose an image for an event background.</string>
+	<key>NSSiriUsageDescription</key>
+	<string>Wakeve uses Siri only when you choose to create shortcuts for event planning actions. Event shortcut details are shared with Siri only for the action you request.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Wakeve utilise votre position pour suggérer des lieux proches lors de la création d'événements. Votre position n'est partagée qu'avec les participants que vous invitez.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Wakeve utilise votre position pour suggérer des lieux proches lors de la création d'événements. Votre position n'est partagée qu'avec les participants que vous invitez.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
@@ -54,7 +73,6 @@
 	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
-		<string>fetch</string>
 		<string>remote-notification</string>
 	</array>
 	<key>UILaunchScreen</key>
@@ -64,10 +82,6 @@
 		<key>UIImageName</key>
 		<string>LaunchIcon</string>
 	</dict>
-	<key>UIRequiredDeviceCapabilities</key>
-	<array>
-		<string>armv7</string>
-	</array>
 	<key>UIStatusBarStyle</key>
 	<string>UIStatusBarStyleDefault</string>
 	<key>UISupportedInterfaceOrientations</key>

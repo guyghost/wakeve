@@ -22,8 +22,8 @@ public class AuthenticationService: ObservableObject {
 
     // MARK: - Configuration
 
-    /// Base URL for the Wakeve API server
-    /// TODO: Move to build config or environment variable
+    /// Base URL for the Wakeve API server. Debug uses a local backend;
+    /// Release uses the production endpoint required for App Store builds.
     private let baseUrl: String = {
         #if DEBUG
         return "http://localhost:8080/api"
@@ -32,8 +32,8 @@ public class AuthenticationService: ObservableObject {
         #endif
     }()
 
-    /// Secure token storage (Keychain-backed)
-    private let tokenStorage = SecureTokenStorage()
+    /// Secure token storage (Keychain-backed by default)
+    private let tokenStorage: SecureTokenStorageProtocol
 
     /// URLSession for network requests
     private let session: URLSession = {
@@ -42,6 +42,10 @@ public class AuthenticationService: ObservableObject {
         config.timeoutIntervalForResource = 60
         return URLSession(configuration: config)
     }()
+
+    init(tokenStorage: SecureTokenStorageProtocol = SecureTokenStorage()) {
+        self.tokenStorage = tokenStorage
+    }
 
     // MARK: - Apple Sign-In
 
@@ -255,7 +259,7 @@ public class AuthenticationService: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "wakeve_user_avatar")
         UserDefaults.standard.removeObject(forKey: "wakeve_user_provider")
 
-        print("[AuthenticationService] User signed out, tokens cleared")
+        debugLog("[AuthenticationService] User signed out, tokens cleared")
     }
 
     /**
@@ -267,6 +271,7 @@ public class AuthenticationService: ObservableObject {
         return await tokenStorage.getAccessToken()
     }
 
+    #if DEBUG
     /**
      * Store a local development session for simulator/manual testing.
      *
@@ -287,6 +292,7 @@ public class AuthenticationService: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "wakeve_user_avatar")
         UserDefaults.standard.set("development", forKey: "wakeve_user_provider")
     }
+    #endif
 
     // MARK: - Private Helpers
 
@@ -313,7 +319,7 @@ public class AuthenticationService: ObservableObject {
         UserDefaults.standard.set(response.user.avatarUrl, forKey: "wakeve_user_avatar")
         UserDefaults.standard.set(response.user.provider, forKey: "wakeve_user_provider")
 
-        print("[AuthenticationService] Tokens stored for user: \(response.user.id)")
+        debugLog("[AuthenticationService] Tokens stored for user: \(response.user.id)")
     }
 }
 

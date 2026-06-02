@@ -31,6 +31,12 @@ struct iOSApp: App {
                 .environmentObject(authService)
                 .environmentObject(deepLinkService)
                 .task {
+                    #if DEBUG
+                    if await authStateManager.authenticateForDevelopmentLaunchIfRequested() {
+                        return
+                    }
+                    #endif
+
                     authStateManager.checkAuthStatus()
                 }
                 .onOpenURL { url in
@@ -58,7 +64,7 @@ struct iOSApp: App {
      * - Parameter url: The deep link URL to handle
      */
     private func handleDeepLink(_ url: URL) {
-        print("[iOSApp] Deep link received: \(url.absoluteString)")
+        debugLog("[iOSApp] Deep link received: \(url.absoluteString)")
 
         // Check authentication status before handling deep link
         let isAuthenticated = authStateManager.isAuthenticated

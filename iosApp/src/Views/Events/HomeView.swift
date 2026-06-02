@@ -588,29 +588,38 @@ struct HomeEmptyStateView: View {
     let title: String
     let subtitle: String
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         VStack(spacing: 0) {
-            Spacer()
+            ScrollView {
+                VStack(spacing: dynamicTypeSize.isAccessibilitySize ? 16 : 24) {
+                    if !dynamicTypeSize.isAccessibilitySize {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 80, weight: .light))
+                            .foregroundColor(.secondary)
+                            .accessibilityHidden(true)
+                    }
 
-            VStack(spacing: 24) {
-                Image(systemName: "calendar")
-                    .font(.system(size: 80, weight: .light))
-                    .foregroundColor(.secondary)
+                    Text(title)
+                        .font(.title2.weight(.semibold))
+                        .foregroundColor(.primary)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                Text(title)
-                    .font(.title2.weight(.semibold))
-                    .foregroundColor(.primary)
-                    .multilineTextAlignment(.center)
-
-                Text(subtitle)
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-                    .padding(.horizontal, 32)
+                    Text(subtitle)
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(4)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 24)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, dynamicTypeSize.isAccessibilitySize ? 8 : 80)
+                .padding(.bottom, 24)
             }
-
-            Spacer()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             WakeveActionButton(
                 String(localized: "home.create_event"),

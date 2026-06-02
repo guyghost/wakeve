@@ -10,7 +10,18 @@ on:
       - 'shared/**'
       - 'iosApp/**'
       - 'fastlane/**'
+      - 'Gemfile'
+      - 'Gemfile.lock'
+      - 'scripts/lint-store-metadata.sh'
+      - 'scripts/app-store-submission-audit.sh'
+      - 'scripts/app-store-local-web-route-check.sh'
       - 'composeApp/metadata/**'
+      - 'composeApp/screenshots/**'
+      - 'webApp/**'
+      - 'docs/APP_STORE_*.md'
+      - 'openspec/**'
+      - '.env.appstore.example'
+      - '.github/workflows/store-readiness.yml'
   workflow_dispatch:
 
 concurrency:
@@ -75,6 +86,436 @@ jobs:
 
       - name: Build iOS framework
         run: ./gradlew shared:compileKotlinIosArm64 --no-configuration-cache
+
+  app-store-preflight:
+    name: 🍎 App Store Preflight
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Ruby and Bundler
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install web dependencies
+        working-directory: webApp
+        run: pnpm install --frozen-lockfile
+
+      - name: Audit web dependencies
+        working-directory: webApp
+        run: pnpm audit --audit-level low
+
+      - name: Verify local public web and AASA routes
+        run: |
+          mkdir -p build
+          cd webApp
+          CI=true APPLE_TEAM_ID=A1B2C3D4E5 npx --yes pnpm@10 exec vite dev --host 127.0.0.1 --port 4174 > ../build/app-store-local-web-route-check.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+
+          ready=false
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:4174/privacy >/dev/null 2>&1; then
+              ready=true
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ready" != true ]; then
+            cat ../build/app-store-local-web-route-check.log
+            echo "❌ Local web server did not become ready"
+            exit 1
+          fi
+
+          cd ..
+          BASE_URL=http://127.0.0.1:4174 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh
+
+      - name: Validate release audit scripts
+        run: |
+          bash -n scripts/lint-store-metadata.sh
+          bash -n scripts/app-store-submission-audit.sh
+          bash -n scripts/app-store-local-web-route-check.sh
+          bash -n scripts/app-store-license-inventory.sh
+          bash -n scripts/app-store-third-party-notices.sh
+
+      - name: Install OpenSpec CLI
+        run: npm install --global @fission-ai/openspec@0.16.0
+
+      - name: Validate App Store OpenSpec proposals
+        run: |
+          openspec validate add-in-app-account-deletion --strict
+          openspec validate add-ugc-moderation-controls --strict
+
+          if ! grep -Fq "openspec/changes/add-in-app-account-deletion/" docs/APP_STORE_BLOCKER_REGISTER.md; then
+            echo "❌ Blocker register does not reference add-in-app-account-deletion"
+            exit 1
+          fi
+
+          if ! grep -Fq "openspec/changes/add-ugc-moderation-controls/" docs/APP_STORE_BLOCKER_REGISTER.md; then
+            echo "❌ Blocker register does not reference add-ugc-moderation-controls"
+            exit 1
+          fi
+
+          echo "✅ App Store OpenSpec proposals are valid and linked from blocker register"
+
+      - name: Run local App Store preflight
+        run: bundle exec fastlane ios preflight
+
+      - name: Verify strict local gate behavior
+        run: |
+          signoff_complete=false
+          if grep -Fxq "APP_STORE_FINAL_SIGNOFF_COMPLETE=true" docs/APP_STORE_FINAL_SIGNOFF.md; then
+            signoff_complete=true
+          fi
+
+          if [ ! -f composeApp/metadata/ios/review_information/phone_number.txt ]; then
+            set +e
+            output=$(APP_REVIEW_PHONE_NUMBER= bundle exec fastlane ios preflight strict:true 2>&1)
+            status=$?
+            set -e
+            echo "$output"
+            if [ "$status" -eq 0 ]; then
+              echo "❌ Strict preflight unexpectedly passed without App Review phone env or metadata file"
+              exit 1
+            fi
+            if ! grep -q "Missing App Review phone. Set APP_REVIEW_PHONE_NUMBER" <<<"$output"; then
+              echo "❌ Strict preflight failed for an unexpected reason"
+              exit 1
+            fi
+            echo "✅ Strict preflight blocks submission until App Review phone is configured by env or metadata file"
+          fi
+
+          if [ "$signoff_complete" = true ]; then
+            APP_REVIEW_PHONE_NUMBER="+15551234567" bundle exec fastlane ios preflight strict:true
+          else
+            set +e
+            output=$(APP_REVIEW_PHONE_NUMBER="+15551234567" bundle exec fastlane ios preflight strict:true 2>&1)
+            status=$?
+            set -e
+            echo "$output"
+            if [ "$status" -eq 0 ]; then
+              echo "❌ Strict preflight unexpectedly passed without final signoff"
+              exit 1
+            fi
+            if ! grep -q "Final App Store signoff: Complete marker is false" <<<"$output"; then
+              echo "❌ Strict preflight failed for an unexpected reason"
+              exit 1
+            fi
+            echo "✅ Strict preflight blocks submission until final signoff evidence is recorded"
+          fi
+
+      - name: Verify placeholder App Review phone is rejected
+        run: |
+          set +e
+          output=$(APPLE_ID="release-ci@wakeve.app" ITC_TEAM_ID="987654321" TEAM_ID="A1B2C3D4E5" APPLE_TEAM_ID="A1B2C3D4E5" APP_REVIEW_PHONE_NUMBER="+15551234567" bundle exec fastlane ios submission_ready 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -eq 0 ]; then
+            echo "❌ submission_ready unexpectedly accepted the documented App Review phone placeholder"
+            exit 1
+          fi
+          if ! grep -q "APP_REVIEW_PHONE_NUMBER uses the documented placeholder +15551234567" <<<"$output"; then
+            echo "❌ submission_ready did not fail on the documented App Review phone placeholder"
+            exit 1
+          fi
+
+          set +e
+          output=$(APPLE_ID="release-ci@wakeve.app" ITC_TEAM_ID="987654321" TEAM_ID="A1B2C3D4E5" APPLE_TEAM_ID="A1B2C3D4E5" APP_REVIEW_PHONE_NUMBER="+15551234567" bundle exec fastlane ios upload_appstore 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -eq 0 ]; then
+            echo "❌ upload_appstore unexpectedly accepted the documented App Review phone placeholder"
+            exit 1
+          fi
+          if ! grep -q "APP_REVIEW_PHONE_NUMBER uses the documented placeholder +15551234567" <<<"$output"; then
+            echo "❌ upload_appstore did not fail on the documented App Review phone placeholder"
+            exit 1
+          fi
+
+          set +e
+          output=$(APP_REVIEW_PHONE_NUMBER="+15551234567" ./scripts/app-store-submission-audit.sh --skip-preflight 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -eq 0 ]; then
+            echo "❌ final audit unexpectedly accepted the documented App Review phone placeholder"
+            exit 1
+          fi
+          if ! grep -q "APP_REVIEW_PHONE_NUMBER uses the documented placeholder +15551234567" <<<"$output"; then
+            echo "❌ final audit did not fail on the documented App Review phone placeholder"
+            exit 1
+          fi
+          if ! grep -q "replace it with the real reachable App Review contact before final audit" <<<"$output"; then
+            echo "❌ final audit did not explain how to resolve the documented App Review phone placeholder"
+            exit 1
+          fi
+
+          echo "✅ Final App Store lanes reject the documented App Review phone placeholder"
+
+      - name: Verify Apple release placeholders are rejected
+        run: |
+          set +e
+          output=$(APPLE_ID="release@example.com" ITC_TEAM_ID="123456789" TEAM_ID="ABCDE12345" APPLE_TEAM_ID="ABCDE12345" APP_REVIEW_PHONE_NUMBER="+33123456789" bundle exec fastlane ios submission_ready 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -eq 0 ]; then
+            echo "❌ submission_ready unexpectedly accepted documented Apple release placeholders"
+            exit 1
+          fi
+          if ! grep -q "APPLE_ID uses the documented placeholder release@example.com" <<<"$output"; then
+            echo "❌ submission_ready did not reject the documented APPLE_ID placeholder"
+            exit 1
+          fi
+
+          set +e
+          output=$(APPLE_ID="release@example.com" ITC_TEAM_ID="123456789" TEAM_ID="ABCDE12345" APP_REVIEW_PHONE_NUMBER="+33123456789" bundle exec fastlane ios upload_testflight 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -eq 0 ]; then
+            echo "❌ upload_testflight unexpectedly accepted documented Apple release placeholders"
+            exit 1
+          fi
+          if ! grep -q "APPLE_ID uses the documented placeholder release@example.com" <<<"$output"; then
+            echo "❌ upload_testflight did not reject the documented APPLE_ID placeholder"
+            exit 1
+          fi
+          if grep -q "Running lane .* preflight" <<<"$output"; then
+            echo "❌ upload_testflight ran preflight before rejecting documented Apple release placeholders"
+            exit 1
+          fi
+
+          set +e
+          output=$(APPLE_ID="release@example.com" ITC_TEAM_ID="123456789" TEAM_ID="ABCDE12345" APPLE_TEAM_ID="ABCDE12345" APP_REVIEW_PHONE_NUMBER="+33123456789" ./scripts/app-store-submission-audit.sh --skip-preflight 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -eq 0 ]; then
+            echo "❌ final audit unexpectedly accepted documented Apple release placeholders"
+            exit 1
+          fi
+          for expected in \
+            "APPLE_ID uses the documented placeholder release@example.com" \
+            "ITC_TEAM_ID uses the documented placeholder 123456789" \
+            "TEAM_ID uses the documented placeholder ABCDE12345" \
+            "APPLE_TEAM_ID uses the documented placeholder ABCDE12345"; do
+            if ! grep -q "$expected" <<<"$output"; then
+              echo "❌ final audit did not reject expected placeholder: $expected"
+              exit 1
+            fi
+          done
+
+          echo "✅ Final App Store and TestFlight gates reject documented Apple release placeholders"
+
+      - name: Verify upload rejects incomplete final signoff record
+        run: |
+          backup=$(mktemp)
+          cp docs/APP_STORE_FINAL_SIGNOFF.md "$backup"
+          trap 'cp "$backup" docs/APP_STORE_FINAL_SIGNOFF.md; rm -f "$backup"' EXIT
+          ruby -0pi -e 'sub("APP_STORE_FINAL_SIGNOFF_COMPLETE=false", "APP_STORE_FINAL_SIGNOFF_COMPLETE=true")' docs/APP_STORE_FINAL_SIGNOFF.md
+
+          set +e
+          output=$(APP_STORE_PRIVACY_SIGNOFF=true APP_STORE_ACCESSIBILITY_SIGNOFF=true APP_STORE_AVAILABILITY_CONFIRMED=true APP_STORE_DSA_TRADER_STATUS_CONFIRMED=true APP_STORE_PRICING_AVAILABILITY_CONFIRMED=true APP_STORE_SDK_PRIVACY_CONFIRMED=true APP_STORE_RELEASE_CONTROL_CONFIRMED=true APP_STORE_MEDIA_LOCALIZATION_CONFIRMED=true APP_STORE_LICENSE_NOTICES_CONFIRMED=true APP_STORE_EULA_CONFIRMED=true APP_STORE_ACCOUNT_DELETION_CONFIRMED=true APP_STORE_UGC_MODERATION_CONFIRMED=true APP_STORE_PAYMENT_COMPLIANCE_CONFIRMED=true TESTFLIGHT_SMOKE_PASSED=true APP_STORE_CAPABILITIES_CONFIRMED=true APPLE_ID="release-ci@wakeve.app" ITC_TEAM_ID="987654321" TEAM_ID="A1B2C3D4E5" APPLE_TEAM_ID="A1B2C3D4E5" APP_REVIEW_PHONE_NUMBER="+33123456789" bundle exec fastlane ios upload_appstore 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -eq 0 ]; then
+            echo "❌ upload_appstore unexpectedly accepted an incomplete final signoff record"
+            exit 1
+          fi
+          if ! grep -q "Final App Store signoff record still contains unresolved TBD/Pending/status/checklist placeholders" <<<"$output"; then
+            echo "❌ upload_appstore did not reject unresolved final signoff placeholders"
+            exit 1
+          fi
+          if grep -q "./scripts/app-store-submission-audit.sh --check-live-urls --run-submission-ready" <<<"$output"; then
+            echo "❌ upload_appstore ran the final audit before rejecting incomplete signoff evidence"
+            exit 1
+          fi
+
+          echo "✅ App Store upload rejects incomplete final signoff record even when the marker is forced"
+
+      - name: Verify final audit remains explicit
+        run: |
+          set +e
+          output=$(./scripts/app-store-submission-audit.sh --skip-preflight 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -eq 0 ]; then
+            echo "❌ Final audit unexpectedly passed without live URLs, signing, release env, and signoffs"
+            exit 1
+          fi
+          if ! grep -q "Result: NOT READY for App Store submission" <<<"$output"; then
+            echo "❌ Final audit did not report the expected NOT READY result"
+            exit 1
+          fi
+          if ! grep -q "Live URL and AASA validation was not run" <<<"$output"; then
+            echo "❌ Final audit did not require live URL/AASA validation"
+            exit 1
+          fi
+          if ! grep -q "Signed final gate was not run" <<<"$output"; then
+            echo "❌ Final audit did not require the signed final gate"
+            exit 1
+          fi
+          if ! grep -q "The final audit cannot pass unless local preflight, live URL validation, and submission_ready are run." scripts/app-store-submission-audit.sh; then
+            echo "❌ Final audit does not document that local preflight is required for a ready result"
+            exit 1
+          fi
+          if ! grep -q "Local App Store preflight was skipped; rerun without --skip-preflight before submission" scripts/app-store-submission-audit.sh; then
+            echo "❌ Final audit does not block ready-state evaluation when local preflight is skipped"
+            exit 1
+          fi
+          if ! grep -q "User-generated content moderation readiness is not confirmed" <<<"$output"; then
+            echo "❌ Final audit did not require the UGC moderation readiness gate"
+            exit 1
+          fi
+          if ! grep -q "Account deletion readiness is not confirmed" <<<"$output"; then
+            echo "❌ Final audit did not require the account deletion readiness gate"
+            exit 1
+          fi
+          if ! grep -q "Payment and external purchase compliance is not confirmed" <<<"$output"; then
+            echo "❌ Final audit did not require the payment compliance gate"
+            exit 1
+          fi
+          echo "✅ Final audit remains non-uploading and blocks incomplete App Store submission state"
+
+      - name: Verify product signoff guards cannot be bypassed
+        run: |
+          set +e
+          output=$(APP_REVIEW_PHONE_NUMBER="+33123456789" APP_STORE_ACCOUNT_DELETION_CONFIRMED=true APP_STORE_UGC_MODERATION_CONFIRMED=true ./scripts/app-store-submission-audit.sh --skip-preflight 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -eq 0 ]; then
+            echo "❌ Final audit unexpectedly accepted product signoffs without account deletion and UGC implementation evidence"
+            exit 1
+          fi
+          if ! grep -q "Account deletion OpenSpec tasks still contain unchecked items" <<<"$output"; then
+            echo "❌ Final audit did not block incomplete account deletion OpenSpec tasks"
+            exit 1
+          fi
+          if ! grep -q "Account deletion backend tests cover deletion behavior is not present" <<<"$output"; then
+            echo "❌ Final audit did not require account deletion backend test evidence"
+            exit 1
+          fi
+          if ! grep -q "App Store account deletion evidence is not complete" <<<"$output"; then
+            echo "❌ Final audit did not require account deletion App Store evidence"
+            exit 1
+          fi
+          if ! grep -q "UGC moderation OpenSpec tasks still contain unchecked items" <<<"$output"; then
+            echo "❌ Final audit did not block incomplete UGC moderation OpenSpec tasks"
+            exit 1
+          fi
+          if ! grep -q "UGC moderation shared/server models are present is not present" <<<"$output"; then
+            echo "❌ Final audit did not require UGC moderation model evidence"
+            exit 1
+          fi
+          if ! grep -q "App Store UGC moderation evidence is not complete" <<<"$output"; then
+            echo "❌ Final audit did not require UGC moderation App Store evidence"
+            exit 1
+          fi
+          echo "✅ Final audit rejects forced product signoffs without implementation evidence"
+
+      - name: Verify forced final signoffs still require final evidence
+        run: |
+          set +e
+          output=$(APP_REVIEW_PHONE_NUMBER="+33123456789" APP_STORE_PRIVACY_SIGNOFF=true APP_STORE_ACCESSIBILITY_SIGNOFF=true APP_STORE_AVAILABILITY_CONFIRMED=true APP_STORE_DSA_TRADER_STATUS_CONFIRMED=true APP_STORE_PRICING_AVAILABILITY_CONFIRMED=true APP_STORE_SDK_PRIVACY_CONFIRMED=true APP_STORE_RELEASE_CONTROL_CONFIRMED=true APP_STORE_MEDIA_LOCALIZATION_CONFIRMED=true APP_STORE_LICENSE_NOTICES_CONFIRMED=true APP_STORE_EULA_CONFIRMED=true APP_STORE_ACCOUNT_DELETION_CONFIRMED=true APP_STORE_UGC_MODERATION_CONFIRMED=true APP_STORE_PAYMENT_COMPLIANCE_CONFIRMED=true TESTFLIGHT_SMOKE_PASSED=true APP_STORE_CAPABILITIES_CONFIRMED=true ./scripts/app-store-submission-audit.sh --skip-preflight 2>&1)
+          status=$?
+          set -e
+          echo "$output"
+          if [ "$status" -eq 0 ]; then
+            echo "❌ Final audit unexpectedly accepted forced final signoffs without DSA/pricing/SDK/release-control/media/licenses/eula/product/account/review/export/app-information/versioning/release-artifact/content-rights/observability/live-url-aasa evidence"
+            exit 1
+          fi
+          if ! grep -q "App Store DSA trader status evidence is not complete (APP_STORE_DSA_TRADER_STATUS_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require DSA trader status evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store pricing and availability evidence is not complete (APP_STORE_PRICING_AVAILABILITY_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require pricing and availability evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store SDK privacy and signature evidence is not complete (APP_STORE_SDK_PRIVACY_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require SDK privacy evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store release control evidence is not complete (APP_STORE_RELEASE_CONTROL_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require release control evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store media and localization evidence is not complete (APP_STORE_MEDIA_LOCALIZATION_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require media/localization evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store license notices evidence is not complete (APP_STORE_LICENSE_NOTICES_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require license notices evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store EULA evidence is not complete (APP_STORE_EULA_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require EULA evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store review access evidence is not complete (APP_STORE_REVIEW_ACCESS_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require review access evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store account access evidence is not complete (APP_STORE_ACCOUNT_ACCESS_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require account access evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store export compliance evidence is not complete (APP_STORE_EXPORT_COMPLIANCE_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require export compliance evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store app information evidence is not complete (APP_STORE_APP_INFORMATION_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require App Information evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store versioning evidence is not complete (APP_STORE_VERSIONING_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require versioning evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store release artifact evidence is not complete (APP_STORE_RELEASE_ARTIFACT_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require release artifact evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store content rights evidence is not complete (APP_STORE_CONTENT_RIGHTS_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require content rights evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store observability evidence is not complete (APP_STORE_OBSERVABILITY_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require observability evidence when final signoffs were forced"
+            exit 1
+          fi
+          if ! grep -q "App Store live URL and AASA evidence is not complete (APP_STORE_LIVE_URL_AASA_EVIDENCE_COMPLETE=true)" <<<"$output"; then
+            echo "❌ Final audit did not require live URL/AASA evidence when final signoffs were forced"
+            exit 1
+          fi
+          echo "✅ Final audit rejects forced final signoffs without DSA/pricing/SDK/release-control/media/licenses/eula/product/account/review/export/app-information/versioning/release-artifact/content-rights/observability/live-url-aasa evidence"
 
   # ──────────────────────────────────────────────
   # Gate 2: Test Gate
@@ -183,80 +624,12 @@ jobs:
   # ──────────────────────────────────────────────
   metadata:
     name: 📋 Store Metadata
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Validate store metadata
-        run: |
-          echo "=== Validating Store Metadata ==="
-          ERRORS=0
-
-          # Check required metadata directories
-          for platform in android ios; do
-            for locale in en-US fr-FR; do
-              dir="composeApp/metadata/$platform/$locale"
-              if [ ! -d "$dir" ]; then
-                echo "❌ Missing metadata directory: $dir"
-                ERRORS=$((ERRORS + 1))
-                continue
-              fi
-
-              echo "📁 Checking $platform/$locale..."
-
-              # Check title
-              if [ -f "$dir/title.txt" ] || [ -f "$dir/name.txt" ]; then
-                title=$(cat "$dir/title.txt" 2>/dev/null || cat "$dir/name.txt" 2>/dev/null)
-                if [ ${#title} -eq 0 ]; then
-                  echo "  ❌ Title is empty"
-                  ERRORS=$((ERRORS + 1))
-                elif [ ${#title} -gt 30 ]; then
-                  echo "  ❌ Title exceeds 30 chars (${#title})"
-                  ERRORS=$((ERRORS + 1))
-                else
-                  echo "  ✅ Title: $title (${#title} chars)"
-                fi
-              else
-                echo "  ❌ No title.txt or name.txt"
-                ERRORS=$((ERRORS + 1))
-              fi
-
-              # Check description
-              if [ -f "$dir/full_description.txt" ] || [ -f "$dir/description.txt" ]; then
-                desc=$(cat "$dir/full_description.txt" 2>/dev/null || cat "$dir/description.txt" 2>/dev/null)
-                if [ ${#desc} -eq 0 ]; then
-                  echo "  ❌ Description is empty"
-                  ERRORS=$((ERRORS + 1))
-                elif [ ${#desc} -gt 4000 ]; then
-                  echo "  ❌ Description exceeds 4000 chars (${#desc})"
-                  ERRORS=$((ERRORS + 1))
-                else
-                  echo "  ✅ Description (${#desc} chars)"
-                fi
-              else
-                echo "  ❌ No description file"
-                ERRORS=$((ERRORS + 1))
-              fi
-            done
-          done
-
-          # Check legal pages
-          for file in docs/PRIVACY_POLICY.md docs/TERMS_OF_SERVICE.md; do
-            if [ -f "$file" ]; then
-              echo "✅ $file exists"
-            else
-              echo "❌ Missing $file"
-              ERRORS=$((ERRORS + 1))
-            fi
-          done
-
-          echo ""
-          if [ "$ERRORS" -gt 0 ]; then
-            echo "❌ $ERRORS metadata errors found"
-            exit 1
-          else
-            echo "✅ All metadata validations passed"
-          fi
+        run: ./scripts/lint-store-metadata.sh
 
   # ──────────────────────────────────────────────
   # Gate 5: Code Quality
@@ -290,7 +663,7 @@ jobs:
   readiness-summary:
     name: 🚦 Store Readiness Summary
     runs-on: ubuntu-latest
-    needs: [build-android, build-ios, test, security, metadata, lint]
+    needs: [build-android, build-ios, app-store-preflight, test, security, metadata, lint]
     if: always()
     steps:
       - name: Gate Results
@@ -300,6 +673,7 @@ jobs:
           echo "╠══════════════════════════════════════╣"
           echo "║ Build Android:  ${{ needs.build-android.result }}"
           echo "║ Build iOS:      ${{ needs.build-ios.result }}"
+          echo "║ App Store:      ${{ needs.app-store-preflight.result }}"
           echo "║ Tests:          ${{ needs.test.result }}"
           echo "║ Security:       ${{ needs.security.result }}"
           echo "║ Metadata:       ${{ needs.metadata.result }}"
@@ -307,10 +681,16 @@ jobs:
           echo "╚══════════════════════════════════════╝"
 
           if [ "${{ needs.build-android.result }}" == "failure" ] || \
+             [ "${{ needs.app-store-preflight.result }}" == "failure" ] || \
              [ "${{ needs.test.result }}" == "failure" ] || \
              [ "${{ needs.metadata.result }}" == "failure" ]; then
             echo "❌ BLOCKING: Critical gates failed"
             exit 1
           fi
 
-          echo "✅ All critical gates passed — ready for submission"
+          echo "✅ Local critical gates passed"
+          echo "ℹ️ App Store submission is still blocked until these external/manual release items are complete:"
+          echo "  - Apple signing, real Apple release env values, App Review phone, Apple Developer capabilities/profiles, and signed IPA entitlement inspection."
+          echo "  - Live production legal/support/backend URLs, AASA validation with the production Apple Team ID, AS-14 evidence, and signed final submission-ready gate output."
+          echo "  - Privacy/legal approval, Accessibility Nutrition Label evidence, App Store availability evidence, EU DSA trader status evidence, pricing and availability evidence, third-party SDK privacy evidence, App Store release control evidence, App Store media/localization evidence, license inventory/notices evidence, EULA evidence, account access evidence, review access evidence, export compliance evidence, App Store versioning evidence, release artifact evidence, and content rights evidence."
+          echo "  - Account deletion readiness, UGC moderation readiness, payment/external purchase compliance, TestFlight smoke evidence, App Store observability evidence, live URL/AASA evidence, and the final signoff record."

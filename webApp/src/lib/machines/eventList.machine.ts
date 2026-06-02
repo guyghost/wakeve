@@ -1,6 +1,7 @@
 import { setup, assign, fromPromise } from 'xstate'
 import type { EventResponse, EventsListResponse } from '$lib/types/api'
 import * as eventsApi from '$lib/api/events.api'
+import { actorError, actorOutput } from './actor-event'
 
 interface EventListContext {
   events: EventResponse[]
@@ -36,13 +37,13 @@ export const eventListMachine = setup({
   actions: {
     assignEvents: assign({
       events: ({ event }) =>
-        (event as { output: EventsListResponse }).output.events,
+        actorOutput<EventsListResponse>(event).events,
       total: ({ event }) =>
-        (event as { output: EventsListResponse }).output.total
+        actorOutput<EventsListResponse>(event).total
     }),
     assignError: assign({
       error: ({ event }) =>
-        String((event as { error: unknown }).error)
+        actorError(event)
     }),
     clearError: assign({ error: null }),
     assignSearchQuery: assign({

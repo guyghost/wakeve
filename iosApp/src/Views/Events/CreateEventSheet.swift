@@ -614,8 +614,10 @@ struct CreateEventSheet: View {
     private func createEvent() {
         let iso = ISO8601DateFormatter()
         let selectedDateString: String? = selectedDate.map { _ in iso.string(from: selectedStartDateTime()) }
-        let proposedSlots = EventTimeSlotFactory.proposedSlots(from: selectedDateString)
 
+        viewModel.onEventCreated = { event in
+            onEventCreated(event)
+        }
         viewModel.createEvent(
             title: title,
             description: description,
@@ -625,17 +627,6 @@ struct CreateEventSheet: View {
             expectedParticipants: expectedParticipants.map { Int32($0) }
         )
 
-        // Also invoke callback for parent navigation
-        let event = EventFactory.make(
-            title: title,
-            description: description.isEmpty ? "" : description,
-            organizerId: userId,
-            proposedSlots: proposedSlots,
-            status: .draft,
-            eventType: selectedEventType,
-            expectedParticipants: expectedParticipants.map { Int32($0) }
-        )
-        onEventCreated(event)
         dismiss()
     }
 

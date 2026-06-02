@@ -12,6 +12,7 @@ import kotlinx.cinterop.nativeHeap
 import platform.posix.memcpy
 import kotlinx.datetime.Clock
 
+@OptIn(kotlinx.cinterop.BetaInteropApi::class)
 internal actual fun decodeBase64ToString(input: String): String {
     // Decode Base64
     val decodedData = platform.Foundation.NSData.create(

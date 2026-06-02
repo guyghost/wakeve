@@ -1,5 +1,9 @@
 # Store Readiness Checklist — Wakeve v1.0.0
 
+> **Superseded for iOS App Store work as of 2026-05-27.**
+> Use [APP_STORE_READINESS.md](./APP_STORE_READINESS.md), [APP_STORE_SUBMISSION_RUNBOOK.md](./APP_STORE_SUBMISSION_RUNBOOK.md), and [APP_STORE_LAUNCH_CHECKLIST.md](./APP_STORE_LAUNCH_CHECKLIST.md) for the current iOS App Store submission state.
+> This older cross-store checklist is retained as historical context and contains stale iOS entries, including legacy `armv7` and background fetch assumptions that are no longer true for the current Release build.
+
 > **Version:** 1.0  
 > **Last Updated:** 2026-04-14  
 > **Status:** Pre-submission  

@@ -142,7 +142,7 @@ class ScenarioListViewModel: StateMachineViewModel<
 
     private func shareScenarioInternal(scenario: Scenario_) {
         let shareText = prepareShareText(scenario: scenario)
-        print("Share scenario: \(shareText)")
+        debugLog("Share scenario: \(shareText)")
     }
 
     private func prepareShareText(scenario: Scenario_) -> String {

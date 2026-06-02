@@ -10,4 +10,4 @@ interface SyncHttpClient {
 /**
  * Factory function to create platform-specific HTTP client
  */
-expect fun createSyncHttpClient(baseUrl: String = "http://localhost:8080"): SyncHttpClient
+expect fun createSyncHttpClient(baseUrl: String = "https://api.wakeve.app"): SyncHttpClient

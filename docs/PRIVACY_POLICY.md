@@ -16,6 +16,8 @@ Wakeve ("we", "our", "us") is committed to protecting your privacy. This Privacy
 
 ## 2. Information We Collect
 
+This Data Collection section summarizes the categories of information Wakeve collects and why each category is needed.
+
 ### 2.1 Information You Provide
 
 | Data Type | Purpose | Stored |
@@ -138,10 +140,7 @@ Wakeve is not directed to children under 13. We do not knowingly collect persona
 
 ## 8. Data Deletion
 
-To delete your account and all associated data:
-
-1. Open Wakeve → Profile Settings → Delete Account
-2. Or contact us at privacy@wakeve.app
+To request deletion of your account and all associated data, contact us at privacy@wakeve.app.
 
 Account deletion is **permanent** and includes:
 
@@ -209,7 +208,7 @@ For privacy-related questions or requests:
 
 **Data sharing:** We do not share data with third parties.  
 **Data encryption:** All data is encrypted in transit and at rest.  
-**Data deletion:** Users can request deletion via in-app settings or email.
+**Data deletion:** Users can request deletion by email.
 
 ---
 

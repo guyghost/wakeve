@@ -9,7 +9,7 @@ Create polls with flexible time slots (morning, afternoon, evening, or all-day).
 No signal? No problem. Wakeve works fully offline — your events, votes, and changes sync automatically when you're back online.
 
 🌍 Multi-Platform
-Share events with anyone — they'll have the best experience on their platform with native Android Material You design or iOS Liquid Glass.
+Share events with anyone — they'll have a native, polished experience on every supported platform.
 
 📅 Calendar Integration
 Add confirmed events directly to your native calendar with one tap. Get reminders and never miss an event.
@@ -24,7 +24,7 @@ Set minimum and maximum participants. Invite friends and let the group decide to
 Add potential locations and let the group compare options side by side.
 
 🔒 Privacy First
-Your data stays on your device. Wakeve uses local-first architecture with encrypted sync — no data mining, no ads.
+Wakeve uses local-first architecture with encrypted sync, clear privacy controls, no ads, and no tracking.
 
 🎯 PERFECT FOR
 • Friends planning a night out

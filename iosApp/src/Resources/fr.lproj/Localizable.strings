@@ -28,6 +28,8 @@
 "auth.privacy_policy" = "Politique de confidentialité";
 "auth.terms_of_service" = "Conditions d'utilisation";
 "auth.and" = "et";
+"auth.continue_as_guest" = "Continuer en invité";
+"auth.guest_display_name" = "Invité";
 "auth.skip_dev" = "Passer (Développement)";
 
 // MARK: - Explore

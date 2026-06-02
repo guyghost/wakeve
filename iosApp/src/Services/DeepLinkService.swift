@@ -234,8 +234,7 @@ class DeepLinkService: ObservableObject {
     private func handleEventDetail(eventId: String, isAuthenticated: Bool) -> Bool {
         Log.debug("Navigating to event detail: \(eventId)")
 
-        // TODO: Check if event exists (optional validation)
-        // For now, navigate directly
+        // Destination views validate event availability after navigation.
 
         // Update navigation path for SwiftUI
         navigationPath = ["event", eventId]
@@ -333,15 +332,15 @@ class DeepLinkService: ObservableObject {
 private enum Log {
     static func debug(_ message: String) {
         #if DEBUG
-        print("[DeepLinkService] DEBUG: \(message)")
+        debugLog("[DeepLinkService] DEBUG: \(message)")
         #endif
     }
 
     static func warning(_ message: String) {
-        print("[DeepLinkService] WARNING: \(message)")
+        debugLog("[DeepLinkService] WARNING: \(message)")
     }
 
     static func error(_ message: String) {
-        print("[DeepLinkService] ERROR: \(message)")
+        debugLog("[DeepLinkService] ERROR: \(message)")
     }
 }
