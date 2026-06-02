@@ -174,6 +174,7 @@ private struct ToggleRow: View {
 
 // MARK: - Preview
 
+#if DEBUG
 #Preview("Notification Preferences - Light") {
     NavigationStack {
         NotificationPreferencesView(
@@ -210,3 +211,4 @@ private struct ToggleRow: View {
     }
     .preferredColorScheme(.dark)
 }
+#endif

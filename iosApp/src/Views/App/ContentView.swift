@@ -194,7 +194,7 @@ struct AuthenticatedView: View {
                             currentView = .participantManagement
                         }
                     } catch {
-                        print("Failed to save event: \(error)")
+                        debugLog("Failed to save event: \(error)")
                     }
                 }
             }
@@ -426,7 +426,7 @@ struct AuthenticatedView: View {
             
         case .mealPlanning:
             if selectedEvent != nil {
-                // TODO: Re-enable MealPlanningView when Shared types are properly integrated
+                // Meal planning stays behind a placeholder until shared types are integrated.
                 Text("Planification des repas")
                     .font(.title2)
                     .foregroundColor(.secondary)
@@ -953,7 +953,7 @@ private struct TricountHandoffView: View {
             List {
                 Phase5SyncBanner(pendingSync: pendingSync, isOnline: !pendingSync)
                 Section("Tricount") {
-                    if let safeLink, safeLink.isVerified, let validatedURL = safeLink.validatedURL {
+                    if let safeLink, safeLink.isVerified, safeLink.validatedURL != nil {
                         Button {
                             openSafeURL(safeLink)
                         } label: {
@@ -2012,6 +2012,7 @@ private struct EventPreviewDetailRow: View {
     }
 }
 
+#if DEBUG
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView()
@@ -2025,3 +2026,4 @@ struct ContentView_Previews: PreviewProvider {
         .previewEnvironment(isAuthenticated: false)
         .preferredColorScheme(.dark)
 }
+#endif

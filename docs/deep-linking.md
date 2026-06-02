@@ -15,7 +15,7 @@ Wakeve supports deep linking for direct navigation to specific screens and featu
 | `wakeve://meeting/{meetingId}` | Navigate to meeting details | `wakeve://meeting/xyz789` |
 | `wakeve://invite/{token}` | Handle event invite | `wakeve://invite/token12345` |
 
-### iOS (Universal Links - Planned)
+### iOS (Universal Links)
 
 | Deep Link | Description | Example |
 |-----------|-------------|----------|
@@ -24,7 +24,7 @@ Wakeve supports deep linking for direct navigation to specific screens and featu
 | `https://wakeve.app/meeting/{meetingId}` | Navigate to meeting | `https://wakeve.app/meeting/xyz789` |
 | `https://wakeve.app/invite/{token}` | Handle event invite | `https://wakeve.app/invite/token12345` |
 
-**Note:** Universal Links are planned for future implementation. Currently, only the `wakeve://` custom scheme is supported on iOS.
+**Note:** iOS registers the `wakeve://` custom scheme in `Info.plist` and declares `applinks:wakeve.app` in `iosApp/src/Wakeve.entitlements`. The web app serves Apple App Site Association JSON from `/.well-known/apple-app-site-association` and `/apple-app-site-association` when a real `APPLE_TEAM_ID` or `TEAM_ID` is configured. The documented placeholder `ABCDE12345` and invalid Team IDs are rejected. Production still requires the real Apple Developer Team ID, a live `wakeve.app` deployment, and an App ID/provisioning profile with Associated Domains enabled.
 
 ## Implementation Details
 
@@ -69,6 +69,11 @@ Wakeve supports deep linking for direct navigation to specific screens and featu
 #### Files
 - `DeepLinkService.swift` - Handles deep link parsing and navigation
 - `iOSApp.swift` - Integrates DeepLinkService with SwiftUI
+- `Info.plist` - Registers the `wakeve` custom URL scheme
+- `Wakeve.entitlements` - Declares `applinks:wakeve.app` for Universal Links
+- `webApp/src/lib/server/apple-app-site-association.ts` - Builds the AASA response from Apple Team ID environment variables
+- `webApp/src/routes/.well-known/apple-app-site-association/+server.ts` - Serves the primary AASA endpoint
+- `webApp/src/routes/apple-app-site-association/+server.ts` - Serves the root AASA fallback endpoint
 
 #### Architecture
 
@@ -176,23 +181,18 @@ xcrun simctl open booted "wakeve://event/test123"
    - Future: Prompt for authentication if required
 
 3. **Universal Links (iOS):**
-   - Require proper Apple App Site Association (AASA) file
-   - Must be hosted on `https://wakeve.app/.well-known/apple-app-site-association`
-   - Not yet implemented
+   - Require proper Apple App Site Association (AASA) JSON
+   - Must be hosted on both `https://wakeve.app/.well-known/apple-app-site-association` and `https://wakeve.app/apple-app-site-association`
+   - The repository provides both AASA endpoints, but production must set the real Apple Team ID and serve them over the live domain
 
 ## Future Enhancements
 
-1. **Universal Links (iOS):**
-   - Implement AASA file on server
-   - Configure Associated Domains in Xcode
-   - Support https://wakeve.app/* URLs
-
-2. **Invite Flow:**
+1. **Invite Flow:**
    - Implement invite token validation
    - Show event preview to non-authenticated users
    - Prompt for authentication before accepting invite
 
-3. **Deep Link Analytics:**
+2. **Deep Link Analytics:**
    - Track deep link origins (email, SMS, web)
    - Measure deep link conversion rates
    - Optimize notification content
@@ -214,8 +214,10 @@ xcrun simctl open booted "wakeve://event/test123"
 ### iOS
 
 **Deep link opens in Safari instead of app:**
-- Verify custom scheme is registered in Info.plist (not needed for wakeve://)
-- For https:// links, Universal Links must be configured
+- Verify custom scheme is registered in Info.plist
+- For https:// links, verify `applinks:wakeve.app` is present in the signed app entitlements
+- Verify `APPLE_TEAM_ID` or `TEAM_ID` is configured in production with the real Apple Developer Team ID, not the documented placeholder, so the AASA file contains the real `<Team ID>.com.guyghost.wakeve` app ID
+- Verify both `https://wakeve.app/.well-known/apple-app-site-association` and `https://wakeve.app/apple-app-site-association` respond with `200` and `application/json`
 - Check that onOpenURL is properly set up
 
 **App opens but doesn't navigate:**

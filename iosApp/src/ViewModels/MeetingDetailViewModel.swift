@@ -133,7 +133,7 @@ class MeetingDetailViewModel: StateMachineViewModel<
     /// Share meeting link
     func shareMeetingLink() {
         guard let link = meeting?.meetingUrl else { return }
-        print("Share meeting link: \(link)")
+        debugLog("Share meeting link: \(link)")
     }
 
     // MARK: - Convenience Properties

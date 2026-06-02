@@ -35,7 +35,7 @@ struct BudgetItemModel: Identifiable, Equatable {
             actualCost: item.actualCost,
             isPaid: item.isPaid,
             paidBy: item.paidBy,
-            sharedBy: item.sharedBy as? [String] ?? [],
+            sharedBy: item.sharedBy,
             notes: item.notes,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt
@@ -185,7 +185,7 @@ class BudgetViewModel: ObservableObject {
         self.isOnline = !pendingSync
 
         // Load items
-        let rawItems = budgetRepository.getBudgetItems(budgetId: budget.id) as? [BudgetItem_] ?? []
+        let rawItems = budgetRepository.getBudgetItems(budgetId: budget.id)
         let items = rawItems.map(BudgetItemModel.from)
         self.allItems = items
 
@@ -217,22 +217,12 @@ class BudgetViewModel: ObservableObject {
 
         // Participant balances — from KMP calculator
         let balancesMap = budgetRepository.getParticipantBalances(budgetId: budget.id)
-        if let map = balancesMap as? [String: AnyObject] {
-            self.participantBalances = map.compactMap { participantId, value -> ParticipantBalanceModel? in
-                let balance: Double
-                if let kotlinDouble = value as? Double {
-                    balance = kotlinDouble
-                } else if let nsNumber = value as? NSNumber {
-                    balance = nsNumber.doubleValue
-                } else {
-                    return nil
-                }
-                return ParticipantBalanceModel(
-                    id: participantId,
-                    name: participantId,
-                    balance: balance
-                )
-            }
+        self.participantBalances = balancesMap.map { participantId, value in
+            ParticipantBalanceModel(
+                id: participantId,
+                name: participantId,
+                balance: value.doubleValue
+            )
         }
     }
 

@@ -12,6 +12,7 @@ import kotlin.experimental.ExperimentalNativeApi
  * iOS implementation of TokenStorage using iOS Keychain for secure storage.
  */
 @OptIn(ExperimentalForeignApi::class, ExperimentalNativeApi::class)
+@Suppress("UNCHECKED_CAST")
 class IosTokenStorage : TokenStorage {
 
     private val service = "com.guyghost.wakeve.auth"

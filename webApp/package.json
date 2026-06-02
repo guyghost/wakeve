@@ -11,18 +11,18 @@
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
   },
   "devDependencies": {
-    "@sveltejs/adapter-auto": "^3.0.0",
-    "@sveltejs/kit": "^2.16.0",
-    "@sveltejs/vite-plugin-svelte": "^5.0.0",
-    "svelte": "^5.0.0",
+    "@sveltejs/adapter-vercel": "^6.3.3",
+    "@sveltejs/kit": "^2.61.1",
+    "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@tailwindcss/vite": "^4.3.0",
+    "svelte": "^5.55.9",
     "svelte-check": "^4.0.0",
+    "tailwindcss": "^4.0.0",
     "typescript": "^5.0.0",
-    "vite": "^6.0.0",
-    "@tailwindcss/vite": "^4.0.0",
-    "tailwindcss": "^4.0.0"
+    "vite": "^8.0.14"
   },
   "dependencies": {
-    "xstate": "^5.18.0",
-    "@xstate/svelte": "^3.0.0"
+    "@xstate/svelte": "^5.0.0",
+    "xstate": "^5.18.0"
   }
 }

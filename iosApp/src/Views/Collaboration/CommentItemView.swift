@@ -228,7 +228,7 @@ private func ISO8601DateFormatter() -> DateFormatter {
 
 extension Comment_ {
     // Properties are already in camelCase in the generated Swift header
-    var isPinned: Bool { false } // TODO: Add pinned support to database schema
+    var isPinned: Bool { false } // Pinned comments are not in the current shared schema.
     
     var isDeleted: Bool { content == "[Deleted]" || content == "[deleted]" }
     

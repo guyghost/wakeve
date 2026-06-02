@@ -117,7 +117,7 @@ struct LocationSelectionSheet: View {
         }
         .onReceive(locationManager.$error) { error in
             if let error = error {
-                print("Location error: \(error.localizedDescription)")
+                debugLog("Location error: \(error.localizedDescription)")
                 isLoadingLocation = false
             }
         }
@@ -154,7 +154,7 @@ struct LocationSelectionSheet: View {
             isLoadingLocation = false
             
             if let error = error {
-                print("Reverse geocoding error: \(error.localizedDescription)")
+                debugLog("Reverse geocoding error: \(error.localizedDescription)")
                 currentAddress = String(localized: "location.my_current_position")
                 return
             }
@@ -465,7 +465,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         self.error = error
-        print("Location manager error: \(error.localizedDescription)")
+        debugLog("Location manager error: \(error.localizedDescription)")
     }
     
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
@@ -488,10 +488,10 @@ struct LocationSelectionSheet_Previews: PreviewProvider {
         .sheet(isPresented: .constant(true)) {
             LocationSelectionSheet(
                 onDismiss: {
-                    print("Dismissed")
+                    debugLog("Dismissed")
                 },
                 onConfirm: { location in
-                    print("Confirmed: \(location.name)")
+                    debugLog("Confirmed: \(location.name)")
                 }
             )
         }

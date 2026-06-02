@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { createActor } from 'xstate'
-  import type { eventWizardMachine } from '$lib/machines/eventWizard.machine'
+  import type { Actor, SnapshotFrom } from 'xstate'
+  import { eventWizardMachine } from '$lib/machines/eventWizard.machine'
   import type { EventType, TimeOfDay } from '$lib/types/api'
-  import type { WizardSlot } from '$lib/machines/eventWizard.machine'
+  import type { WizardFields, WizardSlot } from '$lib/machines/eventWizard.machine'
   import StepIndicator from '$lib/components/molecules/StepIndicator.svelte'
   import TimeSlotEditor from '$lib/components/molecules/TimeSlotEditor.svelte'
   import Input from '$lib/components/atoms/Input.svelte'
@@ -11,7 +11,8 @@
   import Button from '$lib/components/atoms/Button.svelte'
   import ErrorBanner from '$lib/components/ui/ErrorBanner.svelte'
 
-  type WizardActor = ReturnType<typeof createActor<typeof eventWizardMachine>>
+  type WizardActor = Actor<typeof eventWizardMachine>
+  type WizardSnapshot = SnapshotFrom<typeof eventWizardMachine>
 
   interface Props {
     actor: WizardActor
@@ -19,21 +20,23 @@
 
   const { actor }: Props = $props()
 
-  let snapshot = $state(actor.getSnapshot())
+  let snapshot = $state<WizardSnapshot | undefined>()
   $effect(() => {
+    snapshot = actor.getSnapshot()
     const sub = actor.subscribe((s) => { snapshot = s })
     return () => sub.unsubscribe()
   })
 
-  const ctx = $derived(snapshot.context)
-  const state = $derived(snapshot.value as string)
-  const isSubmitting = $derived(state === 'submitting')
+  const activeSnapshot = $derived(snapshot ?? actor.getSnapshot())
+  const ctx = $derived(activeSnapshot.context)
+  const stateValue = $derived(activeSnapshot.value as string)
+  const isSubmitting = $derived(stateValue === 'submitting')
 
   const STEPS = ['Informations', 'Créneaux', 'Lieu', 'Participants']
   const stepMap: Record<string, number> = {
     step1: 1, step2: 2, step3: 3, step4: 4, submitting: 4, success: 4
   }
-  const currentStep = $derived(stepMap[state] ?? 1)
+  const currentStep = $derived(stepMap[stateValue] ?? 1)
 
   // ── Event type options ────────────────────────────────────────────────────
   const eventTypeOptions: { value: EventType; label: string }[] = [
@@ -60,7 +63,7 @@
     actor.send(event)
   }
 
-  function updateField(field: keyof typeof ctx.fields, value: string) {
+  function updateField(field: keyof WizardFields, value: string) {
     send({ type: 'UPDATE_FIELD', field, value })
   }
 
@@ -89,7 +92,7 @@
   {/if}
 
   <!-- ── Step 1: Basic info ────────────────────────────────────────────────── -->
-  {#if state === 'step1'}
+  {#if stateValue === 'step1'}
     <section class="flex flex-col gap-4">
       <h2 class="text-base font-semibold text-gray-800">Informations générales</h2>
 
@@ -139,7 +142,7 @@
     </section>
 
   <!-- ── Step 2: Slots ─────────────────────────────────────────────────────── -->
-  {:else if state === 'step2'}
+  {:else if stateValue === 'step2'}
     <section class="flex flex-col gap-4">
       <div class="flex flex-col gap-0.5">
         <h2 class="text-base font-semibold text-gray-800">Créneaux proposés</h2>
@@ -171,7 +174,7 @@
     </section>
 
   <!-- ── Step 3: Location ──────────────────────────────────────────────────── -->
-  {:else if state === 'step3'}
+  {:else if stateValue === 'step3'}
     <section class="flex flex-col items-center justify-center gap-4 py-12 text-center">
       <span class="text-5xl" aria-hidden="true">🗺️</span>
       <div class="flex flex-col gap-1">
@@ -184,7 +187,7 @@
     </section>
 
   <!-- ── Step 4: Participants ──────────────────────────────────────────────── -->
-  {:else if state === 'step4' || state === 'submitting'}
+  {:else if stateValue === 'step4' || stateValue === 'submitting'}
     <section class="flex flex-col gap-4">
       <div class="flex flex-col gap-0.5">
         <h2 class="text-base font-semibold text-gray-800">Inviter des participants</h2>
@@ -236,10 +239,10 @@
   {/if}
 
   <!-- ── Navigation buttons ─────────────────────────────────────────────────── -->
-  {#if state !== 'success'}
+  {#if stateValue !== 'success'}
     <div class="flex items-center justify-between pt-2 border-t border-border">
       <div>
-        {#if state === 'step2' || state === 'step3' || state === 'step4' || state === 'submitting'}
+        {#if stateValue === 'step2' || stateValue === 'step3' || stateValue === 'step4' || stateValue === 'submitting'}
           <Button
             variant="ghost"
             size="md"
@@ -252,7 +255,7 @@
       </div>
 
       <div>
-        {#if state === 'step1' || state === 'step2' || state === 'step3'}
+        {#if stateValue === 'step1' || stateValue === 'step2' || stateValue === 'step3'}
           <Button
             variant="primary"
             size="md"
@@ -260,7 +263,7 @@
           >
             Suivant →
           </Button>
-        {:else if state === 'step4' || state === 'submitting'}
+        {:else if stateValue === 'step4' || stateValue === 'submitting'}
           <Button
             variant="primary"
             size="md"

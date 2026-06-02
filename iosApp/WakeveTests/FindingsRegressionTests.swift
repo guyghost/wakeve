@@ -5,7 +5,7 @@ import Shared
 @MainActor
 final class FindingsRegressionTests: XCTestCase {
     func testDevelopmentAuthStoresAccessTokenForSyncConsumers() async throws {
-        let authService = AuthenticationService()
+        let authService = AuthenticationService(tokenStorage: InMemorySecureTokenStorage())
         await authService.signOut()
         let manager = AuthStateManager(authService: authService)
 
@@ -15,6 +15,27 @@ final class FindingsRegressionTests: XCTestCase {
         let isAuthenticated = await authService.isAuthenticated()
         XCTAssertEqual(token, "dev-token-test")
         XCTAssertTrue(isAuthenticated)
+    }
+
+    func testDevelopmentLaunchAuthRequiresExplicitFlag() {
+        XCTAssertFalse(
+            AuthStateManager.shouldUseDevelopmentLaunchAuthentication(
+                arguments: ["Wakeve"],
+                environment: [:]
+            )
+        )
+        XCTAssertTrue(
+            AuthStateManager.shouldUseDevelopmentLaunchAuthentication(
+                arguments: ["Wakeve", "--wakeve-debug-authenticated"],
+                environment: [:]
+            )
+        )
+        XCTAssertTrue(
+            AuthStateManager.shouldUseDevelopmentLaunchAuthentication(
+                arguments: ["Wakeve"],
+                environment: ["WAKEVE_DEBUG_AUTHENTICATED": "1"]
+            )
+        )
     }
 
     func testParticipantManagementRequiresAtLeastOneProposedSlotBeforeStartingPoll() throws {
@@ -120,5 +141,67 @@ final class FindingsRegressionTests: XCTestCase {
         }
 
         return String(tail[..<end])
+    }
+}
+
+private final class InMemorySecureTokenStorage: SecureTokenStorageProtocol {
+    private var accessToken: String?
+    private var refreshToken: String?
+    private var userId: String?
+    private var tokenExpiry: Int64?
+
+    func storeAccessToken(_ token: String) async throws {
+        accessToken = token
+    }
+
+    func storeRefreshToken(_ token: String) async throws {
+        refreshToken = token
+    }
+
+    func storeUserId(_ userId: String) async throws {
+        self.userId = userId
+    }
+
+    func storeTokenExpiry(_ expiryTimestamp: Int64) async throws {
+        tokenExpiry = expiryTimestamp
+    }
+
+    func getAccessToken() async -> String? {
+        accessToken
+    }
+
+    func getRefreshToken() async -> String? {
+        refreshToken
+    }
+
+    func getUserId() async -> String? {
+        userId
+    }
+
+    func getTokenExpiry() async -> Int64? {
+        tokenExpiry
+    }
+
+    func clearAllTokens() async throws {
+        accessToken = nil
+        refreshToken = nil
+        userId = nil
+        tokenExpiry = nil
+    }
+
+    func isTokenExpired() async -> Bool {
+        guard let tokenExpiry else {
+            return true
+        }
+
+        return Date().timeIntervalSince1970 * 1000 >= Double(tokenExpiry)
+    }
+
+    func hasValidToken() async -> Bool {
+        guard let accessToken, !accessToken.isEmpty else {
+            return false
+        }
+
+        return !(await isTokenExpired())
     }
 }

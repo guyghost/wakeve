@@ -17,7 +17,7 @@
   import { formatSlotLabel } from '$lib/utils/slot'
 
   const { snapshot: authSnapshot } = useAuth()
-  const eventId = $page.params.id
+  const eventId = $page.params.id ?? ''
 
   const actor = createActor(eventDetailMachine, { input: { eventId } })
   let snapshot = $state(actor.getSnapshot())

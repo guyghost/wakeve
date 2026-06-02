@@ -77,7 +77,13 @@ class SecureTokenStorage: SecureTokenStorageProtocol {
     }
 
     private func storeData(_ data: Data, forKey key: String) throws {
-        let query: [String: Any] = [
+        let lookupQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceName,
+            kSecAttrAccount as String: key
+        ]
+
+        let addQuery: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: serviceName,
             kSecAttrAccount as String: key,
@@ -85,11 +91,9 @@ class SecureTokenStorage: SecureTokenStorageProtocol {
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlock
         ]
 
-        // Delete existing item
-        SecItemDelete(query as CFDictionary)
+        SecItemDelete(lookupQuery as CFDictionary)
 
-        // Add new item
-        let status = SecItemAdd(query as CFDictionary, nil)
+        let status = SecItemAdd(addQuery as CFDictionary, nil)
         guard status == errSecSuccess else {
             throw KeychainError.operationFailed(status: status)
         }

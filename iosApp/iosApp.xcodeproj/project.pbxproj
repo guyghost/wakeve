@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		E3A5F1782F1B0010008A4C31 /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E3A5F1772F1B0010008A4C31 /* AppIntents.framework */; };
 		E47B48722ECC913300486797 /* libsqlite3.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E47B48712ECC913300486797 /* libsqlite3.tbd */; };
 		F1E2D3C4B5A6970890123457 /* Shared.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A6970890123456 /* Shared.framework */; };
 		F1E2D3C4B5A6970890123458 /* Shared.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = F1E2D3C4B5A6970890123456 /* Shared.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -38,6 +39,7 @@
 
 /* Begin PBXFileReference section */
 		DF63D8311F06A45A869FF8F2 /* Wakeve.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Wakeve.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E3A5F1772F1B0010008A4C31 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
 		E47B48712ECC913300486797 /* libsqlite3.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libsqlite3.tbd; path = usr/lib/libsqlite3.tbd; sourceTree = SDKROOT; };
 		E489717C2F0BC60F00BE8BF0 /* WakeveTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WakeveTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E48971852F0BC6B500BE8BF0 /* WakeveTest.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = WakeveTest.xctestplan; sourceTree = "<group>"; };
@@ -80,6 +82,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E3A5F1782F1B0010008A4C31 /* AppIntents.framework in Frameworks */,
 				E47B48722ECC913300486797 /* libsqlite3.tbd in Frameworks */,
 				F1E2D3C4B5A6970890123457 /* Shared.framework in Frameworks */,
 			);
@@ -119,6 +122,7 @@
 		E47B48702ECC913300486797 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E3A5F1772F1B0010008A4C31 /* AppIntents.framework */,
 				E47B48712ECC913300486797 /* libsqlite3.tbd */,
 				F1E2D3C4B5A6970890123456 /* Shared.framework */,
 			);
@@ -253,7 +257,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/..\"\n./gradlew :shared:embedAndSignAppleFrameworkForXcode\n";
+			shellScript = "if [ \"YES\" = \"$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED\" ]; then\n  echo \"Skipping Gradle build task invocation due to OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED environment variable set to \\\"YES\\\"\"\n  exit 0\nfi\ncd \"$SRCROOT/..\"\n./gradlew --no-configuration-cache --console=plain :shared:embedAndSignAppleFrameworkForXcode\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -286,37 +290,45 @@
 		07A678CF8917D0A2A14C30A0 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_ASSET_PATHS = "\"src/Preview Content\"";
-				ENABLE_PREVIEWS = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/src",
+					ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+						ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+						APS_ENVIRONMENT = production;
+						CODE_SIGN_ENTITLEMENTS = src/Wakeve.entitlements;
+						CODE_SIGN_IDENTITY = "Apple Development";
+					CODE_SIGN_STYLE = Automatic;
+					CURRENT_PROJECT_VERSION = 1;
+					DEVELOPMENT_ASSET_PATHS = "\"src/Preview Content\"";
+					ENABLE_PREVIEWS = YES;
+					FRAMEWORK_SEARCH_PATHS = (
+						"$(inherited)",
+						"$(PROJECT_DIR)/src",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = src/Info.plist;
-				INFOPLIST_KEY_CFBundleIdentifier = com.guyghost.wakeve;
-				INFOPLIST_KEY_CFBundleInfoDictionaryVersion = 6.0;
-				INFOPLIST_KEY_CFBundleName = Wakeve;
-				INFOPLIST_KEY_CFBundlePackageType = APPL;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+					INFOPLIST_KEY_CFBundleIdentifier = com.guyghost.wakeve;
+					INFOPLIST_KEY_CFBundleInfoDictionaryVersion = 6.0;
+					INFOPLIST_KEY_CFBundleName = Wakeve;
+					INFOPLIST_KEY_CFBundlePackageType = APPL;
+					INFOPLIST_KEY_CFBundleShortVersionString = "$(MARKETING_VERSION)";
+					INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
+					INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+					INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+					INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+					INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+					INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.guyghost.wakeve;
-				PRODUCT_NAME = Wakeve;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+					LD_RUNPATH_SEARCH_PATHS = (
+						"$(inherited)",
+						"@executable_path/Frameworks",
+					);
+					MARKETING_VERSION = 1.0;
+					PRODUCT_BUNDLE_IDENTIFIER = com.guyghost.wakeve;
+						PRODUCT_NAME = Wakeve;
+						SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+						SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+						SWIFT_EMIT_LOC_STRINGS = YES;
+						SWIFT_VERSION = 5.0;
+						TARGETED_DEVICE_FAMILY = "1,2";
 				WRAPPER_NAME = "$(PRODUCT_NAME).app";
 			};
 			name = Release;
@@ -453,37 +465,45 @@
 		C35DA5388E290B63AF460DEE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_ASSET_PATHS = "\"src/Preview Content\"";
-				ENABLE_PREVIEWS = YES;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/src",
+					ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+						ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+						APS_ENVIRONMENT = development;
+						CODE_SIGN_ENTITLEMENTS = src/Wakeve.entitlements;
+						CODE_SIGN_IDENTITY = "Apple Development";
+					CODE_SIGN_STYLE = Automatic;
+					CURRENT_PROJECT_VERSION = 1;
+					DEVELOPMENT_ASSET_PATHS = "\"src/Preview Content\"";
+					ENABLE_PREVIEWS = YES;
+					FRAMEWORK_SEARCH_PATHS = (
+						"$(inherited)",
+						"$(PROJECT_DIR)/src",
 				);
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = src/Info.plist;
-				INFOPLIST_KEY_CFBundleIdentifier = com.guyghost.wakeve;
-				INFOPLIST_KEY_CFBundleInfoDictionaryVersion = 6.0;
-				INFOPLIST_KEY_CFBundleName = Wakeve;
-				INFOPLIST_KEY_CFBundlePackageType = APPL;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+					INFOPLIST_KEY_CFBundleIdentifier = com.guyghost.wakeve;
+					INFOPLIST_KEY_CFBundleInfoDictionaryVersion = 6.0;
+					INFOPLIST_KEY_CFBundleName = Wakeve;
+					INFOPLIST_KEY_CFBundlePackageType = APPL;
+					INFOPLIST_KEY_CFBundleShortVersionString = "$(MARKETING_VERSION)";
+					INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
+					INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+					INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+					INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+					INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+					INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.guyghost.wakeve;
-				PRODUCT_NAME = Wakeve;
-				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+					LD_RUNPATH_SEARCH_PATHS = (
+						"$(inherited)",
+						"@executable_path/Frameworks",
+					);
+					MARKETING_VERSION = 1.0;
+					PRODUCT_BUNDLE_IDENTIFIER = com.guyghost.wakeve;
+						PRODUCT_NAME = Wakeve;
+						SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+						SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+						SWIFT_EMIT_LOC_STRINGS = YES;
+						SWIFT_VERSION = 5.0;
+						TARGETED_DEVICE_FAMILY = "1,2";
 				WRAPPER_NAME = "$(PRODUCT_NAME).app";
 			};
 			name = Debug;

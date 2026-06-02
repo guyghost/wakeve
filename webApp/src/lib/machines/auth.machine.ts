@@ -2,6 +2,7 @@ import { setup, assign, fromPromise } from 'xstate'
 import type { UserDTO, AuthResponse } from '$lib/types/api'
 import * as authApi from '$lib/api/auth.api'
 import { clearTokens, saveAuthData, isTokenExpired } from '$lib/api/client'
+import { actorError, actorOutput } from './actor-event'
 
 interface AuthContext {
   user: UserDTO | null
@@ -77,12 +78,12 @@ export const authMachine = setup({
   actions: {
     assignUser: assign({
       user: ({ event }) =>
-        (event as { output: AuthResponse }).output.user
+        actorOutput<AuthResponse>(event).user
     }),
 
     assignError: assign({
       error: ({ event }) =>
-        String((event as { error: unknown }).error)
+        actorError(event)
     }),
 
     clearError: assign({ error: null }),
@@ -97,7 +98,7 @@ export const authMachine = setup({
     },
 
     saveAuth: ({ event }) => {
-      saveAuthData((event as { output: AuthResponse }).output)
+      saveAuthData(actorOutput<AuthResponse>(event))
     },
 
     restoreUser: assign({

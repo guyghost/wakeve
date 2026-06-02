@@ -31,6 +31,11 @@ public class AuthStateManager: ObservableObject {
     private let authService: AuthenticationService
     private let enableOAuth: Bool
 
+    private enum GuestSessionKeys {
+        static let userId = "wakeve_guest_user_id"
+        static let userName = "wakeve_guest_user_name"
+    }
+
     init(authService: AuthenticationService, enableOAuth: Bool = false) {
         self.authService = authService
         self.enableOAuth = enableOAuth
@@ -58,11 +63,18 @@ public class AuthStateManager: ObservableObject {
         fullName: String? = nil
     ) async {
         guard enableOAuth else {
-            print("[AuthStateManager] OAuth is disabled, using development mode")
+            #if DEBUG
+            debugLog("[AuthStateManager] OAuth is disabled, using development mode")
             await setAuthStateForDevelopment(
                 userId: "dev-\(UUID().uuidString.prefix(8))",
                 accessToken: "dev-token"
             )
+            #else
+            self.isAuthenticated = false
+            self.currentUser = nil
+            self.authError = "Authentication is not configured for this build."
+            self.hasCheckedAuthStatus = true
+            #endif
             return
         }
 
@@ -112,16 +124,16 @@ public class AuthStateManager: ObservableObject {
             // Register push token with backend now that user is authenticated
             APNsService.shared.registerTokenWithBackendIfAuthenticated()
 
-            print("[AuthStateManager] Successfully signed in as \(loginResponse.user.email)")
+            debugLog("[AuthStateManager] Successfully signed in as \(loginResponse.user.email)")
 
         } catch let error as AuthError {
-            print("[AuthStateManager] Authentication failed: \(error.localizedDescription)")
+            debugLog("[AuthStateManager] Authentication failed: \(error.localizedDescription)")
             self.isAuthenticated = false
             self.currentUser = nil
             self.authError = error.localizedDescription
             self.hasCheckedAuthStatus = true
         } catch {
-            print("[AuthStateManager] Authentication failed: \(error)")
+            debugLog("[AuthStateManager] Authentication failed: \(error)")
             self.isAuthenticated = false
             self.currentUser = nil
             self.authError = error.localizedDescription
@@ -140,7 +152,7 @@ public class AuthStateManager: ObservableObject {
         // Unregister push token from backend before clearing auth
         APNsService.shared.unregisterToken { success, error in
             if !success {
-                print("[AuthStateManager] Push token unregistration failed: \(error?.localizedDescription ?? "unknown")")
+                debugLog("[AuthStateManager] Push token unregistration failed: \(error?.localizedDescription ?? "unknown")")
             }
         }
 
@@ -148,13 +160,15 @@ public class AuthStateManager: ObservableObject {
             await authService.signOut()
         }
 
+        clearGuestSession()
+
         // Clear authentication state
         isAuthenticated = false
         currentUser = nil
         authError = nil
         hasCheckedAuthStatus = true
 
-        print("[AuthStateManager] User signed out")
+        debugLog("[AuthStateManager] User signed out")
     }
 
     // MARK: - Auth Status
@@ -184,17 +198,45 @@ public class AuthStateManager: ObservableObject {
                     // Re-register push token on app launch if authenticated
                     APNsService.shared.registerTokenWithBackendIfAuthenticated()
 
-                    print("[AuthStateManager] Restored session for user: \(user.id)")
+                    debugLog("[AuthStateManager] Restored session for user: \(user.id)")
                 } else {
                     // Token exists but no user data - try refresh
                     self.isAuthenticated = false
                     self.currentUser = nil
                 }
+            } else if let guestUser = restoreGuestUser() {
+                self.isAuthenticated = true
+                self.currentUser = guestUser
+                self.authError = nil
             } else {
                 self.isAuthenticated = false
                 self.currentUser = nil
             }
         }
+    }
+
+    // MARK: - Guest Mode
+
+    /**
+     * Continue into Wakeve with a local-only guest session.
+     *
+     * Guest sessions do not create backend tokens, register push tokens, or enable
+     * server synchronization. This keeps App Review and first-run exploration
+     * aligned with the shared guest-mode specification.
+     */
+    func continueAsGuest() async {
+        isLoading = true
+        defer {
+            isLoading = false
+            hasCheckedAuthStatus = true
+        }
+
+        await authService.signOut()
+
+        let guestUser = createOrRestoreGuestUser()
+        self.isAuthenticated = true
+        self.currentUser = guestUser
+        self.authError = nil
     }
 
     // MARK: - Token Refresh
@@ -206,6 +248,7 @@ public class AuthStateManager: ObservableObject {
      */
     func refreshTokenIfNeeded() async {
         guard isAuthenticated else { return }
+        guard !isCurrentSessionGuest else { return }
 
         do {
             let response = try await authService.refreshToken()
@@ -218,9 +261,9 @@ public class AuthStateManager: ObservableObject {
                 avatarUrl: response.user.avatarUrl
             )
 
-            print("[AuthStateManager] Token refreshed successfully")
+            debugLog("[AuthStateManager] Token refreshed successfully")
         } catch {
-            print("[AuthStateManager] Token refresh failed: \(error)")
+            debugLog("[AuthStateManager] Token refresh failed: \(error)")
 
             if case AuthError.tokenExpired = error {
                 // Refresh token expired - user needs to re-login
@@ -231,7 +274,76 @@ public class AuthStateManager: ObservableObject {
         }
     }
 
+    private var isCurrentSessionGuest: Bool {
+        currentUser?.id.hasPrefix("guest-") == true
+    }
+
+    private func createOrRestoreGuestUser() -> User {
+        if let existingGuest = restoreGuestUser() {
+            return existingGuest
+        }
+
+        let guestId = "guest-\(UUID().uuidString.lowercased())"
+        let guestName = String(localized: "auth.guest_display_name")
+
+        UserDefaults.standard.set(guestId, forKey: GuestSessionKeys.userId)
+        UserDefaults.standard.set(guestName, forKey: GuestSessionKeys.userName)
+
+        return User(
+            id: guestId,
+            name: guestName,
+            email: "",
+            avatarUrl: nil
+        )
+    }
+
+    private func restoreGuestUser() -> User? {
+        guard let guestId = UserDefaults.standard.string(forKey: GuestSessionKeys.userId) else {
+            return nil
+        }
+
+        return User(
+            id: guestId,
+            name: UserDefaults.standard.string(forKey: GuestSessionKeys.userName) ?? String(localized: "auth.guest_display_name"),
+            email: "",
+            avatarUrl: nil
+        )
+    }
+
+    private func clearGuestSession() {
+        UserDefaults.standard.removeObject(forKey: GuestSessionKeys.userId)
+        UserDefaults.standard.removeObject(forKey: GuestSessionKeys.userName)
+    }
+
+    #if DEBUG
     // MARK: - Development Mode
+
+    static func shouldUseDevelopmentLaunchAuthentication(
+        arguments: [String] = ProcessInfo.processInfo.arguments,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> Bool {
+        arguments.contains("--wakeve-debug-authenticated") ||
+        environment["WAKEVE_DEBUG_AUTHENTICATED"] == "1"
+    }
+
+    func authenticateForDevelopmentLaunchIfRequested(
+        arguments: [String] = ProcessInfo.processInfo.arguments,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) async -> Bool {
+        guard Self.shouldUseDevelopmentLaunchAuthentication(
+            arguments: arguments,
+            environment: environment
+        ) else {
+            return false
+        }
+
+        await setAuthStateForDevelopment(
+            userId: "dev-\(UUID().uuidString.prefix(8))",
+            accessToken: "dev-token"
+        )
+
+        return isAuthenticated
+    }
 
     /**
      * Set authentication state for development (bypasses normal auth flow).
@@ -261,4 +373,5 @@ public class AuthStateManager: ObservableObject {
             avatarUrl: nil
         )
     }
+    #endif
 }

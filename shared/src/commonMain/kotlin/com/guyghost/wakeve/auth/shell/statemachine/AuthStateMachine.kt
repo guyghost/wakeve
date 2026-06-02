@@ -49,7 +49,7 @@ class AuthStateMachine(
     private val emailAuthService: EmailAuthService,
     private val guestModeService: GuestModeService,
     private val tokenStorage: TokenStorage,
-    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 ) {
     private val _state = MutableStateFlow(State.initial())
     val state: StateFlow<State> = _state.asStateFlow()
@@ -96,7 +96,7 @@ class AuthStateMachine(
      * Emits a side effect.
      */
     private fun emitSideEffect(effect: SideEffect) {
-        kotlinx.coroutines.GlobalScope.launch {
+        scope.launch {
             _sideEffect.send(effect)
         }
     }
@@ -104,7 +104,7 @@ class AuthStateMachine(
     private fun handleGoogleSignIn() {
         updateState { copy(isLoading = true, lastError = null) }
 
-        kotlinx.coroutines.GlobalScope.launch {
+        scope.launch {
             val result = authService.signInWithGoogle()
             processAuthResult(result)
         }
@@ -113,7 +113,7 @@ class AuthStateMachine(
     private fun handleAppleSignIn() {
         updateState { copy(isLoading = true, lastError = null) }
 
-        kotlinx.coroutines.GlobalScope.launch {
+        scope.launch {
             val result = authService.signInWithApple()
             processAuthResult(result)
         }
@@ -135,7 +135,7 @@ class AuthStateMachine(
 
         updateState { copy(isLoading = true, pendingEmail = email) }
 
-        kotlinx.coroutines.GlobalScope.launch {
+        scope.launch {
             emailAuthService.requestOTP(email).fold(
                 onSuccess = {
                     updateState {
@@ -161,7 +161,7 @@ class AuthStateMachine(
 
         updateState { copy(isLoading = true, lastError = null) }
 
-        kotlinx.coroutines.GlobalScope.launch {
+        scope.launch {
             val result = emailAuthService.verifyOTP(
                 email = pendingEmail,
                 otp = otp,
@@ -224,7 +224,7 @@ class AuthStateMachine(
     private fun handleSkipToGuest() {
         updateState { copy(isLoading = true) }
 
-        kotlinx.coroutines.GlobalScope.launch {
+        scope.launch {
             val result = guestModeService.createGuestSession()
 
             when (result) {
@@ -253,7 +253,7 @@ class AuthStateMachine(
     private fun handleResendOTP() {
         val pendingEmail = _state.value.pendingEmail ?: return
 
-        kotlinx.coroutines.GlobalScope.launch {
+        scope.launch {
             emailAuthService.resendOTP(pendingEmail).fold(
                 onSuccess = {
                     updateState { copy(remainingOTPTime = 300) }
@@ -285,7 +285,7 @@ class AuthStateMachine(
     }
 
     private fun handleCheckSession() {
-        kotlinx.coroutines.GlobalScope.launch {
+        scope.launch {
             // Check for existing authenticated session
             val isAuthenticated = authService.isAuthenticated()
             if (isAuthenticated) {
@@ -340,7 +340,7 @@ class AuthStateMachine(
     }
 
     private fun handleSignOut() {
-        kotlinx.coroutines.GlobalScope.launch {
+        scope.launch {
             authService.signOut()
             guestModeService.endGuestSession()
 
@@ -358,7 +358,7 @@ class AuthStateMachine(
         when (result) {
             is AuthResult.Success -> {
                 // Store tokens securely
-                kotlinx.coroutines.GlobalScope.launch {
+                scope.launch {
                     tokenStorage.storeString(TokenKeys.ACCESS_TOKEN, result.token.value)
                     tokenStorage.storeString(TokenKeys.TOKEN_EXPIRY, result.token.expiresAt.toString())
                     tokenStorage.storeString(TokenKeys.USER_ID, result.user.id)

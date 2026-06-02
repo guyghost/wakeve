@@ -744,8 +744,6 @@ enum InboxItemType {
         .previewEnvironment()
         .preferredColorScheme(.dark)
 }
-#endif
-
 #Preview("Inbox - Empty Light") {
     InboxView(userId: "preview-user", onBack: {}, unreadCount: .constant(0), initialItems: [])
         .previewEnvironment()
@@ -757,3 +755,4 @@ enum InboxItemType {
         .previewEnvironment()
         .preferredColorScheme(.dark)
 }
+#endif

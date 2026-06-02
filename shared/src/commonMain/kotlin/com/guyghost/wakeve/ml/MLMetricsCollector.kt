@@ -2,6 +2,7 @@ package com.guyghost.wakeve.ml
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.serialization.json.Json
 import kotlin.math.round
 
 /**
@@ -162,6 +163,10 @@ class DefaultMLMetricsCollector : MLMetricsCollector {
     private val metricsLock = kotlinx.coroutines.sync.Mutex()
     private val metricsList = mutableListOf<MLMetricsEvent>()
     private val maxStoredEvents = 1000
+    private val exportJson = Json {
+        prettyPrint = true
+        ignoreUnknownKeys = true
+    }
     
     override val metricsFlow: Flow<List<MLMetricsEvent>> = _metricsFlow
     
@@ -310,10 +315,7 @@ class DefaultMLMetricsCollector : MLMetricsCollector {
         platform: Platform?
     ): String {
         val events = getMetrics(operation, platform, limit = maxStoredEvents)
-        return kotlinx.serialization.json.Json {
-            prettyPrint = true
-            ignoreUnknownKeys = true
-        }.encodeToString(
+        return exportJson.encodeToString(
             kotlinx.serialization.serializer<List<MLMetricsEvent>>(),
             events
         )

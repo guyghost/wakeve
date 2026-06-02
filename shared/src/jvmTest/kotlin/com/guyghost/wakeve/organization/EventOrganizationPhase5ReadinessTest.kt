@@ -27,6 +27,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
@@ -500,6 +501,24 @@ class EventOrganizationPhase5ReadinessTest {
             "Payment pot closure must queue replayable sync metadata with the closed lifecycle state."
         )
         potSync.forEach { assertReplayableSyncPayload(it.payload, it.retryState, it.retryCount) }
+    }
+
+    @Test
+    fun `Phase5 payment pot rejects non Tricount external provider links`() {
+        seedEvent("phase5-payment-pot-provider-link", EventStatus.ORGANIZING)
+        seedParticipant("phase5-payment-pot-provider-link", "organizer-1", role = "ORGANIZER", confirmed = true)
+        val paymentPotRepository = PaymentPotRepository(database)
+
+        assertFailsWith<IllegalArgumentException> {
+            paymentPotRepository.createPot(
+                eventId = "phase5-payment-pot-provider-link",
+                organizerId = "organizer-1",
+                goalAmount = 120.0,
+                title = "External provider pot",
+                paymentProvider = "OTHER",
+                tricountGroupUrl = "https://payments.example.com/group/weekend"
+            )
+        }
     }
 
     @Test

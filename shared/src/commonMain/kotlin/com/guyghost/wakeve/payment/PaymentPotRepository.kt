@@ -133,14 +133,11 @@ class PaymentPotRepository(private val db: WakeveDb) {
     }
 
     private fun isTrustedPaymentLink(provider: String, url: String): Boolean {
+        if (!provider.equals("TRICOUNT", ignoreCase = true)) return false
         if (containsTemplateMarker(url)) return false
         val match = Regex("""^https://([^/?#]+)(?:[/?#].*)?$""").find(url.trim()) ?: return false
         val host = match.groupValues[1].lowercase()
-        return if (provider.equals("TRICOUNT", ignoreCase = true)) {
-            host == "tricount.com" || host == "www.tricount.com" || host.endsWith(".tricount.com")
-        } else {
-            host.isNotBlank()
-        }
+        return host == "tricount.com" || host == "www.tricount.com" || host.endsWith(".tricount.com")
     }
 
     private fun containsTemplateMarker(value: String): Boolean =

@@ -579,7 +579,7 @@ struct SharedComponents_Previews: PreviewProvider {
                         .foregroundColor(.secondary)
 
                     SectionHeader(String(localized: "home.my_events"), actionTitle: String(localized: "common.see_all")) {
-                        print("See all tapped")
+                        debugLog("See all tapped")
                     }
                 }
                 .padding()
@@ -592,11 +592,11 @@ struct SharedComponents_Previews: PreviewProvider {
                         .foregroundColor(.secondary)
 
                     ActionRow(icon: "calendar.badge.plus", title: String(localized: "events.create")) {
-                        print("Create event tapped")
+                        debugLog("Create event tapped")
                     }
 
                     ActionRow(icon: "gearshape", title: String(localized: "settings.title")) {
-                        print("Settings tapped")
+                        debugLog("Settings tapped")
                     }
                 }
                 .padding()

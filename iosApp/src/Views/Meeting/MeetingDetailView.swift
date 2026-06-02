@@ -463,6 +463,7 @@ struct MeetingDetailView: View {
 
 // MARK: - Preview
 
+#if DEBUG
 #Preview("Meeting Detail - Light") {
     NavigationStack {
         MeetingDetailView(
@@ -490,3 +491,4 @@ struct MeetingDetailView: View {
     }
     .preferredColorScheme(.dark)
 }
+#endif

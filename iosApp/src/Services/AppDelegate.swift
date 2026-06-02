@@ -27,7 +27,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         // Check if app was launched from a notification
         if let remoteNotification = launchOptions?[.remoteNotification] as? [AnyHashable: Any] {
-            print("[AppDelegate] App launched from notification")
+            debugLog("[AppDelegate] App launched from notification")
             apnsService.didReceiveRemoteNotification(userInfo: remoteNotification)
         }
 

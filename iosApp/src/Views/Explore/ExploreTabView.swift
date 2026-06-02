@@ -553,6 +553,7 @@ struct LoadingStateView: View {
 
 // MARK: - Previews
 
+#if DEBUG
 #Preview("ExploreTabView Light") {
     ExploreTabView(previewData: ExploreFactory.previewData)
         .preferredColorScheme(.light)
@@ -562,3 +563,4 @@ struct LoadingStateView: View {
     ExploreTabView(previewData: ExploreFactory.previewData)
         .preferredColorScheme(.dark)
 }
+#endif

@@ -200,7 +200,7 @@ extension AIBadgeView {
                 AIBadgeView(
                     type: .highConfidence,
                     onTap: {
-                        print("Badge tapped!")
+                        debugLog("Badge tapped!")
                     }
                 )
                 .padding(.horizontal)

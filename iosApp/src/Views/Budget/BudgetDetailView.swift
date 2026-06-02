@@ -242,6 +242,7 @@ struct BudgetSummaryRow: View {
 
 // MARK: - Preview
 
+#if DEBUG
 #Preview("Budget Detail - Light") {
     NavigationStack {
         BudgetDetailView(eventId: "preview-event-id", previewItems: BudgetFactory.items)
@@ -255,3 +256,4 @@ struct BudgetSummaryRow: View {
     }
     .preferredColorScheme(.dark)
 }
+#endif

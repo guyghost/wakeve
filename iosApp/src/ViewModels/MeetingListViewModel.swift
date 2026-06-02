@@ -230,7 +230,7 @@ class MeetingListViewModel: StateMachineViewModel<
 
     /// Share a meeting link
     private func shareMeetingLink(url: String) {
-        print("Share meeting link: \(url)")
+        debugLog("Share meeting link: \(url)")
     }
 
     private func hasPendingSync() -> Bool {

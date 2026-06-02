@@ -103,14 +103,14 @@ struct AddBudgetItemSheet: View {
 
 #Preview("Add Budget Item - Light") {
     AddBudgetItemSheet { name, description, category, cost, sharedBy in
-        print("Save: \(name) - \(cost)€ - \(category.displayName)")
+        debugLog("Save: \(name) - \(cost)€ - \(category.displayName)")
     }
     .preferredColorScheme(.light)
 }
 
 #Preview("Add Budget Item - Dark") {
     AddBudgetItemSheet { name, description, category, cost, sharedBy in
-        print("Save: \(name) - \(cost)€ - \(category.displayName)")
+        debugLog("Save: \(name) - \(cost)€ - \(category.displayName)")
     }
     .preferredColorScheme(.dark)
 }

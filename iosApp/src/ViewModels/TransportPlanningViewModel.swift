@@ -1,5 +1,5 @@
 import Foundation
-import Shared
+@preconcurrency import Shared
 
 @MainActor
 final class TransportPlanningViewModel: ObservableObject {

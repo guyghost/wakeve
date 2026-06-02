@@ -384,6 +384,7 @@ struct BudgetCategoryRow: View {
 
 // MARK: - Preview
 
+#if DEBUG
 #Preview("Budget Overview - Light") {
     BudgetOverviewView(
         eventId: "preview-event-id",
@@ -403,3 +404,4 @@ struct BudgetCategoryRow: View {
     )
     .preferredColorScheme(.dark)
 }
+#endif

@@ -40,7 +40,9 @@ export function toISOLocal(date: string, time: string): string {
   return new Date(`${date}T${time}`).toISOString()
 }
 
-const THRESHOLDS: { unit: Intl.RelativeTimeFormatUnit; ms: number }[] = [
+type TimeAgoUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year'
+
+const THRESHOLDS: { unit: TimeAgoUnit; ms: number }[] = [
   { unit: 'second', ms: 60_000 },
   { unit: 'minute', ms: 3_600_000 },
   { unit: 'hour', ms: 86_400_000 },
@@ -50,15 +52,14 @@ const THRESHOLDS: { unit: Intl.RelativeTimeFormatUnit; ms: number }[] = [
   { unit: 'year', ms: Infinity }
 ]
 
-const DIVISORS: Record<Intl.RelativeTimeFormatUnit, number> = {
+const DIVISORS: Record<TimeAgoUnit, number> = {
   second: 1_000,
   minute: 60_000,
   hour: 3_600_000,
   day: 86_400_000,
   week: 604_800_000,
   month: 2_592_000_000,
-  year: 31_536_000_000,
-  quarter: 7_776_000_000
+  year: 31_536_000_000
 }
 
 /**
@@ -74,7 +75,7 @@ export function timeAgo(iso: string, locale = 'fr'): string {
   const absDiff = Math.abs(diffMs)
 
   const threshold = THRESHOLDS.find((t) => absDiff < t.ms)
-  const unit: Intl.RelativeTimeFormatUnit = threshold?.unit ?? 'year'
+  const unit: TimeAgoUnit = threshold?.unit ?? 'year'
   const divisor = DIVISORS[unit]
   const value = Math.round(diffMs / divisor)
 
