@@ -25,7 +25,7 @@ class RepositoryProvider {
         // Create sync dependencies
         let networkDetector = KtorSyncHttpClientKt.createNetworkStatusDetector()
         let httpClient = KtorSyncHttpClientKt.createSyncHttpClient(baseUrl: "http://localhost:8080")
-        let userRepository = UserRepository(db: database)
+        let userRepository = UserRepository_(db: database)
         let eventRepository = DatabaseEventRepository(db: database, syncManager: nil)
         let metrics = InMemorySyncMetrics()
         let alertManager = LoggingSyncAlertManager()

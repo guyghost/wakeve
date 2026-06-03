@@ -43,26 +43,25 @@ struct AddToCalendarButton: View {
 // MARK: - Preview
 
 #Preview {
+    let now = ISO8601DateFormatter().string(from: Date())
+
     VStack(spacing: 20) {
         AddToCalendarButton(
             event: Event(
                 id: "event-1",
+                organizerId: "user-1",
                 title: "Team Meeting",
                 description: "Q4 Planning",
-                organizerId: "user-1",
-                participants: [],
-                proposedSlots: [],
+                status: "CONFIRMED",
                 deadline: ISO8601DateFormatter().string(from: Date()),
-                status: .confirmed,
-                finalDate: ISO8601DateFormatter().string(from: Date().addingTimeInterval(86400)),
-                createdAt: ISO8601DateFormatter().string(from: Date()),
-                updatedAt: ISO8601DateFormatter().string(from: Date()),
-                eventType: .teamBuilding,
+                createdAt: now,
+                updatedAt: now,
+                version: 1,
+                eventType: "TEAM_BUILDING",
                 eventTypeCustom: nil,
                 minParticipants: nil,
                 maxParticipants: nil,
-                expectedParticipants: nil,
-                heroImageUrl: nil
+                expectedParticipants: nil
             ),
             isLoading: false,
             isEnabled: true,
@@ -72,22 +71,19 @@ struct AddToCalendarButton: View {
         AddToCalendarButton(
             event: Event(
                 id: "event-2",
+                organizerId: "user-1",
                 title: "Team Meeting",
                 description: "Q4 Planning",
-                organizerId: "user-1",
-                participants: [],
-                proposedSlots: [],
+                status: "POLLING",
                 deadline: ISO8601DateFormatter().string(from: Date()),
-                status: .polling,
-                finalDate: nil,
-                createdAt: ISO8601DateFormatter().string(from: Date()),
-                updatedAt: ISO8601DateFormatter().string(from: Date()),
-                eventType: .teamBuilding,
+                createdAt: now,
+                updatedAt: now,
+                version: 1,
+                eventType: "TEAM_BUILDING",
                 eventTypeCustom: nil,
                 minParticipants: nil,
                 maxParticipants: nil,
-                expectedParticipants: nil,
-                heroImageUrl: nil
+                expectedParticipants: nil
             ),
             isLoading: true,
             isEnabled: false,
