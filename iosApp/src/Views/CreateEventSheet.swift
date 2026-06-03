@@ -36,7 +36,7 @@ struct CreateEventSheet: View {
     // Preview state
     @State private var showingPreview = false
     
-    var onEventCreated: (Event) -> Void = { _ in }
+    var onEventCreated: (Event_) -> Void = { _ in }
     
     var body: some View {
         ZStack(alignment: .top) {
@@ -485,7 +485,7 @@ struct CreateEventSheet: View {
     }
     
     private func createEvent() {
-        let event = Event(
+        let event = Event_(
             id: "event-\(Int(Date().timeIntervalSince1970 * 1000))",
             title: title,
             description: description,

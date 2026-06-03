@@ -81,7 +81,7 @@ struct InboxView: View {
                     .listStyle(.plain)
                 }
             }
-            .navigationTitle(isSelectionMode ? "\(selectedItemIds.count) selected" : "Inbox")
+            .navigationTitle(isSelectionMode ? "\(selectedItemIds.count) selected" : "Messages")
             #if os(iOS)
             .navigationBarTitleDisplayMode(isSelectionMode ? .inline : .large)
             .toolbar {
@@ -161,33 +161,25 @@ struct InboxView: View {
                     
                     // Inbox filter with dropdown
                     FilterTabButton(
-                        title: "Inbox",
+                        title: "Tous",
                         isSelected: selectedFilter == .inbox && selectedEventFilter == nil,
-                        hasDropdown: true,
+                        hasDropdown: false,
                         action: { 
                             selectedFilter = .inbox
                             selectedEventFilter = nil
                         }
                     )
                     
-                    // Focused filter with "New" badge
-                    FilterTabButton(
-                        title: "Focused",
-                        isSelected: selectedFilter == .focused,
-                        badge: "New",
-                        action: { selectedFilter = .focused }
-                    )
-                    
                     // Unread filter
                     FilterTabButton(
-                        title: "Unread",
+                        title: "Non lus",
                         isSelected: selectedFilter == .unread,
                         action: { selectedFilter = .unread }
                     )
                     
                     // Event filter with sheet
                     EventFilterTabButton(
-                        title: selectedEventFilter ?? "Event",
+                        title: selectedEventFilter ?? "Groupes",
                         isSelected: selectedFilter == .event,
                         hasDropdown: true,
                         action: {
