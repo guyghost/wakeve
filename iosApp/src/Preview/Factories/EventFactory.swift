@@ -97,7 +97,7 @@ enum EventFactory {
         make(
             id: "event-crowd-005",
             title: "Company Summer Party",
-            description: "End-of-summer celebration with BBQ, games, and live music at Parc Borely.",
+            description: "End-of-summer celebration with BBQ, games, and live music at Parc Borély.",
             participants: (0..<18).map { "user-crowd-\($0)" },
             deadline: dateString(daysFromNow: 10),
             status: .confirmed,

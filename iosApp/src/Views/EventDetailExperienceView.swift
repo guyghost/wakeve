@@ -128,7 +128,7 @@ struct EventDetailExperienceView: View {
 
     private var aboutCard: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("A propos")
+            Text("À propos")
                 .font(.headline)
 
             if event.description_.isEmpty {
@@ -148,7 +148,7 @@ struct EventDetailExperienceView: View {
 
     private var messageComposer: some View {
         HStack(spacing: 10) {
-            TextField("Ecrire un message...", text: $messageText)
+            TextField("Écrire un message...", text: $messageText)
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 12)
@@ -169,8 +169,8 @@ struct EventDetailExperienceView: View {
     }
 
     private var primarySlotDate: String {
-        guard let slot = event.proposedSlots.first else { return "Date a confirmer" }
-        return formatDateTime(slot.start) ?? "Date a confirmer"
+        guard let slot = event.proposedSlots.first else { return "Date à confirmer" }
+        return formatDateTime(slot.start) ?? "Date à confirmer"
     }
 
     private var canVote: Bool {
@@ -194,7 +194,7 @@ struct EventDetailExperienceView: View {
     }
 
     private var primarySlotLocation: String {
-        return "Lieu a confirmer"
+        return "Lieu à confirmer"
     }
 
     private func loadParticipants() {
@@ -276,7 +276,7 @@ struct TransportPlanView: View {
 
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Depart")
+                            Text("Départ")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Text(slotStartTime)
@@ -286,7 +286,7 @@ struct TransportPlanView: View {
                         Spacer()
 
                         VStack(alignment: .trailing, spacing: 4) {
-                            Text("Arrivee")
+                            Text("Arrivée")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Text(slotEndTime)
