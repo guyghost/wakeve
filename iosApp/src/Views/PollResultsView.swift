@@ -4,7 +4,7 @@ import Shared
 /// Poll results view inspired by Apple Invites
 /// Features: Clean results visualization, progress indicators, clear winner highlighting
 struct PollResultsView: View {
-    let event: Event
+    let event: Event_
     let repository: EventRepositoryInterface
     let userId: String
     let onDateConfirmed: (String) -> Void
@@ -12,7 +12,7 @@ struct PollResultsView: View {
 
     @State private var poll: Poll?
     @State private var slotScores: [PollLogic.SlotScore] = []
-    @State private var bestSlot: TimeSlot?
+    @State private var bestSlot: TimeSlot_?
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showError = false
@@ -214,7 +214,7 @@ struct PollResultsView: View {
 // MARK: - Best Slot Card
 
 struct BestSlotCard: View {
-    let slot: TimeSlot
+    let slot: TimeSlot_
     
     var body: some View {
         VStack(spacing: 16) {
@@ -277,8 +277,8 @@ struct BestSlotCard: View {
 // MARK: - Confirmed Date Card
 
 struct ConfirmedDateCard: View {
-    let event: Event
-    let finalSlot: TimeSlot?
+    let event: Event_
+    let finalSlot: TimeSlot_?
     
     var body: some View {
         VStack(spacing: 20) {
@@ -354,7 +354,7 @@ struct ConfirmedDateCard: View {
 // MARK: - Slot Result Card
 
 struct SlotResultCard: View {
-    let slot: TimeSlot
+    let slot: TimeSlot_
     let score: PollLogic.SlotScore
     let isBest: Bool
 
