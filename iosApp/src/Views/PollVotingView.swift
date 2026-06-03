@@ -222,7 +222,7 @@ struct PollVotingView: View {
     }
 
     private func submitVotes() async {
-        guard votes.count == event.proposedSlots.count else { return }
+        guard !event.proposedSlots.isEmpty, votes.count == event.proposedSlots.count else { return }
 
         isLoading = true
 

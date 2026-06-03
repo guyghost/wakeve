@@ -116,7 +116,12 @@ struct EventDetailExperienceView: View {
         HStack(spacing: 10) {
             ActionTile(title: "Details", icon: "info.circle", action: { })
             ActionTile(title: "Participants", icon: "person.2", action: onOpenParticipants)
-            ActionTile(title: "Vote", icon: "checkmark.circle", action: onOpenVote)
+            ActionTile(
+                title: voteActionTitle,
+                icon: voteActionIcon,
+                isEnabled: canOpenVoteAction,
+                action: onOpenVote
+            )
             ActionTile(title: "Transport", icon: "car", action: onOpenTransport)
         }
     }
@@ -166,6 +171,26 @@ struct EventDetailExperienceView: View {
     private var primarySlotDate: String {
         guard let slot = event.proposedSlots.first else { return "Date a confirmer" }
         return formatDateTime(slot.start) ?? "Date a confirmer"
+    }
+
+    private var canVote: Bool {
+        event.status == .polling && !event.proposedSlots.isEmpty
+    }
+
+    private var canViewResults: Bool {
+        event.status != .draft && !event.proposedSlots.isEmpty
+    }
+
+    private var canOpenVoteAction: Bool {
+        canVote || canViewResults
+    }
+
+    private var voteActionTitle: String {
+        canVote ? "Vote" : "Results"
+    }
+
+    private var voteActionIcon: String {
+        canVote ? "checkmark.circle" : "chart.bar"
     }
 
     private var primarySlotLocation: String {
@@ -336,6 +361,7 @@ private enum TransportMode {
 private struct ActionTile: View {
     let title: String
     let icon: String
+    var isEnabled: Bool = true
     let action: () -> Void
 
     var body: some View {
@@ -348,10 +374,11 @@ private struct ActionTile: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 64)
-            .foregroundStyle(.primary)
-            .background(Color(.tertiarySystemFill))
+            .foregroundStyle(isEnabled ? .primary : .secondary)
+            .background(Color(.tertiarySystemFill).opacity(isEnabled ? 1 : 0.6))
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
+        .disabled(!isEnabled)
         .buttonStyle(ScaleButtonStyle())
     }
 }
