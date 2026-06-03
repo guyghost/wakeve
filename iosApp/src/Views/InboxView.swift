@@ -161,7 +161,7 @@ struct InboxView: View {
                     
                     // Inbox filter with dropdown
                     FilterTabButton(
-                        title: "Tous",
+                        title: String(localized: "inbox.filter.all", defaultValue: "Tous"),
                         isSelected: selectedFilter == .inbox && selectedEventFilter == nil,
                         hasDropdown: false,
                         action: { 
@@ -172,14 +172,14 @@ struct InboxView: View {
                     
                     // Unread filter
                     FilterTabButton(
-                        title: "Non lus",
+                        title: String(localized: "inbox.filter.unread", defaultValue: "Non lus"),
                         isSelected: selectedFilter == .unread,
                         action: { selectedFilter = .unread }
                     )
                     
                     // Event filter with sheet
                     EventFilterTabButton(
-                        title: selectedEventFilter ?? "Groupes",
+                        title: selectedEventFilter ?? String(localized: "inbox.filter.groups", defaultValue: "Groupes"),
                         isSelected: selectedFilter == .event,
                         hasDropdown: true,
                         action: {
