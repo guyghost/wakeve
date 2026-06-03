@@ -117,7 +117,7 @@ struct AuthenticatedView: View {
     let userId: String
     @State private var selectedTab: WakeveTab = .home
     @State private var currentView: AppView = .eventList
-    @State private var selectedEvent: Event?
+    @State private var selectedEvent: Event_?
     // Use persistent database-backed repository instead of in-memory mock
     private let repository: EventRepositoryInterface = RepositoryProvider.shared.repository
     @State private var showEventCreationSheet = false
@@ -229,10 +229,26 @@ struct AuthenticatedView: View {
                 .foregroundColor(.secondary)
             
         case .eventDetail:
-            if selectedEvent != nil {
-                Text("Event Detail - Coming Soon")
-                    .font(.title2)
-                    .foregroundColor(.secondary)
+            if let event = selectedEvent {
+                EventDetailExperienceView(
+                    event: event,
+                    repository: repository,
+                    onBack: {
+                        currentView = .eventList
+                    },
+                    onOpenParticipants: {
+                        currentView = .participantManagement
+                    },
+                    onOpenVote: {
+                        currentView = .pollVoting
+                    },
+                    onOpenTransport: {
+                        currentView = .transportPlan
+                    },
+                    onOpenMessages: {
+                        selectedTab = .inbox
+                    }
+                )
             }
             
         case .participantManagement:
@@ -242,9 +258,7 @@ struct AuthenticatedView: View {
                     repository: repository,
                     onParticipantsUpdated: {
                         // Refresh the event data
-                        if let updatedEvent = repository.getEvent(id: event.id) {
-                            selectedEvent = updatedEvent
-                        }
+                        refreshSelectedEvent()
                     },
                     onBack: {
                         currentView = .eventDetail
@@ -259,6 +273,7 @@ struct AuthenticatedView: View {
                     repository: repository,
                     participantId: userId,
                     onVoteSubmitted: {
+                        refreshSelectedEvent()
                         currentView = .eventDetail
                     },
                     onBack: {
@@ -276,6 +291,17 @@ struct AuthenticatedView: View {
                     onDateConfirmed: { _ in
                         currentView = .eventDetail
                     },
+                    onBack: {
+                        currentView = .eventDetail
+                    }
+                )
+            }
+
+        case .transportPlan:
+            if let event = selectedEvent {
+                TransportPlanView(
+                    event: event,
+                    repository: repository,
                     onBack: {
                         currentView = .eventDetail
                     }
@@ -370,6 +396,13 @@ struct AuthenticatedView: View {
             ExploreTabView()
         }
     }
+
+    private func refreshSelectedEvent() {
+        guard let eventId = selectedEvent?.id else { return }
+        if let updatedEvent = repository.getEvent(id: eventId) {
+            selectedEvent = updatedEvent
+        }
+    }
 }
 
 
@@ -385,6 +418,7 @@ enum AppView {
     case participantManagement
     case pollVoting
     case pollResults
+    case transportPlan
     // New PRD features
     case scenarioList
     case scenarioDetail
@@ -403,10 +437,10 @@ enum AppView {
 
 struct EventListView: View {
     let repository: EventRepository
-    let onEventSelected: (Event) -> Void
+    let onEventSelected: (Event_) -> Void
     let onCreateEvent: () -> Void
     
-    @State private var events: [Event] = []
+    @State private var events: [Event_] = []
     @State private var isLoading = true
     
     var body: some View {
@@ -507,7 +541,7 @@ struct EventListView: View {
 }
 
 struct EventCard: View {
-    let event: Event
+    let event: Event_
     let onTap: () -> Void
     
     var body: some View {
@@ -519,8 +553,8 @@ struct EventCard: View {
                             .font(.system(size: 18, weight: .semibold, design: .rounded))
                             .foregroundColor(.primary)
                         
-                        if !event.description.isEmpty {
-                            Text(event.description)
+                        if !event.description_.isEmpty {
+                            Text(event.description_)
                                 .font(.system(size: 14, design: .rounded))
                                 .foregroundColor(.secondary)
                                 .lineLimit(2)
@@ -600,7 +634,7 @@ struct EventCard: View {
 }
 
 struct EventDetailView: View {
-    let event: Event
+    let event: Event_
     let repository: EventRepository
     let onManageParticipants: () -> Void
     let onVote: () -> Void
@@ -647,8 +681,8 @@ struct EventDetailView: View {
                             Spacer()
                         }
                         
-                        if !event.description.isEmpty {
-                            Text(event.description)
+                        if !event.description_.isEmpty {
+                            Text(event.description_)
                                 .font(.system(size: 14, design: .rounded))
                                 .foregroundColor(.secondary)
                                 .multilineTextAlignment(.leading)

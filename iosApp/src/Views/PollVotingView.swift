@@ -4,13 +4,13 @@ import Shared
 /// Poll voting view inspired by Apple Invites
 /// Features: Clean design, card-based time slots, clear voting options
 struct PollVotingView: View {
-    let event: Event
+    let event: Event_
     let repository: EventRepositoryInterface
     let participantId: String
     let onVoteSubmitted: () -> Void
     let onBack: () -> Void
 
-    @State private var votes: [String: PollVote] = [:]
+    @State private var votes: [String: Vote_] = [:]
     @State private var isLoading = false
     @State private var errorMessage = ""
     @State private var showError = false
@@ -211,7 +211,7 @@ struct PollVotingView: View {
 
     private func checkExistingVotes() {
         if let poll = repository.getPoll(eventId: event.id) {
-            if let participantVoteMap = poll.votes[participantId] as? [String: PollVote] {
+            if let participantVoteMap = poll.votes[participantId] {
                 hasVoted = !participantVoteMap.isEmpty
 
                 if hasVoted {
@@ -229,17 +229,8 @@ struct PollVotingView: View {
         var successCount = 0
         var lastError: Error?
 
-        for (slotId, pollVote) in votes {
+        for (slotId, sharedVote) in votes {
             do {
-                // Convert PollVote to Shared.Vote
-                let sharedVote: Shared.Vote = {
-                    switch pollVote {
-                    case .yes: return .yes
-                    case .maybe: return .maybe
-                    case .no: return .no
-                    }
-                }()
-                
                 let result = try await repository.addVote(
                     eventId: event.id,
                     participantId: participantId,
@@ -314,9 +305,9 @@ struct VoteGuideRow: View {
 // MARK: - Time Slot Vote Card
 
 struct TimeSlotVoteCard: View {
-    let timeSlot: TimeSlot
-    let selectedVote: PollVote?
-    let onVoteSelected: (PollVote) -> Void
+    let timeSlot: TimeSlot_
+    let selectedVote: Vote_?
+    let onVoteSelected: (Vote_) -> Void
 
     var body: some View {
         VStack(spacing: 16) {
@@ -393,7 +384,7 @@ struct TimeSlotVoteCard: View {
 // MARK: - Vote Button
 
 struct VoteButton: View {
-    let vote: PollVote
+    let vote: Vote_
     let icon: String
     let label: String
     let color: Color

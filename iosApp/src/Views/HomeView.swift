@@ -142,11 +142,11 @@ struct EventTheme {
 struct HomeView: View {
     let userId: String
     let repository: EventRepositoryInterface
-    let onEventSelected: (Event) -> Void
+    let onEventSelected: (Event_) -> Void
     let onCreateEvent: () -> Void
     let onProfileClick: () -> Void
 
-    @State private var events: [Event] = []
+    @State private var events: [Event_] = []
     @State private var isLoading = true
     @State private var showFilterMenu = false
     @State private var selectedFilter: HomeEventFilter = .upcoming
@@ -189,7 +189,7 @@ struct HomeView: View {
         .onAppear { loadEvents() }
     }
     
-    private var filteredEvents: [Event] {
+    private var filteredEvents: [Event_] {
         events.filter { event in
             switch selectedFilter {
             case .upcoming:
@@ -281,8 +281,8 @@ struct HomeView: View {
 // MARK: - Events Carousel View
 
 struct EventsCarouselView: View {
-    let events: [Event]
-    let onEventSelected: (Event) -> Void
+    let events: [Event_]
+    let onEventSelected: (Event_) -> Void
     let userId: String
     
     var body: some View {
@@ -305,7 +305,7 @@ struct EventsCarouselView: View {
 // MARK: - Visual Event Card
 
 struct VisualEventCard: View {
-    let event: Event
+    let event: Event_
     let isOrganizer: Bool
     let onTap: () -> Void
     

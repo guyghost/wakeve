@@ -4,7 +4,7 @@ import Shared
 /// Participant management view inspired by Apple Invites
 /// Features: Clean list design, easy participant management, clear status indicators
 struct ParticipantManagementView: View {
-    let event: Event
+    let event: Event_
     let repository: EventRepositoryInterface
     let onParticipantsUpdated: () -> Void
     let onBack: () -> Void
