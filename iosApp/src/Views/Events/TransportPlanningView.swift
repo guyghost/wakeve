@@ -54,7 +54,7 @@ struct TransportPlanningView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack {
             WakeveTheme.ColorToken.pageBackground(for: colorScheme)
                 .ignoresSafeArea()
 
@@ -63,128 +63,158 @@ struct TransportPlanningView: View {
             } else {
                 lockedState
             }
-
-            topControls
         }
         .toolbar(.hidden, for: .tabBar)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            topControls
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if canAccessDetails {
+                bottomPrimaryAction
+            }
+        }
     }
 
     private var content: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
                 header
+                routePreviewCard
                 readinessCard
                 departureCard
                 optimizationCard
+                participantsCard
                 generatedPlanCard
             }
             .padding(.horizontal, WakeveTheme.Spacing.page)
-            .padding(.top, 112)
-            .padding(.bottom, 80)
+            .padding(.top, 92)
+            .padding(.bottom, 124)
         }
     }
 
     private var header: some View {
-        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Transport", systemImage: "point.topleft.down.curvedto.point.bottomright.up.fill")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(primaryText)
+        EventHeroCard(
+            title: "Transport",
+            subtitle: event.title,
+            metadata: transportStatusText,
+            gradient: WakeveTheme.EventGradient.work
+        ) {
+            HStack(spacing: WakeveTheme.Spacing.sm) {
+                TransportInfoPill(systemImage: "calendar", value: confirmedDate ?? "Date bientôt confirmée")
+                TransportInfoPill(systemImage: "mappin.and.ellipse", value: destinationName)
+            }
+        }
+    }
 
-                Text(event.title)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(secondaryText)
+    private var routePreviewCard: some View {
+        LiquidGlassCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
+                HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
+                    VStack(spacing: 6) {
+                        Circle()
+                            .fill(WakeveTheme.ColorToken.progress(for: colorScheme))
+                            .frame(width: 12, height: 12)
+                        Rectangle()
+                            .fill(WakeveTheme.ColorToken.separator(for: colorScheme))
+                            .frame(width: 2, height: 34)
+                        Circle()
+                            .fill(WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                            .frame(width: 12, height: 12)
+                    }
+                    .padding(.top, 6)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Date confirmée : \(confirmedDate ?? "Date bientôt confirmée")")
-                    Text("Destination: \(destinationName)")
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                        TransportRoutePoint(
+                            title: "Départs participants",
+                            subtitle: isReadinessComplete ? "Tous les points de départ sont prêts" : "\(displayedMissingDeparture.count) départ\(displayedMissingDeparture.count > 1 ? "s" : "") à compléter"
+                        )
+
+                        TransportRoutePoint(
+                            title: "Point de rencontre",
+                            subtitle: destinationName
+                        )
+                    }
                 }
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(primaryText)
 
-                if pendingSync {
-                    Label("Synchronisation en attente. Modifications locales en attente d'envoi", systemImage: "icloud.slash.fill")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(.orange)
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    TransportMetricTile(title: "Heure", value: confirmedDate ?? "À confirmer")
+                    TransportMetricTile(title: "Mode", value: selectedOptimization.title)
                 }
             }
         }
     }
 
     private var readinessCard: some View {
-        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
-            VStack(alignment: .leading, spacing: 14) {
-                Label(
-                    isReadinessComplete ? "Préparation complète" : "Départ manquant",
-                    systemImage: isReadinessComplete ? "checkmark.circle.fill" : "exclamationmark.triangle.fill"
-                )
-                .font(.system(size: 20, weight: .bold))
-                .foregroundColor(primaryText)
+        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            HStack(spacing: WakeveTheme.Spacing.md) {
+                Image(systemName: isReadinessComplete ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                    .font(.title3.weight(.bold))
+                    .foregroundColor(isReadinessComplete ? WakeveTheme.ColorToken.confirmation(for: colorScheme) : WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                    .frame(width: 44, height: 44)
+                    .background(controlFill)
+                    .clipShape(Circle())
 
-                if transportNotNeeded {
-                    Text("Transport non requis pour cet événement.")
-                        .font(.system(size: 15, weight: .medium))
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                    Text(isReadinessComplete ? "Préparation complète" : "Départs à compléter")
+                        .font(WakeveTheme.Typography.rowTitle)
+                        .foregroundColor(primaryText)
+
+                    Text(readinessSubtitle)
+                        .font(WakeveTheme.Typography.callout)
                         .foregroundColor(secondaryText)
-                } else if displayedMissingDeparture.isEmpty {
-                    Text("Tous les participants confirmés ont un point de départ.")
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(secondaryText)
-                } else {
-                    ForEach(displayedMissingDeparture, id: \.self) { participant in
-                        Text("• \(participant)")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(secondaryText)
-                    }
+                        .lineLimit(2)
                 }
+
+                Spacer(minLength: WakeveTheme.Spacing.xs)
             }
         }
     }
 
     private var departureCard: some View {
-        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
+        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             let hasSelectedDestination = selectedDestination != nil
             let mutationDisabled = !canAccessDetails || isReadOnly || !workflowAllowsMutation(eventStatus) || !hasSelectedDestination
             let trimmedDeparture = departureInput.trimmingCharacters(in: .whitespacesAndNewlines)
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 Text("Départ")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(primaryText)
 
-                TextField("Point de départ", text: $departureInput)
-                    .textInputAutocapitalization(.words)
-                    .autocorrectionDisabled(false)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .background(controlFill)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                    .disabled(mutationDisabled)
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    TextField("Point de départ", text: $departureInput)
+                        .textInputAutocapitalization(.words)
+                        .autocorrectionDisabled(false)
+                        .padding(.horizontal, WakeveTheme.Spacing.md)
+                        .frame(height: 52)
+                        .background(controlFill)
+                        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+                        .disabled(mutationDisabled)
 
-                WakeveActionButton(
-                    "Enregistrer le départ",
-                    systemImage: "mappin.and.ellipse",
-                    variant: .secondary,
-                    isDisabled: mutationDisabled || trimmedDeparture.isEmpty
-                ) {
-                    let location = TransportLocation(
-                        name: trimmedDeparture,
-                        address: nil,
-                        latitude: nil,
-                        longitude: nil,
-                        iataCode: nil
-                    )
-                    onSaveDepartureLocation(location)
+                    Button {
+                        saveDeparture(trimmedDeparture)
+                    } label: {
+                        Image(systemName: "mappin.and.ellipse")
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(.white)
+                            .frame(width: 52, height: 52)
+                            .background((mutationDisabled || trimmedDeparture.isEmpty) ? Color.gray.opacity(0.36) : WakeveTheme.ColorToken.accent(for: colorScheme))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(mutationDisabled || trimmedDeparture.isEmpty)
+                    .accessibilityLabel("Enregistrer le départ")
                 }
             }
         }
     }
 
     private var optimizationCard: some View {
-        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
+        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             let hasSelectedDestination = selectedDestination != nil
             let mutationDisabled = !isOrganizer || isReadOnly || !workflowAllowsMutation(eventStatus) || !hasSelectedDestination
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Optimisation")
-                    .font(.system(size: 20, weight: .bold))
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                Text("Mode de trajet")
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(primaryText)
 
                 HStack(spacing: 8) {
@@ -193,129 +223,291 @@ struct TransportPlanningView: View {
                             selectedOptimization = option
                         } label: {
                             Text(option.title)
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(selectedOptimization == option ? .white : primaryText)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 8)
-                                .background(selectedOptimization == option ? Color.blue : controlFill)
+                                .font(WakeveTheme.Typography.caption)
+                                .foregroundColor(selectedOptimization == option ? selectedOptimizationText : primaryText)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 42)
+                                .background(selectedOptimization == option ? selectedOptimizationFill : controlFill)
                                 .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
+                        .disabled(mutationDisabled)
                     }
                 }
 
-                WakeveActionButton(
-                    "Générer le plan",
-                    systemImage: "wand.and.stars",
-                    variant: .primary,
-                    isDisabled: mutationDisabled || !isReadinessComplete || transportNotNeeded
-                ) {
-                    onGenerate(selectedOptimization)
-                }
-
                 if isOrganizer && !transportNotNeeded {
-                    WakeveActionButton(
-                        "Transport non requis",
-                        systemImage: "xmark.circle.fill",
-                        variant: .secondary,
-                        isDisabled: mutationDisabled,
-                        action: onMarkTransportNotNeeded
-                    )
+                    Button(action: onMarkTransportNotNeeded) {
+                        Label("Transport non requis", systemImage: "xmark.circle.fill")
+                            .font(WakeveTheme.Typography.callout.weight(.semibold))
+                            .foregroundColor(secondaryText)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(mutationDisabled)
                 }
             }
         }
     }
 
     private var generatedPlanCard: some View {
-        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
+        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             let hasSelectedDestination = selectedDestination != nil
             let mutationDisabled = !isOrganizer || isReadOnly || !workflowAllowsMutation(eventStatus) || !hasSelectedDestination
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 Text("Plan généré")
-                    .font(.system(size: 20, weight: .bold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(primaryText)
 
                 if plans.isEmpty {
                     Text("Aucun trajet n'a encore été généré.")
-                        .font(.system(size: 15, weight: .medium))
+                        .font(WakeveTheme.Typography.callout)
                         .foregroundColor(secondaryText)
                 } else {
                     ForEach(plans) { plan in
-                        VStack(alignment: .leading, spacing: 8) {
+                        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
                             HStack {
                                 Text(plan.optimization.title)
-                                    .font(.system(size: 16, weight: .bold))
+                                    .font(WakeveTheme.Typography.bodySemibold)
                                     .foregroundColor(primaryText)
 
                                 Spacer()
 
                                 if selectedPlanId == plan.id {
                                     Text("Sélectionné")
-                                        .font(.system(size: 12, weight: .bold))
-                                        .foregroundColor(.green)
+                                        .font(WakeveTheme.Typography.tiny)
+                                        .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+                                        .padding(.horizontal, WakeveTheme.Spacing.xs)
+                                        .padding(.vertical, 4)
+                                        .background(WakeveTheme.ColorToken.confirmation(for: colorScheme).opacity(0.14))
+                                        .clipShape(Capsule())
                                 }
                             }
 
                             Text("Coût total : \(plan.totalCost, specifier: "%.2f") \(plan.currency)")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(WakeveTheme.Typography.callout)
                                 .foregroundColor(secondaryText)
 
-                            WakeveActionButton(
-                                selectedPlanId == plan.id ? "Plan sélectionné" : "Sélectionner le plan final",
-                                systemImage: "checkmark.seal.fill",
-                                variant: .eventNext,
-                                isDisabled: mutationDisabled || selectedPlanId == plan.id
-                            ) {
+                            Button {
                                 onSelectFinalPlan(plan)
+                            } label: {
+                                Label(selectedPlanId == plan.id ? "Plan sélectionné" : "Sélectionner le plan final", systemImage: "checkmark.seal.fill")
+                                    .font(WakeveTheme.Typography.callout.weight(.semibold))
+                                    .foregroundColor(selectedPlanId == plan.id ? WakeveTheme.ColorToken.confirmation(for: colorScheme) : WakeveTheme.ColorToken.accent(for: colorScheme))
                             }
+                            .buttonStyle(.plain)
+                            .disabled(mutationDisabled || selectedPlanId == plan.id)
                         }
-                        .padding(.vertical, 8)
+                        .padding(WakeveTheme.Spacing.sm)
+                        .background(controlFill)
+                        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
                     }
                 }
 
                 if transportNotNeeded {
-                    WakeveActionButton(
-                        "Transport indiqué non requis",
-                        systemImage: "checkmark.circle.fill",
-                        variant: .secondary,
-                        isDisabled: true,
-                        action: {}
-                    )
+                    Label("Transport indiqué non requis", systemImage: "checkmark.circle.fill")
+                        .font(WakeveTheme.Typography.callout.weight(.semibold))
+                        .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+                }
+            }
+        }
+    }
+
+    private var participantsCard: some View {
+        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                HStack {
+                    Text("Participants")
+                        .font(WakeveTheme.Typography.section)
+                        .foregroundColor(primaryText)
+                    Spacer()
+                    Text(isReadinessComplete ? "Prêts" : "\(displayedMissingDeparture.count) à compléter")
+                        .font(WakeveTheme.Typography.tiny)
+                        .foregroundColor(isReadinessComplete ? WakeveTheme.ColorToken.confirmation(for: colorScheme) : WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                        .padding(.horizontal, WakeveTheme.Spacing.xs)
+                        .padding(.vertical, 4)
+                        .background((isReadinessComplete ? WakeveTheme.ColorToken.confirmation(for: colorScheme) : WakeveTheme.ColorToken.eventHighlight(for: colorScheme)).opacity(0.14))
+                        .clipShape(Capsule())
+                }
+
+                if displayedMissingDeparture.isEmpty {
+                    TransportParticipantRow(name: "Tous les participants confirmés", detail: "Point de départ disponible", isReady: true)
+                } else {
+                    ForEach(displayedMissingDeparture, id: \.self) { participant in
+                        TransportParticipantRow(name: participant, detail: "Point de départ manquant", isReady: false)
+                    }
                 }
             }
         }
     }
 
     private var lockedState: some View {
-        VStack(spacing: 18) {
-            Image(systemName: "lock.fill")
-                .font(.system(size: 42, weight: .bold))
-                .foregroundColor(secondaryText)
-            Text("Transport verrouillé")
-                .font(.system(size: 24, weight: .bold))
-                .foregroundColor(primaryText)
-            Text("Seuls les organisateurs et les participants confirmés peuvent accéder aux départs et aux plans générés.")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundColor(secondaryText)
-                .multilineTextAlignment(.center)
+        VStack {
+            EmptyState(
+                systemImage: "lock.fill",
+                title: "Transport verrouillé",
+                subtitle: "Seuls les organisateurs et les participants confirmés peuvent accéder aux départs et aux plans générés."
+            )
+            .padding(.horizontal, WakeveTheme.Spacing.page)
         }
-        .padding(.horizontal, WakeveTheme.Spacing.page)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private var topControls: some View {
-        HStack {
+        LiquidGlassToolbar(title: "Transport", subtitle: destinationName) {
             WakeveCircleButton(
                 systemImage: "chevron.left",
                 accessibilityLabel: "Retour",
                 variant: .glass,
-                size: 44,
+                size: 40,
                 action: onBack
             )
-            Spacer()
+        } trailing: {
+            if pendingSync {
+                HStack(spacing: WakeveTheme.Spacing.xs) {
+                    Image(systemName: "icloud.slash.fill")
+                        .font(.caption.weight(.bold))
+                    Text("Synchronisation en attente")
+                        .font(WakeveTheme.Typography.tiny)
+                        .lineLimit(1)
+                }
+                .foregroundColor(WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                .padding(.horizontal, WakeveTheme.Spacing.sm)
+                .frame(height: 40)
+                    .background(controlFill)
+                    .clipShape(Capsule())
+                    .accessibilityLabel("Synchronisation en attente")
+            }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
+        .padding(.horizontal, WakeveTheme.Spacing.page)
+        .padding(.top, WakeveTheme.Spacing.sm)
+        .padding(.bottom, WakeveTheme.Spacing.xs)
+        .background(
+            LinearGradient(
+                colors: [
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme),
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .top)
+        )
+    }
+
+    private var bottomPrimaryAction: some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0),
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 32)
+            .allowsHitTesting(false)
+
+            LiquidGlassButton(
+                primaryActionTitle,
+                systemImage: primaryActionIcon,
+                variant: .primary,
+                isDisabled: primaryActionDisabled,
+                action: primaryAction
+            )
+            .padding(.horizontal, WakeveTheme.Spacing.page)
+            .padding(.bottom, WakeveTheme.Spacing.sm)
+            .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme))
+        }
+    }
+
+    private var transportStatusText: String {
+        if transportNotNeeded {
+            return "Non requis"
+        }
+        if selectedPlanId != nil {
+            return "Plan final sélectionné"
+        }
+        if plans.isEmpty {
+            return "Plan à générer"
+        }
+        return "Plans disponibles"
+    }
+
+    private var readinessSubtitle: String {
+        if transportNotNeeded {
+            return "Transport non requis pour cet événement."
+        }
+        if displayedMissingDeparture.isEmpty {
+            return "Tous les participants confirmés ont un point de départ."
+        }
+        return "\(displayedMissingDeparture.count) participant\(displayedMissingDeparture.count > 1 ? "s" : "") doi\(displayedMissingDeparture.count > 1 ? "vent" : "t") préciser son départ."
+    }
+
+    private var selectedOptimizationFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.9) : WakeveTheme.ColorToken.accent(for: colorScheme)
+    }
+
+    private var selectedOptimizationText: Color {
+        colorScheme == .dark ? WakeveTheme.ColorToken.midnight : .white
+    }
+
+    private var primaryActionTitle: String {
+        if isReadOnly {
+            return "Transport en lecture seule"
+        }
+        if selectedDestination == nil {
+            return "Choisir une destination"
+        }
+        if transportNotNeeded {
+            return "Transport non requis"
+        }
+        if !isReadinessComplete {
+            return "Compléter les départs"
+        }
+        if plans.isEmpty {
+            return "Générer le plan"
+        }
+        if selectedPlanId == nil {
+            return "Choisir un plan final"
+        }
+        return "Plan final sélectionné"
+    }
+
+    private var primaryActionIcon: String {
+        if isReadOnly { return "lock.fill" }
+        if selectedDestination == nil { return "mappin.slash" }
+        if transportNotNeeded { return "checkmark.circle.fill" }
+        if !isReadinessComplete { return "person.crop.circle.badge.exclamationmark" }
+        if plans.isEmpty { return "wand.and.stars" }
+        if selectedPlanId == nil { return "checkmark.seal.fill" }
+        return "checkmark.circle.fill"
+    }
+
+    private var primaryActionDisabled: Bool {
+        let mutationDisabled = !isOrganizer || isReadOnly || !workflowAllowsMutation(eventStatus) || selectedDestination == nil
+        return mutationDisabled || transportNotNeeded || !isReadinessComplete || (!plans.isEmpty && selectedPlanId != nil)
+    }
+
+    private func primaryAction() {
+        if plans.isEmpty {
+            onGenerate(selectedOptimization)
+            return
+        }
+
+        guard selectedPlanId == nil, let firstPlan = plans.first else {
+            return
+        }
+        onSelectFinalPlan(firstPlan)
+    }
+
+    private func saveDeparture(_ value: String) {
+        let location = TransportLocation(
+            name: value,
+            address: nil,
+            latitude: nil,
+            longitude: nil,
+            iataCode: nil
+        )
+        onSaveDepartureLocation(location)
     }
 
     private var primaryText: Color {
@@ -332,6 +524,108 @@ struct TransportPlanningView: View {
 
     private func workflowAllowsMutation(_ eventStatus: EventStatus) -> Bool {
         eventStatus == EventStatus.confirmed || eventStatus == EventStatus.comparing || eventStatus == EventStatus.organizing
+    }
+}
+
+private struct TransportInfoPill: View {
+    let systemImage: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: WakeveTheme.Spacing.xs) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.bold))
+            Text(value)
+                .font(WakeveTheme.Typography.caption)
+                .lineLimit(1)
+                .minimumScaleFactor(0.76)
+        }
+        .foregroundColor(.white.opacity(0.88))
+        .padding(.horizontal, WakeveTheme.Spacing.sm)
+        .padding(.vertical, WakeveTheme.Spacing.xs)
+        .background(Color.black.opacity(0.24))
+        .clipShape(Capsule())
+    }
+}
+
+private struct TransportRoutePoint: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    let subtitle: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+            Text(title)
+                .font(WakeveTheme.Typography.bodySemibold)
+                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .lineLimit(1)
+
+            Text(subtitle)
+                .font(WakeveTheme.Typography.callout)
+                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                .lineLimit(2)
+        }
+    }
+}
+
+private struct TransportMetricTile: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+            Text(title)
+                .font(WakeveTheme.Typography.tiny)
+                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                .textCase(.uppercase)
+
+            Text(value)
+                .font(WakeveTheme.Typography.caption)
+                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .lineLimit(1)
+                .minimumScaleFactor(0.76)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(WakeveTheme.Spacing.sm)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+}
+
+private struct TransportParticipantRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let name: String
+    let detail: String
+    let isReady: Bool
+
+    var body: some View {
+        HStack(spacing: WakeveTheme.Spacing.md) {
+            Image(systemName: isReady ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                .font(.body.weight(.bold))
+                .foregroundColor(isReady ? WakeveTheme.ColorToken.confirmation(for: colorScheme) : WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                .frame(width: 36, height: 36)
+                .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                Text(name)
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .lineLimit(1)
+                Text(detail)
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+            }
+
+            Spacer()
+        }
+        .padding(WakeveTheme.Spacing.sm)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
     }
 }
 
