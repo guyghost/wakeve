@@ -41,7 +41,8 @@ class CreateEventViewModel: StateMachineViewModel<
     ///   - userId: ID of the organizer (current user)
     ///   - eventType: Type of event (default: OTHER)
     ///   - eventTypeCustom: Custom type description (required if eventType == CUSTOM)
-    ///   - selectedDate: ISO 8601 date string used as the first proposed time slot (optional)
+    ///   - selectedDate: ISO 8601 date string used as a backwards-compatible single proposed slot (optional)
+    ///   - selectedSlots: ISO 8601 slot inputs staged by the Create Event wizard
     ///   - minParticipants: Minimum expected participants (optional)
     ///   - maxParticipants: Maximum expected participants (optional)
     ///   - expectedParticipants: Expected participant count (optional)
@@ -52,6 +53,7 @@ class CreateEventViewModel: StateMachineViewModel<
         eventType: Shared.EventType = Shared.EventType.other,
         eventTypeCustom: String? = nil,
         selectedDate: String? = nil,
+        selectedSlots: [EventTimeSlotInput] = [],
         minParticipants: Int32? = nil,
         maxParticipants: Int32? = nil,
         expectedParticipants: Int32? = nil
@@ -61,7 +63,9 @@ class CreateEventViewModel: StateMachineViewModel<
         let iso8601 = ISO8601DateFormatter()
         let now = iso8601.string(from: Date())
         let deadline = iso8601.string(from: Calendar.current.date(byAdding: .day, value: 7, to: Date())!)
-        let proposedSlots = EventTimeSlotFactory.proposedSlots(from: selectedDate)
+        let proposedSlots = selectedSlots.isEmpty
+            ? EventTimeSlotFactory.proposedSlots(from: selectedDate)
+            : EventTimeSlotFactory.proposedSlots(from: selectedSlots)
 
         let event = WakeveEvent(
             id: "event-\(Int(Date().timeIntervalSince1970 * 1000))",
@@ -104,21 +108,49 @@ class CreateEventViewModel: StateMachineViewModel<
     }
 }
 
+struct EventTimeSlotInput: Equatable {
+    let start: String
+    let end: String?
+    let timeOfDay: Shared.TimeOfDay
+
+    init(
+        start: String,
+        end: String? = nil,
+        timeOfDay: Shared.TimeOfDay = .specific
+    ) {
+        self.start = start
+        self.end = end
+        self.timeOfDay = timeOfDay
+    }
+}
+
 enum EventTimeSlotFactory {
     static func proposedSlots(from selectedDate: String?) -> [TimeSlot] {
         guard let selectedDate, !selectedDate.isEmpty else {
             return []
         }
 
-        return [
-            TimeSlot(
-                id: "slot-\(UUID().uuidString.prefix(8))",
-                start: selectedDate,
-                end: defaultEndDate(for: selectedDate),
-                timezone: TimeZone.current.identifier,
-                timeOfDay: .specific
-            )
-        ]
+        return proposedSlots(from: [
+            EventTimeSlotInput(start: selectedDate)
+        ])
+    }
+
+    static func proposedSlots(from selectedSlotStarts: [String]) -> [TimeSlot] {
+        proposedSlots(from: selectedSlotStarts.map { EventTimeSlotInput(start: $0) })
+    }
+
+    static func proposedSlots(from selectedSlots: [EventTimeSlotInput]) -> [TimeSlot] {
+        selectedSlots
+            .filter { !$0.start.isEmpty }
+            .map { slot in
+                TimeSlot(
+                    id: "slot-\(UUID().uuidString.prefix(8))",
+                    start: slot.start,
+                    end: slot.end ?? defaultEndDate(for: slot.start),
+                    timezone: TimeZone.current.identifier,
+                    timeOfDay: slot.timeOfDay
+                )
+            }
     }
 
     private static func defaultEndDate(for start: String) -> String? {

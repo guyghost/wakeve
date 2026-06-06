@@ -142,9 +142,6 @@ struct AuthenticatedView: View {
     @State private var selectedMeetingId: String?
     @State private var selectedBudget: Budget_?
     @StateObject private var transportPlanningViewModel = TransportPlanningViewModel()
-    
-    // Profile sheet state
-    @State private var showProfileSheet = false
 
     // Notifications state
     @State private var showNotificationPreferencesSheet = false
@@ -154,27 +151,33 @@ struct AuthenticatedView: View {
     @EnvironmentObject var authStateManager: AuthStateManager
 
     var body: some View {
-        // Using native iOS TabView with Apple's Liquid Glass effect (iOS 18+)
-        // Profile tab removed - now accessed via profile icon in Home header
+        // Main tabs are destinations only. One-off actions such as Create Event
+        // stay contextual in Home, toolbars, or sheets.
         TabView(selection: $selectedTab) {
             tabContent(for: .home)
                 .tabItem {
-                    Label("Accueil", systemImage: "house.fill")
+                    Label(WakeveTab.home.title, systemImage: WakeveTab.home.systemImage)
                 }
                 .tag(WakeveTab.home)
 
-            tabContent(for: .inbox)
+            tabContent(for: .groups)
                 .tabItem {
-                    Label("Inbox", systemImage: "tray.fill")
+                    Label(WakeveTab.groups.title, systemImage: WakeveTab.groups.systemImage)
                 }
-                .tag(WakeveTab.inbox)
+                .tag(WakeveTab.groups)
+
+            tabContent(for: .messages)
+                .tabItem {
+                    Label(WakeveTab.messages.title, systemImage: WakeveTab.messages.systemImage)
+                }
+                .tag(WakeveTab.messages)
                 .badge(unreadInboxCount)
 
-            tabContent(for: .explore)
+            tabContent(for: .profile)
                 .tabItem {
-                    Label("Explorer", systemImage: "sparkles")
+                    Label(WakeveTab.profile.title, systemImage: WakeveTab.profile.systemImage)
                 }
-                .tag(WakeveTab.explore)
+                .tag(WakeveTab.profile)
         }
         .tint(.wakevePrimary)
         .toolbar(tabBarVisibility, for: .tabBar)
@@ -198,17 +201,6 @@ struct AuthenticatedView: View {
                     }
                 }
             }
-        }
-        .sheet(isPresented: $showProfileSheet) {
-            ProfileTabView(
-                userId: userId,
-                userName: authStateManager.currentUser?.name,
-                userEmail: authStateManager.currentUser?.email,
-                onDismiss: { showProfileSheet = false },
-                onSignOut: {
-                    authStateManager.signOut()
-                }
-            )
         }
         .sheet(isPresented: $showNotificationPreferencesSheet) {
             NavigationStack {
@@ -239,8 +231,7 @@ struct AuthenticatedView: View {
                     showEventCreationSheet = true
                 },
                 onProfileClick: {
-                    // Show profile settings sheet
-                    showProfileSheet = true
+                    selectedTab = .profile
                 }
             )
             
@@ -635,16 +626,26 @@ struct AuthenticatedView: View {
         switch tab {
         case .home:
             homeTabContent
-        case .inbox:
-            InboxView(
-                userId: userId,
-                onBack: { /* Inbox is main tab, no back action needed */ },
-                unreadCount: $unreadInboxCount
-            )
-        case .explore:
+        case .groups:
             ExploreTabView { _ in
                 showEventCreationSheet = true
             }
+        case .messages:
+            InboxView(
+                userId: userId,
+                onBack: { /* Messages is a main tab, no back action needed */ },
+                unreadCount: $unreadInboxCount
+            )
+        case .profile:
+            ProfileTabView(
+                userId: userId,
+                userName: authStateManager.currentUser?.name,
+                userEmail: authStateManager.currentUser?.email,
+                onDismiss: nil,
+                onSignOut: {
+                    authStateManager.signOut()
+                }
+            )
         }
     }
 
@@ -1292,88 +1293,94 @@ struct EventDetailView: View {
     let onBack: () -> Void
 
     var body: some View {
-        ZStack(alignment: .top) {
-            pageBackground
+        ZStack {
+            WakeveTheme.ColorToken.pageBackground(for: colorScheme)
                 .ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
                     heroSection
+                    metadataOverview
+                    urgentNextAction
+                    participantsPreview
+                    detailRows
+                    messagePreview
 
-                    VStack(alignment: .leading, spacing: 18) {
-                        titleBlock
-                        organizerControls
-
-                        if let description = displayDescription {
-                            Text(description)
-                                .font(.system(size: 15, weight: .regular))
-                                .foregroundColor(secondaryText)
-                                .lineSpacing(3)
-                                .padding(.top, 2)
-                        }
-
-                        detailRows
-
-                        Text(footerHint)
-                            .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.white.opacity(0.42))
-                            .frame(maxWidth: .infinity)
-                            .multilineTextAlignment(.center)
-                            .padding(.top, 20)
-                            .padding(.bottom, 84)
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.top, -34)
+                    Text(footerHint)
+                        .font(WakeveTheme.Typography.caption)
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .frame(maxWidth: .infinity)
+                        .multilineTextAlignment(.center)
+                        .padding(.top, WakeveTheme.Spacing.xs)
                 }
+                .padding(.horizontal, WakeveTheme.Spacing.page)
+                .padding(.top, 92)
+                .padding(.bottom, 118)
             }
-            .ignoresSafeArea(edges: .top)
-
-            topControls
         }
         .toolbar(.hidden, for: .tabBar)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            topControls
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomPrimaryAction
         }
     }
 
     private var heroSection: some View {
-        ZStack(alignment: .bottomLeading) {
-            LinearGradient(
-                colors: heroColors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .overlay {
-                eventSymbol
-                    .font(.system(size: 118, weight: .black))
-                    .foregroundColor(.white.opacity(0.2))
-                    .rotationEffect(.degrees(-10))
-                    .offset(x: 86, y: -18)
-            }
-            .overlay(alignment: .bottom) {
-                LinearGradient(
-                    colors: [.clear, pageBackground.opacity(colorScheme == .dark ? 0.94 : 0.98)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 150)
-            }
-
-            VStack(alignment: .leading, spacing: 10) {
-                statusBadge
-
-                HStack(spacing: 8) {
-                    Image(systemName: "person.2.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                    Text(participantRangeText)
-                        .font(.system(size: 15, weight: .semibold))
+        EventHeroCard(
+            title: event.title,
+            subtitle: subtitleText,
+            metadata: statusText,
+            gradient: eventHeroGradient
+        ) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                if let description = displayDescription {
+                    Text(description)
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(.white.opacity(0.82))
+                        .lineSpacing(3)
+                        .lineLimit(3)
                 }
-                .foregroundColor(.white.opacity(0.86))
+
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    EventDetailHeroMetric(
+                        systemImage: "person.2.fill",
+                        value: participantRangeText
+                    )
+
+                    EventDetailHeroMetric(
+                        systemImage: "calendar",
+                        value: primaryDateText
+                    )
+                }
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 54)
+            .overlay(alignment: .topTrailing) {
+                eventSymbol
+                    .font(.system(size: 76, weight: .black))
+                    .foregroundColor(.white.opacity(0.18))
+                    .rotationEffect(.degrees(-8))
+                    .offset(x: 16, y: -114)
+            }
         }
-        .frame(height: 330)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var metadataOverview: some View {
+        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                Text("Résumé")
+                    .font(WakeveTheme.Typography.section)
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: WakeveTheme.Spacing.sm) {
+                    EventDetailMetadataPill(icon: statusIcon, title: "Statut", value: statusText)
+                    EventDetailMetadataPill(icon: "timer", title: "Sondage", value: pollDurationText)
+                    EventDetailMetadataPill(icon: "calendar", title: "Créneaux", value: "\(event.proposedSlots.count) option\(event.proposedSlots.count > 1 ? "s" : "")")
+                    EventDetailMetadataPill(icon: "person.2.fill", title: "Invités", value: participantSummary)
+                }
+            }
+        }
     }
 
     private var titleBlock: some View {
@@ -1411,180 +1418,197 @@ struct EventDetailView: View {
         }
     }
 
-    private var detailRows: some View {
-        VStack(spacing: 10) {
-            EventPreviewDetailRow(
-                icon: "timer",
-                label: "Temps imparti au sondage",
-                value: pollDurationText,
-                accessory: event.status == .draft ? "chevron.up.chevron.down" : nil,
-                action: onManageParticipants
-            )
+    private var urgentNextAction: some View {
+        EventDetailNextActionCard(
+            title: primaryActionTitle,
+            subtitle: nextActionSubtitle,
+            systemImage: nextActionIcon,
+            isDisabled: primaryActionDisabled,
+            action: primaryAction
+        )
+    }
 
-            EventPreviewDetailRow(
+    private var participantsPreview: some View {
+        EventDetailParticipantsPreview(
+            title: "Participants",
+            subtitle: participantPreviewSubtitle,
+            initials: participantInitials,
+            action: onManageParticipants
+        )
+    }
+
+    private var detailRows: some View {
+        EventDetailSectionCard(title: "Organisation") {
+            EventDetailActionRow(
                 icon: "calendar",
                 label: "Créneaux proposés",
                 value: "\(event.proposedSlots.count) option\(event.proposedSlots.count > 1 ? "s" : "")",
-                accessory: "chevron.right",
                 action: event.status == .polling ? onVote : onViewResults
             )
 
-            EventPreviewDetailRow(
-                icon: "person.crop.circle.fill",
-                label: "Participants",
-                value: participantSummary,
-                accessory: "chevron.right",
-                action: onManageParticipants
-            )
-
             if canAccessScenarioPlanning {
-                EventPreviewDetailRow(
+                EventDetailActionRow(
                     icon: "map.fill",
                     label: "Scénarios, destination et logement",
                     value: scenarioPlanningText,
-                    accessory: "chevron.right",
                     action: onOrganize
                 )
             }
 
             if canAccessTransportPlanning {
-                EventPreviewDetailRow(
+                EventDetailActionRow(
                     icon: "point.topleft.down.curvedto.point.bottomright.up.fill",
                     label: "Transport",
                     value: "Départs, optimisation et plan final",
-                    accessory: "chevron.right",
                     action: onOpenTransport
                 )
             }
 
             if canShowOrganizationDashboard {
-                EventPreviewDetailRow(
+                EventDetailActionRow(
                     icon: "video.fill",
                     label: "Réunions",
                     value: organizationDashboardValue("Réunions et liens de coordination"),
-                    accessory: "chevron.right",
                     action: onOpenMeetings
                 )
 
-                EventPreviewDetailRow(
+                EventDetailActionRow(
                     icon: "eurosign.circle.fill",
                     label: "Budget et dépenses",
                     value: organizationDashboardValue("Dépenses, soldes et baseline"),
-                    accessory: "chevron.right",
                     action: onOpenBudget
                 )
 
-                EventPreviewDetailRow(
+                EventDetailActionRow(
                     icon: "creditcard.fill",
                     label: "Cagnotte",
                     value: organizationDashboardValue("Cagnotte commune"),
-                    accessory: "chevron.right",
                     action: onOpenPayment
                 )
 
-                EventPreviewDetailRow(
+                EventDetailActionRow(
                     icon: "link.circle.fill",
                     label: "Tricount",
                     value: organizationDashboardValue("Handoff sécurisé"),
-                    accessory: "chevron.right",
                     action: onOpenTricount
                 )
             }
         }
-        .padding(.top, 6)
+    }
+
+    private var messagePreview: some View {
+        EventDetailMessagePreview(
+            title: "Messages",
+            subtitle: compactMessageSubtitle,
+            badgeText: event.status == .polling ? "Vote" : "Événement"
+        )
     }
 
     private var topControls: some View {
-        HStack {
+        LiquidGlassToolbar(title: "Événement", subtitle: statusText) {
             WakeveCircleButton(
                 systemImage: "chevron.left",
                 accessibilityLabel: "Retour",
                 variant: .glass,
-                size: 44,
+                size: 40,
                 action: onBack
             )
-
-            Spacer()
-
+        } trailing: {
             Menu {
-                Button(action: onManageParticipants) {
-                    Label("Ajouter des participants", systemImage: "person.badge.plus")
-                }
-
-                Button(action: event.status == .polling ? onViewResults : onManageParticipants) {
-                    Label("Régler le sondage", systemImage: "timer")
-                }
-
-                if event.status == .polling {
-                    Button(action: onViewResults) {
-                        Label("Voir les résultats", systemImage: "chart.bar.fill")
-                    }
-                }
-
-                if canAccessScenarioPlanning {
-                    Button(action: onOrganize) {
-                        Label("Organiser les scénarios", systemImage: "map.fill")
-                    }
-                }
-
-                if canAccessTransportPlanning {
-                    Button(action: onOpenTransport) {
-                        Label("Transport", systemImage: "point.topleft.down.curvedto.point.bottomright.up.fill")
-                    }
-                }
-
-                if canShowOrganizationDashboard {
-                    Button(action: onOpenMeetings) {
-                        Label("Réunions", systemImage: "video.fill")
-                    }
-                    Button(action: onOpenBudget) {
-                        Label("Budget", systemImage: "eurosign.circle.fill")
-                    }
-                    Button(action: onOpenPayment) {
-                        Label("Pot commun", systemImage: "creditcard.fill")
-                    }
-                    Button(action: onOpenTricount) {
-                        Label("Tricount", systemImage: "link.circle.fill")
-                    }
-                }
+                organizerMenuContent
             } label: {
-                WakeveGlassControl {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 17, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(width: 44, height: 44)
-                }
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .frame(width: 40, height: 40)
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .clipShape(Circle())
             }
             .accessibilityLabel("Options organisateur")
         }
-        .padding(.horizontal, 16)
-        .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
+        .padding(.horizontal, WakeveTheme.Spacing.page)
+        .padding(.top, WakeveTheme.Spacing.sm)
+        .padding(.bottom, WakeveTheme.Spacing.xs)
+        .background(
+            LinearGradient(
+                colors: [
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme),
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .top)
+        )
+    }
+
+    @ViewBuilder
+    private var organizerMenuContent: some View {
+        Button(action: onManageParticipants) {
+            Label("Ajouter des participants", systemImage: "person.badge.plus")
+        }
+
+        Button(action: event.status == .polling ? onViewResults : onManageParticipants) {
+            Label("Régler le sondage", systemImage: "timer")
+        }
+
+        if event.status == .polling {
+            Button(action: onViewResults) {
+                Label("Voir les résultats", systemImage: "chart.bar.fill")
+            }
+        }
+
+        if canAccessScenarioPlanning {
+            Button(action: onOrganize) {
+                Label("Organiser les scénarios", systemImage: "map.fill")
+            }
+        }
+
+        if canAccessTransportPlanning {
+            Button(action: onOpenTransport) {
+                Label("Transport", systemImage: "point.topleft.down.curvedto.point.bottomright.up.fill")
+            }
+        }
+
+        if canShowOrganizationDashboard {
+            Button(action: onOpenMeetings) {
+                Label("Réunions", systemImage: "video.fill")
+            }
+            Button(action: onOpenBudget) {
+                Label("Budget", systemImage: "eurosign.circle.fill")
+            }
+            Button(action: onOpenPayment) {
+                Label("Pot commun", systemImage: "creditcard.fill")
+            }
+            Button(action: onOpenTricount) {
+                Label("Tricount", systemImage: "link.circle.fill")
+            }
+        }
     }
 
     private var bottomPrimaryAction: some View {
         VStack(spacing: 0) {
             LinearGradient(
-                colors: [pageBackground.opacity(0), pageBackground],
+                colors: [
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0),
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                ],
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(height: 36)
+            .frame(height: 32)
             .allowsHitTesting(false)
 
-            Button(action: primaryAction) {
-                Text(primaryActionTitle)
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(primaryButtonText)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(primaryActionDisabled ? primaryButtonBackground.opacity(0.54) : primaryButtonBackground)
-                    .clipShape(Capsule())
-            }
-            .disabled(primaryActionDisabled)
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
-            .background(pageBackground)
+            LiquidGlassButton(
+                primaryActionTitle,
+                systemImage: nextActionIcon,
+                variant: .primary,
+                isDisabled: primaryActionDisabled,
+                action: primaryAction
+            )
+            .padding(.horizontal, WakeveTheme.Spacing.page)
+            .padding(.bottom, WakeveTheme.Spacing.sm)
+            .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme))
         }
     }
 
@@ -1593,12 +1617,12 @@ struct EventDetailView: View {
             Image(systemName: statusIcon)
                 .font(.system(size: 13, weight: .bold))
             Text(statusText)
-                .font(.system(size: 14, weight: .bold))
+                .font(WakeveTheme.Typography.caption)
         }
         .foregroundColor(.white)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 7)
-        .background(Color.black.opacity(0.26))
+        .padding(.horizontal, WakeveTheme.Spacing.sm)
+        .padding(.vertical, WakeveTheme.Spacing.xs)
+        .background(Color.black.opacity(0.28))
         .clipShape(Capsule())
     }
 
@@ -1649,6 +1673,48 @@ struct EventDetailView: View {
         return "Configurez les participants et la durée du sondage avant de publier."
     }
 
+    private var primaryDateText: String {
+        if let finalDate = event.finalDate, let date = parseDate(finalDate) {
+            return formatEventDate(date)
+        }
+
+        if let firstSlot = event.proposedSlots.first,
+           let startValue = firstSlot.start,
+           let start = parseDate(startValue) {
+            return formatEventDate(start)
+        }
+
+        return "Date à choisir"
+    }
+
+    private var nextActionSubtitle: String {
+        switch event.status {
+        case .draft:
+            return primaryActionDisabled ? "Ajoutez au moins un participant pour lancer le sondage." : "Le sondage est prêt à être envoyé aux invités."
+        case .polling:
+            return "Consultez les votes et confirmez le créneau le plus solide."
+        case .confirmed, .comparing:
+            return "Passez à la destination, au logement et aux choix collectifs."
+        case .organizing:
+            return "Coordonnez réunions, budget, transport et confirmations."
+        case .finalized:
+            return "L’événement est finalisé; les sections restent consultables."
+        default:
+            return "Continuez la préparation de l’événement."
+        }
+    }
+
+    private var nextActionIcon: String {
+        switch event.status {
+        case .draft: return "paperplane.fill"
+        case .polling: return "chart.bar.fill"
+        case .confirmed, .comparing: return "map.fill"
+        case .organizing: return "checklist"
+        case .finalized: return "checkmark.seal.fill"
+        default: return "arrow.right"
+        }
+    }
+
     private var participantRangeText: String {
         if let min = event.minParticipants?.intValue, let max = event.maxParticipants?.intValue {
             return "\(min) à \(max) participants"
@@ -1657,6 +1723,32 @@ struct EventDetailView: View {
             return "\(expected) participants attendus"
         }
         return "\(event.participants.count) participant\(event.participants.count > 1 ? "s" : "") invité\(event.participants.count > 1 ? "s" : "")"
+    }
+
+    private var participantInitials: [String] {
+        let values = event.participants.isEmpty ? [userId] : event.participants
+        return values.map { value in
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            let source = trimmed.isEmpty ? "?" : trimmed
+            let components = source
+                .replacingOccurrences(of: "@", with: " ")
+                .replacingOccurrences(of: ".", with: " ")
+                .split(separator: " ")
+
+            if components.count >= 2,
+               let first = components.first?.first,
+               let second = components.dropFirst().first?.first {
+                return "\(first)\(second)".uppercased()
+            }
+
+            return String(source.prefix(2)).uppercased()
+        }
+    }
+
+    private var participantPreviewSubtitle: String {
+        event.participants.isEmpty
+            ? "Aucun invité ajouté pour le moment."
+            : "\(event.participants.count) invité\(event.participants.count > 1 ? "s" : "") à suivre."
     }
 
     private var participantSummary: String {
@@ -1696,6 +1788,19 @@ struct EventDetailView: View {
         }
     }
 
+    private var compactMessageSubtitle: String {
+        switch event.status {
+        case .draft:
+            return "La conversation apparaîtra quand l’événement sera partagé."
+        case .polling:
+            return "Rappels, réponses et questions de vote regroupés ici."
+        case .confirmed, .comparing:
+            return "Les échanges restent attachés au scénario en cours."
+        default:
+            return "Coordination, décisions et rappels visibles depuis l’événement."
+        }
+    }
+
     private var primaryActionTitle: String {
         switch event.status {
         case .draft: return "Lancer le sondage"
@@ -1704,6 +1809,14 @@ struct EventDetailView: View {
         case .organizing, .finalized: return "Voir l'organisation"
         default: return "Continuer"
         }
+    }
+
+    private var eventHeroGradient: LinearGradient {
+        LinearGradient(
+            colors: heroColors,
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
     private var primaryActionDisabled: Bool {
@@ -1873,6 +1986,266 @@ struct EventDetailView: View {
         timeFormatter.dateFormat = "HH:mm"
 
         return "\(dateFormatter.string(from: start)) · \(timeFormatter.string(from: start))"
+    }
+
+    private func formatEventDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.dateFormat = "d MMM"
+        return formatter.string(from: date)
+    }
+}
+
+private struct EventDetailHeroMetric: View {
+    let systemImage: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: WakeveTheme.Spacing.xs) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.bold))
+            Text(value)
+                .font(WakeveTheme.Typography.caption)
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+        }
+        .foregroundColor(.white.opacity(0.88))
+        .padding(.horizontal, WakeveTheme.Spacing.sm)
+        .padding(.vertical, WakeveTheme.Spacing.xs)
+        .background(Color.black.opacity(0.24))
+        .clipShape(Capsule())
+    }
+}
+
+private struct EventDetailMetadataPill: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let icon: String
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+            Image(systemName: icon)
+                .font(.body.weight(.semibold))
+                .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+
+            Text(title)
+                .font(WakeveTheme.Typography.tiny)
+                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                .lineLimit(1)
+
+            Text(value)
+                .font(WakeveTheme.Typography.callout.weight(.semibold))
+                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(WakeveTheme.Spacing.sm)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+}
+
+private struct EventDetailNextActionCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let isDisabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        LiquidGlassCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            HStack(spacing: WakeveTheme.Spacing.md) {
+                Image(systemName: systemImage)
+                    .font(.title3.weight(.bold))
+                    .foregroundColor(.white)
+                    .frame(width: 48, height: 48)
+                    .background(WakeveTheme.ColorToken.progress(for: colorScheme))
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                    Text("Prochaine action")
+                        .font(WakeveTheme.Typography.tiny)
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .textCase(.uppercase)
+
+                    Text(title)
+                        .font(WakeveTheme.Typography.rowTitle)
+                        .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                    Text(subtitle)
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: WakeveTheme.Spacing.xs)
+
+                Button(action: action) {
+                    Image(systemName: "arrow.right")
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(colorScheme == .dark ? WakeveTheme.ColorToken.midnight : .white)
+                        .frame(width: 42, height: 42)
+                        .background(colorScheme == .dark ? Color.white.opacity(0.9) : WakeveTheme.ColorToken.accent(for: colorScheme))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .disabled(isDisabled)
+                .opacity(isDisabled ? WakeveTheme.Opacity.disabled : 1)
+            }
+        }
+    }
+}
+
+private struct EventDetailParticipantsPreview: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    let subtitle: String
+    let initials: [String]
+    let action: () -> Void
+
+    var body: some View {
+        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            Button(action: action) {
+                HStack(spacing: WakeveTheme.Spacing.md) {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text(title)
+                            .font(WakeveTheme.Typography.section)
+                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                        Text(subtitle)
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                            .lineLimit(2)
+                    }
+
+                    Spacer()
+
+                    ParticipantAvatarStack(initials: initials, size: 36, maxVisible: 4)
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                }
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+private struct EventDetailSectionCard<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    let content: Content
+
+    init(title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                Text(title)
+                    .font(WakeveTheme.Typography.section)
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                VStack(spacing: 0) {
+                    content
+                }
+            }
+        }
+    }
+}
+
+private struct EventDetailActionRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let icon: String
+    let label: String
+    let value: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: WakeveTheme.Spacing.md) {
+                Image(systemName: icon)
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                    .frame(width: 38, height: 38)
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.sm, style: .continuous))
+
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                    Text(label)
+                        .font(WakeveTheme.Typography.bodySemibold)
+                        .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+
+                    Text(value)
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: WakeveTheme.Spacing.xs)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+            }
+            .padding(.vertical, WakeveTheme.Spacing.sm)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct EventDetailMessagePreview: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    let subtitle: String
+    let badgeText: String
+
+    var body: some View {
+        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            HStack(spacing: WakeveTheme.Spacing.md) {
+                Image(systemName: "message.fill")
+                    .font(.title3.weight(.bold))
+                    .foregroundColor(WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                    .frame(width: 46, height: 46)
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                    HStack(spacing: WakeveTheme.Spacing.xs) {
+                        Text(title)
+                            .font(WakeveTheme.Typography.rowTitle)
+                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                        Text(badgeText)
+                            .font(WakeveTheme.Typography.tiny)
+                            .foregroundColor(WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                            .padding(.horizontal, WakeveTheme.Spacing.xs)
+                            .padding(.vertical, 3)
+                            .background(WakeveTheme.ColorToken.eventHighlight(for: colorScheme).opacity(0.14))
+                            .clipShape(Capsule())
+                    }
+
+                    Text(subtitle)
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .lineLimit(2)
+                }
+            }
+        }
     }
 }
 

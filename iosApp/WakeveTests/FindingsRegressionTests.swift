@@ -66,6 +66,43 @@ final class FindingsRegressionTests: XCTestCase {
         XCTAssertEqual(proposedSlotStarts.first ?? nil, "2026-06-12T18:00:00Z")
     }
 
+    func testCreateEventTurnsMultipleSelectedSlotsIntoProposedSlots() {
+        let viewModel = CreateEventViewModel()
+        var proposedSlotStarts: [String?] = []
+        var proposedSlotEnds: [String?] = []
+        var proposedSlotTimesOfDay: [Shared.TimeOfDay] = []
+        viewModel.onEventCreated = { event in
+            proposedSlotStarts = event.proposedSlots.map(\.start)
+            proposedSlotEnds = event.proposedSlots.map(\.end)
+            proposedSlotTimesOfDay = event.proposedSlots.map(\.timeOfDay)
+        }
+
+        viewModel.createEvent(
+            title: "Week-end Lyon",
+            description: "Pique-nique",
+            userId: "dev-user-test",
+            selectedSlots: [
+                EventTimeSlotInput(
+                    start: "2026-06-12T18:00:00Z",
+                    end: "2026-06-12T20:00:00Z",
+                    timeOfDay: .specific
+                ),
+                EventTimeSlotInput(
+                    start: "2026-06-13T09:00:00Z",
+                    end: nil,
+                    timeOfDay: .allDay
+                )
+            ]
+        )
+
+        XCTAssertEqual(proposedSlotStarts, [
+            "2026-06-12T18:00:00Z",
+            "2026-06-13T09:00:00Z"
+        ])
+        XCTAssertEqual(proposedSlotEnds.first ?? nil, "2026-06-12T20:00:00Z")
+        XCTAssertEqual(proposedSlotTimesOfDay, [.specific, .allDay])
+    }
+
     func testAppLaunchDoesNotRequestNotificationAuthorizationImmediately() throws {
         let source = try readProjectFile("iosApp/src/Services/AppDelegate.swift")
         let didFinishLaunching = slice(

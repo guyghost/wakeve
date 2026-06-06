@@ -177,8 +177,8 @@ struct HomeContentView: View {
     let onCreateEvent: () -> Void
     let onProfileClick: () -> Void
 
-    @State private var showFilterMenu = false
     @State private var selectedFilter: HomeEventFilter = .upcoming
+    @Environment(\.colorScheme) private var colorScheme
 
     init(
         events: [Event],
@@ -202,37 +202,55 @@ struct HomeContentView: View {
         ZStack {
             backgroundView
 
-            VStack(spacing: 0) {
-                headerView
-                    .padding(.horizontal, 16)
-                    .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
+            if isLoading {
+                LoadingSkeleton(rows: 3, showsHero: true)
+                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                    .padding(.top, WakeveTheme.Navigation.controlTopSpacing + 76)
+            } else if filteredEvents.isEmpty {
+                VStack(spacing: 0) {
+                    headerView
+                        .padding(.horizontal, WakeveTheme.Spacing.page)
+                        .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
 
-                if isLoading {
-                    LoadingEventsView()
-                } else if filteredEvents.isEmpty {
-                    HomeEmptyStateView(
-                        onCreateEvent: onCreateEvent,
+                    Spacer(minLength: 0)
+
+                    EmptyState(
+                        systemImage: "calendar.badge.plus",
                         title: emptyStateTitle,
-                        subtitle: emptyStateSubtitle
+                        subtitle: emptyStateSubtitle,
+                        actionTitle: String(localized: "home.create_event"),
+                        action: onCreateEvent
                     )
-                } else {
-                    EventsCarouselView(
-                        events: filteredEvents,
-                        onEventSelected: onEventSelected,
-                        userId: userId
-                    )
-                    .frame(maxHeight: .infinity, alignment: .center)
+
+                    Spacer(minLength: 0)
+                }
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xl) {
+                        headerView
+
+                        HomeFeaturedEventView(
+                            event: featuredEvent,
+                            isOrganizer: featuredEvent.organizerId == userId,
+                            onTap: { onEventSelected(featuredEvent) }
+                        )
+
+                        HomeUpcomingEventsSection(
+                            events: listEvents,
+                            userId: userId,
+                            onEventSelected: onEventSelected
+                        )
+                    }
+                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                    .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
+                    .padding(.bottom, 112)
                 }
             }
-            
-            if showFilterMenu {
-                FilterDropdownMenu(
-                    selectedFilter: $selectedFilter,
-                    isShowing: $showFilterMenu,
-                    draftCount: draftCount
-                )
-                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .topLeading)))
-            }
+
+            HomeFloatingCreateButton(action: onCreateEvent)
+                .padding(.trailing, WakeveTheme.Spacing.lg)
+                .padding(.bottom, WakeveTheme.Spacing.xl)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
     }
     
@@ -254,6 +272,20 @@ struct HomeContentView: View {
     }
     
     private var draftCount: Int { events.filter { $0.status == .draft }.count }
+
+    private var featuredEvent: Event {
+        sortedFilteredEvents.first ?? filteredEvents[0]
+    }
+
+    private var listEvents: [Event] {
+        Array(sortedFilteredEvents.dropFirst())
+    }
+
+    private var sortedFilteredEvents: [Event] {
+        filteredEvents.sorted { lhs, rhs in
+            eventSortDate(lhs) < eventSortDate(rhs)
+        }
+    }
     
     private var emptyStateTitle: String {
         switch selectedFilter {
@@ -281,29 +313,37 @@ struct HomeContentView: View {
 
     private var headerView: some View {
         HStack {
-            Button(action: { withAnimation(.spring(response: 0.3)) { showFilterMenu.toggle() } }) {
-                HStack(spacing: 4) {
-                    Text(selectedFilter.displayName)
-                        .font(.system(size: 32, weight: .bold))
-                        .foregroundColor(.primary)
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                Text("Bonjour")
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(.secondary)
 
-                    Image(systemName: showFilterMenu ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(.primary)
-                }
+                Text("À venir")
+                    .font(WakeveTheme.Typography.display)
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
             }
 
             Spacer()
 
-            if shouldShowHeaderCreateButton {
-                WakeveCircleButton(
-                    systemImage: "plus",
-                    accessibilityLabel: String(localized: "home.create_event"),
-                    variant: .light,
-                    size: 44,
-                    action: onCreateEvent
-                )
+            Menu {
+                ForEach(HomeEventFilter.allCases) { filter in
+                    Button {
+                        selectedFilter = filter
+                    } label: {
+                        Label(filter.displayName, systemImage: filter.icon)
+                    }
+                }
+            } label: {
+                Image(systemName: "line.3.horizontal.decrease.circle")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .frame(width: 44, height: 44)
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .clipShape(Circle())
             }
+            .accessibilityLabel("Filtrer les événements")
 
             Button(action: onProfileClick) {
                 WakeveAvatar(initials: "U", size: 44)
@@ -316,7 +356,226 @@ struct HomeContentView: View {
     private var shouldShowHeaderCreateButton: Bool {
         !isLoading && !filteredEvents.isEmpty
     }
+
+    private func eventSortDate(_ event: Event) -> Date {
+        eventPrimaryDate(event) ?? .distantFuture
+    }
 }
+
+// MARK: - Premium Home Sections
+
+private struct HomeFeaturedEventView: View {
+    let event: Event
+    let isOrganizer: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            EventHeroCard(
+                title: event.title,
+                subtitle: eventSubtitle(event),
+                metadata: featuredMetadata,
+                gradient: eventGradient(event)
+            ) {
+                HStack(spacing: WakeveTheme.Spacing.md) {
+                    ParticipantAvatarStack(initials: participantInitials(event), size: 34, maxVisible: 4)
+
+                    Text(nextActionHint(event))
+                        .font(WakeveTheme.Typography.caption)
+                        .foregroundColor(.white.opacity(0.84))
+                        .padding(.horizontal, WakeveTheme.Spacing.sm)
+                        .padding(.vertical, WakeveTheme.Spacing.xs)
+                        .background(Color.white.opacity(0.16))
+                        .clipShape(Capsule())
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var featuredMetadata: String {
+        isOrganizer ? "Organisé par moi" : "Prochain moment"
+    }
+}
+
+private struct HomeUpcomingEventsSection: View {
+    let events: [Event]
+    let userId: String
+    let onEventSelected: (Event) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+            HStack {
+                Text("Ensuite")
+                    .font(WakeveTheme.Typography.section)
+                    .foregroundColor(.primary)
+
+                Spacer()
+
+                Text("\(events.count) événement\(events.count > 1 ? "s" : "")")
+                    .font(WakeveTheme.Typography.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            if events.isEmpty {
+                LiquidGlassCard(prominence: .subtle) {
+                    Text("Aucun autre événement à préparer.")
+                        .font(WakeveTheme.Typography.body)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else {
+                VStack(spacing: WakeveTheme.Spacing.sm) {
+                    ForEach(events, id: \.id) { event in
+                        EventListRow(
+                            title: event.title,
+                            subtitle: eventSubtitle(event),
+                            dateLabel: compactDateLabel(event),
+                            participantInitials: participantInitials(event),
+                            nextActionHint: nextActionHint(event),
+                            action: { onEventSelected(event) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct HomeFloatingCreateButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "plus")
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(WakeveTheme.ColorToken.midnight)
+                .frame(width: 62, height: 62)
+                .background(Color.white.opacity(0.92))
+                .clipShape(Circle())
+                .liquidGlass(cornerRadius: WakeveTheme.Radius.full)
+                .shadow(color: Color.black.opacity(0.18), radius: 18, x: 0, y: 10)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(String(localized: "home.create_event"))
+    }
+}
+
+// MARK: - Home Presentation Helpers
+
+private func eventPrimaryDate(_ event: Event) -> Date? {
+    if let finalDate = event.finalDate {
+        if let parsedFinalDate = parseHomeDate(finalDate) {
+            return parsedFinalDate
+        }
+
+        if let matchingSlot = event.proposedSlots.first(where: { $0.id == finalDate }),
+           let start = matchingSlot.start {
+            return parseHomeDate(start)
+        }
+    }
+
+    if let firstSlotStart = event.proposedSlots.compactMap(\.start).first {
+        return parseHomeDate(firstSlotStart)
+    }
+
+    return parseHomeDate(event.deadline)
+}
+
+private func eventSubtitle(_ event: Event) -> String {
+    let dateText = eventPrimaryDate(event).map(longHomeDateFormatter.string(from:)) ?? "Date à confirmer"
+    let participantText = participantCountText(event)
+    return "\(dateText) · \(participantText)"
+}
+
+private func compactDateLabel(_ event: Event) -> String {
+    guard let date = eventPrimaryDate(event) else {
+        return "À définir"
+    }
+
+    return compactHomeDateFormatter.string(from: date)
+}
+
+private func nextActionHint(_ event: Event) -> String {
+    switch event.status {
+    case .draft:
+        return "Finaliser le brouillon"
+    case .polling:
+        return "Vote en cours"
+    case .confirmed, .comparing:
+        return "Organiser la suite"
+    case .organizing:
+        return "Logistique active"
+    case .finalized:
+        return "Prêt"
+    default:
+        return "Voir l’événement"
+    }
+}
+
+private func participantCountText(_ event: Event) -> String {
+    if let expected = event.expectedParticipants?.intValue {
+        return "\(expected) attendus"
+    }
+
+    let count = event.participants.count
+    return "\(max(count, 1)) participant\(count > 1 ? "s" : "")"
+}
+
+private func participantInitials(_ event: Event) -> [String] {
+    let values = event.participants.prefix(4).enumerated().map { pair in
+        let index = pair.offset
+        let participant = pair.element
+        let trimmed = participant.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let first = trimmed.first {
+            return String(first).uppercased()
+        }
+        return String(index + 1)
+    }
+
+    return values.isEmpty ? ["U"] : values
+}
+
+private func eventGradient(_ event: Event) -> LinearGradient {
+    let theme = EventTheme.theme(for: event.eventType.name)
+    return LinearGradient(
+        colors: [
+            theme.backgroundColor.opacity(0.92),
+            theme.accentColor.opacity(0.72),
+            WakeveTheme.ColorToken.midnight
+        ],
+        startPoint: .topLeading,
+        endPoint: .bottomTrailing
+    )
+}
+
+private func parseHomeDate(_ value: String) -> Date? {
+    let isoFormatter = ISO8601DateFormatter()
+    if let date = isoFormatter.date(from: value) {
+        return date
+    }
+
+    let fractionalFormatter = DateFormatter()
+    fractionalFormatter.locale = Locale(identifier: "en_US_POSIX")
+    fractionalFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZ"
+    return fractionalFormatter.date(from: value)
+}
+
+private let longHomeDateFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "fr_FR")
+    formatter.dateStyle = .medium
+    formatter.timeStyle = .none
+    return formatter
+}()
+
+private let compactHomeDateFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "fr_FR")
+    formatter.setLocalizedDateFormatFromTemplate("d MMM")
+    return formatter
+}()
 
 // MARK: - Events Carousel View
 

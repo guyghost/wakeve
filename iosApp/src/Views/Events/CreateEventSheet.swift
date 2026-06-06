@@ -16,6 +16,7 @@ struct CreateEventSheet: View {
     @State private var title = ""
     @State private var description = ""
     @State private var selectedDate: Date?
+    @State private var proposedSlotDrafts: [EventSlotDraft] = []
     @State private var selectedLocation: String?
     @State private var selectedBackground: EventBackground = .gradient
     @State private var showingBackgroundPicker = false
@@ -46,6 +47,7 @@ struct CreateEventSheet: View {
     @State private var startTime = Date()
     @State private var hasEndTime = false
     @State private var endTime = Date().addingTimeInterval(3600) // +1 hour by default
+    @State private var editingSlotID: UUID?
     
     // Event info sheet state
     @State private var showingEventInfoSheet = false
@@ -57,54 +59,25 @@ struct CreateEventSheet: View {
     @State private var showingPreview = false
     @State private var showValidationError = false
     @State private var validationMessage: String? = nil
+    @State private var currentStep: CreateEventStep = .name
     
     var onEventCreated: (Event) -> Void = { _ in }
     
     var body: some View {
-        ZStack(alignment: .top) {
-            // Gradient background
-            gradientBackground
-            
+        ZStack {
+            WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                .ignoresSafeArea()
+
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 0) {
-                    // Space for the fixed header
-                    Color.clear.frame(height: 56)
-
-                    // Default gradient: original layout
-                    backgroundImageSelector
-                        .padding(.top, 40)
-
-                    Spacer()
-                        .frame(height: UIScreen.main.bounds.height * 0.25 - 120)
-                    
-                    // Cards start in the dark zone below the image
-                    mainEventCard
-                        .padding(.top, 24)
-                        .padding(.horizontal, 16)
-                    
-                    // Organizer Card (separate card with organizer and description)
-                    organizerCard
-                        .padding(.top, 16)
-                        .padding(.horizontal, 16)
-
-                    // Event Type selector
-                    eventTypeCard
-                        .padding(.top, 16)
-                        .padding(.horizontal, 16)
-
-                    // Create Button
-                    createButton
-                        .padding(.top, 32)
-                        .padding(.horizontal, 16)
-                    
-                    Spacer(minLength: 40)
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
+                    createStepHeader
+                    createStepProgress
+                    createStepContent
                 }
+                .padding(.horizontal, WakeveTheme.Spacing.page)
+                .padding(.top, 92)
+                .padding(.bottom, 124)
             }
-
-            // Fixed header overlay
-            headerView
-                .padding(.horizontal, WakeveTheme.Navigation.controlHorizontalPadding)
-                .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
             
             // Date Picker Bottom Sheet Overlay
             if showingDatePicker {
@@ -116,9 +89,10 @@ struct CreateEventSheet: View {
                     endTime: $endTime,
                     onSave: {
                         showingDatePicker = false
-                        selectedDate = startDate
+                        appendOrUpdateCurrentSlotDraft()
                     },
                     onCancel: {
+                        editingSlotID = nil
                         showingDatePicker = false
                     }
                 )
@@ -126,7 +100,14 @@ struct CreateEventSheet: View {
                 .zIndex(100)
             }
         }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            createToolbar
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            createBottomAction
+        }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showingDatePicker)
+        .animation(WakeveTheme.Motion.standardSpring, value: currentStep)
         .sheet(isPresented: $showingBackgroundPicker) {
             BackgroundPickerSheet(selectedBackground: $selectedBackground)
                 .presentationDetents([.large])
@@ -160,11 +141,19 @@ struct CreateEventSheet: View {
                 }
             )
         }
+        .sheet(isPresented: $showingEventTypePicker) {
+            EventTypePickerSheet(
+                selectedIndex: $selectedEventTypeIndex,
+                types: eventTypes
+            )
+            .presentationDetents([.medium, .large])
+        }
         .fullScreenCover(isPresented: $showingPreview) {
             EventPreviewSheet(
                 title: title,
                 description: description,
                 userName: userName,
+                proposedSlots: proposedSlotDrafts,
                 selectedDate: selectedDate,
                 selectedLocation: selectedLocation,
                 isAllDay: isAllDay,
@@ -183,6 +172,317 @@ struct CreateEventSheet: View {
     }
 
     // MARK: - Gradient Background
+
+    private var createToolbar: some View {
+        LiquidGlassToolbar(title: "Nouvel événement", subtitle: currentStep.title) {
+            WakeveCircleButton(
+                systemImage: "xmark",
+                accessibilityLabel: String(localized: "common.close"),
+                variant: .glass,
+                size: 40
+            ) {
+                dismiss()
+            }
+        } trailing: {
+            Button {
+                openPreviewIfValid()
+            } label: {
+                Image(systemName: "eye.fill")
+                    .font(.body.weight(.bold))
+                    .foregroundColor(canCreate ? primaryTextColor : disabledControlForeground)
+                    .frame(width: 40, height: 40)
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .clipShape(Circle())
+            }
+            .disabled(!canCreate)
+            .accessibilityLabel(String(localized: "events.preview"))
+        }
+        .padding(.horizontal, WakeveTheme.Spacing.page)
+        .padding(.top, WakeveTheme.Spacing.sm)
+        .padding(.bottom, WakeveTheme.Spacing.xs)
+        .background(
+            LinearGradient(
+                colors: [
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme),
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .top)
+        )
+    }
+
+    private var createStepHeader: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+            Text(currentStep.eyebrow)
+                .font(WakeveTheme.Typography.caption)
+                .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                .textCase(.uppercase)
+
+            Text(currentStep.question)
+                .font(WakeveTheme.Typography.largeTitle)
+                .foregroundColor(primaryTextColor)
+                .lineLimit(3)
+                .minimumScaleFactor(0.74)
+
+            Text(currentStep.subtitle)
+                .font(WakeveTheme.Typography.callout)
+                .foregroundColor(secondaryTextColor)
+                .lineLimit(3)
+        }
+    }
+
+    private var createStepProgress: some View {
+        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                HStack {
+                    Text("Étape \(currentStep.index + 1) / \(CreateEventStep.allCases.count)")
+                        .font(WakeveTheme.Typography.caption)
+                        .foregroundColor(secondaryTextColor)
+                    Spacer()
+                    Text(currentStep.title)
+                        .font(WakeveTheme.Typography.caption)
+                        .foregroundColor(primaryTextColor)
+                }
+
+                GeometryReader { proxy in
+                    Capsule()
+                        .fill(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                        .overlay(alignment: .leading) {
+                            Capsule()
+                                .fill(WakeveTheme.ColorToken.progress(for: colorScheme))
+                                .frame(width: proxy.size.width * currentStep.progress)
+                        }
+                }
+                .frame(height: 8)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var createStepContent: some View {
+        switch currentStep {
+        case .name:
+            nameStep
+        case .date:
+            dateStep
+        case .place:
+            placeStep
+        case .invite:
+            inviteStep
+        case .confirm:
+            confirmStep
+        }
+    }
+
+    private var nameStep: some View {
+        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                TextField(String(localized: "events.title_placeholder"), text: $title)
+                    .font(WakeveTheme.Typography.title2)
+                    .foregroundColor(primaryTextColor)
+                    .textFieldStyle(.plain)
+                    .padding(WakeveTheme.Spacing.md)
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+
+                TextField("Description courte", text: $description, axis: .vertical)
+                    .font(WakeveTheme.Typography.body)
+                    .foregroundColor(primaryTextColor)
+                    .lineLimit(3...5)
+                    .padding(WakeveTheme.Spacing.md)
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+
+                Button(action: { showingEventTypePicker = true }) {
+                    CreateEventChoiceRow(
+                        systemImage: "sparkles",
+                        title: "Type d'événement",
+                        value: selectedEventType == Shared.EventType.other ? "Choisir un type" : eventTypeDisplayName(selectedEventType)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var dateStep: some View {
+        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                Button(action: prepareNewSlotDraft) {
+                    CreateEventChoiceRow(
+                        systemImage: "calendar.badge.plus",
+                        title: "Ajouter un créneau",
+                        value: proposedSlotsSummary
+                    )
+                }
+                .buttonStyle(.plain)
+
+                if proposedSlotDrafts.isEmpty {
+                    Text("Ajoutez au moins un créneau pour ouvrir le sondage.")
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(secondaryTextColor)
+                } else {
+                    VStack(spacing: WakeveTheme.Spacing.sm) {
+                        ForEach(proposedSlotDrafts) { slot in
+                            CreateEventSlotRow(
+                                title: slot.displayTitle,
+                                subtitle: slot.displaySubtitle,
+                                onEdit: { editProposedSlot(slot) },
+                                onRemove: { removeProposedSlot(slot) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var placeStep: some View {
+        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            Button(action: { showingLocationSheet = true }) {
+                CreateEventChoiceRow(
+                    systemImage: "mappin.circle.fill",
+                    title: "Lieu",
+                    value: selectedLocation ?? String(localized: "events.location")
+                )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var inviteStep: some View {
+        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                Text("Combien de personnes attendez-vous ?")
+                    .font(WakeveTheme.Typography.section)
+                    .foregroundColor(primaryTextColor)
+
+                Stepper(value: expectedParticipantsBinding, in: 1...200) {
+                    let count = expectedParticipants ?? 1
+                    Text("\(count) participant\(count > 1 ? "s" : "")")
+                        .font(WakeveTheme.Typography.bodySemibold)
+                        .foregroundColor(primaryTextColor)
+                }
+
+                Text("Vous pourrez inviter les personnes précises après la création.")
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(secondaryTextColor)
+            }
+        }
+    }
+
+    private var confirmStep: some View {
+        LiquidGlassCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                Text("Prêt à créer")
+                    .font(WakeveTheme.Typography.section)
+                    .foregroundColor(primaryTextColor)
+
+                CreateEventChoiceRow(systemImage: "textformat", title: "Nom", value: title.isEmpty ? "Sans titre" : title)
+                CreateEventChoiceRow(systemImage: "calendar", title: "Créneaux", value: proposedSlotsSummaryForConfirm)
+                CreateEventChoiceRow(systemImage: "mappin.and.ellipse", title: "Lieu", value: selectedLocation ?? "À choisir plus tard")
+                let count = expectedParticipants ?? 1
+                CreateEventChoiceRow(systemImage: "person.2.fill", title: "Invités", value: "\(count) attendu\(count > 1 ? "s" : "")")
+
+                Text("Un aperçu s’ouvrira avant la création de l’événement.")
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(secondaryTextColor)
+
+                if showValidationError, let msg = validationMessage {
+                    Text(msg)
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(WakeveTheme.ColorToken.destructive(for: colorScheme))
+                }
+            }
+        }
+    }
+
+    private var createBottomAction: some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0),
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 32)
+            .allowsHitTesting(false)
+
+            HStack(spacing: WakeveTheme.Spacing.sm) {
+                if currentStep != .name {
+                    Button {
+                        moveToPreviousStep()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(primaryTextColor)
+                            .frame(width: 52, height: 52)
+                            .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                            .clipShape(Circle())
+                            .liquidGlass(cornerRadius: WakeveTheme.Radius.full)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                LiquidGlassButton(
+                    currentStep == .confirm ? "Voir l’aperçu" : "Continuer",
+                    systemImage: currentStep == .confirm ? "eye.fill" : "arrow.right",
+                    variant: .primary,
+                    isDisabled: !canAdvanceStep,
+                    action: advanceCreateStep
+                )
+            }
+            .padding(.horizontal, WakeveTheme.Spacing.page)
+            .padding(.bottom, WakeveTheme.Spacing.sm)
+            .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme))
+        }
+    }
+
+    private var expectedParticipantsBinding: Binding<Int> {
+        Binding(
+            get: { expectedParticipants ?? 1 },
+            set: { expectedParticipants = $0 }
+        )
+    }
+
+    private var canAdvanceStep: Bool {
+        switch currentStep {
+        case .name:
+            return hasRequiredEventText
+        case .date:
+            return !proposedSlotDrafts.isEmpty
+        case .confirm:
+            return canCreate
+        case .place, .invite:
+            return true
+        }
+    }
+
+    private func advanceCreateStep() {
+        guard canAdvanceStep else {
+            showValidationError = true
+            validationMessage = validationMessageForCurrentStep
+            return
+        }
+
+        showValidationError = false
+        validationMessage = nil
+
+        if currentStep == .confirm {
+            openPreviewIfValid()
+            return
+        }
+
+        currentStep = currentStep.next
+    }
+
+    private func moveToPreviousStep() {
+        currentStep = currentStep.previous
+    }
     
     @ViewBuilder
     private var gradientBackground: some View {
@@ -267,7 +567,7 @@ struct CreateEventSheet: View {
             
             Spacer()
             
-            Button(action: { showingPreview = true }) {
+            Button(action: openPreviewIfValid) {
                 Text(String(localized: "events.preview"))
                     .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(canCreate ? previewButtonForeground : disabledControlForeground)
@@ -372,11 +672,11 @@ struct CreateEventSheet: View {
                 // Date & Time Row
                 DetailRow(
                     icon: "calendar.badge.plus",
-                    label: selectedDate != nil ? formattedDateTime() : String(localized: "events.date_and_time"),
-                    isPlaceholder: selectedDate == nil,
+                    label: proposedSlotsSummary,
+                    isPlaceholder: proposedSlotDrafts.isEmpty,
                     iconColor: colorScheme == .dark ? WakeveTheme.ColorToken.eventLilacAction : WakeveTheme.ColorToken.permissionBlue
                 ) {
-                    showingDatePicker = true
+                    prepareNewSlotDraft()
                 }
 
                 Divider()
@@ -502,11 +802,11 @@ struct CreateEventSheet: View {
                 if canCreate {
                     showValidationError = false
                     validationMessage = nil
-                    createEvent()
+                    openPreviewIfValid()
                 } else {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         showValidationError = true
-                        validationMessage = "Le titre est requis pour créer l'événement"
+                        validationMessage = validationMessageForCurrentStep
                     }
                 }
             }
@@ -583,9 +883,114 @@ struct CreateEventSheet: View {
     private var disabledControlForeground: Color {
         colorScheme == .dark ? Color.white.opacity(0.42) : Color.black.opacity(0.34)
     }
+
+    private var hasRequiredEventText: Bool {
+        !title.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !description.trimmingCharacters(in: .whitespaces).isEmpty
+    }
     
     private var canCreate: Bool {
-        !title.trimmingCharacters(in: .whitespaces).isEmpty
+        hasRequiredEventText && !proposedSlotDrafts.isEmpty
+    }
+
+    private var validationMessageForCurrentStep: String {
+        if !hasRequiredEventText {
+            return "Le titre et la description sont requis pour créer l’événement."
+        }
+
+        if proposedSlotDrafts.isEmpty {
+            return "Ajoutez au moins un créneau avant de continuer."
+        }
+
+        return "Vérifiez les détails avant de continuer."
+    }
+
+    private var proposedSlotsSummary: String {
+        switch proposedSlotDrafts.count {
+        case 0:
+            return String(localized: "events.date_and_time")
+        case 1:
+            return proposedSlotDrafts[0].displayTitle
+        default:
+            return "\(proposedSlotDrafts.count) créneaux proposés"
+        }
+    }
+
+    private var proposedSlotsSummaryForConfirm: String {
+        switch proposedSlotDrafts.count {
+        case 0:
+            return "Aucun créneau"
+        case 1:
+            return proposedSlotDrafts[0].displayTitle
+        default:
+            return "\(proposedSlotDrafts.count) options de vote"
+        }
+    }
+
+    private func prepareNewSlotDraft() {
+        editingSlotID = nil
+        let now = Date()
+        startDate = now
+        startTime = now
+        hasEndTime = false
+        isAllDay = false
+        endTime = Calendar.current.date(byAdding: .hour, value: 1, to: now) ?? now.addingTimeInterval(3600)
+        showingDatePicker = true
+    }
+
+    private func editProposedSlot(_ slot: EventSlotDraft) {
+        editingSlotID = slot.id
+        isAllDay = slot.isAllDay
+        startDate = slot.startDate
+        startTime = slot.startTime
+        hasEndTime = slot.hasEndTime
+        endTime = slot.endTime
+        showingDatePicker = true
+    }
+
+    private func removeProposedSlot(_ slot: EventSlotDraft) {
+        proposedSlotDrafts.removeAll { $0.id == slot.id }
+        selectedDate = proposedSlotDrafts.first?.startDate
+    }
+
+    private func appendOrUpdateCurrentSlotDraft() {
+        let draft = EventSlotDraft(
+            id: editingSlotID ?? UUID(),
+            startDate: startDate,
+            startTime: startTime,
+            isAllDay: isAllDay,
+            hasEndTime: hasEndTime,
+            endTime: endTime
+        )
+
+        if let editingSlotID,
+           let index = proposedSlotDrafts.firstIndex(where: { $0.id == editingSlotID }) {
+            proposedSlotDrafts[index] = draft
+        } else {
+            proposedSlotDrafts.append(draft)
+        }
+
+        selectedDate = proposedSlotDrafts.first?.startDate
+        self.editingSlotID = nil
+    }
+
+    private func selectedSlotInputs() -> [EventTimeSlotInput] {
+        let iso = ISO8601DateFormatter()
+        return proposedSlotDrafts.map { $0.timeSlotInput(using: iso) }
+    }
+
+    private func openPreviewIfValid() {
+        guard canCreate else {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showValidationError = true
+                validationMessage = validationMessageForCurrentStep
+            }
+            return
+        }
+
+        showValidationError = false
+        validationMessage = nil
+        showingPreview = true
     }
     
     private func darkenColor(_ color: Color, by amount: CGFloat) -> Color {
@@ -596,6 +1001,10 @@ struct CreateEventSheet: View {
     }
     
     private func formattedDateTime() -> String {
+        if let firstSlot = proposedSlotDrafts.first {
+            return firstSlot.displayTitle
+        }
+
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
         dateFormatter.timeStyle = .none
@@ -612,8 +1021,11 @@ struct CreateEventSheet: View {
     }
     
     private func createEvent() {
-        let iso = ISO8601DateFormatter()
-        let selectedDateString: String? = selectedDate.map { _ in iso.string(from: selectedStartDateTime()) }
+        guard canCreate else {
+            showValidationError = true
+            validationMessage = validationMessageForCurrentStep
+            return
+        }
 
         viewModel.onEventCreated = { event in
             onEventCreated(event)
@@ -623,21 +1035,185 @@ struct CreateEventSheet: View {
             description: description,
             userId: userId,
             eventType: selectedEventType,
-            selectedDate: selectedDateString,
+            selectedSlots: selectedSlotInputs(),
             expectedParticipants: expectedParticipants.map { Int32($0) }
         )
 
         dismiss()
     }
 
-    private func selectedStartDateTime() -> Date {
-        guard !isAllDay else {
-            return startDate
+}
+
+private enum CreateEventStep: CaseIterable {
+    case name
+    case date
+    case place
+    case invite
+    case confirm
+
+    var index: Int {
+        Self.allCases.firstIndex(of: self) ?? 0
+    }
+
+    var progress: CGFloat {
+        CGFloat(index + 1) / CGFloat(Self.allCases.count)
+    }
+
+    var title: String {
+        switch self {
+        case .name: return "Nom"
+        case .date: return "Date"
+        case .place: return "Lieu"
+        case .invite: return "Invités"
+        case .confirm: return "Confirmer"
+        }
+    }
+
+    var eyebrow: String {
+        switch self {
+        case .name: return "Nom"
+        case .date: return "Date"
+        case .place: return "Lieu"
+        case .invite: return "Inviter"
+        case .confirm: return "Confirmation"
+        }
+    }
+
+    var question: String {
+        switch self {
+        case .name: return "Comment s’appelle l’événement ?"
+        case .date: return "Quand aura-t-il lieu ?"
+        case .place: return "Où se retrouve-t-on ?"
+        case .invite: return "Qui souhaitez-vous inviter ?"
+        case .confirm: return "Vérifiez les détails."
+        }
+    }
+
+    var subtitle: String {
+        switch self {
+        case .name: return "Un nom clair et une courte description aident les invités à comprendre l’événement."
+        case .date: return "Ajoutez un ou plusieurs créneaux pour lancer le sondage avec de vraies options."
+        case .place: return "Ajoutez un lieu maintenant ou gardez-le pour plus tard."
+        case .invite: return "Définissez une taille de groupe attendue avant d’ajouter les invités précis."
+        case .confirm: return "Prévisualisez l’invitation avant de créer l’événement."
+        }
+    }
+
+    var next: CreateEventStep {
+        let steps = Self.allCases
+        let nextIndex = min(index + 1, steps.count - 1)
+        return steps[nextIndex]
+    }
+
+    var previous: CreateEventStep {
+        let steps = Self.allCases
+        let previousIndex = max(index - 1, 0)
+        return steps[previousIndex]
+    }
+}
+
+private struct CreateEventChoiceRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let systemImage: String
+    let title: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: WakeveTheme.Spacing.md) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                .frame(width: 42, height: 42)
+                .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.sm, style: .continuous))
+
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                Text(title)
+                    .font(WakeveTheme.Typography.tiny)
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .textCase(.uppercase)
+
+                Text(value)
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .lineLimit(2)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.bold))
+                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+        }
+        .padding(WakeveTheme.Spacing.md)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+}
+
+private struct EventSlotDraft: Identifiable, Equatable {
+    let id: UUID
+    var startDate: Date
+    var startTime: Date
+    var isAllDay: Bool
+    var hasEndTime: Bool
+    var endTime: Date
+
+    var displayTitle: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        formatter.locale = Locale(identifier: "fr_FR")
+        return formatter.string(from: startDateTime)
+    }
+
+    var displaySubtitle: String {
+        if isAllDay {
+            return String(localized: "events.all_day")
         }
 
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        let start = formatter.string(from: startDateTime)
+
+        if let endDateTime {
+            return "\(start) - \(formatter.string(from: endDateTime))"
+        }
+
+        return start
+    }
+
+    func timeSlotInput(using formatter: ISO8601DateFormatter) -> EventTimeSlotInput {
+        EventTimeSlotInput(
+            start: formatter.string(from: startDateTime),
+            end: endDateTime.map { formatter.string(from: $0) },
+            timeOfDay: isAllDay ? .allDay : .specific
+        )
+    }
+
+    private var startDateTime: Date {
+        combinedDateTime(date: startDate, time: startTime)
+    }
+
+    private var endDateTime: Date? {
+        guard !isAllDay else { return nil }
+
+        if hasEndTime {
+            let combinedEnd = combinedDateTime(date: startDate, time: endTime)
+            if combinedEnd <= startDateTime {
+                return Calendar.current.date(byAdding: .day, value: 1, to: combinedEnd)
+            }
+            return combinedEnd
+        }
+
+        return Calendar.current.date(byAdding: .hour, value: 1, to: startDateTime)
+    }
+
+    private func combinedDateTime(date: Date, time: Date) -> Date {
         let calendar = Calendar.current
-        let dateComponents = calendar.dateComponents([.year, .month, .day], from: startDate)
-        let timeComponents = calendar.dateComponents([.hour, .minute], from: startTime)
+        let dateComponents = calendar.dateComponents([.year, .month, .day], from: date)
+        let timeComponents = calendar.dateComponents([.hour, .minute], from: time)
 
         var components = DateComponents()
         components.year = dateComponents.year
@@ -646,7 +1222,61 @@ struct CreateEventSheet: View {
         components.hour = timeComponents.hour
         components.minute = timeComponents.minute
 
-        return calendar.date(from: components) ?? startDate
+        return calendar.date(from: components) ?? date
+    }
+}
+
+private struct CreateEventSlotRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    let subtitle: String
+    let onEdit: () -> Void
+    let onRemove: () -> Void
+
+    var body: some View {
+        HStack(spacing: WakeveTheme.Spacing.sm) {
+            Button(action: onEdit) {
+                HStack(spacing: WakeveTheme.Spacing.md) {
+                    Image(systemName: "calendar")
+                        .font(.body.weight(.semibold))
+                        .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                        .frame(width: 38, height: 38)
+                        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.sm, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text(title)
+                            .font(WakeveTheme.Typography.bodySemibold)
+                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                            .lineLimit(1)
+
+                        Text(subtitle)
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Button(role: .destructive, action: onRemove) {
+                Image(systemName: "trash")
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(WakeveTheme.ColorToken.destructive(for: colorScheme))
+                    .frame(width: 38, height: 38)
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Supprimer le créneau")
+        }
+        .padding(WakeveTheme.Spacing.sm)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
     }
 }
 
@@ -888,13 +1518,14 @@ struct DetailRow: View {
 
 // MARK: - Event Preview Sheet
 
-struct EventPreviewSheet: View {
+private struct EventPreviewSheet: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
     let title: String
     let description: String
     let userName: String?
+    let proposedSlots: [EventSlotDraft]
     let selectedDate: Date?
     let selectedLocation: String?
     let isAllDay: Bool
@@ -961,9 +1592,13 @@ struct EventPreviewSheet: View {
                         }
 
                         // Date and location
-                        if selectedDate != nil || selectedLocation != nil {
+                        if !proposedSlots.isEmpty || selectedDate != nil || selectedLocation != nil {
                             VStack(spacing: 4) {
-                                if selectedDate != nil {
+                                if !proposedSlots.isEmpty {
+                                    Text(proposedSlots.count == 1 ? proposedSlots[0].displayTitle : "\(proposedSlots.count) créneaux proposés")
+                                        .font(.system(size: 15, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.7))
+                                } else if selectedDate != nil {
                                     Text(formattedDateTime())
                                         .font(.system(size: 15, weight: .medium))
                                         .foregroundColor(.white.opacity(0.7))
@@ -995,6 +1630,10 @@ struct EventPreviewSheet: View {
                         .cornerRadius(20)
                         .padding(.top, 8)
 
+                        if !proposedSlots.isEmpty {
+                            proposedSlotsPreviewCard
+                        }
+
                         // Organizer card
                         organizerPreviewCard
 
@@ -1021,7 +1660,7 @@ struct EventPreviewSheet: View {
                     Spacer()
 
                     Button(action: onNext) {
-                        Text(String(localized: "onboarding.next"))
+                        Text(String(localized: "events.create_event_button"))
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(Color(hex: "1A1A3E"))
                             .padding(.horizontal, 20)
@@ -1107,6 +1746,50 @@ struct EventPreviewSheet: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)
+        .background(Color(hex: "12143A").opacity(0.7))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.08), lineWidth: 1))
+        .cornerRadius(20)
+    }
+
+    private var proposedSlotsPreviewCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Créneaux proposés")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(hex: "8B9FFF"))
+
+            ForEach(Array(proposedSlots.prefix(4))) { slot in
+                HStack(spacing: 12) {
+                    Image(systemName: slot.isAllDay ? "sun.max.fill" : "clock.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.84))
+                        .frame(width: 28, height: 28)
+                        .background(Color.white.opacity(0.14))
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(slot.displayTitle)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+
+                        Text(slot.displaySubtitle)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white.opacity(0.72))
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+                }
+            }
+
+            if proposedSlots.count > 4 {
+                Text("+\(proposedSlots.count - 4) autre\(proposedSlots.count - 4 > 1 ? "s" : "") option\(proposedSlots.count - 4 > 1 ? "s" : "")")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.white.opacity(0.72))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
         .background(Color(hex: "12143A").opacity(0.7))
         .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.08), lineWidth: 1))
         .cornerRadius(20)

@@ -1,8 +1,4 @@
-# ios-design-system Specification
-
-## Purpose
-TBD - created by archiving change add-ios-design-system. Update Purpose after archive.
-## Requirements
+## MODIFIED Requirements
 ### Requirement: Centralized iOS Design Tokens
 The iOS application SHALL expose a centralized design token system for semantic colors, typography, spacing, radius, blur, opacity, elevation/depth, motion timing/easing, shadows, glass materials, and event imagery/gradients.
 
@@ -62,13 +58,7 @@ Native Liquid Glass SHALL be applied to interactive controls and meaningful elev
 - **WHEN** Reduce Transparency is enabled, Reduce Motion is enabled, increased contrast is enabled, or native Liquid Glass is unavailable
 - **THEN** shared glass components SHALL render opaque or material-backed fallbacks that preserve contrast, hierarchy, hit targets, and orientation.
 
-### Requirement: iOS Design System Documentation
-The project SHALL document the iOS design system in the `docs/` tree.
-
-#### Scenario: A developer builds or updates an iOS screen
-- **WHEN** a developer needs to choose tokens, components, layout patterns, or migration rules for an iOS screen
-- **THEN** the documentation SHALL provide token tables, component guidance, screenshot-inspired principles, accessibility rules, and migration checklists.
-
+## ADDED Requirements
 ### Requirement: Destination-Only iOS Tab Navigation
 The iOS application SHALL provide a predictable tab bar containing only navigation destinations. The tab bar SHALL include Home, Groups, Messages, and Profile. It SHALL NOT include Create Event as a permanent tab destination.
 
@@ -121,4 +111,3 @@ Motion SHALL feel native and responsive, target 60fps, and respect Reduce Motion
 #### Scenario: User opens a bottom sheet
 - **WHEN** the user opens a bottom sheet for contextual actions or advanced options
 - **THEN** the sheet SHALL animate with native depth, background scale or blur where appropriate, and a stable readable fallback when motion or transparency is reduced.
-

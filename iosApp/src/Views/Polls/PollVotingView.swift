@@ -118,6 +118,7 @@ struct PollVotingView: View {
 
 struct PollVotingContentView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @State private var activeSlotIndex = 0
 
     let event: Event
     @Binding var votes: [String: PollVote]
@@ -128,200 +129,342 @@ struct PollVotingContentView: View {
 
     var body: some View {
         ZStack {
-            WakeveScreenBackground(style: .event)
+            WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                VStack(spacing: WakeveTheme.Spacing.md) {
-                    HStack {
-                        WakeveCircleButton(
-                            systemImage: "chevron.left",
-                            accessibilityLabel: "Retour",
-                            variant: colorScheme == .dark ? .eventBack : .light,
-                            size: 44,
-                            action: onBack
+            ScrollView {
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
+                    headerQuestion
+
+                    if hasVoted {
+                        voteSubmittedCard
+                    } else if event.proposedSlots.isEmpty {
+                        EmptyState(
+                            systemImage: "calendar.badge.exclamationmark",
+                            title: "Aucun créneau",
+                            subtitle: "L’organisateur doit ajouter au moins une option avant le vote."
                         )
-
-                        Spacer()
-
-                        if canSubmitVotes {
-                            Button(action: onSubmitVotes) {
-                                if isLoading {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle())
-                                } else {
-                                    Text("Suivant")
-                                        .font(WakeveTheme.Typography.bodySemibold)
-                                        .foregroundColor(nextButtonForeground)
-                                        .padding(.horizontal, 22)
-                                        .frame(height: 44)
-                                        .background(nextButtonBackground)
-                                        .clipShape(Capsule())
-                                }
-                            }
-                            .disabled(isLoading)
-                        }
+                    } else {
+                        progressCard
+                        activeSlotQuestionCard
+                        voteOptions
+                        selectedVoteFeedback
                     }
-                    .padding(.horizontal, WakeveTheme.Spacing.lg)
-                    .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
-
-                    VStack(spacing: WakeveTheme.Spacing.xs) {
-                        Text(event.title)
-                            .font(WakeveTheme.Typography.display)
-                            .foregroundColor(headerTextColor)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(2)
-                            .minimumScaleFactor(0.68)
-
-                        Text("Choisissez vos disponibilités")
-                            .font(WakeveTheme.Typography.rowTitle)
-                            .foregroundColor(headerSecondaryTextColor)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.horizontal, WakeveTheme.Spacing.lg)
                 }
-
-                ScrollView {
-                    VStack(spacing: WakeveTheme.Spacing.md) {
-                        if hasVoted {
-                            WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
-                                VStack(spacing: WakeveTheme.Spacing.lg) {
-                                ZStack {
-                                    Circle()
-                                        .fill(Color.green.opacity(0.1))
-                                        .frame(width: 80, height: 80)
-
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 36, weight: .semibold))
-                                        .foregroundColor(.green)
-                                }
-                                .padding(.top, 40)
-
-                                VStack(spacing: 8) {
-                                    Text("Votes envoyés")
-                                        .font(WakeveTheme.Typography.section)
-                                        .foregroundColor(.primary)
-
-                                    Text("Merci pour votre réponse")
-                                        .font(WakeveTheme.Typography.body)
-                                        .foregroundColor(.secondary)
-                                }
-
-                                Text("L’organisateur sera prévenu quand tout le monde aura voté.")
-                                    .font(WakeveTheme.Typography.metadata)
-                                    .foregroundColor(.secondary)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, WakeveTheme.Spacing.xl)
-                            }
-                                .frame(maxWidth: .infinity)
-                            }
-                        } else {
-                            WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
-                                VStack(spacing: WakeveTheme.Spacing.md) {
-                                HStack {
-                                    Image(systemName: "info.circle.fill")
-                                        .font(.system(size: 20))
-                                        .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
-
-                                    Text("Comment voter")
-                                        .font(WakeveTheme.Typography.bodySemibold)
-                                        .foregroundColor(.primary)
-
-                                    Spacer()
-                                }
-
-                                VStack(alignment: .leading, spacing: 12) {
-                                    VoteGuideRow(
-                                        icon: "checkmark",
-                                        color: .green,
-                                        title: "Oui",
-                                        description: "Ce créneau me convient"
-                                    )
-
-                                    VoteGuideRow(
-                                        icon: "questionmark",
-                                        color: .orange,
-                                        title: "Peut-être",
-                                        description: "Possible si nécessaire"
-                                    )
-
-                                    VoteGuideRow(
-                                        icon: "xmark",
-                                        color: .red,
-                                        title: "Non",
-                                        description: "Je ne peux pas venir"
-                                    )
-                                }
-                            }
-                            }
-
-                            HStack {
-                                Text("\(votes.count) / \(event.proposedSlots.count) créneaux votés")
-                                    .font(WakeveTheme.Typography.metadata)
-                                    .foregroundColor(headerSecondaryTextColor)
-
-                                Spacer()
-
-                                if let deadline = formatDeadlineShort(event.deadline) {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "clock")
-                                            .font(.system(size: 13))
-                                        Text(deadline)
-                                            .font(.system(size: 13))
-                                    }
-                                    .foregroundColor(headerSecondaryTextColor)
-                                }
-                            }
-                            .padding(.horizontal, 4)
-
-                            ForEach(event.proposedSlots.indices, id: \.self) { index in
-                                let slot = event.proposedSlots[index]
-                                TimeSlotVoteCard(
-                                    timeSlot: slot,
-                                    selectedVote: votes[slot.id],
-                                    onVoteSelected: { vote in
-                                        votes[slot.id] = vote
-                                    }
-                                )
-                            }
-                        }
-
-                        Spacer()
-                            .frame(height: 40)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, WakeveTheme.Spacing.md)
-                }
+                .padding(.horizontal, WakeveTheme.Spacing.page)
+                .padding(.top, 92)
+                .padding(.bottom, hasVoted ? 36 : 118)
             }
         }
+        .toolbar(.hidden, for: .tabBar)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            toolbar
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !hasVoted && !event.proposedSlots.isEmpty {
+                bottomNextAction
+            }
+        }
+        .onChange(of: event.proposedSlots.count) { _, newCount in
+            activeSlotIndex = min(activeSlotIndex, max(0, newCount - 1))
+        }
+    }
+
+    private var toolbar: some View {
+        LiquidGlassToolbar(title: "Vote", subtitle: "\(completedCount) / \(event.proposedSlots.count) réponses") {
+            WakeveCircleButton(
+                systemImage: "chevron.left",
+                accessibilityLabel: "Retour",
+                variant: .glass,
+                size: 40,
+                action: onBack
+            )
+        } trailing: {
+            if let deadline = formatDeadlineShort(event.deadline) {
+                Text(deadline)
+                    .font(WakeveTheme.Typography.tiny)
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .lineLimit(1)
+                    .padding(.horizontal, WakeveTheme.Spacing.sm)
+                    .frame(height: 34)
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(.horizontal, WakeveTheme.Spacing.page)
+        .padding(.top, WakeveTheme.Spacing.sm)
+        .padding(.bottom, WakeveTheme.Spacing.xs)
+        .background(
+            LinearGradient(
+                colors: [
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme),
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .top)
+        )
+    }
+
+    private var headerQuestion: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+            Text(event.title)
+                .font(WakeveTheme.Typography.largeTitle)
+                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .lineLimit(2)
+                .minimumScaleFactor(0.76)
+
+            Text("Une question à la fois: est-ce que ce créneau vous convient ?")
+                .font(WakeveTheme.Typography.callout)
+                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                .lineLimit(3)
+        }
+    }
+
+    private var voteSubmittedCard: some View {
+        LiquidGlassCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.xl) {
+            VStack(spacing: WakeveTheme.Spacing.lg) {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 58, weight: .semibold))
+                    .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+
+                VStack(spacing: WakeveTheme.Spacing.xs) {
+                    Text("Votes envoyés")
+                        .font(WakeveTheme.Typography.section)
+                        .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                    Text("Merci pour votre réponse. L’organisateur sera prévenu quand tout le monde aura voté.")
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var progressCard: some View {
+        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                HStack {
+                    Text("Progression")
+                        .font(WakeveTheme.Typography.caption)
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    Spacer()
+                    Text("\(activeSlotIndex + 1) / \(event.proposedSlots.count)")
+                        .font(WakeveTheme.Typography.caption)
+                        .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                }
+
+                GeometryReader { proxy in
+                    Capsule()
+                        .fill(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                        .overlay(alignment: .leading) {
+                            Capsule()
+                                .fill(WakeveTheme.ColorToken.progress(for: colorScheme))
+                                .frame(width: proxy.size.width * progressValue)
+                        }
+                }
+                .frame(height: 8)
+            }
+        }
+    }
+
+    private var activeSlotQuestionCard: some View {
+        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.xl) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                Text("Ce créneau vous convient ?")
+                    .font(WakeveTheme.Typography.section)
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                Text(formatDate(activeSlot.start ?? ""))
+                    .font(WakeveTheme.Typography.title2)
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .lineLimit(2)
+
+                HStack(spacing: WakeveTheme.Spacing.xs) {
+                    Image(systemName: "clock")
+                        .font(.caption.weight(.bold))
+                    Text("\(formatTime(activeSlot.start ?? "")) - \(formatTime(activeSlot.end ?? ""))")
+                        .font(WakeveTheme.Typography.metadata)
+                }
+                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var voteOptions: some View {
+        VStack(spacing: WakeveTheme.Spacing.sm) {
+            VoteOptionCard(
+                vote: .yes,
+                title: "Oui",
+                subtitle: "Ce créneau me convient.",
+                isSelected: activeVote == .yes
+            ) {
+                votes[activeSlot.id] = .yes
+            }
+
+            VoteOptionCard(
+                vote: .maybe,
+                title: "Peut-être",
+                subtitle: "Possible si nécessaire.",
+                isSelected: activeVote == .maybe
+            ) {
+                votes[activeSlot.id] = .maybe
+            }
+
+            VoteOptionCard(
+                vote: .no,
+                title: "Non",
+                subtitle: "Je ne peux pas venir.",
+                isSelected: activeVote == .no
+            ) {
+                votes[activeSlot.id] = .no
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var selectedVoteFeedback: some View {
+        if let activeVote {
+            HStack(spacing: WakeveTheme.Spacing.sm) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+                Text(feedbackText(for: activeVote))
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+            }
+            .padding(.horizontal, WakeveTheme.Spacing.md)
+            .padding(.vertical, WakeveTheme.Spacing.sm)
+            .background(WakeveTheme.ColorToken.confirmation(for: colorScheme).opacity(0.12))
+            .clipShape(Capsule())
+        }
+    }
+
+    private var bottomNextAction: some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0),
+                    WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 32)
+            .allowsHitTesting(false)
+
+            HStack(spacing: WakeveTheme.Spacing.sm) {
+                if activeSlotIndex > 0 {
+                    Button {
+                        activeSlotIndex -= 1
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                            .frame(width: 52, height: 52)
+                            .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                            .clipShape(Circle())
+                            .liquidGlass(cornerRadius: WakeveTheme.Radius.full)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                LiquidGlassButton(
+                    nextActionTitle,
+                    systemImage: isLastSlot ? "paperplane.fill" : "arrow.right",
+                    variant: .primary,
+                    isDisabled: activeVote == nil || isLoading || (isLastSlot && !canSubmitVotes),
+                    isLoading: isLoading,
+                    action: advanceOrSubmit
+                )
+            }
+            .padding(.horizontal, WakeveTheme.Spacing.page)
+            .padding(.bottom, WakeveTheme.Spacing.sm)
+            .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme))
+        }
+    }
+
+    private var activeSlot: TimeSlot {
+        event.proposedSlots[safeActiveIndex]
+    }
+
+    private var safeActiveIndex: Int {
+        min(max(activeSlotIndex, 0), max(event.proposedSlots.count - 1, 0))
+    }
+
+    private var activeVote: PollVote? {
+        votes[activeSlot.id]
+    }
+
+    private var completedCount: Int {
+        event.proposedSlots.filter { votes[$0.id] != nil }.count
+    }
+
+    private var progressValue: CGFloat {
+        guard !event.proposedSlots.isEmpty else { return 0 }
+        return CGFloat(activeSlotIndex + 1) / CGFloat(event.proposedSlots.count)
+    }
+
+    private var isLastSlot: Bool {
+        activeSlotIndex >= event.proposedSlots.count - 1
     }
 
     private var canSubmitVotes: Bool {
         !hasVoted && !event.proposedSlots.isEmpty && votes.count == event.proposedSlots.count
     }
 
-    private var headerTextColor: Color {
-        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+    private var nextActionTitle: String {
+        isLastSlot ? "Envoyer mes votes" : "Créneau suivant"
     }
 
-    private var headerSecondaryTextColor: Color {
-        WakeveTheme.ColorToken.secondaryText(for: colorScheme)
+    private func advanceOrSubmit() {
+        guard activeVote != nil else { return }
+        if isLastSlot {
+            onSubmitVotes()
+        } else {
+            activeSlotIndex = min(activeSlotIndex + 1, event.proposedSlots.count - 1)
+        }
     }
 
-    private var nextButtonBackground: Color {
-        colorScheme == .dark ? WakeveTheme.ColorToken.eventLilacAction : WakeveTheme.ColorToken.permissionBlue
-    }
-
-    private var nextButtonForeground: Color {
-        colorScheme == .dark ? WakeveTheme.ColorToken.eventLilacText : .white
+    private func feedbackText(for vote: PollVote) -> String {
+        switch vote {
+        case .yes: return "Réponse enregistrée: oui."
+        case .maybe: return "Réponse enregistrée: peut-être."
+        case .no: return "Réponse enregistrée: non."
+        }
     }
 
     private func formatDeadlineShort(_ deadlineString: String) -> String? {
         if let date = ISO8601DateFormatter().date(from: deadlineString) {
             let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "fr_FR")
             formatter.dateFormat = "MMM d"
             return "Avant le " + formatter.string(from: date)
         }
         return nil
+    }
+
+    private func formatDate(_ dateString: String) -> String {
+        if let date = ISO8601DateFormatter().date(from: dateString) {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "fr_FR")
+            formatter.dateFormat = "EEEE d MMM"
+            return formatter.string(from: date)
+        }
+        return dateString
+    }
+
+    private func formatTime(_ dateString: String) -> String {
+        if let date = ISO8601DateFormatter().date(from: dateString) {
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "fr_FR")
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        }
+        return dateString
     }
 }
 

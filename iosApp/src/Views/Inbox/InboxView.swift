@@ -28,6 +28,7 @@ struct InboxView: View {
     @State private var isSelectionMode = false
     @State private var selectedItemIds: Set<String> = []
     @State private var showActionBar = false
+    @State private var searchText = ""
     @Environment(\.colorScheme) private var colorScheme
 
     init(userId: String, onBack: @escaping () -> Void, unreadCount: Binding<Int>, initialItems: [InboxItemModel]? = nil) {
@@ -45,58 +46,35 @@ struct InboxView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Filter chips
-                filterTabsView
-                
-                // Content
-                if viewModel.isLoading {
-                    loadingView
-                } else if filteredItems.isEmpty {
-                    emptyStateView
-                } else {
-                    List {
-                        ForEach(filteredItems) { item in
-                            if isSelectionMode {
-                                InboxRow(
-                                    item: item,
-                                    isSelectionMode: true,
-                                    isSelected: selectedItemIds.contains(item.id)
-                                )
-                                .onTapGesture {
-                                    toggleSelection(for: item.id)
-                                }
-                                .listRowBackground(WakeveTheme.ColorToken.pageBackground(for: colorScheme))
-                            } else {
-                                NavigationLink {
-                                    InboxDetailView(item: item)
-                                        .onAppear {
-                                            markItemAsRead(item.id)
-                                        }
-                                } label: {
-                                    InboxRow(
-                                        item: item,
-                                        isSelectionMode: false,
-                                        isSelected: false
-                                    )
-                                }
-                                .listRowBackground(
-                                    item.isRead
-                                        ? WakeveTheme.ColorToken.pageBackground(for: colorScheme)
-                                        : WakeveTheme.ColorToken.permissionBlue.opacity(colorScheme == .dark ? 0.16 : 0.08)
-                                )
-                            }
+            ZStack {
+                WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                    .ignoresSafeArea()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
+                        messagesHeader
+                        searchField
+
+                        if viewModel.isLoading {
+                            LoadingSkeleton(rows: 4, showsHero: false)
+                        } else if filteredConversations.isEmpty {
+                            EmptyState(
+                                systemImage: "message.fill",
+                                title: emptyStateTitle,
+                                subtitle: emptyStateSubtitle
+                            )
+                        } else {
+                            conversationsList
                         }
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
-                    .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme))
+                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                    .padding(.top, WakeveTheme.Spacing.lg)
+                    .padding(.bottom, WakeveTheme.Spacing.xxl)
                 }
             }
-            .background(WakeveScreenBackground(style: .grouped))
-            .navigationTitle(isSelectionMode ? "\(selectedItemIds.count) selected" : "Inbox")
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             #if os(iOS)
-            .navigationBarTitleDisplayMode(isSelectionMode ? .inline : .large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if isSelectionMode {
@@ -243,6 +221,85 @@ struct InboxView: View {
         }
     }
 
+    private var messagesHeader: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+            Text("Messages")
+                .font(WakeveTheme.Typography.largeTitle)
+                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+            Text("\(eventConversations.count) conversation\(eventConversations.count > 1 ? "s" : "") d’événement")
+                .font(WakeveTheme.Typography.callout)
+                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+        }
+    }
+
+    private var searchField: some View {
+        WakeveSearchField(
+            placeholder: "Rechercher un événement ou un message",
+            text: $searchText
+        )
+    }
+
+    private var conversationsList: some View {
+        VStack(spacing: WakeveTheme.Spacing.md) {
+            ForEach(filteredConversations) { conversation in
+                if let latest = conversation.latestItem {
+                    NavigationLink {
+                        InboxDetailView(item: latest)
+                            .onAppear {
+                                markConversationAsRead(conversation)
+                            }
+                    } label: {
+                        EventConversationRow(conversation: conversation)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var eventConversations: [EventConversationPreview] {
+        let grouped = Dictionary(grouping: viewModel.items) { item in
+            item.eventId ?? item.eventName ?? "general"
+        }
+
+        return grouped.map { key, items in
+            let sortedItems = items.sorted { lhs, rhs in
+                lhs.id > rhs.id
+            }
+            let latest = sortedItems.first
+            return EventConversationPreview(
+                id: key,
+                eventName: latest?.eventName ?? "Conversation générale",
+                latestItem: latest,
+                items: sortedItems,
+                unreadCount: sortedItems.filter { !$0.isRead }.count,
+                requiresAction: sortedItems.contains { $0.requiresAction }
+            )
+        }
+        .sorted { lhs, rhs in
+            if lhs.unreadCount != rhs.unreadCount {
+                return lhs.unreadCount > rhs.unreadCount
+            }
+            return (lhs.latestItem?.id ?? "") > (rhs.latestItem?.id ?? "")
+        }
+    }
+
+    private var filteredConversations: [EventConversationPreview] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else {
+            return eventConversations
+        }
+
+        return eventConversations.filter { conversation in
+            conversation.eventName.localizedCaseInsensitiveContains(query) ||
+                conversation.items.contains { item in
+                    item.title.localizedCaseInsensitiveContains(query) ||
+                        item.message.localizedCaseInsensitiveContains(query)
+                }
+        }
+    }
+
     private var hasUnreadItems: Bool {
         viewModel.items.contains { !$0.isRead }
     }
@@ -386,6 +443,12 @@ struct InboxView: View {
 
     private func markItemAsRead(_ itemId: String) {
         viewModel.markAsRead(itemId)
+    }
+
+    private func markConversationAsRead(_ conversation: EventConversationPreview) {
+        conversation.items.forEach { item in
+            markItemAsRead(item.id)
+        }
     }
 }
 
@@ -566,6 +629,96 @@ struct EventFilterSheet: View {
 }
 
 // MARK: - Inbox Row
+
+private struct EventConversationPreview: Identifiable, Equatable {
+    let id: String
+    let eventName: String
+    let latestItem: InboxItemModel?
+    let items: [InboxItemModel]
+    let unreadCount: Int
+    let requiresAction: Bool
+}
+
+private struct EventConversationRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let conversation: EventConversationPreview
+
+    var body: some View {
+        LiquidGlassCard(prominence: conversation.unreadCount > 0 ? .regular : .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            HStack(spacing: WakeveTheme.Spacing.md) {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: conversation.requiresAction ? "calendar.badge.clock" : "message.fill")
+                        .font(.title3.weight(.bold))
+                        .foregroundColor(iconColor)
+                        .frame(width: 52, height: 52)
+                        .background(iconColor.opacity(0.14))
+                        .clipShape(Circle())
+
+                    if conversation.unreadCount > 0 {
+                        Circle()
+                            .fill(WakeveTheme.ColorToken.destructive(for: colorScheme))
+                            .frame(width: 12, height: 12)
+                            .overlay(Circle().stroke(WakeveTheme.ColorToken.pageBackground(for: colorScheme), lineWidth: 2))
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                    HStack(spacing: WakeveTheme.Spacing.xs) {
+                        Text(conversation.eventName)
+                            .font(WakeveTheme.Typography.rowTitle)
+                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                            .lineLimit(1)
+
+                        if conversation.requiresAction {
+                            Text("Action")
+                                .font(WakeveTheme.Typography.tiny)
+                                .foregroundColor(WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                                .padding(.horizontal, WakeveTheme.Spacing.xs)
+                                .padding(.vertical, 3)
+                                .background(WakeveTheme.ColorToken.eventHighlight(for: colorScheme).opacity(0.14))
+                                .clipShape(Capsule())
+                        }
+                    }
+
+                    Text(conversation.latestItem?.title ?? "Aucun message")
+                        .font(WakeveTheme.Typography.callout.weight(conversation.unreadCount > 0 ? .semibold : .regular))
+                        .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                        .lineLimit(1)
+
+                    Text(conversation.latestItem?.message ?? "Les échanges de cet événement apparaîtront ici.")
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .lineLimit(2)
+                }
+
+                Spacer(minLength: WakeveTheme.Spacing.sm)
+
+                VStack(alignment: .trailing, spacing: WakeveTheme.Spacing.xs) {
+                    Text(conversation.latestItem?.timeAgo ?? "")
+                        .font(WakeveTheme.Typography.tiny)
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+
+                    if conversation.unreadCount > 0 {
+                        Text("\(conversation.unreadCount)")
+                            .font(WakeveTheme.Typography.tiny)
+                            .foregroundColor(.white)
+                            .frame(width: 24, height: 24)
+                            .background(WakeveTheme.ColorToken.accent(for: colorScheme))
+                            .clipShape(Circle())
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private var iconColor: Color {
+        conversation.requiresAction
+            ? WakeveTheme.ColorToken.eventHighlight(for: colorScheme)
+            : WakeveTheme.ColorToken.accent(for: colorScheme)
+    }
+}
 
 struct InboxRow: View {
     let item: InboxItemModel

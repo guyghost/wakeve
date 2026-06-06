@@ -48,39 +48,34 @@ struct ParticipantManagementView: View {
 #endif
 
     var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .top) {
+        ZStack {
                 pageBackground
                     .ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        heroSection(topInset: proxy.safeAreaInsets.top)
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
+                        headerSummary
+                        statusSummary
 
-                        VStack(alignment: .leading, spacing: 18) {
-                            if event.status == .draft {
-                                addParticipantCard
-                            }
-
-                            statusSummary
-                            participantsContent
+                        if event.status == .draft {
+                            addParticipantCard
                         }
-                        .padding(.horizontal, WakeveTheme.Spacing.page)
-                        .padding(.top, -22)
-                        .padding(.bottom, bottomContentInset(for: proxy.safeAreaInsets.bottom))
-                    }
-                }
-                .scrollClipDisabled()
-                .ignoresSafeArea(edges: .top)
 
-                overlayControls(topInset: proxy.safeAreaInsets.top)
+                        participantsContent
+                    }
+                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                    .padding(.top, 92)
+                    .padding(.bottom, event.status == .draft ? 124 : 44)
+                }
             }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            topControls
+        }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if event.status == .draft {
                     bottomActionBar
                 }
             }
-        }
         .toolbar(.hidden, for: .tabBar)
         .onAppear {
             loadParticipants()
@@ -96,6 +91,21 @@ struct ParticipantManagementView: View {
             }
         } message: {
             Text("Le sondage est maintenant ouvert aux participants.")
+        }
+    }
+
+    private var headerSummary: some View {
+        EventHeroCard(
+            title: "Participants",
+            subtitle: event.title,
+            metadata: statusTitle,
+            gradient: WakeveTheme.EventGradient.invitation
+        ) {
+            HStack(spacing: WakeveTheme.Spacing.sm) {
+                ParticipantSummaryPill(title: "Acceptés", value: "\(acceptedRows.count)")
+                ParticipantSummaryPill(title: "En attente", value: "\(pendingRows.count)")
+                ParticipantSummaryPill(title: "Refusés", value: "\(declinedRows.count)")
+            }
         }
     }
 
@@ -186,11 +196,61 @@ struct ParticipantManagementView: View {
         }
     }
 
+    private var topControls: some View {
+        LiquidGlassToolbar(title: "Participants", subtitle: participantCountText) {
+            WakeveCircleButton(
+                systemImage: "xmark",
+                accessibilityLabel: "Fermer",
+                variant: .glass,
+                size: 40,
+                action: onBack
+            )
+        } trailing: {
+            Menu {
+                Button {
+                    newParticipantEmail = ""
+                } label: {
+                    Label("Réinitialiser l’invitation", systemImage: "arrow.counterclockwise")
+                }
+
+                if canStartPoll {
+                    Button {
+                        Task { await startPoll() }
+                    } label: {
+                        Label("Lancer le sondage", systemImage: "chart.bar.xaxis")
+                    }
+                }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(.body.weight(.bold))
+                    .foregroundColor(primaryText)
+                    .frame(width: 40, height: 40)
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .clipShape(Circle())
+            }
+            .accessibilityLabel("Options participants")
+        }
+        .padding(.horizontal, WakeveTheme.Spacing.page)
+        .padding(.top, WakeveTheme.Spacing.sm)
+        .padding(.bottom, WakeveTheme.Spacing.xs)
+        .background(
+            LinearGradient(
+                colors: [
+                    pageBackground,
+                    pageBackground.opacity(0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .top)
+        )
+    }
+
     private var addParticipantCard: some View {
-        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
+        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 Text("Inviter un participant")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(WakeveTheme.Typography.section)
                     .foregroundColor(primaryText)
 
                 HStack(spacing: 12) {
@@ -235,19 +295,27 @@ struct ParticipantManagementView: View {
     }
 
     private var statusSummary: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(participantCountText)
-                .font(.system(size: 24, weight: .bold))
-                .foregroundColor(primaryText)
+        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            HStack(spacing: WakeveTheme.Spacing.md) {
+                Image(systemName: statusIcon)
+                    .font(.title3.weight(.bold))
+                    .foregroundColor(statusColor)
+                    .frame(width: 46, height: 46)
+                    .background(statusColor.opacity(0.14))
+                    .clipShape(Circle())
 
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(statusColor)
-                    .frame(width: 8, height: 8)
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                    Text(participantCountText)
+                        .font(WakeveTheme.Typography.rowTitle)
+                        .foregroundColor(primaryText)
 
-                Text(statusText)
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(secondaryText)
+                    Text(statusText)
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(secondaryText)
+                        .lineLimit(2)
+                }
+
+                Spacer()
             }
         }
     }
@@ -255,38 +323,33 @@ struct ParticipantManagementView: View {
     @ViewBuilder
     private var participantsContent: some View {
         if participantRows.isEmpty {
-            VStack(spacing: 18) {
-                Image(systemName: "person.crop.circle.badge.plus")
-                    .font(.system(size: 54, weight: .semibold))
-                    .foregroundColor(secondaryText.opacity(0.65))
-                    .padding(.top, 24)
-
-                VStack(spacing: 8) {
-                    Text("Aucun participant")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(primaryText)
-
-                    Text(event.status == .draft ? "Ajoutez au moins un participant pour ouvrir le sondage." : "Personne n’a encore rejoint cet événement.")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(secondaryText)
-                        .multilineTextAlignment(.center)
-                        .lineSpacing(3)
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 26)
-            }
-            .frame(maxWidth: .infinity)
-            .background(cardBackground)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24)
-                    .stroke(cardBorder, lineWidth: 1)
+            EmptyState(
+                systemImage: "person.crop.circle.badge.plus",
+                title: "Aucun participant",
+                subtitle: event.status == .draft ? "Ajoutez au moins un participant pour ouvrir le sondage." : "Personne n’a encore rejoint cet événement."
             )
-            .clipShape(RoundedRectangle(cornerRadius: 24))
         } else {
-            VStack(spacing: 10) {
-                ForEach(participantRows) { participant in
-                    ParticipantRowView(participant: participant)
-                }
+            VStack(spacing: WakeveTheme.Spacing.md) {
+                ParticipantGroupSection(
+                    title: "Acceptés",
+                    subtitle: "Ont confirmé ou ont accès aux détails",
+                    rows: acceptedRows,
+                    emptyText: "Aucun participant accepté pour le moment."
+                )
+
+                ParticipantGroupSection(
+                    title: "En attente",
+                    subtitle: "Invitations envoyées ou réponses à venir",
+                    rows: pendingRows,
+                    emptyText: "Aucune invitation en attente."
+                )
+
+                ParticipantGroupSection(
+                    title: "Refusés",
+                    subtitle: "Participants indisponibles",
+                    rows: declinedRows,
+                    emptyText: "Aucun refus enregistré."
+                )
             }
         }
     }
@@ -301,7 +364,7 @@ struct ParticipantManagementView: View {
             .frame(height: 42)
             .allowsHitTesting(false)
 
-            WakeveActionButton(
+            LiquidGlassButton(
                 "Lancer le sondage",
                 systemImage: "chart.bar.xaxis",
                 variant: .primary,
@@ -313,7 +376,7 @@ struct ParticipantManagementView: View {
             .padding(.horizontal, WakeveTheme.Spacing.page)
             .padding(.top, WakeveTheme.Spacing.xs)
             .padding(.bottom, WakeveTheme.Spacing.md)
-            .background(pageBackground.opacity(0.94))
+            .background(pageBackground)
         }
     }
 
@@ -377,6 +440,26 @@ struct ParticipantManagementView: View {
 
     private var participantCountText: String {
         "\(participantRows.count) participant\(participantRows.count > 1 ? "s" : "")"
+    }
+
+    private var acceptedRows: [ParticipantPresentationRow] {
+        participantRows.filter { participant in
+            participant.statusLabel == "Confirmed" || participant.canAccessOrganizationDetails
+        }
+    }
+
+    private var pendingRows: [ParticipantPresentationRow] {
+        participantRows.filter { participant in
+            participant.statusLabel != "Confirmed" &&
+                participant.statusLabel != "Declined" &&
+                !participant.canAccessOrganizationDetails
+        }
+    }
+
+    private var declinedRows: [ParticipantPresentationRow] {
+        participantRows.filter { participant in
+            participant.statusLabel == "Declined"
+        }
     }
 
     private var canStartPoll: Bool {
@@ -635,7 +718,83 @@ private struct ParticipantPresentationRow: Identifiable, Equatable {
     }
 }
 
+private struct ParticipantSummaryPill: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(spacing: WakeveTheme.Spacing.xxs) {
+            Text(value)
+                .font(WakeveTheme.Typography.rowTitle)
+                .foregroundColor(.white)
+            Text(title)
+                .font(WakeveTheme.Typography.tiny)
+                .foregroundColor(.white.opacity(0.74))
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, WakeveTheme.Spacing.sm)
+        .background(Color.black.opacity(0.24))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+}
+
+private struct ParticipantGroupSection: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    let subtitle: String
+    let rows: [ParticipantPresentationRow]
+    let emptyText: String
+
+    var body: some View {
+        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text(title)
+                            .font(WakeveTheme.Typography.section)
+                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                        Text(subtitle)
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                            .lineLimit(2)
+                    }
+
+                    Spacer()
+
+                    Text("\(rows.count)")
+                        .font(WakeveTheme.Typography.caption)
+                        .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                        .frame(width: 32, height: 32)
+                        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                        .clipShape(Circle())
+                }
+
+                if rows.isEmpty {
+                    Text(emptyText)
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(WakeveTheme.Spacing.sm)
+                        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+                } else {
+                    VStack(spacing: WakeveTheme.Spacing.sm) {
+                        ForEach(rows) { participant in
+                            ParticipantRowView(participant: participant)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 private struct ParticipantRowView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let participant: ParticipantPresentationRow
 
     private var initials: String {
@@ -670,27 +829,38 @@ private struct ParticipantRowView: View {
     }
 
     var body: some View {
-        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
-            WakeveListRow(
-                title: participant.email,
-                subtitle: subtitleText,
-                leading: {
-                    WakeveAvatar(initials: initials, size: 52)
-                },
-                trailing: {
-                    HStack(spacing: 10) {
-                        Circle()
-                            .fill(statusColor)
-                            .frame(width: 9, height: 9)
+        HStack(spacing: WakeveTheme.Spacing.md) {
+            WakeveAvatar(initials: initials, size: 44)
 
-                        Image(systemName: accessIconName)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(accessColor)
-                            .frame(width: 24, height: 24)
-                    }
-                    .accessibilityLabel(participant.canAccessOrganizationDetails ? "Détails déverrouillés" : "Détails verrouillés")
-                }
-            )
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                Text(participant.email)
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+
+                Text(subtitleText)
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            HStack(spacing: WakeveTheme.Spacing.xs) {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 9, height: 9)
+
+                Image(systemName: accessIconName)
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(accessColor)
+                    .frame(width: 24, height: 24)
+            }
+            .accessibilityLabel(participant.canAccessOrganizationDetails ? "Détails déverrouillés" : "Détails verrouillés")
         }
+        .padding(WakeveTheme.Spacing.sm)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
     }
 }
