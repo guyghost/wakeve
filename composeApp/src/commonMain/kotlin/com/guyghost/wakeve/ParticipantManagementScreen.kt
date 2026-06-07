@@ -12,10 +12,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,6 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.access.ParticipantAccessMapper
+import com.guyghost.wakeve.contacts.ContactParticipantCandidate
+import com.guyghost.wakeve.contacts.ContactParticipantSelectionPolicy
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.presentation.participants.ParticipantManagementPresentationMapper
@@ -37,10 +42,17 @@ import com.guyghost.wakeve.presentation.participants.ParticipantManagementRow
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import kotlinx.coroutines.launch
 
+typealias ContactPickerRequest = ((Result<List<ContactParticipantCandidate>>) -> Unit) -> Unit
+
 data class ParticipantManagementState(
     val eventId: String = "",
     val newParticipantEmail: String = "",
     val participants: List<ParticipantManagementRow> = emptyList(),
+    val contactCandidates: List<ContactParticipantCandidate> = emptyList(),
+    val selectedContactEmails: Set<String> = emptySet(),
+    val contactSearchQuery: String = "",
+    val isContactPickerVisible: Boolean = false,
+    val isLoadingContacts: Boolean = false,
     val isError: Boolean = false,
     val errorMessage: String = ""
 )
@@ -50,7 +62,8 @@ fun ParticipantManagementScreen(
     event: Event,
     repository: EventRepositoryInterface,
     onParticipantsAdded: (String) -> Unit,
-    onNavigateToPoll: (String) -> Unit
+    onNavigateToPoll: (String) -> Unit,
+    onContactPickerRequested: ContactPickerRequest? = null
 ) {
     var state by remember {
         mutableStateOf(
@@ -61,6 +74,21 @@ fun ParticipantManagementScreen(
         )
     }
     val scope = rememberCoroutineScope()
+
+    fun showError(message: String) {
+        state = state.copy(
+            isError = true,
+            errorMessage = message,
+            isLoadingContacts = false
+        )
+    }
+
+    fun refreshParticipants() {
+        state = state.copy(
+            participants = loadParticipantRows(repository, event.id),
+            isError = false
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -111,21 +139,25 @@ fun ParticipantManagementScreen(
                     )
                     Button(
                         onClick = {
-                            val email = state.newParticipantEmail.trim()
+                            val rawEmail = state.newParticipantEmail.trim()
+                            val email = ContactParticipantSelectionPolicy.normalizeEmailOrNull(rawEmail)
                             when {
-                                email.isEmpty() -> {
+                                rawEmail.isEmpty() -> {
                                     state = state.copy(
                                         isError = true,
                                         errorMessage = "L'e-mail est requis"
                                     )
                                 }
-                                state.participants.any { it.userIdOrEmail == email } -> {
+                                email != null &&
+                                    state.participants.any {
+                                        ContactParticipantSelectionPolicy.normalizeEmailOrNull(it.userIdOrEmail) == email
+                                    } -> {
                                     state = state.copy(
                                         isError = true,
                                         errorMessage = "Participant déjà ajouté"
                                     )
                                 }
-                                !isValidEmail(email) -> {
+                                email == null -> {
                                     state = state.copy(
                                         isError = true,
                                         errorMessage = "Format d'e-mail invalide"
@@ -155,6 +187,56 @@ fun ParticipantManagementScreen(
                             .height(56.dp)
                     ) {
                         Text("Ajouter")
+                    }
+                }
+
+                if (onContactPickerRequested != null) {
+                    Button(
+                        onClick = {
+                            state = state.copy(isLoadingContacts = true, isError = false)
+                            onContactPickerRequested { result ->
+                                val contacts = result.getOrElse { error ->
+                                    showError(error.message ?: "Impossible d'accéder aux contacts")
+                                    return@onContactPickerRequested
+                                }
+                                    .mapNotNull { contact ->
+                                        val normalizedEmail = ContactParticipantSelectionPolicy.normalizeEmailOrNull(contact.email)
+                                            ?: return@mapNotNull null
+                                        contact.copy(email = normalizedEmail)
+                                    }
+                                    .distinctBy { it.email }
+                                    .sortedWith(
+                                        compareBy<ContactParticipantCandidate> { it.displayName.ifBlank { it.email }.lowercase() }
+                                            .thenBy { it.email }
+                                    )
+
+                                if (contacts.isEmpty()) {
+                                    showError("Aucun contact avec adresse e-mail disponible")
+                                } else {
+                                    state = state.copy(
+                                        contactCandidates = contacts,
+                                        selectedContactEmails = emptySet(),
+                                        contactSearchQuery = "",
+                                        isContactPickerVisible = true,
+                                        isLoadingContacts = false,
+                                        isError = false
+                                    )
+                                }
+                            }
+                        },
+                        enabled = !state.isLoadingContacts,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                    ) {
+                        if (state.isLoadingContacts) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.padding(end = 8.dp),
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                strokeWidth = 2.dp
+                            )
+                        }
+                        Text("Choisir depuis les contacts")
                     }
                 }
 
@@ -275,10 +357,155 @@ fun ParticipantManagementScreen(
             }
         }
     }
+
+    if (state.isContactPickerVisible) {
+        ContactParticipantPickerDialog(
+            contacts = state.contactCandidates,
+            selectedEmails = state.selectedContactEmails,
+            searchQuery = state.contactSearchQuery,
+            existingParticipantIds = state.participants.map { it.userIdOrEmail },
+            onSearchQueryChange = { query ->
+                state = state.copy(contactSearchQuery = query)
+            },
+            onToggleContact = { email ->
+                state = state.copy(
+                    selectedContactEmails = if (email in state.selectedContactEmails) {
+                        state.selectedContactEmails - email
+                    } else {
+                        state.selectedContactEmails + email
+                    }
+                )
+            },
+            onDismiss = {
+                state = state.copy(
+                    isContactPickerVisible = false,
+                    selectedContactEmails = emptySet(),
+                    contactSearchQuery = ""
+                )
+            },
+            onAddSelected = {
+                val selectedContacts = state.contactCandidates.filter { it.email in state.selectedContactEmails }
+                val selection = ContactParticipantSelectionPolicy.prepareSelection(
+                    selectedContacts = selectedContacts,
+                    existingParticipantIds = state.participants.map { it.userIdOrEmail }
+                )
+
+                if (selection.emailsToAdd.isEmpty()) {
+                    showError("Aucun nouveau participant à ajouter")
+                    state = state.copy(isContactPickerVisible = false)
+                    return@ContactParticipantPickerDialog
+                }
+
+                scope.launch {
+                    val failedEmails = mutableListOf<String>()
+                    selection.emailsToAdd.forEach { email ->
+                        val result = repository.addParticipant(event.id, email)
+                        if (result.isFailure) failedEmails += email
+                    }
+
+                    refreshParticipants()
+                    state = state.copy(
+                        isContactPickerVisible = false,
+                        selectedContactEmails = emptySet(),
+                        contactSearchQuery = "",
+                        isError = failedEmails.isNotEmpty(),
+                        errorMessage = if (failedEmails.isNotEmpty()) {
+                            "Impossible d'ajouter ${failedEmails.size} participant(s)"
+                        } else {
+                            ""
+                        }
+                    )
+                }
+            }
+        )
+    }
 }
 
-private fun isValidEmail(email: String): Boolean {
-    return email.contains("@") && email.contains(".")
+@Composable
+private fun ContactParticipantPickerDialog(
+    contacts: List<ContactParticipantCandidate>,
+    selectedEmails: Set<String>,
+    searchQuery: String,
+    existingParticipantIds: List<String>,
+    onSearchQueryChange: (String) -> Unit,
+    onToggleContact: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onAddSelected: () -> Unit
+) {
+    val existingEmails = existingParticipantIds
+        .mapNotNull(ContactParticipantSelectionPolicy::normalizeEmailOrNull)
+        .toSet()
+    val filteredContacts = contacts.filter { contact ->
+        val query = searchQuery.trim()
+        query.isBlank() ||
+            contact.displayName.contains(query, ignoreCase = true) ||
+            contact.email.contains(query, ignoreCase = true)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Choisir des contacts") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                TextField(
+                    value = searchQuery,
+                    onValueChange = onSearchQueryChange,
+                    label = { Text("Rechercher") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(320.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    items(filteredContacts) { contact ->
+                        val alreadyAdded = contact.email in existingEmails
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = contact.email in selectedEmails,
+                                enabled = !alreadyAdded,
+                                onCheckedChange = {
+                                    if (!alreadyAdded) onToggleContact(contact.email)
+                                }
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    contact.displayName.ifBlank { contact.email },
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                Text(
+                                    if (alreadyAdded) "${contact.email} - déjà ajouté" else contact.email,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onAddSelected,
+                enabled = selectedEmails.isNotEmpty()
+            ) {
+                Text("Ajouter (${selectedEmails.size})")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Annuler")
+            }
+        }
+    )
 }
 
 private fun loadParticipantRows(
