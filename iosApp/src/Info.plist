@@ -54,6 +54,8 @@
 	<true/>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Wakeve needs access to your calendar to add confirmed events and send you reminders. No existing calendar data is read or shared.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Wakeve utilise vos contacts uniquement lorsque vous choisissez des participants à inviter. Seules les adresses email sélectionnées sont ajoutées à l'événement.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Wakeve uses the camera only when you choose to take a photo for an event background.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>

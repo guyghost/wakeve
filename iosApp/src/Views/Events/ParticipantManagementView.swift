@@ -1,3 +1,4 @@
+import Contacts
 import SwiftUI
 import Shared
 
@@ -18,6 +19,11 @@ struct ParticipantManagementView: View {
     @State private var errorMessage = ""
     @State private var showError = false
     @State private var showSuccess = false
+    @State private var contactCandidates: [DeviceContactParticipantCandidate] = []
+    @State private var selectedContactEmails: Set<String> = []
+    @State private var contactSearchQuery = ""
+    @State private var showContactSheet = false
+    @State private var isLoadingContacts = false
 
     init(
         event: Event,
@@ -91,6 +97,17 @@ struct ParticipantManagementView: View {
             }
         } message: {
             Text("Le sondage est maintenant ouvert aux participants.")
+        }
+        .sheet(isPresented: $showContactSheet) {
+            ContactParticipantSelectionSheet(
+                contacts: contactCandidates,
+                selectedEmails: $selectedContactEmails,
+                searchQuery: $contactSearchQuery,
+                existingEmails: Set(participantRows.compactMap { normalizedEmail($0.email) }),
+                onAddSelected: {
+                    Task { await addSelectedContacts() }
+                }
+            )
         }
     }
 
@@ -290,6 +307,17 @@ struct ParticipantManagementView: View {
                     .disabled(newParticipantEmail.isEmpty || isLoading)
                     .accessibilityLabel("Ajouter le participant")
                 }
+
+                LiquidGlassButton(
+                    "Choisir depuis les contacts",
+                    systemImage: "person.crop.circle.badge.plus",
+                    variant: .secondary,
+                    isDisabled: isLoadingContacts,
+                    isLoading: isLoadingContacts
+                ) {
+                    Task { await loadContacts() }
+                }
+                .accessibilityLabel("Choisir des participants depuis les contacts")
             }
         }
     }
@@ -553,10 +581,7 @@ struct ParticipantManagementView: View {
         guard !newParticipantEmail.isEmpty else { return }
 
         // Basic email validation
-        let emailRegex = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
-        let emailPredicate = NSPredicate(format:"SELF MATCHES %@", emailRegex)
-
-        guard emailPredicate.evaluate(with: newParticipantEmail) else {
+        guard let participantEmail = normalizedEmail(newParticipantEmail) else {
             errorMessage = "Saisissez une adresse email valide"
             showError = true
             return
@@ -567,8 +592,8 @@ struct ParticipantManagementView: View {
         guard let repository else {
             participantRows.append(
                 ParticipantPresentationRow(
-                    id: newParticipantEmail,
-                    email: newParticipantEmail,
+                    id: participantEmail,
+                    email: participantEmail,
                     roleLabel: "Member",
                     statusLabel: "Pending",
                     canAccessOrganizationDetails: false
@@ -581,7 +606,6 @@ struct ParticipantManagementView: View {
         }
 
         do {
-            let participantEmail = newParticipantEmail
             _ = try await repository.addParticipant(eventId: event.id, participantId: participantEmail)
             loadParticipants()
 
@@ -599,6 +623,100 @@ struct ParticipantManagementView: View {
             errorMessage = error.localizedDescription
             showError = true
         }
+    }
+
+    private func loadContacts() async {
+        isLoadingContacts = true
+        do {
+            let contacts = try await DeviceContactParticipantLoader.loadContacts()
+            let normalizedContacts = contacts.compactMap { contact -> DeviceContactParticipantCandidate? in
+                guard let email = normalizedEmail(contact.email) else { return nil }
+                return DeviceContactParticipantCandidate(
+                    displayName: contact.displayName.isEmpty ? email : contact.displayName,
+                    email: email
+                )
+            }
+            .uniquedByEmail()
+
+            guard !normalizedContacts.isEmpty else {
+                isLoadingContacts = false
+                errorMessage = "Aucun contact avec adresse email disponible"
+                showError = true
+                return
+            }
+
+            contactCandidates = normalizedContacts
+            selectedContactEmails = []
+            contactSearchQuery = ""
+            isLoadingContacts = false
+            showContactSheet = true
+        } catch {
+            isLoadingContacts = false
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
+
+    private func addSelectedContacts() async {
+        let existingEmails = Set(participantRows.compactMap { normalizedEmail($0.email) })
+        let emailsToAdd = selectedContactEmails
+            .compactMap(normalizedEmail)
+            .filter { !existingEmails.contains($0) }
+            .sorted()
+
+        guard !emailsToAdd.isEmpty else {
+            showContactSheet = false
+            errorMessage = "Aucun nouveau participant à ajouter"
+            showError = true
+            return
+        }
+
+        isLoading = true
+        var failedEmails: [String] = []
+
+        if let repository {
+            for email in emailsToAdd {
+                do {
+                    _ = try await repository.addParticipant(eventId: event.id, participantId: email)
+                } catch {
+                    failedEmails.append(email)
+                }
+            }
+            loadParticipants()
+        } else {
+            let existingPreviewEmails = Set(participantRows.map(\.email))
+            let rows = emailsToAdd
+                .filter { !existingPreviewEmails.contains($0) }
+                .map {
+                    ParticipantPresentationRow(
+                        id: $0,
+                        email: $0,
+                        roleLabel: "Member",
+                        statusLabel: "Pending",
+                        canAccessOrganizationDetails: false
+                    )
+                }
+            participantRows.append(contentsOf: rows)
+        }
+
+        isLoading = false
+        showContactSheet = false
+        selectedContactEmails = []
+        contactSearchQuery = ""
+        onParticipantsUpdated()
+
+        if !failedEmails.isEmpty {
+            errorMessage = "Impossible d'ajouter \(failedEmails.count) participant(s)"
+            showError = true
+        }
+    }
+
+    private func normalizedEmail(_ email: String) -> String? {
+        let normalized = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !normalized.isEmpty else { return nil }
+        let parts = normalized.split(separator: "@")
+        guard parts.count == 2, !parts[0].isEmpty, parts[1].contains(".") else { return nil }
+        return normalized
     }
 
     private func startPoll() async {
@@ -640,6 +758,159 @@ struct ParticipantManagementView: View {
             isLoading = false
             errorMessage = error.localizedDescription
             showError = true
+        }
+    }
+}
+
+// MARK: - Contact Selection
+
+private struct DeviceContactParticipantCandidate: Identifiable, Equatable {
+    var id: String { email }
+    let displayName: String
+    let email: String
+}
+
+private enum DeviceContactParticipantLoader {
+    static func loadContacts() async throws -> [DeviceContactParticipantCandidate] {
+        let store = CNContactStore()
+        let status = CNContactStore.authorizationStatus(for: .contacts)
+
+        switch status {
+        case .notDetermined:
+            let granted = try await requestAccess(store: store)
+            guard granted else { throw ContactParticipantError.permissionDenied }
+        case .authorized, .limited:
+            break
+        case .denied, .restricted:
+            throw ContactParticipantError.permissionDenied
+        @unknown default:
+            throw ContactParticipantError.permissionDenied
+        }
+
+        let keys = [
+            CNContactGivenNameKey,
+            CNContactFamilyNameKey,
+            CNContactEmailAddressesKey
+        ] as [CNKeyDescriptor]
+        let request = CNContactFetchRequest(keysToFetch: keys)
+        var candidates: [DeviceContactParticipantCandidate] = []
+
+        try store.enumerateContacts(with: request) { contact, _ in
+            let displayName = [contact.givenName, contact.familyName]
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            contact.emailAddresses.forEach { labeledEmail in
+                let email = String(labeledEmail.value)
+                candidates.append(
+                    DeviceContactParticipantCandidate(
+                        displayName: displayName.isEmpty ? email : displayName,
+                        email: email
+                    )
+                )
+            }
+        }
+
+        return candidates
+    }
+
+    private static func requestAccess(store: CNContactStore) async throws -> Bool {
+        try await withCheckedThrowingContinuation { continuation in
+            store.requestAccess(for: .contacts) { granted, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(returning: granted)
+                }
+            }
+        }
+    }
+}
+
+private enum ContactParticipantError: LocalizedError {
+    case permissionDenied
+
+    var errorDescription: String? {
+        switch self {
+        case .permissionDenied:
+            return "L'accès aux contacts est optionnel et a été refusé."
+        }
+    }
+}
+
+private struct ContactParticipantSelectionSheet: View {
+    let contacts: [DeviceContactParticipantCandidate]
+    @Binding var selectedEmails: Set<String>
+    @Binding var searchQuery: String
+    let existingEmails: Set<String>
+    let onAddSelected: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private var filteredContacts: [DeviceContactParticipantCandidate] {
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return contacts }
+        return contacts.filter {
+            $0.displayName.localizedCaseInsensitiveContains(query) ||
+                $0.email.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List(filteredContacts) { contact in
+                let alreadyAdded = existingEmails.contains(contact.email)
+                Button {
+                    guard !alreadyAdded else { return }
+                    if selectedEmails.contains(contact.email) {
+                        selectedEmails.remove(contact.email)
+                    } else {
+                        selectedEmails.insert(contact.email)
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: selectedEmails.contains(contact.email) ? "checkmark.circle.fill" : "circle")
+                            .foregroundColor(alreadyAdded ? .secondary : .blue)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(contact.displayName)
+                                .foregroundColor(.primary)
+                            Text(alreadyAdded ? "\(contact.email) - déjà ajouté" : contact.email)
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .disabled(alreadyAdded)
+            }
+            .searchable(text: $searchQuery, prompt: "Rechercher")
+            .navigationTitle("Contacts")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Annuler") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Ajouter (\(selectedEmails.count))") {
+                        onAddSelected()
+                    }
+                    .disabled(selectedEmails.isEmpty)
+                }
+            }
+        }
+    }
+}
+
+private extension Array where Element == DeviceContactParticipantCandidate {
+    func uniquedByEmail() -> [DeviceContactParticipantCandidate] {
+        var seen = Set<String>()
+        return filter { contact in
+            guard !seen.contains(contact.email) else { return false }
+            seen.insert(contact.email)
+            return true
+        }
+        .sorted {
+            if $0.displayName == $1.displayName {
+                return $0.email < $1.email
+            }
+            return $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
         }
     }
 }

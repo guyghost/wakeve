@@ -1,5 +1,9 @@
 package com.guyghost.wakeve.navigation
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,10 +15,17 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import com.guyghost.wakeve.contacts.ContactParticipantCandidate
+import com.guyghost.wakeve.contacts.loadAndroidContactParticipantCandidates
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.ParticipantManagementScreen
 import com.guyghost.wakeve.PollResultsScreen
@@ -37,7 +48,22 @@ fun ParticipantManagementScreenWrapper(
     onBack: () -> Unit
 ) {
     val repository: EventRepositoryInterface = koinInject()
+    val context = LocalContext.current
     val event = remember(eventId) { repository.getEvent(eventId) }
+    var pendingContactCallback by remember {
+        mutableStateOf<(((Result<List<ContactParticipantCandidate>>) -> Unit))?>(null)
+    }
+    val contactsPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        val callback = pendingContactCallback ?: return@rememberLauncherForActivityResult
+        pendingContactCallback = null
+        if (granted) {
+            callback(runCatching { loadAndroidContactParticipantCandidates(context) })
+        } else {
+            callback(Result.failure(IllegalStateException("L'accès aux contacts est optionnel et a été refusé")))
+        }
+    }
     
     when {
         event == null -> {
@@ -51,7 +77,15 @@ fun ParticipantManagementScreenWrapper(
                 event = event,
                 repository = repository,
                 onParticipantsAdded = { onParticipantAdded() },
-                onNavigateToPoll = { onPollStarted() }
+                onNavigateToPoll = { onPollStarted() },
+                onContactPickerRequested = { callback ->
+                    if (ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+                        callback(runCatching { loadAndroidContactParticipantCandidates(context) })
+                    } else {
+                        pendingContactCallback = callback
+                        contactsPermissionLauncher.launch(Manifest.permission.READ_CONTACTS)
+                    }
+                }
             )
         }
     }
