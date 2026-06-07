@@ -23,9 +23,17 @@ class CreateEventViewModel: StateMachineViewModel<
     var onEventCreated: ((WakeveEvent) -> Void)?
     var onDismiss: (() -> Void)?
 
+    // MARK: - WakeveAI
+
+    @Published var smartEventDraftState = SmartEventDraftState()
+
+    private let smartEventDraftGenerator: EventDraftGenerator
+    private var smartEventDraftTask: Task<Void, Never>?
+
     // MARK: - Initialization
 
-    init() {
+    init(smartEventDraftGenerator: EventDraftGenerator = EventDraftGenerator()) {
+        self.smartEventDraftGenerator = smartEventDraftGenerator
         let database = RepositoryProvider.shared.database
         let wrapper = IosFactory.shared.createEventStateMachine(database: database)
         super.init(stateMachineWrapper: wrapper)
@@ -94,6 +102,95 @@ class CreateEventViewModel: StateMachineViewModel<
 
         // Also notify parent directly so UI can close immediately
         onEventCreated?(event)
+    }
+
+    func updateSmartEventDraftPhrase(_ phrase: String) {
+        smartEventDraftState.phrase = phrase
+        if case .unavailable = smartEventDraftState.phase {
+            smartEventDraftState.phase = .idle
+        }
+    }
+
+    func generateSmartEventDraft() {
+        smartEventDraftTask?.cancel()
+
+        let phrase = smartEventDraftState.phrase.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard phrase.count >= 6 else { return }
+
+        smartEventDraftState.phase = .preparing
+        smartEventDraftState.streamedTitle = ""
+        smartEventDraftState.streamedDescription = ""
+        smartEventDraftState.streamedDateOptions = []
+        smartEventDraftState.streamedChecklist = []
+        smartEventDraftState.streamedPolls = []
+
+        smartEventDraftTask = Task { [weak self] in
+            guard let self else { return }
+
+            do {
+                let request = WakeveAIGenerationRequest(userInput: phrase)
+                for try await section in smartEventDraftGenerator.generate(request: request) {
+                    guard !Task.isCancelled else { throw WakeveAIError.cancelled }
+
+                    await MainActor.run {
+                        switch section {
+                        case .title(let title):
+                            self.smartEventDraftState.phase = .streaming
+                            self.smartEventDraftState.streamedTitle = title
+                        case .description(let description):
+                            self.smartEventDraftState.phase = .streaming
+                            self.smartEventDraftState.streamedDescription = description
+                        case .dateOptions(let options):
+                            self.smartEventDraftState.phase = .streaming
+                            self.smartEventDraftState.streamedDateOptions = options
+                        case .checklist(let checklist):
+                            self.smartEventDraftState.phase = .streaming
+                            self.smartEventDraftState.streamedChecklist = checklist
+                        case .suggestedPolls(let polls):
+                            self.smartEventDraftState.phase = .streaming
+                            self.smartEventDraftState.streamedPolls = polls
+                        case .completed(let draft):
+                            self.smartEventDraftState.phase = .ready(draft)
+                            self.smartEventDraftState.metrics = WakeveAIMetricsRecorder.shared.snapshot().last
+                        case .failed(let message):
+                            self.smartEventDraftState.phase = .failed(message)
+                        }
+                    }
+                }
+            } catch WakeveAIError.unavailable(let availability) {
+                await MainActor.run {
+                    self.smartEventDraftState.phase = .unavailable(availability)
+                }
+            } catch WakeveAIError.cancelled {
+                await MainActor.run {
+                    self.smartEventDraftState.phase = .cancelled
+                }
+            } catch is CancellationError {
+                await MainActor.run {
+                    self.smartEventDraftState.phase = .cancelled
+                }
+            } catch WakeveAIError.timedOut {
+                await MainActor.run {
+                    self.smartEventDraftState.phase = .failed("La suggestion prend trop de temps. Continuez manuellement.")
+                }
+            } catch {
+                await MainActor.run {
+                    self.smartEventDraftState.phase = .failed("Suggestion indisponible. Continuez manuellement.")
+                }
+            }
+        }
+    }
+
+    func cancelSmartEventDraft() {
+        smartEventDraftTask?.cancel()
+        smartEventDraftTask = nil
+        smartEventDraftState.phase = .cancelled
+    }
+
+    func ignoreSmartEventDraft() {
+        smartEventDraftTask?.cancel()
+        smartEventDraftTask = nil
+        smartEventDraftState = SmartEventDraftState()
     }
 
     // MARK: - Side Effect Mapping

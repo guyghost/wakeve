@@ -1,8 +1,8 @@
 import SwiftUI
 
-/// AI Badge View - A liquid glass styled badge component for AI suggestions
+/// Suggestion badge styled with Wakeve's liquid glass controls.
 ///
-/// Displays AI-generated badges with glassmorphism effects, tooltips, and accessibility.
+/// Displays reviewable suggestion badges with tooltips and accessibility.
 ///
 /// Features:
 /// - Liquid Glass styling with ultraThinMaterial
@@ -74,7 +74,7 @@ struct AIBadgeView: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(badge.displayName)
-        .accessibilityHint(badge.tooltip ?? "Tap to see more details about this AI suggestion")
+        .accessibilityHint(badge.tooltip ?? "Touchez pour voir le détail de cette suggestion")
         .accessibilityAddTraits(.isButton)
     }
     
@@ -84,7 +84,7 @@ struct AIBadgeView: View {
         VStack(spacing: 16) {
             HStack {
                 Text(badge.icon)
-                    .font(.system(size: 32))
+                    .font(.system(size: 28, weight: .semibold))
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(badge.displayName)
@@ -107,7 +107,7 @@ struct AIBadgeView: View {
             }
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("Confidence Details")
+                Text("À relire")
                     .font(.subheadline)
                     .fontWeight(.medium)
                 
@@ -116,16 +116,16 @@ struct AIBadgeView: View {
                         .fill(badge.color)
                         .frame(width: 12, height: 12)
                     
-                    Text("Color: \(badge.colorHex)")
+                    Text("Repère visuel : \(badge.displayName)")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 
                 HStack {
-                    Image(systemName: "info.circle")
+                    Image(systemName: "checkmark.circle")
                         .foregroundColor(.secondary)
                     
-                    Text("Type: \(badge.type.rawValue)")
+                    Text("Aucune action n'est appliquée sans validation.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -137,7 +137,7 @@ struct AIBadgeView: View {
             
             Spacer()
             
-            Button("Close") {
+            Button("Fermer") {
                 showDetail = false
             }
             .buttonStyle(.borderedProminent)
@@ -183,10 +183,10 @@ extension AIBadgeView {
 
 // MARK: - Previews
 
-#Preview("AIBadgeView - All Types") {
+#Preview("AIBadgeView - Tous les types") {
     ScrollView {
         VStack(spacing: 16) {
-            Section("AI Badge Types") {
+            Section("Badges de suggestion") {
                 ForEach(AIBadgeType.allCases, id: \.self) { type in
                     HStack {
                         AIBadgeView(type: type, showTooltip: true)
@@ -196,17 +196,17 @@ extension AIBadgeView {
                 }
             }
             
-            Section("With Custom Tap Handler") {
+            Section("Avec action") {
                 AIBadgeView(
                     type: .highConfidence,
                     onTap: {
-                        debugLog("Badge tapped!")
+                        debugLog("Badge ouvert")
                     }
                 )
                 .padding(.horizontal)
             }
             
-            Section("In Context") {
+            Section("Dans un contexte") {
                 HStack(spacing: 12) {
                     AIBadgeView(type: .highConfidence)
                     AIBadgeView(type: .personalized)
@@ -222,8 +222,8 @@ extension AIBadgeView {
     .background(Color(red: 0.97, green: 0.97, blue: 0.98))
 }
 
-#Preview("AIBadgeView - Tooltip Sheet") {
-    Button("Show Badge Detail") {
+#Preview("AIBadgeView - Détail") {
+    Button("Afficher le détail") {
         // Preview sheet presentation
     }
 }

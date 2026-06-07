@@ -24,6 +24,12 @@ struct TransportPlanningView: View {
 
     @State private var selectedOptimization: TransportPlanningOptimizationType = .BALANCED
     @State private var departureInput: String = ""
+    @State private var transportAISuggestion: TransportCoordinationSuggestion?
+    @State private var editableTransportMessage: String = ""
+    @State private var isGeneratingTransportAI = false
+    @State private var appliedTransportAISuggestion = false
+    @State private var ignoredTransportAISuggestion = false
+    @State private var transportAIError: String?
 
     private var canAccessDetails: Bool {
         isOrganizer || isParticipantConfirmed == true
@@ -81,6 +87,7 @@ struct TransportPlanningView: View {
                 header
                 routePreviewCard
                 readinessCard
+                transportHelperCard
                 departureCard
                 optimizationCard
                 participantsCard
@@ -166,6 +173,101 @@ struct TransportPlanningView: View {
                 }
 
                 Spacer(minLength: WakeveTheme.Spacing.xs)
+            }
+        }
+    }
+
+    private var transportHelperCard: some View {
+        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text("Suggestion transport")
+                            .font(WakeveTheme.Typography.section)
+                            .foregroundColor(primaryText)
+
+                        Text("Préparez la coordination du groupe à relire avant partage.")
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(secondaryText)
+                    }
+
+                    Spacer()
+
+                    Button {
+                        generateTransportSuggestion()
+                    } label: {
+                        Image(systemName: "sparkles")
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(isGeneratingTransportAI ? secondaryText : WakeveTheme.ColorToken.accent(for: colorScheme))
+                            .frame(width: 44, height: 44)
+                            .background(controlFill)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isGeneratingTransportAI)
+                    .accessibilityLabel("Préparer une suggestion transport")
+                }
+
+                if isGeneratingTransportAI {
+                    HStack(spacing: WakeveTheme.Spacing.sm) {
+                        ProgressView()
+                        Text("Préparation en cours")
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(secondaryText)
+                    }
+                }
+
+                if let transportAIError {
+                    Text(transportAIError)
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(WakeveTheme.ColorToken.destructive(for: colorScheme))
+                }
+
+                if let suggestion = transportAISuggestion {
+                    if !suggestion.missingDetails.isEmpty {
+                        TransportAIList(title: "À compléter", values: suggestion.missingDetails, colorScheme: colorScheme)
+                    }
+
+                    if !suggestion.coordinationIdeas.isEmpty {
+                        TransportAIList(title: "Idées", values: suggestion.coordinationIdeas, colorScheme: colorScheme)
+                    }
+
+                    Text("Message à envoyer")
+                        .font(WakeveTheme.Typography.bodySemibold)
+                        .foregroundColor(primaryText)
+
+                    TextEditor(text: $editableTransportMessage)
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(primaryText)
+                        .frame(minHeight: 92)
+                        .padding(WakeveTheme.Spacing.xs)
+                        .background(controlFill)
+                        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+
+                    HStack(spacing: WakeveTheme.Spacing.sm) {
+                        TransportAIActionButton(title: "Modifier", systemImage: "pencil", colorScheme: colorScheme) {
+                            appliedTransportAISuggestion = false
+                        }
+                        TransportAIActionButton(title: "Appliquer", systemImage: "checkmark", colorScheme: colorScheme) {
+                            appliedTransportAISuggestion = true
+                            ignoredTransportAISuggestion = false
+                        }
+                        TransportAIActionButton(title: "Ignorer", systemImage: "xmark", colorScheme: colorScheme) {
+                            ignoredTransportAISuggestion = true
+                            appliedTransportAISuggestion = false
+                        }
+                    }
+
+                    if appliedTransportAISuggestion {
+                        Label("Suggestion prête à être reprise dans le message de groupe", systemImage: "checkmark.circle.fill")
+                            .font(WakeveTheme.Typography.caption)
+                            .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+                    } else if ignoredTransportAISuggestion {
+                        Label("Suggestion ignorée", systemImage: "minus.circle.fill")
+                            .font(WakeveTheme.Typography.caption)
+                            .foregroundColor(secondaryText)
+                    }
+                }
             }
         }
     }
@@ -510,6 +612,43 @@ struct TransportPlanningView: View {
         onSaveDepartureLocation(location)
     }
 
+    private func generateTransportSuggestion() {
+        guard !isGeneratingTransportAI else { return }
+        isGeneratingTransportAI = true
+        transportAIError = nil
+        appliedTransportAISuggestion = false
+        ignoredTransportAISuggestion = false
+
+        let provider = TransportPlanningWakeveAIContextProvider(
+            eventId: event.id,
+            destinationName: destinationName,
+            participantNames: event.participants,
+            missingDepartureParticipants: displayedMissingDeparture,
+            schedules: [confirmedDate, selectedOptimization.title].compactMap { $0 },
+            proposedTrips: plans.map { "\($0.optimization.title) \(String(format: "%.0f", $0.totalCost)) \($0.currency)" }
+        )
+        let generator = TransportSuggestionGenerator(
+            client: HeuristicWakeveAIClient(),
+            contextProvider: provider
+        )
+
+        Task {
+            do {
+                let suggestion = try await generator.generate(eventId: event.id, localeIdentifier: "fr_FR")
+                await MainActor.run {
+                    transportAISuggestion = suggestion
+                    editableTransportMessage = suggestion.groupMessageDraft
+                    isGeneratingTransportAI = false
+                }
+            } catch {
+                await MainActor.run {
+                    transportAIError = "La suggestion n'est pas disponible pour le moment."
+                    isGeneratingTransportAI = false
+                }
+            }
+        }
+    }
+
     private var primaryText: Color {
         WakeveTheme.ColorToken.primaryText(for: colorScheme)
     }
@@ -524,6 +663,92 @@ struct TransportPlanningView: View {
 
     private func workflowAllowsMutation(_ eventStatus: EventStatus) -> Bool {
         eventStatus == EventStatus.confirmed || eventStatus == EventStatus.comparing || eventStatus == EventStatus.organizing
+    }
+}
+
+private struct TransportPlanningWakeveAIContextProvider: WakeveAIContextProviding {
+    let eventId: String
+    let destinationName: String
+    let participantNames: [String]
+    let missingDepartureParticipants: [String]
+    let schedules: [String]
+    let proposedTrips: [String]
+
+    func currentGroup() async -> WakeveAIGroupContext? {
+        WakeveAIGroupContext(groupId: eventId, memberDisplayNames: participantNames)
+    }
+
+    func eventContext(eventId: String) async -> WakeveAIEventContext? {
+        WakeveAIEventContext(
+            eventId: eventId,
+            title: "Transport",
+            date: schedules.first,
+            location: destinationName,
+            participantNames: participantNames,
+            voteSummaries: [],
+            taskTitles: missingDepartureParticipants,
+            recentMessages: []
+        )
+    }
+
+    func participantStatuses(eventId: String) async -> WakeveAIParticipantStatuses? {
+        WakeveAIParticipantStatuses(accepted: participantNames, pending: missingDepartureParticipants, declined: [])
+    }
+
+    func voteResults(eventId: String) async -> WakeveAIVoteResults? { nil }
+
+    func transportContext(eventId: String) async -> WakeveAITransportContext? {
+        WakeveAITransportContext(
+            proposedTrips: proposedTrips,
+            participantNames: participantNames,
+            schedules: schedules,
+            missingDepartureParticipants: missingDepartureParticipants
+        )
+    }
+
+    func userPreferences() async -> WakeveAIUserPreferences? {
+        WakeveAIUserPreferences(languageCode: "fr", localPreferences: [])
+    }
+}
+
+private struct TransportAIList: View {
+    let title: String
+    let values: [String]
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+            Text(title)
+                .font(WakeveTheme.Typography.bodySemibold)
+                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+            ForEach(values, id: \.self) { value in
+                Label(value, systemImage: "checkmark.circle")
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .lineLimit(2)
+            }
+        }
+    }
+}
+
+private struct TransportAIActionButton: View {
+    let title: String
+    let systemImage: String
+    let colorScheme: ColorScheme
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(WakeveTheme.Typography.tiny.weight(.semibold))
+                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .frame(maxWidth: .infinity)
+                .frame(height: 36)
+                .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0.72))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
     }
 }
 

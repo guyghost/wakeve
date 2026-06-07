@@ -282,6 +282,8 @@ struct CreateEventSheet: View {
     private var nameStep: some View {
         LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                smartEventDraftCard
+
                 TextField(String(localized: "events.title_placeholder"), text: $title)
                     .font(WakeveTheme.Typography.title2)
                     .foregroundColor(primaryTextColor)
@@ -306,6 +308,219 @@ struct CreateEventSheet: View {
                     )
                 }
                 .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private var smartEventDraftCard: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+            HStack {
+                Label("Créer avec une phrase", systemImage: "sparkles")
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundColor(primaryTextColor)
+
+                Spacer()
+
+                Text("Suggestion")
+                    .font(WakeveTheme.Typography.tiny)
+                    .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                    .padding(.horizontal, WakeveTheme.Spacing.sm)
+                    .padding(.vertical, WakeveTheme.Spacing.xxs)
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .clipShape(Capsule())
+            }
+
+            TextField(
+                "Décris ton événement",
+                text: Binding(
+                    get: { viewModel.smartEventDraftState.phrase },
+                    set: { viewModel.updateSmartEventDraftPhrase($0) }
+                ),
+                axis: .vertical
+            )
+            .font(WakeveTheme.Typography.body)
+            .foregroundColor(primaryTextColor)
+            .lineLimit(2...4)
+            .padding(WakeveTheme.Spacing.md)
+            .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+            .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+
+            smartEventDraftStatus
+
+            HStack(spacing: WakeveTheme.Spacing.sm) {
+                Button {
+                    viewModel.generateSmartEventDraft()
+                } label: {
+                    Label("Préparer", systemImage: "wand.and.stars")
+                        .font(WakeveTheme.Typography.bodySemibold)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .foregroundColor(viewModel.smartEventDraftState.canGenerate ? previewButtonForeground : disabledControlForeground)
+                        .background(viewModel.smartEventDraftState.canGenerate ? previewButtonBackground : disabledControlBackground)
+                        .clipShape(Capsule())
+                }
+                .disabled(!viewModel.smartEventDraftState.canGenerate)
+                .buttonStyle(.plain)
+
+                if case .streaming = viewModel.smartEventDraftState.phase {
+                    Button {
+                        viewModel.cancelSmartEventDraft()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(primaryTextColor)
+                            .frame(width: 44, height: 44)
+                            .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Annuler la suggestion")
+                }
+            }
+        }
+        .padding(WakeveTheme.Spacing.md)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme).opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.lg, style: .continuous))
+    }
+
+    @ViewBuilder
+    private var smartEventDraftStatus: some View {
+        switch viewModel.smartEventDraftState.phase {
+        case .idle:
+            EmptyView()
+        case .checkingAvailability, .preparing:
+            smartEventDraftLoadingRow("Préparation en cours")
+        case .streaming:
+            smartEventDraftPreview(
+                title: viewModel.smartEventDraftState.streamedTitle,
+                description: viewModel.smartEventDraftState.streamedDescription,
+                dateOptions: viewModel.smartEventDraftState.streamedDateOptions,
+                checklist: viewModel.smartEventDraftState.streamedChecklist,
+                polls: viewModel.smartEventDraftState.streamedPolls,
+                draft: nil
+            )
+        case .ready(let draft):
+            smartEventDraftPreview(
+                title: draft.title,
+                description: draft.description,
+                dateOptions: draft.dateOptions,
+                checklist: draft.checklist,
+                polls: draft.suggestedPolls,
+                draft: draft
+            )
+        case .unavailable(let availability):
+            Text(availability.discreetMessage)
+                .font(WakeveTheme.Typography.callout)
+                .foregroundColor(secondaryTextColor)
+        case .failed(let message):
+            Text(message)
+                .font(WakeveTheme.Typography.callout)
+                .foregroundColor(WakeveTheme.ColorToken.destructive(for: colorScheme))
+        case .cancelled:
+            Text("Suggestion annulée")
+                .font(WakeveTheme.Typography.callout)
+                .foregroundColor(secondaryTextColor)
+        }
+    }
+
+    private func smartEventDraftLoadingRow(_ title: String) -> some View {
+        HStack(spacing: WakeveTheme.Spacing.sm) {
+            ProgressView()
+                .controlSize(.small)
+            Text(title)
+                .font(WakeveTheme.Typography.callout)
+                .foregroundColor(secondaryTextColor)
+            Spacer()
+        }
+        .frame(minHeight: 44)
+    }
+
+    private func smartEventDraftPreview(
+        title: String,
+        description: String,
+        dateOptions: [DateOption],
+        checklist: [ChecklistItem],
+        polls: [PollSuggestion],
+        draft: EventDraft?
+    ) -> some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+            if !title.isEmpty {
+                Text(title)
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundColor(primaryTextColor)
+                    .lineLimit(2)
+            }
+
+            if !description.isEmpty {
+                Text(description)
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(secondaryTextColor)
+                    .lineLimit(3)
+            }
+
+            if !dateOptions.isEmpty {
+                smartEventDraftSection(
+                    icon: "calendar",
+                    title: "Dates",
+                    values: dateOptions.map { $0.label }
+                )
+            }
+
+            if !checklist.isEmpty {
+                smartEventDraftSection(
+                    icon: "checklist",
+                    title: "Checklist",
+                    values: checklist.map(\.title)
+                )
+            }
+
+            if !polls.isEmpty {
+                smartEventDraftSection(
+                    icon: "chart.bar.doc.horizontal",
+                    title: "Sondages",
+                    values: polls.map(\.question)
+                )
+            }
+
+            if let draft {
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    Button("Modifier") {
+                        applySmartEventDraft(draft, advance: false)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button("Utiliser ce brouillon") {
+                        applySmartEventDraft(draft, advance: true)
+                    }
+                    .accessibilityHint("Appliquer")
+                    .buttonStyle(.borderedProminent)
+
+                    Button("Ignorer") {
+                        viewModel.ignoreSmartEventDraft()
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .controlSize(.small)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(WakeveTheme.Spacing.sm)
+        .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0.42))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+
+    private func smartEventDraftSection(icon: String, title: String, values: [String]) -> some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+            Label(title, systemImage: icon)
+                .font(WakeveTheme.Typography.tiny)
+                .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                .textCase(.uppercase)
+
+            ForEach(values.prefix(3), id: \.self) { value in
+                Text(value)
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(primaryTextColor)
+                    .lineLimit(2)
             }
         }
     }
@@ -1027,6 +1242,29 @@ struct CreateEventSheet: View {
         showValidationError = false
         validationMessage = nil
         showingPreview = true
+    }
+
+    private func applySmartEventDraft(_ draft: EventDraft, advance: Bool) {
+        title = draft.title
+        description = draft.description
+
+        let location = draft.destinationName.isEmpty ? draft.locationHint : draft.destinationName
+        if !location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            selectedLocation = location
+        }
+
+        if let participantHint = draft.participantHints.first {
+            let digits = participantHint.filter(\.isNumber)
+            if let count = Int(digits), count > 0 {
+                expectedParticipants = count
+            }
+        }
+
+        viewModel.ignoreSmartEventDraft()
+
+        if advance {
+            currentStep = proposedSlotDrafts.isEmpty ? .date : .confirm
+        }
     }
     
     private func darkenColor(_ color: Color, by amount: CGFloat) -> Color {
