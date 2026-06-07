@@ -5,6 +5,7 @@ import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.analytics.AnalyticsEvent
 import com.guyghost.wakeve.analytics.AnalyticsProvider
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventPlanningMode
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.PotentialLocation
@@ -79,6 +80,9 @@ class CreateEventViewModel(
     private val _eventTypeCustom = MutableStateFlow<String?>(null)
     val eventTypeCustom: StateFlow<String?> = _eventTypeCustom.asStateFlow()
 
+    private val _planningMode = MutableStateFlow(EventPlanningMode.TIME_SLOT_POLL)
+    val planningMode: StateFlow<EventPlanningMode> = _planningMode.asStateFlow()
+
     // Optional fields
     private val _minParticipants = MutableStateFlow<Int?>(null)
     val minParticipants: StateFlow<Int?> = _minParticipants.asStateFlow()
@@ -126,6 +130,11 @@ class CreateEventViewModel(
 
     fun updateEventTypeCustom(newCustom: String?) {
         _eventTypeCustom.value = newCustom?.takeIf { it.isNotBlank() }
+        _creationError.value = null
+    }
+
+    fun updatePlanningMode(newMode: EventPlanningMode) {
+        _planningMode.value = newMode
         _creationError.value = null
     }
 
@@ -177,6 +186,9 @@ class CreateEventViewModel(
         }
         if (_timeSlots.value.isEmpty()) {
             return "At least one time slot is required"
+        }
+        if (_planningMode.value == EventPlanningMode.SCENARIO_MATRIX && _potentialLocations.value.isEmpty()) {
+            return "At least one destination is required for scenario matrix mode"
         }
 
         // Conditional validation for custom event type
@@ -240,7 +252,8 @@ class CreateEventViewModel(
                     minParticipants = _minParticipants.value,
                     maxParticipants = _maxParticipants.value,
                     expectedParticipants = _expectedParticipants.value,
-                    heroImageUrl = null
+                    heroImageUrl = null,
+                    planningMode = _planningMode.value
                 )
 
                 val result = eventRepository.createEvent(event)
@@ -288,6 +301,7 @@ class CreateEventViewModel(
         _description.value = ""
         _eventType.value = EventType.OTHER
         _eventTypeCustom.value = null
+        _planningMode.value = EventPlanningMode.TIME_SLOT_POLL
         _minParticipants.value = null
         _maxParticipants.value = null
         _expectedParticipants.value = null

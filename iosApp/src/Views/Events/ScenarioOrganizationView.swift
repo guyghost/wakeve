@@ -571,6 +571,14 @@ private struct ScenarioOrganizationCard: View {
                     .foregroundColor(primaryText)
                     .lineLimit(2)
 
+                if scenario.generationType == .matrix {
+                    Text(matrixSourceLabel)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.blue)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+
                 Text(scenario.description_)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(secondaryText)
@@ -727,6 +735,8 @@ private struct ScenarioOrganizationCard: View {
 
     private var lodgingLabel: String {
         switch scenario.status {
+        case .draft:
+            return "Brouillon"
         case .selected:
             return "Retenu"
         case .rejected:
@@ -738,6 +748,8 @@ private struct ScenarioOrganizationCard: View {
 
     private var statusText: String {
         switch scenario.status {
+        case .draft:
+            return "Brouillon"
         case .selected:
             return "Selectionne"
         case .rejected:
@@ -749,6 +761,8 @@ private struct ScenarioOrganizationCard: View {
 
     private var statusColor: Color {
         switch scenario.status {
+        case .draft:
+            return .orange
         case .selected:
             return .green
         case .rejected:
@@ -764,5 +778,11 @@ private struct ScenarioOrganizationCard: View {
 
     private var secondaryText: Color {
         WakeveTheme.ColorToken.secondaryText(for: colorScheme)
+    }
+
+    private var matrixSourceLabel: String {
+        let slot = scenario.sourceTimeSlotId ?? "-"
+        let destination = scenario.sourcePotentialLocationId ?? "-"
+        return "Matrice: creneau \(slot) - destination \(destination)"
     }
 }

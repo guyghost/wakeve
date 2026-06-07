@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.guyghost.wakeve.models.EventType
+import com.guyghost.wakeve.models.EventPlanningMode
 
 /**
  * Full-screen preview overlay for an event being created.
@@ -72,6 +73,8 @@ fun CreateEventPreview(
     selectedLocation: String? = null,
     eventType: EventType = EventType.OTHER,
     expectedParticipants: Int? = null,
+    planningMode: EventPlanningMode = EventPlanningMode.TIME_SLOT_POLL,
+    matrixScenarioCount: Int = 0,
     onDismiss: () -> Unit
 ) {
     // Gradient matching the iOS design: orange → purple → dark blue
@@ -182,6 +185,20 @@ fun CreateEventPreview(
                         }
                     }
 
+                    if (planningMode == EventPlanningMode.SCENARIO_MATRIX) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "$matrixScenarioCount scénario(s) date × destination à préparer",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White.copy(alpha = 0.82f),
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 24.dp)
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(20.dp))
 
                     // RSVP Card
@@ -226,7 +243,11 @@ fun CreateEventPreview(
 
                 InvitationInfoRow(
                     icon = Icons.Default.CalendarToday,
-                    text = "Une fois la date confirmée, l'événement sera finalisé automatiquement."
+                    text = if (planningMode == EventPlanningMode.SCENARIO_MATRIX) {
+                        "Les participants voteront sur des scénarios complets combinant créneau et destination."
+                    } else {
+                        "Une fois la date confirmée, l'événement sera finalisé automatiquement."
+                    }
                 )
             }
         }

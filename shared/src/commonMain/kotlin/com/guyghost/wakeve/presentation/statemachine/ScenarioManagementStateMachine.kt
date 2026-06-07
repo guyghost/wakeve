@@ -135,7 +135,10 @@ class ScenarioManagementStateMachine(
             is Intent.UpdateScenario -> handleUpdateScenario(intent)
             is Intent.DeleteScenario -> handleDeleteScenario(intent)
             is Intent.VoteScenario -> handleVoteScenario(intent)
+            is Intent.GenerateScenarioMatrix -> handleGenerateScenarioMatrix(intent)
+            is Intent.PublishScenarioMatrix -> handlePublishScenarioMatrix(intent)
             is Intent.CompareScenarios -> handleCompareScenarios(intent)
+            is Intent.SelectMatrixScenarioAsFinal -> handleSelectMatrixScenarioAsFinal(intent)
             is Intent.ClearComparison -> handleClearComparison()
             is Intent.ClearError -> handleClearError()
         }
@@ -509,6 +512,121 @@ class ScenarioManagementStateMachine(
                         emitSideEffect(SideEffect.ShowError(errorMsg))
                     }
                 )
+            },
+            onFailure = { error ->
+                val errorMsg = error.message ?: "Failed to select scenario"
+                updateState { it.copy(isLoading = false, error = errorMsg) }
+                emitSideEffect(SideEffect.ShowError(errorMsg))
+            }
+        )
+    }
+
+    private suspend fun handleGenerateScenarioMatrix(intent: Intent.GenerateScenarioMatrix) {
+        if (eventRepository == null || scenarioRepository == null) {
+            val errorMsg = "Repository not available"
+            updateState { it.copy(error = errorMsg) }
+            emitSideEffect(SideEffect.ShowError(errorMsg))
+            return
+        }
+
+        updateState {
+            it.copy(
+                isLoading = true,
+                error = null,
+                eventId = intent.eventId,
+                participantId = intent.userId
+            )
+        }
+
+        val event = eventRepository.getEvent(intent.eventId)
+        if (!validateOrganizerPermission(event)(intent.userId)) {
+            emitUnauthorizedError("Only event organizer can generate scenario matrix")
+            return
+        }
+
+        scenarioRepository.generateScenarioMatrix(intent.eventId).fold(
+            onSuccess = { generated ->
+                reloadScenarios(intent.eventId)
+                emitSideEffect(SideEffect.ShowToast("Generated ${generated.size} scenario matrix options"))
+            },
+            onFailure = { error ->
+                val errorMsg = error.message ?: "Failed to generate scenario matrix"
+                updateState { it.copy(isLoading = false, error = errorMsg) }
+                emitSideEffect(SideEffect.ShowError(errorMsg))
+            }
+        )
+    }
+
+    private suspend fun handlePublishScenarioMatrix(intent: Intent.PublishScenarioMatrix) {
+        if (eventRepository == null || scenarioRepository == null) {
+            val errorMsg = "Repository not available"
+            updateState { it.copy(error = errorMsg) }
+            emitSideEffect(SideEffect.ShowError(errorMsg))
+            return
+        }
+
+        updateState {
+            it.copy(
+                isLoading = true,
+                error = null,
+                eventId = intent.eventId,
+                participantId = intent.userId
+            )
+        }
+
+        val event = eventRepository.getEvent(intent.eventId)
+        if (!validateOrganizerPermission(event)(intent.userId)) {
+            emitUnauthorizedError("Only event organizer can publish scenario matrix")
+            return
+        }
+
+        scenarioRepository.publishScenarioMatrix(intent.eventId).fold(
+            onSuccess = {
+                reloadScenarios(intent.eventId)
+                updateState {
+                    it.copy(
+                        isLoading = false,
+                        eventStatus = com.guyghost.wakeve.models.EventStatus.COMPARING
+                    )
+                }
+                emitSideEffect(SideEffect.ShowToast("Scenario matrix published"))
+                emitSideEffect(SideEffect.NavigateTo("event/${intent.eventId}/scenarios"))
+            },
+            onFailure = { error ->
+                val errorMsg = error.message ?: "Failed to publish scenario matrix"
+                updateState { it.copy(isLoading = false, error = errorMsg) }
+                emitSideEffect(SideEffect.ShowError(errorMsg))
+            }
+        )
+    }
+
+    private suspend fun handleSelectMatrixScenarioAsFinal(intent: Intent.SelectMatrixScenarioAsFinal) {
+        if (eventRepository == null || scenarioRepository == null) {
+            val errorMsg = "Repository not available"
+            updateState { it.copy(error = errorMsg) }
+            emitSideEffect(SideEffect.ShowError(errorMsg))
+            return
+        }
+
+        updateState { it.copy(isLoading = true, error = null) }
+
+        val event = eventRepository.getEvent(intent.eventId)
+        if (!validateOrganizerPermission(event)(intent.userId)) {
+            emitUnauthorizedError("Only event organizer can select final scenario")
+            return
+        }
+
+        scenarioRepository.selectFinalMatrixScenario(intent.eventId, intent.scenarioId).fold(
+            onSuccess = {
+                reloadScenarios(intent.eventId)
+                updateState {
+                    it.copy(
+                        isLoading = false,
+                        eventStatus = com.guyghost.wakeve.models.EventStatus.CONFIRMED
+                    )
+                }
+                emitSideEffect(SideEffect.ShowToast("Scenario selected successfully!"))
+                emitSideEffect(SideEffect.NavigateTo("meetings/${intent.eventId}"))
             },
             onFailure = { error ->
                 val errorMsg = error.message ?: "Failed to select scenario"

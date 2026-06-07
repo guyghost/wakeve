@@ -28,7 +28,10 @@ data class Event(
     val expectedParticipants: Int? = null,
 
     // Hero image field for feature parity with iOS
-    val heroImageUrl: String? = null
+    val heroImageUrl: String? = null,
+
+    // Planning mode. Defaults to the legacy time-slot polling workflow.
+    val planningMode: EventPlanningMode = EventPlanningMode.TIME_SLOT_POLL
 ) {
     /**
      * Validate that the event data is consistent.
@@ -58,6 +61,12 @@ data class Event(
         
         return null
     }
+}
+
+@Serializable
+enum class EventPlanningMode {
+    TIME_SLOT_POLL,
+    SCENARIO_MATRIX
 }
 
 @Serializable

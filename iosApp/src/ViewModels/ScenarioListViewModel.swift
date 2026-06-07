@@ -54,7 +54,10 @@ class ScenarioListViewModel: StateMachineViewModel<
             description: description,
             status: ScenarioStatus.proposed,
             createdAt: "",
-            updatedAt: ""
+            updatedAt: "",
+            sourceTimeSlotId: nil,
+            sourcePotentialLocationId: nil,
+            generationType: ScenarioGenerationType.manual
         )
         dispatch(ScenarioManagementContractIntentCreateScenario(scenario: scenario))
     }
@@ -77,6 +80,28 @@ class ScenarioListViewModel: StateMachineViewModel<
 
     func selectScenarioAsFinal(eventId: String, scenarioId: String, userId: String) {
         dispatch(ScenarioManagementContractIntentSelectScenarioAsFinal(
+            eventId: eventId,
+            scenarioId: scenarioId,
+            userId: userId
+        ))
+    }
+
+    func generateScenarioMatrix(eventId: String, userId: String) {
+        dispatch(ScenarioManagementContractIntentGenerateScenarioMatrix(
+            eventId: eventId,
+            userId: userId
+        ))
+    }
+
+    func publishScenarioMatrix(eventId: String, userId: String) {
+        dispatch(ScenarioManagementContractIntentPublishScenarioMatrix(
+            eventId: eventId,
+            userId: userId
+        ))
+    }
+
+    func selectMatrixScenarioAsFinal(eventId: String, scenarioId: String, userId: String) {
+        dispatch(ScenarioManagementContractIntentSelectMatrixScenarioAsFinal(
             eventId: eventId,
             scenarioId: scenarioId,
             userId: userId
