@@ -21,7 +21,7 @@ func markOnboardingComplete() {
 struct ContentView: View {
     @EnvironmentObject var authStateManager: AuthStateManager
     @EnvironmentObject var authService: AuthenticationService
-    @AppStorage("darkMode") private var darkMode = false
+    @AppStorage("darkMode") private var darkMode = true
     @State private var hasOnboarded = false
 
     var body: some View {

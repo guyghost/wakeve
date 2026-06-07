@@ -15,14 +15,15 @@ import AuthenticationServices
  * - Error handling with retry option
  *
  * Design System:
- * - Gradient: .wakevePrimary → .wakeveAccent
- * - Colors: Full WakeveColors palette
+ * - Background: semantic WakeveTheme colors with dark-mode-first contrast
+ * - Colors: shared iOS design tokens, with light-mode fallback
  */
 struct LoginView: View {
     @StateObject private var appleSignInHelper = AppleSignInHelper()
     @EnvironmentObject var authService: AuthenticationService
     @EnvironmentObject var authStateManager: AuthStateManager
     @Environment(\.openURL) private var openURL
+    @Environment(\.colorScheme) private var colorScheme
     
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -32,7 +33,6 @@ struct LoginView: View {
     
     var body: some View {
         ZStack {
-            // Design system gradient background
             backgroundGradient
                 .ignoresSafeArea()
             
@@ -71,17 +71,45 @@ struct LoginView: View {
     
     private var backgroundGradient: some View {
         LinearGradient(
-            gradient: Gradient(colors: [.wakevePrimary, .wakeveAccent]),
+            gradient: Gradient(colors: backgroundColors),
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+    }
+
+    private var backgroundColors: [Color] {
+        if colorScheme == .dark {
+            return [
+                WakeveTheme.ColorToken.midnight,
+                Color(hex: "0C2430"),
+                WakeveTheme.ColorToken.graphite
+            ]
+        }
+
+        return [
+            WakeveTheme.ColorToken.softIvory,
+            Color(hex: "EAF1F6"),
+            Color(hex: "D8E5EE")
+        ]
+    }
+
+    private var primaryTextColor: Color {
+        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+    }
+
+    private var secondaryTextColor: Color {
+        WakeveTheme.ColorToken.secondaryText(for: colorScheme)
+    }
+
+    private var glassStrokeColor: Color {
+        WakeveTheme.ColorToken.cardBorder(for: colorScheme)
     }
     
     private var patternOverlay: some View {
         GeometryReader { geometry in
             Image(systemName: "calendar")
                 .font(.system(size: 300))
-                .foregroundColor(.white.opacity(0.05))
+                .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.08 : 0.12))
                 .offset(x: geometry.size.width * 0.3, y: geometry.size.height * 0.2)
                 .rotationEffect(.degrees(-15))
         }
@@ -93,7 +121,7 @@ struct LoginView: View {
         ZStack {
             // Outer glow
             Circle()
-                .fill(Color.white.opacity(0.15))
+                .fill(WakeveTheme.ColorToken.accent(for: colorScheme).opacity(colorScheme == .dark ? 0.18 : 0.2))
                 .frame(width: 140, height: 140)
                 .blur(radius: 10)
             
@@ -103,15 +131,15 @@ struct LoginView: View {
                 .frame(width: 120, height: 120)
                 .overlay(
                     Circle()
-                        .stroke(.white.opacity(0.3), lineWidth: 1)
+                        .stroke(glassStrokeColor, lineWidth: 1)
                 )
-                .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.08), radius: 8, x: 0, y: 4)
             
             // App icon
             Image(systemName: "calendar.badge.plus")
                 .font(.system(size: 52, weight: .light))
-                .foregroundColor(.white)
-                .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                .foregroundColor(primaryTextColor)
+                .shadow(color: .black.opacity(colorScheme == .dark ? 0.2 : 0.08), radius: 4, x: 0, y: 2)
         }
     }
     
@@ -121,12 +149,12 @@ struct LoginView: View {
         VStack(spacing: 12) {
             Text(String(localized: "auth.sign_in"))
                 .font(.system(size: 42, weight: .bold))
-                .foregroundColor(.white)
-                .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                .foregroundColor(primaryTextColor)
+                .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.04), radius: 4, x: 0, y: 2)
             
             Text(String(localized: "auth.sign_in_subtitle"))
                 .font(.system(size: 17))
-                .foregroundColor(.white.opacity(0.9))
+                .foregroundColor(secondaryTextColor)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 40)
         }
@@ -146,12 +174,12 @@ struct LoginView: View {
     private var loadingView: some View {
         VStack(spacing: 20) {
             ProgressView()
-                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                .progressViewStyle(CircularProgressViewStyle(tint: WakeveTheme.ColorToken.accent(for: colorScheme)))
                 .scaleEffect(1.5)
             
             Text(String(localized: "auth.signing_in"))
                 .font(.system(size: 17, weight: .medium))
-                .foregroundColor(.white.opacity(0.9))
+                .foregroundColor(secondaryTextColor)
         }
         .padding(.bottom, 80)
     }
@@ -164,7 +192,7 @@ struct LoginView: View {
             } onCompletion: { result in
                 handleAppleSignInResult(result)
             }
-            .signInWithAppleButtonStyle(.white)
+            .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
             .frame(height: 56)
             .cornerRadius(16)
             .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
@@ -191,13 +219,13 @@ struct LoginView: View {
                 Image(systemName: "chevron.right")
             }
             .font(.headline)
-            .foregroundColor(.white)
+            .foregroundColor(primaryTextColor)
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)
-            .background(.white.opacity(0.18))
+            .background(WakeveTheme.ColorToken.glassTint(for: colorScheme))
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(.white.opacity(0.28), lineWidth: 1)
+                    .stroke(glassStrokeColor, lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
@@ -213,10 +241,14 @@ struct LoginView: View {
                 Image(systemName: "chevron.right")
             }
             .font(.headline)
-            .foregroundColor(.secondary)
+            .foregroundColor(secondaryTextColor)
             .padding(.horizontal, 24)
             .padding(.vertical, 12)
-            .background(.ultraThinMaterial)
+            .background(WakeveTheme.ColorToken.subtleCardFill(for: colorScheme))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(glassStrokeColor, lineWidth: 1)
+            )
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .accessibilityLabel("Development mode: Skip authentication")
@@ -228,7 +260,7 @@ struct LoginView: View {
         VStack(spacing: 6) {
             Text(String(localized: "auth.privacy_agree"))
                 .font(.system(size: 13))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(secondaryTextColor)
             
             HStack(spacing: 6) {
                 Button {
@@ -236,20 +268,20 @@ struct LoginView: View {
                 } label: {
                     Text(String(localized: "auth.privacy_policy"))
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(primaryTextColor)
                 }
                 .accessibilityLabel("Read Privacy Policy")
                 
                 Text(String(localized: "auth.and"))
                     .font(.system(size: 13))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(secondaryTextColor)
                 
                 Button {
                     openLegalURL("https://wakeve.app/terms")
                 } label: {
                     Text(String(localized: "auth.terms_of_service"))
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(primaryTextColor)
                 }
                 .accessibilityLabel("Read Terms of Service")
             }
