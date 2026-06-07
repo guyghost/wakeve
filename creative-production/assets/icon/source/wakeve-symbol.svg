@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Wakeve glass ribbon symbol</title>
+  <desc id="desc">An abstract W formed by three rounded translucent ribbons.</desc>
+  <defs>
+    <linearGradient id="ribbonA" x1="188" y1="244" x2="472" y2="780" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F7FAF8" stop-opacity="0.94"/>
+      <stop offset="0.46" stop-color="#BFD5F2" stop-opacity="0.78"/>
+      <stop offset="1" stop-color="#C9B8EA" stop-opacity="0.70"/>
+    </linearGradient>
+    <linearGradient id="ribbonB" x1="356" y1="760" x2="702" y2="244" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D7E7F7" stop-opacity="0.72"/>
+      <stop offset="0.52" stop-color="#F6F8F3" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#F0B58E" stop-opacity="0.68"/>
+    </linearGradient>
+    <linearGradient id="ribbonC" x1="574" y1="258" x2="836" y2="746" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8FAF5" stop-opacity="0.90"/>
+      <stop offset="0.46" stop-color="#C5B8EA" stop-opacity="0.76"/>
+      <stop offset="1" stop-color="#90ABD8" stop-opacity="0.70"/>
+    </linearGradient>
+    <filter id="glassShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="20" stdDeviation="18" flood-color="#07101E" flood-opacity="0.24"/>
+    </filter>
+  </defs>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#glassShadow)">
+    <path d="M212 316 C276 464 328 594 406 732 C454 650 491 571 529 493" stroke="url(#ribbonA)" stroke-width="136"/>
+    <path d="M392 734 C462 594 512 476 590 312 C652 462 702 594 782 724" stroke="url(#ribbonB)" stroke-width="136"/>
+    <path d="M588 318 C652 466 704 596 786 728" stroke="url(#ribbonC)" stroke-width="136"/>
+  </g>
+  <g fill="none" stroke-linecap="round" opacity="0.76">
+    <path d="M221 292 C280 438 332 568 410 708" stroke="#FFFFFF" stroke-width="20"/>
+    <path d="M406 710 C474 574 519 462 584 322" stroke="#FFFFFF" stroke-width="18"/>
+    <path d="M604 296 C664 438 718 578 790 704" stroke="#FFFFFF" stroke-width="18"/>
+  </g>
+</svg>
