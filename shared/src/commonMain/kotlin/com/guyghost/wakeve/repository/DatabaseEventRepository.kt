@@ -4,6 +4,7 @@ import com.guyghost.wakeve.access.ParticipantRepositoryRecord
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventPlanningMode
 import com.guyghost.wakeve.models.EventSearchResult
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
@@ -65,6 +66,11 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
                 maxParticipants = event.maxParticipants?.toLong(),
                 expectedParticipants = event.expectedParticipants?.toLong(),
                 isSample = if (isSample) 1L else 0L
+            )
+            eventQueries.updateEventPlanningMode(
+                planningMode = event.planningMode.name,
+                updatedAt = now,
+                id = event.id
             )
 
             // Insert organizer as participant
@@ -150,7 +156,8 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
                 eventTypeCustom = eventRow.eventTypeCustom,
                 minParticipants = eventRow.minParticipants?.toInt(),
                 maxParticipants = eventRow.maxParticipants?.toInt(),
-                expectedParticipants = eventRow.expectedParticipants?.toInt()
+                expectedParticipants = eventRow.expectedParticipants?.toInt(),
+                planningMode = parseEventPlanningMode(eventRow.planningMode)
             )
         } catch (e: Exception) {
             null
@@ -322,6 +329,11 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
                 maxParticipants = event.maxParticipants?.toLong(),
                 expectedParticipants = event.expectedParticipants?.toLong(),
                 isSample = if (isSample) 1L else 0L,
+                id = event.id
+            )
+            eventQueries.updateEventPlanningMode(
+                planningMode = event.planningMode.name,
+                updatedAt = now,
                 id = event.id
             )
 
@@ -588,6 +600,10 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
             "networking", "corporate", "graduation", "holiday_party", "concert" -> EventType.OTHER
             else -> EventType.OTHER
         }
+    }
+
+    private fun parseEventPlanningMode(value: String?): EventPlanningMode {
+        return enumValueOrNull<EventPlanningMode>(value) ?: EventPlanningMode.TIME_SLOT_POLL
     }
 
     private fun parseTimeOfDay(value: String?): TimeOfDay {

@@ -43,7 +43,8 @@ enum EventFactory {
             minParticipants: nil,
             maxParticipants: nil,
             expectedParticipants: nil,
-            heroImageUrl: nil
+            heroImageUrl: nil,
+            planningMode: .timeSlotPoll
         )
     }
 
@@ -67,7 +68,8 @@ enum EventFactory {
             minParticipants: KotlinInt(value: 3),
             maxParticipants: KotlinInt(value: 20),
             expectedParticipants: KotlinInt(value: 8),
-            heroImageUrl: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800"
+            heroImageUrl: "https://images.unsplash.com/photo-1551632811-561732d1e306?w=800",
+            planningMode: .timeSlotPoll
         )
     }
 
@@ -91,7 +93,8 @@ enum EventFactory {
             minParticipants: KotlinInt(value: 4),
             maxParticipants: nil,
             expectedParticipants: KotlinInt(value: 6),
-            heroImageUrl: nil
+            heroImageUrl: nil,
+            planningMode: .timeSlotPoll
         )
     }
 
@@ -137,7 +140,8 @@ enum EventFactory {
             minParticipants: KotlinInt(value: 5),
             maxParticipants: KotlinInt(value: 15),
             expectedParticipants: KotlinInt(value: 10),
-            heroImageUrl: nil
+            heroImageUrl: nil,
+            planningMode: .timeSlotPoll
         )
     }
 
@@ -206,7 +210,8 @@ enum EventFactory {
             minParticipants: KotlinInt(value: 10),
             maxParticipants: KotlinInt(value: 50),
             expectedParticipants: KotlinInt(value: 25),
-            heroImageUrl: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800"
+            heroImageUrl: "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800",
+            planningMode: .timeSlotPoll
         )
     }
 
@@ -250,7 +255,8 @@ enum EventFactory {
             minParticipants: minParticipants.map { KotlinInt(value: $0) },
             maxParticipants: maxParticipants.map { KotlinInt(value: $0) },
             expectedParticipants: expectedParticipants.map { KotlinInt(value: $0) },
-            heroImageUrl: heroImageUrl
+            heroImageUrl: heroImageUrl,
+            planningMode: .timeSlotPoll
         )
     }
 

@@ -39,6 +39,7 @@ struct CreateEventSheet: View {
     var selectedEventType: Shared.EventType { eventTypes[selectedEventTypeIndex] }
     @State private var showingEventTypePicker = false
     @State private var expectedParticipants: Int? = nil
+    @State private var planningMode: EventPlanningMode = .timeSlotPoll
 
     // Date picker sheet state
     @State private var showingDatePicker = false
@@ -163,6 +164,8 @@ struct CreateEventSheet: View {
                 endTime: endTime,
                 eventType: selectedEventType,
                 expectedParticipants: expectedParticipants,
+                planningMode: planningMode,
+                matrixScenarioCount: scenarioMatrixPreviewCount,
                 onNext: {
                     showingPreview = false
                     createEvent()
@@ -385,6 +388,14 @@ struct CreateEventSheet: View {
                 CreateEventChoiceRow(systemImage: "mappin.and.ellipse", title: "Lieu", value: selectedLocation ?? "À choisir plus tard")
                 let count = expectedParticipants ?? 1
                 CreateEventChoiceRow(systemImage: "person.2.fill", title: "Invités", value: "\(count) attendu\(count > 1 ? "s" : "")")
+                planningModePicker
+                if planningMode == .scenarioMatrix {
+                    CreateEventChoiceRow(
+                        systemImage: "square.grid.2x2.fill",
+                        title: "Scénarios",
+                        value: "\(scenarioMatrixPreviewCount) combinaison(s) créneau × destination"
+                    )
+                }
 
                 Text("Un aperçu s’ouvrira avant la création de l’événement.")
                     .font(WakeveTheme.Typography.callout)
@@ -890,7 +901,9 @@ struct CreateEventSheet: View {
     }
     
     private var canCreate: Bool {
-        hasRequiredEventText && !proposedSlotDrafts.isEmpty
+        hasRequiredEventText &&
+        !proposedSlotDrafts.isEmpty &&
+        (planningMode == .timeSlotPoll || selectedLocation != nil)
     }
 
     private var validationMessageForCurrentStep: String {
@@ -902,7 +915,30 @@ struct CreateEventSheet: View {
             return "Ajoutez au moins un créneau avant de continuer."
         }
 
+        if planningMode == .scenarioMatrix && selectedLocation == nil {
+            return "Ajoutez au moins une destination pour le mode scénarios."
+        }
+
         return "Vérifiez les détails avant de continuer."
+    }
+
+    private var scenarioMatrixPreviewCount: Int {
+        planningMode == .scenarioMatrix && selectedLocation != nil ? proposedSlotDrafts.count : 0
+    }
+
+    private var planningModePicker: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+            Text("Mode de vote")
+                .font(WakeveTheme.Typography.caption)
+                .foregroundColor(secondaryTextColor)
+                .textCase(.uppercase)
+
+            Picker("Mode de vote", selection: $planningMode) {
+                Text("Créneaux").tag(EventPlanningMode.timeSlotPoll)
+                Text("Scénarios").tag(EventPlanningMode.scenarioMatrix)
+            }
+            .pickerStyle(.segmented)
+        }
     }
 
     private var proposedSlotsSummary: String {
@@ -1036,7 +1072,8 @@ struct CreateEventSheet: View {
             userId: userId,
             eventType: selectedEventType,
             selectedSlots: selectedSlotInputs(),
-            expectedParticipants: expectedParticipants.map { Int32($0) }
+            expectedParticipants: expectedParticipants.map { Int32($0) },
+            planningMode: planningMode
         )
 
         dismiss()
@@ -1535,6 +1572,8 @@ private struct EventPreviewSheet: View {
     let endTime: Date
     var eventType: Shared.EventType = Shared.EventType.other
     var expectedParticipants: Int? = nil
+    var planningMode: EventPlanningMode = .timeSlotPoll
+    var matrixScenarioCount: Int = 0
     var onNext: () -> Void = {}
 
     @State private var mapPosition: MapCameraPosition = .automatic
@@ -1609,6 +1648,14 @@ private struct EventPreviewSheet: View {
                                         .foregroundColor(.white.opacity(0.7))
                                 }
                             }
+                        }
+
+                        if planningMode == .scenarioMatrix {
+                            Text("\(matrixScenarioCount) scénario(s) créneau × destination à préparer")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.white.opacity(0.82))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.78)
                         }
 
                         // RSVP card
@@ -1691,6 +1738,21 @@ private struct EventPreviewSheet: View {
                         .font(.system(size: 15))
                         .foregroundColor(previewSecondaryText)
                         .lineSpacing(4)
+                }
+
+                if planningMode == .scenarioMatrix {
+                    HStack(alignment: .top, spacing: 14) {
+                        Image(systemName: "square.grid.2x2.fill")
+                            .font(.system(size: 20))
+                            .foregroundColor(Color(hex: "8B5CF6"))
+                            .frame(width: 24)
+                            .padding(.top, 2)
+
+                        Text("Les participants voteront sur des scénarios complets combinant créneau et destination.")
+                            .font(.system(size: 15))
+                            .foregroundColor(previewSecondaryText)
+                            .lineSpacing(4)
+                    }
                 }
             }
             .padding(.horizontal, 20)

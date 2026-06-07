@@ -58,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventPlanningMode
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.TimeSlot
@@ -95,6 +96,7 @@ fun CreateEventScreen(
     var hasBackgroundImage by remember { mutableStateOf(false) }
     var selectedEventType by remember { mutableStateOf(EventType.OTHER) }
     var expectedParticipants by remember { mutableStateOf<Int?>(null) }
+    var planningMode by remember { mutableStateOf(EventPlanningMode.TIME_SLOT_POLL) }
 
     // Validation state
     var validationError by remember { mutableStateOf<String?>(null) }
@@ -188,6 +190,15 @@ fun CreateEventScreen(
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            PlanningModeSelector(
+                planningMode = planningMode,
+                onPlanningModeChange = { planningMode = it },
+                matrixScenarioCount = if (selectedDate != null && selectedLocation != null) 1 else 0,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
             Spacer(modifier = Modifier.height(32.dp))
 
             // Validation error message
@@ -229,7 +240,8 @@ fun CreateEventScreen(
                         eventTypeCustom = null,
                         minParticipants = null,
                         maxParticipants = null,
-                        expectedParticipants = expectedParticipants
+                        expectedParticipants = expectedParticipants,
+                        planningMode = planningMode
                     )
                     onEventCreated(event)
                 }
@@ -252,9 +264,81 @@ fun CreateEventScreen(
                 selectedLocation = selectedLocation,
                 eventType = selectedEventType,
                 expectedParticipants = expectedParticipants,
+                planningMode = planningMode,
+                matrixScenarioCount = if (selectedDate != null && selectedLocation != null) 1 else 0,
                 onDismiss = { showPreview = false }
             )
         }
+    }
+}
+
+@Composable
+private fun PlanningModeSelector(
+    planningMode: EventPlanningMode,
+    onPlanningModeChange: (EventPlanningMode) -> Unit,
+    matrixScenarioCount: Int,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = Color.White.copy(alpha = 0.12f),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Mode de vote",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PlanningModeButton(
+                    text = "Créneaux",
+                    selected = planningMode == EventPlanningMode.TIME_SLOT_POLL,
+                    onClick = { onPlanningModeChange(EventPlanningMode.TIME_SLOT_POLL) },
+                    modifier = Modifier.weight(1f)
+                )
+                PlanningModeButton(
+                    text = "Scénarios",
+                    selected = planningMode == EventPlanningMode.SCENARIO_MATRIX,
+                    onClick = { onPlanningModeChange(EventPlanningMode.SCENARIO_MATRIX) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            if (planningMode == EventPlanningMode.SCENARIO_MATRIX) {
+                Text(
+                    text = "$matrixScenarioCount scénario(s) date × destination seront préparés avant publication.",
+                    fontSize = 12.sp,
+                    color = Color.White.copy(alpha = 0.72f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlanningModeButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.clickable(onClick = onClick),
+        color = if (selected) Color.White.copy(alpha = 0.22f) else Color.White.copy(alpha = 0.08f),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(
+            text = text,
+            color = Color.White,
+            fontSize = 13.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(vertical = 10.dp)
+        )
     }
 }
 

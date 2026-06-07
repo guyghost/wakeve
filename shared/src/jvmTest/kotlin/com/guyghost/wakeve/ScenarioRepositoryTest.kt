@@ -5,8 +5,10 @@ import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventPlanningMode
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Scenario
+import com.guyghost.wakeve.models.ScenarioGenerationType
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.ScenarioVote
 import com.guyghost.wakeve.models.ScenarioVoteType
@@ -42,6 +44,62 @@ class ScenarioRepositoryTest {
             updatedAt = "2025-11-20T10:00:00Z"
         )
         eventRepository.createEvent(event)
+        return event
+    }
+
+    private suspend fun createMatrixEvent(eventId: String): Event {
+        val event = Event(
+            id = eventId,
+            title = "Matrix Event",
+            description = "Test event for matrix scenarios",
+            organizerId = "org-1",
+            participants = emptyList(),
+            proposedSlots = listOf(
+                com.guyghost.wakeve.models.TimeSlot(
+                    id = "slot-1",
+                    start = "2026-07-01T10:00:00Z",
+                    end = "2026-07-01T12:00:00Z",
+                    timezone = "Europe/Paris"
+                ),
+                com.guyghost.wakeve.models.TimeSlot(
+                    id = "slot-2",
+                    start = "2026-07-02T10:00:00Z",
+                    end = "2026-07-02T12:00:00Z",
+                    timezone = "Europe/Paris"
+                ),
+                com.guyghost.wakeve.models.TimeSlot(
+                    id = "slot-3",
+                    start = "2026-07-03T10:00:00Z",
+                    end = "2026-07-03T12:00:00Z",
+                    timezone = "Europe/Paris"
+                )
+            ),
+            deadline = "2026-06-20T00:00:00Z",
+            status = EventStatus.DRAFT,
+            createdAt = "2026-06-01T10:00:00Z",
+            updatedAt = "2026-06-01T10:00:00Z",
+            expectedParticipants = 6,
+            planningMode = EventPlanningMode.SCENARIO_MATRIX
+        )
+        eventRepository.createEvent(event)
+        db.potentialLocationQueries.insertLocation(
+            id = "loc-1",
+            eventId = eventId,
+            name = "Paris",
+            locationType = "CITY",
+            address = null,
+            coordinates = null,
+            createdAt = "2026-06-01T10:00:00Z"
+        )
+        db.potentialLocationQueries.insertLocation(
+            id = "loc-2",
+            eventId = eventId,
+            name = "Lyon",
+            locationType = "CITY",
+            address = null,
+            coordinates = null,
+            createdAt = "2026-06-01T10:01:00Z"
+        )
         return event
     }
 
@@ -98,6 +156,61 @@ class ScenarioRepositoryTest {
         assertNotNull(retrieved, "Scenario should be retrievable")
         assertEquals("Paris Weekend", retrieved?.name, "Name should match")
         assertEquals(ScenarioStatus.PROPOSED, retrieved?.status, "Status should match")
+    }
+
+    @Test
+    fun testGenerateScenarioMatrixCreatesDraftCartesianProductAndSkipsDuplicates() = runBlocking {
+        setup()
+        createMatrixEvent("event-matrix-1")
+
+        val first = repository.generateScenarioMatrix("event-matrix-1")
+        assertTrue(first.isSuccess)
+        assertEquals(6, first.getOrThrow().size)
+        assertEquals(6, repository.countScenariosByStatus("event-matrix-1", ScenarioStatus.DRAFT))
+        assertTrue(repository.getScenariosByEventId("event-matrix-1").all {
+            it.generationType == ScenarioGenerationType.MATRIX &&
+                it.sourceTimeSlotId != null &&
+                it.sourcePotentialLocationId != null
+        })
+
+        val second = repository.generateScenarioMatrix("event-matrix-1")
+        assertTrue(second.isSuccess)
+        assertEquals(0, second.getOrThrow().size)
+        assertEquals(6, repository.countScenariosByStatus("event-matrix-1", ScenarioStatus.DRAFT))
+    }
+
+    @Test
+    fun testPublishScenarioMatrixMovesEventToComparingAndQueuesSync() = runBlocking {
+        setup()
+        createMatrixEvent("event-matrix-publish")
+        repository.generateScenarioMatrix("event-matrix-publish").getOrThrow()
+
+        val result = repository.publishScenarioMatrix("event-matrix-publish")
+        assertTrue(result.isSuccess)
+
+        assertEquals(EventStatus.COMPARING, eventRepository.getEvent("event-matrix-publish")?.status)
+        assertEquals(6, repository.countScenariosByStatus("event-matrix-publish", ScenarioStatus.PROPOSED))
+        assertTrue(db.syncMetadataQueries.selectByEntity("scenario_matrix", "event-matrix-publish").executeAsList().isNotEmpty())
+    }
+
+    @Test
+    fun testSelectFinalMatrixScenarioConfirmsDateAndRejectsCompetitors() = runBlocking {
+        setup()
+        createMatrixEvent("event-matrix-select")
+        repository.generateScenarioMatrix("event-matrix-select").getOrThrow()
+        repository.publishScenarioMatrix("event-matrix-select").getOrThrow()
+
+        val selected = repository.getScenariosByEventId("event-matrix-select").first {
+            it.sourceTimeSlotId == "slot-2" && it.sourcePotentialLocationId == "loc-1"
+        }
+        val result = repository.selectFinalMatrixScenario("event-matrix-select", selected.id)
+        assertTrue(result.isSuccess)
+
+        val event = eventRepository.getEvent("event-matrix-select")
+        assertEquals(EventStatus.CONFIRMED, event?.status)
+        assertEquals("2026-07-02T10:00:00Z", event?.finalDate)
+        assertEquals(ScenarioStatus.SELECTED, repository.getScenarioById(selected.id)?.status)
+        assertEquals(5, repository.countScenariosByStatus("event-matrix-select", ScenarioStatus.REJECTED))
     }
 
     @Test

@@ -6,6 +6,7 @@ import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.models.CreateScenarioRequest
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Scenario
+import com.guyghost.wakeve.models.ScenarioGenerationType
 import com.guyghost.wakeve.models.ScenarioResponse
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.ScenarioVote
@@ -51,20 +52,7 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                     )
                 }
 
-                val response = ScenarioResponse(
-                    id = scenario.id,
-                    eventId = scenario.eventId,
-                    name = scenario.name,
-                    dateOrPeriod = scenario.dateOrPeriod,
-                    location = scenario.location,
-                    duration = scenario.duration,
-                    estimatedParticipants = scenario.estimatedParticipants,
-                    estimatedBudgetPerPerson = scenario.estimatedBudgetPerPerson,
-                    description = scenario.description,
-                    status = scenario.status.name,
-                    createdAt = scenario.createdAt,
-                    updatedAt = scenario.updatedAt
-                )
+                val response = scenario.toResponse()
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
                 call.respond(
@@ -114,25 +102,16 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                     estimatedBudgetPerPerson = request.estimatedBudgetPerPerson ?: existing.estimatedBudgetPerPerson,
                     description = request.description ?: existing.description,
                     status = request.status?.let { ScenarioStatus.valueOf(it) } ?: existing.status,
-                    updatedAt = now
+                    updatedAt = now,
+                    sourceTimeSlotId = request.sourceTimeSlotId ?: existing.sourceTimeSlotId,
+                    sourcePotentialLocationId = request.sourcePotentialLocationId ?: existing.sourcePotentialLocationId,
+                    generationType = request.generationType?.let { ScenarioGenerationType.valueOf(it) }
+                        ?: existing.generationType
                 )
 
                 val result = repository.updateScenario(updated)
                 if (result.isSuccess) {
-                    val response = ScenarioResponse(
-                        id = updated.id,
-                        eventId = updated.eventId,
-                        name = updated.name,
-                        dateOrPeriod = updated.dateOrPeriod,
-                        location = updated.location,
-                        duration = updated.duration,
-                        estimatedParticipants = updated.estimatedParticipants,
-                        estimatedBudgetPerPerson = updated.estimatedBudgetPerPerson,
-                        description = updated.description,
-                        status = updated.status.name,
-                        createdAt = updated.createdAt,
-                        updatedAt = updated.updatedAt
-                    )
+                    val response = updated.toResponse()
                     call.respond(HttpStatusCode.OK, response)
                 } else {
                     call.respond(
@@ -209,7 +188,7 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
 
                 val request = call.receive<ScenarioVoteRequest>()
                 if (principal.userId != request.participantId ||
-                    !isConfirmedScenarioParticipant(database, scenario.eventId, request.participantId)
+                    !hasConfirmedScenarioAccess(database, scenario.eventId, request.participantId)
                 ) {
                     return@post call.respond(
                         HttpStatusCode.Forbidden,
@@ -328,26 +307,126 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                 }
 
                 val scenarios = repository.getScenariosByEventId(eventId)
-                val responses = scenarios.map { scenario ->
-                    ScenarioResponse(
-                        id = scenario.id,
-                        eventId = scenario.eventId,
-                        name = scenario.name,
-                        dateOrPeriod = scenario.dateOrPeriod,
-                        location = scenario.location,
-                        duration = scenario.duration,
-                        estimatedParticipants = scenario.estimatedParticipants,
-                        estimatedBudgetPerPerson = scenario.estimatedBudgetPerPerson,
-                        description = scenario.description,
-                        status = scenario.status.name,
-                        createdAt = scenario.createdAt,
-                        updatedAt = scenario.updatedAt
-                    )
-                }
+                val responses = scenarios.map { it.toResponse() }
                 call.respond(HttpStatusCode.OK, mapOf("scenarios" to responses))
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
+                    mapOf("error" to e.message.orEmpty())
+                )
+            }
+        }
+
+        // POST /api/events/{eventId}/scenarios/matrix/generate - Generate draft scenario matrix
+        post("/matrix/generate") {
+            try {
+                val eventId = call.parameters["eventId"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isScenarioOrganizer(database, eventId, principal.userId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can generate scenario matrix")
+                    )
+                }
+
+                repository.generateScenarioMatrix(eventId).fold(
+                    onSuccess = { generated ->
+                        call.respond(
+                            HttpStatusCode.Created,
+                            mapOf("scenarios" to generated.map { it.toResponse() })
+                        )
+                    },
+                    onFailure = { error ->
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to (error.message ?: "Failed to generate scenario matrix"))
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to e.message.orEmpty())
+                )
+            }
+        }
+
+        // POST /api/events/{eventId}/scenarios/matrix/publish - Publish draft matrix scenarios
+        post("/matrix/publish") {
+            try {
+                val eventId = call.parameters["eventId"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isScenarioOrganizer(database, eventId, principal.userId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can publish scenario matrix")
+                    )
+                }
+
+                repository.publishScenarioMatrix(eventId).fold(
+                    onSuccess = {
+                        call.respond(HttpStatusCode.OK, mapOf("status" to "published"))
+                    },
+                    onFailure = { error ->
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to (error.message ?: "Failed to publish scenario matrix"))
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to e.message.orEmpty())
+                )
+            }
+        }
+
+        // POST /api/events/{eventId}/scenarios/{scenarioId}/select-final - Select final matrix scenario
+        post("/{scenarioId}/select-final") {
+            try {
+                val eventId = call.parameters["eventId"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event ID required")
+                )
+                val scenarioId = call.parameters["scenarioId"] ?: return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Scenario ID required")
+                )
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+
+                if (!isScenarioOrganizer(database, eventId, principal.userId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can select final scenario")
+                    )
+                }
+
+                repository.selectFinalMatrixScenario(eventId, scenarioId).fold(
+                    onSuccess = {
+                        call.respond(HttpStatusCode.OK, mapOf("status" to "selected"))
+                    },
+                    onFailure = { error ->
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to (error.message ?: "Failed to select final scenario"))
+                        )
+                    }
+                )
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
                     mapOf("error" to e.message.orEmpty())
                 )
             }
@@ -392,25 +471,16 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                     description = request.description,
                     status = ScenarioStatus.PROPOSED,
                     createdAt = now,
-                    updatedAt = now
+                    updatedAt = now,
+                    sourceTimeSlotId = request.sourceTimeSlotId,
+                    sourcePotentialLocationId = request.sourcePotentialLocationId,
+                    generationType = request.generationType?.let { ScenarioGenerationType.valueOf(it) }
+                        ?: ScenarioGenerationType.MANUAL
                 )
 
                 val result = repository.createScenario(scenario)
                 if (result.isSuccess) {
-                    val response = ScenarioResponse(
-                        id = scenario.id,
-                        eventId = scenario.eventId,
-                        name = scenario.name,
-                        dateOrPeriod = scenario.dateOrPeriod,
-                        location = scenario.location,
-                        duration = scenario.duration,
-                        estimatedParticipants = scenario.estimatedParticipants,
-                        estimatedBudgetPerPerson = scenario.estimatedBudgetPerPerson,
-                        description = scenario.description,
-                        status = scenario.status.name,
-                        createdAt = scenario.createdAt,
-                        updatedAt = scenario.updatedAt
-                    )
+                    val response = scenario.toResponse()
                     call.respond(HttpStatusCode.Created, response)
                 } else {
                     call.respond(
@@ -446,20 +516,7 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                 val scenariosWithVotes = repository.getScenariosWithVotes(eventId)
                 val responses = scenariosWithVotes.map { swv ->
                     ScenarioWithVotesResponse(
-                        scenario = ScenarioResponse(
-                            id = swv.scenario.id,
-                            eventId = swv.scenario.eventId,
-                            name = swv.scenario.name,
-                            dateOrPeriod = swv.scenario.dateOrPeriod,
-                            location = swv.scenario.location,
-                            duration = swv.scenario.duration,
-                            estimatedParticipants = swv.scenario.estimatedParticipants,
-                            estimatedBudgetPerPerson = swv.scenario.estimatedBudgetPerPerson,
-                            description = swv.scenario.description,
-                            status = swv.scenario.status.name,
-                            createdAt = swv.scenario.createdAt,
-                            updatedAt = swv.scenario.updatedAt
-                        ),
+                        scenario = swv.scenario.toResponse(),
                         votes = swv.votes.map { vote ->
                             ScenarioVoteResponse(
                                 id = vote.id,
@@ -495,7 +552,8 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
 
 private fun hasConfirmedScenarioAccess(database: WakeveDb, eventId: String, userId: String): Boolean {
     return isScenarioOrganizer(database, eventId, userId) ||
-        isConfirmedScenarioParticipant(database, eventId, userId)
+        isConfirmedScenarioParticipant(database, eventId, userId) ||
+        isComparingParticipant(database, eventId, userId)
 }
 
 private fun isScenarioOrganizer(database: WakeveDb, eventId: String, userId: String): Boolean {
@@ -513,6 +571,16 @@ private fun isConfirmedScenarioParticipant(database: WakeveDb, eventId: String, 
     return participant?.hasValidatedDate == 1L
 }
 
+private fun isComparingParticipant(database: WakeveDb, eventId: String, userId: String): Boolean {
+    val event = database.eventQueries.selectById(eventId).executeAsOneOrNull() ?: return false
+    if (event.status != EventStatus.COMPARING.name) {
+        return false
+    }
+    return database.participantQueries
+        .selectByEventIdAndUserId(eventId, userId)
+        .executeAsOneOrNull() != null
+}
+
 private fun isScenarioCreationAllowed(database: WakeveDb, eventId: String): Boolean {
     val status = database.eventQueries
         .selectById(eventId)
@@ -520,6 +588,26 @@ private fun isScenarioCreationAllowed(database: WakeveDb, eventId: String): Bool
         ?.status
 
     return status == EventStatus.CONFIRMED.name || status == EventStatus.COMPARING.name
+}
+
+private fun Scenario.toResponse(): ScenarioResponse {
+    return ScenarioResponse(
+        id = id,
+        eventId = eventId,
+        name = name,
+        dateOrPeriod = dateOrPeriod,
+        location = location,
+        duration = duration,
+        estimatedParticipants = estimatedParticipants,
+        estimatedBudgetPerPerson = estimatedBudgetPerPerson,
+        description = description,
+        status = status.name,
+        createdAt = createdAt,
+        updatedAt = updatedAt,
+        sourceTimeSlotId = sourceTimeSlotId,
+        sourcePotentialLocationId = sourcePotentialLocationId,
+        generationType = generationType.name
+    )
 }
 
 private fun isScenarioFinalized(database: WakeveDb, eventId: String): Boolean {

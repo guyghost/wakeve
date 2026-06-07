@@ -63,7 +63,10 @@ class ScenarioDetailViewModel: StateMachineViewModel<
             description: description,
             status: scenario?.status ?? ScenarioStatus.proposed,
             createdAt: scenario?.createdAt ?? "",
-            updatedAt: ""
+            updatedAt: "",
+            sourceTimeSlotId: scenario?.sourceTimeSlotId,
+            sourcePotentialLocationId: scenario?.sourcePotentialLocationId,
+            generationType: scenario?.generationType ?? ScenarioGenerationType.manual
         )
         dispatch(ScenarioManagementContractIntentUpdateScenario(scenario: updatedScenario))
         isEditing = false

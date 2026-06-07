@@ -64,7 +64,8 @@ fun io.ktor.server.routing.Route.eventRoutes(
                         eventTypeCustom = event.eventTypeCustom,
                         minParticipants = event.minParticipants,
                         maxParticipants = event.maxParticipants,
-                        expectedParticipants = event.expectedParticipants
+                        expectedParticipants = event.expectedParticipants,
+                        planningMode = event.planningMode.name
                     )
                 }
                 call.respond(HttpStatusCode.OK, mapOf("events" to responses))
@@ -112,7 +113,8 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     eventTypeCustom = event.eventTypeCustom,
                     minParticipants = event.minParticipants,
                     maxParticipants = event.maxParticipants,
-                    expectedParticipants = event.expectedParticipants
+                    expectedParticipants = event.expectedParticipants,
+                    planningMode = event.planningMode.name
                 )
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
@@ -159,7 +161,10 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     eventTypeCustom = request.eventTypeCustom,
                     minParticipants = request.minParticipants,
                     maxParticipants = request.maxParticipants,
-                    expectedParticipants = request.expectedParticipants
+                    expectedParticipants = request.expectedParticipants,
+                    planningMode = request.planningMode?.let {
+                        com.guyghost.wakeve.models.EventPlanningMode.valueOf(it)
+                    } ?: com.guyghost.wakeve.models.EventPlanningMode.TIME_SLOT_POLL
                 )
 
                 val result = repository.createEvent(event)
@@ -198,7 +203,8 @@ fun io.ktor.server.routing.Route.eventRoutes(
                         eventTypeCustom = event.eventTypeCustom,
                         minParticipants = event.minParticipants,
                         maxParticipants = event.maxParticipants,
-                        expectedParticipants = event.expectedParticipants
+                        expectedParticipants = event.expectedParticipants,
+                        planningMode = event.planningMode.name
                     )
                     call.respond(HttpStatusCode.Created, response)
                 } else {

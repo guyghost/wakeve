@@ -725,6 +725,13 @@ class EventManagementStateMachine(
             return
         }
 
+        if (event.planningMode == com.guyghost.wakeve.models.EventPlanningMode.SCENARIO_MATRIX) {
+            val errorMsg = "Cannot start poll: Matrix events must publish scenarios instead"
+            updateState { it.copy(isLoading = false, error = errorMsg) }
+            emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMsg))
+            return
+        }
+
         // Update event status to POLLING
         val result = eventRepository.updateEventStatus(
             id = eventId,

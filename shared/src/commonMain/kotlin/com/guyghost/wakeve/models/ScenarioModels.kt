@@ -20,7 +20,10 @@ data class Scenario(
     val description: String,
     val status: ScenarioStatus,
     val createdAt: String, // ISO string (UTC)
-    val updatedAt: String // ISO string (UTC)
+    val updatedAt: String, // ISO string (UTC)
+    val sourceTimeSlotId: String? = null,
+    val sourcePotentialLocationId: String? = null,
+    val generationType: ScenarioGenerationType = ScenarioGenerationType.MANUAL
 ) {
     init {
         require(name.isNotBlank()) { "Scenario name cannot be blank" }
@@ -36,6 +39,9 @@ data class Scenario(
  */
 @Serializable
 enum class ScenarioStatus {
+    /** Scenario is generated or edited by the organizer before publication */
+    DRAFT,
+
     /** Scenario is proposed and open for voting */
     PROPOSED,
     
@@ -44,6 +50,12 @@ enum class ScenarioStatus {
     
     /** Scenario has been rejected and is no longer considered */
     REJECTED
+}
+
+@Serializable
+enum class ScenarioGenerationType {
+    MANUAL,
+    MATRIX
 }
 
 /**

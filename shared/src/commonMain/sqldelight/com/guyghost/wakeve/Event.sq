@@ -14,7 +14,8 @@ CREATE TABLE event (
     minParticipants INTEGER, -- Minimum expected participants
     maxParticipants INTEGER, -- Maximum expected participants
     expectedParticipants INTEGER, -- Expected number of participants
-    isSample INTEGER NOT NULL DEFAULT 0 -- 1 = sample/onboarding event, excluded from sync
+    isSample INTEGER NOT NULL DEFAULT 0, -- 1 = sample/onboarding event, excluded from sync
+    planningMode TEXT NOT NULL DEFAULT 'TIME_SLOT_POLL' -- TIME_SLOT_POLL, SCENARIO_MATRIX
 );
 
 -- Queries
@@ -42,6 +43,11 @@ WHERE id = ?;
 updateEventStatus:
 UPDATE event
 SET status = ?, updatedAt = ?
+WHERE id = ?;
+
+updateEventPlanningMode:
+UPDATE event
+SET planningMode = ?, updatedAt = ?
 WHERE id = ?;
 
 deleteEvent:

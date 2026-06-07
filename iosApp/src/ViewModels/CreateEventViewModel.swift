@@ -56,7 +56,8 @@ class CreateEventViewModel: StateMachineViewModel<
         selectedSlots: [EventTimeSlotInput] = [],
         minParticipants: Int32? = nil,
         maxParticipants: Int32? = nil,
-        expectedParticipants: Int32? = nil
+        expectedParticipants: Int32? = nil,
+        planningMode: EventPlanningMode = .timeSlotPoll
     ) {
         guard !title.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
@@ -84,7 +85,8 @@ class CreateEventViewModel: StateMachineViewModel<
             minParticipants: minParticipants.map { KotlinInt(value: $0) },
             maxParticipants: maxParticipants.map { KotlinInt(value: $0) },
             expectedParticipants: expectedParticipants.map { KotlinInt(value: $0) },
-            heroImageUrl: nil
+            heroImageUrl: nil,
+            planningMode: planningMode
         )
 
         // Dispatch to StateMachine — persists to SQLDelight DB

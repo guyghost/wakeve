@@ -70,6 +70,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Scenario
+import com.guyghost.wakeve.models.ScenarioGenerationType
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.ScenarioVoteType
 import com.guyghost.wakeve.models.ScenarioWithVotes
@@ -507,7 +508,32 @@ private fun ScenarioCard(
                                     modifier = Modifier.padding(4.dp, 2.dp)
                                 )
                             }
+                        } else if (scenario.status == ScenarioStatus.DRAFT) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    "Draft",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(4.dp, 2.dp)
+                                )
+                            }
                         }
+                    }
+
+                    if (scenario.generationType == ScenarioGenerationType.MATRIX) {
+                        Text(
+                            text = listOfNotNull(
+                                scenario.sourceTimeSlotId?.let { "slot $it" },
+                                scenario.sourcePotentialLocationId?.let { "destination $it" }
+                            ).joinToString(" • ", prefix = "Matrix: "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
 
                     // Description

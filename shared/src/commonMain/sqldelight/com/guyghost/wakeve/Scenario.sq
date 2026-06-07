@@ -12,6 +12,9 @@ CREATE TABLE scenario (
     status TEXT NOT NULL, -- PROPOSED, SELECTED, REJECTED
     createdAt TEXT NOT NULL, -- ISO 8601 UTC timestamp
     updatedAt TEXT NOT NULL, -- ISO 8601 UTC timestamp
+    sourceTimeSlotId TEXT,
+    sourcePotentialLocationId TEXT,
+    generationType TEXT NOT NULL DEFAULT 'MANUAL', -- MANUAL, MATRIX
     FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
 );
 
@@ -20,6 +23,7 @@ CREATE INDEX IF NOT EXISTS scenario_eventId ON scenario(eventId);
 CREATE INDEX IF NOT EXISTS scenario_status ON scenario(status);
 CREATE INDEX IF NOT EXISTS scenario_eventId_status ON scenario(eventId, status);
 CREATE INDEX IF NOT EXISTS idx_scenario_event ON scenario(eventId, createdAt DESC);
+CREATE INDEX IF NOT EXISTS scenario_matrix_sources ON scenario(eventId, sourceTimeSlotId, sourcePotentialLocationId);
 
 -- Queries
 selectAll:
@@ -50,15 +54,34 @@ insertScenario:
 INSERT INTO scenario(id, eventId, name, dateOrPeriod, location, duration, estimatedParticipants, estimatedBudgetPerPerson, description, status, createdAt, updatedAt)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
+insertScenarioWithMetadata:
+INSERT INTO scenario(id, eventId, name, dateOrPeriod, location, duration, estimatedParticipants, estimatedBudgetPerPerson, description, status, createdAt, updatedAt, sourceTimeSlotId, sourcePotentialLocationId, generationType)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
 updateScenario:
 UPDATE scenario
 SET name = ?, dateOrPeriod = ?, location = ?, duration = ?, estimatedParticipants = ?, estimatedBudgetPerPerson = ?, description = ?, updatedAt = ?
+WHERE id = ?;
+
+updateScenarioWithMetadata:
+UPDATE scenario
+SET name = ?, dateOrPeriod = ?, location = ?, duration = ?, estimatedParticipants = ?, estimatedBudgetPerPerson = ?, description = ?, updatedAt = ?, sourceTimeSlotId = ?, sourcePotentialLocationId = ?, generationType = ?
 WHERE id = ?;
 
 updateScenarioStatus:
 UPDATE scenario
 SET status = ?, updatedAt = ?
 WHERE id = ?;
+
+publishDraftMatrixScenarios:
+UPDATE scenario
+SET status = 'PROPOSED', updatedAt = ?
+WHERE eventId = ? AND generationType = 'MATRIX' AND status = 'DRAFT';
+
+selectMatrixBySources:
+SELECT * FROM scenario
+WHERE eventId = ? AND sourceTimeSlotId = ? AND sourcePotentialLocationId = ? AND generationType = 'MATRIX'
+LIMIT 1;
 
 deleteScenario:
 DELETE FROM scenario WHERE id = ?;
