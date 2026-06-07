@@ -1292,6 +1292,17 @@ struct EventDetailView: View {
     let onOpenTricount: () -> Void
     let onBack: () -> Void
 
+    @State private var eventAISummary: EventSummary?
+    @State private var eventAIPolls: [PollSuggestion] = []
+    @State private var eventAIChecklist: [ChecklistItem] = []
+    @State private var eventAIInvitationMessages: InvitationMessageSet?
+    @State private var selectedInvitationVariant: EventAIInvitationVariant = .simple
+    @State private var editableInvitationDraft: String = ""
+    @State private var appliedEventAISuggestions: Set<String> = []
+    @State private var ignoredEventAISuggestions: Set<String> = []
+    @State private var isGeneratingEventAI = false
+    @State private var eventAIError: String?
+
     var body: some View {
         ZStack {
             WakeveTheme.ColorToken.pageBackground(for: colorScheme)
@@ -1301,6 +1312,7 @@ struct EventDetailView: View {
                 VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
                     heroSection
                     metadataOverview
+                    eventAISuggestionPanel
                     urgentNextAction
                     participantsPreview
                     detailRows
@@ -1502,6 +1514,121 @@ struct EventDetailView: View {
             subtitle: compactMessageSubtitle,
             badgeText: event.status == .polling ? "Vote" : "Événement"
         )
+    }
+
+    private var eventAISuggestionPanel: some View {
+        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text("Suggestion")
+                            .font(WakeveTheme.Typography.section)
+                            .foregroundColor(primaryText)
+
+                        Text("Préparez les prochaines actions à relire avant application.")
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(secondaryText)
+                    }
+
+                    Spacer()
+
+                    Button {
+                        generateEventAISuggestions()
+                    } label: {
+                        Image(systemName: "sparkles")
+                            .font(.headline.weight(.bold))
+                            .foregroundColor(isGeneratingEventAI ? secondaryText : WakeveTheme.ColorToken.accent(for: colorScheme))
+                            .frame(width: 44, height: 44)
+                            .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isGeneratingEventAI)
+                    .accessibilityLabel("Préparer des suggestions")
+                }
+
+                if isGeneratingEventAI {
+                    HStack(spacing: WakeveTheme.Spacing.sm) {
+                        ProgressView()
+                        Text("Préparation en cours")
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(secondaryText)
+                    }
+                }
+
+                if let eventAIError {
+                    Text(eventAIError)
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(WakeveTheme.ColorToken.destructive(for: colorScheme))
+                }
+
+                if let eventAISummary {
+                    EventAISummaryBlock(
+                        summary: eventAISummary,
+                        colorScheme: colorScheme,
+                        applied: appliedEventAISuggestions.contains("summary"),
+                        ignored: ignoredEventAISuggestions.contains("summary"),
+                        onModify: { appliedEventAISuggestions.remove("summary") },
+                        onApply: { appliedEventAISuggestions.insert("summary") },
+                        onIgnore: { ignoredEventAISuggestions.insert("summary") }
+                    )
+                }
+
+                if !eventAIPolls.isEmpty {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                        Text("Sondages proposés")
+                            .font(WakeveTheme.Typography.bodySemibold)
+                            .foregroundColor(primaryText)
+
+                        ForEach(Array(eventAIPolls.enumerated()), id: \.offset) { index, poll in
+                            EventAIPollSuggestionRow(
+                                poll: poll,
+                                colorScheme: colorScheme,
+                                applied: appliedEventAISuggestions.contains("poll-\(index)"),
+                                ignored: ignoredEventAISuggestions.contains("poll-\(index)"),
+                                onModify: { appliedEventAISuggestions.remove("poll-\(index)") },
+                                onApply: { appliedEventAISuggestions.insert("poll-\(index)") },
+                                onIgnore: { ignoredEventAISuggestions.insert("poll-\(index)") }
+                            )
+                        }
+                    }
+                }
+
+                if !eventAIChecklist.isEmpty {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                        Text("Checklist")
+                            .font(WakeveTheme.Typography.bodySemibold)
+                            .foregroundColor(primaryText)
+
+                        ForEach(Array(eventAIChecklist.enumerated()), id: \.offset) { index, item in
+                            EventAIChecklistRow(
+                                item: item,
+                                colorScheme: colorScheme,
+                                applied: appliedEventAISuggestions.contains("checklist-\(index)"),
+                                ignored: ignoredEventAISuggestions.contains("checklist-\(index)"),
+                                onModify: { appliedEventAISuggestions.remove("checklist-\(index)") },
+                                onApply: { appliedEventAISuggestions.insert("checklist-\(index)") },
+                                onIgnore: { ignoredEventAISuggestions.insert("checklist-\(index)") }
+                            )
+                        }
+                    }
+                }
+
+                if eventAIInvitationMessages != nil {
+                    EventAIInvitationBlock(
+                        variant: $selectedInvitationVariant,
+                        editableDraft: $editableInvitationDraft,
+                        colorScheme: colorScheme,
+                        applied: appliedEventAISuggestions.contains("invitation"),
+                        ignored: ignoredEventAISuggestions.contains("invitation"),
+                        onSelectVariant: updateInvitationDraft,
+                        onModify: { appliedEventAISuggestions.remove("invitation") },
+                        onApply: { appliedEventAISuggestions.insert("invitation") },
+                        onIgnore: { ignoredEventAISuggestions.insert("invitation") }
+                    )
+                }
+            }
+        }
     }
 
     private var topControls: some View {
@@ -1889,6 +2016,72 @@ struct EventDetailView: View {
         }
     }
 
+    private func generateEventAISuggestions() {
+        guard !isGeneratingEventAI else { return }
+        isGeneratingEventAI = true
+        eventAIError = nil
+        ignoredEventAISuggestions.removeAll()
+
+        let contextProvider = EventDetailWakeveAIContextProvider(
+            eventId: event.id,
+            title: event.title,
+            date: primaryDateText,
+            location: displayDescription,
+            participantNames: event.participants,
+            voteSummaries: event.proposedSlots.map(formatSlot),
+            status: statusText,
+            message: compactMessageSubtitle
+        )
+        let client = HeuristicWakeveAIClient()
+        let knownFacts = contextProvider.facts
+
+        Task {
+            do {
+                async let summary = EventSummaryGenerator(
+                    client: client,
+                    contextProvider: contextProvider
+                ).generate(eventId: event.id, localeIdentifier: "fr_FR")
+                async let polls = PollSuggestionGenerator(client: client).generate(
+                    context: contextProvider.promptSummary,
+                    knownFacts: knownFacts,
+                    localeIdentifier: "fr_FR"
+                )
+                async let checklist = ChecklistGenerator(client: client).generate(
+                    context: contextProvider.promptSummary,
+                    knownFacts: knownFacts,
+                    localeIdentifier: "fr_FR"
+                )
+                async let messages = InvitationMessageGenerator(client: client).generate(
+                    context: contextProvider.promptSummary,
+                    knownFacts: knownFacts,
+                    localeIdentifier: "fr_FR"
+                )
+
+                let results = try await (summary, polls, checklist, messages)
+                await MainActor.run {
+                    eventAISummary = results.0
+                    eventAIPolls = results.1
+                    eventAIChecklist = results.2
+                    eventAIInvitationMessages = results.3
+                    selectedInvitationVariant = .simple
+                    editableInvitationDraft = results.3.text(for: .simple)
+                    isGeneratingEventAI = false
+                }
+            } catch {
+                await MainActor.run {
+                    eventAIError = "La suggestion n'est pas disponible pour le moment."
+                    isGeneratingEventAI = false
+                }
+            }
+        }
+    }
+
+    private func updateInvitationDraft(_ variant: EventAIInvitationVariant) {
+        selectedInvitationVariant = variant
+        guard let eventAIInvitationMessages else { return }
+        editableInvitationDraft = eventAIInvitationMessages.text(for: variant)
+    }
+
     private var canAccessScenarioPlanning: Bool {
         switch event.status {
         case .confirmed, .comparing, .organizing, .finalized:
@@ -1993,6 +2186,303 @@ struct EventDetailView: View {
         formatter.locale = Locale(identifier: "fr_FR")
         formatter.dateFormat = "d MMM"
         return formatter.string(from: date)
+    }
+}
+
+private enum EventAIInvitationVariant: String, CaseIterable, Identifiable {
+    case simple
+    case warm
+    case shortWhatsApp
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .simple: return "Simple"
+        case .warm: return "Chaleureux"
+        case .shortWhatsApp: return "WhatsApp"
+        }
+    }
+}
+
+private extension InvitationMessageSet {
+    func text(for variant: EventAIInvitationVariant) -> String {
+        switch variant {
+        case .simple: return simple
+        case .warm: return warm
+        case .shortWhatsApp: return shortWhatsApp
+        }
+    }
+}
+
+private struct EventDetailWakeveAIContextProvider: WakeveAIContextProviding {
+    let eventId: String
+    let title: String
+    let date: String
+    let location: String?
+    let participantNames: [String]
+    let voteSummaries: [String]
+    let status: String
+    let message: String
+
+    var facts: WakeveAIKnownFacts {
+        WakeveAIKnownFacts(
+            participantNames: Set(participantNames),
+            voteLabels: Set(voteSummaries),
+            availabilityLabels: [status]
+        )
+    }
+
+    var promptSummary: String {
+        WakeveAIEventContext(
+            eventId: eventId,
+            title: title,
+            date: date,
+            location: location,
+            participantNames: participantNames,
+            voteSummaries: voteSummaries,
+            taskTitles: [status],
+            recentMessages: [message]
+        ).promptSummary
+    }
+
+    func currentGroup() async -> WakeveAIGroupContext? {
+        WakeveAIGroupContext(groupId: eventId, memberDisplayNames: participantNames)
+    }
+
+    func eventContext(eventId: String) async -> WakeveAIEventContext? {
+        WakeveAIEventContext(
+            eventId: eventId,
+            title: title,
+            date: date,
+            location: location,
+            participantNames: participantNames,
+            voteSummaries: voteSummaries,
+            taskTitles: [status],
+            recentMessages: [message]
+        )
+    }
+
+    func participantStatuses(eventId: String) async -> WakeveAIParticipantStatuses? {
+        WakeveAIParticipantStatuses(accepted: [], pending: participantNames, declined: [])
+    }
+
+    func voteResults(eventId: String) async -> WakeveAIVoteResults? {
+        WakeveAIVoteResults(activePolls: voteSummaries, results: voteSummaries)
+    }
+
+    func transportContext(eventId: String) async -> WakeveAITransportContext? { nil }
+
+    func userPreferences() async -> WakeveAIUserPreferences? {
+        WakeveAIUserPreferences(languageCode: "fr", localPreferences: [])
+    }
+}
+
+private struct EventAISummaryBlock: View {
+    let summary: EventSummary
+    let colorScheme: ColorScheme
+    let applied: Bool
+    let ignored: Bool
+    let onModify: () -> Void
+    let onApply: () -> Void
+    let onIgnore: () -> Void
+
+    var body: some View {
+        EventAIReviewBox(title: "Résumé", colorScheme: colorScheme, applied: applied, ignored: ignored, onModify: onModify, onApply: onApply, onIgnore: onIgnore) {
+            EventAIList(title: "Décidé", values: summary.decided, colorScheme: colorScheme)
+            EventAIList(title: "Manquant", values: summary.missing, colorScheme: colorScheme)
+            Text(summary.recommendedNextAction)
+                .font(WakeveTheme.Typography.callout)
+                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+        }
+    }
+}
+
+private struct EventAIPollSuggestionRow: View {
+    let poll: PollSuggestion
+    let colorScheme: ColorScheme
+    let applied: Bool
+    let ignored: Bool
+    let onModify: () -> Void
+    let onApply: () -> Void
+    let onIgnore: () -> Void
+
+    var body: some View {
+        EventAIReviewBox(title: poll.question, colorScheme: colorScheme, applied: applied, ignored: ignored, onModify: onModify, onApply: onApply, onIgnore: onIgnore) {
+            Text(poll.options.joined(separator: " · "))
+                .font(WakeveTheme.Typography.caption)
+                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                .lineLimit(3)
+        }
+    }
+}
+
+private struct EventAIChecklistRow: View {
+    let item: ChecklistItem
+    let colorScheme: ColorScheme
+    let applied: Bool
+    let ignored: Bool
+    let onModify: () -> Void
+    let onApply: () -> Void
+    let onIgnore: () -> Void
+
+    var body: some View {
+        EventAIReviewBox(title: item.title, colorScheme: colorScheme, applied: applied, ignored: ignored, onModify: onModify, onApply: onApply, onIgnore: onIgnore) {
+            Text("\(item.category.rawValue) · \(item.priority.rawValue)")
+                .font(WakeveTheme.Typography.caption)
+                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+        }
+    }
+}
+
+private struct EventAIInvitationBlock: View {
+    @Binding var variant: EventAIInvitationVariant
+    @Binding var editableDraft: String
+
+    let colorScheme: ColorScheme
+    let applied: Bool
+    let ignored: Bool
+    let onSelectVariant: (EventAIInvitationVariant) -> Void
+    let onModify: () -> Void
+    let onApply: () -> Void
+    let onIgnore: () -> Void
+
+    var body: some View {
+        EventAIReviewBox(title: "Invitation", colorScheme: colorScheme, applied: applied, ignored: ignored, onModify: onModify, onApply: onApply, onIgnore: onIgnore) {
+            HStack(spacing: 8) {
+                ForEach(EventAIInvitationVariant.allCases) { option in
+                    Button {
+                        onSelectVariant(option)
+                    } label: {
+                        Text(option.title)
+                            .font(WakeveTheme.Typography.tiny.weight(.semibold))
+                            .foregroundColor(variant == option ? .white : WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                            .background(variant == option ? WakeveTheme.ColorToken.accent(for: colorScheme) : WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            TextEditor(text: $editableDraft)
+                .font(WakeveTheme.Typography.callout)
+                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .frame(minHeight: 86)
+                .padding(WakeveTheme.Spacing.xs)
+                .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+        }
+    }
+}
+
+private struct EventAIReviewBox<Content: View>: View {
+    let title: String
+    let colorScheme: ColorScheme
+    let applied: Bool
+    let ignored: Bool
+    let onModify: () -> Void
+    let onApply: () -> Void
+    let onIgnore: () -> Void
+    let content: Content
+
+    init(
+        title: String,
+        colorScheme: ColorScheme,
+        applied: Bool,
+        ignored: Bool,
+        onModify: @escaping () -> Void,
+        onApply: @escaping () -> Void,
+        onIgnore: @escaping () -> Void,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.colorScheme = colorScheme
+        self.applied = applied
+        self.ignored = ignored
+        self.onModify = onModify
+        self.onApply = onApply
+        self.onIgnore = onIgnore
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+            HStack(alignment: .top) {
+                Text(title)
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .lineLimit(3)
+
+                Spacer()
+
+                if applied {
+                    Label("Appliqué", systemImage: "checkmark.circle.fill")
+                        .font(WakeveTheme.Typography.tiny)
+                        .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+                } else if ignored {
+                    Label("Ignoré", systemImage: "minus.circle.fill")
+                        .font(WakeveTheme.Typography.tiny)
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                }
+            }
+
+            content
+
+            HStack(spacing: WakeveTheme.Spacing.sm) {
+                EventAIActionButton(title: "Modifier", systemImage: "pencil", colorScheme: colorScheme, action: onModify)
+                EventAIActionButton(title: "Appliquer", systemImage: "checkmark", colorScheme: colorScheme, action: onApply)
+                EventAIActionButton(title: "Ignorer", systemImage: "xmark", colorScheme: colorScheme, action: onIgnore)
+            }
+        }
+        .padding(WakeveTheme.Spacing.sm)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+}
+
+private struct EventAIActionButton: View {
+    let title: String
+    let systemImage: String
+    let colorScheme: ColorScheme
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(WakeveTheme.Typography.tiny.weight(.semibold))
+                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .frame(maxWidth: .infinity)
+                .frame(height: 36)
+                .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0.72))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct EventAIList: View {
+    let title: String
+    let values: [String]
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        if !values.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(WakeveTheme.Typography.tiny.weight(.semibold))
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .textCase(.uppercase)
+
+                ForEach(values, id: \.self) { value in
+                    Label(value, systemImage: "checkmark.circle")
+                        .font(WakeveTheme.Typography.caption)
+                        .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                        .lineLimit(2)
+                }
+            }
+        }
     }
 }
 
