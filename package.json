@@ -2,12 +2,11 @@
   "name": "Wakeve",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "webApp",
-    "shared/build/dist/js/developmentLibrary"
-  ],
   "scripts": {
-    "build": "cd webApp && npm run build",
-    "start": "cd webApp && npm run start"
+    "build": "pnpm --filter wakeve-landing build && pnpm --filter wakeve-dashboard build",
+    "check": "pnpm --filter wakeve-landing check && pnpm --filter wakeve-dashboard check",
+    "dev:landing": "pnpm --filter wakeve-landing dev",
+    "dev:dashboard": "pnpm --filter wakeve-dashboard dev",
+    "dev:proxy": "pnpm --filter wakeve-landing proxy"
   }
 }

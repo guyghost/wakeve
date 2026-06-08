@@ -427,7 +427,11 @@ struct ParticipantAvatarStack: View {
                     .clipShape(Circle())
             }
         }
-        .accessibilityLabel("\(initials.count) participants")
+        .accessibilityLabel(participantAccessibilityLabel)
+    }
+
+    private var participantAccessibilityLabel: String {
+        "\(initials.count) participant\(initials.count > 1 ? "s" : "")"
     }
 }
 

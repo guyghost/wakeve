@@ -37,14 +37,14 @@ final class WakeveAIMetricsRecorder: @unchecked Sendable {
 enum WakeveAILogger {
     static func debug(_ message: @autoclosure () -> String) {
         #if DEBUG
-        print("[WakeveAI] \(message())")
+        debugLog("[WakeveAI] \(message())")
         #endif
     }
 
     static func debugPersonalContext(_ message: @autoclosure () -> String) {
         #if DEBUG
         if ProcessInfo.processInfo.environment["WAKEVE_AI_LOG_PERSONAL_CONTEXT"] == "1" {
-            print("[WakeveAI:context] \(message())")
+            debugLog("[WakeveAI:context] \(message())")
         }
         #endif
     }

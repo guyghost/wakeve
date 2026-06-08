@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/microfrontends.json",
+  "applications": {
+    "wakeve-landing": {
+      "development": {
+        "local": 3000,
+        "fallback": "wakeve.app"
+      }
+    },
+    "wakeve-dashboard": {
+      "routing": [
+        {
+          "paths": ["/app", "/app/:path*"]
+        }
+      ],
+      "development": {
+        "local": 3001
+      }
+    }
+  }
+}

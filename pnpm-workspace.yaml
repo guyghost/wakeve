@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - shared/build/dist/js/developmentLibrary
+
+allowBuilds:
+  esbuild: true
+
+overrides:
+  cookie@<0.7.0: 0.7.2

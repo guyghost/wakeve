@@ -2349,12 +2349,12 @@ validate_app_store_release_artifact_evidence() {
         "CODE_SIGNING_ALLOWED=NO"
         "build/xcode-deriveddata-release/Build/Products/Release-iphoneos/Wakeve.app"
         "build/xcode-deriveddata-release/Build/Products/Release-iphoneos/Wakeve.app.dSYM"
-        "Local scan date: 2026-06-01"
+        "Local scan date: 2026-06-07"
         "App executable SHA-256"
         "Shared framework executable SHA-256"
         'Built `Info.plist` SHA-256'
         'Built `PrivacyInfo.xcprivacy` SHA-256'
-        "1A770D94-184E-3238-B52E-9B272592D1AD"
+        "5D0EA0BE-88DE-3BE8-A37E-D3A54C364426"
         'Built Bundle ID: `com.guyghost.wakeve`'
         'Built marketing version: `1.0`'
         'Built build number: `1`'
@@ -5547,8 +5547,8 @@ validate_app_store_live_url_aasa_evidence() {
         "export const ssr = true"
         "scripts/app-store-local-web-route-check.sh"
         "A1B2C3D4E5.com.guyghost.wakeve"
-        "live production validation failed with 9 live URL errors and 1 warning"
-        "Direct DNS snapshot on 2026-06-01"
+        "live production validation failed with 9 live URL errors and 2 warnings"
+        "Direct DNS snapshot on 2026-06-07"
         "Could not resolve host: wakeve.app"
         "Could not resolve host: api.wakeve.app"
         "Observed live blockers"

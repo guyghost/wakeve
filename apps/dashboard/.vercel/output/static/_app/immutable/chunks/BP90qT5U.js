@@ -1,0 +1,1 @@
+import{r as e}from"./DsGh5L_m.js";async function t(t){let n=new URLSearchParams;return t?.status&&n.set(`status`,t.status),t?.search&&n.set(`search`,t.search),e(`/events${n.size>0?`?${n.toString()}`:``}`)}async function n(t){return e(`/events/${encodeURIComponent(t)}`)}async function r(t){return e(`/events`,{method:`POST`,body:JSON.stringify(t)})}export{n,t as r,r as t};

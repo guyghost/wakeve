@@ -1,0 +1,97 @@
+{
+	"version": 3,
+	"routes": [
+		{
+			"src": ".*",
+			"continue": true,
+			"transforms": [
+				{
+					"type": "request.query",
+					"op": "delete",
+					"target": {
+						"key": "__pathname"
+					}
+				}
+			]
+		},
+		{
+			"src": "/_app/immutable/.+",
+			"headers": {
+				"cache-control": "public, immutable, max-age=31536000"
+			}
+		},
+		{
+			"handle": "filesystem"
+		},
+		{
+			"src": "/_app/immutable/.+",
+			"status": 404,
+			"continue": false
+		},
+		{
+			"src": "^/?(?:/__data.json)?$",
+			"dest": "/"
+		},
+		{
+			"src": "^/\\.well-known/apple-app-site-association/?(?:/__data.json)?$",
+			"dest": "/.well-known/apple-app-site-association"
+		},
+		{
+			"src": "^/apple-app-site-association/?(?:/__data.json)?$",
+			"dest": "/apple-app-site-association"
+		},
+		{
+			"src": "^/create/?(?:/__data.json)?$",
+			"dest": "/create"
+		},
+		{
+			"src": "^/dashboard/?(?:/__data.json)?$",
+			"dest": "/dashboard"
+		},
+		{
+			"src": "^/events/?(?:/__data.json)?$",
+			"dest": "/events"
+		},
+		{
+			"src": "^/events(/[^]*)?/?(?:/__data.json)?$",
+			"dest": "/events/[...path]"
+		},
+		{
+			"src": "^/explore/?(?:/__data.json)?$",
+			"dest": "/explore"
+		},
+		{
+			"src": "^/login/?(?:/__data.json)?$",
+			"dest": "/login"
+		},
+		{
+			"src": "^/privacy/?(?:/__data.json)?$",
+			"dest": "/privacy"
+		},
+		{
+			"src": "^/profile/?(?:/__data.json)?$",
+			"dest": "/profile"
+		},
+		{
+			"src": "^/settings/?(?:/__data.json)?$",
+			"dest": "/settings"
+		},
+		{
+			"src": "^/support/?(?:/__data.json)?$",
+			"dest": "/support"
+		},
+		{
+			"src": "^/terms/?(?:/__data.json)?$",
+			"dest": "/terms"
+		},
+		{
+			"src": "^/third-party-notices/?(?:/__data.json)?$",
+			"dest": "/third-party-notices"
+		},
+		{
+			"src": "/.*",
+			"dest": "/![-]/catchall"
+		}
+	],
+	"overrides": {}
+}

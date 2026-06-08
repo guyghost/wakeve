@@ -1,0 +1,73 @@
+{
+	"version": 3,
+	"routes": [
+		{
+			"src": ".*",
+			"continue": true,
+			"transforms": [
+				{
+					"type": "request.query",
+					"op": "delete",
+					"target": {
+						"key": "__pathname"
+					}
+				}
+			]
+		},
+		{
+			"src": "/_app/immutable/.+",
+			"headers": {
+				"cache-control": "public, immutable, max-age=31536000"
+			}
+		},
+		{
+			"handle": "filesystem"
+		},
+		{
+			"src": "/_app/immutable/.+",
+			"status": 404,
+			"continue": false
+		},
+		{
+			"src": "^/app/?(?:/__data.json)?$",
+			"dest": "/app"
+		},
+		{
+			"src": "^/app/create/?(?:/__data.json)?$",
+			"dest": "/app/(protected)/create"
+		},
+		{
+			"src": "^/app/dashboard/?(?:/__data.json)?$",
+			"dest": "/app/(protected)/dashboard"
+		},
+		{
+			"src": "^/app/events/?(?:/__data.json)?$",
+			"dest": "/app/(protected)/events"
+		},
+		{
+			"src": "^/app/events/([^/]+?)/?(?:/__data.json)?$",
+			"dest": "/app/(protected)/events/[id]"
+		},
+		{
+			"src": "^/app/explore/?(?:/__data.json)?$",
+			"dest": "/app/(protected)/explore"
+		},
+		{
+			"src": "^/app/login/?(?:/__data.json)?$",
+			"dest": "/app/(auth)/login"
+		},
+		{
+			"src": "^/app/profile/?(?:/__data.json)?$",
+			"dest": "/app/(protected)/profile"
+		},
+		{
+			"src": "^/app/settings/?(?:/__data.json)?$",
+			"dest": "/app/(protected)/settings"
+		},
+		{
+			"src": "/.*",
+			"dest": "/![-]/catchall"
+		}
+	],
+	"overrides": {}
+}

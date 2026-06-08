@@ -114,6 +114,14 @@ class UserRepository(private val db: WakeveDb) {
         getUserById(userId) ?: throw IllegalStateException("User not found after update")
     }
 
+    suspend fun deleteUser(userId: String): Result<Unit> = runCatching {
+        userQueries.deletePreferences(userId)
+        userQueries.deleteToken(userId)
+        db.notificationQueries.deleteAllTokens(userId)
+        db.notificationQueries.deleteAllNotifications(userId)
+        userQueries.deleteUser(userId)
+    }
+
     // Token operations
     suspend fun createToken(
         userId: String,

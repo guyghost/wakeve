@@ -666,6 +666,7 @@ final class OrganizationPhase7ContractTests: XCTestCase {
     }
 
     private func organizationSources() throws -> String {
+        let fileBoundary = "\n" + String(repeating: "#", count: 901) + "\n"
         return try [
             "iosApp/src/Views/App/ContentView.swift",
             "iosApp/src/Views/Events/ScenarioOrganizationView.swift",
@@ -676,7 +677,7 @@ final class OrganizationPhase7ContractTests: XCTestCase {
             "iosApp/src/ViewModels/MeetingListViewModel.swift",
             "iosApp/src/ViewModels/BudgetViewModel.swift",
             "iosApp/src/ViewModels/TransportPlanningViewModel.swift"
-        ].map { try readProjectFile($0) }.joined(separator: "\n")
+        ].map { try readProjectFile($0) }.joined(separator: fileBoundary)
     }
 
     private func visibleOrganizationCopy() throws -> [String] {

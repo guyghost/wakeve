@@ -24,6 +24,7 @@ import com.guyghost.wakeve.repository.PotentialLocationRepository
 import com.guyghost.wakeve.repository.PotentialLocationRepositoryInterface
 import com.guyghost.wakeve.routes.ChatService
 import com.guyghost.wakeve.routes.analyticsRoutes
+import com.guyghost.wakeve.routes.accountRoutes
 import com.guyghost.wakeve.routes.authRoutes
 import com.guyghost.wakeve.routes.budgetRoutes
 import com.guyghost.wakeve.routes.calendarRoutes
@@ -494,6 +495,7 @@ fun Application.module(
                             }
 
                             eventRoutes(eventRepository, gamificationService, eventNotificationTrigger, database)
+                            accountRoutes(authService)
                             participantRoutes(eventRepository, gamificationService, database)
                             voteRoutes(eventRepository, eventNotificationTrigger, gamificationService)
                             scenarioRoutes(scenarioRepository, database)
