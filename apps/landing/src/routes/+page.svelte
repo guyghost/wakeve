@@ -259,6 +259,4 @@
       </div>
     </div>
   </footer>
-
-  <div class="made-in-framer" aria-label="Made in Framer">Made in Framer</div>
 </main>
