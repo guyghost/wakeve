@@ -6,7 +6,7 @@
 
 ## 2. Backend Implementation
 - [ ] 2.1 Add a deletion orchestration service that coordinates user repository deletion, session revocation, push token unregistration, analytics identifier clearing, and audit logging.
-- [ ] 2.2 Expose authenticated `DELETE /api/user/delete` and return a stable response that the iOS client can display and tests can assert.
+- [x] 2.2 Expose authenticated `DELETE /api/user/delete` and return a stable response that the iOS client can display and tests can assert.
 - [ ] 2.3 Add provider-revocation handling for Sign in with Apple where authorization material is available, without blocking Wakeve data erasure on provider transient failures.
 - [ ] 2.4 Add deletion/anonymization coverage for shared event, participant, comment, chat, notification, session, token, sync metadata, and profile-owned records.
 

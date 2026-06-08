@@ -72,12 +72,12 @@ This file records the App Store review evidence for AS-14: public legal/support 
 Last command:
 
 ```bash
-APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/lint-store-metadata.sh --ios-only --check-live-urls
+./scripts/lint-store-metadata.sh --ios-only --check-live-urls
 ```
 
-Result on 2026-06-01: live production validation failed with 9 live URL errors and 1 warning. This does not close AS-14.
+Result on 2026-06-07: live production validation failed with 9 live URL errors and 2 warnings. This does not close AS-14. The warnings were the missing App Review phone number and the intentionally incomplete final App Store signoff marker; the live blocker remains DNS resolution for `wakeve.app` and `api.wakeve.app`.
 
-Direct DNS snapshot on 2026-06-01:
+Direct DNS snapshot on 2026-06-07:
 
 ```text
 curl -I --max-time 12 https://wakeve.app/privacy
@@ -100,6 +100,12 @@ curl: (6) Could not resolve host: wakeve.app
 
 curl -I --max-time 12 https://api.wakeve.app/health
 curl: (6) Could not resolve host: api.wakeve.app
+
+dig +short wakeve.app
+[no answer]
+
+dig +short api.wakeve.app
+[no answer]
 ```
 
 Observed live blockers:

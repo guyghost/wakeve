@@ -5,9 +5,9 @@ import com.auth0.jwt.algorithms.Algorithm
 import com.guyghost.wakeve.auth.SessionRepository
 import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.database.WakeveDb
+import io.ktor.client.request.header
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
-import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpHeaders
@@ -129,6 +129,71 @@ class AuthFlowIntegrationTest {
         assertEquals(currentSessionId, activeSessions.first().id)
     }
 
+    @Test
+    fun `account deletion requires authentication`() = testApplication {
+        application { module(database) }
+
+        val response = client.delete("/api/user/delete")
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
+
+    @Test
+    fun `authenticated account deletion removes account credentials push tokens and active sessions`() = testApplication {
+        application { module(database) }
+
+        val userId = "test-user-delete"
+        seedUser(userId, "delete@example.com")
+        val (accessToken, sessionId) = runBlocking {
+            createSession(userId = userId, deviceId = "delete-device", deviceName = "iPhone")
+        }
+        seedAccountDeletionData(userId, accessToken)
+
+        val response = client.delete("/api/user/delete") {
+            header(HttpHeaders.Authorization, "Bearer $accessToken")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        assertJsonDeleted(response.bodyAsText(), true)
+
+        runBlocking {
+            assertEquals(null, database.userQueries.selectUserById(userId).executeAsOneOrNull())
+            assertEquals(null, database.userQueries.selectTokenByUserId(userId).executeAsOneOrNull())
+            assertTrue(database.notificationQueries.getTokensByUser(userId).executeAsList().isEmpty())
+            assertTrue(sessionRepository.isTokenBlacklisted(accessToken).getOrThrow())
+            val revokedSession = sessionRepository.getSessionById(sessionId).getOrThrow()
+            assertEquals("revoked", revokedSession?.status)
+            assertTrue(sessionRepository.getActiveSessionsForUser(userId).getOrThrow().isEmpty())
+        }
+    }
+
+    @Test
+    fun `account deletion is idempotent after user row is gone`() = testApplication {
+        application { module(database) }
+
+        val userId = "test-user-delete-idempotent"
+        seedUser(userId, "delete-idempotent@example.com")
+        val accessToken = createTestJwt(userId, "account-delete-idempotent")
+        val repeatToken = createTestJwt(userId, "account-delete-idempotent-repeat")
+
+        val firstResponse = client.delete("/api/user/delete") {
+            header(HttpHeaders.Authorization, "Bearer $accessToken")
+        }
+        val secondResponse = client.delete("/api/user/delete") {
+            header(HttpHeaders.Authorization, "Bearer $repeatToken")
+        }
+
+        assertEquals(HttpStatusCode.OK, firstResponse.status)
+        assertEquals(HttpStatusCode.OK, secondResponse.status)
+        assertJsonDeleted(firstResponse.bodyAsText(), true)
+        assertJsonDeleted(secondResponse.bodyAsText(), false)
+    }
+
+    private fun assertJsonDeleted(body: String, expected: Boolean) {
+        val compact = body.replace(Regex("\\s+"), "")
+        assertTrue(compact.contains("\"deleted\":$expected"), body)
+    }
+
     private suspend fun createSession(
         userId: String,
         deviceId: String,
@@ -159,6 +224,40 @@ class AuthFlowIntegrationTest {
         ).getOrThrow()
 
         return accessToken to sessionId
+    }
+
+    private fun seedUser(userId: String, email: String) {
+        database.userQueries.insertUser(
+            id = userId,
+            provider_id = "provider-$userId",
+            email = email,
+            name = "Delete Test",
+            avatar_url = null,
+            provider = "email",
+            role = "USER",
+            created_at = "2026-06-07T00:00:00Z",
+            updated_at = "2026-06-07T00:00:00Z"
+        )
+    }
+
+    private fun seedAccountDeletionData(userId: String, accessToken: String) {
+        database.userQueries.insertToken(
+            id = "token-$userId",
+            user_id = userId,
+            access_token = accessToken,
+            refresh_token = "refresh-$userId",
+            token_type = "Bearer",
+            expires_at = "2099-01-01T00:00:00Z",
+            scope = null,
+            created_at = "2026-06-07T00:00:00Z",
+            updated_at = "2026-06-07T00:00:00Z"
+        )
+        database.notificationQueries.upsertToken(
+            user_id = userId,
+            platform = "ios",
+            token = "apns-$userId",
+            updated_at = 1L
+        )
     }
 
     private fun createTestJwt(userId: String, sessionId: String): String {

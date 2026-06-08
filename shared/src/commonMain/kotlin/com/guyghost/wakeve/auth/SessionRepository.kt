@@ -213,6 +213,19 @@ class SessionRepository(private val db: WakeveDb) {
     }
 
     /**
+     * Blacklist a raw JWT that may not have a persisted session row.
+     */
+    suspend fun revokeJwtToken(jwtToken: String, userId: String, reason: String, expiresAt: String): Result<Unit> = withContext(Dispatchers.Default) {
+        runCatching {
+            val tokenHash = hashToken(jwtToken)
+            val alreadyBlacklisted = sessionQueries.isTokenBlacklisted(tokenHash).executeAsOne()
+            if (!alreadyBlacklisted) {
+                addToBlacklist(tokenHash, userId, reason, expiresAt).getOrThrow()
+            }
+        }
+    }
+
+    /**
      * Revoke all other sessions except the current one.
      */
     suspend fun revokeAllOtherSessions(userId: String, currentSessionId: String, reason: String = "logout_others"): Result<Unit> = withContext(Dispatchers.Default) {

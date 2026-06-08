@@ -299,7 +299,7 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                 val principal = call.principal<JWTPrincipal>()
                     ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
 
-                if (!hasConfirmedScenarioAccess(database, eventId, principal.userId)) {
+                if (!hasScenarioListAccess(database, eventId, principal.userId)) {
                     return@get call.respond(
                         HttpStatusCode.Forbidden,
                         mapOf("error" to "You do not have access to scenario details")
@@ -554,6 +554,11 @@ private fun hasConfirmedScenarioAccess(database: WakeveDb, eventId: String, user
     return isScenarioOrganizer(database, eventId, userId) ||
         isConfirmedScenarioParticipant(database, eventId, userId) ||
         isComparingParticipant(database, eventId, userId)
+}
+
+private fun hasScenarioListAccess(database: WakeveDb, eventId: String, userId: String): Boolean {
+    return isScenarioOrganizer(database, eventId, userId) ||
+        isConfirmedScenarioParticipant(database, eventId, userId)
 }
 
 private fun isScenarioOrganizer(database: WakeveDb, eventId: String, userId: String): Boolean {

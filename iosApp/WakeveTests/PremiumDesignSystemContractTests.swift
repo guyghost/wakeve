@@ -66,6 +66,14 @@ final class PremiumDesignSystemContractTests: XCTestCase {
         XCTAssertTrue(source.contains("regularMaterial"))
     }
 
+    func testParticipantAvatarStackUsesSingularAccessibilityLabel() throws {
+        let source = try readProjectFile("iosApp/src/Components/DesignSystem/PremiumLiquidGlassComponents.swift")
+
+        XCTAssertTrue(source.contains("private var participantAccessibilityLabel"))
+        XCTAssertTrue(source.contains(#"participant\(initials.count > 1 ? "s" : "")"#))
+        XCTAssertFalse(source.contains(#".accessibilityLabel("\(initials.count) participants")"#))
+    }
+
     private func readProjectFile(_ relativePath: String) throws -> String {
         let fileURL = URL(fileURLWithPath: #filePath)
         let testsDir = fileURL.deletingLastPathComponent()

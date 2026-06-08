@@ -380,7 +380,7 @@ struct AuthenticatedView: View {
             
         case .budgetOverview:
             if let event = selectedEvent {
-                if canAccessOrganizationDetails(for: event) {
+                if canAccessOrganizationDashboard(for: event) {
                     BudgetOverviewView(eventId: event.id)
                 } else {
                     AccessDenied(message: "Confirmez votre présence avant d'ouvrir le budget.") {
@@ -442,7 +442,7 @@ struct AuthenticatedView: View {
             
         case .budgetDetail:
             if let event = selectedEvent {
-                if canAccessOrganizationDetails(for: event) {
+                if canAccessOrganizationDashboard(for: event) {
                     BudgetDetailView(eventId: event.id)
                 } else {
                     AccessDenied(message: "Confirmez votre présence avant d'ouvrir les dépenses.") {
@@ -457,7 +457,7 @@ struct AuthenticatedView: View {
             
         case .meetingList:
             if let event = selectedEvent {
-                if isParticipantConfirmed(for: event) == true || canAccessOrganizationDetails(for: event) {
+                if canAccessOrganizationDashboard(for: event) {
                     MeetingListView(
                         eventId: event.id,
                         currentUserId: userId,
@@ -478,13 +478,19 @@ struct AuthenticatedView: View {
 
         case .meetingDetail:
             if let meetingId = selectedMeetingId, let event = selectedEvent {
-                MeetingDetailView(
-                    meetingId: meetingId,
-                    eventId: event.id,
-                    currentUserId: userId,
-                    isOrganizer: event.organizerId == userId,
-                    isReadOnly: isFinalizedOrganizationState(event)
-                )
+                if canAccessOrganizationDashboard(for: event) {
+                    MeetingDetailView(
+                        meetingId: meetingId,
+                        eventId: event.id,
+                        currentUserId: userId,
+                        isOrganizer: event.organizerId == userId,
+                        isReadOnly: isFinalizedOrganizationState(event)
+                    )
+                } else {
+                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir cette réunion.") {
+                        currentView = .eventDetail
+                    }
+                }
             } else {
                 Text("Sélectionnez une réunion")
                     .font(.title2)
@@ -539,70 +545,76 @@ struct AuthenticatedView: View {
 
         case .transportPlanning:
             if let event = selectedEvent {
-                let selectedDestination = transportDestination(for: event)
-                let transportPlanningAdapter: TransportPlanningViewModel = transportPlanningViewModel
-                let transportState = transportPlanningViewModel.state.eventId == event.id
-                    ? transportPlanningViewModel.state
-                    : makeTransportPlanningState(for: event)
-                TransportPlanningView(
-                    event: event,
-                    isOrganizer: event.organizerId == userId,
-                    isParticipantConfirmed: isParticipantConfirmed(for: event),
-                    isReadOnly: isFinalizedOrganizationState(event),
-                    eventStatus: event.status,
-                    confirmedDate: event.finalDate,
-                    selectedDestination: selectedDestination,
-                    readiness: transportState.readiness,
-                    missingDeparture: transportState.missingDeparture,
-                    plans: transportState.plans,
-                    selectedPlanId: transportState.selectedPlanId,
-                    pendingSync: transportState.pendingSync,
-                    onGenerate: { optimization in
-                        transportPlanningAdapter.generate(
-                            event: event,
-                            userId: userId,
-                            repository: repository,
-                            selectedDestination: selectedDestination,
-                            optimization: optimization
-                        )
-                    },
-                    onSelectFinalPlan: { plan in
-                        transportPlanningAdapter.selectFinalPlan(
-                            event: event,
-                            userId: userId,
-                            repository: repository,
-                            selectedDestination: selectedDestination,
-                            plan: plan
-                        )
-                    },
-                    onMarkTransportNotNeeded: {
-                        transportPlanningAdapter.markTransportNotNeeded(
+                if canAccessTransportPlanning(for: event) {
+                    let selectedDestination = transportDestination(for: event)
+                    let transportPlanningAdapter: TransportPlanningViewModel = transportPlanningViewModel
+                    let transportState = transportPlanningViewModel.state.eventId == event.id
+                        ? transportPlanningViewModel.state
+                        : makeTransportPlanningState(for: event)
+                    TransportPlanningView(
+                        event: event,
+                        isOrganizer: event.organizerId == userId,
+                        isParticipantConfirmed: isParticipantConfirmed(for: event),
+                        isReadOnly: isFinalizedOrganizationState(event),
+                        eventStatus: event.status,
+                        confirmedDate: event.finalDate,
+                        selectedDestination: selectedDestination,
+                        readiness: transportState.readiness,
+                        missingDeparture: transportState.missingDeparture,
+                        plans: transportState.plans,
+                        selectedPlanId: transportState.selectedPlanId,
+                        pendingSync: transportState.pendingSync,
+                        onGenerate: { optimization in
+                            transportPlanningAdapter.generate(
+                                event: event,
+                                userId: userId,
+                                repository: repository,
+                                selectedDestination: selectedDestination,
+                                optimization: optimization
+                            )
+                        },
+                        onSelectFinalPlan: { plan in
+                            transportPlanningAdapter.selectFinalPlan(
+                                event: event,
+                                userId: userId,
+                                repository: repository,
+                                selectedDestination: selectedDestination,
+                                plan: plan
+                            )
+                        },
+                        onMarkTransportNotNeeded: {
+                            transportPlanningAdapter.markTransportNotNeeded(
+                                event: event,
+                                userId: userId,
+                                repository: repository,
+                                selectedDestination: selectedDestination
+                            )
+                        },
+                        onSaveDepartureLocation: { location in
+                            transportPlanningAdapter.saveDepartureLocation(
+                                event: event,
+                                userId: userId,
+                                repository: repository,
+                                selectedDestination: selectedDestination,
+                                location: location
+                            )
+                        },
+                        onBack: {
+                            currentView = .eventDetail
+                        }
+                    )
+                    .onAppear {
+                        transportPlanningViewModel.load(
                             event: event,
                             userId: userId,
                             repository: repository,
                             selectedDestination: selectedDestination
                         )
-                    },
-                    onSaveDepartureLocation: { location in
-                        transportPlanningAdapter.saveDepartureLocation(
-                            event: event,
-                            userId: userId,
-                            repository: repository,
-                            selectedDestination: selectedDestination,
-                            location: location
-                        )
-                    },
-                    onBack: {
+                    }
+                } else {
+                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir le transport.") {
                         currentView = .eventDetail
                     }
-                )
-                .onAppear {
-                    transportPlanningViewModel.load(
-                        event: event,
-                        userId: userId,
-                        repository: repository,
-                        selectedDestination: selectedDestination
-                    )
                 }
             } else {
                 Text("Sélectionnez un événement pour le transport")
@@ -667,6 +679,24 @@ struct AuthenticatedView: View {
 
     private func canAccessOrganizationDetails(for event: Event) -> Bool {
         event.organizerId == userId || isParticipantConfirmed(for: event) == true
+    }
+
+    private func canAccessOrganizationDashboard(for event: Event) -> Bool {
+        switch event.status {
+        case .organizing, .finalized:
+            return canAccessOrganizationDetails(for: event)
+        default:
+            return false
+        }
+    }
+
+    private func canAccessTransportPlanning(for event: Event) -> Bool {
+        switch event.status {
+        case .confirmed, .organizing, .finalized:
+            return canAccessOrganizationDetails(for: event)
+        default:
+            return false
+        }
     }
 
     private func makeTransportPlanningState(for event: Event) -> TransportPlanningPresentationState {
