@@ -24,6 +24,7 @@ struct ParticipantManagementView: View {
     @State private var contactSearchQuery = ""
     @State private var showContactSheet = false
     @State private var isLoadingContacts = false
+    @State private var moderationTarget: ModerationActionTarget?
 
     init(
         event: Event,
@@ -108,6 +109,9 @@ struct ParticipantManagementView: View {
                     Task { await addSelectedContacts() }
                 }
             )
+        }
+        .sheet(item: $moderationTarget) { target in
+            ModerationActionSheet(target: target)
         }
     }
 
@@ -204,7 +208,7 @@ struct ParticipantManagementView: View {
                             .frame(width: 48, height: 48)
                     }
                 }
-                .accessibilityLabel("Options participants")
+                .accessibilityLabel(String(localized: "participants.options_accessibility"))
             }
             .padding(.horizontal, WakeveTheme.Spacing.page)
             .padding(.top, WakeveTheme.Navigation.controlTopPadding(safeAreaTop: topInset))
@@ -217,7 +221,7 @@ struct ParticipantManagementView: View {
         LiquidGlassToolbar(title: "Participants", subtitle: participantCountText) {
             WakeveCircleButton(
                 systemImage: "xmark",
-                accessibilityLabel: "Fermer",
+                accessibilityLabel: String(localized: "common.close"),
                 variant: .glass,
                 size: 40,
                 action: onBack
@@ -245,7 +249,7 @@ struct ParticipantManagementView: View {
                     .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
                     .clipShape(Circle())
             }
-            .accessibilityLabel("Options participants")
+            .accessibilityLabel(String(localized: "participants.options_accessibility"))
         }
         .padding(.horizontal, WakeveTheme.Spacing.page)
         .padding(.top, WakeveTheme.Spacing.sm)
@@ -305,7 +309,7 @@ struct ParticipantManagementView: View {
                         }
                     }
                     .disabled(newParticipantEmail.isEmpty || isLoading)
-                    .accessibilityLabel("Ajouter le participant")
+                    .accessibilityLabel(String(localized: "participants.add_accessibility"))
                 }
 
                 LiquidGlassButton(
@@ -317,7 +321,7 @@ struct ParticipantManagementView: View {
                 ) {
                     Task { await loadContacts() }
                 }
-                .accessibilityLabel("Choisir des participants depuis les contacts")
+                .accessibilityLabel(String(localized: "participants.choose_from_contacts_accessibility"))
             }
         }
     }
@@ -362,21 +366,27 @@ struct ParticipantManagementView: View {
                     title: "Acceptés",
                     subtitle: "Ont confirmé ou ont accès aux détails",
                     rows: acceptedRows,
-                    emptyText: "Aucun participant accepté pour le moment."
+                    emptyText: "Aucun participant accepté pour le moment.",
+                    eventId: event.id,
+                    onModerationTarget: { moderationTarget = $0 }
                 )
 
                 ParticipantGroupSection(
                     title: "En attente",
                     subtitle: "Invitations envoyées ou réponses à venir",
                     rows: pendingRows,
-                    emptyText: "Aucune invitation en attente."
+                    emptyText: "Aucune invitation en attente.",
+                    eventId: event.id,
+                    onModerationTarget: { moderationTarget = $0 }
                 )
 
                 ParticipantGroupSection(
                     title: "Refusés",
                     subtitle: "Participants indisponibles",
                     rows: declinedRows,
-                    emptyText: "Aucun refus enregistré."
+                    emptyText: "Aucun refus enregistré.",
+                    eventId: event.id,
+                    onModerationTarget: { moderationTarget = $0 }
                 )
             }
         }
@@ -1002,6 +1012,7 @@ private struct ParticipantSummaryPill: View {
                 .font(WakeveTheme.Typography.tiny)
                 .foregroundColor(.white.opacity(0.74))
                 .lineLimit(1)
+                .minimumScaleFactor(0.78)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, WakeveTheme.Spacing.sm)
@@ -1017,6 +1028,8 @@ private struct ParticipantGroupSection: View {
     let subtitle: String
     let rows: [ParticipantPresentationRow]
     let emptyText: String
+    let eventId: String
+    let onModerationTarget: (ModerationActionTarget) -> Void
 
     var body: some View {
         LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
@@ -1054,7 +1067,11 @@ private struct ParticipantGroupSection: View {
                 } else {
                     VStack(spacing: WakeveTheme.Spacing.sm) {
                         ForEach(rows) { participant in
-                            ParticipantRowView(participant: participant)
+                            ParticipantRowView(
+                                participant: participant,
+                                eventId: eventId,
+                                onModerationTarget: onModerationTarget
+                            )
                         }
                     }
                 }
@@ -1067,6 +1084,8 @@ private struct ParticipantRowView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let participant: ParticipantPresentationRow
+    let eventId: String
+    let onModerationTarget: (ModerationActionTarget) -> Void
 
     private var initials: String {
         let components = participant.email.components(separatedBy: "@")
@@ -1114,6 +1133,7 @@ private struct ParticipantRowView: View {
                     .font(WakeveTheme.Typography.callout)
                     .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.78)
             }
 
             Spacer()
@@ -1127,11 +1147,54 @@ private struct ParticipantRowView: View {
                     .font(.body.weight(.semibold))
                     .foregroundColor(accessColor)
                     .frame(width: 24, height: 24)
+
+                participantModerationMenu
             }
             .accessibilityLabel(participant.canAccessOrganizationDetails ? "Détails déverrouillés" : "Détails verrouillés")
         }
         .padding(WakeveTheme.Spacing.sm)
         .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+
+    private var participantModerationMenu: some View {
+        Menu {
+            Button {
+                onModerationTarget(
+                    ModerationActionTarget(
+                        type: .user,
+                        targetId: participant.id,
+                        eventId: eventId,
+                        authorId: participant.id,
+                        displayName: participant.email,
+                        allowsBlock: true
+                    )
+                )
+            } label: {
+                Label(String(localized: "moderation.report_user"), systemImage: "person.crop.circle.badge.exclamationmark")
+            }
+            .accessibilityIdentifier("reportParticipantUserAction")
+
+            Button(role: .destructive) {
+                onModerationTarget(
+                    ModerationActionTarget(
+                        type: .user,
+                        targetId: participant.id,
+                        eventId: eventId,
+                        authorId: participant.id,
+                        displayName: participant.email,
+                        allowsBlock: true
+                    )
+                )
+            } label: {
+                Label(String(localized: "moderation.block_user"), systemImage: "person.crop.circle.badge.xmark")
+            }
+            .accessibilityIdentifier("blockParticipantUserAction")
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .font(.body.weight(.semibold))
+                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                .frame(width: 28, height: 28)
+        }
     }
 }

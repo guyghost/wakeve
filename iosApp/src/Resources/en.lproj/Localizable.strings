@@ -9,6 +9,7 @@
 "common.cancel" = "Cancel";
 "common.save" = "Save";
 "common.delete" = "Delete";
+"common.apply" = "Apply";
 "common.back" = "Back";
 "common.ok" = "OK";
 "common.error" = "Error";
@@ -16,6 +17,10 @@
 "common.loading" = "Loading...";
 "common.yes" = "Yes";
 "common.no" = "No";
+
+// MARK: - WakeveAI
+"ai.cancel_suggestion_accessibility" = "Cancel suggestion";
+"ai.prepare_suggestions_accessibility" = "Prepare suggestions";
 
 // MARK: - Auth
 "auth.sign_in" = "Sign In";
@@ -31,6 +36,14 @@
 "auth.continue_as_guest" = "Continue as guest";
 "auth.guest_display_name" = "Guest";
 "auth.skip_dev" = "Skip (Development)";
+"auth.apple_sign_in_accessibility_label" = "Sign in with Apple";
+"auth.apple_sign_in_accessibility_hint" = "Use your Apple ID to authenticate";
+"auth.continue_as_guest_accessibility_label" = "Continue as guest";
+"auth.continue_as_guest_accessibility_hint" = "Creates a local-only guest session without signing in";
+"auth.skip_dev_accessibility_label" = "Development mode: skip authentication";
+"auth.skip_dev_accessibility_hint" = "Creates a mock authenticated session for testing";
+"auth.read_privacy_policy_accessibility_label" = "Read Privacy Policy";
+"auth.read_terms_accessibility_label" = "Read Terms of Service";
 
 // MARK: - Explore
 "explore.title" = "Explore";
@@ -297,6 +310,7 @@
 "home.organized_by_me_badge" = "Organized by me";
 "home.create_event" = "Create an event";
 "home.loading" = "Loading events...";
+"home.filter_events_accessibility" = "Filter events";
 
 // MARK: - Event Detail
 "events.share" = "Share event";
@@ -329,6 +343,8 @@
 "events.activity_planning" = "Activity planning";
 "events.close_accessibility" = "Close";
 "events.more_options" = "More options";
+"events.organizer_options_accessibility" = "Organizer options";
+"events.remove_time_slot_accessibility" = "Remove time slot";
 "events.cancel_keep" = "Cancel and keep event";
 "events.delete_hint" = "This action is irreversible";
 "events.rsvp.going" = "Going";
@@ -336,6 +352,24 @@
 "events.rsvp.maybe" = "Maybe";
 "events.accessibility.rank" = "%@, rank #%lld, %lld points";
 "events.accessibility.its_you" = "That's you";
+
+// MARK: - Participants Accessibility
+"participants.options_accessibility" = "Participant options";
+"participants.add_accessibility" = "Add participant";
+"participants.choose_from_contacts_accessibility" = "Choose participants from contacts";
+"participants.count_accessibility" = "%lld participants";
+
+// MARK: - Scenario Accessibility
+"scenario.refresh_accessibility" = "Refresh scenarios";
+
+// MARK: - Transport Accessibility
+"transport.prepare_suggestion_accessibility" = "Prepare a transport suggestion";
+"transport.save_departure_accessibility" = "Save departure";
+"sync.pending_accessibility" = "Sync pending";
+
+// MARK: - Calendar Accessibility
+"calendar.add_event_accessibility" = "Add event to calendar";
+"calendar.add_event_hint" = "Adds '%@' to your native calendar";
 
 // MARK: - Invitation
 "invitation.title" = "Invite participants";
@@ -355,9 +389,58 @@
 "settings_sheet.calendar_sync" = "Calendar sync";
 "settings_sheet.email_notifications" = "Email notifications";
 "settings_sheet.privacy" = "Privacy and information";
-"settings_sheet.data_management" = "Learn how your data is managed...";
+"settings_sheet.data_management" = "Data management";
+"settings_sheet.data_management_value" = "Delete account";
 "settings_sheet.help" = "Help";
 "settings_sheet.terms" = "Terms and conditions";
+
+// MARK: - Data Management
+"data_management.title" = "Data management";
+"data_management.subtitle" = "Control the account data stored by Wakeve on this device and on the backend.";
+"data_management.scope_title" = "Deletion scope";
+"data_management.account_scope" = "Deleting your account is permanent. Wakeve deletes your account record and personal profile data, revokes sessions and push tokens, clears local credentials, and anonymizes shared event history where needed.";
+"data_management.guest_scope" = "Guest data is stored locally on this device. Deleting guest data clears the local guest profile and local-only Wakeve data without contacting the backend.";
+"data_management.delete_account" = "Delete Account";
+"data_management.delete_guest_data" = "Delete Guest Data";
+"data_management.confirm_account_message" = "This permanently deletes your Wakeve account and clears local credentials after the backend confirms deletion. This cannot be undone.";
+"data_management.confirm_guest_message" = "This permanently deletes local guest data from this device. No backend request will be sent.";
+"data_management.account_deleted" = "Your account has been deleted.";
+"data_management.guest_deleted" = "Guest data has been deleted.";
+"data_management.delete_error" = "We could not delete your account. Check your connection and try again.";
+
+// MARK: - Moderation
+"moderation.title" = "Report or block";
+"moderation.report_title" = "Report";
+"moderation.report_content" = "Report Content";
+"moderation.report_user" = "Report User";
+"moderation.report_event" = "Report Event";
+"moderation.block_user" = "Block User";
+"moderation.unblock_user" = "Unblock User";
+"moderation.reason" = "Reason";
+"moderation.details_placeholder" = "Add context for the Wakeve support team";
+"moderation.report_help" = "Reports are sent to Wakeve support for review. Other participants cannot see report details.";
+"moderation.response_process" = "Wakeve reviews abuse reports and can hide, reject, restore, or escalate content.";
+"moderation.contact_support" = "Contact support";
+"moderation.privacy_help" = "Open support page";
+"moderation.report_submitted" = "Report submitted.";
+"moderation.user_blocked" = "User blocked.";
+"moderation.user_unblocked" = "User unblocked.";
+"moderation.submit_error" = "We could not send this moderation request. Try again later.";
+"moderation.pending_review" = "Pending review";
+"moderation.rejected" = "Rejected";
+"moderation.hidden" = "Hidden";
+"moderation.report_comment_context" = "Comment in this event";
+"moderation.report_chat_context" = "Message in this conversation";
+"moderation.report_event_context" = "Event details";
+"moderation.rejected_content_notice" = "This content was rejected by moderation.";
+"moderation.hidden_content_notice" = "This content is hidden after moderation review.";
+"moderation.reason.harassment" = "Harassment";
+"moderation.reason.hate_or_abuse" = "Hate or abuse";
+"moderation.reason.sexual_content" = "Sexual content";
+"moderation.reason.violence_or_threat" = "Violence or threat";
+"moderation.reason.spam_or_scam" = "Spam or scam";
+"moderation.reason.private_information" = "Private information";
+"moderation.reason.other" = "Other";
 "settings_sheet.sign_out" = "Sign out";
 
 // MARK: - Additional Common

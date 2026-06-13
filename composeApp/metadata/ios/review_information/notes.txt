@@ -2,6 +2,8 @@ Wakeve can be reviewed without a pre-created account by using the "Continuer en 
 
 Payment, settlement, and Tricount screens are for coordinating real-world shared event expenses only. They do not sell or unlock app features, subscriptions, digital content, digital credits, boosts, or premium functionality. Tricount handoff links are HTTPS-only and trusted-domain validated before opening.
 
+User-generated content moderation is available for event comments, chat messages, event text, participant/user surfaces, locations, and planning text. To verify the flow, create or open an event as a guest, use the contextual report/block actions on comments, chat, event details, or participant rows, and confirm that reported content shows the moderation state instead of appearing as successfully published when it is hidden or pending review. Server-side filtering rejects hard-policy text before persistence; abuse reports and block actions are sent to the moderation API for timely review. Support contact for abuse and moderation issues is support@wakeve.app and https://wakeve.app/support.
+
 Third-party open-source notices are prepared at https://wakeve.app/third-party-notices and are generated from the release license inventory before final submission.
 
 If App Review needs a dedicated test account, create one in the backend and update the demo account fields before submission.

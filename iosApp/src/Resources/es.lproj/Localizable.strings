@@ -9,6 +9,7 @@
 "common.cancel" = "Cancelar";
 "common.save" = "Guardar";
 "common.delete" = "Eliminar";
+"common.apply" = "Aplicar";
 "common.back" = "Atrás";
 "common.ok" = "OK";
 "common.error" = "Error";
@@ -16,6 +17,10 @@
 "common.loading" = "Cargando...";
 "common.yes" = "Sí";
 "common.no" = "No";
+
+// MARK: - WakeveAI
+"ai.cancel_suggestion_accessibility" = "Cancelar sugerencia";
+"ai.prepare_suggestions_accessibility" = "Preparar sugerencias";
 
 // MARK: - Auth
 "auth.sign_in" = "Iniciar sesión";
@@ -297,6 +302,7 @@
 "home.organized_by_me_badge" = "Organizado por mí";
 "home.create_event" = "Crear un evento";
 "home.loading" = "Cargando eventos...";
+"home.filter_events_accessibility" = "Filtrar eventos";
 
 // MARK: - Event Detail
 "events.share" = "Compartir evento";
@@ -329,6 +335,8 @@
 "events.activity_planning" = "Planificación de actividades";
 "events.close_accessibility" = "Cerrar";
 "events.more_options" = "Más opciones";
+"events.organizer_options_accessibility" = "Opciones del organizador";
+"events.remove_time_slot_accessibility" = "Eliminar franja horaria";
 "events.cancel_keep" = "Cancelar y mantener el evento";
 "events.delete_hint" = "Esta acción es irreversible";
 "events.rsvp.going" = "Asisto";
@@ -336,6 +344,24 @@
 "events.rsvp.maybe" = "Quizás";
 "events.accessibility.rank" = "%@, puesto #%lld, %lld puntos";
 "events.accessibility.its_you" = "Eres tú";
+
+// MARK: - Participants Accessibility
+"participants.options_accessibility" = "Opciones de participantes";
+"participants.add_accessibility" = "Añadir participante";
+"participants.choose_from_contacts_accessibility" = "Elegir participantes desde los contactos";
+"participants.count_accessibility" = "%lld participantes";
+
+// MARK: - Scenario Accessibility
+"scenario.refresh_accessibility" = "Actualizar escenarios";
+
+// MARK: - Transport Accessibility
+"transport.prepare_suggestion_accessibility" = "Preparar una sugerencia de transporte";
+"transport.save_departure_accessibility" = "Guardar salida";
+"sync.pending_accessibility" = "Sincronización pendiente";
+
+// MARK: - Calendar Accessibility
+"calendar.add_event_accessibility" = "Añadir evento al calendario";
+"calendar.add_event_hint" = "Añade «%@» a tu calendario nativo";
 
 // MARK: - Invitation
 "invitation.title" = "Invitar participantes";

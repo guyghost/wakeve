@@ -309,17 +309,45 @@ require_account_deletion_implementation_if_confirmed() {
         "(?i)(account deletion|delete account|deleteAccount|deleteUserAccount|/api/user/delete)" \
         "server/src/test" "shared/src/commonTest"
     require_source_match \
+        "Account deletion backend tests cover collaborative anonymization" \
+        "(?i)(anonymizes shared collaborative records|Deleted user|deleted_user_|providerRevocationStatus|localCleanupRequired)" \
+        "server/src/test" "shared/src/commonTest"
+    require_source_match \
         "Account deletion backend route or service is present" \
         "(?i)(deleteAccount|deleteUserAccount|accountDeletion|/api/user/delete|delete-account)" \
         "server/src/main/kotlin" "shared/src/commonMain/kotlin"
+    require_source_match \
+        "Account deletion stable route is DELETE /api/user/delete" \
+        'delete\("/user/delete"\)' \
+        "server/src/main/kotlin"
+    require_source_match \
+        "Account deletion response includes local cleanup and provider revocation status" \
+        "(?i)(localCleanupRequired|providerRevocationStatus)" \
+        "server/src/main/kotlin" "shared/src/commonMain/kotlin"
+    require_source_match \
+        "Account deletion collaborative anonymization is present" \
+        "(?i)(anonymizeOrganizer|anonymizeParticipantUser|anonymizeCommentsByAuthor|anonymizeMessagesBySender|Deleted user|deleted_user_)" \
+        "shared/src/commonMain/kotlin" "shared/src/commonMain/sqldelight"
     require_source_match \
         "Account deletion iOS entry point is present" \
         "(?i)(Delete Account|deleteAccount|Delete Guest Data|Data Management)" \
         "iosApp/src"
     require_source_match \
+        "Account deletion iOS Data Management screen is present" \
+        "(?i)(DataManagementView|data_management\\.delete_account|data_management\\.delete_guest_data|confirmationDialog)" \
+        "iosApp/src"
+    require_source_match \
+        "Account deletion iOS authenticated and guest actions are present" \
+        "(?i)(deleteCurrentAccount|deleteGuestData|Delete Guest Data)" \
+        "iosApp/src"
+    require_source_match \
         "Account deletion local cleanup is present" \
         "(?i)(clear.*Keychain|Keychain.*clear|clear.*token|remove.*token|guest.*delete|delete.*guest|analytics.*clear|clear.*profile)" \
         "iosApp/src" "shared/src/iosMain/kotlin" "shared/src/commonMain/kotlin"
+    require_source_match \
+        "Account deletion iOS cleanup waits for backend success" \
+        "(?i)(try await authService\\.deleteAccount\\(\\)|await completeLocalAccountDeletion\\(\\)|clearLocalAccountData\\(\\))" \
+        "iosApp/src"
 }
 
 require_account_deletion_evidence_if_confirmed() {
@@ -342,20 +370,24 @@ require_ugc_moderation_implementation_if_confirmed() {
     note "Checking UGC moderation implementation evidence"
     require_openspec_tasks_complete "add-ugc-moderation-controls" "UGC moderation"
     require_source_match \
-        "UGC moderation tests cover report/block/filter behavior" \
-        "(?i)(ModerationStatus|ReportReason|ContentReport|UserBlock|reportContent|reportOffensive|blockUser|blockedUser|moderation policy)" \
+        "UGC moderation tests cover report/block/unblock/filter behavior" \
+        "(?i)(ModerationStatus|ReportReason|ContentReport|UserBlock|reportContent|reportOffensive|blockUser|unblockUser|blockedUser|moderation policy)" \
         "server/src/test" "shared/src/commonTest"
     require_source_match \
         "UGC moderation shared/server models are present" \
         "(?i)(ModerationStatus|ReportTarget|ReportReason|UserBlock|ContentReport|ModerationDecision)" \
         "shared/src/commonMain/kotlin" "server/src/main/kotlin"
     require_source_match \
-        "UGC moderation server policy or endpoints are present" \
-        "(?i)(moderationPolicy|ModerationService|reportContent|contentReport|blockUser|userBlock|/report|/block)" \
+        "UGC moderation server policy or report/block/unblock endpoints are present" \
+        "(?i)(moderationPolicy|ModerationService|reportContent|contentReport|blockUser|unblockUser|userBlock|/reports|/blocks)" \
         "server/src/main/kotlin" "shared/src/commonMain/kotlin"
     require_source_match \
-        "UGC moderation iOS report/block entry points are present" \
-        "(?i)(Report Abuse|Report Content|Block User|reportUser|blockUser|ReportReason|abuse report|moderation)" \
+        "UGC moderation iOS report/block/unblock entry points are present" \
+        "(?i)(Report Abuse|Report Content|Block User|Unblock User|reportUser|blockUser|unblockUser|ReportReason|abuse report|moderation)" \
+        "iosApp/src"
+    require_source_match \
+        "UGC moderation iOS hidden/pending/rejected states are present" \
+        "(?i)(ModerationStatusBadge|moderatedCommentNotice|pending_review|rejected_content_notice|hidden_content_notice)" \
         "iosApp/src"
 }
 
@@ -823,7 +855,7 @@ require_file "docs/APP_STORE_MEDIA_LOCALIZATION_EVIDENCE.md" "App Store media an
 require_file "docs/APP_STORE_LICENSE_NOTICES_EVIDENCE.md" "App Store license notices evidence record"
 require_file "docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md" "App Store license inventory draft"
 require_file "docs/APP_STORE_THIRD_PARTY_NOTICES.md" "App Store third-party notices draft"
-require_file "webApp/src/routes/third-party-notices/+page.svelte" "Public third-party notices route"
+require_file "apps/landing/src/routes/third-party-notices/+page.svelte" "Public third-party notices route"
 require_file "docs/APP_STORE_EULA_EVIDENCE.md" "App Store EULA evidence record"
 require_file "docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md" "App Store Review Guideline audit"
 require_file "docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md" "App Store account deletion evidence record"

@@ -38,13 +38,13 @@ Apple-source review date: 2026-05-27.
 
 | Area | Current evidence | Submission decision |
 | --- | --- | --- |
-| Guideline 1.2 User-Generated Content | Server routes register comments and chat (`commentRoutes`, `chatRoutes`, `chatWebSocketRoute`). Terms and support contact exist, but reviewer-visible filtering, reporting, and blocking are not verified. OpenSpec proposal `openspec/changes/add-ugc-moderation-controls/` now defines the required implementation and evidence. | Do not submit until `APP_STORE_UGC_MODERATION_CONFIRMED=true` is backed by device/API evidence. |
+| Guideline 1.2 User-Generated Content | Local implementation evidence now covers server filtering for comments, chat, event text, potential locations, meal planning, and budget item text; report/block/unblock endpoints; block-filtered reads, WebSocket delivery, and notifications; iOS report/block/unblock entry points; hidden/pending/rejected states; and a final-audit UGC gate regression script. OpenSpec `openspec/changes/add-ugc-moderation-controls/` remains open for App Store evidence and final validation. | Do not submit until `APP_STORE_UGC_MODERATION_CONFIRMED=true` is backed by uploaded-build device/API evidence and `docs/APP_STORE_UGC_MODERATION_EVIDENCE.md` is complete. |
 | Guideline 2.1 App Completeness | Local Release build without signing passes, metadata validates, iOS screenshots exist, and review notes explain guest access. Live URLs, signed archive, App Review phone, TestFlight smoke tests, and production services remain incomplete. | Do not submit yet. |
 | Guideline 2.3 Accurate Metadata | Fastlane metadata, screenshots, privacy/support URLs, age rating, copyright, review notes, and no on-device-only privacy claim are linted. | Ready locally, pending live URL and App Store Connect manual verification. |
 | Guideline 3.1.1 In-App Purchase / Guideline 3.1.3 Other Purchase Methods | Wakeve has payment pot, settlement, and Tricount handoff surfaces. App Review notes now explain the real-world shared-expense scope and no digital unlocks, but the review build still has not been manually verified. | Do not submit until `APP_STORE_PAYMENT_COMPLIANCE_CONFIRMED=true` is backed by TestFlight/App Review notes evidence. |
 | Guideline 4.8 Login Services | iOS exposes Sign in with Apple and the entitlement is declared because the app also has Google login. | Ready locally, pending Apple Developer capability/profile verification. |
 | Guideline 5.1.1 Privacy | Privacy policy, App Store privacy-label draft, privacy manifest, no IDFA/ATT usage, purpose strings, and required-reason APIs are checked locally. | Pending product/legal approval and production-backend confirmation. |
-| Guideline 5.1.1(v) Account deletion | Wakeve supports account creation through email, OAuth, guest sessions, and Sign in with Apple. The current iOS Profile Settings screen does not yet prove an in-app account deletion initiation flow, and the inspected auth routes do not expose a full account deletion endpoint. OpenSpec proposal `openspec/changes/add-in-app-account-deletion/` now defines the required implementation and evidence. | Do not submit until `APP_STORE_ACCOUNT_DELETION_CONFIRMED=true` is backed by device/API evidence. |
+| Guideline 5.1.1(v) Account deletion | Wakeve supports account creation through email, OAuth, guest sessions, and Sign in with Apple. Local implementation evidence now covers the iOS Profile -> Data Management deletion path, authenticated `DELETE /api/user/delete`, local cleanup wiring, backend deletion/anonymization, session/token/push-token cleanup, and Apple revocation attempt/failure handling. Uploaded-build App Review evidence remains incomplete. | Do not submit until `APP_STORE_ACCOUNT_DELETION_CONFIRMED=true` is backed by uploaded-build device/API evidence. |
 | App Store SDK minimum | Local toolchain is Xcode 26.5 with iOS SDK 26.5; the linter checks the SDK upload minimum. | Ready locally. |
 | Accessibility Nutrition Labels | Conservative draft exists and linter prevents unsupported claims before TestFlight/device evidence. | Do not publish labels until iPhone/iPad evidence exists, or leave labels unpublished where allowed. |
 | Digital Services Act | DSA trader status decision is documented separately. | Pending App Store Connect confirmation or EU storefront decision. |
@@ -55,7 +55,7 @@ Wakeve includes user-generated content surfaces: event comments, chat messages, 
 
 Do not submit until there is current evidence for all of the following:
 
-- Filtering: objectionable content can be filtered or prevented before it is posted, or a server-side moderation policy is active for comments/chat and event text.
+- Filtering: objectionable content can be filtered or prevented before it is posted, or a server-side moderation policy is active for comments, chat, event text, potential locations, and planning free-text.
 - Report: users can report offensive comments, chat messages, event text, or users from the app or a clearly linked support path that includes the content/user identifier.
 - Block: users can block abusive users or otherwise prevent continued unwanted contact from the abusive user.
 - Published contact information: `support@wakeve.app` is live and reachable from the App Store support URL and in-app support path.
@@ -63,6 +63,12 @@ Do not submit until there is current evidence for all of the following:
 - Reviewer evidence: App Review notes or demo data explain how to find and verify the moderation/report/block flows if they are not obvious.
 
 Set `APP_STORE_UGC_MODERATION_CONFIRMED=true` only after this evidence is recorded in `docs/APP_STORE_UGC_MODERATION_EVIDENCE.md` and referenced from `docs/APP_STORE_FINAL_SIGNOFF.md`.
+
+Latest local evidence on 2026-06-13:
+
+- `./gradlew :server:test --tests com.guyghost.wakeve.routes.UgcModerationRoutesTest` passed and covers hard-policy rejection, pending-review hiding, reporting, block/unblock filters, notification suppression, WebSocket block-filter wiring, and potential-location moderation.
+- `xcodebuild test -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:WakeveTests/FindingsRegressionTests/testUgcModerationReportBlockControlsAreReviewerVisible` passed and covers reviewer-visible iOS moderation entry points and states.
+- `./scripts/test-app-store-ugc-gates.sh` passed and proves the final audit still rejects missing `APP_STORE_UGC_MODERATION_CONFIRMED`, incomplete UGC OpenSpec tasks, and incomplete UGC evidence even when the signoff is forced.
 
 ## Guideline 3.1 Payment compliance gate
 

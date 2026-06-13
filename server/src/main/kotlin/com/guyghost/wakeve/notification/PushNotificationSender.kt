@@ -4,7 +4,6 @@ import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
-import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
@@ -41,9 +40,7 @@ class ServerFCMSender : FCMSender {
         data: Map<String, String>
     ): Result<Unit> = runCatching {
         if (fcmServerKey == null) {
-            // TODO: En production, configurer FCM_SERVER_KEY pour activer l'envoi FCM
-            logger.warn("FCM_SERVER_KEY not configured. Logging notification instead of sending.")
-            logger.info("FCM notification: token=${token.take(20)}..., title=$title, body=$body, data=$data")
+            logger.warn("FCM_SERVER_KEY not configured; notification delivery skipped")
             return@runCatching
         }
 
@@ -67,12 +64,11 @@ class ServerFCMSender : FCMSender {
         }
 
         if (response.status != HttpStatusCode.OK) {
-            val responseBody = response.bodyAsText()
-            logger.error("FCM send failed: status=${response.status}, body=$responseBody")
+            logger.error("FCM send failed: status=${response.status}")
             error("FCM send failed with status ${response.status}")
         }
 
-        logger.info("FCM notification sent to ${token.take(20)}...")
+        logger.info("FCM notification sent")
     }
 }
 
@@ -112,16 +108,12 @@ class ServerAPNsSender : APNsSender {
         data: Map<String, String>
     ): Result<Unit> = runCatching {
         if (apnsKeyId == null || apnsTeamId == null) {
-            // TODO: En production, configurer les variables APNs pour activer l'envoi
-            logger.warn("APNs credentials not configured. Logging notification instead of sending.")
-            logger.info("APNs notification: token=${token.take(20)}..., title=$title, body=$body, data=$data")
+            logger.warn("APNs credentials not configured; notification delivery skipped")
             return@runCatching
         }
 
         // TODO: Implémenter la connexion HTTP/2 avec JWT APNs auth token
-        // Pour le moment, on log la notification
-        logger.info("APNs notification would be sent to $apnsHost/3/device/$token")
-        logger.info("  Payload: title=$title, body=$body, data=$data")
+        logger.info("APNs notification send path reached for host $apnsHost")
         logger.info("  Bundle ID: $apnsBundleId")
     }
 }

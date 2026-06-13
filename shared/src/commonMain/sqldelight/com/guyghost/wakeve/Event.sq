@@ -50,6 +50,11 @@ UPDATE event
 SET planningMode = ?, updatedAt = ?
 WHERE id = ?;
 
+anonymizeOrganizer:
+UPDATE event
+SET organizerId = ?, updatedAt = ?
+WHERE organizerId = ?;
+
 deleteEvent:
 DELETE FROM event WHERE id = ?;
 

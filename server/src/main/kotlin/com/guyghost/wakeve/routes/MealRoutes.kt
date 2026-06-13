@@ -5,6 +5,7 @@ import com.guyghost.wakeve.meal.MealRepository
 import com.guyghost.wakeve.models.AutoMealPlanRequest
 import com.guyghost.wakeve.models.DietaryRestrictionRequest
 import com.guyghost.wakeve.models.MealRequest
+import com.guyghost.wakeve.moderation.ModerationPolicy
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -26,7 +27,10 @@ import java.time.Instant
  * - Dietary restriction management
  * - Meal statistics and summaries
  */
-fun io.ktor.server.routing.Route.mealRoutes(repository: MealRepository) {
+fun io.ktor.server.routing.Route.mealRoutes(
+    repository: MealRepository,
+    moderationPolicy: ModerationPolicy = ModerationPolicy()
+) {
     route("/events/{eventId}/meals") {
         
         // GET /api/events/{eventId}/meals - Get all meals for event
@@ -56,6 +60,13 @@ fun io.ktor.server.routing.Route.mealRoutes(repository: MealRepository) {
                 )
 
                 val request = call.receive<MealRequest>()
+                if (call.rejectRejectedModeratedText(
+                        moderationPolicy,
+                        mealModeratedTextFields(request)
+                    )
+                ) {
+                    return@post
+                }
                 
                 // Ensure eventId matches
                 if (request.eventId != eventId) {
@@ -133,6 +144,13 @@ fun io.ktor.server.routing.Route.mealRoutes(repository: MealRepository) {
                 }
 
                 val request = call.receive<MealRequest>()
+                if (call.rejectRejectedModeratedText(
+                        moderationPolicy,
+                        mealModeratedTextFields(request)
+                    )
+                ) {
+                    return@put
+                }
                 
                 // Validate meal
                 val validationError = MealPlanner.validateMeal(
@@ -422,3 +440,10 @@ fun io.ktor.server.routing.Route.mealRoutes(repository: MealRepository) {
 private fun getCurrentIsoTimestamp(): String {
     return Instant.now().toString()
 }
+
+private fun mealModeratedTextFields(request: MealRequest): List<ModeratedTextField> =
+    listOf(
+        ModeratedTextField("name", request.name),
+        ModeratedTextField("location", request.location),
+        ModeratedTextField("notes", request.notes)
+    )

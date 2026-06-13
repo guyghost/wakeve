@@ -9,6 +9,7 @@
 "common.cancel" = "Annuler";
 "common.save" = "Enregistrer";
 "common.delete" = "Supprimer";
+"common.apply" = "Appliquer";
 "common.back" = "Retour";
 "common.ok" = "OK";
 "common.error" = "Erreur";
@@ -16,6 +17,10 @@
 "common.loading" = "Chargement...";
 "common.yes" = "Oui";
 "common.no" = "Non";
+
+// MARK: - WakeveAI
+"ai.cancel_suggestion_accessibility" = "Annuler la suggestion";
+"ai.prepare_suggestions_accessibility" = "Préparer des suggestions";
 
 // MARK: - Auth
 "auth.sign_in" = "Se connecter";
@@ -31,6 +36,14 @@
 "auth.continue_as_guest" = "Continuer en invité";
 "auth.guest_display_name" = "Invité";
 "auth.skip_dev" = "Passer (Développement)";
+"auth.apple_sign_in_accessibility_label" = "Se connecter avec Apple";
+"auth.apple_sign_in_accessibility_hint" = "Utilise votre identifiant Apple pour vous authentifier";
+"auth.continue_as_guest_accessibility_label" = "Continuer en invité";
+"auth.continue_as_guest_accessibility_hint" = "Crée une session invitée locale sans connexion";
+"auth.skip_dev_accessibility_label" = "Mode développement : passer l'authentification";
+"auth.skip_dev_accessibility_hint" = "Crée une session authentifiée fictive pour les tests";
+"auth.read_privacy_policy_accessibility_label" = "Lire la politique de confidentialité";
+"auth.read_terms_accessibility_label" = "Lire les conditions d'utilisation";
 
 // MARK: - Explore
 "explore.title" = "Explorer";
@@ -297,6 +310,7 @@
 "home.organized_by_me_badge" = "Organisé par moi";
 "home.create_event" = "Créer un événement";
 "home.loading" = "Chargement des événements...";
+"home.filter_events_accessibility" = "Filtrer les événements";
 
 // MARK: - Event Detail
 "events.share" = "Partager l'événement";
@@ -329,6 +343,8 @@
 "events.activity_planning" = "Planification d'activités";
 "events.close_accessibility" = "Fermer";
 "events.more_options" = "Plus d'options";
+"events.organizer_options_accessibility" = "Options organisateur";
+"events.remove_time_slot_accessibility" = "Supprimer le créneau";
 "events.cancel_keep" = "Annuler et garder l'événement";
 "events.delete_hint" = "Cette action est irréversible";
 "events.rsvp.going" = "Présent";
@@ -336,6 +352,24 @@
 "events.rsvp.maybe" = "Peut-être";
 "events.accessibility.rank" = "%@, rang #%lld, %lld points";
 "events.accessibility.its_you" = "C'est vous";
+
+// MARK: - Participants Accessibility
+"participants.options_accessibility" = "Options participants";
+"participants.add_accessibility" = "Ajouter le participant";
+"participants.choose_from_contacts_accessibility" = "Choisir des participants depuis les contacts";
+"participants.count_accessibility" = "%lld participants";
+
+// MARK: - Scenario Accessibility
+"scenario.refresh_accessibility" = "Actualiser les scénarios";
+
+// MARK: - Transport Accessibility
+"transport.prepare_suggestion_accessibility" = "Préparer une suggestion transport";
+"transport.save_departure_accessibility" = "Enregistrer le départ";
+"sync.pending_accessibility" = "Synchronisation en attente";
+
+// MARK: - Calendar Accessibility
+"calendar.add_event_accessibility" = "Ajouter l'événement au calendrier";
+"calendar.add_event_hint" = "Ajoute « %@ » à votre calendrier natif";
 
 // MARK: - Invitation
 "invitation.title" = "Inviter des participants";
@@ -355,9 +389,58 @@
 "settings_sheet.calendar_sync" = "Synchronisation du calendrier";
 "settings_sheet.email_notifications" = "Notifications par e-mail";
 "settings_sheet.privacy" = "Confidentialité et informations";
-"settings_sheet.data_management" = "Découvrez comment sont gérées vos données...";
+"settings_sheet.data_management" = "Gestion des données";
+"settings_sheet.data_management_value" = "Supprimer le compte";
 "settings_sheet.help" = "Aide";
 "settings_sheet.terms" = "Conditions générales";
+
+// MARK: - Data Management
+"data_management.title" = "Gestion des données";
+"data_management.subtitle" = "Contrôlez les données de compte stockées par Wakeve sur cet appareil et sur le backend.";
+"data_management.scope_title" = "Portée de la suppression";
+"data_management.account_scope" = "La suppression du compte est permanente. Wakeve supprime le compte et les données de profil personnelles, révoque les sessions et tokens push, efface les identifiants locaux et anonymise l'historique partagé quand c'est nécessaire.";
+"data_management.guest_scope" = "Les données invité sont stockées localement sur cet appareil. Leur suppression efface le profil invité local et les données Wakeve locales sans contacter le backend.";
+"data_management.delete_account" = "Supprimer le compte";
+"data_management.delete_guest_data" = "Supprimer les données invité";
+"data_management.confirm_account_message" = "Cette action supprime définitivement votre compte Wakeve et efface les identifiants locaux après confirmation du backend. Elle est irréversible.";
+"data_management.confirm_guest_message" = "Cette action supprime définitivement les données invité locales de cet appareil. Aucune requête backend ne sera envoyée.";
+"data_management.account_deleted" = "Votre compte a été supprimé.";
+"data_management.guest_deleted" = "Les données invité ont été supprimées.";
+"data_management.delete_error" = "Nous n'avons pas pu supprimer votre compte. Vérifiez votre connexion puis réessayez.";
+
+// MARK: - Moderation
+"moderation.title" = "Signaler ou bloquer";
+"moderation.report_title" = "Signalement";
+"moderation.report_content" = "Signaler le contenu";
+"moderation.report_user" = "Signaler l'utilisateur";
+"moderation.report_event" = "Signaler l'événement";
+"moderation.block_user" = "Bloquer l'utilisateur";
+"moderation.unblock_user" = "Debloquer l'utilisateur";
+"moderation.reason" = "Motif";
+"moderation.details_placeholder" = "Ajoutez du contexte pour l'équipe support Wakeve";
+"moderation.report_help" = "Les signalements sont envoyés au support Wakeve pour revue. Les autres participants ne voient pas les détails du signalement.";
+"moderation.response_process" = "Wakeve examine les signalements d'abus et peut masquer, rejeter, restaurer ou escalader un contenu.";
+"moderation.contact_support" = "Contacter le support";
+"moderation.privacy_help" = "Ouvrir la page d'aide";
+"moderation.report_submitted" = "Signalement envoyé.";
+"moderation.user_blocked" = "Utilisateur bloqué.";
+"moderation.user_unblocked" = "Utilisateur debloque.";
+"moderation.submit_error" = "Nous n'avons pas pu envoyer cette demande de modération. Réessayez plus tard.";
+"moderation.pending_review" = "En attente de revue";
+"moderation.rejected" = "Rejeté";
+"moderation.hidden" = "Masqué";
+"moderation.report_comment_context" = "Commentaire dans cet événement";
+"moderation.report_chat_context" = "Message dans cette conversation";
+"moderation.report_event_context" = "Détails de l'événement";
+"moderation.rejected_content_notice" = "Ce contenu a été rejeté par la modération.";
+"moderation.hidden_content_notice" = "Ce contenu est masqué après revue de modération.";
+"moderation.reason.harassment" = "Harcèlement";
+"moderation.reason.hate_or_abuse" = "Haine ou abus";
+"moderation.reason.sexual_content" = "Contenu sexuel";
+"moderation.reason.violence_or_threat" = "Violence ou menace";
+"moderation.reason.spam_or_scam" = "Spam ou arnaque";
+"moderation.reason.private_information" = "Information privée";
+"moderation.reason.other" = "Autre";
 "settings_sheet.sign_out" = "Se déconnecter";
 
 // MARK: - Additional Common

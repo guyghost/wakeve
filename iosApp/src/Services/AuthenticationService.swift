@@ -251,15 +251,76 @@ public class AuthenticationService: ObservableObject {
      * Sign out and clear all stored tokens and user data.
      */
     func signOut() async {
-        try? await tokenStorage.clearAllTokens()
-
-        // Clear cached user profile
-        UserDefaults.standard.removeObject(forKey: "wakeve_user_name")
-        UserDefaults.standard.removeObject(forKey: "wakeve_user_email")
-        UserDefaults.standard.removeObject(forKey: "wakeve_user_avatar")
-        UserDefaults.standard.removeObject(forKey: "wakeve_user_provider")
+        await clearLocalAccountData()
 
         debugLog("[AuthenticationService] User signed out, tokens cleared")
+    }
+
+    /**
+     * Delete the authenticated Wakeve account on the backend.
+     *
+     * Local credentials are intentionally not cleared here. The caller should
+     * clear local state only after this method returns successfully, so offline
+     * failures remain retryable and do not falsely imply backend erasure.
+     */
+    func deleteAccount() async throws -> AccountDeletionResponse {
+        guard let accessToken = await tokenStorage.getAccessToken(), !accessToken.isEmpty else {
+            throw AuthError.authenticationFailed("Authentication required")
+        }
+
+        let url = URL(string: "\(baseUrl)/user/delete")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw AuthError.networkError
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AuthError.networkError
+        }
+
+        switch httpResponse.statusCode {
+        case 200:
+            return try JSONDecoder().decode(AccountDeletionResponse.self, from: data)
+
+        case 401:
+            let errorResponse = try? JSONDecoder().decode(AuthErrorResponse.self, from: data)
+            throw AuthError.authenticationFailed(errorResponse?.message ?? "Authentication required")
+
+        default:
+            let errorResponse = try? JSONDecoder().decode(AuthErrorResponse.self, from: data)
+            throw AuthError.serverError(errorResponse?.message ?? "Account deletion failed")
+        }
+    }
+
+    /**
+     * Clear local credentials, cached profile values, local guest identifiers,
+     * and app-scoped analytics identifiers after sign-out or confirmed deletion.
+     */
+    func clearLocalAccountData() async {
+        try? await tokenStorage.clearAllTokens()
+
+        let keys = [
+            "wakeve_user_name",
+            "wakeve_user_email",
+            "wakeve_user_avatar",
+            "wakeve_user_provider",
+            "wakeve_guest_user_id",
+            "wakeve_guest_user_name",
+            "wakeve_analytics_user_id",
+            "wakeve_analytics_session_id"
+        ]
+
+        for key in keys {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
     }
 
     /**
@@ -342,6 +403,15 @@ private struct GoogleAuthRequestBody: Codable {
 /// Token refresh request body (matches server TokenRefreshRequest)
 private struct TokenRefreshRequestBody: Codable {
     let refreshToken: String
+}
+
+/// Response returned after authenticated backend account deletion.
+public struct AccountDeletionResponse: Codable {
+    let success: Bool
+    let deleted: Bool
+    let message: String
+    let localCleanupRequired: Bool?
+    let providerRevocationStatus: String?
 }
 
 /// Authentication login response (matches server OAuthLoginResponse)

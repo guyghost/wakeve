@@ -82,7 +82,8 @@ enum CommentFactory {
         createdAt: String = now,
         updatedAt: String? = nil,
         isEdited: Bool = false,
-        replyCount: Int32 = 0
+        replyCount: Int32 = 0,
+        moderationStatus: ModerationStatus = .approved
     ) -> Comment_ {
         Comment_(
             id: id,
@@ -99,7 +100,8 @@ enum CommentFactory {
             createdAt: createdAt,
             updatedAt: updatedAt,
             isEdited: isEdited,
-            replyCount: replyCount
+            replyCount: replyCount,
+            moderationStatus: moderationStatus
         )
     }
 }

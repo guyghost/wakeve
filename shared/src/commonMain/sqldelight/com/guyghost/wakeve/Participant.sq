@@ -44,6 +44,11 @@ UPDATE participant
 SET hasValidatedDate = ?, updatedAt = ?
 WHERE id = ?;
 
+anonymizeParticipantUser:
+UPDATE participant
+SET userId = ?, updatedAt = ?
+WHERE userId = ?;
+
 deleteParticipant:
 DELETE FROM participant WHERE id = ?;
 
@@ -55,5 +60,4 @@ CREATE INDEX IF NOT EXISTS idx_participant_event ON participant(eventId, joinedA
 CREATE INDEX IF NOT EXISTS idx_participant_user ON participant(userId);
 CREATE INDEX IF NOT EXISTS idx_participant_role ON participant(eventId, role);
 CREATE INDEX IF NOT EXISTS idx_participant_validated ON participant(eventId, hasValidatedDate);
-
 

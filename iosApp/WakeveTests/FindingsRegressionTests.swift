@@ -38,6 +38,87 @@ final class FindingsRegressionTests: XCTestCase {
         )
     }
 
+    func testGuestDataDeletionClearsLocalGuestSession() async throws {
+        let authService = AuthenticationService(tokenStorage: InMemorySecureTokenStorage())
+        let manager = AuthStateManager(authService: authService)
+
+        await manager.continueAsGuest()
+        XCTAssertTrue(manager.isAuthenticated)
+        XCTAssertTrue(manager.isCurrentSessionGuest)
+        XCTAssertNotNil(UserDefaults.standard.string(forKey: "wakeve_guest_user_id"))
+
+        await manager.deleteGuestData()
+
+        XCTAssertFalse(manager.isAuthenticated)
+        XCTAssertNil(manager.currentUser)
+        XCTAssertNil(UserDefaults.standard.string(forKey: "wakeve_guest_user_id"))
+        XCTAssertNil(UserDefaults.standard.string(forKey: "wakeve_guest_user_name"))
+    }
+
+    func testProfileDataManagementExposesAccountDeletionFlow() throws {
+        let profile = try readProjectFile("iosApp/src/Views/Profile/ProfileTabView.swift")
+        let authService = try readProjectFile("iosApp/src/Services/AuthenticationService.swift")
+        let authState = try readProjectFile("iosApp/src/Services/AuthStateManager.swift")
+
+        XCTAssertTrue(profile.contains("NavigationLink"))
+        XCTAssertTrue(profile.contains("DataManagementView"))
+        XCTAssertTrue(profile.contains("data_management.delete_account"))
+        XCTAssertTrue(profile.contains("data_management.delete_guest_data"))
+        XCTAssertTrue(profile.contains("confirmationDialog"))
+        XCTAssertTrue(authService.contains("func deleteAccount() async throws -> AccountDeletionResponse"))
+        XCTAssertTrue(authService.contains("\"\\(baseUrl)/user/delete\""))
+        XCTAssertTrue(authState.contains("func deleteCurrentAccount() async throws"))
+        XCTAssertTrue(authState.contains("try await authService.deleteAccount()"))
+        XCTAssertTrue(authState.contains("await completeLocalAccountDeletion()"))
+    }
+
+    func testUgcModerationReportBlockControlsAreReviewerVisible() throws {
+        let commentItem = try readProjectFile("iosApp/src/Views/Collaboration/CommentItemView.swift")
+        let commentList = try readProjectFile("iosApp/src/Views/Collaboration/CommentListView.swift")
+        let eventDetail = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let inboxDetail = try readProjectFile("iosApp/src/Views/Inbox/InboxDetailView.swift")
+        let participantManagement = try readProjectFile("iosApp/src/Views/Events/ParticipantManagementView.swift")
+        let moderationSheet = try readProjectFile("iosApp/src/Views/Moderation/ModerationActionSheet.swift")
+        let moderationService = try readProjectFile("iosApp/src/Services/ModerationService.swift")
+        let english = try readProjectFile("iosApp/src/Resources/en.lproj/Localizable.strings")
+        let french = try readProjectFile("iosApp/src/Resources/fr.lproj/Localizable.strings")
+
+        XCTAssertTrue(commentItem.contains("reportCommentAction"), "Comment menu must expose report content.")
+        XCTAssertTrue(commentItem.contains("reportUserAction"), "Comment menu must expose report user.")
+        XCTAssertTrue(commentItem.contains("blockUserAction"), "Comment menu must expose block user.")
+        XCTAssertTrue(commentList.contains(".sheet(item: $moderationTarget)"), "Comment list must present the moderation sheet.")
+        XCTAssertTrue(eventDetail.contains("reportEventAction"), "Event detail menu must expose report event.")
+        XCTAssertTrue(eventDetail.contains("type: .event"), "Event detail report target must use the event moderation type.")
+        XCTAssertTrue(inboxDetail.contains("reportChatMessageAction"), "Inbox detail must expose report action for chat/message content.")
+        XCTAssertTrue(inboxDetail.contains("blockChatAuthorAction"), "Inbox detail must expose block action for chat/message authors.")
+        XCTAssertTrue(inboxDetail.contains("type: .chatMessage"), "Inbox detail report target must use the chat message moderation type.")
+        XCTAssertTrue(inboxDetail.contains(".sheet(item: $moderationTarget)"), "Inbox detail must present the moderation sheet.")
+        XCTAssertTrue(participantManagement.contains("reportParticipantUserAction"), "Participant rows must expose report user.")
+        XCTAssertTrue(participantManagement.contains("blockParticipantUserAction"), "Participant rows must expose block user.")
+        XCTAssertTrue(participantManagement.contains("type: .user"), "Participant actions must use the user moderation type.")
+        XCTAssertTrue(commentItem.contains("moderatedCommentNotice"), "Rejected or hidden comments must show a moderated-content notice.")
+        XCTAssertTrue(commentItem.contains("isModerationHidden"), "Comment rendering must distinguish hidden/rejected moderation states.")
+        XCTAssertTrue(moderationSheet.contains("ModerationActionSheet"), "Moderation action sheet must be present.")
+        XCTAssertTrue(moderationSheet.contains("support@wakeve.app"), "Moderation sheet must expose human support.")
+        XCTAssertTrue(moderationSheet.contains("moderationStatusBadge"), "Moderation sheet must include status badge accessibility marker.")
+        XCTAssertTrue(moderationSheet.contains("moderation.unblock_user"), "Moderation sheet must expose unblock user.")
+        XCTAssertTrue(moderationService.contains("/moderation/reports"), "Moderation service must submit reports.")
+        XCTAssertTrue(moderationService.contains("/moderation/blocks"), "Moderation service must submit blocks.")
+        XCTAssertTrue(moderationService.contains("func unblockUser"), "Moderation service must submit unblock requests.")
+        XCTAssertTrue(moderationService.contains("method: \"DELETE\""), "Moderation unblock must use the backend DELETE contract.")
+        XCTAssertTrue(moderationService.contains("Authorization"), "Moderation service must send authenticated requests.")
+        XCTAssertTrue(english.contains("\"moderation.report_content\" = \"Report Content\""), "English moderation report copy must be localized.")
+        XCTAssertTrue(english.contains("\"moderation.block_user\" = \"Block User\""), "English block copy must be localized.")
+        XCTAssertTrue(english.contains("\"moderation.unblock_user\" = \"Unblock User\""), "English unblock copy must be localized.")
+        XCTAssertTrue(english.contains("\"moderation.report_chat_context\""), "English chat report context must be localized.")
+        XCTAssertTrue(english.contains("\"moderation.hidden_content_notice\""), "English hidden-content notice must be localized.")
+        XCTAssertTrue(french.contains("\"moderation.report_content\" = \"Signaler le contenu\""), "French moderation report copy must be localized.")
+        XCTAssertTrue(french.contains("\"moderation.block_user\" = \"Bloquer l'utilisateur\""), "French block copy must be localized.")
+        XCTAssertTrue(french.contains("\"moderation.unblock_user\""), "French unblock copy must be localized.")
+        XCTAssertTrue(french.contains("\"moderation.report_chat_context\""), "French chat report context must be localized.")
+        XCTAssertTrue(french.contains("\"moderation.hidden_content_notice\""), "French hidden-content notice must be localized.")
+    }
+
     func testParticipantManagementRequiresAtLeastOneProposedSlotBeforeStartingPoll() throws {
         let source = try readProjectFile("iosApp/src/Views/Events/ParticipantManagementView.swift")
         let canStartPoll = slice(source, from: "private var canStartPoll", to: "private var heroColors")
@@ -138,7 +219,10 @@ final class FindingsRegressionTests: XCTestCase {
             "\"inbox.filter.focused\" = \"Prioritaires\"",
             "\"inbox.filter.new\" = \"Nouveau\"",
             "\"inbox.filter.unread\" = \"Non lus\"",
-            "\"inbox.filter.event\" = \"Événement\""
+            "\"inbox.filter.event\" = \"Événement\"",
+            "\"settings_sheet.data_management\" = \"Gestion des données\"",
+            "\"data_management.delete_account\" = \"Supprimer le compte\"",
+            "\"data_management.delete_guest_data\" = \"Supprimer les données invité\""
         ]
 
         for key in requiredFrenchKeys {

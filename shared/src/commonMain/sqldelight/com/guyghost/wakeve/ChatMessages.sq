@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS chat_message (
     is_edited INTEGER NOT NULL DEFAULT 0,  -- 0 = false, 1 = true
     reactions_json TEXT,  -- JSON array of reactions: [{"userId": "...", "emoji": "...", "timestamp": "..."}]
     read_by_json TEXT,  -- JSON array of user IDs who have read: ["userId1", "userId2"]
+    moderation_status TEXT NOT NULL DEFAULT 'APPROVED',
     created_at TEXT NOT NULL,  -- ISO 8601 UTC timestamp (for sync)
     updated_at TEXT NOT NULL,  -- ISO 8601 UTC timestamp (for sync)
     FOREIGN KEY (event_id) REFERENCES event(id) ON DELETE CASCADE,
@@ -54,6 +55,7 @@ CREATE INDEX IF NOT EXISTS idx_chat_message_section_item ON chat_message(section
 CREATE INDEX IF NOT EXISTS idx_chat_message_parent ON chat_message(parent_message_id);
 CREATE INDEX IF NOT EXISTS idx_chat_message_timestamp ON chat_message(timestamp);
 CREATE INDEX IF NOT EXISTS idx_chat_message_status ON chat_message(status);
+CREATE INDEX IF NOT EXISTS idx_chat_message_moderation_status ON chat_message(moderation_status);
 CREATE INDEX IF NOT EXISTS idx_chat_message_event_timestamp ON chat_message(event_id, timestamp DESC);
 
 -- Composite indexes for common query patterns
@@ -75,87 +77,87 @@ SELECT * FROM chat_message WHERE id = ?;
 
 selectMessagesByEvent:
 SELECT * FROM chat_message 
-WHERE event_id = ? 
+WHERE event_id = ? AND moderation_status = 'APPROVED' 
 ORDER BY timestamp ASC;
 
 selectMessagesByEventPaginated:
 SELECT * FROM chat_message 
-WHERE event_id = ? 
+WHERE event_id = ? AND moderation_status = 'APPROVED' 
 ORDER BY timestamp DESC
 LIMIT ? OFFSET ?;
 
 selectMessagesByEventAndSection:
 SELECT * FROM chat_message 
-WHERE event_id = ? AND section = ? 
+WHERE event_id = ? AND section = ? AND moderation_status = 'APPROVED' 
 ORDER BY timestamp ASC;
 
 selectMessagesByEventSectionPaginated:
 SELECT * FROM chat_message 
-WHERE event_id = ? AND section = ? 
+WHERE event_id = ? AND section = ? AND moderation_status = 'APPROVED' 
 ORDER BY timestamp DESC
 LIMIT ? OFFSET ?;
 
 selectMessagesByEventSectionAndItem:
 SELECT * FROM chat_message 
-WHERE event_id = ? AND section = ? AND section_item_id = ?
+WHERE event_id = ? AND section = ? AND section_item_id = ? AND moderation_status = 'APPROVED'
 ORDER BY timestamp ASC;
 
 selectMessagesByEventSectionAndItemPaginated:
 SELECT * FROM chat_message 
-WHERE event_id = ? AND section = ? AND section_item_id = ?
+WHERE event_id = ? AND section = ? AND section_item_id = ? AND moderation_status = 'APPROVED'
 ORDER BY timestamp DESC
 LIMIT ? OFFSET ?;
 
 selectThreadMessages:
 SELECT * FROM chat_message 
-WHERE parent_message_id = ?
+WHERE parent_message_id = ? AND moderation_status = 'APPROVED'
 ORDER BY timestamp ASC;
 
 selectTopLevelMessages:
 SELECT * FROM chat_message 
-WHERE event_id = ? AND parent_message_id IS NULL
+WHERE event_id = ? AND parent_message_id IS NULL AND moderation_status = 'APPROVED'
 ORDER BY timestamp ASC;
 
 selectTopLevelMessagesPaginated:
 SELECT * FROM chat_message 
-WHERE event_id = ? AND parent_message_id IS NULL
+WHERE event_id = ? AND parent_message_id IS NULL AND moderation_status = 'APPROVED'
 ORDER BY timestamp DESC
 LIMIT ? OFFSET ?;
 
 selectTopLevelMessagesBySection:
 SELECT * FROM chat_message 
-WHERE event_id = ? AND section = ? AND parent_message_id IS NULL
+WHERE event_id = ? AND section = ? AND parent_message_id IS NULL AND moderation_status = 'APPROVED'
 ORDER BY timestamp ASC;
 
 selectTopLevelMessagesBySectionPaginated:
 SELECT * FROM chat_message 
-WHERE event_id = ? AND section = ? AND parent_message_id IS NULL
+WHERE event_id = ? AND section = ? AND parent_message_id IS NULL AND moderation_status = 'APPROVED'
 ORDER BY timestamp DESC
 LIMIT ? OFFSET ?;
 
 selectMessagesBySender:
 SELECT * FROM chat_message 
-WHERE event_id = ? AND sender_id = ?
+WHERE event_id = ? AND sender_id = ? AND moderation_status = 'APPROVED'
 ORDER BY timestamp DESC;
 
 selectMessagesByStatus:
 SELECT * FROM chat_message 
-WHERE event_id = ? AND status = ?
+WHERE event_id = ? AND status = ? AND moderation_status = 'APPROVED'
 ORDER BY timestamp ASC;
 
 selectFailedMessages:
 SELECT * FROM chat_message 
-WHERE event_id = ? AND status = 'FAILED'
+WHERE event_id = ? AND status = 'FAILED' AND moderation_status = 'APPROVED'
 ORDER BY timestamp ASC;
 
 selectOfflineMessages:
 SELECT * FROM chat_message 
-WHERE event_id = ? AND is_offline = 1
+WHERE event_id = ? AND is_offline = 1 AND moderation_status = 'APPROVED'
 ORDER BY timestamp ASC;
 
 selectRecentMessages:
 SELECT * FROM chat_message 
-WHERE event_id = ? AND timestamp > ?
+WHERE event_id = ? AND timestamp > ? AND moderation_status = 'APPROVED'
 ORDER BY timestamp ASC
 LIMIT ?;
 
@@ -165,20 +167,20 @@ INSERT INTO chat_message(
     id, event_id, sender_id, sender_name, sender_avatar_url, content,
     section, section_item_id, parent_message_id, timestamp, status,
     is_offline, reply_count, edit_timestamp, is_edited, reactions_json,
-    read_by_json, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    read_by_json, moderation_status, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 insertMessageMinimal:
 INSERT INTO chat_message(
     id, event_id, sender_id, sender_name, sender_avatar_url, content,
     section, section_item_id, parent_message_id, timestamp, status,
-    is_offline, reply_count, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    is_offline, reply_count, moderation_status, created_at, updated_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Update operations for messages
 updateMessage:
 UPDATE chat_message
-SET content = ?, edit_timestamp = ?, is_edited = 1, updated_at = ?
+SET content = ?, edit_timestamp = ?, is_edited = 1, moderation_status = ?, updated_at = ?
 WHERE id = ?;
 
 updateMessageStatus:
@@ -195,6 +197,16 @@ updateMessageReadBy:
 UPDATE chat_message
 SET read_by_json = ?, updated_at = ?
 WHERE id = ?;
+
+anonymizeMessagesBySender:
+UPDATE chat_message
+SET sender_id = ?,
+    sender_name = ?,
+    sender_avatar_url = NULL,
+    reactions_json = NULL,
+    read_by_json = NULL,
+    updated_at = ?
+WHERE sender_id = ?;
 
 markMessageAsRead:
 UPDATE chat_message
@@ -400,7 +412,7 @@ DELETE FROM chat_message
 WHERE event_id = ? 
 AND id NOT IN (
     SELECT id FROM chat_message 
-    WHERE event_id = ? 
+    WHERE event_id = ? AND moderation_status = 'APPROVED' 
     ORDER BY timestamp DESC
     LIMIT ?
 );

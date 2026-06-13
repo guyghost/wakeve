@@ -11,6 +11,9 @@ import com.guyghost.wakeve.models.CommentThread
 import com.guyghost.wakeve.models.CommentsBySection
 import com.guyghost.wakeve.models.ParticipantCommentActivity
 import com.guyghost.wakeve.models.Mention
+import com.guyghost.wakeve.moderation.ModerationPolicy
+import com.guyghost.wakeve.moderation.ModerationRejectedException
+import com.guyghost.wakeve.moderation.ModerationStatus
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.minus
@@ -43,7 +46,8 @@ class CommentRepository(
     private val db: WakeveDb,
     private val commentNotificationService: CommentNotificationService? = null,
     private val eventRepository: EventRepositoryInterface? = null,
-    private val cache: CommentCache = CommentCache()
+    private val cache: CommentCache = CommentCache(),
+    private val moderationPolicy: ModerationPolicy = ModerationPolicy()
 ) {
     
     private val commentQueries = db.commentQueries
@@ -67,6 +71,11 @@ class CommentRepository(
         request: CommentRequest,
         usernameToUserIdMap: Map<String, String> = emptyMap()
     ): Comment {
+        val moderationResult = moderationPolicy.evaluate(request.content)
+        if (moderationResult.status == ModerationStatus.REJECTED) {
+            throw ModerationRejectedException(moderationResult)
+        }
+
         val now = getCurrentUtcIsoString()
         val commentId = generateId()
 
@@ -107,7 +116,8 @@ class CommentRepository(
             createdAt = now,
             updatedAt = null,
             isEdited = false,
-            replyCount = 0
+            replyCount = 0,
+            moderationStatus = moderationResult.status
         )
 
         commentQueries.insertComment(
@@ -125,7 +135,8 @@ class CommentRepository(
             created_at = comment.createdAt,
             updated_at = comment.updatedAt,
             is_edited = if (comment.isEdited) 1L else 0L,
-            reply_count = comment.replyCount.toLong()
+            reply_count = comment.replyCount.toLong(),
+            moderation_status = comment.moderationStatus.name
         )
 
         // Store mentions in separate table for efficient lookup
@@ -145,7 +156,7 @@ class CommentRepository(
         }
 
         // Send notifications if services are available
-        if (commentNotificationService != null && eventRepository != null) {
+        if (comment.moderationStatus == ModerationStatus.APPROVED && commentNotificationService != null && eventRepository != null) {
             // Send mention notifications
             mentionParseResult.mentionedUserIds.forEach { mentionedUserId ->
                 commentNotificationService.notifyMention(
@@ -779,8 +790,12 @@ class CommentRepository(
      * Update a comment.
      */
     fun updateComment(commentId: String, content: String): Comment? {
+        val moderationResult = moderationPolicy.evaluate(content)
+        if (moderationResult.status == ModerationStatus.REJECTED) {
+            throw ModerationRejectedException(moderationResult)
+        }
         val now = getCurrentUtcIsoString()
-        commentQueries.updateComment(content, now, commentId)
+        commentQueries.updateComment(content, now, moderationResult.status.name, commentId)
         
         val updatedComment = getCommentById(commentId)
         if (updatedComment != null) {
@@ -953,7 +968,8 @@ class CommentRepository(
             createdAt = this.created_at,
             updatedAt = this.updated_at,
             isEdited = this.is_edited == 1L,
-            replyCount = this.reply_count.toInt()
+            replyCount = this.reply_count.toInt(),
+            moderationStatus = ModerationStatus.valueOf(this.moderation_status)
         )
     }
 }

@@ -40,7 +40,7 @@ Do not start TestFlight/App Review operations until these are true:
 - App Store Connect availability matches `docs/APP_STORE_AVAILABILITY_DECISIONS.md`.
 - App Store Connect EU DSA trader status or EU availability decision matches `docs/APP_STORE_DSA_TRADER_STATUS.md`.
 - Account deletion readiness matches `docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md` and the implementation plan in `openspec/changes/add-in-app-account-deletion/` if account creation remains enabled in the review build; `docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md` contains `APP_STORE_ACCOUNT_DELETION_EVIDENCE_COMPLETE=true`.
-- User-generated content moderation readiness matches `docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md` and the implementation plan in `openspec/changes/add-ugc-moderation-controls/` if comments/chat/event text are enabled in the review build; `docs/APP_STORE_UGC_MODERATION_EVIDENCE.md` contains `APP_STORE_UGC_MODERATION_EVIDENCE_COMPLETE=true`.
+- User-generated content moderation readiness matches `docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md` and the implementation plan in `openspec/changes/add-ugc-moderation-controls/` if comments/chat/event text, locations, or planning free-text are enabled in the review build; `docs/APP_STORE_UGC_MODERATION_EVIDENCE.md` contains `APP_STORE_UGC_MODERATION_EVIDENCE_COMPLETE=true`, and `./scripts/test-app-store-ugc-gates.sh` passes.
 - Accessibility Nutrition Labels are either left unpublished or backed by the device evidence in `docs/APP_STORE_ACCESSIBILITY_LABELS.md`.
 - `docs/APP_STORE_FINAL_SIGNOFF.md` remains `APP_STORE_FINAL_SIGNOFF_COMPLETE=false` until every final evidence item is complete.
 
@@ -61,8 +61,8 @@ Run this on at least one recent iPhone and one supported iPad before App Review:
 - Notification permission flow displays a native prompt only when triggered by an intentional action.
 - Universal Link smoke test opens the app for `https://wakeve.app/event/<id>`, `poll/<id>`, `meeting/<id>`, and `invite/<id>` after the app is installed.
 - `wakeve://event/<id>` custom-scheme link opens the app.
-- Verify the Delete Account action is findable from Profile Settings, starts the documented deletion flow, and is recorded in `docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md`.
-- If comments/chat are enabled, verify filtering/report/block or the chosen moderation fallback before App Review and record the result in `docs/APP_STORE_UGC_MODERATION_EVIDENCE.md`.
+- Verify the Delete Account action is findable from Profile Settings -> Data Management, starts the documented deletion flow, shows destructive confirmation and success/error messaging, clears local credentials/cache after success, and is recorded in `docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md`.
+- If comments/chat/event text, locations, or planning free-text are enabled, verify filtering/report/block or the chosen moderation fallback before App Review and record the result in `docs/APP_STORE_UGC_MODERATION_EVIDENCE.md`.
 - Airplane mode shows a clear offline state and no raw stack trace.
 - Force quit and relaunch restores auth/session state correctly.
 - Dark mode remains legible.

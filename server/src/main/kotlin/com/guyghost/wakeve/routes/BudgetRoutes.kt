@@ -9,6 +9,7 @@ import com.guyghost.wakeve.models.Budget
 import com.guyghost.wakeve.models.BudgetCategory
 import com.guyghost.wakeve.models.BudgetItem
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.moderation.ModerationPolicy
 import com.guyghost.wakeve.payment.SettlementRecord
 import com.guyghost.wakeve.payment.SettlementRepository
 import com.guyghost.wakeve.repository.EventRepositoryInterface
@@ -40,7 +41,8 @@ import kotlinx.serialization.Serializable
 fun io.ktor.server.routing.Route.budgetRoutes(
     repository: BudgetRepository,
     eventRepository: EventRepositoryInterface,
-    database: WakeveDb
+    database: WakeveDb,
+    moderationPolicy: ModerationPolicy = ModerationPolicy()
 ) {
     val expenseRepository = ExpenseRepository(database)
     val settlementRepository = SettlementRepository(database)
@@ -270,6 +272,16 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                 )
 
                 val request = call.receive<CreateItemRequest>()
+                if (call.rejectRejectedModeratedText(
+                        moderationPolicy,
+                        listOf(
+                            ModeratedTextField("name", request.name),
+                            ModeratedTextField("description", request.description)
+                        )
+                    )
+                ) {
+                    return@post
+                }
 
                 // Parse category
                 val category = try {

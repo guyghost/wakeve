@@ -11,7 +11,11 @@ import org.slf4j.LoggerFactory
  * Structured audit logger for security events.
  * All events are logged in JSON format for log aggregation and analysis.
  */
-class AuditLogger {
+interface SecurityAuditLogger {
+    fun logSensitiveOperation(userId: String, operation: String, details: Map<String, String>)
+}
+
+class AuditLogger : SecurityAuditLogger {
     private val logger = LoggerFactory.getLogger("AuditLogger")
     private val json = Json { prettyPrint = false }
 
@@ -59,7 +63,7 @@ class AuditLogger {
      * @param operation Type of sensitive operation
      * @param details Additional context about the operation
      */
-    fun logSensitiveOperation(userId: String, operation: String, details: Map<String, String>) {
+    override fun logSensitiveOperation(userId: String, operation: String, details: Map<String, String>) {
         val event = AuditEvent(
             timestamp = Clock.System.now(),
             userId = userId,

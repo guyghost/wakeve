@@ -53,6 +53,7 @@ struct CommentListView: View {
     @State private var commentText: String = ""
     @State private var mentionedUsers: [String] = []
     @State private var showMentionAutocomplete: Bool = false
+    @State private var moderationTarget: ModerationActionTarget?
 
     var body: some View {
         NavigationView {
@@ -76,7 +77,37 @@ struct CommentListView: View {
                                         onEdit: onEdit,
                                         onDelete: onDelete,
                                         onPin: onPin,
-                                        onUserClick: onUserClick
+                                        onUserClick: onUserClick,
+                                        onReportComment: { comment in
+                                            moderationTarget = ModerationActionTarget(
+                                                type: .comment,
+                                                targetId: comment.id,
+                                                eventId: eventId,
+                                                authorId: comment.authorId,
+                                                displayName: String(localized: "moderation.report_comment_context"),
+                                                allowsBlock: comment.authorId != currentUserId
+                                            )
+                                        },
+                                        onReportUser: { userId, userName in
+                                            moderationTarget = ModerationActionTarget(
+                                                type: .user,
+                                                targetId: userId,
+                                                eventId: eventId,
+                                                authorId: userId,
+                                                displayName: userName,
+                                                allowsBlock: userId != currentUserId
+                                            )
+                                        },
+                                        onBlockUser: { userId, userName in
+                                            moderationTarget = ModerationActionTarget(
+                                                type: .user,
+                                                targetId: userId,
+                                                eventId: eventId,
+                                                authorId: userId,
+                                                displayName: userName,
+                                                allowsBlock: true
+                                            )
+                                        }
                                     )
                                 }
                             }
@@ -120,6 +151,9 @@ struct CommentListView: View {
                         Image(systemName: "chevron.left")
                     }
                 }
+            }
+            .sheet(item: $moderationTarget) { target in
+                ModerationActionSheet(target: target)
             }
         }
     }
@@ -193,6 +227,9 @@ struct CommentThreadView: View {
     var onDelete: (String) -> Void = { _ in }
     var onPin: (String, Bool) -> Void = { _, _ in }
     var onUserClick: (String) -> Void = { _ in }
+    var onReportComment: (Comment_) -> Void = { _ in }
+    var onReportUser: (String, String) -> Void = { _, _ in }
+    var onBlockUser: (String, String) -> Void = { _, _ in }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -207,7 +244,10 @@ struct CommentThreadView: View {
                 onEdit: onEdit,
                 onDelete: onDelete,
                 onPin: onPin,
-                onUserClick: onUserClick
+                onUserClick: onUserClick,
+                onReportComment: onReportComment,
+                onReportUser: onReportUser,
+                onBlockUser: onBlockUser
             )
 
             // Replies (indented)
@@ -224,7 +264,10 @@ struct CommentThreadView: View {
                             onEdit: onEdit,
                             onDelete: onDelete,
                             onPin: onPin,
-                            onUserClick: onUserClick
+                            onUserClick: onUserClick,
+                            onReportComment: onReportComment,
+                            onReportUser: onReportUser,
+                            onBlockUser: onBlockUser
                         )
                     }
                 }

@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS comment (
     updated_at TEXT, -- ISO 8601 UTC timestamp, NULL if never edited
     is_edited INTEGER NOT NULL DEFAULT 0, -- 0 = false, 1 = true
     reply_count INTEGER NOT NULL DEFAULT 0,
+    moderation_status TEXT NOT NULL DEFAULT 'APPROVED',
     FOREIGN KEY(event_id) REFERENCES event(id) ON DELETE CASCADE,
     FOREIGN KEY(parent_comment_id) REFERENCES comment(id) ON DELETE CASCADE
 );
@@ -29,6 +30,7 @@ CREATE INDEX IF NOT EXISTS idx_comment_section_item ON comment(section_item_id);
 CREATE INDEX IF NOT EXISTS idx_comment_author ON comment(author_id);
 CREATE INDEX IF NOT EXISTS idx_comment_parent ON comment(parent_comment_id);
 CREATE INDEX IF NOT EXISTS idx_comment_created_at ON comment(created_at);
+CREATE INDEX IF NOT EXISTS idx_comment_moderation_status ON comment(moderation_status);
 
 -- Optimized composite indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_comment_event_section ON comment(event_id, section, created_at DESC);
@@ -43,57 +45,57 @@ insertComment:
 INSERT INTO comment (
     id, event_id, section, section_item_id, author_id, author_name,
     content, parent_comment_id, mentions, is_deleted, is_pinned,
-    created_at, updated_at, is_edited, reply_count
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+    created_at, updated_at, is_edited, reply_count, moderation_status
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- Read comment (filtering deleted)
 selectCommentById:
 SELECT * FROM comment
-WHERE id = ? AND is_deleted = 0;
+WHERE id = ? AND is_deleted = 0 AND moderation_status = 'APPROVED';
 
 selectCommentsByEvent:
 SELECT * FROM comment
-WHERE event_id = ? AND is_deleted = 0
+WHERE event_id = ? AND is_deleted = 0 AND moderation_status = 'APPROVED'
 ORDER BY is_pinned DESC, created_at DESC;
 
 selectCommentsByEventAndSection:
 SELECT * FROM comment
-WHERE event_id = ? AND section = ? AND is_deleted = 0
+WHERE event_id = ? AND section = ? AND is_deleted = 0 AND moderation_status = 'APPROVED'
 ORDER BY is_pinned DESC, created_at DESC;
 
 selectCommentsByEventSectionAndItem:
 SELECT * FROM comment
-WHERE event_id = ? AND section = ? AND section_item_id = ? AND is_deleted = 0
+WHERE event_id = ? AND section = ? AND section_item_id = ? AND is_deleted = 0 AND moderation_status = 'APPROVED'
 ORDER BY is_pinned DESC, created_at DESC;
 
 selectTopLevelCommentsByEvent:
 SELECT * FROM comment
-WHERE event_id = ? AND parent_comment_id IS NULL AND is_deleted = 0
+WHERE event_id = ? AND parent_comment_id IS NULL AND is_deleted = 0 AND moderation_status = 'APPROVED'
 ORDER BY is_pinned DESC, created_at DESC;
 
 selectTopLevelCommentsBySection:
 SELECT * FROM comment
-WHERE event_id = ? AND section = ? AND parent_comment_id IS NULL AND is_deleted = 0
+WHERE event_id = ? AND section = ? AND parent_comment_id IS NULL AND is_deleted = 0 AND moderation_status = 'APPROVED'
 ORDER BY is_pinned DESC, created_at DESC;
 
 selectTopLevelCommentsBySectionAndItem:
 SELECT * FROM comment
-WHERE event_id = ? AND section = ? AND section_item_id = ? AND parent_comment_id IS NULL AND is_deleted = 0
+WHERE event_id = ? AND section = ? AND section_item_id = ? AND parent_comment_id IS NULL AND is_deleted = 0 AND moderation_status = 'APPROVED'
 ORDER BY is_pinned DESC, created_at DESC;
 
 selectRepliesByParentComment:
 SELECT * FROM comment
-WHERE parent_comment_id = ? AND is_deleted = 0
+WHERE parent_comment_id = ? AND is_deleted = 0 AND moderation_status = 'APPROVED'
 ORDER BY created_at ASC;
 
 selectCommentsByAuthor:
 SELECT * FROM comment
-WHERE event_id = ? AND author_id = ? AND is_deleted = 0
+WHERE event_id = ? AND author_id = ? AND is_deleted = 0 AND moderation_status = 'APPROVED'
 ORDER BY created_at DESC;
 
 selectRecentComments:
 SELECT * FROM comment
-WHERE event_id = ? AND created_at > ? AND is_deleted = 0
+WHERE event_id = ? AND created_at > ? AND is_deleted = 0 AND moderation_status = 'APPROVED'
 ORDER BY created_at DESC
 LIMIT ?;
 
@@ -101,27 +103,32 @@ LIMIT ?;
 
 selectTopLevelCommentsByEventPaginated:
 SELECT * FROM comment
-WHERE event_id = ? AND parent_comment_id IS NULL AND is_deleted = 0
+WHERE event_id = ? AND parent_comment_id IS NULL AND is_deleted = 0 AND moderation_status = 'APPROVED'
 ORDER BY is_pinned DESC, created_at DESC
 LIMIT ? OFFSET ?;
 
 selectTopLevelCommentsBySectionPaginated:
 SELECT * FROM comment
-WHERE event_id = ? AND section = ? AND parent_comment_id IS NULL AND is_deleted = 0
+WHERE event_id = ? AND section = ? AND parent_comment_id IS NULL AND is_deleted = 0 AND moderation_status = 'APPROVED'
 ORDER BY is_pinned DESC, created_at DESC
 LIMIT ? OFFSET ?;
 
 selectTopLevelCommentsBySectionAndItemPaginated:
 SELECT * FROM comment
-WHERE event_id = ? AND section = ? AND section_item_id = ? AND parent_comment_id IS NULL AND is_deleted = 0
+WHERE event_id = ? AND section = ? AND section_item_id = ? AND parent_comment_id IS NULL AND is_deleted = 0 AND moderation_status = 'APPROVED'
 ORDER BY is_pinned DESC, created_at DESC
 LIMIT ? OFFSET ?;
 
 -- Update comment
 updateComment:
 UPDATE comment
-SET content = ?, updated_at = ?, is_edited = 1
+SET content = ?, updated_at = ?, is_edited = 1, moderation_status = ?
 WHERE id = ?;
+
+anonymizeCommentsByAuthor:
+UPDATE comment
+SET author_id = ?, author_name = ?, mentions = NULL, updated_at = ?
+WHERE author_id = ?;
 
 updateReplyCount:
 UPDATE comment
@@ -156,27 +163,27 @@ DELETE FROM comment WHERE event_id = ? AND section = ? AND section_item_id = ?;
 countCommentsByEvent:
 SELECT COUNT(*) AS commentCount
 FROM comment
-WHERE event_id = ? AND is_deleted = 0;
+WHERE event_id = ? AND is_deleted = 0 AND moderation_status = 'APPROVED';
 
 countCommentsBySection:
 SELECT COUNT(*) AS commentCount
 FROM comment
-WHERE event_id = ? AND section = ? AND is_deleted = 0;
+WHERE event_id = ? AND section = ? AND is_deleted = 0 AND moderation_status = 'APPROVED';
 
 countCommentsBySectionItem:
 SELECT COUNT(*) AS commentCount
 FROM comment
-WHERE event_id = ? AND section = ? AND section_item_id = ? AND is_deleted = 0;
+WHERE event_id = ? AND section = ? AND section_item_id = ? AND is_deleted = 0 AND moderation_status = 'APPROVED';
 
 countCommentsByAuthor:
 SELECT COUNT(*) AS commentCount
 FROM comment
-WHERE event_id = ? AND author_id = ? AND is_deleted = 0;
+WHERE event_id = ? AND author_id = ? AND is_deleted = 0 AND moderation_status = 'APPROVED';
 
 countRepliesByParent:
 SELECT COUNT(*) AS replyCount
 FROM comment
-WHERE parent_comment_id = ? AND is_deleted = 0;
+WHERE parent_comment_id = ? AND is_deleted = 0 AND moderation_status = 'APPROVED';
 
 -- Comments by section statistics
 selectCommentStatsBySection:
@@ -185,7 +192,7 @@ SELECT
     COUNT(*) AS commentCount,
     COUNT(DISTINCT author_id) AS uniqueAuthors
 FROM comment
-WHERE event_id = ? AND is_deleted = 0
+WHERE event_id = ? AND is_deleted = 0 AND moderation_status = 'APPROVED'
 GROUP BY section
 ORDER BY commentCount DESC;
 
@@ -196,7 +203,7 @@ SELECT
     author_name,
     COUNT(*) AS commentCount
 FROM comment
-WHERE event_id = ? AND is_deleted = 0
+WHERE event_id = ? AND is_deleted = 0 AND moderation_status = 'APPROVED'
 GROUP BY author_id, author_name
 ORDER BY commentCount DESC
 LIMIT ?;
@@ -205,7 +212,7 @@ LIMIT ?;
 countRecentActivity:
 SELECT COUNT(*) AS recentCount
 FROM comment
-WHERE event_id = ? AND created_at > ? AND is_deleted = 0;
+WHERE event_id = ? AND created_at > ? AND is_deleted = 0 AND moderation_status = 'APPROVED';
 
 -- Participant activity
 selectParticipantActivity:
@@ -216,7 +223,7 @@ SELECT
     COUNT(CASE WHEN parent_comment_id IS NOT NULL THEN 1 END) AS replyCount,
     MAX(created_at) AS lastCommentAt
 FROM comment
-WHERE event_id = ? AND author_id = ? AND is_deleted = 0
+WHERE event_id = ? AND author_id = ? AND is_deleted = 0 AND moderation_status = 'APPROVED'
 GROUP BY author_id, author_name;
 
 -- Check if comment exists
@@ -236,7 +243,7 @@ SELECT
     COUNT(DISTINCT author_id) AS unique_authors,
     MAX(created_at) AS last_comment_at
 FROM comment
-WHERE is_deleted = 0
+WHERE is_deleted = 0 AND moderation_status = 'APPROVED'
 GROUP BY event_id, section;
 
 -- Query for section statistics
@@ -306,5 +313,5 @@ WHERE id = ?;
 -- Restore soft deleted comment
 restoreComment:
 UPDATE comment
-SET is_deleted = 0, updated_at = ?
+SET is_deleted = 0 AND moderation_status = 'APPROVED', updated_at = ?
 WHERE id = ?;

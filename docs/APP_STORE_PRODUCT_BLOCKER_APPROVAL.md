@@ -1,23 +1,23 @@
 # App Store Product Blocker Approval - Wakeve
 
-Date: 2026-06-01
+Date: 2026-06-13
 
-Status: PENDING APPROVAL
+Status: LOCAL IMPLEMENTATION COMPLETE; RELEASE EVIDENCE PENDING
 
-This packet turns the two remaining product blockers into explicit approval decisions. Do not start implementation for either item until the matching OpenSpec proposal is approved.
+This packet records the approval decisions for the two product blockers. Account deletion and UGC moderation are now locally implemented and verified, but both remain blocked on uploaded-build evidence and release signoff.
 
 ## Scope
 
 | Blocker | OpenSpec Change | App Store Rule | Current State |
 | --- | --- | --- | --- |
-| AS-09 Account deletion | `openspec/changes/add-in-app-account-deletion/` | Guideline 5.1.1(v) | Valid proposal, implementation not started |
-| AS-10 UGC moderation | `openspec/changes/add-ugc-moderation-controls/` | Guideline 1.2 | Valid proposal, implementation not started |
+| AS-09 Account deletion | `openspec/changes/add-in-app-account-deletion/` | Guideline 5.1.1(v) | Local implementation and focused tests present; uploaded-build evidence pending |
+| AS-10 UGC moderation | `openspec/changes/add-ugc-moderation-controls/` | Guideline 1.2 | Local implementation, focused tests, iOS discoverability checks, gates, and local final validation present; uploaded-build evidence pending |
 
 ## Approval Decisions Required
 
 ### AS-09 Account Deletion
 
-Approve all of the following before implementation:
+Approved local implementation scope:
 
 - User path: Profile -> Data Management -> Delete Account for authenticated users.
 - Guest path: Profile -> Data Management -> Delete Guest Data for local-only guest users.
@@ -28,7 +28,7 @@ Approve all of the following before implementation:
 
 ### AS-10 UGC Moderation
 
-Approve all of the following before implementation:
+Approved local implementation scope:
 
 - Moderation model: deterministic server-side filtering, pending-review quarantine for uncertain text, and platform moderator/admin review.
 - Surface scope: comments, chat messages, event title/description/custom type text, potential location text, scenario/accommodation/activity/meal/equipment/budget free-text fields, and user-supplied display/profile names.
@@ -51,8 +51,8 @@ Approve all of the following before implementation:
 
 | Decision | Owner | Date | Result | Notes |
 | --- | --- | --- | --- | --- |
-| AS-09 proposal approved | TBD | TBD | Pending | Required before coding account deletion |
-| AS-10 proposal approved | TBD | TBD | Pending | Required before coding UGC moderation |
+| AS-09 proposal approved | Local roadmap gate | 2026-06-13 | Accepted for local implementation | Account deletion implementation is now locally verified; uploaded-build evidence remains required before release confirmation |
+| AS-10 proposal approved | Local roadmap gate | 2026-06-13 | Accepted for local implementation | UGC moderation implementation is now locally verified; uploaded-build evidence remains required before release confirmation |
 | AS-09 implementation evidence accepted | TBD | TBD | Pending | Required before `APP_STORE_ACCOUNT_DELETION_CONFIRMED=true` |
 | AS-10 implementation evidence accepted | TBD | TBD | Pending | Required before `APP_STORE_UGC_MODERATION_CONFIRMED=true` |
 

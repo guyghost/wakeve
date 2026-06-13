@@ -37,6 +37,7 @@ Wakeve is not ready for App Store submission yet. The iOS app compiles in Debug 
 - AS-19 release control: local Fastlane and audit evidence was refreshed on 2026-06-01. The upload path still keeps App Review submission manual (`submit_for_review: false`) and public release manual (`automatic_release: false`), but App Store Connect release-option evidence, owner assignment, release window, stop/pause criteria, and first-day monitoring remain required.
 - AS-21 licenses and notices: the dependency inventory and third-party notices were regenerated with 407 listed dependencies, zero unknown licenses, and no submitted iOS unknown/copyleft risks. Final human confirmation is still required before closing the blocker.
 - Local unsigned Release artifact cross-check: recorded executable, shared framework, built `Info.plist`, and built `PrivacyInfo.xcprivacy` hashes still match the current unsigned Release bundle, and the app executable UUID matches the dSYM UUID.
+- AS-10 UGC moderation: local implementation evidence was refreshed on 2026-06-13. Server tests now pass for hard-policy rejection, pending-review hiding, report/block/unblock flows, notification suppression, WebSocket block-filter wiring, and potential-location moderation; route guards cover event title, description, custom event type, potential locations, meals, and budget item planning text. iOS regression coverage passes for report/block/unblock discoverability and hidden/pending/rejected states. `./scripts/test-app-store-ugc-gates.sh` proves the final audit still rejects missing or forced UGC signoff without complete OpenSpec and evidence records. Uploaded-build App Review evidence remains required.
 
 ## Validated locally
 
@@ -119,17 +120,17 @@ Wakeve is not ready for App Store submission yet. The iOS app compiles in Debug 
   - Result: exits immediately with `iOS signing requires environment variable(s): TEAM_ID`. When signing is configured, the build lane now inspects the generated IPA entitlements before any upload path can continue.
 - `bundle exec fastlane ios upload_appstore`
   - Expected behavior: the lane now requires `APPLE_ID`, `ITC_TEAM_ID`, `TEAM_ID`, `APPLE_TEAM_ID`, and the final manual signoff variables, runs `preflight(strict: true, live_urls: true)`, then builds and uploads only after strict local, web, live URL, signing, privacy, accessibility, availability, DSA trader status, account deletion readiness, user-generated content moderation, payment/external purchase compliance, TestFlight, and capability gates pass.
-- `cd webApp && npx --yes pnpm@10 build`
+- `cd apps/landing && npx --yes pnpm@10 build`
   - Result: web app production build passes with `@sveltejs/adapter-vercel` and includes `/privacy`, `/terms`, `/support`, `/.well-known/apple-app-site-association`, and `/apple-app-site-association`.
-- `cd webApp && npx --yes pnpm@10 check`
+- `cd apps/landing && npx --yes pnpm@10 check`
   - Result: SvelteKit type and component checks pass with 0 errors and 0 warnings.
-- `cd webApp && pnpm audit --audit-level moderate`
+- `cd apps/landing && pnpm audit --audit-level moderate`
   - Result: exits zero with no high or moderate advisories.
-- `cd webApp && pnpm audit --audit-level low`
+- `cd apps/landing && pnpm audit --audit-level low`
   - Result: exits zero with no known vulnerabilities after the `cookie@<0.7.0 -> 0.7.2` pnpm override.
-- `cd webApp && pnpm peers check`
+- `cd apps/landing && pnpm peers check`
   - Result: no peer dependency issues found.
-- `cd webApp && CI=true npx --yes pnpm@10 install --frozen-lockfile`, `audit --audit-level low`, `check`, `build`, and `why cookie`
+- `cd apps/landing && CI=true npx --yes pnpm@10 install --frozen-lockfile`, `audit --audit-level low`, `check`, `build`, and `why cookie`
   - Result: the CI pnpm version accepts the current lockfile, audits with no known vulnerabilities, type-checks and builds successfully, and resolves SvelteKit's transitive `cookie` package to `0.7.2`.
 - `APPLE_TEAM_ID=A1B2C3D4E5 pnpm preview --host 127.0.0.1 --port 4173`, then `curl -i http://127.0.0.1:4173/.well-known/apple-app-site-association` and `/apple-app-site-association`
   - Result: both endpoints respond `200 OK`, `content-type: application/json`, and include app ID `A1B2C3D4E5.com.guyghost.wakeve` with `/event/*`, `/poll/*`, `/meeting/*`, and `/invite/*` components.
@@ -312,7 +313,7 @@ Wakeve is not ready for App Store submission yet. The iOS app compiles in Debug 
 - Strengthened screenshot linting so both metadata screenshots and Fastlane upload screenshots must use App Store accepted iPhone or iPad dimensions.
 - Updated the web lockfile to remove the high-severity `devalue` advisory and the moderate Svelte/SvelteKit/PostCSS advisories.
 - Added a targeted pnpm override for `cookie@<0.7.0` to `0.7.2`, clearing the remaining low-severity SvelteKit transitive `cookie` advisory while keeping `pnpm check` and `pnpm build` passing.
-- Added `webApp/pnpm-workspace.yaml` with `allowBuilds.esbuild=true` so pnpm 11 can install and build the web app without an interactive `approve-builds` step.
+- Added `apps/landing/pnpm-workspace.yaml` with `allowBuilds.esbuild=true` so pnpm 11 can install and build the web app without an interactive `approve-builds` step.
 - Removed low-risk Release Swift warnings from iOS App Store preparation code: unused APNs/deep-link bindings, deprecated badge count API usage, an exhaustive Sign in with Apple error switch, redundant Kotlin bridge casts, unreachable Explore repository catches, an unused verified URL binding, and KMP `Shared` concurrency import warnings in transport planning.
 - Linked `AppIntents.framework` in the iOS target so Xcode 26.5 can run App Intents metadata extraction without emitting the previous missing-framework warning while preserving the existing Siri/Intents implementation.
 - Added a Fastlane preflight guard that scans the latest Release xcodebuild activity log and fails the App Store preflight if `warning:` or `error:` diagnostics reappear; the metadata linter now asserts this guard remains wired.
@@ -433,8 +434,8 @@ Wakeve is not ready for App Store submission yet. The iOS app compiles in Debug 
    - Existing accessibility audits still show unverified VoiceOver, Dynamic Type, contrast, and device-specific support.
 
 14. Mac Apple silicon and Apple Vision Pro availability need an App Store Connect decision.
-   - Current Release build settings report `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD=YES` and `SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD=YES`.
-   - `docs/APP_STORE_AVAILABILITY_DECISIONS.md` recommends iPhone/iPad-only for the initial release unless Mac/Vision Pro smoke tests are completed.
+   - Current Release build settings report `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD=NO` and `SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD=NO`.
+   - `docs/APP_STORE_AVAILABILITY_DECISIONS.md` recommends iPhone/iPad-only for the initial release; App Store Connect must still confirm Mac/Vision Pro availability is disabled before final signoff.
 
 15. EU DSA trader status handling is not confirmed.
    - Apple's current upcoming requirements state that apps without trader status are removed from the App Store in the European Union until trader status is provided and verified.
@@ -477,16 +478,17 @@ Wakeve is not ready for App Store submission yet. The iOS app compiles in Debug 
    - The final upload path now requires `APP_STORE_EULA_CONFIRMED=true`.
 
 22. User-generated content moderation readiness is not confirmed.
-   - The backend registers comments and chat routes, so App Review Guideline 1.2 must be treated as in scope if these surfaces are enabled for review.
-   - OpenSpec proposal `openspec/changes/add-ugc-moderation-controls/` now defines the required filtering, report, block, moderation audit, iOS discoverability, and App Store evidence work.
+   - Comments, chat, event text, locations, meals, and budget item planning text are in scope for App Review Guideline 1.2 if these surfaces are enabled for review.
+   - Local implementation evidence now covers filtering, report, block/unblock, moderation audit, iOS discoverability, hidden/pending/rejected states, and App Store audit gates.
+   - OpenSpec proposal `openspec/changes/add-ugc-moderation-controls/` remains open for App Store evidence and final validation.
    - `docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md` now records the required filtering, reporting, blocking, published contact information, timely response, and reviewer-evidence checks.
    - `docs/APP_STORE_UGC_MODERATION_EVIDENCE.md` now records the review-build evidence required before the UGC signoff can be trusted.
-   - The final upload path now requires `APP_STORE_UGC_MODERATION_CONFIRMED=true`.
+   - The final upload path requires `APP_STORE_UGC_MODERATION_CONFIRMED=true`, and `./scripts/test-app-store-ugc-gates.sh` proves forced confirmation is rejected while tasks or evidence are incomplete.
 
 23. Account deletion readiness is not confirmed.
    - Wakeve supports email, OAuth, guest sessions, and Sign in with Apple account flows.
-   - The inspected iOS Profile screen does not yet expose a verified Delete Account flow, and the inspected auth routes do not expose a full account deletion endpoint.
-   - OpenSpec proposal `openspec/changes/add-in-app-account-deletion/` now defines the required iOS Profile flow, authenticated backend deletion endpoint, local cleanup, guest-data handling, Sign in with Apple revocation evidence, tests, and App Store readiness updates.
+   - Local implementation now exposes the iOS Profile -> Data Management -> Delete Account flow, guest Delete Guest Data flow, authenticated backend deletion endpoint, backend deletion orchestration, local cleanup wiring, Sign in with Apple revocation attempt/failure handling, and focused backend/iOS tests.
+   - OpenSpec change `openspec/changes/add-in-app-account-deletion/` is now 13/16 tasks; public wording and local implementation evidence are updated, while uploaded-build evidence, App Review notes/final docs, and full final audit remain incomplete.
    - `docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md` now records the required in-app initiation, deletion scope, completion messaging, guest-account handling, and Sign in with Apple token-revocation evidence.
    - `docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md` now records the review-build evidence required before the account deletion signoff can be trusted.
    - The final upload path now requires `APP_STORE_ACCOUNT_DELETION_CONFIRMED=true`.
@@ -507,7 +509,7 @@ bundle install
 bundle exec fastlane ios preflight
 
 # Local AASA endpoint smoke test after web build
-cd webApp && APPLE_TEAM_ID=<APPLE_TEAM_ID> pnpm preview --host 127.0.0.1 --port 4173
+cd apps/landing && APPLE_TEAM_ID=<APPLE_TEAM_ID> pnpm preview --host 127.0.0.1 --port 4173
 curl -i http://127.0.0.1:4173/.well-known/apple-app-site-association
 curl -i http://127.0.0.1:4173/apple-app-site-association
 

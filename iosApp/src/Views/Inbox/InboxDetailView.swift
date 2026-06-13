@@ -7,6 +7,7 @@ struct InboxDetailView: View {
     let item: InboxItemModel
 
     @Environment(\.dismiss) private var dismiss
+    @State private var moderationTarget: ModerationActionTarget?
 
     var body: some View {
         ScrollView {
@@ -32,6 +33,9 @@ struct InboxDetailView: View {
         .navigationTitle(item.eventName ?? item.title)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
+        .sheet(item: $moderationTarget) { target in
+            ModerationActionSheet(target: target)
+        }
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button {
@@ -211,6 +215,14 @@ struct InboxDetailView: View {
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                     }
+
+                    Spacer()
+
+                    chatMessageModerationMenu(
+                        messageId: item.id,
+                        authorId: "alice-martin",
+                        authorName: "Alice Martin"
+                    )
                 }
 
                 Text(item.message)
@@ -343,11 +355,63 @@ struct InboxDetailView: View {
             }
 
             ForEach(sampleComments) { comment in
-                InboxCommentRow(comment: comment)
+                InboxCommentRow(
+                    comment: comment,
+                    onModerationTarget: { moderationTarget = $0 }
+                )
             }
         }
         .padding(16)
         .glassCard()
+    }
+
+    private func chatMessageModerationMenu(messageId: String, authorId: String, authorName: String) -> some View {
+        Menu {
+            Button {
+                moderationTarget = ModerationActionTarget(
+                    type: .chatMessage,
+                    targetId: messageId,
+                    eventId: item.eventId,
+                    authorId: authorId,
+                    displayName: String(localized: "moderation.report_chat_context"),
+                    allowsBlock: true
+                )
+            } label: {
+                Label(String(localized: "moderation.report_content"), systemImage: "exclamationmark.bubble")
+            }
+            .accessibilityIdentifier("reportChatMessageAction")
+
+            Button {
+                moderationTarget = ModerationActionTarget(
+                    type: .user,
+                    targetId: authorId,
+                    eventId: item.eventId,
+                    authorId: authorId,
+                    displayName: authorName,
+                    allowsBlock: true
+                )
+            } label: {
+                Label(String(localized: "moderation.report_user"), systemImage: "person.crop.circle.badge.exclamationmark")
+            }
+            .accessibilityIdentifier("reportChatAuthorAction")
+
+            Button(role: .destructive) {
+                moderationTarget = ModerationActionTarget(
+                    type: .user,
+                    targetId: authorId,
+                    eventId: item.eventId,
+                    authorId: authorId,
+                    displayName: authorName,
+                    allowsBlock: true
+                )
+            } label: {
+                Label(String(localized: "moderation.block_user"), systemImage: "person.crop.circle.badge.xmark")
+            }
+            .accessibilityIdentifier("blockChatAuthorAction")
+        } label: {
+            Image(systemName: "ellipsis.circle")
+                .foregroundColor(.secondary)
+        }
     }
 }
 
@@ -439,6 +503,7 @@ private struct UpdateRow: View {
 
 private struct InboxCommentRow: View {
     let comment: SampleComment
+    let onModerationTarget: (ModerationActionTarget) -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -460,6 +525,43 @@ private struct InboxCommentRow: View {
                     Text(comment.timeAgo)
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
+
+                    Menu {
+                        Button {
+                            onModerationTarget(
+                                ModerationActionTarget(
+                                    type: .chatMessage,
+                                    targetId: comment.id,
+                                    eventId: comment.eventId,
+                                    authorId: comment.authorId,
+                                    displayName: String(localized: "moderation.report_chat_context"),
+                                    allowsBlock: true
+                                )
+                            )
+                        } label: {
+                            Label(String(localized: "moderation.report_content"), systemImage: "exclamationmark.bubble")
+                        }
+                        .accessibilityIdentifier("reportConversationMessageAction")
+
+                        Button(role: .destructive) {
+                            onModerationTarget(
+                                ModerationActionTarget(
+                                    type: .user,
+                                    targetId: comment.authorId,
+                                    eventId: comment.eventId,
+                                    authorId: comment.authorId,
+                                    displayName: comment.authorName,
+                                    allowsBlock: true
+                                )
+                            )
+                        } label: {
+                            Label(String(localized: "moderation.block_user"), systemImage: "person.crop.circle.badge.xmark")
+                        }
+                        .accessibilityIdentifier("blockConversationAuthorAction")
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .foregroundColor(.secondary)
+                    }
                 }
 
                 Text(comment.content)
@@ -532,6 +634,8 @@ private let samplePollSlots: [SamplePollSlot] = [
 
 struct SampleComment: Identifiable {
     let id: String
+    let eventId: String
+    let authorId: String
     let authorName: String
     let initials: String
     let content: String
@@ -542,6 +646,8 @@ struct SampleComment: Identifiable {
 private let sampleComments: [SampleComment] = [
     SampleComment(
         id: "c1",
+        eventId: "evt-preview",
+        authorId: "alice-martin",
         authorName: "Alice Martin",
         initials: "AM",
         content: "I'd prefer the Saturday morning slot. Anyone else?",
@@ -550,6 +656,8 @@ private let sampleComments: [SampleComment] = [
     ),
     SampleComment(
         id: "c2",
+        eventId: "evt-preview",
+        authorId: "bob-chen",
         authorName: "Bob Chen",
         initials: "BC",
         content: "Saturday works for me too! Let's finalize the location.",
@@ -558,6 +666,8 @@ private let sampleComments: [SampleComment] = [
     ),
     SampleComment(
         id: "c3",
+        eventId: "evt-preview",
+        authorId: "clara-dupont",
         authorName: "Clara Dupont",
         initials: "CD",
         content: "Can we also discuss transport arrangements?",

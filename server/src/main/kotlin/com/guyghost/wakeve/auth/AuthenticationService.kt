@@ -13,6 +13,7 @@ import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.User
 import com.guyghost.wakeve.models.UserDTO
 import com.guyghost.wakeve.security.AuditLogger
+import com.guyghost.wakeve.security.SecurityAuditLogger
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
@@ -31,13 +32,22 @@ class AuthenticationService(
     private val jwtAudience: String,
     googleService: GoogleOAuth2Service? = null,
     appleService: AppleOAuth2Service? = null,
-    private val auditLogger: AuditLogger = AuditLogger()
+    auditLogger: SecurityAuditLogger = AuditLogger(),
+    appleRevocationService: AppleAccountRevocationService? = appleService
 ) {
     private val userRepository = UserRepository(db)
     private val sessionRepository = SessionRepository(db)
     private val googleOAuth2 = googleService
     private val appleOAuth2 = appleService
     private val jwtAlgorithm = Algorithm.HMAC256(jwtSecret)
+    private val accountDeletionService = AccountDeletionService(
+        userRepository = userRepository,
+        sessionRepository = sessionRepository,
+        auditLogger = auditLogger,
+        appleRevocationService = appleRevocationService,
+        jwtExpiryResolver = { token -> verifyJwtToken(token)?.expiresAtAsInstant?.toString() },
+        defaultJwtExpiryProvider = { calculateTokenExpiry(3600) }
+    )
 
     /**
      * Handle OAuth2 login from authorization code
@@ -246,37 +256,7 @@ class AuthenticationService(
      * service still returns success so repeated client calls are safe.
      */
     suspend fun deleteAccount(userId: String, currentJwtToken: String? = null): Result<AccountDeletionResult> = runCatching {
-        val existingUser = userRepository.getUserById(userId)
-
-        if (existingUser == null) {
-            currentJwtToken?.let { token ->
-                val expiresAt = verifyJwtToken(token)?.expiresAtAsInstant?.toString() ?: calculateTokenExpiry(3600)
-                sessionRepository.revokeJwtToken(token, userId, "account_deleted", expiresAt).getOrThrow()
-            }
-            auditLogger.logSensitiveOperation(
-                userId = userId,
-                operation = "account_delete_idempotent",
-                details = mapOf("status" to "already_deleted")
-            )
-            return@runCatching AccountDeletionResult(userId = userId, deleted = false)
-        }
-
-        sessionRepository.revokeAllUserSessions(userId, reason = "account_deleted").getOrThrow()
-        currentJwtToken?.let { token ->
-            val expiresAt = verifyJwtToken(token)?.expiresAtAsInstant?.toString() ?: calculateTokenExpiry(3600)
-            sessionRepository.revokeJwtToken(token, userId, "account_deleted", expiresAt).getOrThrow()
-        }
-        userRepository.deleteUser(userId).getOrThrow()
-        auditLogger.logSensitiveOperation(
-            userId = userId,
-            operation = "account_delete",
-            details = mapOf(
-                "provider" to existingUser.provider.name.lowercase(),
-                "status" to "deleted"
-            )
-        )
-
-        AccountDeletionResult(userId = userId, deleted = true)
+        accountDeletionService.deleteAccount(userId, currentJwtToken).getOrThrow()
     }
 
     /**
@@ -381,8 +361,3 @@ class AuthenticationService(
         }
     }
 }
-
-data class AccountDeletionResult(
-    val userId: String,
-    val deleted: Boolean
-)
