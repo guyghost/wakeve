@@ -55,9 +55,32 @@ SOURCE_ROOT="$PROJECT_DIR/iosApp/src"
 HARDCODED="$TMP_DIR/hardcoded.txt"
 LINE_LIMIT="$TMP_DIR/line-limit.txt"
 
-rg -n --glob '*.swift' \
-    '\.accessibility(Label|Hint|Value)\("[^"]+"' \
-    "$SOURCE_ROOT" | grep -v '\\(' > "$HARDCODED" || true
+ruby - "$SOURCE_ROOT" "$HARDCODED" <<'RUBY'
+root = ARGV.fetch(0)
+out = ARGV.fetch(1)
+findings = []
+patterns = [
+  /\.(accessibility(?:Label|Hint|Value))\(\s*"([^"\\]*(?:\\.[^"\\]*)*)"/,
+  /\b(accessibility(?:Label|Hint|Value)):\s*"([^"\\]*(?:\\.[^"\\]*)*)"/
+]
+
+Dir.glob(File.join(root, "**", "*.swift")).sort.each do |path|
+  lines = File.readlines(path, chomp: true)
+  lines.each_with_index do |line, index|
+    patterns.each do |pattern|
+      match = line.match(pattern)
+      next unless match
+      literal = match[2]
+      next if literal.include?("\\(")
+
+      findings << "#{path}:#{index + 1}: #{line.strip}"
+      break
+    end
+  end
+end
+
+File.write(out, findings.join("\n"))
+RUBY
 
 ruby - "$SOURCE_ROOT" "$LINE_LIMIT" <<'RUBY'
 root = ARGV.fetch(0)
@@ -102,7 +125,7 @@ total_count=$((hardcoded_count + line_limit_count))
     echo "## Hardcoded Accessibility Strings"
     echo ""
     if [ "$hardcoded_count" -eq 0 ]; then
-        echo "No direct \`.accessibilityLabel(\"...\")\`, \`.accessibilityHint(\"...\")\`, or \`.accessibilityValue(\"...\")\` calls were found."
+        echo "No hardcoded \`.accessibilityLabel(\"...\")\`, \`.accessibilityHint(\"...\")\`, \`.accessibilityValue(\"...\")\`, or named \`accessibilityLabel:\`/\`accessibilityHint:\`/\`accessibilityValue:\` string arguments were found."
     else
         echo '```text'
         sed "s|$PROJECT_DIR/||" "$HARDCODED"

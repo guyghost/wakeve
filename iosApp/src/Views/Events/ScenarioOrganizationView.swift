@@ -126,7 +126,7 @@ struct ScenarioOrganizationView: View {
         HStack {
             WakeveCircleButton(
                 systemImage: "chevron.left",
-                accessibilityLabel: "Retour",
+                accessibilityLabel: String(localized: "common.back"),
                 variant: .glass,
                 size: 44,
                 action: onBack

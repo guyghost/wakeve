@@ -457,7 +457,7 @@ struct TransportPlanningView: View {
         LiquidGlassToolbar(title: "Transport", subtitle: destinationName) {
             WakeveCircleButton(
                 systemImage: "chevron.left",
-                accessibilityLabel: "Retour",
+                accessibilityLabel: String(localized: "common.back"),
                 variant: .glass,
                 size: 40,
                 action: onBack
