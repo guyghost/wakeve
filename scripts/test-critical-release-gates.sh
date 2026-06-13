@@ -74,6 +74,7 @@ run ./scripts/test-app-store-ugc-gates.sh
 
 assert_no_sensitive_server_logs
 assert_ios_profile_legal_notice_links
+run ./scripts/audit-ios-localization-parity.sh --fail-on-findings
 
 run ./gradlew :server:test \
     --tests com.guyghost.wakeve.auth.AccountDeletionServiceTest \

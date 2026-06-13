@@ -116,6 +116,8 @@ Commands refreshed locally on 2026-06-13:
 ```bash
 bash -n scripts/audit-ios-accessibility-source.sh
 ./scripts/audit-ios-accessibility-source.sh --fail-on-findings
+bash -n scripts/audit-ios-localization-parity.sh
+./scripts/audit-ios-localization-parity.sh --fail-on-findings
 plutil -lint iosApp/src/Resources/en.lproj/Localizable.strings iosApp/src/Resources/fr.lproj/Localizable.strings iosApp/src/Resources/es.lproj/Localizable.strings iosApp/src/Resources/it.lproj/Localizable.strings iosApp/src/Resources/pt.lproj/Localizable.strings
 ```
 
@@ -132,6 +134,7 @@ Observed local result:
 - Additional labels for icon-only controls in background selection, budget, comments, event creation, meal restrictions, meeting actions, and reusable text-field accessories are localized where new keys were required.
 - Release-visible loading copy for event lists, WakeveAI preparation, budget, expenses, and meetings is localized through EN, FR, ES, IT, and PT `Localizable.strings` instead of hardcoded source strings.
 - EN, FR, ES, IT, and PT `Localizable.strings` pass `plutil -lint` and are key-complete with `848` keys each, no duplicate keys, and no missing/extra keys versus EN after the ES/IT/PT App Store, moderation, data-management, and third-party-notices backfill.
+- `docs/a11y/ios-localization-parity-2026-06-13T13-48-19Z.md` records the same 5-locale key parity using the reusable `scripts/audit-ios-localization-parity.sh --write-report --fail-on-findings` audit, and `scripts/test-critical-release-gates.sh` now runs the parity audit in blocking mode.
 
 Local limitation:
 
