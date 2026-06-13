@@ -43,6 +43,7 @@ Bienvenue dans la documentation technique du projet Wakeve, une application mobi
 - [Test Reports](testing/reports/index.md) - Rapports de tests
 
 ### Implémentation & Roadmap
+- [Roadmap actuelle](../ROADMAP.md) - Priorites release et suite des changements OpenSpec
 - [PRD Status](implementation/prd-status.md) - Statut des fonctionnalités du PRD
 - [Feature Integration](implementation/feature-integration.md) - Intégration des nouvelles fonctionnalités
 - [Draft Event Wizard](implementation/draft-event-wizard-guide.md) - Documentation UX du wizard de création

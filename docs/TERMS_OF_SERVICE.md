@@ -135,7 +135,7 @@ Our total liability shall not exceed the amount you paid to use the App (which i
 
 ### 9.1 By You
 
-You may stop using the App at any time. To request account deletion, email legal@wakeve.app or privacy@wakeve.app.
+You may stop using the App at any time. Authenticated users can start account deletion in the app from Profile Settings, then Data Management, then Delete Account. Guest users can delete local guest data from the same Data Management area. If you cannot access the app or need legal/privacy help, email legal@wakeve.app or privacy@wakeve.app.
 
 ### 9.2 By Us
 

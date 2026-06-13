@@ -71,12 +71,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 generate_report() {
-    local ruby_cmd=(ruby)
-    if [ -f "$PROJECT_DIR/Gemfile.lock" ] && command -v bundle >/dev/null 2>&1; then
-        ruby_cmd=(bundle exec ruby)
-    fi
-
-    FETCH_MAVEN_POMS="$FETCH_MAVEN_POMS" FETCH_RUBYGEMS="$FETCH_RUBYGEMS" BUNDLE_GEMFILE="$PROJECT_DIR/Gemfile" "${ruby_cmd[@]}" - "$PROJECT_DIR" <<'RUBY'
+    FETCH_MAVEN_POMS="$FETCH_MAVEN_POMS" FETCH_RUBYGEMS="$FETCH_RUBYGEMS" ruby - "$PROJECT_DIR" <<'RUBY'
 require "date"
 require "json"
 require "net/http"
@@ -146,7 +141,7 @@ def package_manager_dependencies(project_dir)
 
   {
     "npm-root" => File.join(project_dir, "package.json"),
-    "npm-web" => File.join(project_dir, "webApp", "package.json")
+    "npm-web" => File.join(project_dir, "apps", "landing", "package.json")
   }.each do |ecosystem, package_path|
     package_json = read_json(package_path)
     next if package_json.empty?
@@ -265,8 +260,77 @@ def gradle_alias_usages(project_dir)
   usages.transform_values { |value| value.to_a.sort }
 end
 
-def gradle_app_store_scope(usage_paths)
-  return "submitted-ios" if usage_paths.any? { |path| path.start_with?("shared/") || path.start_with?("composeApp/") }
+def gradle_app_store_scope(alias_name, module_name, usage_paths)
+  normalized_alias = alias_name.tr("_", "-")
+  module_id = module_name.to_s
+
+  return "test-tooling" if normalized_alias =~ /(test|junit|mockk|espresso)/ || module_id =~ /:.*test|mockk|junit|espresso/i
+
+  android_groups = [
+    "androidx.",
+    "com.google.android.gms:",
+    "com.google.firebase:",
+    "com.google.mlkit:",
+    "org.tensorflow:",
+    "io.coil-kt:"
+  ]
+  android_aliases = %w[
+    activity-ktx
+    androidx-activity-compose
+    androidx-appcompat
+    androidx-core-ktx
+    androidx-credentials
+    androidx-datastore
+    androidx-datastore-preferences
+    androidx-lifecycle-runtimeCompose
+    androidx-lifecycle-viewmodelCompose
+    androidx-security-crypto
+    androidx-workmanager
+    browser
+    coil-compose
+    coil-svg
+    firebase-analytics
+    firebase-bom
+    firebase-messaging
+    google-auth
+    google-services-auth
+    google-services-base
+    koin-android
+    koin-androidx-compose
+    ml-kit-face-detection
+    ml-kit-vision
+    mlkit-face-detection-legacy
+    mlkit-image-labeling
+    navigation-compose
+    sqldelight-androidDriver
+    work-runtime
+  ]
+
+  return "android-app" if android_aliases.include?(normalized_alias)
+  return "android-app" if android_groups.any? { |prefix| module_id.start_with?(prefix) }
+  return "android-app" if usage_paths.any? { |path| path.start_with?("composeApp/") } && usage_paths.none? { |path| path.start_with?("shared/") }
+
+  submitted_ios_aliases = %w[
+    kotlin
+    kotlinx-coroutines
+    kotlinx-datetime
+    kotlinx-serialization-json
+    ktor-clientCio
+    ktor-clientContentNegotiation
+    ktor-clientCore
+    ktor-clientWebsocket
+    ktor-serialization
+    sqldelight-iosDriver
+    sqldelight-runtime
+  ]
+
+  return "submitted-ios" if submitted_ios_aliases.include?(normalized_alias) && usage_paths.any? { |path| path.start_with?("shared/") }
+
+  return "desktop-tooling" if normalized_alias == "kotlinx-coroutinesSwing"
+  return "backend-server" if normalized_alias == "sqldelight-jvmDriver"
+  return "backend-server" if module_id.include?("-jvm") || usage_paths.any? { |path| path.start_with?("server/") }
+
+  return "submitted-ios" if usage_paths.any? { |path| path.start_with?("shared/") }
   return "backend-server" if usage_paths.any? { |path| path.start_with?("server/") }
   "gradle-tooling"
 end
@@ -313,7 +377,7 @@ def parse_gradle_catalog(project_dir)
       name: module_name,
       version: version,
       source: "#{alias_name} (#{alias_usages.fetch(alias_accessor).join(", ")})",
-      scope: gradle_app_store_scope(alias_usages.fetch(alias_accessor)),
+      scope: gradle_app_store_scope(alias_name, module_name, alias_usages.fetch(alias_accessor)),
       license: gradle_pom_license(module_name, version)
     )
   end
@@ -436,7 +500,7 @@ def parse_gemfile_lock(project_dir)
 end
 
 def local_notice_files(project_dir)
-  roots = %w[iosApp shared composeApp webApp fastlane server gradle]
+  roots = %w[iosApp shared composeApp apps/landing fastlane server gradle]
   roots.flat_map do |root|
     root_path = File.join(project_dir, root)
     next [] unless Dir.exist?(root_path)

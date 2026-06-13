@@ -111,11 +111,11 @@ jobs:
           version: 10
 
       - name: Install dependencies
-        working-directory: webApp
+        working-directory: apps/landing
         run: pnpm install --frozen-lockfile
 
       - name: Build SvelteKit app
-        working-directory: webApp
+        working-directory: apps/landing
         run: pnpm run build
 
   # ──────────────────────────────────────────────

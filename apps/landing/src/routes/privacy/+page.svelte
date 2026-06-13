@@ -83,7 +83,10 @@
           does not sell personal information.
         </p>
         <p class="leading-7">
-          To request account deletion, contact us at
+          Authenticated users can start account deletion in the app from Profile Settings, then
+          Data Management, then Delete Account. Guest users can delete local guest data from the
+          same Data Management area. If you cannot access the app or need privacy help, contact
+          us at
           <a class="font-medium text-wakeve-600 hover:underline" href="mailto:privacy@wakeve.app">
             privacy@wakeve.app
           </a>.

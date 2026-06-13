@@ -105,9 +105,12 @@
       <section class="space-y-4">
         <h2 class="text-xl font-semibold text-gray-950">Termination, Law, and Contact</h2>
         <p class="leading-7">
-          You may stop using Wakeve at any time and request account deletion by email. Wakeve may
-          suspend or terminate accounts that violate these terms. These terms are governed by the
-          laws of France, and disputes are resolved in the courts of Paris, France.
+          You may stop using Wakeve at any time. Authenticated users can start account deletion in
+          the app from Profile Settings, then Data Management, then Delete Account, and guest users
+          can delete local guest data from the same Data Management area. If you cannot access the
+          app, you may request account deletion by email. Wakeve may suspend or terminate accounts
+          that violate these terms. These terms are governed by the laws of France, and disputes
+          are resolved in the courts of Paris, France.
         </p>
         <p class="leading-7">
           For legal questions, contact

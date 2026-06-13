@@ -50,8 +50,8 @@ Run or record equivalent review output:
 ```bash
 ./scripts/lint-store-metadata.sh --ios-only
 sed -n '1,220p' docs/TERMS_OF_SERVICE.md
-sed -n '1,220p' webApp/src/routes/terms/+page.svelte
-rg -n "EULA|license agreement|terms of service|Terms of Service|Apple standard EULA|custom EULA" docs webApp/src composeApp/metadata/ios
+sed -n '1,220p' apps/landing/src/routes/terms/+page.svelte
+rg -n "EULA|license agreement|terms of service|Terms of Service|Apple standard EULA|custom EULA" docs apps/landing/src composeApp/metadata/ios
 ```
 
 ## Local Terms And EULA Alignment Scan Result
@@ -61,7 +61,7 @@ Local scan date: 2026-06-01
 Result: Wakeve has local Terms of Service sources and a deployed-route implementation ready for review, but this is pre-submission evidence only because the App Store Connect License Agreement setting and legal owner approval are not captured.
 
 - Source Terms document: `docs/TERMS_OF_SERVICE.md`, 226 lines, SHA-256 `acb3e0af841629dbeabf6c868d7474848e3217b625ce0e826e86dcabf2abfd95`.
-- Public terms route source: `webApp/src/routes/terms/+page.svelte`, 121 lines, SHA-256 `b97e8ab88b11dc4c17ac6c9c11fae3076fc64e919554fb61c360d6bfd87d9ca4`.
+- Public terms route source: `apps/landing/src/routes/terms/+page.svelte`, 121 lines, SHA-256 `b97e8ab88b11dc4c17ac6c9c11fae3076fc64e919554fb61c360d6bfd87d9ca4`.
 - Public terms route exposes `Terms of Service - Wakeve`, effective date `April 14, 2026`, service scope, account access, user conduct/content, privacy link, intellectual property, third-party services, disclaimers/liability, termination, France governing law, and `legal@wakeve.app`.
 - Local Terms document covers acceptance, service description, account registration, guest mode, user conduct, privacy, intellectual property, third-party services, disclaimers, limitation of liability, termination, dispute resolution, governing law, and legal contact.
 - iOS metadata privacy URLs for `en-US` and `fr-FR` both point to `https://wakeve.app/privacy`; support URLs for both locales point to `https://wakeve.app/support`.

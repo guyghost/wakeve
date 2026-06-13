@@ -204,9 +204,9 @@ platform :ios do
     lint_args << "--check-live-urls" if truthy_option(options[:live_urls])
 
     sh("cd #{Shellwords.escape(REPO_ROOT)} && ./scripts/lint-store-metadata.sh #{lint_args.join(" ")}")
-    sh("cd #{Shellwords.escape(repo_path("webApp"))} && #{WEB_PNPM_COMMAND} audit --audit-level low")
-    sh("cd #{Shellwords.escape(repo_path("webApp"))} && #{WEB_PNPM_COMMAND} check")
-    sh("cd #{Shellwords.escape(repo_path("webApp"))} && #{WEB_PNPM_COMMAND} build")
+    sh("cd #{Shellwords.escape(repo_path("apps/landing"))} && #{WEB_PNPM_COMMAND} audit --audit-level low")
+    sh("cd #{Shellwords.escape(repo_path("apps/landing"))} && #{WEB_PNPM_COMMAND} check")
+    sh("cd #{Shellwords.escape(repo_path("apps/landing"))} && #{WEB_PNPM_COMMAND} build")
     run_local_web_route_check
   end
 
@@ -397,14 +397,14 @@ def run_local_web_route_check
     set -euo pipefail
 
     mkdir -p build
-    cd webApp
-    CI=true APPLE_TEAM_ID=A1B2C3D4E5 #{WEB_PNPM_COMMAND} exec vite dev --host 127.0.0.1 --port 4174 > ../build/app-store-local-web-route-check.log 2>&1 &
+    cd apps/landing
+    CI=true APPLE_TEAM_ID=A1B2C3D4E5 #{WEB_PNPM_COMMAND} exec vite dev --host 127.0.0.1 --port 3000 --strictPort > ../../build/app-store-local-web-route-check.log 2>&1 &
     server_pid=$!
     trap 'kill "$server_pid" 2>/dev/null || true' EXIT
 
     ready=false
     for attempt in {1..30}; do
-      if curl -fsS http://127.0.0.1:4174/privacy >/dev/null 2>&1; then
+      if curl -fsS http://127.0.0.1:3000/privacy >/dev/null 2>&1; then
         ready=true
         break
       fi
@@ -412,13 +412,13 @@ def run_local_web_route_check
     done
 
     if [ "$ready" != true ]; then
-      cat ../build/app-store-local-web-route-check.log
+      cat ../../build/app-store-local-web-route-check.log
       echo "Local web server did not become ready"
       exit 1
     fi
 
-    cd ..
-    BASE_URL=http://127.0.0.1:4174 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh
+    cd ../..
+    BASE_URL=http://127.0.0.1:3000 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh
   BASH
 
   sh("cd #{Shellwords.escape(REPO_ROOT)} && bash -c #{Shellwords.escape(script)}")

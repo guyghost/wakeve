@@ -80,7 +80,7 @@ Wakeve uses a **local-first** architecture:
 | Active account data | Until account deletion |
 | Deleted events | 30 days (for recovery) |
 | Anonymized analytics | Indefinitely (no PII) |
-| Push notification tokens | Until logout or token expiry |
+| Push notification tokens | Until logout, token expiry, or account deletion |
 
 ---
 

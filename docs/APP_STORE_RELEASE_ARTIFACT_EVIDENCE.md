@@ -61,7 +61,7 @@ Record every artifact below for the same build number before final signoff:
 
 ## Local Unsigned Release Artifact Scan Result
 
-Local scan date: 2026-06-07
+Local scan date: 2026-06-13
 
 This local scan records the latest unsigned Release app bundle produced by:
 
@@ -73,14 +73,14 @@ Result:
 
 - Build output path: `build/xcode-deriveddata-release/Build/Products/Release-iphoneos/Wakeve.app`
 - dSYM path: `build/xcode-deriveddata-release/Build/Products/Release-iphoneos/Wakeve.app.dSYM`
-- App bundle size: `46M`
-- dSYM bundle size: `17M`
-- App executable SHA-256: `c31d2d29736e6e419693cdcfee6c1a8dfc4ce95b478c6d5ba6a7b9d4d4823074`
-- Shared framework executable SHA-256: `c10fdc7edd1b930fb929b2b48b29b7946413a29e9c6cb77354fe43580a128e22`
-- Built `Info.plist` SHA-256: `4f4ec00dcd1e9cc68030c6826fc0732adb8b3232275396182db74b97092feec4`
+- App bundle size: `47M`
+- dSYM bundle size: `19M`
+- App executable SHA-256: `7e6d2f07bf6a8ebc75a71642082a145202f5532336aed9d429120b45e232e4b5`
+- Shared framework executable SHA-256: `f63e54f354b7f746b09e495d92fa6a2633c84c21ea782fce4bd643080f6998bf`
+- Built `Info.plist` SHA-256: `5d129e2a7756d2ff2346bf48ad53ab3003c4a85c0c1e7fe1ffb1187e57a90178`
 - Built `PrivacyInfo.xcprivacy` SHA-256: `38dbda46a737beed9c54a65cf089159fbb2712de1c21b8c9cd5de6877acfbfc3`
-- App executable UUID: `5D0EA0BE-88DE-3BE8-A37E-D3A54C364426 (arm64)`
-- dSYM UUID: `5D0EA0BE-88DE-3BE8-A37E-D3A54C364426 (arm64)`
+- App executable UUID: `26C76672-7816-33B0-93D3-22B6DF9B5E20 (arm64)`
+- dSYM UUID: `26C76672-7816-33B0-93D3-22B6DF9B5E20 (arm64)`
 - Built Bundle ID: `com.guyghost.wakeve`
 - Built display name: `Wakeve`
 - Built marketing version: `1.0`
