@@ -56,6 +56,7 @@ Run or record equivalent output for the submitted review build:
 ```bash
 ./scripts/lint-store-metadata.sh --ios-only
 ./scripts/audit-app-store-media-localization.sh --fail-on-findings
+./scripts/audit-ios-localization-parity.sh --write-report --fail-on-findings
 ./scripts/audit-ios-release-screen-evidence.sh
 bundle exec fastlane ios validate_metadata
 find composeApp/screenshots/ios composeApp/metadata/ios -type f | sort
@@ -70,6 +71,7 @@ Result: local Fastlane media and localized metadata are structurally ready for u
 - Local media scan date: 2026-06-13.
 - Generated audit report: `docs/app-store-media-localization/media-localization-2026-06-13T12-23-27Z.md`.
 - Locales present: `en-US` and `fr-FR`.
+- App Store metadata/screenshots remain EN/FR only for the first release; source app strings are audited separately for EN, FR, ES, IT, and PT.
 - Upload screenshot folders present: `composeApp/screenshots/ios/en-US` and `composeApp/screenshots/ios/fr-FR`.
 - Metadata screenshot folders present: `composeApp/metadata/ios/en-US/screenshots` and `composeApp/metadata/ios/fr-FR/screenshots`.
 - Screenshot inventory: 8 PNG files across upload and metadata folders.
@@ -85,7 +87,8 @@ Result: local Fastlane media and localized metadata are structurally ready for u
 - Local field lengths are within App Store limits after trimming surrounding whitespace: `en-US` name 6 chars, subtitle 24, description 1540, keywords 70, promotional text 85, release notes 179; `fr-FR` name 6 chars, subtitle 29, description 1987, keywords 88, promotional text 109, release notes 196.
 - Both locales use `https://wakeve.app/privacy` and `https://wakeve.app/support` for privacy and support URLs.
 - Local simulator UI evidence that may support media and accessibility review is indexed separately in `docs/app-store-evidence/README.md`; those screenshots are not the uploadable App Store screenshot set.
-- iOS app string parity was refreshed locally on 2026-06-13: `en.lproj/Localizable.strings` and `fr.lproj/Localizable.strings` both pass `plutil -lint`, both contain 829 keys, and `comm` found no EN/FR key drift. This supports local localization readiness, but App Store Connect media/localized metadata still require uploaded-build review.
+- iOS app source string parity was refreshed locally on 2026-06-13 with `./scripts/audit-ios-localization-parity.sh --write-report --fail-on-findings`; generated report: `docs/a11y/ios-localization-parity-2026-06-13T13-48-19Z.md`.
+- EN, FR, ES, IT, and PT `Localizable.strings` each 848 keys, 0 duplicate keys, and 0 missing/extra keys versus EN. This supports local localization readiness, but App Store Connect media/localized metadata still require uploaded-build review.
 
 This local scan does not close AS-20. The final reviewer must compare the App Store Connect media page and localized metadata against the uploaded review build, confirm screenshot ordering and visible data, record whether scaled screenshots or Media Manager overrides are used, verify the App Store Connect status still permits media edits or that a new version is being edited, verify live production URLs, and record reviewer/date before setting `APP_STORE_MEDIA_LOCALIZATION_EVIDENCE_COMPLETE=true`.
 
