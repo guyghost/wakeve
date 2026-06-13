@@ -115,7 +115,7 @@ struct PollResultsContentView: View {
                     HStack {
                         WakeveCircleButton(
                             systemImage: "xmark",
-                            accessibilityLabel: "Fermer",
+                            accessibilityLabel: String(localized: "common.close"),
                             variant: .light,
                             size: 44,
                             action: onBack

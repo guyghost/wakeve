@@ -178,7 +178,7 @@ struct ParticipantManagementView: View {
             HStack {
                 WakeveCircleButton(
                     systemImage: "xmark",
-                    accessibilityLabel: "Fermer",
+                    accessibilityLabel: String(localized: "common.close"),
                     variant: .glass,
                     size: 48,
                     action: onBack

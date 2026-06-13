@@ -125,7 +125,7 @@ struct ExploreScenarioDetailView: View {
     private var backButton: some View {
         WakeveCircleButton(
             systemImage: "chevron.left",
-            accessibilityLabel: "Retour",
+            accessibilityLabel: String(localized: "common.back"),
             variant: .glass,
             size: 44,
             action: { dismiss() }

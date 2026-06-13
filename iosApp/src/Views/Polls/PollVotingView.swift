@@ -174,7 +174,7 @@ struct PollVotingContentView: View {
         LiquidGlassToolbar(title: "Vote", subtitle: "\(completedCount) / \(event.proposedSlots.count) réponses") {
             WakeveCircleButton(
                 systemImage: "chevron.left",
-                accessibilityLabel: "Retour",
+                accessibilityLabel: String(localized: "common.back"),
                 variant: .glass,
                 size: 40,
                 action: onBack
