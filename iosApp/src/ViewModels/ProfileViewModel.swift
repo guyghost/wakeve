@@ -413,7 +413,11 @@ class ProfileViewModel: ObservableObject {
     func selectTab(_ tab: LeaderboardType) {
         selectedTab = tab
         Task {
-            try await loadLeaderboard()
+            do {
+                try await loadLeaderboard()
+            } catch {
+                self.error = error.localizedDescription
+            }
         }
     }
     

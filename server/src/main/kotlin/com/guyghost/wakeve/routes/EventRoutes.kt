@@ -18,6 +18,8 @@ import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.TimeSlotResponse
 import com.guyghost.wakeve.models.TrendingEventsResponse
 import com.guyghost.wakeve.models.UpdateEventStatusRequest
+import com.guyghost.wakeve.moderation.ModerationPolicy
+import com.guyghost.wakeve.moderation.ModerationStatus
 import com.guyghost.wakeve.notification.EventNotificationTrigger
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
@@ -33,7 +35,8 @@ fun io.ktor.server.routing.Route.eventRoutes(
     repository: DatabaseEventRepository,
     gamificationService: GamificationService? = null,
     eventNotificationTrigger: EventNotificationTrigger? = null,
-    database: WakeveDb? = null
+    database: WakeveDb? = null,
+    moderationPolicy: ModerationPolicy = ModerationPolicy()
 ) {
     route("/events") {
         // GET /api/events - Get all events
@@ -129,6 +132,17 @@ fun io.ktor.server.routing.Route.eventRoutes(
         post {
             try {
                 val request = call.receive<CreateEventRequest>()
+                val textFields = listOfNotNull(request.title, request.description, request.eventTypeCustom)
+                val rejectedField = textFields
+                    .map { moderationPolicy.evaluate(it) }
+                    .firstOrNull { it.status == ModerationStatus.REJECTED }
+                if (rejectedField != null) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to rejectedField.userMessage, "reasonCode" to rejectedField.reasonCode)
+                    )
+                    return@post
+                }
                 
                 val timeSlots = request.proposedSlots.map { slot ->
                     TimeSlot(

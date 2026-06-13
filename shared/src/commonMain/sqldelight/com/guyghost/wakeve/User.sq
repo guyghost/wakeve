@@ -143,5 +143,8 @@ WHERE id = ?;
 deleteSyncMetadata:
 DELETE FROM sync_metadata WHERE id = ?;
 
+deleteSyncMetadataByUserId:
+DELETE FROM sync_metadata WHERE user_id = ?;
+
 cleanupOldSyncMetadata:
 DELETE FROM sync_metadata WHERE synced = 1 AND timestamp < ?;

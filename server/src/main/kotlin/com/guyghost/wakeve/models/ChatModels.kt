@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.models
 
 import kotlinx.serialization.Serializable
+import com.guyghost.wakeve.moderation.ModerationStatus
 
 /**
  * Status of a chat message delivery.
@@ -68,7 +69,8 @@ data class ChatMessage(
     val isOffline: Boolean = false,
     val reactions: List<Reaction> = emptyList(),
     val readBy: List<String> = emptyList(),
-    val isEdited: Boolean = false
+    val isEdited: Boolean = false,
+    val moderationStatus: ModerationStatus = ModerationStatus.APPROVED
 )
 
 /**

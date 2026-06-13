@@ -193,5 +193,7 @@ data class TokenRefreshResponse(
 data class AccountDeletionResponse(
     val success: Boolean,
     val deleted: Boolean,
-    val message: String
+    val message: String,
+    val localCleanupRequired: Boolean,
+    val providerRevocationStatus: String
 )

@@ -10,9 +10,14 @@ import com.guyghost.wakeve.models.CommentSection
 import com.guyghost.wakeve.models.CreateMessageRequest
 import com.guyghost.wakeve.models.MessageData
 import com.guyghost.wakeve.models.MessageStatus
+import com.guyghost.wakeve.models.MessagesResponse
 import com.guyghost.wakeve.models.Reaction
 import com.guyghost.wakeve.models.TypingIndicator
 import com.guyghost.wakeve.models.TypingStatus
+import com.guyghost.wakeve.moderation.ModerationPolicy
+import com.guyghost.wakeve.moderation.ModerationRejectedException
+import com.guyghost.wakeve.moderation.ModerationRepository
+import com.guyghost.wakeve.moderation.ModerationStatus
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
@@ -46,7 +51,9 @@ import java.util.UUID
  */
 class ChatService(
     private val database: WakeveDb,
-    private val eventConnections: EventChatConnections = com.guyghost.wakeve.routes.eventChatConnections
+    private val eventConnections: EventChatConnections = com.guyghost.wakeve.routes.eventChatConnections,
+    private val moderationPolicy: ModerationPolicy = ModerationPolicy(),
+    private val moderationRepository: ModerationRepository? = null
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -73,6 +80,11 @@ class ChatService(
         parentMessageId: String? = null
     ): ChatMessage = withContext(Dispatchers.IO) {
         try {
+            val moderationResult = moderationPolicy.evaluate(content)
+            if (moderationResult.status == ModerationStatus.REJECTED) {
+                throw ModerationRejectedException(moderationResult)
+            }
+
             val messageId = generateMessageId()
             val timestamp = getCurrentTimestamp()
             
@@ -89,7 +101,8 @@ class ChatService(
                 status = MessageStatus.SENT,
                 isOffline = false,
                 reactions = emptyList(),
-                readBy = emptyList()
+                readBy = emptyList(),
+                moderationStatus = moderationResult.status
             )
             
             // Save to database
@@ -111,6 +124,7 @@ class ChatService(
                 is_edited = 0,
                 reactions_json = null,
                 read_by_json = null,
+                moderation_status = moderationResult.status.name,
                 created_at = timestamp,
                 updated_at = timestamp
             )
@@ -123,10 +137,14 @@ class ChatService(
                 )
             }
             
-            // Broadcast to all connected users via WebSocket
-            broadcastMessage(eventId, message)
+            // Broadcast only content that is immediately visible to other participants.
+            if (moderationResult.status == ModerationStatus.APPROVED) {
+                broadcastMessage(eventId, message)
+            }
             
             message
+        } catch (e: ModerationRejectedException) {
+            throw e
         } catch (e: Exception) {
             throw ChatServiceException("Failed to send message: ${e.message}", e)
         }
@@ -369,7 +387,8 @@ class ChatService(
     suspend fun getMessages(
         eventId: String,
         limit: Int = 100,
-        offset: Int = 0
+        offset: Int = 0,
+        viewerUserId: String? = null
     ): List<ChatMessage> = withContext(Dispatchers.IO) {
         try {
             val messages = if (limit > 0) {
@@ -410,8 +429,11 @@ class ChatService(
                             emptyList()
                         }
                     } ?: emptyList(),
-                    isEdited = row.is_edited == 1L
+                    isEdited = row.is_edited == 1L,
+                    moderationStatus = ModerationStatus.valueOf(row.moderation_status)
                 )
+            }.filterNot { message ->
+                viewerUserId != null && moderationRepository?.isBlocked(viewerUserId, message.senderId) == true
             }
         } catch (e: Exception) {
             throw ChatServiceException("Failed to get messages: ${e.message}", e)
@@ -460,7 +482,8 @@ class ChatService(
                             emptyList()
                         }
                     } ?: emptyList(),
-                    isEdited = row.is_edited == 1L
+                    isEdited = row.is_edited == 1L,
+                    moderationStatus = ModerationStatus.valueOf(row.moderation_status)
                 )
             }
         } catch (e: Exception) {
@@ -512,7 +535,8 @@ class ChatService(
                             emptyList()
                         }
                     } ?: emptyList(),
-                    isEdited = row.is_edited == 1L
+                    isEdited = row.is_edited == 1L,
+                    moderationStatus = ModerationStatus.valueOf(row.moderation_status)
                 )
             }
         } catch (e: Exception) {
@@ -559,7 +583,8 @@ class ChatService(
                                 emptyList()
                             }
                         } ?: emptyList(),
-                        isEdited = row.is_edited == 1L
+                        isEdited = row.is_edited == 1L,
+                    moderationStatus = ModerationStatus.valueOf(row.moderation_status)
                     )
                 }
         } catch (e: Exception) {
@@ -634,6 +659,10 @@ class ChatService(
         userId: String
     ): ChatMessage? = withContext(Dispatchers.IO) {
         try {
+            val moderationResult = moderationPolicy.evaluate(content)
+            if (moderationResult.status == ModerationStatus.REJECTED) {
+                throw ModerationRejectedException(moderationResult)
+            }
             val timestamp = getCurrentTimestamp()
             
             // Verify user owns the message
@@ -649,12 +678,15 @@ class ChatService(
             database.chatMessagesQueries.updateMessage(
                 content,
                 timestamp,
+                moderationResult.status.name,
                 timestamp,
                 messageId
             )
             
             // Get the updated message
             getMessage(messageId)
+        } catch (e: ModerationRejectedException) {
+            throw e
         } catch (e: Exception) {
             throw ChatServiceException("Failed to update message: ${e.message}", e)
         }
@@ -730,7 +762,7 @@ class ChatService(
             ),
             success = true
         )
-        eventConnections.broadcast(eventId, response)
+        eventConnections.broadcast(eventId, response, moderationRepository)
     }
     
     private fun broadcastReaction(eventId: String, messageId: String, userId: String, emoji: String) {
@@ -748,7 +780,7 @@ class ChatService(
             ),
             success = true
         )
-        eventConnections.broadcast(eventId, response)
+        eventConnections.broadcast(eventId, response, moderationRepository)
     }
     
     private fun broadcastReadReceipt(eventId: String, messageId: String, userId: String) {
@@ -764,7 +796,7 @@ class ChatService(
             ),
             success = true
         )
-        eventConnections.broadcast(eventId, response)
+        eventConnections.broadcast(eventId, response, moderationRepository)
     }
     
     private fun broadcastTyping(eventId: String, userId: String, userName: String, isTyping: Boolean) {
@@ -779,7 +811,7 @@ class ChatService(
             ),
             success = true
         )
-        eventConnections.broadcast(eventId, response)
+        eventConnections.broadcast(eventId, response, moderationRepository)
     }
     
     companion object {
@@ -816,24 +848,35 @@ class ChatServiceException(
 fun io.ktor.server.routing.Route.chatRoutes(
     chatService: ChatService
 ) {
-    route("/api/events/{eventId}/chat") {
+    route("/events/{eventId}/chat") {
         // Get messages for an event
         get("messages") {
             val eventId = call.parameters["eventId"] ?: return@get call.respond(
                 HttpStatusCode.BadRequest,
                 mapOf("error" to "Event ID required")
             )
+            val principal = call.principal<JWTPrincipal>() ?: return@get call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Authentication required")
+            )
+            val userId = principal.payload.getClaim("userId")?.asString() ?: return@get call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid user ID in token")
+            )
             val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 100
             val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
 
-            val messages = chatService.getMessages(eventId, limit, offset)
-            val totalCount = chatService.getMessages(eventId, Int.MAX_VALUE, 0).size
+            val messages = chatService.getMessages(eventId, limit, offset, userId)
+            val totalCount = chatService.getMessages(eventId, Int.MAX_VALUE, 0, userId).size
 
-            call.respond(HttpStatusCode.OK, mapOf(
-                "messages" to messages,
-                "totalCount" to totalCount,
-                "hasMore" to (messages.size == limit)
-            ))
+            call.respond(
+                HttpStatusCode.OK,
+                MessagesResponse(
+                    messages = messages,
+                    totalCount = totalCount,
+                    hasMore = messages.size == limit
+                )
+            )
         }
 
         // Send a new message
@@ -855,17 +898,29 @@ fun io.ktor.server.routing.Route.chatRoutes(
 
             val request = call.receive<CreateMessageRequest>()
 
-            val message = chatService.sendMessage(
-                eventId = eventId,
-                userId = userId,
-                userName = userName,
-                userAvatarUrl = userAvatarUrl,
-                content = request.content,
-                section = request.section,
-                parentMessageId = request.parentMessageId
-            )
+            try {
+                val message = chatService.sendMessage(
+                    eventId = eventId,
+                    userId = userId,
+                    userName = userName,
+                    userAvatarUrl = userAvatarUrl,
+                    content = request.content,
+                    section = request.section,
+                    parentMessageId = request.parentMessageId
+                )
+                val status = if (message.moderationStatus == ModerationStatus.PENDING_REVIEW) {
+                    HttpStatusCode.Accepted
+                } else {
+                    HttpStatusCode.Created
+                }
 
-            call.respond(HttpStatusCode.Created, mapOf("message" to message))
+                call.respond(status, mapOf("message" to message))
+            } catch (e: ModerationRejectedException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to e.result.userMessage, "reasonCode" to e.result.reasonCode)
+                )
+            }
         }
 
         // Get a specific message
@@ -874,10 +929,22 @@ fun io.ktor.server.routing.Route.chatRoutes(
                 HttpStatusCode.BadRequest,
                 mapOf("error" to "Message ID required")
             )
+            val principal = call.principal<JWTPrincipal>() ?: return@get call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Authentication required")
+            )
+            val userId = principal.payload.getClaim("userId")?.asString() ?: return@get call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid user ID in token")
+            )
             val message = chatService.getMessage(messageId)
 
             if (message != null) {
-                call.respond(HttpStatusCode.OK, mapOf("message" to message))
+                if (message.moderationStatus != ModerationStatus.APPROVED && message.senderId != userId) {
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Message not found"))
+                } else {
+                    call.respond(HttpStatusCode.OK, mapOf("message" to message))
+                }
             } else {
                 call.respond(HttpStatusCode.NotFound, mapOf("error" to "Message not found"))
             }
@@ -899,12 +966,19 @@ fun io.ktor.server.routing.Route.chatRoutes(
             )
             val request = call.receive<CreateMessageRequest>()
 
-            val message = chatService.updateMessage(messageId, request.content, userId)
+            try {
+                val message = chatService.updateMessage(messageId, request.content, userId)
 
-            if (message != null) {
-                call.respond(HttpStatusCode.OK, mapOf("message" to message))
-            } else {
-                call.respond(HttpStatusCode.NotFound, mapOf("error" to "Message not found or unauthorized"))
+                if (message != null) {
+                    call.respond(HttpStatusCode.OK, mapOf("message" to message))
+                } else {
+                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Message not found or unauthorized"))
+                }
+            } catch (e: ModerationRejectedException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to e.result.userMessage, "reasonCode" to e.result.reasonCode)
+                )
             }
         }
 

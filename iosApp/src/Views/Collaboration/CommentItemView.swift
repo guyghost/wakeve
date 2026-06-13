@@ -16,6 +16,9 @@ struct CommentItemView: View {
     var onDelete: (String) -> Void = { _ in }
     var onPin: (String, Bool) -> Void = { _, _ in }
     var onUserClick: (String) -> Void = { _ in }
+    var onReportComment: (Comment_) -> Void = { _ in }
+    var onReportUser: (String, String) -> Void = { _, _ in }
+    var onBlockUser: (String, String) -> Void = { _, _ in }
 
     @State private var showMenu: Bool = false
 
@@ -61,7 +64,7 @@ struct CommentItemView: View {
                     }
 
                     // More options menu
-                    if comment.canEdit(currentUserId) || comment.canDelete(currentUserId, isOrganizer) {
+                    if !comment.isDeleted {
                         Menu {
                             Button(action: { onReply(comment.id, comment.authorName) }) {
                                 Label("Reply", systemImage: "arrow.uturn.backward")
@@ -81,6 +84,25 @@ struct CommentItemView: View {
 
                             Divider()
 
+                            Button(action: { onReportComment(comment) }) {
+                                Label(String(localized: "moderation.report_content"), systemImage: "exclamationmark.bubble")
+                            }
+                            .accessibilityIdentifier("reportCommentAction")
+
+                            Button(action: { onReportUser(comment.authorId, comment.authorName) }) {
+                                Label(String(localized: "moderation.report_user"), systemImage: "person.crop.circle.badge.exclamationmark")
+                            }
+                            .accessibilityIdentifier("reportUserAction")
+
+                            if comment.authorId != currentUserId {
+                                Button(role: .destructive, action: { onBlockUser(comment.authorId, comment.authorName) }) {
+                                    Label(String(localized: "moderation.block_user"), systemImage: "person.crop.circle.badge.xmark")
+                                }
+                                .accessibilityIdentifier("blockUserAction")
+                            }
+
+                            Divider()
+
                             if comment.canDelete(currentUserId, isOrganizer) {
                                 Button(role: .destructive, action: { onDelete(comment.id) }) {
                                     Label(comment.authorId == currentUserId ? "Delete" : "Remove",
@@ -95,11 +117,17 @@ struct CommentItemView: View {
                 }
 
                 // Content with highlighted mentions
-                AttributedComment(
-                    content: comment.content,
-                    mentions: comment.mentions,
-                    isDeleted: comment.isDeleted
-                )
+                if comment.isModerationHidden {
+                    ModeratedCommentNotice(status: comment.moderationStatusString)
+                } else {
+                    AttributedComment(
+                        content: comment.content,
+                        mentions: comment.mentions,
+                        isDeleted: comment.isDeleted
+                    )
+                }
+
+                ModerationStatusBadge(status: comment.moderationStatusString)
 
                 // Reply button (for parent comments only)
                 if isParent && !comment.isDeleted {
@@ -183,6 +211,28 @@ struct AttributedComment: View {
     }
 }
 
+struct ModeratedCommentNotice: View {
+    let status: String
+
+    var body: some View {
+        Label(message, systemImage: status == "REJECTED" ? "xmark.octagon" : "eye.slash")
+            .font(.body)
+            .foregroundColor(WakeveColors.onSurfaceVariant)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(WakeveColors.surface.opacity(0.55), in: RoundedRectangle(cornerRadius: 12))
+            .accessibilityIdentifier("moderatedCommentNotice")
+    }
+
+    private var message: String {
+        switch status {
+        case "REJECTED": return String(localized: "moderation.rejected_content_notice")
+        case "HIDDEN": return String(localized: "moderation.hidden_content_notice")
+        default: return String(localized: "moderation.hidden_content_notice")
+        }
+    }
+}
+
 /// Get initials from name
 func getInitials(_ name: String) -> String {
     let parts = name.split(separator: " ")
@@ -231,6 +281,17 @@ extension Comment_ {
     var isPinned: Bool { false } // Pinned comments are not in the current shared schema.
     
     var isDeleted: Bool { content == "[Deleted]" || content == "[deleted]" }
+
+    var moderationStatusString: String {
+        if content.contains("[Pending Review]") { return "PENDING_REVIEW" }
+        if content.contains("[Rejected]") { return "REJECTED" }
+        if content.contains("[Hidden]") { return "HIDDEN" }
+        return "APPROVED"
+    }
+
+    var isModerationHidden: Bool {
+        moderationStatusString == "REJECTED" || moderationStatusString == "HIDDEN"
+    }
     
     var mentions: [String] {
         // Extract @mentions from content

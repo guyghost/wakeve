@@ -5,6 +5,7 @@ import com.guyghost.wakeve.models.CreatePotentialLocationRequest
 import com.guyghost.wakeve.models.LocationType
 import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.PotentialLocationResponse
+import com.guyghost.wakeve.moderation.ModerationPolicy
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
@@ -14,7 +15,8 @@ import io.ktor.server.routing.post
 import io.ktor.server.routing.route
 
 fun io.ktor.server.routing.Route.potentialLocationRoutes(
-    locationRepository: PotentialLocationRepositoryInterface
+    locationRepository: PotentialLocationRepositoryInterface,
+    moderationPolicy: ModerationPolicy = ModerationPolicy()
 ) {
     route("/events/{eventId}/potential-locations") {
         
@@ -56,6 +58,16 @@ fun io.ktor.server.routing.Route.potentialLocationRoutes(
                 )
                 
                 val request = call.receive<CreatePotentialLocationRequest>()
+                if (call.rejectRejectedModeratedText(
+                        moderationPolicy,
+                        listOf(
+                            ModeratedTextField("name", request.name),
+                            ModeratedTextField("address", request.address)
+                        )
+                    )
+                ) {
+                    return@post
+                }
                 
                 // Validate location type
                 val locationType = try {

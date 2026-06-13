@@ -1,6 +1,6 @@
 # App Store Account Deletion Evidence - Wakeve
 
-Date: 2026-05-27
+Date: 2026-06-13
 
 Status: PENDING
 
@@ -41,18 +41,18 @@ Last checked: 2026-05-28.
 
 | Area | Required Evidence | Result | Notes |
 | --- | --- | --- | --- |
-| In-app initiation | Profile or account settings expose a clearly named Delete Account action for authenticated users. | Pending | TBD |
-| Guest data deletion | Guest users can delete locally stored guest data or guest-backed account data from the app. | Pending | TBD |
-| Confirmation | The destructive confirmation explains permanence and deletion scope before the request is sent. | Pending | TBD |
-| Backend deletion | Authenticated deletion endpoint deletes or anonymizes the full account record and associated personal data according to the documented retention policy. | Pending | TBD |
-| Shared UGC handling | User-generated content owned by the deleted user is deleted or anonymized unless legally retained, and any retention is disclosed. | Pending | TBD |
-| Session and token revocation | Active sessions, bearer tokens, push tokens, and stored auth credentials are revoked or removed. | Pending | TBD |
-| Sign in with Apple | Apple token revocation is attempted where authorization material is available, without blocking Wakeve data erasure on transient provider failures. | Pending | TBD |
-| Local cleanup | Keychain tokens, cached profile state, synced local user data, and analytics identifiers are cleared after successful deletion. | Pending | TBD |
-| Delayed completion | If deletion is manual/asynchronous, the app explains the expected completion timeline and records the final confirmation path. | Pending | TBD |
-| Completion messaging | The app shows success or documented asynchronous completion messaging that App Review can verify. | Pending | TBD |
-| Tests | Backend and iOS/simulator evidence cover success, auth failure, repeat deletion, offline failure, cleanup, and guest deletion. | Pending | TBD |
-| Reviewer path | App Review notes explain where to find Delete Account and what result to expect. | Pending | TBD |
+| In-app initiation | Profile or account settings expose a clearly named Delete Account action for authenticated users. | Local verified; review-build pending | `iosApp/WakeveTests/FindingsRegressionTests.swift` verifies the Profile -> Data Management -> Delete Account path. |
+| Guest data deletion | Guest users can delete locally stored guest data or guest-backed account data from the app. | Local verified; review-build pending | The same iOS regression test verifies Delete Guest Data and local cleanup wiring. |
+| Confirmation | The destructive confirmation explains permanence and deletion scope before the request is sent. | Local verified; review-build pending | iOS source/test coverage confirms destructive confirmation text exists; record screenshots from the uploaded build before closure. |
+| Backend deletion | Authenticated deletion endpoint deletes or anonymizes the full account record and associated personal data according to the documented retention policy. | Local verified; review-build pending | `DELETE /api/user/delete` is covered by `AuthFlowIntegrationTest`. |
+| Shared UGC handling | User-generated content owned by the deleted user is deleted or anonymized unless legally retained, and any retention is disclosed. | Local verified; review-build pending | `AuthFlowIntegrationTest` covers event, participant, comment, chat, notification, reaction/read-status, and sync metadata anonymization/removal. |
+| Session and token revocation | Active sessions, bearer tokens, push tokens, and stored auth credentials are revoked or removed. | Local verified; review-build pending | `AuthFlowIntegrationTest` covers session revocation, JWT blacklist, user token deletion, and push token removal. |
+| Sign in with Apple | Apple token revocation is attempted where authorization material is available, without blocking Wakeve data erasure on transient provider failures. | Local verified; review-build pending | `AccountDeletionServiceTest` covers successful Apple revocation and transient provider failure. |
+| Local cleanup | Keychain tokens, cached profile state, synced local user data, and analytics identifiers are cleared after successful deletion. | Local verified; review-build pending | iOS regression test verifies `AuthStateManager` calls backend deletion and local cleanup. Capture TestFlight evidence before closure. |
+| Delayed completion | If deletion is manual/asynchronous, the app explains the expected completion timeline and records the final confirmation path. | Not applicable locally; review-build pending | Current flow is synchronous for Wakeve-side deletion. If production adds delayed/manual review, update this row before submission. |
+| Completion messaging | The app shows success or documented asynchronous completion messaging that App Review can verify. | Local verified; review-build pending | iOS flow includes success state; capture uploaded-build screenshot before closure. |
+| Tests | Backend and iOS/simulator evidence cover success, auth failure, repeat deletion, offline failure, cleanup, and guest deletion. | Local verified; review-build pending | Fresh local commands are recorded below. |
+| Reviewer path | App Review notes explain where to find Delete Account and what result to expect. | Pending | App Review notes still need final review against the uploaded build. |
 
 ## Evidence Commands
 
@@ -77,19 +77,23 @@ Record the output or attach screenshots/logs showing:
 - Sign in with Apple revocation handling or documented unavailability for the tested account.
 - App Review notes that match the uploaded build.
 
-## OpenSpec Proposal Validation Result
+## Local Implementation Verification Result
 
-Command run on 2026-05-27:
+Commands run on 2026-06-13:
 
 ```bash
 openspec validate add-in-app-account-deletion --strict
+./gradlew :server:test --tests com.guyghost.wakeve.auth.AccountDeletionServiceTest --tests com.guyghost.wakeve.AuthFlowIntegrationTest
+xcodebuild test -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:WakeveTests/FindingsRegressionTests/testProfileDataManagementExposesAccountDeletionFlow
 ```
 
 Local result:
 
 - `Change 'add-in-app-account-deletion' is valid`
-- Active tasks remain `0/14`, so this is proposal-readiness evidence only.
-- No implementation or App Review readiness credit is taken from this validation until the proposal is approved, implemented, tested, and evidenced against the uploaded review build.
+- Gradle backend focused tests: `BUILD SUCCESSFUL`.
+- iOS focused simulator test: `** TEST SUCCEEDED **`; `FindingsRegressionTests.testProfileDataManagementExposesAccountDeletionFlow()` passed on iPhone 17 simulator.
+- Active tasks are `13/16`; public wording and App Store evidence docs are updated, but uploaded-build evidence, final App Store notes/signoff, live release audit, and TestFlight proof remain open.
+- This is local implementation evidence only. It is not uploaded-build App Review readiness evidence, and `APP_STORE_ACCOUNT_DELETION_EVIDENCE_COMPLETE` remains false.
 
 ## Closure Rule
 

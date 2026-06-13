@@ -115,11 +115,27 @@ class UserRepository(private val db: WakeveDb) {
     }
 
     suspend fun deleteUser(userId: String): Result<Unit> = runCatching {
-        userQueries.deletePreferences(userId)
-        userQueries.deleteToken(userId)
-        db.notificationQueries.deleteAllTokens(userId)
-        db.notificationQueries.deleteAllNotifications(userId)
-        userQueries.deleteUser(userId)
+        val now = getCurrentUtcIsoString()
+        val tombstoneUserId = deletedUserTombstone(userId)
+        db.transaction {
+            db.eventQueries.anonymizeOrganizer(tombstoneUserId, now, userId)
+            db.participantQueries.anonymizeParticipantUser(tombstoneUserId, now, userId)
+            db.commentQueries.anonymizeCommentsByAuthor(tombstoneUserId, "Deleted user", now, userId)
+            db.chatMessagesQueries.anonymizeMessagesBySender(tombstoneUserId, "Deleted user", now, userId)
+            db.chatMessagesQueries.deleteReactionsByUser(userId)
+            db.chatMessagesQueries.deleteReadStatusByUser(userId)
+            userQueries.deleteSyncMetadataByUserId(userId)
+            userQueries.deletePreferences(userId)
+            userQueries.deleteToken(userId)
+            db.notificationQueries.deleteAllTokens(userId)
+            db.notificationQueries.deleteAllNotifications(userId)
+            userQueries.deleteUser(userId)
+        }
+    }
+
+    private fun deletedUserTombstone(userId: String): String {
+        val hash = userId.hashCode().toUInt().toString(16).padStart(8, '0')
+        return "deleted_user_$hash"
     }
 
     // Token operations

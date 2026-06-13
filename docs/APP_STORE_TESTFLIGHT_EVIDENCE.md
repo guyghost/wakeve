@@ -36,7 +36,7 @@ This 2026-06-01 refresh validates the repository-side TestFlight evidence checkl
 - The local unsigned Release build and dSYM evidence do not replace TestFlight installation from App Store Connect on real iPhone and iPad hardware.
 - `docs/APP_STORE_OBSERVABILITY_EVIDENCE.md` records matching local unsigned app/dSYM UUIDs, but the observability closure still requires signed archive retention, uploaded-build dSYM/symbol evidence, App Store Connect/TestFlight crash dashboard review, TestFlight feedback review, and backend/support monitoring for the same uploaded build.
 - `docs/APP_STORE_LIVE_URL_AASA_EVIDENCE.md` records that live DNS/AASA checks currently fail because `wakeve.app` and `api.wakeve.app` do not resolve; Universal Link and backend smoke steps cannot pass until those production endpoints are live.
-- AS-09 account deletion and AS-10 UGC moderation remain product blockers, so the uploaded TestFlight smoke checklist cannot be closed until those review-build behaviors are implemented or explicitly approved as not applicable.
+- AS-09 account deletion and AS-10 UGC moderation are locally implemented, but they remain review-build evidence blockers, so the uploaded TestFlight smoke checklist cannot be closed until those behaviors are verified on the signed TestFlight build or explicitly approved as not applicable.
 - The validated Apple source links were refreshed on 2026-06-01 and are listed in the Apple References section.
 
 ## Build Under Test

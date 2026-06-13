@@ -322,10 +322,16 @@ struct AboutSection: View {
 
                     Divider()
 
-                    ProfilePlainLinkRow(
-                        icon: "hand.raised.fill",
-                        title: String(localized: "settings_sheet.data_management")
-                    )
+                    NavigationLink {
+                        DataManagementView()
+                    } label: {
+                        ProfileNavigationRow(
+                            icon: "hand.raised.fill",
+                            title: String(localized: "settings_sheet.data_management"),
+                            value: String(localized: "settings_sheet.data_management_value")
+                        )
+                    }
+                    .buttonStyle(.plain)
 
                     Divider()
 
@@ -342,6 +348,136 @@ struct AboutSection: View {
                     )
                 }
             }
+        }
+    }
+}
+
+// MARK: - Data Management
+
+struct DataManagementView: View {
+    @EnvironmentObject private var authStateManager: AuthStateManager
+    @Environment(\.colorScheme) private var colorScheme
+
+    @State private var isDeleting = false
+    @State private var showDeletionConfirmation = false
+    @State private var deletionError: String?
+    @State private var completionMessage: String?
+
+    private var isGuest: Bool {
+        authStateManager.isCurrentSessionGuest
+    }
+
+    private var destructiveTitle: String {
+        isGuest
+            ? String(localized: "data_management.delete_guest_data")
+            : String(localized: "data_management.delete_account")
+    }
+
+    var body: some View {
+        ZStack {
+            WakeveScreenBackground(style: .grouped)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                        Text(String(localized: "data_management.title"))
+                            .font(WakeveTheme.Typography.title2)
+                            .foregroundColor(.primary)
+
+                        Text(String(localized: "data_management.subtitle"))
+                            .font(WakeveTheme.Typography.body)
+                            .foregroundColor(.secondary)
+                    }
+
+                    ProfileCard {
+                        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                            Label(
+                                String(localized: "data_management.scope_title"),
+                                systemImage: "lock.shield.fill"
+                            )
+                            .font(WakeveTheme.Typography.bodySemibold)
+                            .foregroundColor(.primary)
+
+                            Text(isGuest
+                                 ? String(localized: "data_management.guest_scope")
+                                 : String(localized: "data_management.account_scope"))
+                                .font(WakeveTheme.Typography.body)
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, WakeveTheme.Spacing.sm)
+                    }
+
+                    if let deletionError {
+                        Text(deletionError)
+                            .font(WakeveTheme.Typography.body)
+                            .foregroundColor(WakeveColors.error)
+                            .padding(WakeveTheme.Spacing.md)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(WakeveColors.error.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md))
+                    }
+
+                    if let completionMessage {
+                        Text(completionMessage)
+                            .font(WakeveTheme.Typography.body)
+                            .foregroundColor(WakeveColors.success)
+                            .padding(WakeveTheme.Spacing.md)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(WakeveColors.success.opacity(0.12))
+                            .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md))
+                    }
+
+                    WakeveActionButton(
+                        isDeleting ? String(localized: "common.loading") : destructiveTitle,
+                        systemImage: isGuest ? "trash.fill" : "person.crop.circle.badge.xmark",
+                        variant: .destructive
+                    ) {
+                        showDeletionConfirmation = true
+                    }
+                    .disabled(isDeleting)
+                }
+                .padding(WakeveTheme.Spacing.page)
+            }
+        }
+        .navigationTitle(String(localized: "data_management.title"))
+        .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog(
+            destructiveTitle,
+            isPresented: $showDeletionConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(destructiveTitle, role: .destructive) {
+                Task {
+                    await performDeletion()
+                }
+            }
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+        } message: {
+            Text(isGuest
+                 ? String(localized: "data_management.confirm_guest_message")
+                 : String(localized: "data_management.confirm_account_message"))
+        }
+    }
+
+    private func performDeletion() async {
+        isDeleting = true
+        deletionError = nil
+        completionMessage = nil
+        defer {
+            isDeleting = false
+        }
+
+        do {
+            if isGuest {
+                await authStateManager.deleteGuestData()
+                completionMessage = String(localized: "data_management.guest_deleted")
+            } else {
+                try await authStateManager.deleteCurrentAccount()
+                completionMessage = String(localized: "data_management.account_deleted")
+            }
+        } catch {
+            deletionError = String(localized: "data_management.delete_error")
         }
     }
 }

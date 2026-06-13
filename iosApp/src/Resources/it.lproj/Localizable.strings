@@ -9,6 +9,7 @@
 "common.cancel" = "Annulla";
 "common.save" = "Salva";
 "common.delete" = "Elimina";
+"common.apply" = "Applica";
 "common.back" = "Indietro";
 "common.ok" = "OK";
 "common.error" = "Errore";
@@ -16,6 +17,10 @@
 "common.loading" = "Caricamento...";
 "common.yes" = "Sì";
 "common.no" = "No";
+
+// MARK: - WakeveAI
+"ai.cancel_suggestion_accessibility" = "Annulla suggerimento";
+"ai.prepare_suggestions_accessibility" = "Prepara suggerimenti";
 
 // MARK: - Auth
 "auth.sign_in" = "Accedi";
@@ -297,6 +302,7 @@
 "home.organized_by_me_badge" = "Organizzato da me";
 "home.create_event" = "Crea un evento";
 "home.loading" = "Caricamento eventi...";
+"home.filter_events_accessibility" = "Filtra eventi";
 
 // MARK: - Event Detail
 "events.share" = "Condividi evento";
@@ -329,6 +335,8 @@
 "events.activity_planning" = "Pianificazione attività";
 "events.close_accessibility" = "Chiudi";
 "events.more_options" = "Altre opzioni";
+"events.organizer_options_accessibility" = "Opzioni organizzatore";
+"events.remove_time_slot_accessibility" = "Rimuovi fascia oraria";
 "events.cancel_keep" = "Annulla e mantieni l'evento";
 "events.delete_hint" = "Questa azione è irreversibile";
 "events.rsvp.going" = "Presente";
@@ -336,6 +344,24 @@
 "events.rsvp.maybe" = "Forse";
 "events.accessibility.rank" = "%@, posizione #%lld, %lld punti";
 "events.accessibility.its_you" = "Sei tu";
+
+// MARK: - Participants Accessibility
+"participants.options_accessibility" = "Opzioni partecipanti";
+"participants.add_accessibility" = "Aggiungi partecipante";
+"participants.choose_from_contacts_accessibility" = "Scegli partecipanti dai contatti";
+"participants.count_accessibility" = "%lld partecipanti";
+
+// MARK: - Scenario Accessibility
+"scenario.refresh_accessibility" = "Aggiorna scenari";
+
+// MARK: - Transport Accessibility
+"transport.prepare_suggestion_accessibility" = "Prepara un suggerimento di trasporto";
+"transport.save_departure_accessibility" = "Salva partenza";
+"sync.pending_accessibility" = "Sincronizzazione in sospeso";
+
+// MARK: - Calendar Accessibility
+"calendar.add_event_accessibility" = "Aggiungi evento al calendario";
+"calendar.add_event_hint" = "Aggiunge «%@» al calendario nativo";
 
 // MARK: - Invitation
 "invitation.title" = "Invita partecipanti";

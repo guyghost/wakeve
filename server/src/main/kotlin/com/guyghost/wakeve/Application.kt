@@ -16,6 +16,8 @@ import com.guyghost.wakeve.notification.NotificationPreferencesRepository
 import com.guyghost.wakeve.notification.NotificationScheduler
 import com.guyghost.wakeve.notification.ServerAPNsSender
 import com.guyghost.wakeve.notification.ServerFCMSender
+import com.guyghost.wakeve.moderation.ModerationPolicy
+import com.guyghost.wakeve.moderation.ModerationRepository
 import com.guyghost.wakeve.gamification.BadgeEligibilityChecker
 import com.guyghost.wakeve.gamification.GamificationService
 import com.guyghost.wakeve.gamification.repository.InMemoryUserBadgesRepository
@@ -39,6 +41,7 @@ import com.guyghost.wakeve.routes.invitationAcceptRoutes
 import com.guyghost.wakeve.routes.invitationRoutes
 import com.guyghost.wakeve.routes.mealRoutes
 import com.guyghost.wakeve.routes.meetingProxyRoutes
+import com.guyghost.wakeve.routes.moderationRoutes
 import com.guyghost.wakeve.routes.notificationRoutes
 import com.guyghost.wakeve.routes.participantRoutes
 import com.guyghost.wakeve.routes.paymentRoutes
@@ -237,7 +240,9 @@ fun main() {
     val calendarService = CalendarService(database, platformCalendarService)
     
     // Initialize Chat Service
-    val chatService = ChatService(database)
+    val moderationRepository = ModerationRepository(database)
+    val moderationPolicy = ModerationPolicy()
+    val chatService = ChatService(database, moderationRepository = moderationRepository)
 
     // Initialize Analytics Dashboard
     val analyticsDashboard = AnalyticsDashboard(database)
@@ -261,7 +266,7 @@ fun main() {
         fcmSender = fcmSender,
         apnsSender = apnsSender
     )
-    val eventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository)
+    val eventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository, moderationRepository)
 
     // Initialize and start the notification scheduler
     val notificationScheduler = NotificationScheduler(notificationService, eventNotificationTrigger, eventRepository)
@@ -269,22 +274,24 @@ fun main() {
 
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = {
         module(
-            database,
-            eventRepository,
-            scenarioRepository,
-            budgetRepository,
-            mealRepository,
-            commentRepository,
-            locationRepository,
-            calendarService,
-            chatService,
-            accommodationRepository,
-            analyticsDashboard,
-            invitationRepository,
-            notificationService,
-            eventNotificationTrigger,
-            gamificationService,
-            transportRepository
+            database = database,
+            eventRepository = eventRepository,
+            scenarioRepository = scenarioRepository,
+            budgetRepository = budgetRepository,
+            mealRepository = mealRepository,
+            commentRepository = commentRepository,
+            locationRepository = locationRepository,
+            calendarService = calendarService,
+            moderationRepository = moderationRepository,
+            chatService = chatService,
+            accommodationRepository = accommodationRepository,
+            analyticsDashboard = analyticsDashboard,
+            invitationRepository = invitationRepository,
+            notificationService = notificationService,
+            eventNotificationTrigger = eventNotificationTrigger,
+            gamificationService = gamificationService,
+            transportRepository = transportRepository,
+            moderationPolicy = moderationPolicy
         )
     }).start(wait = true)
 }
@@ -298,7 +305,9 @@ fun Application.module(
     commentRepository: com.guyghost.wakeve.comment.CommentRepository = com.guyghost.wakeve.comment.CommentRepository(database),
     locationRepository: PotentialLocationRepositoryInterface = PotentialLocationRepository(eventRepository),
     calendarService: CalendarService = CalendarService(database, PlatformCalendarServiceImpl()),
-    chatService: ChatService = ChatService(database),
+    moderationRepository: ModerationRepository = ModerationRepository(database),
+    moderationPolicy: ModerationPolicy = ModerationPolicy(),
+    chatService: ChatService = ChatService(database, moderationRepository = moderationRepository),
     accommodationRepository: com.guyghost.wakeve.accommodation.AccommodationRepository = com.guyghost.wakeve.accommodation.AccommodationRepository(database),
     analyticsDashboard: AnalyticsDashboard = AnalyticsDashboard(database),
     invitationRepository: InvitationRepository = InvitationRepository(database),
@@ -308,7 +317,7 @@ fun Application.module(
         fcmSender = ServerFCMSender(),
         apnsSender = ServerAPNsSender()
     ),
-    eventNotificationTrigger: EventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository),
+    eventNotificationTrigger: EventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository, moderationRepository),
     gamificationService: GamificationService = GamificationService(
         InMemoryUserPointsRepository(),
         InMemoryUserBadgesRepository(),
@@ -444,9 +453,6 @@ fun Application.module(
             call.respondText("OK")
         }
 
-        // WebSocket endpoint for real-time chat
-        chatWebSocketRoute()
-
         // Metrics endpoint (Prometheus format) - protected by IP whitelist
         get("/metrics") {
             // Get whitelisted IPs from environment variable (comma-separated)
@@ -486,6 +492,10 @@ fun Application.module(
 
                 // API endpoints (protected by JWT authentication + blacklist check)
                 authenticate("auth-jwt") {
+                    // WebSocket endpoint for real-time chat. Authentication is required so
+                    // moderation block filters can be applied per recipient.
+                    chatWebSocketRoute(moderationRepository)
+
                     rateLimit(RateLimitName("api")) {
                         route("/api") {
                             // Install JWT blacklist checking for all API routes
@@ -494,17 +504,18 @@ fun Application.module(
                                 this.jwtBlacklistCache = jwtBlacklistCache
                             }
 
-                            eventRoutes(eventRepository, gamificationService, eventNotificationTrigger, database)
+                            eventRoutes(eventRepository, gamificationService, eventNotificationTrigger, database, moderationPolicy)
                             accountRoutes(authService)
                             participantRoutes(eventRepository, gamificationService, database)
                             voteRoutes(eventRepository, eventNotificationTrigger, gamificationService)
                             scenarioRoutes(scenarioRepository, database)
                             transportRoutes(transportRepository, database)
-                            budgetRoutes(budgetRepository, eventRepository, database)
+                            budgetRoutes(budgetRepository, eventRepository, database, moderationPolicy)
                             paymentRoutes(tricountHandoffRepository, eventRepository, database)
-                            mealRoutes(mealRepository)
-                            commentRoutes(commentRepository, eventNotificationTrigger, eventRepository)
-                            potentialLocationRoutes(locationRepository)
+                            mealRoutes(mealRepository, moderationPolicy)
+                            commentRoutes(commentRepository, eventNotificationTrigger, eventRepository, moderationRepository)
+                            moderationRoutes(moderationRepository)
+                            potentialLocationRoutes(locationRepository, moderationPolicy)
                             syncRoutes(syncService)
                             accommodationRoutes(accommodationRepository, database)
                             sessionRoutes(sessionManager)

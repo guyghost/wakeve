@@ -47,7 +47,9 @@ fun Route.accountRoutes(authService: AuthenticationService) {
                     "Account deleted successfully"
                 } else {
                     "Account was already deleted"
-                }
+                },
+                localCleanupRequired = true,
+                providerRevocationStatus = result.providerRevocationStatus
             )
         )
     }

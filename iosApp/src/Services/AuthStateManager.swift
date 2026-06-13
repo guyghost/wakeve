@@ -171,6 +171,50 @@ public class AuthStateManager: ObservableObject {
         debugLog("[AuthStateManager] User signed out")
     }
 
+    /**
+     * Delete the current authenticated account after a server-confirmed erasure.
+     *
+     * If the backend cannot be reached, this throws and keeps credentials
+     * available so the user can retry the deletion later.
+     */
+    func deleteCurrentAccount() async throws {
+        guard isAuthenticated else {
+            throw AuthError.authenticationFailed("Authentication required")
+        }
+
+        if isCurrentSessionGuest {
+            await deleteGuestData()
+            return
+        }
+
+        isLoading = true
+        authError = nil
+        defer {
+            isLoading = false
+            hasCheckedAuthStatus = true
+        }
+
+        _ = try await authService.deleteAccount()
+
+        await completeLocalAccountDeletion()
+        debugLog("[AuthStateManager] Account deleted and local state cleared")
+    }
+
+    /**
+     * Clear local-only guest data without contacting the backend.
+     */
+    func deleteGuestData() async {
+        isLoading = true
+        authError = nil
+        defer {
+            isLoading = false
+            hasCheckedAuthStatus = true
+        }
+
+        await completeLocalAccountDeletion()
+        debugLog("[AuthStateManager] Guest data deleted locally")
+    }
+
     // MARK: - Auth Status
 
     /**
@@ -274,7 +318,7 @@ public class AuthStateManager: ObservableObject {
         }
     }
 
-    private var isCurrentSessionGuest: Bool {
+    var isCurrentSessionGuest: Bool {
         currentUser?.id.hasPrefix("guest-") == true
     }
 
@@ -313,6 +357,14 @@ public class AuthStateManager: ObservableObject {
     private func clearGuestSession() {
         UserDefaults.standard.removeObject(forKey: GuestSessionKeys.userId)
         UserDefaults.standard.removeObject(forKey: GuestSessionKeys.userName)
+    }
+
+    private func completeLocalAccountDeletion() async {
+        await authService.clearLocalAccountData()
+        clearGuestSession()
+        isAuthenticated = false
+        currentUser = nil
+        authError = nil
     }
 
     #if DEBUG

@@ -4,6 +4,12 @@ import com.guyghost.wakeve.auth.userId
 import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.models.CommentRequest
 import com.guyghost.wakeve.models.CommentSection
+import com.guyghost.wakeve.models.Comment
+import com.guyghost.wakeve.models.CommentThread
+import com.guyghost.wakeve.models.CommentsBySection
+import com.guyghost.wakeve.moderation.ModerationRejectedException
+import com.guyghost.wakeve.moderation.ModerationRepository
+import com.guyghost.wakeve.moderation.ModerationStatus
 import com.guyghost.wakeve.notification.EventNotificationTrigger
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import io.ktor.http.HttpStatusCode
@@ -31,7 +37,8 @@ import kotlinx.serialization.Serializable
 fun io.ktor.server.routing.Route.commentRoutes(
     repository: CommentRepository,
     eventNotificationTrigger: EventNotificationTrigger? = null,
-    eventRepository: DatabaseEventRepository? = null
+    eventRepository: DatabaseEventRepository? = null,
+    moderationRepository: ModerationRepository? = null
 ) {
     route("/events/{eventId}/comments") {
 
@@ -59,15 +66,24 @@ fun io.ktor.server.routing.Route.commentRoutes(
                     request = commentRequest
                 )
 
-                // Trigger notification for new comment (async, non-blocking)
-                eventNotificationTrigger?.onNewComment(
-                    eventId = eventId,
-                    authorId = request.authorId,
-                    authorName = request.authorName,
-                    commentPreview = request.content
+                val status = if (comment.moderationStatus == ModerationStatus.PENDING_REVIEW) {
+                    HttpStatusCode.Accepted
+                } else {
+                    // Trigger notification only for comments that are visible immediately.
+                    eventNotificationTrigger?.onNewComment(
+                        eventId = eventId,
+                        authorId = request.authorId,
+                        authorName = request.authorName,
+                        commentPreview = request.content
+                    )
+                    HttpStatusCode.Created
+                }
+                call.respond(status, comment)
+            } catch (e: ModerationRejectedException) {
+                call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to e.result.userMessage, "reasonCode" to e.result.reasonCode)
                 )
-
-                call.respond(HttpStatusCode.Created, comment)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -89,15 +105,19 @@ fun io.ktor.server.routing.Route.commentRoutes(
                 val threaded = call.request.queryParameters["threaded"]?.toBoolean() ?: true
                 val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 50
                 val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                val viewerUserId = call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
 
                 val comments = if (section != null) {
                     if (threaded) {
                         repository.getCommentsWithThreads(eventId, section, sectionItemId)
+                            .filterBlockedCommentsBySection(viewerUserId, moderationRepository)
                     } else {
                         repository.getCommentsBySection(eventId, section, sectionItemId)
+                            .filterBlockedComments(viewerUserId, moderationRepository)
                     }
                 } else {
                     repository.getCommentsByEvent(eventId)
+                        .filterBlockedComments(viewerUserId, moderationRepository)
                 }
 
                 call.respond(HttpStatusCode.OK, comments)
@@ -512,6 +532,39 @@ fun io.ktor.server.routing.Route.commentRoutes(
             }
         }
     }
+}
+
+private fun List<Comment>.filterBlockedComments(
+    viewerUserId: String?,
+    moderationRepository: ModerationRepository?
+): List<Comment> {
+    if (viewerUserId == null || moderationRepository == null) return this
+    return filterNot { comment -> moderationRepository.isBlocked(viewerUserId, comment.authorId) }
+}
+
+private fun List<CommentThread>.filterBlockedThreads(
+    viewerUserId: String?,
+    moderationRepository: ModerationRepository?
+): List<CommentThread> {
+    if (viewerUserId == null || moderationRepository == null) return this
+    return mapNotNull { thread ->
+        if (moderationRepository.isBlocked(viewerUserId, thread.comment.authorId)) {
+            null
+        } else {
+            thread.copy(replies = thread.replies.filterBlockedComments(viewerUserId, moderationRepository))
+        }
+    }
+}
+
+private fun CommentsBySection.filterBlockedCommentsBySection(
+    viewerUserId: String?,
+    moderationRepository: ModerationRepository?
+): CommentsBySection {
+    val visibleThreads = comments.filterBlockedThreads(viewerUserId, moderationRepository)
+    return copy(
+        comments = visibleThreads,
+        totalComments = visibleThreads.sumOf { 1 + it.replies.size }
+    )
 }
 
 // Request/Response DTOs

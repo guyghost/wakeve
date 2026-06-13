@@ -1,0 +1,116 @@
+CREATE TABLE IF NOT EXISTS content_report (
+    id TEXT PRIMARY KEY NOT NULL,
+    reporter_id TEXT NOT NULL,
+    target_type TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    event_id TEXT,
+    reason TEXT NOT NULL,
+    details TEXT,
+    status TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    reviewed_at TEXT,
+    reviewer_id TEXT
+);
+
+CREATE TABLE IF NOT EXISTS moderation_decision (
+    id TEXT PRIMARY KEY NOT NULL,
+    moderator_id TEXT NOT NULL,
+    report_id TEXT,
+    target_type TEXT NOT NULL,
+    target_id TEXT NOT NULL,
+    decision_action TEXT NOT NULL,
+    reason TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(report_id) REFERENCES content_report(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS user_block (
+    id TEXT PRIMARY KEY NOT NULL,
+    blocker_user_id TEXT NOT NULL,
+    blocked_user_id TEXT NOT NULL,
+    event_id TEXT,
+    reason TEXT,
+    created_at TEXT NOT NULL,
+    removed_at TEXT,
+    UNIQUE(blocker_user_id, blocked_user_id, event_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_content_report_target ON content_report(target_type, target_id);
+CREATE INDEX IF NOT EXISTS idx_content_report_event ON content_report(event_id);
+CREATE INDEX IF NOT EXISTS idx_content_report_status ON content_report(status);
+CREATE INDEX IF NOT EXISTS idx_moderation_decision_report ON moderation_decision(report_id);
+CREATE INDEX IF NOT EXISTS idx_user_block_blocker ON user_block(blocker_user_id, removed_at);
+CREATE INDEX IF NOT EXISTS idx_user_block_pair ON user_block(blocker_user_id, blocked_user_id, removed_at);
+
+insertContentReport:
+INSERT INTO content_report (
+    id, reporter_id, target_type, target_id, event_id, reason, details,
+    status, created_at, reviewed_at, reviewer_id
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectContentReportById:
+SELECT * FROM content_report WHERE id = ?;
+
+selectContentReportsByTarget:
+SELECT * FROM content_report
+WHERE target_type = ? AND target_id = ?
+ORDER BY created_at DESC;
+
+selectOpenContentReports:
+SELECT * FROM content_report
+WHERE status IN ('OPEN', 'UNDER_REVIEW', 'ESCALATED')
+ORDER BY created_at ASC;
+
+updateContentReportReview:
+UPDATE content_report
+SET status = ?, reviewed_at = ?, reviewer_id = ?
+WHERE id = ?;
+
+insertModerationDecision:
+INSERT INTO moderation_decision (
+    id, moderator_id, report_id, target_type, target_id,
+    decision_action, reason, outcome, created_at
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectModerationDecisionsByTarget:
+SELECT * FROM moderation_decision
+WHERE target_type = ? AND target_id = ?
+ORDER BY created_at DESC;
+
+selectModerationDecisionsByReport:
+SELECT * FROM moderation_decision
+WHERE report_id = ?
+ORDER BY created_at DESC;
+
+insertUserBlock:
+INSERT INTO user_block (
+    id, blocker_user_id, blocked_user_id, event_id, reason, created_at, removed_at
+) VALUES (?, ?, ?, ?, ?, ?, NULL);
+
+selectActiveUserBlocksForUser:
+SELECT * FROM user_block
+WHERE blocker_user_id = ? AND removed_at IS NULL
+ORDER BY created_at DESC;
+
+selectActiveUserBlockForEvent:
+SELECT * FROM user_block
+WHERE blocker_user_id = ? AND blocked_user_id = ? AND event_id = ? AND removed_at IS NULL;
+
+selectActiveGlobalUserBlock:
+SELECT * FROM user_block
+WHERE blocker_user_id = ? AND blocked_user_id = ? AND event_id IS NULL AND removed_at IS NULL;
+
+removeUserBlockForEvent:
+UPDATE user_block
+SET removed_at = ?
+WHERE blocker_user_id = ? AND blocked_user_id = ? AND event_id = ? AND removed_at IS NULL;
+
+removeGlobalUserBlock:
+UPDATE user_block
+SET removed_at = ?
+WHERE blocker_user_id = ? AND blocked_user_id = ? AND event_id IS NULL AND removed_at IS NULL;
+
+isUserBlocked:
+SELECT COUNT(*) AS count FROM user_block
+WHERE blocker_user_id = ? AND blocked_user_id = ? AND removed_at IS NULL;
