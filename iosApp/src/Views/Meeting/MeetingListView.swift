@@ -124,7 +124,7 @@ struct MeetingListView: View {
             ProgressView()
                 .scaleEffect(1.2)
                 .accessibilityLabel(String(localized: "common.loading"))
-            Text("Chargement des réunions…")
+            Text(String(localized: "meetings.loading"))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

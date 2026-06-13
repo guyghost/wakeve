@@ -389,7 +389,7 @@ struct CreateEventSheet: View {
         case .idle:
             EmptyView()
         case .checkingAvailability, .preparing:
-            smartEventDraftLoadingRow("Préparation en cours")
+            smartEventDraftLoadingRow(String(localized: "ai.preparing"))
         case .streaming:
             smartEventDraftPreview(
                 title: viewModel.smartEventDraftState.streamedTitle,

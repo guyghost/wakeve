@@ -20,6 +20,7 @@
 
 // MARK: - WakeveAI
 "ai.cancel_suggestion_accessibility" = "Cancel suggestion";
+"ai.preparing" = "Preparing...";
 "ai.prepare_suggestions_accessibility" = "Prepare suggestions";
 
 // MARK: - Auth
@@ -470,6 +471,7 @@
 "meetings.cancelled" = "Cancelled";
 "meetings.cancelled_plural" = "Cancelled";
 "meetings.generate_link" = "Generate link";
+"meetings.loading" = "Loading meetings...";
 
 // MARK: - Status Labels
 "status.confirmed" = "Confirmed";
@@ -548,6 +550,8 @@
 
 // MARK: - Budget
 "budget.close" = "Close";
+"budget.expenses_loading" = "Loading expenses...";
+"budget.loading" = "Loading budget...";
 
 // MARK: - Explore (Legacy)
 "explore.loading_events" = "Loading events...";
