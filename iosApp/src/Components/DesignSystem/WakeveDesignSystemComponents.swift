@@ -210,6 +210,7 @@ struct WakeveActionButton: View {
                 if isLoading {
                     ProgressView()
                         .tint(foreground)
+                        .accessibilityHidden(true)
                 } else {
                     if let systemImage {
                         Image(systemName: systemImage)

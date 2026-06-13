@@ -26,6 +26,7 @@ struct AddToCalendarButton: View {
                     ProgressView()
                         .scaleEffect(0.8)
                         .tint(.white)
+                        .accessibilityHidden(true)
                 }
             }
             .frame(height: 48)

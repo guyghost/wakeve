@@ -901,6 +901,7 @@ struct LoadingEventsView: View {
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle(tint: .wakevePrimary))
                 .scaleEffect(1.3)
+                .accessibilityLabel(String(localized: "home.loading"))
 
             Text(String(localized: "home.loading"))
                 .font(.body.weight(.medium))

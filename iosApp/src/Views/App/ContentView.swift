@@ -67,6 +67,7 @@ private struct AuthLaunchLoadingView: View {
             ProgressView()
                 .tint(WakeveTheme.ColorToken.permissionBlue)
                 .scaleEffect(1.2)
+                .accessibilityLabel(String(localized: "common.loading"))
         }
         .ignoresSafeArea()
     }
@@ -1160,6 +1161,7 @@ struct EventListView: View {
                         VStack(spacing: 16) {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .secondary))
+                                .accessibilityLabel(String(localized: "common.loading"))
                             
                             Text("Loading events...")
                                 .font(.system(size: 14, design: .rounded))
@@ -1584,6 +1586,7 @@ struct EventDetailView: View {
                 if isGeneratingEventAI {
                     HStack(spacing: WakeveTheme.Spacing.sm) {
                         ProgressView()
+                            .accessibilityLabel(String(localized: "common.loading"))
                         Text("Préparation en cours")
                             .font(WakeveTheme.Typography.callout)
                             .foregroundColor(secondaryText)

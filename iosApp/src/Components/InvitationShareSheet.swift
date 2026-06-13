@@ -63,6 +63,7 @@ struct InvitationShareSheet: View {
                         } else {
                             ProgressView()
                                 .frame(width: 200, height: 200)
+                                .accessibilityLabel(String(localized: "common.loading"))
                         }
 
                         Text(String(localized: "invitation.scan_to_join"))

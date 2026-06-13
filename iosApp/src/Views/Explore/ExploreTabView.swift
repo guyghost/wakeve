@@ -547,6 +547,7 @@ struct LoadingStateView: View {
                 .frame(height: 80)
             ProgressView()
                 .scaleEffect(1.2)
+                .accessibilityLabel(String(localized: "common.loading"))
             Text(String(localized: "common.loading"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)

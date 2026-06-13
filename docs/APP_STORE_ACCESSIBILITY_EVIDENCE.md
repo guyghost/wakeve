@@ -123,6 +123,7 @@ Observed local result:
 
 - `docs/a11y/ios-accessibility-source-audit-2026-06-13T12-34-59Z.md` reports `0` direct hardcoded `.accessibilityLabel("...")`, `.accessibilityHint("...")`, or `.accessibilityValue("...")` calls under `iosApp/src`.
 - `docs/a11y/ios-accessibility-source-audit-2026-06-13T13-09-20Z.md` reports `0` hardcoded accessibility label/hint/value findings after extending the audit to named `accessibilityLabel:`/`accessibilityHint:`/`accessibilityValue:` arguments used by shared controls.
+- `docs/a11y/ios-accessibility-source-audit-2026-06-13T13-12-50Z.md` reports `0` hardcoded accessibility strings, `0` single-line text risks, and `0` bare indeterminate `ProgressView()` calls without an accessibility label or explicit hiding.
 - The audit reports `0` single-line text risks where `.lineLimit(1)` lacks a nearby `.minimumScaleFactor`, `.fixedSize`, `.allowsTightening`, or `.dynamicTypeSize` fallback.
 - New release-visible accessibility labels for WakeveAI actions, scenario refresh, transport suggestion/departure, sync pending state, home filters, participant actions, calendar add, and organizer options are localized through `Localizable.strings`.
 - EN, FR, ES, IT, and PT `Localizable.strings` pass `plutil -lint` after the accessibility key additions.

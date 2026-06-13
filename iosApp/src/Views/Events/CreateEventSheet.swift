@@ -427,6 +427,7 @@ struct CreateEventSheet: View {
         HStack(spacing: WakeveTheme.Spacing.sm) {
             ProgressView()
                 .controlSize(.small)
+                .accessibilityLabel(title)
             Text(title)
                 .font(WakeveTheme.Typography.callout)
                 .foregroundColor(secondaryTextColor)

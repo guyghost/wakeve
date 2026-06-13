@@ -213,6 +213,7 @@ struct ScenarioOrganizationView: View {
                 .tint(.blue)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 40)
+                .accessibilityLabel(String(localized: "common.loading"))
         } else if viewModel.scenarios.isEmpty {
             emptyState
         } else {

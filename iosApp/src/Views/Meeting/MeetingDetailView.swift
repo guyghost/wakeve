@@ -163,7 +163,9 @@ struct MeetingDetailView: View {
 
     private var loadingView: some View {
         VStack(spacing: 16) {
-            ProgressView().scaleEffect(1.2)
+            ProgressView()
+                .scaleEffect(1.2)
+                .accessibilityLabel(String(localized: "common.loading"))
             Text("Chargement…")
                 .foregroundStyle(.secondary)
         }

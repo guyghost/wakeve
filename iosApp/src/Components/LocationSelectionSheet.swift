@@ -266,6 +266,7 @@ struct LocationSelectionSheet: View {
                             ProgressView()
                                 .scaleEffect(0.8)
                                 .frame(width: 16, height: 16)
+                                .accessibilityHidden(true)
                         } else {
                             Image(systemName: "location.fill")
                                 .font(.system(size: 16, weight: .semibold))
