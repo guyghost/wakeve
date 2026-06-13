@@ -74,7 +74,7 @@ struct BudgetOverviewView: View {
             ProgressView()
                 .scaleEffect(1.2)
                 .accessibilityLabel(String(localized: "common.loading"))
-            Text("Chargement du budget…")
+            Text(String(localized: "budget.loading"))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

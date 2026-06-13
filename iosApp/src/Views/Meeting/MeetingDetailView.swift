@@ -166,7 +166,7 @@ struct MeetingDetailView: View {
             ProgressView()
                 .scaleEffect(1.2)
                 .accessibilityLabel(String(localized: "common.loading"))
-            Text("Chargement…")
+            Text(String(localized: "common.loading"))
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

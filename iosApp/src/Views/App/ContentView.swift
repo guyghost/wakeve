@@ -1163,7 +1163,7 @@ struct EventListView: View {
                                 .progressViewStyle(CircularProgressViewStyle(tint: .secondary))
                                 .accessibilityLabel(String(localized: "common.loading"))
                             
-                            Text("Loading events...")
+                            Text(String(localized: "home.loading"))
                                 .font(.system(size: 14, design: .rounded))
                                 .foregroundColor(.secondary)
                         }
@@ -1587,7 +1587,7 @@ struct EventDetailView: View {
                     HStack(spacing: WakeveTheme.Spacing.sm) {
                         ProgressView()
                             .accessibilityLabel(String(localized: "common.loading"))
-                        Text("Préparation en cours")
+                        Text(String(localized: "ai.preparing"))
                             .font(WakeveTheme.Typography.callout)
                             .foregroundColor(secondaryText)
                     }

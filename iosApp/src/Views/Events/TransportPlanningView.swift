@@ -212,7 +212,7 @@ struct TransportPlanningView: View {
                     HStack(spacing: WakeveTheme.Spacing.sm) {
                         ProgressView()
                             .accessibilityLabel(String(localized: "common.loading"))
-                        Text("Préparation en cours")
+                        Text(String(localized: "ai.preparing"))
                             .font(WakeveTheme.Typography.callout)
                             .foregroundColor(secondaryText)
                     }
