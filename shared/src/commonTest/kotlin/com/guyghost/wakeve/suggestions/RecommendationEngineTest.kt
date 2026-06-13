@@ -323,7 +323,7 @@ class RecommendationEngineTest {
     // ========================================================================
 
     @Test
-    fun `recommendCollaborative returns empty list (placeholder)`() {
+    fun `recommendCollaborative returns empty list placeholder`() {
         val result = RecommendationEngine.recommendCollaborative(
             userId = "user-1",
             similarUsers = listOf("user-2", "user-3"),
@@ -339,7 +339,7 @@ class RecommendationEngineTest {
     }
 
     @Test
-    fun `recommendContentBased returns empty list (placeholder)`() {
+    fun `recommendContentBased returns empty list placeholder`() {
         val result = RecommendationEngine.recommendContentBased(
             userId = "user-1",
             context = com.guyghost.wakeve.models.RecommendationContext(

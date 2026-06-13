@@ -38,8 +38,11 @@ import kotlin.time.Duration.Companion.minutes
  * @see NotificationScheduler for low-level platform-specific scheduling
  */
 class AdvancedNotificationScheduler(
-    private val notificationScheduler: NotificationScheduler = NotificationScheduler.getInstance()
+    private val notificationScheduler: NotificationScheduler? = null
 ) {
+
+    private fun platformScheduler(): NotificationScheduler =
+        notificationScheduler ?: NotificationScheduler.getInstance()
 
     /**
      * Schedule a reminder for an upcoming event.
@@ -99,7 +102,7 @@ class AdvancedNotificationScheduler(
             append("!")
         }
 
-        return notificationScheduler.scheduleEventReminder(
+        return platformScheduler().scheduleEventReminder(
             eventId = event.id,
             title = title,
             body = body,
@@ -157,7 +160,7 @@ class AdvancedNotificationScheduler(
             append(". Cast your vote now!")
         }
 
-        return notificationScheduler.schedulePollDeadlineReminder(
+        return platformScheduler().schedulePollDeadlineReminder(
             pollId = poll.id,
             eventId = event.id,
             title = title,
@@ -221,7 +224,7 @@ class AdvancedNotificationScheduler(
 
             val notificationId = "${generateNotificationId("event", event.id)}-recurring-$index"
 
-            val result = notificationScheduler.scheduleEventReminder(
+            val result = platformScheduler().scheduleEventReminder(
                 eventId = event.id,
                 title = title,
                 body = body,
@@ -316,7 +319,7 @@ class AdvancedNotificationScheduler(
         val title = "🔔 ${event.title}"
         val body = generateSmartReminderBody(event, adjustedTime, finalDate)
 
-        return notificationScheduler.scheduleEventReminder(
+        return platformScheduler().scheduleEventReminder(
             eventId = event.id,
             title = title,
             body = body,
@@ -339,9 +342,10 @@ class AdvancedNotificationScheduler(
 
         // Cancel base event reminder
         val results = mutableListOf<Result<Unit>>()
-        results.add(notificationScheduler.cancelScheduledNotification(baseId))
-        results.add(notificationScheduler.cancelScheduledNotification(pollId))
-        results.add(notificationScheduler.cancelScheduledNotification(smartId))
+        val scheduler = platformScheduler()
+        results.add(scheduler.cancelScheduledNotification(baseId))
+        results.add(scheduler.cancelScheduledNotification(pollId))
+        results.add(scheduler.cancelScheduledNotification(smartId))
 
         // Note: Recurring reminders would need to track their individual IDs
         // This is a simplified implementation
