@@ -64,6 +64,12 @@ This file records the App Store review evidence for AS-14: public legal/support 
 | AASA app ID | Both AASA responses contain `<APPLE_TEAM_ID>.com.guyghost.wakeve`. | Pending |
 | AASA Universal Link paths | Both AASA responses contain `/event/*`, `/poll/*`, `/meeting/*`, and `/invite/*`. | Pending |
 | `https://api.wakeve.app/health` | Public HTTPS response showing production backend health is OK. | Pending |
+| `https://wakeve.app/app` | Public dashboard shell route resolves through the dashboard microfrontend. | Pending |
+| `https://wakeve.app/app/login` | Public dashboard login route resolves through the dashboard microfrontend. | Pending |
+| `https://wakeve.app/app/dashboard` | Public dashboard home route resolves through the dashboard microfrontend. | Pending |
+| `https://wakeve.app/app/create` | Public create-event dashboard route resolves through the dashboard microfrontend. | Pending |
+| `https://wakeve.app/app/events` | Public event-list dashboard route resolves through the dashboard microfrontend. | Pending |
+| Landing redirects | `/dashboard`, `/login`, `/create`, `/events`, and nested `/events/*` redirect to `/app/*`. | Pending |
 | TLS and redirects | No TLS error, mixed-content downgrade, or redirect loop for any review URL. | Pending |
 | Cache and rollback | AASA/legal/support cache behavior, deployment owner, and rollback path are documented. | Pending |
 
@@ -77,11 +83,14 @@ Last command:
 
 Result on 2026-06-13: live production validation failed with 9 live URL/AASA errors and 1 final-signoff warning. This does not close AS-14. The App Review phone number was provided for the local lint run, so the remaining warning is the intentionally incomplete final App Store signoff marker; the live blocker remains DNS resolution for `wakeve.app` and `api.wakeve.app`.
 
-Generated capture report:
+Generated capture reports:
 
 - `docs/app-store-live-url-aasa/live-url-aasa-2026-06-13T12-20-32Z.md`
 - Command: `./scripts/capture-app-store-live-url-aasa.sh --allow-failures`
 - Result: `FAIL. 9 required live URL/AASA checks failed or could not be validated.`
+- `docs/app-store-live-url-aasa/live-url-aasa-2026-06-13T13-02-14Z.md`
+- Command: `./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 5`
+- Result: `FAIL. 18 required live URL/AASA checks failed or could not be validated.` This refreshed capture adds `/app`, `/app/login`, `/app/dashboard`, `/app/create`, `/app/events`, and legacy landing redirect checks to the public smoke scope.
 
 Direct DNS snapshot on 2026-06-13:
 
@@ -123,6 +132,8 @@ Observed live blockers:
 - `https://wakeve.app/.well-known/apple-app-site-association` is not reachable.
 - `https://wakeve.app/apple-app-site-association` is not reachable.
 - `https://api.wakeve.app/health` is not reachable.
+- `https://wakeve.app/app`, `/app/login`, `/app/dashboard`, `/app/create`, and `/app/events` are not reachable.
+- Landing redirects from `/dashboard`, `/login`, `/create`, and `/events` to `/app/*` cannot be validated until DNS resolves.
 
 The repository has deployable local web routes and AASA route code, but the public production domains currently do not resolve in DNS. They still need DNS, TLS, hosting, environment variables, and backend deployment evidence before App Review submission.
 
@@ -132,8 +143,9 @@ This section is local evidence only. It does not close AS-14 because App Store r
 
 | Check | Local Result | Evidence |
 | --- | --- | --- |
-| Public legal pages render reviewable HTML | Passed on `http://127.0.0.1:4174` for `/privacy`, `/support`, `/terms`, and `/third-party-notices`. | Each route has `+page.ts` with `export const ssr = true`, so the App Store legal/support content is present in the initial HTML even though the app shell disables SSR globally. |
-| Local AASA endpoints | Passed on `http://127.0.0.1:4174` for `/.well-known/apple-app-site-association` and `/apple-app-site-association`. | With `APPLE_TEAM_ID=A1B2C3D4E5`, both endpoints returned `application/json`, app ID `A1B2C3D4E5.com.guyghost.wakeve`, and `/event/*`, `/poll/*`, `/meeting/*`, plus `/invite/*` components. |
+| Public legal pages render reviewable HTML | Passed on `http://127.0.0.1:3000` for `/privacy`, `/support`, `/terms`, and `/third-party-notices`. | Each route has `+page.ts` with `export const ssr = true`, so the App Store legal/support content is present in the initial HTML even though the app shell disables SSR globally. |
+| Local AASA endpoints | Passed on `http://127.0.0.1:3000` for `/.well-known/apple-app-site-association` and `/apple-app-site-association`. | With `APPLE_TEAM_ID=A1B2C3D4E5`, both endpoints returned `application/json`, app ID `A1B2C3D4E5.com.guyghost.wakeve`, and `/event/*`, `/poll/*`, `/meeting/*`, plus `/invite/*` components. |
+| Local dashboard routing | Passed on `http://127.0.0.1:3000` for microfrontend config and landing redirects. | `scripts/app-store-local-web-route-check.sh` verified `wakeve-dashboard` owns `/app` and `/app/:path*`, and `/dashboard`, `/login`, `/create`, `/events`, and `/events/demo-event` redirect to `/app/*` with HTTP 308. |
 | Production adapter build | Passed locally on 2026-05-28 with `npx --yes pnpm@10 check` and `npx --yes pnpm@10 build`. | `apps/landing` now uses `@sveltejs/adapter-vercel` with `runtime: 'nodejs22.x'`, so the production build targets Vercel explicitly instead of relying on adapter auto-detection. |
 
 ## Evidence Commands
@@ -147,6 +159,15 @@ curl -I --max-time 10 https://wakeve.app/privacy
 curl -I --max-time 10 https://wakeve.app/support
 curl -I --max-time 10 https://wakeve.app/terms
 curl -I --max-time 10 https://wakeve.app/third-party-notices
+curl -I --max-time 10 https://wakeve.app/app
+curl -I --max-time 10 https://wakeve.app/app/login
+curl -I --max-time 10 https://wakeve.app/app/dashboard
+curl -I --max-time 10 https://wakeve.app/app/create
+curl -I --max-time 10 https://wakeve.app/app/events
+curl -I --max-time 10 https://wakeve.app/dashboard
+curl -I --max-time 10 https://wakeve.app/login
+curl -I --max-time 10 https://wakeve.app/create
+curl -I --max-time 10 https://wakeve.app/events
 curl -i --max-time 10 https://wakeve.app/.well-known/apple-app-site-association
 curl -i --max-time 10 https://wakeve.app/apple-app-site-association
 curl -i --max-time 10 https://api.wakeve.app/health
@@ -157,18 +178,19 @@ Attach or paste the generated `docs/app-store-live-url-aasa/live-url-aasa-*.md` 
 Local pre-deployment validation command used before live deployment:
 
 ```bash
-APPLE_TEAM_ID=A1B2C3D4E5 ./node_modules/.bin/vite dev --host 127.0.0.1 --port 4174
-BASE_URL=http://127.0.0.1:4174 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh
+APPLE_TEAM_ID=A1B2C3D4E5 pnpm --dir apps/landing exec vite dev --host 127.0.0.1
+BASE_URL=http://127.0.0.1:3000 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh
 ```
 
-`scripts/app-store-local-web-route-check.sh` validated that the four public legal pages return status 200 with the expected App Store review phrases in initial HTML, and that both AASA endpoints return JSON with the expected test Team ID, Bundle ID, and Universal Link paths.
+`scripts/app-store-local-web-route-check.sh` validated that the four public legal pages return status 200 with the expected App Store review phrases in initial HTML, that landing redirects point to `/app/*`, that `microfrontends.json` assigns `/app` and `/app/:path*` to `wakeve-dashboard`, and that both AASA endpoints return JSON with the expected test Team ID, Bundle ID, and Universal Link paths.
 
 ## Production Deployment Fix Checklist
 
 Before retrying the live App Store gate:
 
-- Deploy the web app serving `/privacy`, `/support`, `/terms`, `/third-party-notices`, `/.well-known/apple-app-site-association`, and `/apple-app-site-association` on `https://wakeve.app`.
+- Deploy the web app serving `/privacy`, `/support`, `/terms`, `/third-party-notices`, `/app`, `/app/login`, `/app/dashboard`, `/app/create`, `/app/events`, `/.well-known/apple-app-site-association`, and `/apple-app-site-association` on `https://wakeve.app`.
 - Keep the Vercel project root set to `apps/landing/`; the SvelteKit production build now uses `@sveltejs/adapter-vercel` and should be built with the checked-in `pnpm-lock.yaml`.
+- Keep Vercel Microfrontends routing `wakeve-dashboard` for `/app` and `/app/:path*`, and keep landing redirects from `/dashboard`, `/login`, `/create`, and `/events` to their `/app/*` equivalents.
 - Configure production `APPLE_TEAM_ID` or `TEAM_ID` to the real 10-character Apple Developer Team ID so AASA app IDs are not placeholders.
 - Confirm the AASA responses use `application/json`, no redirects, valid TLS, app ID `<APPLE_TEAM_ID>.com.guyghost.wakeve`, and paths `/event/*`, `/poll/*`, `/meeting/*`, plus `/invite/*`.
 - Deploy the backend health endpoint at `https://api.wakeve.app/health` with an App Review-safe response that proves the production backend is available.
@@ -180,7 +202,8 @@ Before retrying the live App Store gate:
 
 Set `APP_STORE_LIVE_URL_AASA_EVIDENCE_COMPLETE=true` only after:
 
-- The production `wakeve.app` deployment serves `/privacy`, `/support`, `/terms`, `/third-party-notices`, `/.well-known/apple-app-site-association`, and `/apple-app-site-association` over HTTPS.
+- The production `wakeve.app` deployment serves `/privacy`, `/support`, `/terms`, `/third-party-notices`, `/app`, `/app/login`, `/app/dashboard`, `/app/create`, `/app/events`, `/.well-known/apple-app-site-association`, and `/apple-app-site-association` over HTTPS.
+- The production landing redirects `/dashboard`, `/login`, `/create`, and `/events` to `/app/*` without redirect loops.
 - Both AASA endpoints return valid JSON with `application/json`, no file extension, the real `<APPLE_TEAM_ID>.com.guyghost.wakeve` app ID, and `/event/*`, `/poll/*`, `/meeting/*`, plus `/invite/*` link groups.
 - `https://api.wakeve.app/health` is reachable from a public network and returns the expected production health response.
 - The linter command above exits 0 with the real `APPLE_TEAM_ID`.

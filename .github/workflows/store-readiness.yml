@@ -129,13 +129,13 @@ jobs:
         run: |
           mkdir -p build
           cd apps/landing
-          CI=true APPLE_TEAM_ID=A1B2C3D4E5 npx --yes pnpm@10 exec vite dev --host 127.0.0.1 --port 4174 > ../build/app-store-local-web-route-check.log 2>&1 &
+          CI=true APPLE_TEAM_ID=A1B2C3D4E5 npx --yes pnpm@10 exec vite dev --host 127.0.0.1 --port 3000 --strictPort > ../../build/app-store-local-web-route-check.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
 
           ready=false
           for attempt in {1..30}; do
-            if curl -fsS http://127.0.0.1:4174/privacy >/dev/null 2>&1; then
+            if curl -fsS http://127.0.0.1:3000/privacy >/dev/null 2>&1; then
               ready=true
               break
             fi
@@ -143,13 +143,13 @@ jobs:
           done
 
           if [ "$ready" != true ]; then
-            cat ../build/app-store-local-web-route-check.log
+            cat ../../build/app-store-local-web-route-check.log
             echo "❌ Local web server did not become ready"
             exit 1
           fi
 
-          cd ..
-          BASE_URL=http://127.0.0.1:4174 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh
+          cd ../..
+          BASE_URL=http://127.0.0.1:3000 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh
 
       - name: Validate release audit scripts
         run: |

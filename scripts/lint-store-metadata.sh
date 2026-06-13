@@ -170,6 +170,36 @@ validate_live_url() {
     error "$label: Live URL is not reachable ($url)"
 }
 
+validate_live_redirect() {
+    local url="$1"
+    local expected_location="$2"
+    local label="$3"
+
+    [ "$CHECK_LIVE_URLS" = true ] || return 0
+
+    if ! command -v curl >/dev/null 2>&1; then
+        warning "$label: Cannot check live redirect because curl is not available"
+        return 0
+    fi
+
+    local headers_file
+    headers_file=$(mktemp)
+
+    if ! /usr/bin/curl -fsSI --max-time 10 --retry 1 "$url" > "$headers_file" 2>/dev/null; then
+        rm -f "$headers_file"
+        error "$label: Live redirect is not reachable ($url)"
+        return 0
+    fi
+
+    if grep -Eiq '^location:[[:space:]]*(https://wakeve\.app)?'"$expected_location"'([[:space:]]|$)' "$headers_file"; then
+        pass "$label: Redirects to $expected_location"
+    else
+        error "$label: Expected redirect to $expected_location"
+    fi
+
+    rm -f "$headers_file"
+}
+
 is_ios_iphone_screenshot_size() {
     local width="$1"
     local height="$2"
@@ -689,8 +719,8 @@ validate_fastlane() {
                     "Audit web dependencies"
                     "pnpm audit --audit-level low"
                     "Verify local public web and AASA routes"
-                    "CI=true APPLE_TEAM_ID=A1B2C3D4E5 npx --yes pnpm@10 exec vite dev --host 127.0.0.1 --port 4174"
-                    "BASE_URL=http://127.0.0.1:4174 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh"
+                    "CI=true APPLE_TEAM_ID=A1B2C3D4E5 npx --yes pnpm@10 exec vite dev --host 127.0.0.1 --port 3000 --strictPort"
+                    "BASE_URL=http://127.0.0.1:3000 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh"
                     "bash -n scripts/app-store-local-web-route-check.sh"
                     "Verify placeholder App Review phone is rejected"
                     "submission_ready unexpectedly accepted the documented App Review phone placeholder"
@@ -5562,6 +5592,11 @@ validate_app_store_live_url_aasa_evidence() {
         "https://wakeve.app/support"
         "https://wakeve.app/terms"
         "https://wakeve.app/third-party-notices"
+        "https://wakeve.app/app"
+        "https://wakeve.app/app/login"
+        "https://wakeve.app/app/dashboard"
+        "https://wakeve.app/app/create"
+        "https://wakeve.app/app/events"
         "https://wakeve.app/.well-known/apple-app-site-association"
         "https://wakeve.app/apple-app-site-association"
         "https://api.wakeve.app/health"
@@ -5573,12 +5608,19 @@ validate_app_store_live_url_aasa_evidence() {
         "/invite/*"
         "application/json"
         "Public legal pages render reviewable HTML"
+        "Local dashboard routing"
+        "microfrontends.json"
+        "wakeve-dashboard"
+        "/app/:path*"
         "export const ssr = true"
         "scripts/app-store-local-web-route-check.sh"
         "A1B2C3D4E5.com.guyghost.wakeve"
         "live production validation failed with 9 live URL/AASA errors and 1 final-signoff warning"
         "docs/app-store-live-url-aasa/live-url-aasa-2026-06-13T12-20-32Z.md"
         "./scripts/capture-app-store-live-url-aasa.sh --allow-failures"
+        "docs/app-store-live-url-aasa/live-url-aasa-2026-06-13T13-02-14Z.md"
+        "./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 5"
+        "18 required live URL/AASA checks failed or could not be validated"
         "Direct DNS snapshot on 2026-06-13"
         "Could not resolve host: wakeve.app"
         "Could not resolve host: api.wakeve.app"
@@ -5587,6 +5629,7 @@ validate_app_store_live_url_aasa_evidence() {
         "public production domains currently do not resolve in DNS"
         "./scripts/capture-app-store-live-url-aasa.sh"
         "Deploy the web app serving"
+        "Keep Vercel Microfrontends routing \`wakeve-dashboard\` for \`/app\` and \`/app/:path*\`"
         "Configure production \`APPLE_TEAM_ID\` or \`TEAM_ID\`"
         "AASA responses use \`application/json\`, no redirects, valid TLS"
         "Deploy the backend health endpoint"
@@ -6827,6 +6870,15 @@ validate_ios_live_endpoints() {
 
     validate_live_url "https://wakeve.app/terms" "Terms URL"
     validate_live_url "https://wakeve.app/third-party-notices" "Third-party notices URL"
+    validate_live_url "https://wakeve.app/app" "Dashboard app shell URL"
+    validate_live_url "https://wakeve.app/app/login" "Dashboard login URL"
+    validate_live_url "https://wakeve.app/app/dashboard" "Dashboard home URL"
+    validate_live_url "https://wakeve.app/app/create" "Dashboard create URL"
+    validate_live_url "https://wakeve.app/app/events" "Dashboard events URL"
+    validate_live_redirect "https://wakeve.app/dashboard" "/app/dashboard" "Legacy dashboard redirect"
+    validate_live_redirect "https://wakeve.app/login" "/app/login" "Legacy login redirect"
+    validate_live_redirect "https://wakeve.app/create" "/app/create" "Legacy create redirect"
+    validate_live_redirect "https://wakeve.app/events" "/app/events" "Legacy events redirect"
     validate_live_aasa "https://wakeve.app/.well-known/apple-app-site-association" "Apple App Site Association well-known URL"
     validate_live_aasa "https://wakeve.app/apple-app-site-association" "Apple App Site Association root URL"
     validate_live_url "https://api.wakeve.app/health" "API health URL"

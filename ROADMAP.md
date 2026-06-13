@@ -146,8 +146,9 @@ Definition of done:
 
 Preuves locales du 2026-06-13:
 
-- `./scripts/capture-app-store-live-url-aasa.sh --allow-failures` genere `docs/app-store-live-url-aasa/live-url-aasa-2026-06-13T12-20-32Z.md` avec DNS, HTTPS, AASA et backend health. Le rapport conclut `FAIL. 9 required live URL/AASA checks failed or could not be validated.`
-- `dig +short wakeve.app` et `dig +short api.wakeve.app` ne retournent aucune entree DNS depuis l'environnement local; les `curl` publics vers privacy, support, terms, third-party notices, les deux endpoints AASA et `https://api.wakeve.app/health` echouent avec `Could not resolve host`.
+- `./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 5` genere `docs/app-store-live-url-aasa/live-url-aasa-2026-06-13T13-02-14Z.md` avec DNS, HTTPS, AASA, backend health, dashboard `/app` et redirects legacy. Le rapport conclut `FAIL. 18 required live URL/AASA checks failed or could not be validated.`
+- `dig +short wakeve.app` et `dig +short api.wakeve.app` ne retournent aucune entree DNS depuis l'environnement local; les `curl` publics vers privacy, support, terms, third-party notices, `/app`, `/app/login`, `/app/dashboard`, `/app/create`, `/app/events`, les redirects `/dashboard`/`/login`/`/create`/`/events`, les deux endpoints AASA et `https://api.wakeve.app/health` echouent avec `Could not resolve host`.
+- `BASE_URL=http://127.0.0.1:3000 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh` passe contre la landing locale demarree avec `APPLE_TEAM_ID=A1B2C3D4E5 pnpm --dir apps/landing exec vite dev --host 127.0.0.1`; le check couvre les pages legales, les endpoints AASA, `microfrontends.json` pour `/app`, et les redirects legacy vers `/app/*`.
 - Cette preuve rend le blocage AS-14 reproductible, mais ne coche aucun item P0.3 tant que DNS public, TLS, AASA avec vrai Apple Team ID, backend et smoke public ne passent pas depuis un reseau externe.
 
 #### 0.4 Signed archive, TestFlight et release evidence
