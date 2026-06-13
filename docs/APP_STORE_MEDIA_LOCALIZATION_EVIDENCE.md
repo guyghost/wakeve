@@ -1,6 +1,6 @@
 # App Store Media And Localization Evidence - Wakeve
 
-Date: 2026-06-01
+Date: 2026-06-13
 
 Status: PENDING
 
@@ -55,6 +55,7 @@ Run or record equivalent output for the submitted review build:
 
 ```bash
 ./scripts/lint-store-metadata.sh --ios-only
+./scripts/audit-app-store-media-localization.sh --fail-on-findings
 bundle exec fastlane ios validate_metadata
 find composeApp/screenshots/ios composeApp/metadata/ios -type f | sort
 sips -g pixelWidth -g pixelHeight composeApp/screenshots/ios/*/*.{png,jpg,jpeg} 2>/dev/null
@@ -65,7 +66,8 @@ find composeApp/screenshots/ios composeApp/metadata/ios -type f \( -iname '*.png
 
 Result: local Fastlane media and localized metadata are structurally ready for upload, but this is pre-submission evidence only because the App Store Connect media page and uploaded review build have not been reviewed.
 
-- Local media scan date: 2026-06-01.
+- Local media scan date: 2026-06-13.
+- Generated audit report: `docs/app-store-media-localization/media-localization-2026-06-13T12-23-27Z.md`.
 - Locales present: `en-US` and `fr-FR`.
 - Upload screenshot folders present: `composeApp/screenshots/ios/en-US` and `composeApp/screenshots/ios/fr-FR`.
 - Metadata screenshot folders present: `composeApp/metadata/ios/en-US/screenshots` and `composeApp/metadata/ios/fr-FR/screenshots`.
@@ -73,12 +75,15 @@ Result: local Fastlane media and localized metadata are structurally ready for u
 - Screenshot dimensions: every `01-iphone-home.png` is `1320x2868`; every `02-ipad-home.png` is `2048x2732`.
 - Device-family coverage: each locale has one iPhone screenshot and one iPad screenshot in both the Fastlane upload folder and the metadata folder.
 - Screenshot sizes match Apple-accepted iPhone 6.9-inch portrait `1320 x 2868` and iPad 13-inch portrait `2048 x 2732` sizes.
-- Screenshot set hash: `02874fd36e52a53083d3b6cecf22c23d0d640d5d402e57f4457fd6c821e0be97`.
+- Screenshot set hash: `e1d72a791111bc43b561e7b463043167e860a47f3c290443c0a015f64ef3effe`.
 - App preview videos: 0 `.mov`, `.mp4`, or `.m4v` files found under the iOS metadata and screenshot directories.
 - App preview decision: omit previews for the first release; no preview localization fallback is relied on.
+- Standalone media/localization audit: `./scripts/audit-app-store-media-localization.sh --fail-on-findings` passed with 0 findings. It verified 8 local screenshots, accepted iPhone/iPad dimensions, EN/FR metadata field lengths, 0 app preview videos, and the screenshot aggregate hash above.
 - Fastlane metadata validation: `bundle exec fastlane ios validate_metadata` passed locally for `fr-FR` metadata, `en-US` metadata, `fr-FR` screenshots, and `en-US` screenshots on 2026-06-01.
 - Local field lengths are within App Store limits after trimming surrounding whitespace: `en-US` name 6 chars, subtitle 24, description 1540, keywords 70, promotional text 85, release notes 179; `fr-FR` name 6 chars, subtitle 29, description 1987, keywords 88, promotional text 109, release notes 196.
 - Both locales use `https://wakeve.app/privacy` and `https://wakeve.app/support` for privacy and support URLs.
+- Local simulator UI evidence that may support media and accessibility review is indexed separately in `docs/app-store-evidence/README.md`; those screenshots are not the uploadable App Store screenshot set.
+- iOS app string parity was refreshed locally on 2026-06-13: `en.lproj/Localizable.strings` and `fr.lproj/Localizable.strings` both pass `plutil -lint`, both contain 829 keys, and `comm` found no EN/FR key drift. This supports local localization readiness, but App Store Connect media/localized metadata still require uploaded-build review.
 
 This local scan does not close AS-20. The final reviewer must compare the App Store Connect media page and localized metadata against the uploaded review build, confirm screenshot ordering and visible data, record whether scaled screenshots or Media Manager overrides are used, verify the App Store Connect status still permits media edits or that a new version is being edited, verify live production URLs, and record reviewer/date before setting `APP_STORE_MEDIA_LOCALIZATION_EVIDENCE_COMPLETE=true`.
 
