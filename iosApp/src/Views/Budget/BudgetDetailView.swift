@@ -47,6 +47,7 @@ struct BudgetDetailView: View {
                 } label: {
                     Image(systemName: "plus")
                 }
+                .accessibilityLabel(String(localized: "budget.add_expense"))
             }
         }
         .sheet(isPresented: $showAddItem) {

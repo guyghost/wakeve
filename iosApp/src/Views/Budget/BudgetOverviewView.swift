@@ -55,6 +55,7 @@ struct BudgetOverviewView: View {
                     } label: {
                         Image(systemName: "list.bullet")
                     }
+                    .accessibilityLabel(String(localized: "budget.open_expenses"))
                 }
             }
             .navigationDestination(isPresented: $navigateToDetail) {

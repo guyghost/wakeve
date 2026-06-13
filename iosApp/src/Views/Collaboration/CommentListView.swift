@@ -150,6 +150,7 @@ struct CommentListView: View {
                     Button(action: onNavigateBack) {
                         Image(systemName: "chevron.left")
                     }
+                    .accessibilityLabel(String(localized: "common.back"))
                 }
             }
             .sheet(item: $moderationTarget) { target in
@@ -172,6 +173,7 @@ struct CommentListView: View {
                 Image(systemName: "line.3.horizontal.decrease.circle")
                     .foregroundColor(WakeveColors.primary)
             }
+            .accessibilityLabel(String(localized: "home.filter_events_accessibility"))
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -313,6 +315,7 @@ struct CommentInputView: View {
                     Image(systemName: "at")
                         .foregroundColor(showMentionAutocomplete ? WakeveColors.primary : WakeveColors.onSurfaceVariant)
                 }
+                .accessibilityLabel(String(localized: "comments.mention"))
                 
                 // Send button
                 Button(action: onSend) {
@@ -321,6 +324,7 @@ struct CommentInputView: View {
                         .foregroundColor(text.isEmpty ? WakeveColors.onSurfaceVariant : WakeveColors.primary)
                 }
                 .disabled(text.isEmpty)
+                .accessibilityLabel(String(localized: "comments.send"))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

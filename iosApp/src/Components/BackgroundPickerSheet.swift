@@ -187,6 +187,7 @@ struct BackgroundPickerSheet: View {
                             .background(Color.white.opacity(0.15))
                             .clipShape(Circle())
                     }
+                    .accessibilityLabel(String(localized: "common.close"))
                 }
             }
             .toolbarBackground(Color(hex: "1A1A3E"), for: .navigationBar)
@@ -290,6 +291,12 @@ struct BackgroundPickerSheet: View {
             }
             .aspectRatio(0.75, contentMode: .fit)
         }
+        .accessibilityLabel(String(localized: "events.background.select_preset"))
+        .accessibilityValue(
+            selectedBackground == .preset(background)
+                ? String(localized: "common.selected")
+                : String(localized: "common.not_selected")
+        )
     }
 }
 

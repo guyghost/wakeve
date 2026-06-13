@@ -271,6 +271,7 @@ struct MeetingDetailView: View {
                     Image(systemName: "doc.on.doc")
                         .foregroundStyle(.blue)
                 }
+                .accessibilityLabel(String(localized: "invitation.copy"))
                 if let meetingURL = URL(string: url) {
                     Link(destination: meetingURL) {
                         Image(systemName: "arrow.up.right.square")
