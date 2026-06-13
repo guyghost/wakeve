@@ -141,16 +141,19 @@ Commands refreshed locally on 2026-06-13:
 ```bash
 bash -n scripts/profile-release-performance.sh
 ./scripts/profile-release-performance.sh --runs 1
+IOS_SIMULATOR='iPhone 17' ./scripts/profile-release-performance.sh --ios-only --runs 1
 IOS_BUILD_TIMEOUT_SECONDS=1 ./scripts/profile-release-performance.sh --ios-only --build-ios --runs 1
 ```
 
 Observed local result:
 
 - `scripts/profile-release-performance.sh` writes Markdown reports to `docs/performance/`.
+- When multiple iOS simulators are booted, `IOS_SIMULATOR` now selects the preferred booted simulator before falling back to the first available target.
 - `--build-ios` and `--build-android` are bounded by `IOS_BUILD_TIMEOUT_SECONDS` and `ANDROID_BUILD_TIMEOUT_SECONDS` so a failed or slow release build is recorded as `SKIPPED` with a raw log path instead of hanging the evidence run.
 - `docs/performance/release-profiling-runbook.md` defines the device closure requirements for cold start, home/list scrolling, event creation, scenario matrix, and WakeveAI generation/cancellation/memory.
 - `docs/performance/release-performance-2026-06-13T12-08-21Z.md` captured one local simulator iOS launch sample via `simctl launch` at `308.9 ms`.
-- The same report skipped Android because no Android device or emulator was connected.
+- `docs/performance/release-performance-2026-06-13T13-29-50Z.md` captured one local iPhone 17 simulator launch sample via `simctl launch` at `292.2 ms`, includes a cold-start summary table, and records a runtime profiling matrix with device-required rows marked `PENDING_DEVICE_TRACE`.
+- The earlier full-platform report skipped Android because no Android device or emulator was connected.
 - The report states that local/simulator evidence does not close the release device-performance items.
 
 Local limitation:
