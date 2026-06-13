@@ -4509,8 +4509,11 @@ validate_app_store_media_localization_evidence() {
         "Local media scan date: 2026-06-13"
         "docs/app-store-media-localization/media-localization-2026-06-13T12-23-27Z.md"
         "./scripts/audit-app-store-media-localization.sh --fail-on-findings"
+        "./scripts/audit-ios-localization-parity.sh --write-report --fail-on-findings"
         "local Fastlane media and localized metadata are structurally ready for upload"
         'Locales present: `en-US` and `fr-FR`'
+        "App Store metadata/screenshots remain EN/FR only for the first release"
+        "source app strings are audited separately for EN, FR, ES, IT, and PT"
         '`composeApp/screenshots/ios/en-US` and `composeApp/screenshots/ios/fr-FR`'
         '`composeApp/metadata/ios/en-US/screenshots` and `composeApp/metadata/ios/fr-FR/screenshots`'
         "Screenshot inventory: 8 PNG files"
@@ -4527,6 +4530,11 @@ validate_app_store_media_localization_evidence() {
         '`en-US` name 6 chars, subtitle 24, description 1540, keywords 70, promotional text 85, release notes 179'
         '`fr-FR` name 6 chars, subtitle 29, description 1987, keywords 88, promotional text 109, release notes 196'
         "Both locales use \`https://wakeve.app/privacy\` and \`https://wakeve.app/support\`"
+        "iOS app source string parity was refreshed locally on 2026-06-13"
+        "docs/a11y/ios-localization-parity-2026-06-13T13-48-19Z.md"
+        "EN, FR, ES, IT, and PT \`Localizable.strings\` each 848 keys"
+        "0 duplicate keys"
+        "0 missing/extra keys versus EN"
         "local scan does not close AS-20"
         "record whether scaled screenshots or Media Manager overrides are used"
         "status still permits media edits or that a new version is being edited"
