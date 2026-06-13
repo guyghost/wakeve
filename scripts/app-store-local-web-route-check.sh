@@ -12,6 +12,8 @@ APPLE_TEAM_ID="${APPLE_TEAM_ID:-A1B2C3D4E5}"
 IOS_BUNDLE_ID="${IOS_BUNDLE_ID:-com.guyghost.wakeve}"
 
 node - "$BASE_URL" "$APPLE_TEAM_ID" "$IOS_BUNDLE_ID" <<'NODE'
+import { readFileSync } from 'node:fs'
+
 const [baseUrl, appleTeamId, iosBundleId] = process.argv.slice(2)
 
 const pages = [
@@ -26,9 +28,27 @@ const aasaPaths = [
   '/apple-app-site-association'
 ]
 
+const redirects = [
+  ['/dashboard', '/app/dashboard'],
+  ['/login', '/app/login'],
+  ['/create', '/app/create'],
+  ['/events', '/app/events'],
+  ['/events/demo-event', '/app/events/demo-event']
+]
+
 const expectedAasaPaths = ['/event/*', '/poll/*', '/meeting/*', '/invite/*']
 const expectedAppID = `${appleTeamId}.${iosBundleId}`
 let failures = 0
+
+function checkMicrofrontendRouting() {
+  const config = JSON.parse(readFileSync('apps/landing/microfrontends.json', 'utf8'))
+  const dashboard = config?.applications?.['wakeve-dashboard']
+  const paths = dashboard?.routing?.flatMap((entry) => entry.paths ?? []) ?? []
+  const ok = paths.includes('/app') && paths.includes('/app/:path*')
+
+  console.log(`${ok ? 'PASS' : 'FAIL'} microfrontends wakeve-dashboard routes=${paths.join(',')}`)
+  if (!ok) failures += 1
+}
 
 async function checkPage(path, phrases) {
   const response = await fetch(new URL(path, baseUrl))
@@ -70,8 +90,23 @@ async function checkAasa(path) {
   if (!ok) failures += 1
 }
 
+async function checkRedirect(path, expectedLocation) {
+  const response = await fetch(new URL(path, baseUrl), { redirect: 'manual' })
+  const location = response.headers.get('location') ?? ''
+  const ok = response.status === 308 && location === expectedLocation
+
+  console.log(`${ok ? 'PASS' : 'FAIL'} ${path} status=${response.status} location=${location}`)
+  if (!ok) failures += 1
+}
+
+checkMicrofrontendRouting()
+
 for (const [path, phrases] of pages) {
   await checkPage(path, phrases)
+}
+
+for (const [path, expectedLocation] of redirects) {
+  await checkRedirect(path, expectedLocation)
 }
 
 for (const path of aasaPaths) {

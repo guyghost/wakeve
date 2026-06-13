@@ -62,22 +62,27 @@ dns_hosts=(
     "api.wakeve.app"
 )
 
-urls=(
-    "https://wakeve.app/privacy"
-    "https://wakeve.app/support"
-    "https://wakeve.app/terms"
-    "https://wakeve.app/third-party-notices"
-    "https://wakeve.app/.well-known/apple-app-site-association"
-    "https://wakeve.app/apple-app-site-association"
-    "https://api.wakeve.app/health"
-)
-
 legal_urls=(
     "https://wakeve.app/privacy"
     "https://wakeve.app/support"
     "https://wakeve.app/terms"
     "https://wakeve.app/third-party-notices"
     "https://api.wakeve.app/health"
+)
+
+app_urls=(
+    "https://wakeve.app/app"
+    "https://wakeve.app/app/login"
+    "https://wakeve.app/app/dashboard"
+    "https://wakeve.app/app/create"
+    "https://wakeve.app/app/events"
+)
+
+redirect_urls=(
+    "https://wakeve.app/dashboard|/app/dashboard"
+    "https://wakeve.app/login|/app/login"
+    "https://wakeve.app/create|/app/create"
+    "https://wakeve.app/events|/app/events"
 )
 
 aasa_urls=(
@@ -119,6 +124,11 @@ curl_body() {
     /usr/bin/curl -i --max-time "$TIMEOUT_SECONDS" "$url"
 }
 
+http_status() {
+    local url="$1"
+    /usr/bin/curl -sS -o /dev/null -w '%{http_code}' --max-time "$TIMEOUT_SECONDS" "$url"
+}
+
 {
     printf '# App Store Live URL And AASA Capture\n\n'
     printf 'Date: %s\n\n' "$timestamp"
@@ -153,6 +163,52 @@ for url in "${legal_urls[@]}"; do
     if ! append_command_output "curl -I --max-time $TIMEOUT_SECONDS $url" curl_headers "$url"; then
         failures=$((failures + 1))
     fi
+done
+
+{
+    printf '## App Shell And Redirects\n\n'
+} >> "$report"
+
+for url in "${app_urls[@]}"; do
+    if ! append_command_output "curl -I --max-time $TIMEOUT_SECONDS $url" curl_headers "$url"; then
+        failures=$((failures + 1))
+        continue
+    fi
+
+    status="$(http_status "$url" || true)"
+    if ! printf '%s' "$status" | grep -Eq '^(2|3)[0-9][0-9]$'; then
+        failures=$((failures + 1))
+    fi
+done
+
+for entry in "${redirect_urls[@]}"; do
+    url="${entry%%|*}"
+    expected_location="${entry#*|}"
+    tmp_headers="$(mktemp)"
+
+    {
+        printf '```bash\n'
+        printf 'curl -I --max-time %s %s\n' "$TIMEOUT_SECONDS" "$url"
+        printf '```\n\n'
+        printf '```text\n'
+    } >> "$report"
+
+    set +e
+    /usr/bin/curl -I --max-time "$TIMEOUT_SECONDS" "$url" > "$tmp_headers" 2>&1
+    status=$?
+    set -e
+
+    cat "$tmp_headers" >> "$report"
+    {
+        printf '\n[exit=%s]\n' "$status"
+        printf '```\n\n'
+    } >> "$report"
+
+    if [ "$status" -ne 0 ] || ! grep -Eiq '^location:[[:space:]]*(https://wakeve\.app)?'"$expected_location"'([[:space:]]|$)' "$tmp_headers"; then
+        failures=$((failures + 1))
+    fi
+
+    rm -f "$tmp_headers"
 done
 
 {
