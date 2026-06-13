@@ -13,6 +13,19 @@ protocol WakeveAIClientProtocol: Sendable {
     func generateTransportSuggestions(prompt: WakeveAIPrompt, knownFacts: WakeveAIKnownFacts) async throws -> TransportCoordinationSuggestion
 }
 
+struct WakeveAIClientConfiguration: Sendable {
+    var timeoutSeconds: TimeInterval
+    var metricsRecorder: WakeveAIMetricsRecorder
+
+    init(
+        timeoutSeconds: TimeInterval = 12,
+        metricsRecorder: WakeveAIMetricsRecorder = .shared
+    ) {
+        self.timeoutSeconds = timeoutSeconds
+        self.metricsRecorder = metricsRecorder
+    }
+}
+
 struct WakeveAIClientFactory {
     static func makeDefault(availability: WakeveAIAvailability) -> WakeveAIClientProtocol {
         #if canImport(FoundationModels)
@@ -161,40 +174,121 @@ struct HeuristicWakeveAIClient: WakeveAIClientProtocol {
 #if canImport(FoundationModels)
 @available(iOS 26.0, *)
 struct FoundationModelsWakeveAIClient: WakeveAIClientProtocol {
+    private let configuration: WakeveAIClientConfiguration
+
+    init(configuration: WakeveAIClientConfiguration = WakeveAIClientConfiguration()) {
+        self.configuration = configuration
+    }
+
     func generateEventDraft(prompt: WakeveAIPrompt, request: WakeveAIGenerationRequest) async throws -> EventDraft {
-        let session = LanguageModelSession(instructions: prompt.system)
-        let response = try await session.respond(to: prompt.user, generating: FoundationEventDraft.self)
-        return response.content.coreModel
+        try await generateTyped(prompt: prompt, knownFacts: request.knownFacts) {
+            let session = LanguageModelSession(instructions: prompt.system)
+            let response = try await session.respond(to: prompt.user, generating: FoundationEventDraft.self)
+            return response.content.coreModel
+        }
     }
 
     func generatePollSuggestions(prompt: WakeveAIPrompt, knownFacts: WakeveAIKnownFacts) async throws -> [PollSuggestion] {
-        let session = LanguageModelSession(instructions: prompt.system)
-        let response = try await session.respond(to: prompt.user, generating: FoundationPollSuggestionBatch.self)
-        return response.content.suggestions.map(\.coreModel)
+        try await generateTyped(prompt: prompt, knownFacts: knownFacts) {
+            let session = LanguageModelSession(instructions: prompt.system)
+            let response = try await session.respond(to: prompt.user, generating: FoundationPollSuggestionBatch.self)
+            return response.content.suggestions.map(\.coreModel)
+        }
     }
 
     func generateChecklist(prompt: WakeveAIPrompt, knownFacts: WakeveAIKnownFacts) async throws -> [ChecklistItem] {
-        let session = LanguageModelSession(instructions: prompt.system)
-        let response = try await session.respond(to: prompt.user, generating: FoundationChecklistBatch.self)
-        return response.content.items.map(\.coreModel)
+        try await generateTyped(prompt: prompt, knownFacts: knownFacts) {
+            let session = LanguageModelSession(instructions: prompt.system)
+            let response = try await session.respond(to: prompt.user, generating: FoundationChecklistBatch.self)
+            return response.content.items.map(\.coreModel)
+        }
     }
 
     func generateInvitationMessages(prompt: WakeveAIPrompt, knownFacts: WakeveAIKnownFacts) async throws -> InvitationMessageSet {
-        let session = LanguageModelSession(instructions: prompt.system)
-        let response = try await session.respond(to: prompt.user, generating: FoundationInvitationMessageSet.self)
-        return response.content.coreModel
+        try await generateTyped(prompt: prompt, knownFacts: knownFacts) {
+            let session = LanguageModelSession(instructions: prompt.system)
+            let response = try await session.respond(to: prompt.user, generating: FoundationInvitationMessageSet.self)
+            return response.content.coreModel
+        }
     }
 
     func generateEventSummary(prompt: WakeveAIPrompt, knownFacts: WakeveAIKnownFacts) async throws -> EventSummary {
-        let session = LanguageModelSession(instructions: prompt.system)
-        let response = try await session.respond(to: prompt.user, generating: FoundationEventSummary.self)
-        return response.content.coreModel
+        try await generateTyped(prompt: prompt, knownFacts: knownFacts) {
+            let session = LanguageModelSession(instructions: prompt.system)
+            let response = try await session.respond(to: prompt.user, generating: FoundationEventSummary.self)
+            return response.content.coreModel
+        }
     }
 
     func generateTransportSuggestions(prompt: WakeveAIPrompt, knownFacts: WakeveAIKnownFacts) async throws -> TransportCoordinationSuggestion {
-        let session = LanguageModelSession(instructions: prompt.system)
-        let response = try await session.respond(to: prompt.user, generating: FoundationTransportCoordinationSuggestion.self)
-        return response.content.coreModel
+        try await generateTyped(prompt: prompt, knownFacts: knownFacts) {
+            let session = LanguageModelSession(instructions: prompt.system)
+            let response = try await session.respond(to: prompt.user, generating: FoundationTransportCoordinationSuggestion.self)
+            return response.content.coreModel
+        }
+    }
+
+    private func generateTyped<T: Sendable>(
+        prompt: WakeveAIPrompt,
+        knownFacts: WakeveAIKnownFacts,
+        operation: @escaping @Sendable () async throws -> T
+    ) async throws -> T {
+        let startedAt = Date()
+        WakeveAILogger.debug("Starting \(prompt.id) with bounded on-device generation")
+        WakeveAILogger.debug("Known fact categories: \(knownFacts.nonEmptyCategoryCount)")
+
+        do {
+            let result = try await withClientTimeout(seconds: configuration.timeoutSeconds) {
+                try Task.checkCancellation()
+                let generated = try await operation()
+                try Task.checkCancellation()
+                return generated
+            }
+            configuration.metricsRecorder.record(WakeveAIMetrics(
+                promptId: prompt.id,
+                availability: .available,
+                startedAt: startedAt,
+                completedAt: Date(),
+                timedOut: false,
+                cancelled: false,
+                validationIssues: []
+            ))
+            WakeveAILogger.debug("Completed \(prompt.id)")
+            return result
+        } catch is CancellationError {
+            configuration.metricsRecorder.record(WakeveAIMetrics(
+                promptId: prompt.id,
+                availability: .available,
+                startedAt: startedAt,
+                completedAt: Date(),
+                timedOut: false,
+                cancelled: true,
+                validationIssues: []
+            ))
+            throw WakeveAIError.cancelled
+        } catch WakeveAIError.timedOut {
+            configuration.metricsRecorder.record(WakeveAIMetrics(
+                promptId: prompt.id,
+                availability: .available,
+                startedAt: startedAt,
+                completedAt: Date(),
+                timedOut: true,
+                cancelled: false,
+                validationIssues: []
+            ))
+            throw WakeveAIError.timedOut
+        } catch {
+            configuration.metricsRecorder.record(WakeveAIMetrics(
+                promptId: prompt.id,
+                availability: .available,
+                startedAt: startedAt,
+                completedAt: Date(),
+                timedOut: false,
+                cancelled: false,
+                validationIssues: []
+            ))
+            throw error
+        }
     }
 }
 
@@ -354,5 +448,39 @@ struct FoundationTransportCoordinationSuggestion: Sendable {
 private extension String {
     var shortHint: String {
         String(prefix(40)).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
+private extension WakeveAIKnownFacts {
+    var nonEmptyCategoryCount: Int {
+        [
+            participantNames,
+            voteLabels,
+            availabilityLabels,
+            addresses,
+            priceLabels,
+            transportLabels
+        ].filter { !$0.isEmpty }.count
+    }
+}
+
+private func withClientTimeout<T: Sendable>(
+    seconds: TimeInterval,
+    operation: @escaping @Sendable () async throws -> T
+) async throws -> T {
+    try await withThrowingTaskGroup(of: T.self) { group in
+        group.addTask {
+            try await operation()
+        }
+        group.addTask {
+            try await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
+            throw WakeveAIError.timedOut
+        }
+
+        guard let result = try await group.next() else {
+            throw WakeveAIError.generationFailed("No generation result")
+        }
+        group.cancelAll()
+        return result
     }
 }

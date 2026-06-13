@@ -489,10 +489,9 @@ struct CreateEventSheet: View {
                     }
                     .buttonStyle(.bordered)
 
-                    Button("Utiliser ce brouillon") {
+                    Button(String(localized: "common.apply")) {
                         applySmartEventDraft(draft, advance: true)
                     }
-                    .accessibilityHint(String(localized: "common.apply"))
                     .buttonStyle(.borderedProminent)
 
                     Button("Ignorer") {

@@ -174,4 +174,30 @@ final class WakeveAIValidationTests: XCTestCase {
         XCTAssertEqual(WakeveAIAvailabilityService.mapUnavailableReason("deviceNotSupported"), .unsupportedDevice)
         XCTAssertEqual(WakeveAIAvailabilityService.mapUnavailableReason("unexpected reason"), .unknownUnavailable("unexpected reason"))
     }
+
+    func testDebugAvailabilityOverrideMapsSimulatorFallbackStates() {
+        #if DEBUG
+        XCTAssertEqual(
+            WakeveAIAvailabilityService.debugAvailabilityOverride(environment: ["WAKEVE_AI_AVAILABILITY_OVERRIDE": "unsupported"]),
+            .unsupportedDevice
+        )
+        XCTAssertEqual(
+            WakeveAIAvailabilityService.debugAvailabilityOverride(arguments: ["Wakeve", "--wakeve-ai-availability=disabled"], environment: [:]),
+            .appleIntelligenceDisabled
+        )
+        XCTAssertEqual(
+            WakeveAIAvailabilityService.debugAvailabilityOverride(environment: ["WAKEVE_AI_AVAILABILITY_OVERRIDE": "not_ready"]),
+            .notReady
+        )
+        XCTAssertEqual(
+            WakeveAIAvailabilityService.debugAvailabilityOverride(environment: ["WAKEVE_AI_AVAILABILITY_OVERRIDE": "available"]),
+            .available
+        )
+        XCTAssertEqual(
+            WakeveAIAvailabilityService.debugAvailabilityOverride(environment: ["WAKEVE_AI_AVAILABILITY_OVERRIDE": "unknown"]),
+            .unknownUnavailable("debug_override")
+        )
+        XCTAssertNil(WakeveAIAvailabilityService.debugAvailabilityOverride(environment: ["WAKEVE_AI_AVAILABILITY_OVERRIDE": "invalid"]))
+        #endif
+    }
 }
