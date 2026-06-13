@@ -32,6 +32,38 @@ assert_no_sensitive_server_logs() {
     echo "PASS: Server auth/notification/push logs avoid email, OTP, user IDs, event IDs, tokens, and notification payload values"
 }
 
+assert_ios_profile_legal_notice_links() {
+    local profile="$PROJECT_DIR/iosApp/src/Views/Profile/ProfileTabView.swift"
+    local english="$PROJECT_DIR/iosApp/src/Resources/en.lproj/Localizable.strings"
+    local french="$PROJECT_DIR/iosApp/src/Resources/fr.lproj/Localizable.strings"
+    local required_profile_patterns=(
+        "https://wakeve.app/support"
+        "https://wakeve.app/privacy"
+        "https://wakeve.app/terms"
+        "https://wakeve.app/third-party-notices"
+        "profile.third_party_notices"
+    )
+
+    for pattern in "${required_profile_patterns[@]}"; do
+        if ! grep -Fq "$pattern" "$profile"; then
+            echo "FAIL: iOS Profile legal/notice link is missing: $pattern" >&2
+            exit 1
+        fi
+    done
+
+    if ! grep -Fq '"profile.third_party_notices" = "Third-party notices"' "$english"; then
+        echo "FAIL: English third-party notices profile label is missing" >&2
+        exit 1
+    fi
+
+    if ! grep -Fq '"profile.third_party_notices" = "Notices tierces"' "$french"; then
+        echo "FAIL: French third-party notices profile label is missing" >&2
+        exit 1
+    fi
+
+    echo "PASS: iOS Profile exposes support, privacy, terms, and third-party notices links"
+}
+
 cd "$PROJECT_DIR"
 
 run openspec validate add-in-app-account-deletion --strict
@@ -41,6 +73,7 @@ run openspec validate add-on-device-wakeve-ai --strict
 run ./scripts/test-app-store-ugc-gates.sh
 
 assert_no_sensitive_server_logs
+assert_ios_profile_legal_notice_links
 
 run ./gradlew :server:test \
     --tests com.guyghost.wakeve.auth.AccountDeletionServiceTest \
