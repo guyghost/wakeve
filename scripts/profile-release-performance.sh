@@ -111,6 +111,40 @@ markdown_escape() {
     sed 's/|/\\|/g'
 }
 
+append_numeric_summary() {
+    local title="$1"
+    local metric="$2"
+    local values_file="$3"
+
+    if [ ! -s "$values_file" ]; then
+        return 0
+    fi
+
+    ruby - "$title" "$metric" "$values_file" <<'RUBY' >> "$REPORT"
+title = ARGV.fetch(0)
+metric = ARGV.fetch(1)
+path = ARGV.fetch(2)
+values = File.readlines(path).map(&:strip).reject(&:empty?).map(&:to_f).sort
+exit if values.empty?
+
+def percentile(values, pct)
+  index = ((pct * values.length).ceil - 1).clamp(0, values.length - 1)
+  values.fetch(index)
+end
+
+average = values.sum / values.length
+median = percentile(values, 0.50)
+p95 = percentile(values, 0.95)
+
+puts "### #{title} Summary"
+puts
+puts "| Metric | Samples | Min ms | Median ms | P95 ms | Max ms | Average ms |"
+puts "| --- | ---: | ---: | ---: | ---: | ---: | ---: |"
+puts "| #{metric} | #{values.length} | #{values.first.round(1)} | #{median.round(1)} | #{p95.round(1)} | #{values.last.round(1)} | #{average.round(1)} |"
+puts
+RUBY
+}
+
 run_with_timeout() {
     local timeout_seconds="$1"
     shift
@@ -120,6 +154,31 @@ run_with_timeout() {
         alarm $timeout;
         exec @ARGV or die "exec failed: $!";
     ' "$timeout_seconds" "$@"
+}
+
+booted_ios_udid() {
+    local preferred_name="$1"
+
+    xcrun simctl list devices booted | awk -v preferred="$preferred_name" -F'[()]' '
+        /Booted/ {
+            name = $1
+            sub(/^[[:space:]]+/, "", name)
+            sub(/[[:space:]]+$/, "", name)
+            if (name == preferred) {
+                print $2
+                found = 1
+                exit
+            }
+            if (fallback == "") {
+                fallback = $2
+            }
+        }
+        END {
+            if (!found && fallback != "") {
+                print fallback
+            }
+        }
+    '
 }
 
 append_env() {
@@ -207,7 +266,7 @@ profile_ios() {
     fi
 
     local udid
-    udid="$(xcrun simctl list devices booted | awk -F'[()]' '/Booted/ {print $2; exit}')"
+    udid="$(booted_ios_udid "$IOS_SIMULATOR")"
     if [ -z "$udid" ]; then
         record_skip "iOS Cold Start" "No booted simulator was found. Boot \`$IOS_SIMULATOR\` or run with a booted target, then rerun this script."
         return 0
@@ -236,6 +295,8 @@ profile_ios() {
     } >> "$REPORT"
 
     local run
+    local values_file="$RUN_DIR/ios-cold-start-ms.txt"
+    : > "$values_file"
     for run in $(seq 1 "$RUNS"); do
         xcrun simctl terminate "$udid" "$IOS_BUNDLE_ID" >/dev/null 2>&1 || true
         sleep 1
@@ -247,6 +308,7 @@ profile_ios() {
             finish="$(monotonic_seconds)"
             ms="$(elapsed_ms "$start" "$finish")"
             result="ok"
+            echo "$ms" >> "$values_file"
         else
             finish="$(monotonic_seconds)"
             ms="$(elapsed_ms "$start" "$finish")"
@@ -255,6 +317,7 @@ profile_ios() {
         echo "| $run | $ms | $result |" >> "$REPORT"
     done
     echo "" >> "$REPORT"
+    append_numeric_summary "iOS Cold Start" "simctl launch elapsed" "$values_file"
 }
 
 build_android_app() {
@@ -299,6 +362,10 @@ profile_android() {
     } >> "$REPORT"
 
     local run
+    local total_values_file="$RUN_DIR/android-cold-start-total-ms.txt"
+    local wait_values_file="$RUN_DIR/android-cold-start-wait-ms.txt"
+    : > "$total_values_file"
+    : > "$wait_values_file"
     for run in $(seq 1 "$RUNS"); do
         adb shell am force-stop "$ANDROID_PACKAGE" >/dev/null 2>&1 || true
         sleep 1
@@ -309,6 +376,8 @@ profile_android() {
             total="$(awk -F': ' '/TotalTime/ {print $2; exit}' "$launch_log")"
             wait="$(awk -F': ' '/WaitTime/ {print $2; exit}' "$launch_log")"
             result="ok"
+            [ -n "${total:-}" ] && echo "$total" >> "$total_values_file"
+            [ -n "${wait:-}" ] && echo "$wait" >> "$wait_values_file"
         else
             total="0"
             wait="0"
@@ -317,21 +386,36 @@ profile_android() {
         echo "| $run | ${total:-0} | ${wait:-0} | $result |" >> "$REPORT"
     done
     echo "" >> "$REPORT"
+    append_numeric_summary "Android Cold Start" "am start TotalTime" "$total_values_file"
+    append_numeric_summary "Android Cold Start" "am start WaitTime" "$wait_values_file"
 }
 
-append_manual_checklist() {
+append_runtime_flow_matrix() {
     {
+        echo "## Runtime Profiling Matrix"
+        echo ""
+        echo "These rows define the release-device traces required before the roadmap performance items can be checked off. Local simulator or emulator samples may support regression tracking, but the status remains \`PENDING_DEVICE_TRACE\` until a representative signed build is profiled."
+        echo ""
+        echo "| Flow | Platform | Required capture | Required measurements | Status |"
+        echo "| --- | --- | --- | --- | --- |"
+        echo "| Cold start | iOS | Physical device, signed Release/TestFlight build, 5+ launches | Process launch, first meaningful screen, memory after idle | PENDING_DEVICE_TRACE |"
+        echo "| Cold start | Android | Representative device or emulator, release APK, 5+ launches | \`am start -W\` TotalTime/WaitTime, first meaningful screen, memory after idle | PENDING_DEVICE_TRACE |"
+        echo "| Home/list scrolling | iOS | Instruments SwiftUI + Time Profiler trace | Frame hitches, CPU hot spots, memory growth | PENDING_DEVICE_TRACE |"
+        echo "| Home/list scrolling | Android | Android Studio Profiler or Perfetto trace | Jank, CPU hot spots, memory growth | PENDING_DEVICE_TRACE |"
+        echo "| Create event | iOS | Instruments trace from opening sheet through saved draft | Sheet open latency, validation/apply latency, frame hitches | PENDING_DEVICE_TRACE |"
+        echo "| Create event | Android | Profiler/Perfetto trace for matching flow | Screen open latency, validation/apply latency, jank | PENDING_DEVICE_TRACE |"
+        echo "| Scenario matrix | iOS | Instruments trace for render, vote, final selection | Render latency, vote latency, CPU/memory under loaded matrix | PENDING_DEVICE_TRACE |"
+        echo "| Scenario matrix | Android | Profiler/Perfetto trace for render, vote, final selection | Render latency, vote latency, CPU/memory under loaded matrix | PENDING_DEVICE_TRACE |"
+        echo "| WakeveAI generation | iOS supported device | Instruments + WakeveAI metrics snapshot | Availability, generation latency, cancellation latency, timeout behavior, memory peak | PENDING_DEVICE_TRACE |"
+        echo ""
         echo "## Runtime Profiling Checklist"
         echo ""
-        echo "Collect these traces before closing the roadmap performance items:"
+        echo "For every captured flow, record:"
         echo ""
-        echo "- iOS Release on a supported physical device: Instruments SwiftUI + Time Profiler for home/list scrolling."
-        echo "- iOS Release on a supported physical device: create-event sheet from open to saved draft."
-        echo "- iOS Release on a supported physical device: scenario matrix render, vote, and final selection."
-        echo "- iOS Release on a supported physical device: WakeveAI generation latency, cancellation latency, and memory peak."
-        echo "- Android Release on a representative device: cold start with \`am start -W\`, home/list scrolling, create event, and scenario matrix."
-        echo ""
-        echo "Use focused captures: one trace per flow, record device model, OS version, build number, run count, and any caveats."
+        echo "- Device model, OS version, app version/build, distribution channel, run count, and dataset size."
+        echo "- Raw trace artifact path or App Store/TestFlight attachment reference."
+        echo "- Measured latency, CPU, memory, and any skipped subflow with the reason."
+        echo "- Whether the capture used a signed App Store/TestFlight build or a local Release build."
         echo ""
         echo "Raw command logs for this run were written to:"
         echo ""
@@ -343,6 +427,6 @@ append_manual_checklist() {
 append_env
 [ "$PROFILE_IOS" = true ] && profile_ios
 [ "$PROFILE_ANDROID" = true ] && profile_android
-append_manual_checklist
+append_runtime_flow_matrix
 
 echo "$REPORT"

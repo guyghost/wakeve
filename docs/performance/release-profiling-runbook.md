@@ -38,6 +38,9 @@ Useful scoped runs:
 ```
 
 Reports are written to `docs/performance/release-performance-<timestamp>.md`.
+The helper records min, median, p95, max, and average for successful cold-start
+samples. When several iOS simulators are booted, `IOS_SIMULATOR` selects the
+preferred target before falling back to the first booted simulator.
 
 Builds are bounded so the helper can be used in release gates without hanging on
 slow or broken local toolchains:
@@ -50,6 +53,11 @@ IOS_BUILD_TIMEOUT_SECONDS=900 ANDROID_BUILD_TIMEOUT_SECONDS=900 \
 If a build fails or exceeds its timeout, the report records the platform section
 as `SKIPPED` and points to the raw build log for that run. The default timeout is
 600 seconds per platform build.
+
+Each generated report also includes a runtime profiling matrix for the flows
+that still require device traces: cold start, home/list, create event, scenario
+matrix, and WakeveAI generation/cancellation/memory. Rows remain
+`PENDING_DEVICE_TRACE` until a representative signed build is profiled.
 
 ## Device Closure Requirements
 
