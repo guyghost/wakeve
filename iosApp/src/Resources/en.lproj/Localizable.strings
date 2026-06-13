@@ -223,6 +223,7 @@
 "profile.documentation" = "Documentation";
 "profile.achievements" = "Profile & Achievements";
 "profile.user" = "User";
+"profile.third_party_notices" = "Third-party notices";
 
 // MARK: - Gamification
 "gamification.points_and_level" = "Points & Level";
