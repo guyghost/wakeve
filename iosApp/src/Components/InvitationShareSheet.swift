@@ -156,6 +156,7 @@ struct InvitationShareSheet: View {
                             .font(.system(size: 24))
                             .foregroundColor(.secondary)
                     }
+                    .accessibilityLabel(String(localized: "common.close"))
                 }
             }
         }

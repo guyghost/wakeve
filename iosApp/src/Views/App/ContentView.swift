@@ -2644,6 +2644,7 @@ private struct EventDetailNextActionCard: View {
                 }
                 .buttonStyle(.plain)
                 .disabled(isDisabled)
+                .accessibilityLabel(title)
                 .opacity(isDisabled ? WakeveTheme.Opacity.disabled : 1)
             }
         }

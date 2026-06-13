@@ -652,6 +652,7 @@ struct CreateEventSheet: View {
                             .liquidGlass(cornerRadius: WakeveTheme.Radius.full)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(String(localized: "common.back"))
                 }
 
                 LiquidGlassButton(
@@ -824,6 +825,7 @@ struct CreateEventSheet: View {
                             .foregroundColor(heroControlForeground.opacity(0.82))
                     }
                 }
+                .accessibilityLabel(String(localized: "events.add_background"))
 
                 Button(action: { showingBackgroundPicker = true }) {
                     Text(String(localized: "events.add_background"))
@@ -1590,6 +1592,7 @@ struct DateTimePickerPopup: View {
                             .foregroundColor(primaryTextColor)
                             .frame(width: 24, height: 24)
                     }
+                    .accessibilityLabel(String(localized: "common.close"))
 
                     Spacer()
 
@@ -1608,6 +1611,7 @@ struct DateTimePickerPopup: View {
                             .background(saveButtonBackground)
                             .clipShape(Circle())
                     }
+                    .accessibilityLabel(String(localized: "common.save"))
                 }
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
@@ -1943,6 +1947,7 @@ private struct EventPreviewSheet: View {
                             .background(Color.white.opacity(0.15))
                             .clipShape(Circle())
                     }
+                    .accessibilityLabel(String(localized: "common.back"))
 
                     Spacer()
 

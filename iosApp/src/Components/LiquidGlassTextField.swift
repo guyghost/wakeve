@@ -60,6 +60,8 @@ struct LiquidGlassTextField: View {
     let errorMessage: String?
     let leftIcon: String?
     let rightIcon: String?
+    let leftIconAccessibilityLabel: String?
+    let rightIconAccessibilityLabel: String?
     let leftIconAction: (() -> Void)?
     let rightIconAction: (() -> Void)?
     
@@ -76,6 +78,8 @@ struct LiquidGlassTextField: View {
         errorMessage: String? = nil,
         leftIcon: String? = nil,
         rightIcon: String? = nil,
+        leftIconAccessibilityLabel: String? = nil,
+        rightIconAccessibilityLabel: String? = nil,
         leftIconAction: (() -> Void)? = nil,
         rightIconAction: (() -> Void)? = nil
     ) {
@@ -88,6 +92,8 @@ struct LiquidGlassTextField: View {
         self.errorMessage = errorMessage
         self.leftIcon = leftIcon
         self.rightIcon = rightIcon
+        self.leftIconAccessibilityLabel = leftIconAccessibilityLabel
+        self.rightIconAccessibilityLabel = rightIconAccessibilityLabel
         self.leftIconAction = leftIconAction
         self.rightIconAction = rightIconAction
     }
@@ -111,6 +117,8 @@ struct LiquidGlassTextField: View {
                             .foregroundColor(isDisabled == true ? .secondary : .primary)
                     }
                     .disabled(leftIconAction == nil)
+                    .accessibilityLabel(leftIconAccessibilityLabel ?? title ?? placeholder)
+                    .accessibilityHidden(leftIconAction == nil)
                     .buttonStyle(.plain)
                 }
                 
@@ -158,6 +166,8 @@ struct LiquidGlassTextField: View {
                             .foregroundColor(isDisabled == true ? .secondary : .primary)
                     }
                     .disabled(rightIconAction == nil)
+                    .accessibilityLabel(rightIconAccessibilityLabel ?? title ?? placeholder)
+                    .accessibilityHidden(rightIconAction == nil)
                     .buttonStyle(.plain)
                 }
             }

@@ -76,6 +76,7 @@ struct MeetingListView: View {
                             Image(systemName: "plus")
                         }
                         .disabled(!canMutateMeetings)
+                        .accessibilityLabel(String(localized: "meetings.create"))
                     }
                 }
             }

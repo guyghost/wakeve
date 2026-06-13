@@ -475,6 +475,7 @@ struct DietaryRestrictionsSheet: View {
                     } label: {
                         Image(systemName: "plus.circle.fill")
                     }
+                    .accessibilityLabel(String(localized: "meal.add"))
                 }
             }
             .sheet(isPresented: $showAddSheet) {
@@ -527,6 +528,7 @@ struct DietaryRestrictionsSheet: View {
                                 Image(systemName: "trash")
                                     .foregroundColor(.red)
                             }
+                            .accessibilityLabel(String(localized: "common.delete"))
                         }
                     }
                 } header: {

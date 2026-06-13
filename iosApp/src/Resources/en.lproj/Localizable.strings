@@ -557,6 +557,8 @@
 "budget.close" = "Close";
 "budget.expenses_loading" = "Loading expenses...";
 "budget.loading" = "Loading budget...";
+"budget.add_expense" = "Add expense";
+"budget.open_expenses" = "Open expenses";
 
 // MARK: - Explore (Legacy)
 "explore.loading_events" = "Loading events...";
@@ -617,6 +619,7 @@
 "events.background.edit_description" = "Edit image description";
 "events.background.description_placeholder" = "Image description...";
 "events.background.delete" = "Delete background";
+"events.background.select_preset" = "Select background preset";
 "events.add_description" = "Add a description";
 "events.add_end_time" = "Add an end time";
 "events.all_day" = "All day";
@@ -727,6 +730,8 @@
 "meetings.started_plural" = "In progress";
 "meetings.title" = "Meetings";
 "meetings.title_placeholder" = "Meeting title";
+"comments.mention" = "Mention someone";
+"comments.send" = "Send comment";
 
 // MARK: - Onboarding (Extended)
 "onboarding.collaborate_desc" = "Invite your friends and colleagues. Everyone can suggest dates and vote for their preferences.";

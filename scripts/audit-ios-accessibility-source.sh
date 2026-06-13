@@ -10,8 +10,9 @@ usage() {
 Usage: scripts/audit-ios-accessibility-source.sh [options]
 
 Scans SwiftUI source for release-accessibility risks that are easy to regress:
-hardcoded VoiceOver strings and single-line text without a nearby scaling/wrap
-fallback. Writes a Markdown report under docs/a11y/.
+hardcoded VoiceOver strings, single-line text without a nearby scaling/wrap
+fallback, unlabeled loading indicators, and icon-only buttons without an
+accessible name. Writes a Markdown report under docs/a11y/.
 
 Options:
   --fail-on-findings  Exit non-zero when findings are present.
@@ -55,6 +56,7 @@ SOURCE_ROOT="$PROJECT_DIR/iosApp/src"
 HARDCODED="$TMP_DIR/hardcoded.txt"
 LINE_LIMIT="$TMP_DIR/line-limit.txt"
 PROGRESS_VIEW="$TMP_DIR/progress-view.txt"
+ICON_BUTTON="$TMP_DIR/icon-button.txt"
 
 ruby - "$SOURCE_ROOT" "$HARDCODED" <<'RUBY'
 root = ARGV.fetch(0)
@@ -130,10 +132,58 @@ end
 File.write(out, risky.join("\n"))
 RUBY
 
+ruby - "$SOURCE_ROOT" "$ICON_BUTTON" <<'RUBY'
+root = ARGV.fetch(0)
+out = ARGV.fetch(1)
+risky = []
+
+def balanced_block(lines, start_index)
+  block = []
+  depth = 0
+  seen_open = false
+
+  lines[start_index, 40].to_a.each do |line|
+    block << line
+    line.each_char do |char|
+      if char == "{"
+        depth += 1
+        seen_open = true
+      elsif char == "}"
+        depth -= 1
+      end
+    end
+    break if seen_open && depth <= 0
+  end
+
+  block
+end
+
+Dir.glob(File.join(root, "**", "*.swift")).sort.each do |path|
+  lines = File.readlines(path, chomp: true)
+  lines.each_with_index do |line, index|
+    next unless line.match?(/\bButton\b/) && line.include?("{")
+
+    block_lines = balanced_block(lines, index)
+    block = block_lines.join("\n")
+    modifier_window = lines[index, block_lines.length + 8].join("\n")
+    next unless block.include?("Image(systemName:")
+    next if block.include?("Text(")
+    next if block.include?("Label(")
+    next if modifier_window.include?(".accessibilityLabel(")
+    next if modifier_window.include?(".accessibilityHidden(")
+
+    risky << "#{path}:#{index + 1}: #{line.strip}"
+  end
+end
+
+File.write(out, risky.join("\n"))
+RUBY
+
 hardcoded_count="$(grep -c . "$HARDCODED" 2>/dev/null || true)"
 line_limit_count="$(grep -c . "$LINE_LIMIT" 2>/dev/null || true)"
 progress_view_count="$(grep -c . "$PROGRESS_VIEW" 2>/dev/null || true)"
-total_count=$((hardcoded_count + line_limit_count + progress_view_count))
+icon_button_count="$(grep -c . "$ICON_BUTTON" 2>/dev/null || true)"
+total_count=$((hardcoded_count + line_limit_count + progress_view_count + icon_button_count))
 
 {
     echo "# iOS Accessibility Source Audit"
@@ -151,6 +201,7 @@ total_count=$((hardcoded_count + line_limit_count + progress_view_count))
     echo "| Hardcoded accessibility labels/hints/values | $hardcoded_count |"
     echo "| Single-line text without nearby scaling/wrap fallback | $line_limit_count |"
     echo "| Indeterminate ProgressView without label or explicit hiding | $progress_view_count |"
+    echo "| Icon-only Button without accessible label or explicit hiding | $icon_button_count |"
     echo "| Total | $total_count |"
     echo ""
     echo "## Hardcoded Accessibility Strings"
@@ -185,9 +236,21 @@ total_count=$((hardcoded_count + line_limit_count + progress_view_count))
         echo '```'
     fi
     echo ""
+    echo "## Icon-Only Button Risks"
+    echo ""
+    if [ "$icon_button_count" -eq 0 ]; then
+        echo "No SwiftUI \`Button\` blocks with only \`Image(systemName:)\` content and no nearby \`.accessibilityLabel(...)\` or \`.accessibilityHidden(true)\` were found."
+    else
+        echo '```text'
+        sed "s|$PROJECT_DIR/||" "$ICON_BUTTON"
+        printf '\n'
+        echo '```'
+    fi
+    echo ""
     echo "## Closure Notes"
     echo ""
     echo "- Fix hardcoded VoiceOver strings by using \`String(localized:)\` or localized view text."
+    echo "- Give icon-only buttons an \`.accessibilityLabel(String(localized: ...))\`, or hide purely decorative icons inside controls that already expose a text label."
     echo "- Label user-visible loading indicators, or hide decorative button spinners when the surrounding control already exposes the action state."
     echo "- Review single-line text in release screens under Dynamic Type accessibility sizes before claiming Larger Text support."
     echo "- Keep the App Store evidence marker false until signed-build device checks cover Dynamic Type, VoiceOver, high contrast, reduced motion, and color-only states."

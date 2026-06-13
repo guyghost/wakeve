@@ -125,11 +125,13 @@ Observed local result:
 - `docs/a11y/ios-accessibility-source-audit-2026-06-13T13-09-20Z.md` reports `0` hardcoded accessibility label/hint/value findings after extending the audit to named `accessibilityLabel:`/`accessibilityHint:`/`accessibilityValue:` arguments used by shared controls.
 - `docs/a11y/ios-accessibility-source-audit-2026-06-13T13-12-50Z.md` reports `0` hardcoded accessibility strings, `0` single-line text risks, and `0` bare indeterminate `ProgressView()` calls without an accessibility label or explicit hiding.
 - `docs/a11y/ios-accessibility-source-audit-2026-06-13T13-24-22Z.md` reports `0` findings after broadening the audit to catch hardcoded accessibility literals inside more complex `accessibilityLabel`/`accessibilityHint` expressions such as ternaries.
+- `docs/a11y/ios-accessibility-source-audit-2026-06-13T13-41-13Z.md` reports `0` findings after broadening the audit to catch SwiftUI icon-only `Button` blocks without an accessible label or explicit hiding.
 - The audit reports `0` single-line text risks where `.lineLimit(1)` lacks a nearby `.minimumScaleFactor`, `.fixedSize`, `.allowsTightening`, or `.dynamicTypeSize` fallback.
 - New release-visible accessibility labels for WakeveAI actions, scenario refresh, transport suggestion/departure, sync pending state, home filters, participant actions, calendar add, and organizer options are localized through `Localizable.strings`.
 - Additional VoiceOver hints and labels for AI badges, text/password fields, selection chips, search/dictation actions, participant detail lock state, and scenario comparison actions are localized through EN, FR, ES, IT, and PT `Localizable.strings`.
+- Additional labels for icon-only controls in background selection, budget, comments, event creation, meal restrictions, meeting actions, and reusable text-field accessories are localized where new keys were required.
 - Release-visible loading copy for event lists, WakeveAI preparation, budget, expenses, and meetings is localized through EN, FR, ES, IT, and PT `Localizable.strings` instead of hardcoded source strings.
-- EN, FR, ES, IT, and PT `Localizable.strings` pass `plutil -lint` after the accessibility key additions.
+- EN, FR, ES, IT, and PT `Localizable.strings` pass `plutil -lint` after the accessibility key additions. EN and FR remain key-complete with `848` keys each; ES, IT, and PT still need the previously identified App Store/moderation/data-management localization backfill before they can be treated as key-complete.
 
 Local limitation:
 
