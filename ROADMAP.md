@@ -186,6 +186,8 @@ Preuves locales du 2026-06-13:
 - Le profil iOS expose maintenant des liens actifs vers support, privacy, terms et `https://wakeve.app/third-party-notices`; `FindingsRegressionTests.testProfileExposesRequiredLegalAndNoticeLinks` et `./scripts/test-critical-release-gates.sh` gardent cette surface App Review.
 - Cette preuve ne ferme pas AS-21 tant que le build signe, la route publique `https://wakeve.app/third-party-notices`, la revue legale/owner et le marker `APP_STORE_LICENSE_NOTICES_EVIDENCE_COMPLETE=true` ne sont pas disponibles.
 - `./scripts/audit-app-store-media-localization.sh --fail-on-findings` genere `docs/app-store-media-localization/media-localization-2026-06-13T12-23-27Z.md` avec 0 finding: 8 screenshots locaux EN/FR inventories, dimensions iPhone `1320x2868`, dimensions iPad `2048x2732`, 0 app preview video, longueurs metadata EN/FR dans les limites et hash screenshot `e1d72a791111bc43b561e7b463043167e860a47f3c290443c0a015f64ef3effe`.
+- `./scripts/audit-ios-localization-parity.sh --write-report --fail-on-findings` genere `docs/a11y/ios-localization-parity-2026-06-13T13-48-19Z.md` avec 0 finding: EN, FR, ES, IT et PT ont chacun 848 cles, 0 doublon et 0 cle manquante/supplementaire versus EN.
+- `docs/APP_STORE_MEDIA_LOCALIZATION_EVIDENCE.md` distingue explicitement le perimetre App Store metadata/screenshots EN/FR du perimetre source app strings EN/FR/ES/IT/PT, et `scripts/lint-store-metadata.sh` bloque une regression de cette preuve.
 - Cette preuve ne ferme pas AS-20 tant que la page media App Store Connect, l'ordre des screenshots, le statut editable, la decision Media Manager/scaling et la concordance avec la build uploadee ne sont pas revus par le owner.
 - `./scripts/audit-app-store-privacy-alignment.sh --fail-on-findings` genere `docs/app-store-privacy/privacy-alignment-2026-06-13T12-26-10Z.md` avec 0 finding local: `PrivacyInfo.xcprivacy`, `docs/APP_STORE_PRIVACY_LABELS.md` et `docs/PRIVACY_POLICY.md` sont hashes, le no-tracking est coherent, aucun IDFA/App Tracking Transparency n'est detecte dans les sources iOS/shared, et les 7 types collectes du manifest sont miroites par le draft privacy labels.
 - Cette preuve ne ferme pas AS-05 tant que les privacy labels App Store Connect, la privacy policy live `https://wakeve.app/privacy`, la build uploadee et l'approbation legal/privacy owner ne sont pas verifies.
@@ -242,14 +244,14 @@ Definition of done:
 
 - [ ] Rejouer les validations Dynamic Type, high contrast et VoiceOver sur les ecrans release.
 - [ ] Corriger les truncations ou labels manquants.
-- [x] Stabiliser FR/EN pour les textes visibles App Store et onboarding.
+- [x] Stabiliser EN/FR pour les textes visibles App Store et EN/FR/ES/IT/PT pour les chaines source iOS release.
 - [x] Maintenir les preuves dans `docs/app-store-evidence/` et les docs App Store.
 
 Preuves du 2026-06-13:
 
 - Les decisions Accessibility/Availability sont realignees sur les build settings Release: iPhone/iPad restent cibles, Mac Apple silicon et Apple Vision Pro sont desactives cote Xcode pour la premiere release.
 - `docs/APP_STORE_ACCESSIBILITY_LABELS.md` ne recommande plus de claims Mac/Vision pour la premiere release; toute reactivation future exige des smoke tests runtime specifiques.
-- `APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/lint-store-metadata.sh --ios-only` passe apres realignement: 3049 checks, 0 erreur, 1 warning.
+- `APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/lint-store-metadata.sh --ios-only` passe apres realignement: 3088 checks, 0 erreur, 1 warning.
 - `docs/app-store-evidence/README.md` indexe les captures simulateur locales avec dimensions et SHA-256, et `docs/APP_STORE_ACCESSIBILITY_EVIDENCE.md` / `docs/APP_STORE_MEDIA_LOCALIZATION_EVIDENCE.md` referencent cet index comme preuve partielle non suffisante pour le signoff TestFlight.
 - Les fichiers `iosApp/src/Resources/en.lproj/Localizable.strings`, `fr.lproj`, `es.lproj`, `it.lproj` et `pt.lproj` passent `plutil -lint`, ont chacun 848 cles, 0 doublon et aucune cle manquante entre langues apres localisation des labels d'accessibilite du login, des controles release supplementaires, des textes de chargement release, des hints VoiceOver detectes par audit source renforce, des boutons icone seule, des surfaces account deletion, des controles moderation et des notices tierces.
 - `scripts/audit-ios-localization-parity.sh` rend cette parite executable et bloquante dans `scripts/test-critical-release-gates.sh`; `docs/a11y/ios-localization-parity-2026-06-13T13-48-19Z.md` passe avec 0 finding.
