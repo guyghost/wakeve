@@ -144,7 +144,7 @@ struct ScenarioOrganizationView: View {
                         .frame(width: 44, height: 44)
                 }
             }
-            .accessibilityLabel("Actualiser les scenarios")
+            .accessibilityLabel(String(localized: "scenario.refresh_accessibility"))
         }
         .padding(.horizontal, 16)
         .padding(.top, WakeveTheme.Navigation.controlTopSpacing)

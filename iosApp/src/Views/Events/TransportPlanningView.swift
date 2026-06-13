@@ -205,7 +205,7 @@ struct TransportPlanningView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(isGeneratingTransportAI)
-                    .accessibilityLabel("Préparer une suggestion transport")
+                    .accessibilityLabel(String(localized: "transport.prepare_suggestion_accessibility"))
                 }
 
                 if isGeneratingTransportAI {
@@ -304,7 +304,7 @@ struct TransportPlanningView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(mutationDisabled || trimmedDeparture.isEmpty)
-                    .accessibilityLabel("Enregistrer le départ")
+                    .accessibilityLabel(String(localized: "transport.save_departure_accessibility"))
                 }
             }
         }
@@ -470,13 +470,14 @@ struct TransportPlanningView: View {
                     Text("Synchronisation en attente")
                         .font(WakeveTheme.Typography.tiny)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.78)
                 }
                 .foregroundColor(WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
                 .padding(.horizontal, WakeveTheme.Spacing.sm)
                 .frame(height: 40)
                     .background(controlFill)
                     .clipShape(Capsule())
-                    .accessibilityLabel("Synchronisation en attente")
+                    .accessibilityLabel(String(localized: "sync.pending_accessibility"))
             }
         }
         .padding(.horizontal, WakeveTheme.Spacing.page)
@@ -785,6 +786,7 @@ private struct TransportRoutePoint: View {
                 .font(WakeveTheme.Typography.bodySemibold)
                 .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
                 .lineLimit(1)
+                .minimumScaleFactor(0.78)
 
             Text(subtitle)
                 .font(WakeveTheme.Typography.callout)
@@ -841,6 +843,7 @@ private struct TransportParticipantRow: View {
                     .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.78)
                 Text(detail)
                     .font(WakeveTheme.Typography.callout)
                     .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))

@@ -374,7 +374,7 @@ struct CreateEventSheet: View {
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel("Annuler la suggestion")
+                    .accessibilityLabel(String(localized: "ai.cancel_suggestion_accessibility"))
                 }
             }
         }
@@ -492,7 +492,7 @@ struct CreateEventSheet: View {
                     Button("Utiliser ce brouillon") {
                         applySmartEventDraft(draft, advance: true)
                     }
-                    .accessibilityHint("Appliquer")
+                    .accessibilityHint(String(localized: "common.apply"))
                     .buttonStyle(.borderedProminent)
 
                     Button("Ignorer") {
@@ -1525,11 +1525,13 @@ private struct CreateEventSlotRow: View {
                             .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.78)
 
                         Text(subtitle)
                             .font(WakeveTheme.Typography.callout)
                             .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.78)
                     }
 
                     Spacer()
@@ -1547,7 +1549,7 @@ private struct CreateEventSlotRow: View {
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Supprimer le créneau")
+            .accessibilityLabel(String(localized: "events.remove_time_slot_accessibility"))
         }
         .padding(WakeveTheme.Spacing.sm)
         .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
@@ -2071,11 +2073,13 @@ private struct EventPreviewSheet: View {
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(.white)
                             .lineLimit(1)
+                            .minimumScaleFactor(0.78)
 
                         Text(slot.displaySubtitle)
                             .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.white.opacity(0.72))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.78)
                     }
 
                     Spacer()

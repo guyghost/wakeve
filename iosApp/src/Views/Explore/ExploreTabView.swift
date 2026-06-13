@@ -125,6 +125,7 @@ struct CategoryCircle: View {
                     .fontWeight(isSelected ? .semibold : .regular)
                     .foregroundColor(isSelected ? .primary : .secondary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.78)
             }
         }
         .buttonStyle(.plain)
@@ -440,11 +441,13 @@ struct SearchResultRow: View {
                     .font(.headline)
                     .foregroundColor(.primary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.78)
 
                 Text(event.description)
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.78)
 
                 HStack(spacing: 12) {
                     HStack(spacing: 3) {
@@ -461,6 +464,7 @@ struct SearchResultRow: View {
                             Text(locationName)
                                 .font(.caption2)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.78)
                         }
                     }
 

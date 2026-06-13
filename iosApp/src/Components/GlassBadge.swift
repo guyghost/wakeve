@@ -31,6 +31,7 @@ struct GlassBadge: View {
             Text(text)
                 .font(.caption2)
                 .lineLimit(1)
+                .minimumScaleFactor(0.78)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 4)

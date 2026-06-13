@@ -254,6 +254,7 @@ struct MeetingRowView: View {
                 Text(meeting.title)
                     .font(.subheadline.bold())
                     .lineLimit(1)
+                    .minimumScaleFactor(0.78)
                 HStack(spacing: 6) {
                     Text(platformDisplayName(meeting.platform))
                         .font(.caption)

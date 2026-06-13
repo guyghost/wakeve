@@ -343,13 +343,13 @@ struct HomeContentView: View {
                     .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
                     .clipShape(Circle())
             }
-            .accessibilityLabel("Filtrer les événements")
+            .accessibilityLabel(String(localized: "home.filter_events_accessibility"))
 
             Button(action: onProfileClick) {
                 WakeveAvatar(initials: "U", size: 44)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Profil")
+            .accessibilityLabel(String(localized: "profile.title"))
         }
     }
 

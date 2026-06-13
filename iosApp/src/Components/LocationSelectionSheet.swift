@@ -283,6 +283,7 @@ struct LocationSelectionSheet: View {
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.76)
                         }
                     }
                     

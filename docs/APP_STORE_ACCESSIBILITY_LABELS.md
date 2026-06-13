@@ -36,10 +36,10 @@ Apple-source review date: 2026-05-27.
 The current iOS target builds as a universal iPhone/iPad app:
 
 - `TARGETED_DEVICE_FAMILY = 1,2`
-- `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES`
-- `SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES`
+- `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO`
+- `SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO`
 
-App Store Connect may make the iPhone/iPad app available on Mac with Apple silicon and Apple Vision Pro unless availability is edited there. If Mac or Vision Pro are not tested before launch, opt out or leave accessibility support unindicated for those device families.
+The repository decision for the first release is iPhone/iPad only. Mac with Apple silicon and Apple Vision Pro compatibility are disabled in the Xcode project and must be confirmed disabled in App Store Connect before review. If either platform is re-enabled later, do not publish accessibility support for that device family until runtime-specific smoke tests and accessibility evidence are recorded.
 
 ## Recommended App Store Connect Answers
 
@@ -63,7 +63,7 @@ Use the same answers as iPhone after completing the iPad TestFlight smoke test. 
 
 ### Mac with Apple Silicon
 
-Do not claim accessibility support until the Designed for iPad/iPhone Mac runtime is tested. If the app remains available on Mac, verify at minimum:
+Do not claim accessibility support for Mac with Apple silicon in the first release because the repository release settings disable Designed for iPhone/iPad on Mac. If the platform is re-enabled later, do not claim accessibility support until the Designed for iPad/iPhone Mac runtime is tested. If the app becomes available on Mac, verify at minimum:
 
 - Keyboard navigation through login, event creation, poll voting, and settings.
 - VoiceOver on macOS can identify all primary controls.
@@ -72,7 +72,7 @@ Do not claim accessibility support until the Designed for iPad/iPhone Mac runtim
 
 ### Apple Vision Pro
 
-Do not claim accessibility support until the iPhone/iPad app compatibility runtime is tested on Apple Vision Pro or in an approved equivalent test environment. If the app is not tested, opt out of Apple Vision Pro availability in App Store Connect for the initial release.
+Do not claim accessibility support for Apple Vision Pro in the first release because the repository release settings disable iPhone/iPad app compatibility on Apple Vision Pro. If the platform is re-enabled later, do not claim accessibility support until the iPhone/iPad app compatibility runtime is tested on Apple Vision Pro or in an approved equivalent test environment. If the app is not tested, opt out of Apple Vision Pro availability in App Store Connect for the initial release.
 
 ## Before Publishing Labels
 

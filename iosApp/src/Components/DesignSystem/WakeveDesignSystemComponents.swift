@@ -496,7 +496,7 @@ struct WakeveStackedAvatars: View {
                     .zIndex(Double(initials.count - index))
             }
         }
-        .accessibilityLabel("\(initials.count) personnes")
+        .accessibilityLabel(String.localizedStringWithFormat(String(localized: "participants.count_accessibility"), initials.count))
     }
 }
 
