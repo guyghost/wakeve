@@ -27,7 +27,7 @@ final class WakeveAIContractTests: XCTestCase {
         XCTAssertTrue(source.contains("viewModel.cancelSmartEventDraft()"))
         XCTAssertTrue(source.contains("viewModel.ignoreSmartEventDraft()"))
         XCTAssertTrue(source.contains("Modifier"))
-        XCTAssertTrue(source.contains("Appliquer"))
+        XCTAssertTrue(source.contains("String(localized: \"common.apply\")"))
         XCTAssertTrue(source.contains("Ignorer"))
         XCTAssertTrue(source.contains("applySmartEventDraft"))
         XCTAssertFalse(source.contains("LanguageModelSession("), "SwiftUI views must not own Foundation Models sessions.")
@@ -58,6 +58,20 @@ final class WakeveAIContractTests: XCTestCase {
         XCTAssertTrue(source.contains("case .checklist"))
         XCTAssertTrue(source.contains("case .suggestedPolls"))
         XCTAssertTrue(source.contains("case .completed"))
+    }
+
+    func testWakeveAIClientWrapsFoundationModelsWithProductionGuards() throws {
+        let source = try readProjectFile("iosApp/src/WakeveAI/WakeveAIClient.swift")
+        let foundationClient = slice(source, from: "struct FoundationModelsWakeveAIClient", to: "@available(iOS 26.0, *)\n@Generable")
+
+        XCTAssertTrue(foundationClient.contains("LanguageModelSession(instructions: prompt.system)"))
+        XCTAssertTrue(foundationClient.contains("generating: FoundationEventDraft.self"))
+        XCTAssertTrue(foundationClient.contains("withClientTimeout"))
+        XCTAssertTrue(foundationClient.contains("Task.checkCancellation()"))
+        XCTAssertTrue(foundationClient.contains("WakeveAIMetrics"))
+        XCTAssertTrue(foundationClient.contains("WakeveAILogger.debug"))
+        XCTAssertTrue(foundationClient.contains("knownFacts.nonEmptyCategoryCount"))
+        XCTAssertFalse(foundationClient.contains("debugPersonalContext"), "Production client must not log personal prompt context by default.")
     }
 
     func testCreateEventSheetKeepsSmartDraftApplyAndIgnoreExplicit() throws {

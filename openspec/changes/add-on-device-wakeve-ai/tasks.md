@@ -10,7 +10,7 @@
 ## 2. WakeveAI Foundation
 - [x] 2.1 Create `iosApp/src/WakeveAI/` module folders for generators, tools, prompts, validation, instrumentation, and tests.
 - [x] 2.2 Implement `WakeveAIAvailabilityService` around `SystemLanguageModel.default.availability` with app-specific availability states.
-- [ ] 2.3 Implement `WakeveAIClient` wrapping Foundation Models typed generation, streaming generation, tool registration, cancellation, timeout, metrics, and production-safe logging.
+- [x] 2.3 Implement `WakeveAIClient` wrapping Foundation Models typed generation, streaming generation, tool registration, cancellation, timeout, metrics, and production-safe logging.
 - [x] 2.4 Add small `@Generable` Swift structures and enums for all initial AI outputs.
 - [x] 2.5 Implement validators and sanitizers that enforce bounded counts, short text, enum validity, hint semantics, and no-invented-business-fact rules.
 - [x] 2.6 Add `WakeveAIMetrics` and `WakeveAILogger` with debug logging disabled for production personal prompt context.
@@ -47,6 +47,6 @@
 - [x] 6.2 Run iOS unit tests for WakeveAI validation, generators, and ViewModels.
 - [x] 6.3 Run relevant shared/KMP tests if shared DTOs or state-machine contracts are touched. Not applicable: no shared/KMP DTO or state-machine contract was changed in this pass.
 - [x] 6.4 Build the iOS app with Foundation Models availability checks enabled.
-- [ ] 6.5 Manually verify fallback on an unavailable/incompatible simulator or device.
+- [x] 6.5 Manually verify fallback on an unavailable/incompatible simulator or device.
 - [ ] 6.6 Profile generation latency, cancellation, and memory on a real supported device and record results in implementation notes.
 - [x] 6.7 Verify no production logs contain prompt text, participant names beyond existing UI scope, votes, addresses, prices, or generated personal content.
