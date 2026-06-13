@@ -1,6 +1,6 @@
 # App Store Privacy Evidence - Wakeve
 
-Date: 2026-05-27
+Date: 2026-06-13
 
 Status: PENDING
 
@@ -50,11 +50,34 @@ Run these before setting `APP_STORE_PRIVACY_SIGNOFF=true`:
 
 ```bash
 ./scripts/lint-store-metadata.sh --ios-only
+./scripts/audit-app-store-privacy-alignment.sh --fail-on-findings
 APP_REVIEW_PHONE_NUMBER=<APP_REVIEW_PHONE_NUMBER> ./scripts/lint-store-metadata.sh --ios-only
 plutil -p iosApp/src/PrivacyInfo.xcprivacy | rg -n "NSPrivacyCollectedDataType(Name|EmailAddress|UserID|DeviceID|OtherUserContent|CoarseLocation|ProductInteraction)|NSPrivacyTracking|NSPrivacyTrackingDomains"
 plutil -p build/xcode-deriveddata-release/Build/Products/Release-iphoneos/Wakeve.app/PrivacyInfo.xcprivacy | rg -n "NSPrivacyCollectedDataType(Name|EmailAddress|UserID|DeviceID|OtherUserContent|CoarseLocation|ProductInteraction)|NSPrivacyTracking"
 /usr/bin/strings build/xcode-deriveddata-release/Build/Products/Release-iphoneos/Wakeve.app/Wakeve build/xcode-deriveddata-release/Build/Products/Release-iphoneos/Wakeve.app/Frameworks/Shared.framework/Shared | rg -n "IDFA|IdentifierForAdvertising|ATTrackingManager|NSUserTrackingUsageDescription"
 ```
+
+## Local Privacy Alignment Scan Result
+
+Local scan date: 2026-06-13.
+
+Generated audit report: `docs/app-store-privacy/privacy-alignment-2026-06-13T12-26-10Z.md`.
+
+Result: `PASS for local privacy alignment. AS-05 remains open for App Store Connect, live URL, legal/privacy owner, and uploaded-build evidence.`
+
+The standalone privacy audit passed with 0 local findings and 4 external pending confirmations:
+
+- `iosApp/src/PrivacyInfo.xcprivacy` SHA-256: `38dbda46a737beed9c54a65cf089159fbb2712de1c21b8c9cd5de6877acfbfc3`.
+- `docs/APP_STORE_PRIVACY_LABELS.md` SHA-256: `6b8817f3013c36f1ef60b3d1d67d4aa8071aba02d36224cae6aa8e01438cd638`.
+- `docs/PRIVACY_POLICY.md` SHA-256: `8eb134c37318846c8c3ffbac075ee76d606204f44a17a1618e94b8c6f078b285`.
+- Privacy manifest declares `NSPrivacyTracking=false` and no tracking domains.
+- Privacy-label draft declares no tracking.
+- `iosApp/src/Info.plist` does not declare `NSUserTrackingUsageDescription`.
+- iOS/shared source contains no IDFA or App Tracking Transparency API references.
+- Privacy manifest and privacy-label draft both cover `NSPrivacyCollectedDataTypeName`, `NSPrivacyCollectedDataTypeEmailAddress`, `NSPrivacyCollectedDataTypeUserID`, `NSPrivacyCollectedDataTypeDeviceID`, `NSPrivacyCollectedDataTypeOtherUserContent`, `NSPrivacyCollectedDataTypeCoarseLocation`, and `NSPrivacyCollectedDataTypeProductInteraction`.
+- Privacy-label draft explicitly lists Contacts, Browsing History, Search History, Financial Info, Health and Fitness, Sensitive Info, Purchases, and Advertising Data under data not collected.
+- Privacy policy source includes `privacy@wakeve.app` and Data Collection wording.
+- External pending confirmations remain: App Store Connect privacy labels must be compared against the draft, `https://wakeve.app/privacy` must be live and match `docs/PRIVACY_POLICY.md`, the uploaded review build must be checked for bundled `PrivacyInfo.xcprivacy` and no tracking strings, and photos/media, calendar data, Siri/speech, analytics, and crash behavior need final owner confirmation.
 
 Record the output or attach screenshots/exports showing:
 

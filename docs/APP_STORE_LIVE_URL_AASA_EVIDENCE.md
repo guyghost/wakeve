@@ -1,6 +1,6 @@
 # App Store Live URL And AASA Evidence - Wakeve
 
-Date: 2026-06-01
+Date: 2026-06-13
 
 Status: PENDING
 
@@ -75,9 +75,15 @@ Last command:
 ./scripts/lint-store-metadata.sh --ios-only --check-live-urls
 ```
 
-Result on 2026-06-07: live production validation failed with 9 live URL errors and 2 warnings. This does not close AS-14. The warnings were the missing App Review phone number and the intentionally incomplete final App Store signoff marker; the live blocker remains DNS resolution for `wakeve.app` and `api.wakeve.app`.
+Result on 2026-06-13: live production validation failed with 9 live URL/AASA errors and 1 final-signoff warning. This does not close AS-14. The App Review phone number was provided for the local lint run, so the remaining warning is the intentionally incomplete final App Store signoff marker; the live blocker remains DNS resolution for `wakeve.app` and `api.wakeve.app`.
 
-Direct DNS snapshot on 2026-06-07:
+Generated capture report:
+
+- `docs/app-store-live-url-aasa/live-url-aasa-2026-06-13T12-20-32Z.md`
+- Command: `./scripts/capture-app-store-live-url-aasa.sh --allow-failures`
+- Result: `FAIL. 9 required live URL/AASA checks failed or could not be validated.`
+
+Direct DNS snapshot on 2026-06-13:
 
 ```text
 curl -I --max-time 12 https://wakeve.app/privacy
@@ -128,13 +134,14 @@ This section is local evidence only. It does not close AS-14 because App Store r
 | --- | --- | --- |
 | Public legal pages render reviewable HTML | Passed on `http://127.0.0.1:4174` for `/privacy`, `/support`, `/terms`, and `/third-party-notices`. | Each route has `+page.ts` with `export const ssr = true`, so the App Store legal/support content is present in the initial HTML even though the app shell disables SSR globally. |
 | Local AASA endpoints | Passed on `http://127.0.0.1:4174` for `/.well-known/apple-app-site-association` and `/apple-app-site-association`. | With `APPLE_TEAM_ID=A1B2C3D4E5`, both endpoints returned `application/json`, app ID `A1B2C3D4E5.com.guyghost.wakeve`, and `/event/*`, `/poll/*`, `/meeting/*`, plus `/invite/*` components. |
-| Production adapter build | Passed locally on 2026-05-28 with `npx --yes pnpm@10 check` and `npx --yes pnpm@10 build`. | `webApp` now uses `@sveltejs/adapter-vercel` with `runtime: 'nodejs22.x'`, so the production build targets Vercel explicitly instead of relying on adapter auto-detection. |
+| Production adapter build | Passed locally on 2026-05-28 with `npx --yes pnpm@10 check` and `npx --yes pnpm@10 build`. | `apps/landing` now uses `@sveltejs/adapter-vercel` with `runtime: 'nodejs22.x'`, so the production build targets Vercel explicitly instead of relying on adapter auto-detection. |
 
 ## Evidence Commands
 
 Run with the real production Apple Team ID before final signoff:
 
 ```bash
+./scripts/capture-app-store-live-url-aasa.sh
 APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID=<APPLE_TEAM_ID> ./scripts/lint-store-metadata.sh --ios-only --check-live-urls
 curl -I --max-time 10 https://wakeve.app/privacy
 curl -I --max-time 10 https://wakeve.app/support
@@ -145,7 +152,7 @@ curl -i --max-time 10 https://wakeve.app/apple-app-site-association
 curl -i --max-time 10 https://api.wakeve.app/health
 ```
 
-Attach or paste the command output, deployment IDs, DNS check output, cache headers, and reviewer/date before changing the marker.
+Attach or paste the generated `docs/app-store-live-url-aasa/live-url-aasa-*.md` report, deployment IDs, DNS check output, cache headers, and reviewer/date before changing the marker.
 
 Local pre-deployment validation command used before live deployment:
 
@@ -161,10 +168,11 @@ BASE_URL=http://127.0.0.1:4174 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-loca
 Before retrying the live App Store gate:
 
 - Deploy the web app serving `/privacy`, `/support`, `/terms`, `/third-party-notices`, `/.well-known/apple-app-site-association`, and `/apple-app-site-association` on `https://wakeve.app`.
-- Keep the Vercel project root set to `webApp/`; the SvelteKit production build now uses `@sveltejs/adapter-vercel` and should be built with the checked-in `pnpm-lock.yaml`.
+- Keep the Vercel project root set to `apps/landing/`; the SvelteKit production build now uses `@sveltejs/adapter-vercel` and should be built with the checked-in `pnpm-lock.yaml`.
 - Configure production `APPLE_TEAM_ID` or `TEAM_ID` to the real 10-character Apple Developer Team ID so AASA app IDs are not placeholders.
 - Confirm the AASA responses use `application/json`, no redirects, valid TLS, app ID `<APPLE_TEAM_ID>.com.guyghost.wakeve`, and paths `/event/*`, `/poll/*`, `/meeting/*`, plus `/invite/*`.
 - Deploy the backend health endpoint at `https://api.wakeve.app/health` with an App Review-safe response that proves the production backend is available.
+- Run `./scripts/capture-app-store-live-url-aasa.sh` without `--allow-failures`; keep the generated report as the public-network evidence artifact.
 - Record DNS provider, hosting provider, backend provider, deployment IDs, cache headers, rollout owner, rollback owner, command output, reviewer, and date in this file.
 - Re-run `APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID=<APPLE_TEAM_ID> ./scripts/lint-store-metadata.sh --ios-only --check-live-urls` from a public network and attach the successful output.
 

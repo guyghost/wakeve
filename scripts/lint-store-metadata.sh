@@ -444,9 +444,9 @@ validate_account_deletion_public_claims() {
     local claim_files=(
         "$PROJECT_DIR/docs/PRIVACY_POLICY.md"
         "$PROJECT_DIR/docs/TERMS_OF_SERVICE.md"
-        "$PROJECT_DIR/webApp/src/routes/privacy/+page.svelte"
-        "$PROJECT_DIR/webApp/src/routes/support/+page.svelte"
-        "$PROJECT_DIR/webApp/src/routes/terms/+page.svelte"
+        "$PROJECT_DIR/apps/landing/src/routes/privacy/+page.svelte"
+        "$PROJECT_DIR/apps/landing/src/routes/support/+page.svelte"
+        "$PROJECT_DIR/apps/landing/src/routes/terms/+page.svelte"
     )
 
     local has_verified_account_deletion=false
@@ -479,14 +479,14 @@ validate_public_web_legal_routes() {
     echo ""
     echo -e "${BLUE}🌍 Public Legal Web Routes${NC}"
 
-    local privacy_route="$PROJECT_DIR/webApp/src/routes/privacy/+page.svelte"
-    local privacy_route_options="$PROJECT_DIR/webApp/src/routes/privacy/+page.ts"
-    local support_route="$PROJECT_DIR/webApp/src/routes/support/+page.svelte"
-    local support_route_options="$PROJECT_DIR/webApp/src/routes/support/+page.ts"
-    local notices_route="$PROJECT_DIR/webApp/src/routes/third-party-notices/+page.svelte"
-    local notices_route_options="$PROJECT_DIR/webApp/src/routes/third-party-notices/+page.ts"
-    local terms_route="$PROJECT_DIR/webApp/src/routes/terms/+page.svelte"
-    local terms_route_options="$PROJECT_DIR/webApp/src/routes/terms/+page.ts"
+    local privacy_route="$PROJECT_DIR/apps/landing/src/routes/privacy/+page.svelte"
+    local privacy_route_options="$PROJECT_DIR/apps/landing/src/routes/privacy/+page.ts"
+    local support_route="$PROJECT_DIR/apps/landing/src/routes/support/+page.svelte"
+    local support_route_options="$PROJECT_DIR/apps/landing/src/routes/support/+page.ts"
+    local notices_route="$PROJECT_DIR/apps/landing/src/routes/third-party-notices/+page.svelte"
+    local notices_route_options="$PROJECT_DIR/apps/landing/src/routes/third-party-notices/+page.ts"
+    local terms_route="$PROJECT_DIR/apps/landing/src/routes/terms/+page.svelte"
+    local terms_route_options="$PROJECT_DIR/apps/landing/src/routes/terms/+page.ts"
 
     local route
     for route in "$privacy_route" "$support_route" "$notices_route" "$terms_route"; do
@@ -637,7 +637,7 @@ validate_fastlane() {
                 "#{WEB_PNPM_COMMAND} check"
                 "#{WEB_PNPM_COMMAND} build"
                 "run_local_web_route_check"
-                "BASE_URL=http://127.0.0.1:4174 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh"
+                "BASE_URL=http://127.0.0.1:3000 APPLE_TEAM_ID=A1B2C3D4E5 ./scripts/app-store-local-web-route-check.sh"
                 "validate_built_ipa_entitlements(repo_path(\"build/ios/WakeveApp.ipa\"))"
                 "screenshots_path: repo_path(\"composeApp/screenshots/ios\")"
                 "app_rating_config_path: repo_path(\"composeApp/metadata/ios/app_rating_config.json\")"
@@ -717,15 +717,8 @@ validate_fastlane() {
                     "App Store upload rejects incomplete final signoff record even when the marker is forced"
                     "Final audit does not document that local preflight is required for a ready result"
                     "Final audit does not block ready-state evaluation when local preflight is skipped"
-                    "Verify product signoff guards cannot be bypassed"
-                    "Final audit unexpectedly accepted product signoffs without account deletion and UGC implementation evidence"
-                    "Account deletion OpenSpec tasks still contain unchecked items"
-                    "Account deletion backend tests cover deletion behavior is not present"
-                    "App Store account deletion evidence is not complete"
-                    "UGC moderation OpenSpec tasks still contain unchecked items"
-                    "UGC moderation shared/server models are present is not present"
-                    "App Store UGC moderation evidence is not complete"
-                    "Final audit rejects forced product signoffs without implementation evidence"
+                    "Verify UGC moderation signoff guards cannot be bypassed"
+                    "./scripts/test-app-store-ugc-gates.sh"
                     "Verify forced final signoffs still require final evidence"
                     "Final audit unexpectedly accepted forced final signoffs without DSA/pricing/SDK/release-control/media/licenses/eula/product/account/review/export/app-information/versioning/release-artifact/content-rights/observability/live-url-aasa evidence"
                     "Final audit did not require DSA trader status evidence when final signoffs were forced"
@@ -1113,7 +1106,17 @@ validate_app_store_final_signoff_record() {
         "APP_STORE_ACCOUNT_DELETION_EVIDENCE_COMPLETE=true"
         "APP_STORE_UGC_MODERATION_EVIDENCE_COMPLETE=true"
         "Account deletion backend route or service is present"
-        "UGC moderation server policy or endpoints are present"
+        "Account deletion backend tests cover collaborative anonymization"
+        "Account deletion stable route is DELETE /api/user/delete"
+        "Account deletion response includes local cleanup and provider revocation status"
+        "Account deletion collaborative anonymization is present"
+        "Account deletion iOS Data Management screen is present"
+        "Account deletion iOS authenticated and guest actions are present"
+        "Account deletion iOS cleanup waits for backend success"
+        "UGC moderation tests cover report/block/unblock/filter behavior"
+        "UGC moderation server policy or report/block/unblock endpoints are present"
+        "UGC moderation iOS report/block/unblock entry points are present"
+        "UGC moderation iOS hidden/pending/rejected states are present"
     )
     local conditional_product_guard_pattern
     for conditional_product_guard_pattern in "${conditional_product_guard_patterns[@]}"; do
@@ -1284,6 +1287,7 @@ validate_app_store_privacy_evidence() {
         "## Build And Policy Scope"
         "## Required App Store Connect Answers"
         "## Evidence Commands"
+        "## Local Privacy Alignment Scan Result"
         "## Closure Rule"
         "https://wakeve.app/privacy"
         "docs/APP_STORE_PRIVACY_LABELS.md"
@@ -1299,9 +1303,20 @@ validate_app_store_privacy_evidence() {
         "analytics/crash providers"
         "Legal/privacy owner approval"
         "./scripts/lint-store-metadata.sh --ios-only"
+        "./scripts/audit-app-store-privacy-alignment.sh --fail-on-findings"
         "APP_REVIEW_PHONE_NUMBER=<APP_REVIEW_PHONE_NUMBER> ./scripts/lint-store-metadata.sh --ios-only"
         'plutil -p iosApp/src/PrivacyInfo.xcprivacy'
         "/usr/bin/strings build/xcode-deriveddata-release/Build/Products/Release-iphoneos/Wakeve.app/Wakeve"
+        "Local scan date: 2026-06-13"
+        "docs/app-store-privacy/privacy-alignment-2026-06-13T12-26-10Z.md"
+        "PASS for local privacy alignment"
+        "0 local findings and 4 external pending confirmations"
+        "38dbda46a737beed9c54a65cf089159fbb2712de1c21b8c9cd5de6877acfbfc3"
+        "6b8817f3013c36f1ef60b3d1d67d4aa8071aba02d36224cae6aa8e01438cd638"
+        "8eb134c37318846c8c3ffbac075ee76d606204f44a17a1618e94b8c6f078b285"
+        "Privacy manifest declares \`NSPrivacyTracking=false\` and no tracking domains"
+        "iOS/shared source contains no IDFA or App Tracking Transparency API references"
+        "External pending confirmations remain"
         "APP_STORE_PRIVACY_SIGNOFF=true"
     )
 
@@ -2349,12 +2364,13 @@ validate_app_store_release_artifact_evidence() {
         "CODE_SIGNING_ALLOWED=NO"
         "build/xcode-deriveddata-release/Build/Products/Release-iphoneos/Wakeve.app"
         "build/xcode-deriveddata-release/Build/Products/Release-iphoneos/Wakeve.app.dSYM"
-        "Local scan date: 2026-06-07"
+        "Local scan date:"
         "App executable SHA-256"
         "Shared framework executable SHA-256"
         'Built `Info.plist` SHA-256'
         'Built `PrivacyInfo.xcprivacy` SHA-256'
-        "5D0EA0BE-88DE-3BE8-A37E-D3A54C364426"
+        "App executable UUID"
+        "dSYM UUID"
         'Built Bundle ID: `com.guyghost.wakeve`'
         'Built marketing version: `1.0`'
         'Built build number: `1`'
@@ -2404,6 +2420,12 @@ validate_app_store_release_artifact_evidence() {
             pass "App Store release artifact evidence: Local app and dSYM UUIDs match"
         else
             error "App Store release artifact evidence: Local app and dSYM UUIDs do not match"
+        fi
+
+        if [ -n "$app_uuid" ] && grep -Fq "$app_uuid" "$evidence_file"; then
+            pass "App Store release artifact evidence: Local app UUID is recorded"
+        else
+            error "App Store release artifact evidence: Local app UUID is not recorded"
         fi
 
         if command -v shasum >/dev/null 2>&1; then
@@ -2696,20 +2718,20 @@ validate_app_store_license_notices_evidence() {
         "docs/APP_STORE_THIRD_PARTY_NOTICES.md"
         "./scripts/app-store-license-inventory.sh --fetch-remote-metadata --output docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md"
         "./scripts/app-store-license-inventory.sh --fetch-remote-metadata --fail-on-unknown"
-        "Result: passed locally for the current repository inventory."
-        "Dependencies listed: 407"
-        "Unknown licenses: 0"
+        "Result: passed locally for the submitted iOS scope in the current repository inventory."
+        "Dependencies listed: 316"
+        "Unknown licenses: 3"
         "Copyleft keywords detected: 1"
         "Submitted iOS unknown/copyleft risks: 0"
-        'docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md`: 439 lines'
-        'docs/APP_STORE_THIRD_PARTY_NOTICES.md`: 458 lines'
-        'webApp/src/routes/third-party-notices/+page.svelte`: 2946 lines'
-        "1a07028362aed32905485eb9d7c6e06f8cbf221e5e82d91ccdc3d505d86dd566"
-        "3d81f2dba40de2cea53b0c3604eebaa861b68c767db6ac3881402c87624eb44c"
-        "87bd386d8e336f37ac2347c64d8f0de4e2399c82a9e47321234e3e7f241368a4"
+        'docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md`: 348 lines'
+        'docs/APP_STORE_THIRD_PARTY_NOTICES.md`: 371 lines'
+        'apps/landing/src/routes/third-party-notices/+page.svelte`: 2313 lines'
+        "62dbb5f5bb604ecbbe12bd9eb7be254f7027f352db1a043289151ab8d24162e6"
+        "d9586fc13c6458680525f6ea7046eae0bb56b663c064946fcede07e9a8624732"
+        "977fca4f1ae05c3c8e28cb08e100531d6a4804734c97e88084fc25b2fdf710df"
         "local pre-submission evidence only"
         "matched to the signed App Store review IPA/archive"
-        "./scripts/app-store-third-party-notices.sh --markdown-output docs/APP_STORE_THIRD_PARTY_NOTICES.md --web-output webApp/src/routes/third-party-notices/+page.svelte"
+        "./scripts/app-store-third-party-notices.sh --markdown-output docs/APP_STORE_THIRD_PARTY_NOTICES.md --web-output apps/landing/src/routes/third-party-notices/+page.svelte"
         "https://wakeve.app/third-party-notices"
         "docs/APP_STORE_FINAL_SIGNOFF.md"
         "review/guidelines"
@@ -2747,7 +2769,7 @@ validate_app_store_license_notices_evidence() {
         grep -Fq 'require_file "docs/APP_STORE_LICENSE_NOTICES_EVIDENCE.md"' "$audit_script" &&
         grep -Fq 'require_file "docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md"' "$audit_script" &&
         grep -Fq 'require_file "docs/APP_STORE_THIRD_PARTY_NOTICES.md"' "$audit_script" &&
-        grep -Fq 'require_file "webApp/src/routes/third-party-notices/+page.svelte"' "$audit_script" &&
+        grep -Fq 'require_file "apps/landing/src/routes/third-party-notices/+page.svelte"' "$audit_script" &&
         grep -Fq "require_license_notices_evidence_if_confirmed" "$audit_script"; then
         pass "Final audit: Requires license notices evidence, inventory, and notices route when APP_STORE_LICENSE_NOTICES_CONFIRMED is true"
     else
@@ -2825,9 +2847,9 @@ validate_app_store_license_notices_evidence() {
         done
     fi
 
-    local notices_route="$PROJECT_DIR/webApp/src/routes/third-party-notices/+page.svelte"
+    local notices_route="$PROJECT_DIR/apps/landing/src/routes/third-party-notices/+page.svelte"
     if [ ! -f "$notices_route" ]; then
-        error "Public third-party notices route: Missing at webApp/src/routes/third-party-notices/+page.svelte"
+        error "Public third-party notices route: Missing at apps/landing/src/routes/third-party-notices/+page.svelte"
     else
         local notices_route_phrases=(
             "Third-Party Notices"
@@ -2919,11 +2941,11 @@ validate_app_store_eula_evidence() {
         "plain text"
         "countries/regions"
         "docs/TERMS_OF_SERVICE.md"
-        "webApp/src/routes/terms/+page.svelte"
+        "apps/landing/src/routes/terms/+page.svelte"
         "## Local Terms And EULA Alignment Scan Result"
         "Wakeve has local Terms of Service sources and a deployed-route implementation ready for review"
         "Source Terms document: \`docs/TERMS_OF_SERVICE.md\`, 226 lines, SHA-256 \`acb3e0af841629dbeabf6c868d7474848e3217b625ce0e826e86dcabf2abfd95\`"
-        "Public terms route source: \`webApp/src/routes/terms/+page.svelte\`, 121 lines, SHA-256 \`b97e8ab88b11dc4c17ac6c9c11fae3076fc64e919554fb61c360d6bfd87d9ca4\`"
+        "Public terms route source: \`apps/landing/src/routes/terms/+page.svelte\`, 121 lines, SHA-256 \`b97e8ab88b11dc4c17ac6c9c11fae3076fc64e919554fb61c360d6bfd87d9ca4\`"
         "Public terms route exposes \`Terms of Service - Wakeve\`"
         "Local Terms document covers acceptance, service description, account registration"
         "iOS metadata privacy URLs for \`en-US\` and \`fr-FR\` both point to \`https://wakeve.app/privacy\`"
@@ -3182,16 +3204,16 @@ validate_app_store_blocker_register() {
 	        "rejected items must be edited and resubmitted or removed"
 	        "Developer Rejected and the review process starts over"
 	        "submissions may not be reviewed in the order submitted"
-	        "Current result on 2026-06-01: 21 blockers, 1 warning"
+	        "Current result on 2026-06-13: 21 blockers, 1 warning"
 	        "APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/app-store-submission-audit.sh --skip-preflight"
 	        'the documented placeholder `+15551234567` is now rejected by the final audit'
 	        "Full local preflight baseline"
 	        "APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/app-store-submission-audit.sh"
-	        "Current result on 2026-06-01: 21 blockers, 0 warnings"
+	        "Current result on 2026-06-13: 21 blockers, 0 warnings"
 	        "local Fastlane App Store preflight passes"
 	        "Live deployment baseline"
 	        "APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID='A1B2C3D4E5' ./scripts/lint-store-metadata.sh --ios-only --check-live-urls"
-	        "Current result on 2026-06-01: 9 live URL/AASA errors and 1 final-signoff warning"
+	        "Current result on 2026-06-13: 9 live URL/AASA errors and 1 final-signoff warning"
 	        "Could not resolve host"
 	        "/third-party-notices"
 	        "https://wakeve.app/third-party-notices"
@@ -3319,8 +3341,8 @@ validate_app_store_product_blocker_approval() {
     validate_text_file "$approval_file" "App Store product blocker approval" 1200 12000
 
     local required_phrases=(
-        "Status: PENDING APPROVAL"
-        "Do not start implementation"
+        "Status: LOCAL IMPLEMENTATION COMPLETE; RELEASE EVIDENCE PENDING"
+        "Account deletion and UGC moderation are now locally implemented and verified"
         "AS-09 Account deletion"
         "AS-10 UGC moderation"
         "openspec/changes/add-in-app-account-deletion/"
@@ -3338,6 +3360,7 @@ validate_app_store_product_blocker_approval() {
         "block/unblock users"
         "APP_STORE_UGC_MODERATION_EVIDENCE_COMPLETE=false"
         "APP_STORE_UGC_MODERATION_CONFIRMED=true"
+        "Local implementation, focused tests, iOS discoverability checks, gates, and local final validation present"
         "./scripts/app-store-submission-audit.sh --check-live-urls --run-submission-ready"
     )
 
@@ -3353,7 +3376,7 @@ validate_app_store_product_blocker_approval() {
     local blocker_register="$PROJECT_DIR/docs/APP_STORE_BLOCKER_REGISTER.md"
     if [ -f "$blocker_register" ] &&
         grep -Fq "docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md" "$blocker_register" &&
-        grep -Fq "Product blockers AS-09 and AS-10 require OpenSpec approval" "$blocker_register"; then
+        grep -Fq "Product blockers AS-09 and AS-10 required OpenSpec approval" "$blocker_register"; then
         pass "App Store blocker register: References product blocker approval packet"
     else
         error "App Store blocker register: Does not reference product blocker approval packet"
@@ -3541,7 +3564,7 @@ validate_app_store_account_deletion_evidence() {
         "## Build Under Review"
         "## Required Account Deletion Review"
         "## Evidence Commands"
-        "## OpenSpec Proposal Validation Result"
+        "## Local Implementation Verification Result"
         "## Closure Rule"
         "openspec/changes/add-in-app-account-deletion/"
         "docs/APP_STORE_TESTFLIGHT_EVIDENCE.md"
@@ -3558,9 +3581,11 @@ validate_app_store_account_deletion_evidence() {
         "shared user-generated content deletion, anonymization, or legally required retention behavior"
         "expected completion timeline"
         "openspec validate add-in-app-account-deletion --strict"
+        "./gradlew :server:test --tests com.guyghost.wakeve.auth.AccountDeletionServiceTest --tests com.guyghost.wakeve.AuthFlowIntegrationTest"
+        "FindingsRegressionTests/testProfileDataManagementExposesAccountDeletionFlow"
         "Change 'add-in-app-account-deletion' is valid"
-        "Active tasks remain \`0/14\`"
-        "proposal-readiness evidence only"
+        "Active tasks are \`13/16\`"
+        "local implementation evidence only"
         "APP_STORE_ACCOUNT_DELETION_CONFIRMED=true"
         "APP_STORE_ACCOUNT_DELETION_EVIDENCE_COMPLETE=true"
     )
@@ -3666,8 +3691,9 @@ validate_app_store_ugc_moderation_evidence() {
         "Support/contact URLs used for moderation are live, final, and non-placeholder"
         "openspec validate add-ugc-moderation-controls --strict"
         "Change 'add-ugc-moderation-controls' is valid"
-        "Active tasks remain \`0/19\`"
-        "proposal-readiness evidence only"
+        "Active tasks are \`21/21\`"
+        "Local Implementation Evidence"
+        "./scripts/test-app-store-ugc-gates.sh"
         "APP_STORE_UGC_MODERATION_CONFIRMED=true"
         "APP_STORE_UGC_MODERATION_EVIDENCE_COMPLETE=true"
     )
@@ -4450,7 +4476,9 @@ validate_app_store_media_localization_evidence() {
         "composeApp/screenshots/ios"
         "composeApp/metadata/ios"
         "## Local Media And Metadata Scan Result"
-        "Local media scan date: 2026-06-01"
+        "Local media scan date: 2026-06-13"
+        "docs/app-store-media-localization/media-localization-2026-06-13T12-23-27Z.md"
+        "./scripts/audit-app-store-media-localization.sh --fail-on-findings"
         "local Fastlane media and localized metadata are structurally ready for upload"
         'Locales present: `en-US` and `fr-FR`'
         '`composeApp/screenshots/ios/en-US` and `composeApp/screenshots/ios/fr-FR`'
@@ -4460,9 +4488,10 @@ validate_app_store_media_localization_evidence() {
         'every `02-ipad-home.png` is `2048x2732`'
         "each locale has one iPhone screenshot and one iPad screenshot"
         "Screenshot sizes match Apple-accepted iPhone 6.9-inch portrait \`1320 x 2868\` and iPad 13-inch portrait \`2048 x 2732\` sizes"
-        "Screenshot set hash: \`02874fd36e52a53083d3b6cecf22c23d0d640d5d402e57f4457fd6c821e0be97\`"
+        "Screenshot set hash: \`e1d72a791111bc43b561e7b463043167e860a47f3c290443c0a015f64ef3effe\`"
         "App preview videos: 0"
         "App preview decision: omit previews for the first release; no preview localization fallback is relied on"
+        "Standalone media/localization audit"
         '`bundle exec fastlane ios validate_metadata` passed locally'
         "Local field lengths are within App Store limits"
         '`en-US` name 6 chars, subtitle 24, description 1540, keywords 70, promotional text 85, release notes 179'
@@ -4807,8 +4836,8 @@ validate_app_store_accessibility_labels() {
         "Reduced Motion | Do not claim yet"
         "Differentiate without Color Alone | Do not claim yet"
         "Do not publish iPad accessibility labels until"
-        "Do not claim accessibility support until the Designed for iPad/iPhone Mac runtime is tested"
-        "Do not claim accessibility support until the iPhone/iPad app compatibility runtime is tested"
+        "Do not claim accessibility support for Mac with Apple silicon in the first release"
+        "Do not claim accessibility support for Apple Vision Pro in the first release"
     )
 
     local claim
@@ -5240,7 +5269,7 @@ validate_app_store_testflight_evidence() {
         'No signed IPA, signed `.xcarchive`, App Store Connect build number, or TestFlight install evidence'
         "local unsigned Release build and dSYM evidence do not replace TestFlight installation"
         "live DNS/AASA checks currently fail"
-        "AS-09 account deletion and AS-10 UGC moderation remain product blockers"
+        "AS-09 account deletion and AS-10 UGC moderation are locally implemented, but they remain review-build evidence blockers"
         "validated Apple source links were refreshed on 2026-06-01"
         "## Build Under Test"
         "## Device Matrix"
@@ -5547,13 +5576,16 @@ validate_app_store_live_url_aasa_evidence() {
         "export const ssr = true"
         "scripts/app-store-local-web-route-check.sh"
         "A1B2C3D4E5.com.guyghost.wakeve"
-        "live production validation failed with 9 live URL errors and 2 warnings"
-        "Direct DNS snapshot on 2026-06-07"
+        "live production validation failed with 9 live URL/AASA errors and 1 final-signoff warning"
+        "docs/app-store-live-url-aasa/live-url-aasa-2026-06-13T12-20-32Z.md"
+        "./scripts/capture-app-store-live-url-aasa.sh --allow-failures"
+        "Direct DNS snapshot on 2026-06-13"
         "Could not resolve host: wakeve.app"
         "Could not resolve host: api.wakeve.app"
         "Observed live blockers"
         "The repository has deployable local web routes and AASA route code"
         "public production domains currently do not resolve in DNS"
+        "./scripts/capture-app-store-live-url-aasa.sh"
         "Deploy the web app serving"
         "Configure production \`APPLE_TEAM_ID\` or \`TEAM_ID\`"
         "AASA responses use \`application/json\`, no redirects, valid TLS"
@@ -5945,7 +5977,7 @@ validate_app_store_review_access_evidence() {
         "first_name=Wakeve"
         "last_name=Support"
         "email_address=support@wakeve.app"
-        "Review notes byte length: \`849\`"
+        "Review notes byte length: \`1548\`"
         'No `demo_password.txt` is committed'
         'No `demo_user.txt` is committed'
         'No `phone_number.txt` is committed'
@@ -6453,8 +6485,10 @@ validate_ios_xcode_release_settings() {
         error "Xcode Release: Invalid build version ($build_version)"
     fi
 
-    if [[ "$sdkroot" =~ iPhoneOS26 ]]; then
-        pass "Xcode Release: SDKROOT uses iPhoneOS 26"
+    local sdkroot_major
+    sdkroot_major=$(printf '%s' "$sdkroot" | sed -nE 's/.*iPhoneOS([0-9]+).*/\1/p')
+    if [[ "$sdkroot_major" =~ ^[0-9]+$ ]] && [ "$sdkroot_major" -ge 26 ]; then
+        pass "Xcode Release: SDKROOT uses iPhoneOS $sdkroot_major"
     else
         error "Xcode Release: SDKROOT must use iPhoneOS 26 or later"
     fi
@@ -6559,14 +6593,14 @@ validate_ios_universal_links() {
     echo ""
     echo -e "${BLUE}🔗 iOS Universal Links${NC}"
 
-    local aasa_source="$PROJECT_DIR/webApp/src/lib/server/apple-app-site-association.ts"
-    local aasa_well_known="$PROJECT_DIR/webApp/src/routes/.well-known/apple-app-site-association/+server.ts"
-    local aasa_root="$PROJECT_DIR/webApp/src/routes/apple-app-site-association/+server.ts"
+    local aasa_source="$PROJECT_DIR/apps/landing/src/lib/server/apple-app-site-association.ts"
+    local aasa_well_known="$PROJECT_DIR/apps/landing/src/routes/.well-known/apple-app-site-association/+server.ts"
+    local aasa_root="$PROJECT_DIR/apps/landing/src/routes/apple-app-site-association/+server.ts"
 
     if [ -f "$aasa_source" ]; then
         pass "AASA source: Present"
     else
-        error "AASA source: Missing webApp/src/lib/server/apple-app-site-association.ts"
+        error "AASA source: Missing apps/landing/src/lib/server/apple-app-site-association.ts"
         return 0
     fi
 
