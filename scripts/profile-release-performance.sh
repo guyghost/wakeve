@@ -9,6 +9,8 @@ IOS_SIMULATOR="${IOS_SIMULATOR:-iPhone 17 Pro Max}"
 IOS_BUNDLE_ID="${IOS_BUNDLE_ID:-com.guyghost.wakeve}"
 ANDROID_PACKAGE="${ANDROID_PACKAGE:-com.guyghost.wakeve}"
 ANDROID_ACTIVITY="${ANDROID_ACTIVITY:-com.guyghost.wakeve.MainActivity}"
+IOS_BUILD_TIMEOUT_SECONDS="${IOS_BUILD_TIMEOUT_SECONDS:-600}"
+ANDROID_BUILD_TIMEOUT_SECONDS="${ANDROID_BUILD_TIMEOUT_SECONDS:-600}"
 PROFILE_IOS=true
 PROFILE_ANDROID=true
 BUILD_IOS=false
@@ -35,6 +37,10 @@ Environment:
   IOS_BUNDLE_ID       iOS bundle ID. Default: com.guyghost.wakeve.
   ANDROID_PACKAGE     Android package. Default: com.guyghost.wakeve.
   ANDROID_ACTIVITY    Android launch activity. Default: com.guyghost.wakeve.MainActivity.
+  IOS_BUILD_TIMEOUT_SECONDS
+                      Timeout for --build-ios. Default: 600.
+  ANDROID_BUILD_TIMEOUT_SECONDS
+                      Timeout for --build-android. Default: 600.
 
 Notes:
   - iOS launch timings use `xcrun simctl launch` elapsed time. They are cold
@@ -105,6 +111,17 @@ markdown_escape() {
     sed 's/|/\\|/g'
 }
 
+run_with_timeout() {
+    local timeout_seconds="$1"
+    shift
+
+    perl -e '
+        my $timeout = shift @ARGV;
+        alarm $timeout;
+        exec @ARGV or die "exec failed: $!";
+    ' "$timeout_seconds" "$@"
+}
+
 append_env() {
     {
         echo "# Wakeve Release Performance Capture"
@@ -129,6 +146,8 @@ append_env() {
         echo "| iOS bundle ID | \`$IOS_BUNDLE_ID\` |"
         echo "| Android package | \`$ANDROID_PACKAGE\` |"
         echo "| Android activity | \`$ANDROID_ACTIVITY\` |"
+        echo "| iOS build timeout seconds | $IOS_BUILD_TIMEOUT_SECONDS |"
+        echo "| Android build timeout seconds | $ANDROID_BUILD_TIMEOUT_SECONDS |"
         echo ""
         echo "## Toolchain"
         echo ""
@@ -169,14 +188,14 @@ record_skip() {
 build_ios_app() {
     local derived="$RUN_DIR/ios-derived"
     local log="$LOG_DIR/xcodebuild-ios-release.log"
-    xcodebuild \
+    run_with_timeout "$IOS_BUILD_TIMEOUT_SECONDS" xcodebuild \
         -project "$PROJECT_DIR/iosApp/iosApp.xcodeproj" \
         -scheme WakeveApp \
         -configuration Release \
         -destination "platform=iOS Simulator,name=$IOS_SIMULATOR" \
         -derivedDataPath "$derived" \
         CODE_SIGNING_ALLOWED=NO \
-        build > "$log" 2>&1
+        build > "$log" 2>&1 || return 1
 
     find "$derived/Build/Products/Release-iphonesimulator" -maxdepth 2 -name "Wakeve.app" -type d | head -n 1
 }
@@ -196,7 +215,10 @@ profile_ios() {
 
     if [ "$BUILD_IOS" = true ]; then
         local app_path
-        app_path="$(build_ios_app)"
+        if ! app_path="$(build_ios_app)"; then
+            record_skip "iOS Cold Start" "The iOS Release simulator build failed or exceeded ${IOS_BUILD_TIMEOUT_SECONDS}s. Inspect \`$LOG_DIR/xcodebuild-ios-release.log\`."
+            return 0
+        fi
         if [ -z "$app_path" ] || [ ! -d "$app_path" ]; then
             record_skip "iOS Cold Start" "The iOS Release simulator build completed without a discoverable \`Wakeve.app\`."
             return 0
@@ -237,7 +259,7 @@ profile_ios() {
 
 build_android_app() {
     local log="$LOG_DIR/gradle-android-release.log"
-    "$PROJECT_DIR/gradlew" -p "$PROJECT_DIR" :composeApp:assembleRelease > "$log" 2>&1
+    run_with_timeout "$ANDROID_BUILD_TIMEOUT_SECONDS" "$PROJECT_DIR/gradlew" -p "$PROJECT_DIR" :composeApp:assembleRelease > "$log" 2>&1 || return 1
     find "$PROJECT_DIR/composeApp/build/outputs/apk/release" -maxdepth 1 -name "*.apk" -type f | head -n 1
 }
 
@@ -256,7 +278,10 @@ profile_android() {
 
     if [ "$BUILD_ANDROID" = true ]; then
         local apk_path
-        apk_path="$(build_android_app)"
+        if ! apk_path="$(build_android_app)"; then
+            record_skip "Android Cold Start" "The Android Release build failed or exceeded ${ANDROID_BUILD_TIMEOUT_SECONDS}s. Inspect \`$LOG_DIR/gradle-android-release.log\`."
+            return 0
+        fi
         if [ -z "$apk_path" ] || [ ! -f "$apk_path" ]; then
             record_skip "Android Cold Start" "The Android Release build completed without a discoverable APK."
             return 0

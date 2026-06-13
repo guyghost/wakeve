@@ -141,11 +141,13 @@ Commands refreshed locally on 2026-06-13:
 ```bash
 bash -n scripts/profile-release-performance.sh
 ./scripts/profile-release-performance.sh --runs 1
+IOS_BUILD_TIMEOUT_SECONDS=1 ./scripts/profile-release-performance.sh --ios-only --build-ios --runs 1
 ```
 
 Observed local result:
 
 - `scripts/profile-release-performance.sh` writes Markdown reports to `docs/performance/`.
+- `--build-ios` and `--build-android` are bounded by `IOS_BUILD_TIMEOUT_SECONDS` and `ANDROID_BUILD_TIMEOUT_SECONDS` so a failed or slow release build is recorded as `SKIPPED` with a raw log path instead of hanging the evidence run.
 - `docs/performance/release-profiling-runbook.md` defines the device closure requirements for cold start, home/list scrolling, event creation, scenario matrix, and WakeveAI generation/cancellation/memory.
 - `docs/performance/release-performance-2026-06-13T12-08-21Z.md` captured one local simulator iOS launch sample via `simctl launch` at `308.9 ms`.
 - The same report skipped Android because no Android device or emulator was connected.

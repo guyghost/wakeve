@@ -39,6 +39,18 @@ Useful scoped runs:
 
 Reports are written to `docs/performance/release-performance-<timestamp>.md`.
 
+Builds are bounded so the helper can be used in release gates without hanging on
+slow or broken local toolchains:
+
+```bash
+IOS_BUILD_TIMEOUT_SECONDS=900 ANDROID_BUILD_TIMEOUT_SECONDS=900 \
+  ./scripts/profile-release-performance.sh --build-ios --build-android --runs 5
+```
+
+If a build fails or exceeds its timeout, the report records the platform section
+as `SKIPPED` and points to the raw build log for that run. The default timeout is
+600 seconds per platform build.
+
 ## Device Closure Requirements
 
 Before checking off the roadmap performance items, attach or reference:
