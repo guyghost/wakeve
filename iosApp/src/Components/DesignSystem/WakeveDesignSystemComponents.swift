@@ -412,7 +412,7 @@ struct WakeveSearchField: View {
                         .foregroundColor(.white.opacity(colorScheme == .dark ? 0.9 : 0.62))
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(trailingSystemImage == "mic" ? "Dictée" : "Action de recherche")
+                .accessibilityLabel(trailingSystemImage == "mic" ? String(localized: "common.dictation") : String(localized: "common.search_action_accessibility"))
             }
         }
         .padding(.horizontal, WakeveTheme.Spacing.lg)

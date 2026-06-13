@@ -61,22 +61,32 @@ root = ARGV.fetch(0)
 out = ARGV.fetch(1)
 findings = []
 patterns = [
-  /\.(accessibility(?:Label|Hint|Value))\(\s*"([^"\\]*(?:\\.[^"\\]*)*)"/,
-  /\b(accessibility(?:Label|Hint|Value)):\s*"([^"\\]*(?:\\.[^"\\]*)*)"/
+  /\.(accessibility(?:Label|Hint|Value))\(/,
+  /\b(accessibility(?:Label|Hint|Value)):\s*/
 ]
 
 Dir.glob(File.join(root, "**", "*.swift")).sort.each do |path|
   lines = File.readlines(path, chomp: true)
   lines.each_with_index do |line, index|
-    patterns.each do |pattern|
-      match = line.match(pattern)
-      next unless match
-      literal = match[2]
-      next if literal.include?("\\(")
+    next unless patterns.any? { |pattern| line.match?(pattern) }
 
-      findings << "#{path}:#{index + 1}: #{line.strip}"
+    has_hardcoded_literal = false
+    line.to_enum(:scan, /"([^"\\]*(?:\\.[^"\\]*)*)"/).each do
+      literal = Regexp.last_match(1)
+      literal_start = Regexp.last_match.begin(0)
+      prefix = line[0...literal_start]
+
+      next if literal.include?("\\(")
+      next if prefix.match?(/String\s*\(\s*localized:\s*$/)
+      next if prefix.match?(/String\s*\(\s*format:\s*String\s*\(\s*localized:\s*$/)
+      next if prefix.match?(/String\.localizedStringWithFormat\s*\(\s*String\s*\(\s*localized:\s*$/)
+      next if prefix.match?(/(?:==|!=)\s*$/)
+
+      has_hardcoded_literal = true
       break
     end
+
+    findings << "#{path}:#{index + 1}: #{line.strip}" if has_hardcoded_literal
   end
 end
 

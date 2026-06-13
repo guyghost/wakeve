@@ -103,7 +103,7 @@ xcodebuild -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'plat
 Observed local result:
 
 - `en.lproj/Localizable.strings` and `fr.lproj/Localizable.strings` both pass `plutil -lint`.
-- EN and FR each contain 834 localization keys, with no keys missing in either locale.
+- EN and FR each contain 843 localization keys, with no keys missing in either locale.
 - Login accessibility labels and hints for Sign in with Apple, guest access, development skip, Privacy Policy, and Terms of Service are localized through `Localizable.strings` instead of hardcoded English strings.
 - `FindingsRegressionTests` passed on iPhone 17 Pro Max simulator; latest result bundle: `/Users/guy/Library/Developer/Xcode/DerivedData/iosApp-apbkkjufflidnaalnmfuwfwijqop/Logs/Test/Test-WakeveApp-2026.06.13_14-17-19-+0200.xcresult`.
 
@@ -124,8 +124,10 @@ Observed local result:
 - `docs/a11y/ios-accessibility-source-audit-2026-06-13T12-34-59Z.md` reports `0` direct hardcoded `.accessibilityLabel("...")`, `.accessibilityHint("...")`, or `.accessibilityValue("...")` calls under `iosApp/src`.
 - `docs/a11y/ios-accessibility-source-audit-2026-06-13T13-09-20Z.md` reports `0` hardcoded accessibility label/hint/value findings after extending the audit to named `accessibilityLabel:`/`accessibilityHint:`/`accessibilityValue:` arguments used by shared controls.
 - `docs/a11y/ios-accessibility-source-audit-2026-06-13T13-12-50Z.md` reports `0` hardcoded accessibility strings, `0` single-line text risks, and `0` bare indeterminate `ProgressView()` calls without an accessibility label or explicit hiding.
+- `docs/a11y/ios-accessibility-source-audit-2026-06-13T13-24-22Z.md` reports `0` findings after broadening the audit to catch hardcoded accessibility literals inside more complex `accessibilityLabel`/`accessibilityHint` expressions such as ternaries.
 - The audit reports `0` single-line text risks where `.lineLimit(1)` lacks a nearby `.minimumScaleFactor`, `.fixedSize`, `.allowsTightening`, or `.dynamicTypeSize` fallback.
 - New release-visible accessibility labels for WakeveAI actions, scenario refresh, transport suggestion/departure, sync pending state, home filters, participant actions, calendar add, and organizer options are localized through `Localizable.strings`.
+- Additional VoiceOver hints and labels for AI badges, text/password fields, selection chips, search/dictation actions, participant detail lock state, and scenario comparison actions are localized through EN, FR, ES, IT, and PT `Localizable.strings`.
 - Release-visible loading copy for event lists, WakeveAI preparation, budget, expenses, and meetings is localized through EN, FR, ES, IT, and PT `Localizable.strings` instead of hardcoded source strings.
 - EN, FR, ES, IT, and PT `Localizable.strings` pass `plutil -lint` after the accessibility key additions.
 

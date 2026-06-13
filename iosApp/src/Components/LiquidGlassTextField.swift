@@ -182,7 +182,7 @@ struct LiquidGlassTextField: View {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(title ?? placeholder)
-        .accessibilityHint(isSecure == true ? "Password field" : "Text field")
+        .accessibilityHint(isSecure == true ? String(localized: "common.password_field_accessibility_hint") : String(localized: "common.text_field_accessibility_hint"))
     }
     
     // MARK: - Helper Views

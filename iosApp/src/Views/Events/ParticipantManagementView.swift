@@ -1151,7 +1151,7 @@ private struct ParticipantRowView: View {
 
                 participantModerationMenu
             }
-            .accessibilityLabel(participant.canAccessOrganizationDetails ? "Détails déverrouillés" : "Détails verrouillés")
+            .accessibilityLabel(participant.canAccessOrganizationDetails ? String(localized: "participants.details_unlocked_accessibility") : String(localized: "participants.details_locked_accessibility"))
         }
         .padding(WakeveTheme.Spacing.sm)
         .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
