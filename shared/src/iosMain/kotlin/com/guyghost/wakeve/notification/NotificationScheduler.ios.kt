@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import platform.Foundation.NSBundle
 import platform.Foundation.NSDate
 import platform.Foundation.NSTimeInterval
 import platform.Foundation.NSUUID
@@ -42,8 +43,6 @@ import kotlin.time.Duration.Companion.seconds
  * In production, you may want to handle this from SwiftUI with proper error handling.
  */
 actual class NotificationScheduler {
-
-    private val notificationCenter = UNUserNotificationCenter.currentNotificationCenter()
 
     actual companion object {
         private const val CATEGORY_EVENT = "EVENT_CATEGORY"
@@ -84,7 +83,12 @@ actual class NotificationScheduler {
         body: String,
         scheduledTime: Instant
     ): Result<Unit> = withContext(Dispatchers.Default) {
+        if (isKotlinNativeTestBundle()) {
+            return@withContext notificationCenterUnavailable()
+        }
+
         runCatching {
+            val notificationCenter = UNUserNotificationCenter.currentNotificationCenter()
             val notificationId = generateNotificationId("event", eventId)
             val interval = calculateTimeInterval(scheduledTime)
 
@@ -137,7 +141,12 @@ actual class NotificationScheduler {
         body: String,
         deadlineTime: Instant
     ): Result<Unit> = withContext(Dispatchers.Default) {
+        if (isKotlinNativeTestBundle()) {
+            return@withContext notificationCenterUnavailable()
+        }
+
         runCatching {
+            val notificationCenter = UNUserNotificationCenter.currentNotificationCenter()
             val notificationId = generateNotificationId("poll", pollId)
             val interval = calculateTimeInterval(deadlineTime)
 
@@ -183,7 +192,12 @@ actual class NotificationScheduler {
      */
     actual suspend fun cancelScheduledNotification(notificationId: String): Result<Unit> =
         withContext(Dispatchers.Default) {
+            if (isKotlinNativeTestBundle()) {
+                return@withContext notificationCenterUnavailable()
+            }
+
             runCatching {
+                val notificationCenter = UNUserNotificationCenter.currentNotificationCenter()
                 notificationCenter.removePendingNotificationRequestsWithIdentifiers(
                     listOf(notificationId)
                 )
@@ -199,7 +213,12 @@ actual class NotificationScheduler {
      */
     actual suspend fun cancelAllScheduledNotifications(): Result<Unit> =
         withContext(Dispatchers.Default) {
+            if (isKotlinNativeTestBundle()) {
+                return@withContext notificationCenterUnavailable()
+            }
+
             runCatching {
+                val notificationCenter = UNUserNotificationCenter.currentNotificationCenter()
                 notificationCenter.removeAllPendingNotificationRequests()
                 notificationCenter.removeAllDeliveredNotifications()
             }
@@ -219,6 +238,17 @@ actual class NotificationScheduler {
      */
     private fun generateNotificationId(type: String, id: String): String {
         return "$type-$id"
+    }
+
+    private fun isKotlinNativeTestBundle(): Boolean {
+        val bundlePath = NSBundle.mainBundle.bundleURL.path
+        return bundlePath?.endsWith("/debugTest") == true
+    }
+
+    private fun notificationCenterUnavailable(): Result<Unit> {
+        return Result.failure(
+            IllegalStateException("UNUserNotificationCenter is unavailable in Kotlin/Native debugTest bundles")
+        )
     }
 
     /**

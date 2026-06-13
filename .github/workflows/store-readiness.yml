@@ -17,7 +17,7 @@ on:
       - 'scripts/app-store-local-web-route-check.sh'
       - 'composeApp/metadata/**'
       - 'composeApp/screenshots/**'
-      - 'webApp/**'
+      - 'apps/landing/**'
       - 'docs/APP_STORE_*.md'
       - 'openspec/**'
       - '.env.appstore.example'
@@ -118,17 +118,17 @@ jobs:
           version: 10
 
       - name: Install web dependencies
-        working-directory: webApp
+        working-directory: apps/landing
         run: pnpm install --frozen-lockfile
 
       - name: Audit web dependencies
-        working-directory: webApp
+        working-directory: apps/landing
         run: pnpm audit --audit-level low
 
       - name: Verify local public web and AASA routes
         run: |
           mkdir -p build
-          cd webApp
+          cd apps/landing
           CI=true APPLE_TEAM_ID=A1B2C3D4E5 npx --yes pnpm@10 exec vite dev --host 127.0.0.1 --port 4174 > ../build/app-store-local-web-route-check.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
@@ -403,42 +403,9 @@ jobs:
           fi
           echo "✅ Final audit remains non-uploading and blocks incomplete App Store submission state"
 
-      - name: Verify product signoff guards cannot be bypassed
+      - name: Verify UGC moderation signoff guards cannot be bypassed
         run: |
-          set +e
-          output=$(APP_REVIEW_PHONE_NUMBER="+33123456789" APP_STORE_ACCOUNT_DELETION_CONFIRMED=true APP_STORE_UGC_MODERATION_CONFIRMED=true ./scripts/app-store-submission-audit.sh --skip-preflight 2>&1)
-          status=$?
-          set -e
-          echo "$output"
-          if [ "$status" -eq 0 ]; then
-            echo "❌ Final audit unexpectedly accepted product signoffs without account deletion and UGC implementation evidence"
-            exit 1
-          fi
-          if ! grep -q "Account deletion OpenSpec tasks still contain unchecked items" <<<"$output"; then
-            echo "❌ Final audit did not block incomplete account deletion OpenSpec tasks"
-            exit 1
-          fi
-          if ! grep -q "Account deletion backend tests cover deletion behavior is not present" <<<"$output"; then
-            echo "❌ Final audit did not require account deletion backend test evidence"
-            exit 1
-          fi
-          if ! grep -q "App Store account deletion evidence is not complete" <<<"$output"; then
-            echo "❌ Final audit did not require account deletion App Store evidence"
-            exit 1
-          fi
-          if ! grep -q "UGC moderation OpenSpec tasks still contain unchecked items" <<<"$output"; then
-            echo "❌ Final audit did not block incomplete UGC moderation OpenSpec tasks"
-            exit 1
-          fi
-          if ! grep -q "UGC moderation shared/server models are present is not present" <<<"$output"; then
-            echo "❌ Final audit did not require UGC moderation model evidence"
-            exit 1
-          fi
-          if ! grep -q "App Store UGC moderation evidence is not complete" <<<"$output"; then
-            echo "❌ Final audit did not require UGC moderation App Store evidence"
-            exit 1
-          fi
-          echo "✅ Final audit rejects forced product signoffs without implementation evidence"
+          ./scripts/test-app-store-ugc-gates.sh
 
       - name: Verify forced final signoffs still require final evidence
         run: |

@@ -86,6 +86,75 @@ Unsigned limitation:
 - This dSYM evidence belongs to the local `CODE_SIGNING_ALLOWED=NO` Release build, not an uploaded App Store Connect build.
 - Final closure still requires the signed archive retained for the distributed build, uploaded-build dSYM or symbol-inclusion evidence, App Store Connect/TestFlight crash dashboard evidence, TestFlight feedback review, backend health/API monitoring, Universal Links/AASA monitoring, and support mailbox evidence for the same uploaded build number.
 
+## Local Server Log Hygiene Result
+
+This section records local release-path log hygiene only. It does not satisfy the uploaded TestFlight/App Review build observability requirement.
+
+Commands refreshed locally on 2026-06-13:
+
+```bash
+./scripts/test-critical-release-gates.sh
+```
+
+Observed local server log hygiene:
+
+- `OtpManager` no longer logs email addresses, generated OTP codes, verification email values, or OTP code values.
+- `PushNotificationSender` no longer logs push tokens, notification title/body values, notification data payloads, or provider response bodies.
+- `EventNotificationTrigger` no longer logs voter display names, user IDs, participant IDs, event IDs, comment previews, or notification send failure payload details on the checked paths.
+- `NotificationScheduler` no longer logs event IDs, user IDs, participant IDs, or scheduled job keys on the checked paths.
+- `scripts/test-critical-release-gates.sh` now fails if these auth, notification, or push files reintroduce direct logging of email/OTP/token/payload/user/event identifiers in checked `logger` calls.
+
+Local limitation:
+
+- This is a static local regression gate for high-risk server paths. Final closure still requires production backend monitoring, API error review, support handoff, crash/dSYM evidence, and uploaded-build TestFlight evidence for the same build number.
+
+## Local Analytics And Crash Provider Privacy Alignment
+
+This section records local privacy alignment for the current source tree only. It does not satisfy App Store Connect privacy signoff or uploaded-build observability evidence.
+
+Commands refreshed locally on 2026-06-13:
+
+```bash
+plutil -p iosApp/src/PrivacyInfo.xcprivacy
+rg -n "Firebase|Crashlytics|GoogleService|firebase|crashlytics|analytics|Analytics|ATTracking|NSUserTrackingUsageDescription|IdentifierForAdvertising|IDFA|advertisingIdentifier" iosApp shared composeApp server apps gradle build.gradle.kts settings.gradle.kts gradle/libs.versions.toml --glob '!**/build/**' --glob '!**/.gradle/**'
+rg -n "Crashlytics|crashlytics|Firebase/Crash|FirebaseCrash|CrashReporting|Sentry|Bugsnag|AppCenter|Crashlytics" iosApp shared composeApp server apps gradle build.gradle.kts settings.gradle.kts gradle/libs.versions.toml --glob '!**/build/**' --glob '!**/.gradle/**'
+```
+
+Observed local result:
+
+- `iosApp/src/PrivacyInfo.xcprivacy` declares `NSPrivacyTracking=false` and an empty `NSPrivacyTrackingDomains` array.
+- The privacy manifest declares product interaction as collected for analytics and linked to identity, matching the conservative App Store privacy labels draft.
+- `shared/src/iosMain/kotlin/com/guyghost/wakeve/analytics/FirebaseAnalyticsProvider.kt` is local-only for the first App Store build: it queues events locally, does not link to a Firebase iOS SDK bridge, and treats `setUserProperty`/`setUserId` as no-ops.
+- Android still contains Firebase Analytics integration; this is outside the iOS App Store first-release submission but remains covered by the broader privacy labels draft.
+- Local source search found no active Crashlytics, Sentry, Bugsnag, AppCenter, Firebase Crash, IDFA, `ATTrackingManager`, or `NSUserTrackingUsageDescription` integration in the checked release paths.
+
+Local limitation:
+
+- Final closure still requires checking the exact signed iOS archive/binary, the uploaded TestFlight/App Review build, App Store Connect privacy answers, and the live privacy policy for the same build number.
+
+## Local Performance Capture Harness
+
+This section records the local performance capture harness only. It does not satisfy the uploaded TestFlight/App Review build observability requirement or the roadmap device-profiling requirements.
+
+Commands refreshed locally on 2026-06-13:
+
+```bash
+bash -n scripts/profile-release-performance.sh
+./scripts/profile-release-performance.sh --runs 1
+```
+
+Observed local result:
+
+- `scripts/profile-release-performance.sh` writes Markdown reports to `docs/performance/`.
+- `docs/performance/release-profiling-runbook.md` defines the device closure requirements for cold start, home/list scrolling, event creation, scenario matrix, and WakeveAI generation/cancellation/memory.
+- `docs/performance/release-performance-2026-06-13T12-08-21Z.md` captured one local simulator iOS launch sample via `simctl launch` at `308.9 ms`.
+- The same report skipped Android because no Android device or emulator was connected.
+- The report states that local/simulator evidence does not close the release device-performance items.
+
+Local limitation:
+
+- The iOS sample is a host-observed process-launch measurement for an already installed simulator app. Final closure still requires Release build captures on representative physical devices, plus Instruments/Profiler traces for the listed flows and WakeveAI on a supported device.
+
 ## Evidence Commands
 
 Run before final signoff:
@@ -93,6 +162,7 @@ Run before final signoff:
 ```bash
 APP_REVIEW_PHONE_NUMBER=<APP_REVIEW_PHONE_NUMBER> ./scripts/lint-store-metadata.sh --ios-only
 APP_REVIEW_PHONE_NUMBER=<APP_REVIEW_PHONE_NUMBER> ./scripts/app-store-submission-audit.sh --skip-preflight
+./scripts/profile-release-performance.sh --build-ios --build-android --runs 5
 curl -I https://api.wakeve.app/health
 curl -I https://wakeve.app/support
 xcrun dwarfdump --uuid <signed-archive-or-exported-app-dsym-path>
