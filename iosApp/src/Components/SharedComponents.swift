@@ -181,7 +181,7 @@ struct FilterChip: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(text)
-        .accessibilityHint(isSelected ? "Selected" : "Tap to select")
+        .accessibilityHint(isSelected ? String(localized: "common.selected") : String(localized: "common.double_tap_to_select"))
     }
 }
 

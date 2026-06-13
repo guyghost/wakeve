@@ -20,6 +20,7 @@
 
 // MARK: - WakeveAI
 "ai.cancel_suggestion_accessibility" = "Cancel suggestion";
+"ai.badge_detail_hint" = "Tap to view this suggestion's details";
 "ai.preparing" = "Preparing...";
 "ai.prepare_suggestions_accessibility" = "Prepare suggestions";
 
@@ -360,9 +361,13 @@
 "participants.add_accessibility" = "Add participant";
 "participants.choose_from_contacts_accessibility" = "Choose participants from contacts";
 "participants.count_accessibility" = "%lld participants";
+"participants.details_locked_accessibility" = "Details locked";
+"participants.details_unlocked_accessibility" = "Details unlocked";
 
 // MARK: - Scenario Accessibility
 "scenario.refresh_accessibility" = "Refresh scenarios";
+"scenario.add_to_comparison_accessibility" = "Add to comparison";
+"scenario.remove_from_comparison_accessibility" = "Remove from comparison";
 
 // MARK: - Transport Accessibility
 "transport.prepare_suggestion_accessibility" = "Prepare a transport suggestion";
@@ -593,8 +598,12 @@
 
 // MARK: - Common (Extended)
 "common.double_tap_to_select" = "Double tap to select";
+"common.dictation" = "Dictation";
 "common.not_selected" = "Not selected";
+"common.password_field_accessibility_hint" = "Password field";
+"common.search_action_accessibility" = "Search action";
 "common.selected" = "Selected";
+"common.text_field_accessibility_hint" = "Text field";
 "common.share" = "Share";
 
 // MARK: - Events (Extended)

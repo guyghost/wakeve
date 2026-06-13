@@ -595,7 +595,7 @@ private struct ScenarioOrganizationCard: View {
                     .foregroundColor(isSelectedForComparison ? .blue : secondaryText)
                     .frame(width: 34, height: 34)
             }
-            .accessibilityLabel(isSelectedForComparison ? "Retirer de la comparaison" : "Ajouter a la comparaison")
+            .accessibilityLabel(isSelectedForComparison ? String(localized: "scenario.remove_from_comparison_accessibility") : String(localized: "scenario.add_to_comparison_accessibility"))
         }
     }
 

@@ -75,7 +75,7 @@ struct AIBadgeView: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(badge.displayName)
-        .accessibilityHint(badge.tooltip ?? "Touchez pour voir le détail de cette suggestion")
+        .accessibilityHint(badge.tooltip ?? String(localized: "ai.badge_detail_hint"))
         .accessibilityAddTraits(.isButton)
     }
     

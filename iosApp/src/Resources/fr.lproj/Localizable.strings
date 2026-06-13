@@ -20,6 +20,7 @@
 
 // MARK: - WakeveAI
 "ai.cancel_suggestion_accessibility" = "Annuler la suggestion";
+"ai.badge_detail_hint" = "Touchez pour voir le détail de cette suggestion";
 "ai.preparing" = "Préparation en cours...";
 "ai.prepare_suggestions_accessibility" = "Préparer des suggestions";
 
@@ -360,9 +361,13 @@
 "participants.add_accessibility" = "Ajouter le participant";
 "participants.choose_from_contacts_accessibility" = "Choisir des participants depuis les contacts";
 "participants.count_accessibility" = "%lld participants";
+"participants.details_locked_accessibility" = "Détails verrouillés";
+"participants.details_unlocked_accessibility" = "Détails déverrouillés";
 
 // MARK: - Scenario Accessibility
 "scenario.refresh_accessibility" = "Actualiser les scénarios";
+"scenario.add_to_comparison_accessibility" = "Ajouter à la comparaison";
+"scenario.remove_from_comparison_accessibility" = "Retirer de la comparaison";
 
 // MARK: - Transport Accessibility
 "transport.prepare_suggestion_accessibility" = "Préparer une suggestion transport";
@@ -593,8 +598,12 @@
 
 // MARK: - Common (Extended)
 "common.double_tap_to_select" = "Appuyez deux fois pour sélectionner";
+"common.dictation" = "Dictée";
 "common.not_selected" = "Non sélectionné";
+"common.password_field_accessibility_hint" = "Champ de mot de passe";
+"common.search_action_accessibility" = "Action de recherche";
 "common.selected" = "Sélectionné";
+"common.text_field_accessibility_hint" = "Champ de texte";
 "common.share" = "Partager";
 
 // MARK: - Events (Extended)
