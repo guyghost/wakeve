@@ -198,12 +198,14 @@ struct LiquidGlassToolbar<Leading: View, Trailing: View>: View {
                     .font(WakeveTheme.Typography.rowTitle)
                     .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.78)
 
                 if let subtitle {
                     Text(subtitle)
                         .font(WakeveTheme.Typography.caption)
                         .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.78)
                 }
             }
 
@@ -377,12 +379,14 @@ struct EventListRow: View {
                         .font(WakeveTheme.Typography.callout)
                         .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.78)
 
                     if let nextActionHint {
                         Text(nextActionHint)
                             .font(WakeveTheme.Typography.caption)
                             .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.78)
                     }
                 }
 

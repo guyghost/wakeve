@@ -133,6 +133,7 @@ struct LeaderboardView: View {
                 .fontWeight(entry.isCurrentUser ? .bold : .medium)
                 .foregroundColor(.primary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.78)
 
             Text(formatPoints(entry.totalPoints))
                 .font(.caption)

@@ -86,6 +86,7 @@ struct InvitationShareSheet: View {
                                 .font(.system(.footnote, design: .monospaced))
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.72)
                                 .truncationMode(.middle)
 
                             Spacer()

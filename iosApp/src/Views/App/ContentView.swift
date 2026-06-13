@@ -1332,6 +1332,7 @@ struct EventDetailView: View {
     @State private var ignoredEventAISuggestions: Set<String> = []
     @State private var isGeneratingEventAI = false
     @State private var eventAIError: String?
+    @State private var moderationTarget: ModerationActionTarget?
 
     var body: some View {
         ZStack {
@@ -1366,6 +1367,9 @@ struct EventDetailView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomPrimaryAction
+        }
+        .sheet(item: $moderationTarget) { target in
+            ModerationActionSheet(target: target)
         }
     }
 
@@ -1574,7 +1578,7 @@ struct EventDetailView: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(isGeneratingEventAI)
-                    .accessibilityLabel("Préparer des suggestions")
+                    .accessibilityLabel(String(localized: "ai.prepare_suggestions_accessibility"))
                 }
 
                 if isGeneratingEventAI {
@@ -1665,15 +1669,15 @@ struct EventDetailView: View {
         LiquidGlassToolbar(title: "Événement", subtitle: statusText) {
             WakeveCircleButton(
                 systemImage: "chevron.left",
-                accessibilityLabel: "Retour",
+                accessibilityLabel: String(localized: "common.back"),
                 variant: .glass,
                 size: 40,
                 action: onBack
             )
         } trailing: {
-            Menu {
-                organizerMenuContent
-            } label: {
+        Menu {
+            organizerMenuContent
+        } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
@@ -1681,7 +1685,7 @@ struct EventDetailView: View {
                     .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
                     .clipShape(Circle())
             }
-            .accessibilityLabel("Options organisateur")
+            .accessibilityLabel(String(localized: "events.organizer_options_accessibility"))
         }
         .padding(.horizontal, WakeveTheme.Spacing.page)
         .padding(.top, WakeveTheme.Spacing.sm)
@@ -1741,6 +1745,27 @@ struct EventDetailView: View {
                 Label("Tricount", systemImage: "link.circle.fill")
             }
         }
+
+        Divider()
+
+        Button {
+            moderationTarget = ModerationActionTarget(
+                type: .event,
+                targetId: event.id,
+                eventId: event.id,
+                authorId: event.organizerId,
+                displayName: String(localized: "moderation.report_event_context"),
+                allowsBlock: false
+            )
+        } label: {
+            Label(String(localized: "moderation.report_event"), systemImage: "exclamationmark.bubble")
+        }
+        .accessibilityIdentifier("reportEventAction")
+
+        Link(
+            String(localized: "moderation.contact_support"),
+            destination: URL(string: "mailto:support@wakeve.app?subject=Wakeve%20abuse%20report")!
+        )
     }
 
     private var bottomPrimaryAction: some View {
@@ -2554,6 +2579,7 @@ private struct EventDetailMetadataPill: View {
                 .font(WakeveTheme.Typography.tiny)
                 .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                 .lineLimit(1)
+                .minimumScaleFactor(0.78)
 
             Text(value)
                 .font(WakeveTheme.Typography.callout.weight(.semibold))
@@ -2858,6 +2884,7 @@ private struct EventPreviewDetailRow: View {
                         .font(.system(size: 17, weight: .bold))
                         .foregroundColor(primaryText)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.78)
                 }
 
                 Spacer()

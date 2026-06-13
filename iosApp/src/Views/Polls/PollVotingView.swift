@@ -185,6 +185,7 @@ struct PollVotingContentView: View {
                     .font(WakeveTheme.Typography.tiny)
                     .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                     .lineLimit(1)
+                    .minimumScaleFactor(0.78)
                     .padding(.horizontal, WakeveTheme.Spacing.sm)
                     .frame(height: 34)
                     .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))

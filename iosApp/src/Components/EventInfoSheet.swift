@@ -48,7 +48,7 @@ struct EventInfoSheet: View {
                                     .fill(Color.blue)
                             )
                     }
-                    .accessibilityLabel("Confirmer")
+                    .accessibilityLabel(String(localized: "common.confirm"))
                 }
             }
             .background(Color(.systemBackground))

@@ -30,6 +30,7 @@ Last checked: 2026-05-27. Local simulator evidence refreshed: 2026-05-28.
 - Build number: TBD
 - Release commit: TBD
 - Accessibility labels draft: `docs/APP_STORE_ACCESSIBILITY_LABELS.md`
+- Local simulator screenshot index: `docs/app-store-evidence/README.md`
 - TestFlight evidence reference: `docs/APP_STORE_TESTFLIGHT_EVIDENCE.md`
 - iOS audit references: `docs/ACCESSIBILITY_AUDIT.md` and `docs/a11y/ACCESSIBILITY_AUDIT_iOS.md`
 - App Store Connect decision: leave labels unpublished, or publish only directly tested claims.
@@ -40,8 +41,8 @@ Last checked: 2026-05-27. Local simulator evidence refreshed: 2026-05-28.
 | --- | --- | --- | --- |
 | iPhone | Dark mode, larger Dynamic Type, VoiceOver, contrast, reduced motion, and color-only status checks for primary flows if any label is claimed. | Pending | TBD |
 | iPad | Same as iPhone plus iPad layout, pointer/keyboard navigation, and split-view or large-screen behavior if available. | Pending | TBD |
-| Mac with Apple silicon | Either opt out/leave labels unclaimed, or verify Designed for iPad/iPhone runtime keyboard, VoiceOver, resizing, and primary workflows. | Pending | TBD |
-| Apple Vision Pro | Either opt out/leave labels unclaimed, or verify compatibility runtime accessibility behavior in an approved test environment. | Pending | TBD |
+| Mac with Apple silicon | Either opt out/leave labels unclaimed, or verify Designed for iPad/iPhone runtime keyboard, VoiceOver, resizing, and primary workflows. | Not claimed for first release | Repository Release settings disable `SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD`; App Store Connect availability confirmation remains pending. |
+| Apple Vision Pro | Either opt out/leave labels unclaimed, or verify compatibility runtime accessibility behavior in an approved test environment. | Not claimed for first release | Repository Release settings disable `SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD`; App Store Connect availability confirmation remains pending. |
 
 ## Feature Evidence
 
@@ -60,6 +61,8 @@ Last checked: 2026-05-27. Local simulator evidence refreshed: 2026-05-28.
 ## Local Debug Simulator Evidence
 
 This section records partial local evidence only. It does not justify setting `APP_STORE_ACCESSIBILITY_EVIDENCE_COMPLETE=true`, because the evidence is from XcodeBuildMCP Debug simulator sessions and not from the signed TestFlight or App Review build.
+
+The local screenshot inventory, dimensions, and SHA-256 hashes are indexed in `docs/app-store-evidence/README.md`.
 
 | Screen | Evidence File | Accessibility Hierarchy Observed | Result |
 | --- | --- | --- | --- |
@@ -80,7 +83,52 @@ Current local gaps before App Store accessibility signoff:
 - VoiceOver traversal and action confirmation for login, create event, poll, calendar, settings, account deletion, UGC moderation, and payment/Tricount surfaces.
 - Contrast checks for the active review build screenshots.
 - Reduced Motion and Differentiate without Color Alone checks for status, vote, notification, and payment states.
-- Mac with Apple silicon and Apple Vision Pro accessibility evidence if those availability options remain enabled.
+- App Store Connect confirmation that Mac with Apple silicon and Apple Vision Pro availability remain disabled for the first release, matching `docs/APP_STORE_AVAILABILITY_DECISIONS.md`.
+
+## Local Localization And Accessibility Label Check
+
+This section records local source and simulator checks only. It supports P1 release hardening, but it does not close the uploaded-build accessibility evidence requirement.
+
+Commands refreshed locally on 2026-06-13:
+
+```bash
+plutil -lint iosApp/src/Resources/en.lproj/Localizable.strings iosApp/src/Resources/fr.lproj/Localizable.strings
+grep -E '^"[^"]+"[[:space:]]*=' iosApp/src/Resources/en.lproj/Localizable.strings | sed -E 's/^"([^"]+)".*/\1/' | sort > /tmp/wakeve-en-keys.txt
+grep -E '^"[^"]+"[[:space:]]*=' iosApp/src/Resources/fr.lproj/Localizable.strings | sed -E 's/^"([^"]+)".*/\1/' | sort > /tmp/wakeve-fr-keys.txt
+comm -23 /tmp/wakeve-en-keys.txt /tmp/wakeve-fr-keys.txt
+comm -13 /tmp/wakeve-en-keys.txt /tmp/wakeve-fr-keys.txt
+xcodebuild -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' -only-testing:WakeveTests/FindingsRegressionTests test
+```
+
+Observed local result:
+
+- `en.lproj/Localizable.strings` and `fr.lproj/Localizable.strings` both pass `plutil -lint`.
+- EN and FR each contain 829 localization keys, with no keys missing in either locale.
+- Login accessibility labels and hints for Sign in with Apple, guest access, development skip, Privacy Policy, and Terms of Service are localized through `Localizable.strings` instead of hardcoded English strings.
+- `FindingsRegressionTests` passed on iPhone 17 Pro Max simulator; latest result bundle: `/Users/guy/Library/Developer/Xcode/DerivedData/iosApp-apbkkjufflidnaalnmfuwfwijqop/Logs/Test/Test-WakeveApp-2026.06.13_14-17-19-+0200.xcresult`.
+
+## Local SwiftUI Source Accessibility Audit
+
+This section records a local source audit only. It supports P1 release hardening, but it does not close the uploaded-build accessibility evidence requirement.
+
+Commands refreshed locally on 2026-06-13:
+
+```bash
+bash -n scripts/audit-ios-accessibility-source.sh
+./scripts/audit-ios-accessibility-source.sh
+plutil -lint iosApp/src/Resources/en.lproj/Localizable.strings iosApp/src/Resources/fr.lproj/Localizable.strings iosApp/src/Resources/es.lproj/Localizable.strings iosApp/src/Resources/it.lproj/Localizable.strings iosApp/src/Resources/pt.lproj/Localizable.strings
+```
+
+Observed local result:
+
+- `docs/a11y/ios-accessibility-source-audit-2026-06-13T12-34-59Z.md` reports `0` direct hardcoded `.accessibilityLabel("...")`, `.accessibilityHint("...")`, or `.accessibilityValue("...")` calls under `iosApp/src`.
+- The audit reports `0` single-line text risks where `.lineLimit(1)` lacks a nearby `.minimumScaleFactor`, `.fixedSize`, `.allowsTightening`, or `.dynamicTypeSize` fallback.
+- New release-visible accessibility labels for WakeveAI actions, scenario refresh, transport suggestion/departure, sync pending state, home filters, participant actions, calendar add, and organizer options are localized through `Localizable.strings`.
+- EN, FR, ES, IT, and PT `Localizable.strings` pass `plutil -lint` after the accessibility key additions.
+
+Local limitation:
+
+- Device Dynamic Type screenshots or UI inspection are still required before claiming Larger Text support. The source audit only proves the checked source no longer contains the audited static regressions.
 
 ## Evidence Commands And Checks
 
@@ -89,6 +137,7 @@ Run or record equivalent device evidence before setting `APP_STORE_ACCESSIBILITY
 ```bash
 ./scripts/lint-store-metadata.sh --ios-only
 APP_REVIEW_PHONE_NUMBER=<APP_REVIEW_PHONE_NUMBER> ./scripts/lint-store-metadata.sh --ios-only
+./scripts/audit-ios-accessibility-source.sh --fail-on-findings
 rg -n "Do not claim yet|Do not publish|VoiceOver|Dynamic Type|Sufficient Contrast|Reduced Motion|Differentiate without Color Alone" docs/APP_STORE_ACCESSIBILITY_LABELS.md docs/APP_STORE_LAUNCH_CHECKLIST.md docs/APP_STORE_TESTFLIGHT_EVIDENCE.md
 ```
 

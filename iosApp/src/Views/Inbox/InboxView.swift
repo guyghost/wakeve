@@ -669,6 +669,7 @@ private struct EventConversationRow: View {
                             .font(WakeveTheme.Typography.rowTitle)
                             .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.78)
 
                         if conversation.requiresAction {
                             Text("Action")
@@ -685,6 +686,7 @@ private struct EventConversationRow: View {
                         .font(WakeveTheme.Typography.callout.weight(conversation.unreadCount > 0 ? .semibold : .regular))
                         .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
                         .lineLimit(1)
+                        .minimumScaleFactor(0.78)
 
                     Text(conversation.latestItem?.message ?? "Les échanges de cet événement apparaîtront ici.")
                         .font(WakeveTheme.Typography.callout)
@@ -767,6 +769,7 @@ struct InboxRow: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.78)
             }
             
             Spacer()

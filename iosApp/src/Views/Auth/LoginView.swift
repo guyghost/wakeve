@@ -196,8 +196,8 @@ struct LoginView: View {
             .frame(height: 56)
             .cornerRadius(16)
             .shadow(color: Color.black.opacity(0.15), radius: 10, x: 0, y: 5)
-            .accessibilityLabel("Sign in with Apple")
-            .accessibilityHint("Use your Apple ID to authenticate")
+            .accessibilityLabel(Text(String(localized: "auth.apple_sign_in_accessibility_label")))
+            .accessibilityHint(Text(String(localized: "auth.apple_sign_in_accessibility_hint")))
 
             guestAccessButton
             
@@ -229,8 +229,8 @@ struct LoginView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
-        .accessibilityLabel("Continue as guest")
-        .accessibilityHint("Creates a local-only guest session without signing in")
+        .accessibilityLabel(Text(String(localized: "auth.continue_as_guest_accessibility_label")))
+        .accessibilityHint(Text(String(localized: "auth.continue_as_guest_accessibility_hint")))
     }
     
     #if DEBUG
@@ -251,8 +251,8 @@ struct LoginView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
-        .accessibilityLabel("Development mode: Skip authentication")
-        .accessibilityHint("Creates a mock authenticated session for testing")
+        .accessibilityLabel(Text(String(localized: "auth.skip_dev_accessibility_label")))
+        .accessibilityHint(Text(String(localized: "auth.skip_dev_accessibility_hint")))
     }
     #endif
     
@@ -270,7 +270,7 @@ struct LoginView: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(primaryTextColor)
                 }
-                .accessibilityLabel("Read Privacy Policy")
+                .accessibilityLabel(Text(String(localized: "auth.read_privacy_policy_accessibility_label")))
                 
                 Text(String(localized: "auth.and"))
                     .font(.system(size: 13))
@@ -283,7 +283,7 @@ struct LoginView: View {
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(primaryTextColor)
                 }
-                .accessibilityLabel("Read Terms of Service")
+                .accessibilityLabel(Text(String(localized: "auth.read_terms_accessibility_label")))
             }
         }
     }

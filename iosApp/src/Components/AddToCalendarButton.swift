@@ -35,8 +35,8 @@ struct AddToCalendarButton: View {
         }
         .disabled(!isEnabled || isLoading)
         .opacity(isLoading || !isEnabled ? 0.7 : 1.0)
-        .accessibilityLabel("Add event to calendar")
-        .accessibilityHint("Adds '\(event.title)' to your native calendar")
+        .accessibilityLabel(String(localized: "calendar.add_event_accessibility"))
+        .accessibilityHint(String(format: String(localized: "calendar.add_event_hint"), event.title))
     }
 }
 
