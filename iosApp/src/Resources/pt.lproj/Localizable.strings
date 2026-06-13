@@ -38,6 +38,14 @@
 "auth.continue_as_guest" = "Continuar como convidado";
 "auth.guest_display_name" = "Convidado";
 "auth.skip_dev" = "Saltar (Desenvolvimento)";
+"auth.apple_sign_in_accessibility_label" = "Iniciar sessão com Apple";
+"auth.apple_sign_in_accessibility_hint" = "Use o seu Apple ID para se autenticar";
+"auth.continue_as_guest_accessibility_label" = "Continuar como convidado";
+"auth.continue_as_guest_accessibility_hint" = "Cria uma sessão de convidado apenas local sem iniciar sessão";
+"auth.skip_dev_accessibility_label" = "Modo de desenvolvimento: saltar autenticação";
+"auth.skip_dev_accessibility_hint" = "Cria uma sessão autenticada simulada para testes";
+"auth.read_privacy_policy_accessibility_label" = "Ler a política de privacidade";
+"auth.read_terms_accessibility_label" = "Ler os termos de serviço";
 
 // MARK: - Explore
 "explore.title" = "Explorar";
@@ -217,6 +225,7 @@
 "profile.achievements" = "Perfil e Conquistas";
 "profile.user" = "Utilizador";
 "profile.edit" = "Editar";
+"profile.third_party_notices" = "Avisos de terceiros";
 
 // MARK: - Gamification
 "gamification.points_and_level" = "Pontos e Nível";
@@ -387,10 +396,59 @@
 "settings_sheet.calendar_sync" = "Sincronização do calendário";
 "settings_sheet.email_notifications" = "Notificações por e-mail";
 "settings_sheet.privacy" = "Privacidade e informações";
-"settings_sheet.data_management" = "Descubra como os seus dados são geridos...";
+"settings_sheet.data_management" = "Gestão de dados";
+"settings_sheet.data_management_value" = "Eliminar conta";
 "settings_sheet.help" = "Ajuda";
 "settings_sheet.terms" = "Termos e condições";
 "settings_sheet.sign_out" = "Terminar sessão";
+
+// MARK: - Data Management
+"data_management.title" = "Gestão de dados";
+"data_management.subtitle" = "Controle os dados da conta armazenados pela Wakeve neste dispositivo e no backend.";
+"data_management.scope_title" = "Âmbito da eliminação";
+"data_management.account_scope" = "Eliminar a sua conta é permanente. A Wakeve elimina o registo da conta e os dados pessoais do perfil, revoga sessões e tokens push, limpa credenciais locais e anonimiza o histórico partilhado quando necessário.";
+"data_management.guest_scope" = "Os dados de convidado são armazenados localmente neste dispositivo. Eliminá-los limpa o perfil de convidado local e os dados locais da Wakeve sem contactar o backend.";
+"data_management.delete_account" = "Eliminar conta";
+"data_management.delete_guest_data" = "Eliminar dados de convidado";
+"data_management.confirm_account_message" = "Isto elimina permanentemente a sua conta Wakeve e limpa as credenciais locais depois de o backend confirmar a eliminação. Esta ação não pode ser desfeita.";
+"data_management.confirm_guest_message" = "Isto elimina permanentemente os dados locais de convidado deste dispositivo. Nenhum pedido será enviado ao backend.";
+"data_management.account_deleted" = "A sua conta foi eliminada.";
+"data_management.guest_deleted" = "Os dados de convidado foram eliminados.";
+"data_management.delete_error" = "Não foi possível eliminar a sua conta. Verifique a ligação e tente novamente.";
+
+// MARK: - Moderation
+"moderation.title" = "Denunciar ou bloquear";
+"moderation.report_title" = "Denúncia";
+"moderation.report_content" = "Denunciar conteúdo";
+"moderation.report_user" = "Denunciar utilizador";
+"moderation.report_event" = "Denunciar evento";
+"moderation.block_user" = "Bloquear utilizador";
+"moderation.unblock_user" = "Desbloquear utilizador";
+"moderation.reason" = "Motivo";
+"moderation.details_placeholder" = "Adicione contexto para a equipa de suporte da Wakeve";
+"moderation.report_help" = "As denúncias são enviadas ao suporte da Wakeve para revisão. Outros participantes não podem ver os detalhes da denúncia.";
+"moderation.response_process" = "A Wakeve revê denúncias de abuso e pode ocultar, rejeitar, restaurar ou escalar conteúdo.";
+"moderation.contact_support" = "Contactar suporte";
+"moderation.privacy_help" = "Abrir página de suporte";
+"moderation.report_submitted" = "Denúncia enviada.";
+"moderation.user_blocked" = "Utilizador bloqueado.";
+"moderation.user_unblocked" = "Utilizador desbloqueado.";
+"moderation.submit_error" = "Não foi possível enviar este pedido de moderação. Tente novamente mais tarde.";
+"moderation.pending_review" = "Pendente de revisão";
+"moderation.rejected" = "Rejeitado";
+"moderation.hidden" = "Oculto";
+"moderation.report_comment_context" = "Comentário neste evento";
+"moderation.report_chat_context" = "Mensagem nesta conversa";
+"moderation.report_event_context" = "Detalhes do evento";
+"moderation.rejected_content_notice" = "Este conteúdo foi rejeitado pela moderação.";
+"moderation.hidden_content_notice" = "Este conteúdo está oculto após revisão de moderação.";
+"moderation.reason.harassment" = "Assédio";
+"moderation.reason.hate_or_abuse" = "Ódio ou abuso";
+"moderation.reason.sexual_content" = "Conteúdo sexual";
+"moderation.reason.violence_or_threat" = "Violência ou ameaça";
+"moderation.reason.spam_or_scam" = "Spam ou fraude";
+"moderation.reason.private_information" = "Informação privada";
+"moderation.reason.other" = "Outro";
 
 // MARK: - Additional Common
 "common.add" = "Adicionar";
