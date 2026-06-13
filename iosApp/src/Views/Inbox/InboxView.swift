@@ -322,6 +322,7 @@ struct InboxView: View {
             ProgressView()
                 .scaleEffect(1.5)
                 .tint(.wakevePrimary)
+                .accessibilityLabel(String(localized: "common.loading"))
             Text(String(localized: "common.loading"))
                 .font(.subheadline)
                 .foregroundColor(.secondary)

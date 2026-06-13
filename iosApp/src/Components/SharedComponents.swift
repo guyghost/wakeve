@@ -392,6 +392,7 @@ struct LoadingView: View {
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle(tint: .wakevePrimary))
                 .scaleEffect(1.2)
+                .accessibilityLabel(message)
 
             Text(message)
                 .font(.subheadline)

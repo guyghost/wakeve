@@ -73,6 +73,7 @@ struct BudgetOverviewView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.2)
+                .accessibilityLabel(String(localized: "common.loading"))
             Text("Chargement du budget…")
                 .foregroundStyle(.secondary)
         }

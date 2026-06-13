@@ -54,6 +54,7 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 SOURCE_ROOT="$PROJECT_DIR/iosApp/src"
 HARDCODED="$TMP_DIR/hardcoded.txt"
 LINE_LIMIT="$TMP_DIR/line-limit.txt"
+PROGRESS_VIEW="$TMP_DIR/progress-view.txt"
 
 ruby - "$SOURCE_ROOT" "$HARDCODED" <<'RUBY'
 root = ARGV.fetch(0)
@@ -101,9 +102,28 @@ end
 File.write(out, risky.join("\n"))
 RUBY
 
+ruby - "$SOURCE_ROOT" "$PROGRESS_VIEW" <<'RUBY'
+root = ARGV.fetch(0)
+out = ARGV.fetch(1)
+risky = []
+Dir.glob(File.join(root, "**", "*.swift")).sort.each do |path|
+  lines = File.readlines(path, chomp: true)
+  lines.each_with_index do |line, index|
+    next unless line.include?("ProgressView()")
+    window = lines[index, 6].join("\n")
+    next if window.include?(".accessibilityLabel(")
+    next if window.include?(".accessibilityHidden(")
+
+    risky << "#{path}:#{index + 1}: #{line.strip}"
+  end
+end
+File.write(out, risky.join("\n"))
+RUBY
+
 hardcoded_count="$(grep -c . "$HARDCODED" 2>/dev/null || true)"
 line_limit_count="$(grep -c . "$LINE_LIMIT" 2>/dev/null || true)"
-total_count=$((hardcoded_count + line_limit_count))
+progress_view_count="$(grep -c . "$PROGRESS_VIEW" 2>/dev/null || true)"
+total_count=$((hardcoded_count + line_limit_count + progress_view_count))
 
 {
     echo "# iOS Accessibility Source Audit"
@@ -120,6 +140,7 @@ total_count=$((hardcoded_count + line_limit_count))
     echo "| --- | ---: |"
     echo "| Hardcoded accessibility labels/hints/values | $hardcoded_count |"
     echo "| Single-line text without nearby scaling/wrap fallback | $line_limit_count |"
+    echo "| Indeterminate ProgressView without label or explicit hiding | $progress_view_count |"
     echo "| Total | $total_count |"
     echo ""
     echo "## Hardcoded Accessibility Strings"
@@ -143,9 +164,21 @@ total_count=$((hardcoded_count + line_limit_count))
         echo '```'
     fi
     echo ""
+    echo "## Indeterminate ProgressView Risks"
+    echo ""
+    if [ "$progress_view_count" -eq 0 ]; then
+        echo "No bare \`ProgressView()\` calls without a nearby \`.accessibilityLabel(...)\` or \`.accessibilityHidden(true)\` were found."
+    else
+        echo '```text'
+        sed "s|$PROJECT_DIR/||" "$PROGRESS_VIEW"
+        printf '\n'
+        echo '```'
+    fi
+    echo ""
     echo "## Closure Notes"
     echo ""
     echo "- Fix hardcoded VoiceOver strings by using \`String(localized:)\` or localized view text."
+    echo "- Label user-visible loading indicators, or hide decorative button spinners when the surrounding control already exposes the action state."
     echo "- Review single-line text in release screens under Dynamic Type accessibility sizes before claiming Larger Text support."
     echo "- Keep the App Store evidence marker false until signed-build device checks cover Dynamic Type, VoiceOver, high contrast, reduced motion, and color-only states."
 } > "$REPORT"

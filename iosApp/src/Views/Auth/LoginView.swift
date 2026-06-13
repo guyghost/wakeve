@@ -176,6 +176,7 @@ struct LoginView: View {
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle(tint: WakeveTheme.ColorToken.accent(for: colorScheme)))
                 .scaleEffect(1.5)
+                .accessibilityLabel(String(localized: "auth.signing_in"))
             
             Text(String(localized: "auth.signing_in"))
                 .font(.system(size: 17, weight: .medium))

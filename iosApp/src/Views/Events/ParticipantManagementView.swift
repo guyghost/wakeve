@@ -299,6 +299,7 @@ struct ParticipantManagementView: View {
                                 .frame(width: 52, height: 52)
                                 .background(Color.blue.opacity(0.86))
                                 .clipShape(Circle())
+                                .accessibilityHidden(true)
                         } else {
                             Image(systemName: "plus")
                                 .font(.system(size: 24, weight: .bold))
