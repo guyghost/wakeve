@@ -6,6 +6,21 @@ Wakeve supports deep linking for direct navigation to specific screens and featu
 
 ## Supported Deep Links
 
+### Release Review Scope
+
+The first App Store release keeps deep-link behavior narrow and review-oriented. Rich notification expansion is deferred until the P0 App Store blockers are closed, because new notification categories, actions, entitlements, or background behaviors can change the review surface.
+
+Priority links for the review build are:
+
+| Review Flow | Custom Scheme | Universal Link | Purpose |
+|-------------|---------------|----------------|---------|
+| Event detail | `wakeve://event/{id}` | `https://wakeve.app/event/{id}` | Open an existing event from email, SMS, notification, or web. |
+| Invite | `wakeve://invite/{token}` | `https://wakeve.app/invite/{token}` | Preserve an invitation token through launch and authentication. |
+| Poll voting | `wakeve://poll/{eventId}` | `https://wakeve.app/poll/{eventId}` | Bring participants directly to the poll flow. |
+| Legal and support | Public web URLs | `https://wakeve.app/privacy`, `https://wakeve.app/terms`, `https://wakeve.app/support` | Keep App Review, account deletion, privacy, and abuse-reporting surfaces reachable without requiring an installed app. |
+
+Meeting links remain supported by the current parsers, but they are not part of the App Review-critical deep-link set. Scenario, organization, payment, and analytics links should not be promoted in store metadata or notifications until their contracts are covered by a change proposal and release evidence.
+
 ### Android & iOS (Custom Scheme)
 
 | Deep Link | Description | Example |
@@ -25,6 +40,20 @@ Wakeve supports deep linking for direct navigation to specific screens and featu
 | `https://wakeve.app/invite/{token}` | Handle event invite | `https://wakeve.app/invite/token12345` |
 
 **Note:** iOS registers the `wakeve://` custom scheme in `Info.plist` and declares `applinks:wakeve.app` in `iosApp/src/Wakeve.entitlements`. The web app serves Apple App Site Association JSON from `/.well-known/apple-app-site-association` and `/apple-app-site-association` when a real `APPLE_TEAM_ID` or `TEAM_ID` is configured. The documented placeholder `ABCDE12345` and invalid Team IDs are rejected. Production still requires the real Apple Developer Team ID, a live `wakeve.app` deployment, and an App ID/provisioning profile with Associated Domains enabled.
+
+## Notification Categories and Actions
+
+The shared notification model currently defines these categories and default actions:
+
+| Category | Identifier | Default Actions | Release Contract Notes |
+|----------|------------|-----------------|------------------------|
+| Event invite | `event_invite` | `accept`, `maybe`, `decline` | Existing contract. Any server-side direct accept/decline behavior must stay authenticated and idempotent. |
+| Poll reminder | `poll_reminder` | `vote` | Existing contract. Review-flow routing should prefer opening the poll screen rather than writing a vote from the notification. |
+| Meeting starting | `meeting_starting` | `join` | Existing contract, but not App Review-critical for the first submission. |
+| Scenario vote | `scenario_vote` | `yes`, `no` | Existing contract, but not promoted for first-release App Review evidence. |
+| General | `general` | none | Safe default for informational notifications. |
+
+Do not add new notification categories, actions, background execution behavior, or direct-write notification actions without an OpenSpec proposal. For the first review build, prefer a general notification or an existing category that opens one of the priority review links above.
 
 ## Implementation Details
 
@@ -71,9 +100,9 @@ Wakeve supports deep linking for direct navigation to specific screens and featu
 - `iOSApp.swift` - Integrates DeepLinkService with SwiftUI
 - `Info.plist` - Registers the `wakeve` custom URL scheme
 - `Wakeve.entitlements` - Declares `applinks:wakeve.app` for Universal Links
-- `webApp/src/lib/server/apple-app-site-association.ts` - Builds the AASA response from Apple Team ID environment variables
-- `webApp/src/routes/.well-known/apple-app-site-association/+server.ts` - Serves the primary AASA endpoint
-- `webApp/src/routes/apple-app-site-association/+server.ts` - Serves the root AASA fallback endpoint
+- `apps/landing/src/lib/server/apple-app-site-association.ts` - Builds the AASA response from Apple Team ID environment variables
+- `apps/landing/src/routes/.well-known/apple-app-site-association/+server.ts` - Serves the primary AASA endpoint
+- `apps/landing/src/routes/apple-app-site-association/+server.ts` - Serves the root AASA fallback endpoint
 
 #### Architecture
 

@@ -32,7 +32,7 @@ Apple-source review date: 2026-05-28.
 - For the first App Store submission, Wakeve treats external payment handoff as Tricount-only; arbitrary external payment providers are rejected when a payment-pot URL is present.
 - Wakeve does not currently sell premium app features, subscriptions, digital content, consumable credits, boosts, or other digital goods.
 - Wakeve does not currently declare StoreKit products or App Store in-app purchases.
-- Local source scan refreshed on 2026-06-01 found no StoreKit/IAP/paywall API references in `iosApp/src`, `shared/src/commonMain/kotlin`, `server/src/main/kotlin`, or `webApp/src`.
+- Local source scan refreshed on 2026-06-01 found no StoreKit/IAP/paywall API references in `iosApp/src`, `shared/src/commonMain/kotlin`, `server/src/main/kotlin`, or `apps/landing/src`.
 
 ## App Store Review Position
 

@@ -7,7 +7,7 @@ This document records the repository normalization performed for module/path con
 - Android app Gradle module: `wakeveApp`
 - Shared KMP module: `shared`
 - Backend module: `server`
-- Web module: `webApp`
+- Web module: `apps/landing`
 
 ## Path Mapping
 

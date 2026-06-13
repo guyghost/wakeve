@@ -48,60 +48,61 @@ Run or record equivalent review output for the submitted build:
 ```bash
 ./scripts/app-store-license-inventory.sh --fetch-remote-metadata --output docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md
 ./scripts/app-store-license-inventory.sh --fetch-remote-metadata --fail-on-unknown
-./scripts/app-store-third-party-notices.sh --markdown-output docs/APP_STORE_THIRD_PARTY_NOTICES.md --web-output webApp/src/routes/third-party-notices/+page.svelte
+./scripts/app-store-third-party-notices.sh --markdown-output docs/APP_STORE_THIRD_PARTY_NOTICES.md --web-output apps/landing/src/routes/third-party-notices/+page.svelte
 ./gradlew :shared:dependencies --configuration iosArm64MainCompileClasspath
 ./gradlew :shared:dependencies --configuration commonMainImplementationDependenciesMetadata
 npm ls --all --json
-cd webApp && npx --yes pnpm@10 licenses list --json
+cd apps/landing && npx --yes pnpm@10 licenses list --json
 bundle exec fastlane action update_fastlane
-find iosApp shared composeApp webApp fastlane -maxdepth 4 \( -iname '*license*' -o -iname 'NOTICE*' -o -iname 'COPYING*' \) | sort
-rg -n "license|notice|acknowledg|third-party|open source|OSS" iosApp/src shared/src composeApp/src webApp/src docs
+find iosApp shared composeApp apps/landing fastlane -maxdepth 4 \( -iname '*license*' -o -iname 'NOTICE*' -o -iname 'COPYING*' \) | sort
+rg -n "license|notice|acknowledg|third-party|open source|OSS" iosApp/src shared/src composeApp/src apps/landing/src docs
 ```
 
 If a command is not applicable to the final iOS artifact, record that decision in the evidence table with the reason.
 
 ## Local Strict Inventory Result
 
-Command run on 2026-06-01:
+Command run on 2026-06-13:
 
 ```bash
 ./scripts/app-store-license-inventory.sh --fetch-remote-metadata --fail-on-unknown
 ```
 
-Result: passed locally for the current repository inventory.
+Result: passed locally for the submitted iOS scope in the current repository inventory.
 
-- Dependencies listed: 407
-- Unknown licenses: 0
+- Dependencies listed: 316
+- Unknown licenses: 3
 - Copyleft keywords detected: 1
 - Submitted iOS unknown/copyleft risks: 0
 - Remote Maven POM fetching: enabled
 - Remote RubyGems fetching: enabled
 
-This is local pre-submission evidence only. It does not close AS-21 until the inventory is matched to the signed App Store review IPA/archive, legal/owner review approves any non-iOS scoped copyleft keyword, required notices are reachable in the submitted app or stable legal/support URL, and `APP_STORE_LICENSE_NOTICES_EVIDENCE_COMPLETE=true` is set for the reviewed build.
+This is local pre-submission evidence only. It does not close AS-21 until the inventory is matched to the signed App Store review IPA/archive, legal/owner review approves any non-iOS scoped unknown or copyleft-risk dependency, required notices are reachable in the submitted app or stable legal/support URL, and `APP_STORE_LICENSE_NOTICES_EVIDENCE_COMPLETE=true` is set for the reviewed build.
 
 ## Local Notices Generation Result
 
-Commands run on 2026-06-01:
+Commands run on 2026-06-13:
 
 ```bash
 ./scripts/app-store-license-inventory.sh --fetch-remote-metadata --output docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md
 ./scripts/app-store-license-inventory.sh --fetch-remote-metadata --fail-on-unknown
-./scripts/app-store-third-party-notices.sh --markdown-output docs/APP_STORE_THIRD_PARTY_NOTICES.md --web-output webApp/src/routes/third-party-notices/+page.svelte
-wc -l docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md docs/APP_STORE_THIRD_PARTY_NOTICES.md webApp/src/routes/third-party-notices/+page.svelte
-shasum -a 256 docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md docs/APP_STORE_THIRD_PARTY_NOTICES.md webApp/src/routes/third-party-notices/+page.svelte
+./scripts/app-store-third-party-notices.sh --markdown-output docs/APP_STORE_THIRD_PARTY_NOTICES.md --web-output apps/landing/src/routes/third-party-notices/+page.svelte
+wc -l docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md docs/APP_STORE_THIRD_PARTY_NOTICES.md apps/landing/src/routes/third-party-notices/+page.svelte
+shasum -a 256 docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md docs/APP_STORE_THIRD_PARTY_NOTICES.md apps/landing/src/routes/third-party-notices/+page.svelte
 ```
 
 Generated local artifacts:
 
-- `docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md`: 439 lines, SHA-256 `1a07028362aed32905485eb9d7c6e06f8cbf221e5e82d91ccdc3d505d86dd566`
-- `docs/APP_STORE_THIRD_PARTY_NOTICES.md`: 458 lines, SHA-256 `3d81f2dba40de2cea53b0c3604eebaa861b68c767db6ac3881402c87624eb44c`
-- `webApp/src/routes/third-party-notices/+page.svelte`: 2946 lines, SHA-256 `87bd386d8e336f37ac2347c64d8f0de4e2399c82a9e47321234e3e7f241368a4`
+- `docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md`: 348 lines, SHA-256 `62dbb5f5bb604ecbbe12bd9eb7be254f7027f352db1a043289151ab8d24162e6`
+- `docs/APP_STORE_THIRD_PARTY_NOTICES.md`: 371 lines, SHA-256 `d9586fc13c6458680525f6ea7046eae0bb56b663c064946fcede07e9a8624732`
+- `apps/landing/src/routes/third-party-notices/+page.svelte`: 2313 lines, SHA-256 `977fca4f1ae05c3c8e28cb08e100531d6a4804734c97e88084fc25b2fdf710df`
 
 Generated local notice coverage:
 
 - `docs/APP_STORE_THIRD_PARTY_NOTICES.md` was regenerated from `docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md`.
-- `webApp/src/routes/third-party-notices/+page.svelte` was regenerated from the same inventory for the public notices route.
-- The generated notices record `Dependencies listed: 407`, `Unknown licenses: 0`, `Copyleft keywords detected: 1`, and `Submitted iOS unknown/copyleft risks: 0`.
+- `apps/landing/src/routes/third-party-notices/+page.svelte` was regenerated from the same inventory for the public notices route.
+- The generated notices record `Dependencies listed: 316`, `Unknown licenses: 3`, `Copyleft keywords detected: 1`, and `Submitted iOS unknown/copyleft risks: 0`.
+- `scripts/app-store-license-inventory.sh` now classifies Android-only, test-only, backend, release-tooling, web notice surface, and submitted-iOS dependencies separately. AndroidX, Google Play Services, Firebase Android, ML Kit, Coil, and Compose/App Android dependencies are no longer counted as `submitted-ios` evidence for the iOS App Store build.
 - The notices route is local source evidence only. Final closure still requires the deployed `https://wakeve.app/third-party-notices` URL to be reachable and matched to the signed App Store review build.
 
 ## Evidence To Attach
@@ -113,7 +114,7 @@ Record these before final signoff:
 - `./scripts/app-store-license-inventory.sh --fetch-remote-metadata --fail-on-unknown` passes for dependencies marked as submitted iOS scope, and every remaining unknown/copyleft-risk dependency outside that scope is resolved manually, approved, or recorded as not shipped in the App Store review build.
 - License classification for every shipped dependency and confirmation that no prohibited or unresolved license remains.
 - Notice text or notice URL used by the App Store review build.
-- Public notices draft from `docs/APP_STORE_THIRD_PARTY_NOTICES.md`, exposed at `https://wakeve.app/third-party-notices` by `webApp/src/routes/third-party-notices/+page.svelte`.
+- Public notices draft from `docs/APP_STORE_THIRD_PARTY_NOTICES.md`, exposed at `https://wakeve.app/third-party-notices` by `apps/landing/src/routes/third-party-notices/+page.svelte`.
 - Screenshot or source reference showing how users or App Review can reach third-party acknowledgements/notices when required.
 - Reviewer/date and legal owner who approved the license inventory.
 - Any exception decision for dependencies used only in build tooling and not shipped in the iOS app.

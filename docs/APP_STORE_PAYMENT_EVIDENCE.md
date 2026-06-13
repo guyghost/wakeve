@@ -51,8 +51,8 @@ Last checked: 2026-05-28.
 Run these before setting `APP_STORE_PAYMENT_COMPLIANCE_CONFIRMED=true`:
 
 ```bash
-rg -n "StoreKit|SKProduct|SKProductsRequest|SKPayment|Product\\.products|InAppPurchase|purchase\\(|paywall" iosApp/src shared/src/commonMain/kotlin server/src/main/kotlin webApp/src
-rg -n "PaymentPotRepository|TricountHandoffRepository|PaymentRoutes|paymentRoutes|tricountGroupUrl|providerUrl|isTrustedPaymentLink|isTrustedProviderUrl" iosApp/src shared/src/commonMain/kotlin server/src/main/kotlin webApp/src
+rg -n "StoreKit|SKProduct|SKProductsRequest|SKPayment|Product\\.products|InAppPurchase|purchase\\(|paywall" iosApp/src shared/src/commonMain/kotlin server/src/main/kotlin apps/landing/src
+rg -n "PaymentPotRepository|TricountHandoffRepository|PaymentRoutes|paymentRoutes|tricountGroupUrl|providerUrl|isTrustedPaymentLink|isTrustedProviderUrl" iosApp/src shared/src/commonMain/kotlin server/src/main/kotlin apps/landing/src
 rg -n "real-world shared event expenses|do not sell or unlock app features|trusted-domain validated|Tricount" composeApp/metadata/ios/review_information/notes.txt docs/APP_STORE_PAYMENT_COMPLIANCE.md docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md
 ./gradlew :shared:jvmTest --tests 'com.guyghost.wakeve.organization.EventOrganizationPhase5ReadinessTest'
 ```
@@ -62,20 +62,20 @@ rg -n "real-world shared event expenses|do not sell or unlock app features|trust
 Commands refreshed on 2026-06-01:
 
 ```bash
-rg -n "StoreKit|SKProduct|SKProductsRequest|SKPayment|Product\\.products|InAppPurchase|purchase\\(|paywall" iosApp/src shared/src/commonMain/kotlin server/src/main/kotlin webApp/src
-rg -n "PaymentPotRepository|TricountHandoffRepository|PaymentRoutes|paymentRoutes|tricountGroupUrl|providerUrl|isTrustedPaymentLink|isTrustedProviderUrl" iosApp/src shared/src/commonMain/kotlin server/src/main/kotlin webApp/src
+rg -n "StoreKit|SKProduct|SKProductsRequest|SKPayment|Product\\.products|InAppPurchase|purchase\\(|paywall" iosApp/src shared/src/commonMain/kotlin server/src/main/kotlin apps/landing/src
+rg -n "PaymentPotRepository|TricountHandoffRepository|PaymentRoutes|paymentRoutes|tricountGroupUrl|providerUrl|isTrustedPaymentLink|isTrustedProviderUrl" iosApp/src shared/src/commonMain/kotlin server/src/main/kotlin apps/landing/src
 rg -n "real-world shared event expenses|do not sell or unlock app features|trusted-domain validated|Tricount" composeApp/metadata/ios/review_information/notes.txt docs/APP_STORE_PAYMENT_COMPLIANCE.md docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md
 ./gradlew :shared:jvmTest --tests 'com.guyghost.wakeve.organization.EventOrganizationPhase5ReadinessTest'
 ```
 
 Local result:
 
-- StoreKit/IAP scan: `NO_MATCHES` for `StoreKit`, `SKProduct`, `SKProductsRequest`, `SKPayment`, `Product.products`, `InAppPurchase`, `purchase(`, and `paywall` in `iosApp/src`, `shared/src/commonMain/kotlin`, `server/src/main/kotlin`, and `webApp/src`.
+- StoreKit/IAP scan: `NO_MATCHES` for `StoreKit`, `SKProduct`, `SKProductsRequest`, `SKPayment`, `Product.products`, `InAppPurchase`, `purchase(`, and `paywall` in `iosApp/src`, `shared/src/commonMain/kotlin`, `server/src/main/kotlin`, and `apps/landing/src`.
 - Payment surface scan: payment surfaces are present in `PaymentPotRepository`, `TricountHandoffRepository`, `server/src/main/kotlin/com/guyghost/wakeve/routes/PaymentRoutes.kt`, and `iosApp/src/Views/App/ContentView.swift`.
 - Trusted link scan: `PaymentPotRepository.isTrustedPaymentLink` and `TricountHandoffRepository.isTrustedProviderUrl` require HTTPS Tricount hosts, reject non-Tricount providers when a payment-pot URL is present, and reject template markers.
 - Regression test: `./gradlew :shared:jvmTest --tests 'com.guyghost.wakeve.organization.EventOrganizationPhase5ReadinessTest'` completed with `BUILD SUCCESSFUL` on 2026-06-01; the suite covers rejection of non-Tricount external provider links for payment pots.
 - App Review notes/policy scan: `composeApp/metadata/ios/review_information/notes.txt`, `docs/APP_STORE_PAYMENT_COMPLIANCE.md`, and `docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md` describe payment, settlement, and Tricount as real-world shared event expenses only, with no digital unlocks and trusted-domain validation.
-- The 2026-06-01 StoreKit/IAP source scan returned no matches in `iosApp/src`, `shared/src/commonMain/kotlin`, `server/src/main/kotlin`, or `webApp/src`.
+- The 2026-06-01 StoreKit/IAP source scan returned no matches in `iosApp/src`, `shared/src/commonMain/kotlin`, `server/src/main/kotlin`, or `apps/landing/src`.
 
 This is local pre-submission evidence only. It does not close AS-11 until the uploaded TestFlight/App Review build is inspected for the same behavior, screenshots or reviewer notes prove the visible payment surfaces match this scope, and `APP_STORE_PAYMENT_EVIDENCE_COMPLETE=true` is set for that exact build.
 

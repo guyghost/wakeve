@@ -16,7 +16,7 @@
     </a>
 
     <header class="mb-10 border-b border-border pb-7">
-      <p class="mb-3 text-sm font-medium text-wakeve-600">Generated 2026-06-01</p>
+      <p class="mb-3 text-sm font-medium text-wakeve-600">Generated 2026-06-13</p>
       <h1 class="text-3xl font-semibold text-gray-950 sm:text-4xl">Third-Party Notices</h1>
       <p class="mt-4 max-w-3xl text-base leading-7 text-gray-600">
         Wakeve uses third-party open-source and platform libraries. This page lists the
@@ -29,8 +29,8 @@
       <section class="space-y-4">
         <h2 class="text-xl font-semibold text-gray-950">Summary</h2>
         <ul class="list-disc space-y-2 pl-5 leading-7">
-          <li>Dependencies listed: 407</li>
-          <li>Unknown licenses: 0</li>
+          <li>Dependencies listed: 316</li>
+          <li>Unknown licenses: 3</li>
           <li>Copyleft keywords detected: 1</li>
           <li>Submitted iOS unknown/copyleft risks: 0</li>
         </ul>
@@ -41,28 +41,32 @@
         <ul class="list-disc space-y-2 pl-5 leading-7">
           <li><span class="font-medium text-gray-950">Android Software Development Kit License (fetched POM)</span>: 4</li>
           <li><span class="font-medium text-gray-950">Apache License, Version 2.0 (fetched POM)</span>: 1</li>
-          <li><span class="font-medium text-gray-950">Apache-2.0</span>: 29</li>
+          <li><span class="font-medium text-gray-950">Apache-2.0</span>: 6</li>
           <li><span class="font-medium text-gray-950">Apache-2.0 (fetched POM)</span>: 2</li>
-          <li><span class="font-medium text-gray-950">BSD 2-Clause</span>: 1</li>
-          <li><span class="font-medium text-gray-950">BSD-2-Clause</span>: 3</li>
-          <li><span class="font-medium text-gray-950">BSD-2-Clause, BSD-3-Clause, MPL-2.0</span>: 1</li>
-          <li><span class="font-medium text-gray-950">BSD-3-Clause</span>: 4</li>
+          <li><span class="font-medium text-gray-950">Apache-2.0 (fetched RubyGems version)</span>: 20</li>
+          <li><span class="font-medium text-gray-950">BSD 2-Clause (fetched RubyGems version)</span>: 1</li>
+          <li><span class="font-medium text-gray-950">BSD-2-Clause</span>: 1</li>
+          <li><span class="font-medium text-gray-950">BSD-2-Clause (fetched RubyGems version)</span>: 2</li>
+          <li><span class="font-medium text-gray-950">BSD-2-Clause, BSD-3-Clause, MPL-2.0 (fetched RubyGems version)</span>: 1</li>
+          <li><span class="font-medium text-gray-950">BSD-3-Clause</span>: 6</li>
+          <li><span class="font-medium text-gray-950">BSD-3-Clause (fetched RubyGems version)</span>: 1</li>
           <li><span class="font-medium text-gray-950">BlueOak-1.0.0</span>: 8</li>
-          <li><span class="font-medium text-gray-950">CC-BY-4.0</span>: 1</li>
           <li><span class="font-medium text-gray-950">Eclipse Public License - v 1.0, GNU Lesser General Public License (fetched POM); inherited from ch.qos.logback:logback-parent:1.5.20</span>: 1</li>
-          <li><span class="font-medium text-gray-950">ISC</span>: 14</li>
-          <li><span class="font-medium text-gray-950">MIT</span>: 274</li>
+          <li><span class="font-medium text-gray-950">ISC</span>: 8</li>
+          <li><span class="font-medium text-gray-950">MIT</span>: 137</li>
           <li><span class="font-medium text-gray-950">MIT (fetched RubyGems archive LICENSE)</span>: 1</li>
           <li><span class="font-medium text-gray-950">MIT (fetched RubyGems gem)</span>: 1</li>
-          <li><span class="font-medium text-gray-950">MIT, BSD-2-Clause</span>: 1</li>
+          <li><span class="font-medium text-gray-950">MIT (fetched RubyGems version)</span>: 50</li>
+          <li><span class="font-medium text-gray-950">MIT, BSD-2-Clause (fetched RubyGems version)</span>: 1</li>
           <li><span class="font-medium text-gray-950">ML Kit Terms of Service (fetched POM)</span>: 2</li>
           <li><span class="font-medium text-gray-950">MPL-2.0</span>: 2</li>
-          <li><span class="font-medium text-gray-950">Ruby</span>: 2</li>
-          <li><span class="font-medium text-gray-950">Ruby, BSD-2-Clause</span>: 5</li>
+          <li><span class="font-medium text-gray-950">Ruby (fetched RubyGems version)</span>: 2</li>
+          <li><span class="font-medium text-gray-950">Ruby, BSD-2-Clause (fetched RubyGems version)</span>: 5</li>
           <li><span class="font-medium text-gray-950">The Apache License, Version 2.0 (fetched POM)</span>: 3</li>
           <li><span class="font-medium text-gray-950">The Apache Software License, Version 2.0 (fetched POM)</span>: 45</li>
           <li><span class="font-medium text-gray-950">The MIT License (MIT) (fetched POM)</span>: 1</li>
-          <li><span class="font-medium text-gray-950">ruby</span>: 1</li>
+          <li><span class="font-medium text-gray-950">ruby (fetched RubyGems version)</span>: 1</li>
+          <li><span class="font-medium text-gray-950">unknown</span>: 3</li>
         </ul>
       </section>
 
@@ -84,84 +88,63 @@
   <td class="px-3 py-3 align-top font-medium text-gray-950">com.google.android.gms:play-services-auth</td>
   <td class="px-3 py-3 align-top text-gray-700">20.7.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">Android Software Development Kit License (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">com.google.android.gms:play-services-auth</td>
   <td class="px-3 py-3 align-top text-gray-700">21.3.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">Android Software Development Kit License (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">com.google.android.gms:play-services-base</td>
   <td class="px-3 py-3 align-top text-gray-700">18.5.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">Android Software Development Kit License (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">com.google.firebase:firebase-analytics-ktx</td>
   <td class="px-3 py-3 align-top text-gray-700">21.5.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">Android Software Development Kit License (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">io.mockk:mockk</td>
   <td class="px-3 py-3 align-top text-gray-700">1.13.13</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">test-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">Apache License, Version 2.0 (fetched POM)</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">baseline-browser-mapping</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.10.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">didyoumean</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.2.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">ts-interface-checker</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.1.13</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">typescript</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.9.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">aria-query</td>
   <td class="px-3 py-3 align-top text-gray-700">5.3.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">axobject-query</td>
   <td class="px-3 py-3 align-top text-gray-700">4.1.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">detect-libc</td>
   <td class="px-3 py-3 align-top text-gray-700">2.1.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">typescript</td>
+  <td class="px-3 py-3 align-top text-gray-700">5.9.3</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
 </tr>
 <tr class="border-b border-border/70">
@@ -176,174 +159,174 @@
   <td class="px-3 py-3 align-top text-gray-700">5.9.3</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
   <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">addressable</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.9.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">artifactory</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.0.17</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">aws-eventstream</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.3.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">aws-partitions</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.1109.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">aws-sdk-core</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.224.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">aws-sdk-kms</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.101.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">aws-sdk-s3</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.188.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">aws-sigv4</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.11.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">google-apis-androidpublisher_v3</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.54.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">google-apis-core</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.11.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">google-apis-iamcredentials_v1</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.17.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">google-apis-playcustomapp_v1</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.13.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">google-apis-storage_v1</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.29.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">google-cloud-core</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.6.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">google-cloud-env</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.6.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">google-cloud-errors</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.3.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">google-cloud-storage</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.45.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">googleauth</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.8.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">jmespath</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.6.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">signet</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.18.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">Apache-2.0</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">org.jetbrains.kotlin:kotlin-test</td>
   <td class="px-3 py-3 align-top text-gray-700">2.2.20</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">test-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">org.jetbrains.kotlin:kotlin-test-junit</td>
   <td class="px-3 py-3 align-top text-gray-700">2.2.20</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">backend-server</td>
+  <td class="px-3 py-3 align-top text-gray-700">test-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched POM)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">addressable</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.9.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">artifactory</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.0.17</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">aws-eventstream</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.3.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">aws-partitions</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.1109.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">aws-sdk-core</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.224.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">aws-sdk-kms</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.101.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">aws-sdk-s3</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.188.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">aws-sigv4</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.11.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">google-apis-androidpublisher_v3</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.54.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">google-apis-core</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.11.3</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">google-apis-iamcredentials_v1</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.17.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">google-apis-playcustomapp_v1</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.13.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">google-apis-storage_v1</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.29.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">google-cloud-core</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.6.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">google-cloud-env</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.6.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">google-cloud-errors</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.3.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">google-cloud-storage</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.45.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">googleauth</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.8.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">jmespath</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.6.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">signet</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.18.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">Apache-2.0 (fetched RubyGems version)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">rubyzip</td>
   <td class="px-3 py-3 align-top text-gray-700">2.4.1</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">BSD 2-Clause</td>
+  <td class="px-3 py-3 align-top text-gray-700">BSD 2-Clause (fetched RubyGems version)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">webidl-conversions</td>
   <td class="px-3 py-3 align-top text-gray-700">3.0.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">BSD-2-Clause</td>
 </tr>
 <tr class="border-b border-border/70">
@@ -351,41 +334,62 @@
   <td class="px-3 py-3 align-top text-gray-700">3.4.4</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">BSD-2-Clause</td>
+  <td class="px-3 py-3 align-top text-gray-700">BSD-2-Clause (fetched RubyGems version)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">unf</td>
   <td class="px-3 py-3 align-top text-gray-700">0.2.0</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">BSD-2-Clause</td>
+  <td class="px-3 py-3 align-top text-gray-700">BSD-2-Clause (fetched RubyGems version)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">domain_name</td>
   <td class="px-3 py-3 align-top text-gray-700">0.5.20190701</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">BSD-2-Clause, BSD-3-Clause, MPL-2.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">BSD-2-Clause, BSD-3-Clause, MPL-2.0 (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@mapbox/node-pre-gyp</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.0.3</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">BSD-3-Clause</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">charenc</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.0.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">BSD-3-Clause</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">crypt</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.0.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">BSD-3-Clause</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">fast-uri</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.1.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">BSD-3-Clause</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">md5</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.3.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">BSD-3-Clause</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">source-map-js</td>
   <td class="px-3 py-3 align-top text-gray-700">1.2.1</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">BSD-3-Clause</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@mapbox/node-pre-gyp</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.0.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">BSD-3-Clause</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">source-map-js</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.2.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
   <td class="px-3 py-3 align-top text-gray-700">BSD-3-Clause</td>
 </tr>
 <tr class="border-b border-border/70">
@@ -393,70 +397,63 @@
   <td class="px-3 py-3 align-top text-gray-700">1.1.0</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">BSD-3-Clause</td>
+  <td class="px-3 py-3 align-top text-gray-700">BSD-3-Clause (fetched RubyGems version)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">chownr</td>
   <td class="px-3 py-3 align-top text-gray-700">3.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">BlueOak-1.0.0</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">glob</td>
   <td class="px-3 py-3 align-top text-gray-700">13.0.6</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">BlueOak-1.0.0</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">lru-cache</td>
   <td class="px-3 py-3 align-top text-gray-700">11.5.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">BlueOak-1.0.0</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">minimatch</td>
   <td class="px-3 py-3 align-top text-gray-700">10.2.5</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">BlueOak-1.0.0</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">minipass</td>
   <td class="px-3 py-3 align-top text-gray-700">7.1.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">BlueOak-1.0.0</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">path-scurry</td>
   <td class="px-3 py-3 align-top text-gray-700">2.0.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">BlueOak-1.0.0</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">tar</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.5.15</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">7.5.16</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">BlueOak-1.0.0</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">yallist</td>
   <td class="px-3 py-3 align-top text-gray-700">5.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">BlueOak-1.0.0</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">caniuse-lite</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.30001774</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">CC-BY-4.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">BlueOak-1.0.0</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">ch.qos.logback:logback-classic</td>
@@ -466,15 +463,15 @@
   <td class="px-3 py-3 align-top text-gray-700">Eclipse Public License - v 1.0, GNU Lesser General Public License (fetched POM); inherited from ch.qos.logback:logback-parent:1.5.20</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">anymatch</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.1.3</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@isaacs/fs-minipass</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.0.1</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">ISC</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">electron-to-chromium</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.5.302</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">abbrev</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.0.1</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">ISC</td>
@@ -488,231 +485,42 @@
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">glob-parent</td>
-  <td class="px-3 py-3 align-top text-gray-700">6.0.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">5.1.2</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">ISC</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">lru-cache</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.1.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">ISC</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">picocolors</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.1.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">ISC</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">semver</td>
-  <td class="px-3 py-3 align-top text-gray-700">6.3.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">ISC</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">yallist</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.1.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">ISC</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@isaacs/fs-minipass</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.0.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">ISC</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">abbrev</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.0.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
   <td class="px-3 py-3 align-top text-gray-700">ISC</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">graceful-fs</td>
   <td class="px-3 py-3 align-top text-gray-700">4.2.11</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">ISC</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">nopt</td>
   <td class="px-3 py-3 align-top text-gray-700">8.1.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">ISC</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">picocolors</td>
   <td class="px-3 py-3 align-top text-gray-700">1.1.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">ISC</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">semver</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.8.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">7.8.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">ISC</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@alloc/quick-lru</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.2.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/code-frame</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.29.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/compat-data</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.29.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/core</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.29.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/generator</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.29.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/helper-compilation-targets</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.28.6</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/helper-globals</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.28.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/helper-module-imports</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.28.6</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/helper-module-transforms</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.28.6</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/helper-plugin-utils</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.28.6</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/helper-string-parser</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.27.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/helper-validator-identifier</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.28.5</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/helper-validator-option</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.27.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/helpers</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.28.6</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/parser</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.29.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/plugin-transform-react-jsx-self</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.27.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/plugin-transform-react-jsx-source</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.27.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/runtime</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.28.6</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/template</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.28.6</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/traverse</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.29.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@babel/types</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.29.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">@esbuild/darwin-arm64</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.27.3</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.28.1</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
@@ -748,6 +556,13 @@
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">@jridgewell/trace-mapping</td>
   <td class="px-3 py-3 align-top text-gray-700">0.3.31</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@next/env</td>
+  <td class="px-3 py-3 align-top text-gray-700">16.0.10</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
@@ -774,113 +589,211 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@remix-run/router</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.23.2</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@oxc-project/types</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.133.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@polka/url</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.0-next.29</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@rolldown/binding-darwin-arm64</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.3</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">@rolldown/pluginutils</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.0-beta.27</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.1</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@rollup/rollup-darwin-arm64</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.59.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@rollup/pluginutils</td>
+  <td class="px-3 py-3 align-top text-gray-700">5.4.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/babel__core</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.20.5</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@standard-schema/spec</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.1.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/babel__generator</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.27.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/acorn-typescript</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.10</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/babel__template</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.4.4</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/adapter-vercel</td>
+  <td class="px-3 py-3 align-top text-gray-700">6.3.3</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/babel__traverse</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.28.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/kit</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.63.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/load-config</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.1.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/vite-plugin-svelte</td>
+  <td class="px-3 py-3 align-top text-gray-700">7.1.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@tailwindcss/node</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@tailwindcss/oxide</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@tailwindcss/oxide-darwin-arm64</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@tailwindcss/vite</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/cookie</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.6.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">@types/estree</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.8</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.9</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/prop-types</td>
-  <td class="px-3 py-3 align-top text-gray-700">15.7.15</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/md5</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.3.6</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/react</td>
-  <td class="px-3 py-3 align-top text-gray-700">18.3.28</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/node</td>
+  <td class="px-3 py-3 align-top text-gray-700">24.13.1</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/react-dom</td>
-  <td class="px-3 py-3 align-top text-gray-700">18.3.7</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/trusted-types</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.0.7</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@vitejs/plugin-react</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.7.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@vercel/nft</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.10.2</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">any-promise</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.3.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@xstate/svelte</td>
+  <td class="px-3 py-3 align-top text-gray-700">5.0.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">arg</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.0.2</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">acorn</td>
+  <td class="px-3 py-3 align-top text-gray-700">8.16.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">autoprefixer</td>
-  <td class="px-3 py-3 align-top text-gray-700">10.4.24</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">acorn-import-attributes</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.9.5</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">binary-extensions</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.3.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">agent-base</td>
+  <td class="px-3 py-3 align-top text-gray-700">7.1.4</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">ajv</td>
+  <td class="px-3 py-3 align-top text-gray-700">8.20.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">async-sema</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.1.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">balanced-match</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.0.4</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">bindings</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.5.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">brace-expansion</td>
+  <td class="px-3 py-3 align-top text-gray-700">5.0.6</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
@@ -893,50 +806,43 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">browserslist</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.28.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">camelcase-css</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.0.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">chokidar</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.6.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.0.3</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">clsx</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.1.1</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">commander</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.1.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">12.1.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">convert-source-map</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.0.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">consola</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.4.2</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">cssesc</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.0.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">cookie</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.7.2</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">csstype</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.2.3</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">cookie</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.2</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
@@ -949,22 +855,64 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">dlv</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.1.3</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">deepmerge</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.3.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">devalue</td>
+  <td class="px-3 py-3 align-top text-gray-700">5.8.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">enhanced-resolve</td>
+  <td class="px-3 py-3 align-top text-gray-700">5.23.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">esbuild</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.27.3</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.28.1</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">escalade</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.2.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">esm-env</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.2.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">esrap</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.2.11</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">estree-walker</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.0.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">eventemitter3</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.0.7</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">fast-deep-equal</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.1.3</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
@@ -977,6 +925,20 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">fdir</td>
+  <td class="px-3 py-3 align-top text-gray-700">6.5.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">file-uri-to-path</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">fill-range</td>
   <td class="px-3 py-3 align-top text-gray-700">7.1.1</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
@@ -984,8 +946,8 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">fraction.js</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.3.4</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">follow-redirects</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.16.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
@@ -998,57 +960,22 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">function-bind</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.1.2</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">http-proxy</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.18.1</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">gensync</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.0-beta.2</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">https-proxy-agent</td>
+  <td class="px-3 py-3 align-top text-gray-700">7.0.6</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">hasown</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.0.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">html-parse-stringify</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.0.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">i18next</td>
-  <td class="px-3 py-3 align-top text-gray-700">25.8.13</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">i18next-browser-languagedetector</td>
-  <td class="px-3 py-3 align-top text-gray-700">8.2.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">is-binary-path</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.1.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">is-core-module</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.16.1</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">is-buffer</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.1.6</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
@@ -1075,50 +1002,50 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">is-reference</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.0.3</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">jiti</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.21.7</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.7.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">js-tokens</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.0.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">json-schema-traverse</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">jsesc</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.1.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">jsonc-parser</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.3.1</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">json5</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.2.3</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">kleur</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.1.5</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">lilconfig</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.1.3</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">locate-character</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.0.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">lines-and-columns</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.2.4</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">loose-envify</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.4.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">magic-string</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.30.21</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
@@ -1138,6 +1065,27 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">minizlib</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.1.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">mri</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.2.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">mrmime</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.0.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">ms</td>
   <td class="px-3 py-3 align-top text-gray-700">2.1.3</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
@@ -1145,120 +1093,57 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">mz</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">nanoid</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.3.12</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">node-fetch</td>
   <td class="px-3 py-3 align-top text-gray-700">2.7.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">nanoid</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.3.11</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">node-gyp-build</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.8.4</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">node-releases</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.0.27</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">obug</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.1.2</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">normalize-path</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">object-assign</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.1.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">object-hash</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">path-parse</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.7</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">path-to-regexp</td>
+  <td class="px-3 py-3 align-top text-gray-700">6.3.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">picomatch</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.3.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.3.2</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">pify</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.3.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">pirates</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.0.7</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">picomatch</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.0.4</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">postcss</td>
-  <td class="px-3 py-3 align-top text-gray-700">8.5.6</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">postcss-import</td>
-  <td class="px-3 py-3 align-top text-gray-700">15.1.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">postcss-js</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.1.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">postcss-load-config</td>
-  <td class="px-3 py-3 align-top text-gray-700">6.0.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">postcss-nested</td>
-  <td class="px-3 py-3 align-top text-gray-700">6.2.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">postcss-selector-parser</td>
-  <td class="px-3 py-3 align-top text-gray-700">6.1.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">postcss-value-parser</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.2.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">8.5.15</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
@@ -1271,64 +1156,29 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">react</td>
-  <td class="px-3 py-3 align-top text-gray-700">18.3.1</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">readdirp</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.1.2</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">react-dom</td>
-  <td class="px-3 py-3 align-top text-gray-700">18.3.1</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">require-from-string</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.0.2</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">react-i18next</td>
-  <td class="px-3 py-3 align-top text-gray-700">16.5.4</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">react-refresh</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.17.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">react-router</td>
-  <td class="px-3 py-3 align-top text-gray-700">6.30.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">react-router-dom</td>
-  <td class="px-3 py-3 align-top text-gray-700">6.30.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">read-cache</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">requires-port</td>
   <td class="px-3 py-3 align-top text-gray-700">1.0.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">readdirp</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.6.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">resolve</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.22.11</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">resolve-from</td>
+  <td class="px-3 py-3 align-top text-gray-700">5.0.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
@@ -1341,8 +1191,8 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">rollup</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.59.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">rolldown</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.3</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
@@ -1355,50 +1205,57 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">scheduler</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.23.2</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">sade</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.8.1</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">sucrase</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.35.1</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">set-cookie-parser</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.1.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">supports-preserve-symlinks-flag</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">sirv</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.0.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">svelte</td>
+  <td class="px-3 py-3 align-top text-gray-700">5.56.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">svelte-check</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.6.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">tailwindcss</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.4.19</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">thenify</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.3.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">thenify-all</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.6.0</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">tapable</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.3.3</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">tinyglobby</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.2.15</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.2.17</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
   <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
@@ -1411,703 +1268,185 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">update-browserslist-db</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.2.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">use-sync-external-store</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.6.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">util-deprecate</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">vite</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.3.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">void-elements</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.1.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
-  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@esbuild/darwin-arm64</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.25.12</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@jridgewell/gen-mapping</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.3.13</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@jridgewell/remapping</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.3.5</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@jridgewell/resolve-uri</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.1.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@jridgewell/sourcemap-codec</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.5.5</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@jridgewell/trace-mapping</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.3.31</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@oxc-project/types</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.132.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@polka/url</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.0-next.29</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@rolldown/binding-darwin-arm64</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@rolldown/pluginutils</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@rollup/pluginutils</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.3.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@standard-schema/spec</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.1.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/acorn-typescript</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.10</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/adapter-auto</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.3.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/adapter-vercel</td>
-  <td class="px-3 py-3 align-top text-gray-700">6.3.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/adapter-vercel</td>
-  <td class="px-3 py-3 align-top text-gray-700">6.3.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/kit</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.61.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/kit</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.61.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/vite-plugin-svelte</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.1.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/vite-plugin-svelte</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.1.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@tailwindcss/node</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@tailwindcss/oxide</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@tailwindcss/oxide-darwin-arm64</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@tailwindcss/vite</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@tailwindcss/vite</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/cookie</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.6.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/estree</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.9</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/trusted-types</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.0.7</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@vercel/nft</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.10.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@xstate/svelte</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">@xstate/svelte</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">acorn</td>
-  <td class="px-3 py-3 align-top text-gray-700">8.16.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">acorn-import-attributes</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.9.5</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">agent-base</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.1.4</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">async-sema</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.1.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">balanced-match</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.0.4</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">bindings</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.5.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">brace-expansion</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.0.6</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">chokidar</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.0.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">clsx</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.1.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">consola</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.4.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">cookie</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.7.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">debug</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.4.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">deepmerge</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.3.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">devalue</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.8.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">enhanced-resolve</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.22.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">esbuild</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.25.12</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">esm-env</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.2.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">esrap</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.2.9</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">estree-walker</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.0.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">fdir</td>
-  <td class="px-3 py-3 align-top text-gray-700">6.5.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">file-uri-to-path</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">fsevents</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.3.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">https-proxy-agent</td>
-  <td class="px-3 py-3 align-top text-gray-700">7.0.6</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">import-meta-resolve</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.2.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">is-reference</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.0.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">jiti</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.7.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">kleur</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.1.5</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">locate-character</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">magic-string</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.30.21</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">minizlib</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.1.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">mri</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.2.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">mrmime</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.0.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">ms</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.1.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">nanoid</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.3.12</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">node-fetch</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.7.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">node-gyp-build</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.8.4</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">obug</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.1.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">picomatch</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.0.4</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">postcss</td>
-  <td class="px-3 py-3 align-top text-gray-700">8.5.15</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">readdirp</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.1.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">resolve-from</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">rolldown</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">sade</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.8.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">set-cookie-parser</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.1.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">sirv</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.0.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">svelte</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.55.9</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">svelte</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.55.9</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">svelte-check</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.4.6</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">svelte-check</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.4.6</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">tailwindcss</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.2.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">tailwindcss</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.2.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">tailwindcss</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">tapable</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.3.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">tinyglobby</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.2.16</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">totalist</td>
   <td class="px-3 py-3 align-top text-gray-700">3.0.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">tr46</td>
   <td class="px-3 py-3 align-top text-gray-700">0.0.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">undici-types</td>
+  <td class="px-3 py-3 align-top text-gray-700">7.18.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">vite</td>
-  <td class="px-3 py-3 align-top text-gray-700">8.0.14</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">vite</td>
-  <td class="px-3 py-3 align-top text-gray-700">8.0.14</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">8.0.16</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">vitefu</td>
   <td class="px-3 py-3 align-top text-gray-700">1.1.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">whatwg-url</td>
   <td class="px-3 py-3 align-top text-gray-700">5.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">xstate</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.30.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">xstate</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.30.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">5.32.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">zimmerframe</td>
   <td class="px-3 py-3 align-top text-gray-700">1.1.4</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/adapter-vercel</td>
+  <td class="px-3 py-3 align-top text-gray-700">6.3.3</td>
   <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
   <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">CFPropertyList</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.0.9</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/adapter-vercel</td>
+  <td class="px-3 py-3 align-top text-gray-700">6.3.3</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/kit</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.63.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/kit</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.63.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/vite-plugin-svelte</td>
+  <td class="px-3 py-3 align-top text-gray-700">7.1.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@sveltejs/vite-plugin-svelte</td>
+  <td class="px-3 py-3 align-top text-gray-700">7.1.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@tailwindcss/vite</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@tailwindcss/vite</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/node</td>
+  <td class="px-3 py-3 align-top text-gray-700">24.13.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@types/node</td>
+  <td class="px-3 py-3 align-top text-gray-700">24.13.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">svelte</td>
+  <td class="px-3 py-3 align-top text-gray-700">5.56.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">svelte</td>
+  <td class="px-3 py-3 align-top text-gray-700">5.56.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">svelte-check</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.6.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">svelte-check</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.6.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">tailwindcss</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">tailwindcss</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.3.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">vite</td>
+  <td class="px-3 py-3 align-top text-gray-700">8.0.16</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">vite</td>
+  <td class="px-3 py-3 align-top text-gray-700">8.0.16</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
@@ -2132,351 +1471,8 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
 </tr>
 <tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">commander</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.6.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">declarative</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.0.20</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">digest-crc</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.7.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">dotenv</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.8.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">emoji_regex</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.2.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">excon</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.109.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.10.5</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-cookie_jar</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.0.8</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-em_http</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-em_synchrony</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-excon</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.1.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-httpclient</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-multipart</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.2.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-net_http</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-net_http_persistent</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.2.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-patron</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-rack</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-retry</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.4</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday_middleware</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.2.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">fastimage</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.4.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">fastlane</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.228.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">gh_inspector</td>
   <td class="px-3 py-3 align-top text-gray-700">1.1.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">http-cookie</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.8</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">jwt</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.10.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">mini_magick</td>
-  <td class="px-3 py-3 align-top text-gray-700">4.13.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">mini_mime</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.1.5</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">multi_json</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.15.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">multipart-post</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.4.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">nanaimo</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.4.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">naturally</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.3.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">os</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.1.4</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">plist</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.7.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">public_suffix</td>
-  <td class="px-3 py-3 align-top text-gray-700">5.1.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">rake</td>
-  <td class="px-3 py-3 align-top text-gray-700">13.4.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">representable</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.2.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">retriable</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.6.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">security</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.1.5</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">simctl</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.6.10</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">terminal-notifier</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">terminal-table</td>
-  <td class="px-3 py-3 align-top text-gray-700">3.0.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">trailblazer-option</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.1.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">tty-cursor</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.7.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">tty-screen</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.8.2</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">tty-spinner</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.9.3</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">uber</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.1.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">unicode-display_width</td>
-  <td class="px-3 py-3 align-top text-gray-700">2.6.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">word_wrap</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">xcodeproj</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.27.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">xcpretty</td>
-  <td class="px-3 py-3 align-top text-gray-700">0.4.1</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
-  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT</td>
-</tr>
-<tr class="border-b border-border/70">
-  <td class="px-3 py-3 align-top font-medium text-gray-950">xcpretty-travis-formatter</td>
-  <td class="px-3 py-3 align-top text-gray-700">1.0.1</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MIT</td>
@@ -2496,38 +1492,388 @@
   <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems gem)</td>
 </tr>
 <tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">CFPropertyList</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.0.9</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">commander</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.6.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">declarative</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.0.20</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">digest-crc</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.7.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">dotenv</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.8.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">emoji_regex</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.2.3</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">excon</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.109.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.10.5</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-cookie_jar</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.0.8</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-em_http</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-em_synchrony</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-excon</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.1.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-httpclient</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-multipart</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.2.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-net_http</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-net_http_persistent</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.2.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-patron</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-rack</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday-retry</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.4</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">faraday_middleware</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.2.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">fastimage</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.4.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">fastlane</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.228.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">http-cookie</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.8</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">jwt</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.10.3</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">mini_magick</td>
+  <td class="px-3 py-3 align-top text-gray-700">4.13.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">mini_mime</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.1.5</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">multi_json</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.15.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">multipart-post</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.4.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">nanaimo</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.4.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">naturally</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.3.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">os</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.1.4</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">plist</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.7.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">public_suffix</td>
+  <td class="px-3 py-3 align-top text-gray-700">5.1.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">rake</td>
+  <td class="px-3 py-3 align-top text-gray-700">13.4.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">representable</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.2.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">retriable</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.6.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">security</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.1.5</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">simctl</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.6.10</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">terminal-notifier</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.0.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">terminal-table</td>
+  <td class="px-3 py-3 align-top text-gray-700">3.0.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">trailblazer-option</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.1.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">tty-cursor</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.7.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">tty-screen</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.8.2</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">tty-spinner</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.9.3</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">uber</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.1.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">unicode-display_width</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.6.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">word_wrap</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">xcodeproj</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.27.0</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">xcpretty</td>
+  <td class="px-3 py-3 align-top text-gray-700">0.4.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">xcpretty-travis-formatter</td>
+  <td class="px-3 py-3 align-top text-gray-700">1.0.1</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
+  <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">rouge</td>
   <td class="px-3 py-3 align-top text-gray-700">3.28.0</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">MIT, BSD-2-Clause</td>
+  <td class="px-3 py-3 align-top text-gray-700">MIT, BSD-2-Clause (fetched RubyGems version)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">com.google.android.gms:play-services-mlkit-face-detection</td>
   <td class="px-3 py-3 align-top text-gray-700">17.1.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">ML Kit Terms of Service (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">com.google.android.gms:play-services-mlkit-image-labeling</td>
   <td class="px-3 py-3 align-top text-gray-700">16.0.8</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">ML Kit Terms of Service (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">lightningcss</td>
   <td class="px-3 py-3 align-top text-gray-700">1.32.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MPL-2.0</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">lightningcss-darwin-arm64</td>
   <td class="px-3 py-3 align-top text-gray-700">1.32.0</td>
-  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
-  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">MPL-2.0</td>
 </tr>
 <tr class="border-b border-border/70">
@@ -2535,62 +1881,62 @@
   <td class="px-3 py-3 align-top text-gray-700">2.0.3</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Ruby</td>
+  <td class="px-3 py-3 align-top text-gray-700">Ruby (fetched RubyGems version)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">json</td>
   <td class="px-3 py-3 align-top text-gray-700">2.7.6</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Ruby</td>
+  <td class="px-3 py-3 align-top text-gray-700">Ruby (fetched RubyGems version)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">base64</td>
   <td class="px-3 py-3 align-top text-gray-700">0.3.0</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Ruby, BSD-2-Clause</td>
+  <td class="px-3 py-3 align-top text-gray-700">Ruby, BSD-2-Clause (fetched RubyGems version)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">logger</td>
   <td class="px-3 py-3 align-top text-gray-700">1.7.0</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Ruby, BSD-2-Clause</td>
+  <td class="px-3 py-3 align-top text-gray-700">Ruby, BSD-2-Clause (fetched RubyGems version)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">mutex_m</td>
   <td class="px-3 py-3 align-top text-gray-700">0.3.0</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Ruby, BSD-2-Clause</td>
+  <td class="px-3 py-3 align-top text-gray-700">Ruby, BSD-2-Clause (fetched RubyGems version)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">optparse</td>
   <td class="px-3 py-3 align-top text-gray-700">0.8.1</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Ruby, BSD-2-Clause</td>
+  <td class="px-3 py-3 align-top text-gray-700">Ruby, BSD-2-Clause (fetched RubyGems version)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">ruby2_keywords</td>
   <td class="px-3 py-3 align-top text-gray-700">0.0.5</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">Ruby, BSD-2-Clause</td>
+  <td class="px-3 py-3 align-top text-gray-700">Ruby, BSD-2-Clause (fetched RubyGems version)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">io.coil-kt:coil-compose</td>
   <td class="px-3 py-3 align-top text-gray-700">2.6.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">io.coil-kt:coil-svg</td>
   <td class="px-3 py-3 align-top text-gray-700">2.6.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
@@ -2604,105 +1950,105 @@
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.activity:activity-compose</td>
   <td class="px-3 py-3 align-top text-gray-700">1.11.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.activity:activity-ktx</td>
   <td class="px-3 py-3 align-top text-gray-700">1.9.3</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.appcompat:appcompat</td>
   <td class="px-3 py-3 align-top text-gray-700">1.7.1</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.browser:browser</td>
   <td class="px-3 py-3 align-top text-gray-700">1.8.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.compose.ui:ui-test-junit4</td>
   <td class="px-3 py-3 align-top text-gray-700">1.6.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">test-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.core:core-ktx</td>
   <td class="px-3 py-3 align-top text-gray-700">1.17.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.credentials:credentials</td>
   <td class="px-3 py-3 align-top text-gray-700">1.3.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.navigation:navigation-compose</td>
   <td class="px-3 py-3 align-top text-gray-700">2.7.7</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.security:security-crypto</td>
   <td class="px-3 py-3 align-top text-gray-700">1.1.0-alpha06</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.test.espresso:espresso-core</td>
   <td class="px-3 py-3 align-top text-gray-700">3.7.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">test-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.test.ext:junit</td>
   <td class="px-3 py-3 align-top text-gray-700">1.3.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">test-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.test:core</td>
   <td class="px-3 py-3 align-top text-gray-700">1.5.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">test-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.work:work-runtime-ktx</td>
   <td class="px-3 py-3 align-top text-gray-700">2.10.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">androidx.work:work-runtime-ktx</td>
   <td class="px-3 py-3 align-top text-gray-700">2.9.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">app.cash.sqldelight:android-driver</td>
   <td class="px-3 py-3 align-top text-gray-700">2.0.2</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
@@ -2723,42 +2069,42 @@
   <td class="px-3 py-3 align-top font-medium text-gray-950">app.cash.sqldelight:sqlite-driver</td>
   <td class="px-3 py-3 align-top text-gray-700">2.0.2</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">backend-server</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">com.google.firebase:firebase-bom</td>
   <td class="px-3 py-3 align-top text-gray-700">32.7.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">com.google.firebase:firebase-messaging</td>
   <td class="px-3 py-3 align-top text-gray-700">24.1.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">io.insert-koin:koin-android</td>
   <td class="px-3 py-3 align-top text-gray-700">3.5.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">io.insert-koin:koin-androidx-compose</td>
   <td class="px-3 py-3 align-top text-gray-700">3.5.3</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">io.insert-koin:koin-core</td>
   <td class="px-3 py-3 align-top text-gray-700">3.5.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
@@ -2786,7 +2132,7 @@
   <td class="px-3 py-3 align-top font-medium text-gray-950">io.ktor:ktor-client-mock</td>
   <td class="px-3 py-3 align-top text-gray-700">2.3.12</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
@@ -2828,14 +2174,14 @@
   <td class="px-3 py-3 align-top font-medium text-gray-950">io.ktor:ktor-server-core-jvm</td>
   <td class="px-3 py-3 align-top text-gray-700">3.3.1</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">io.ktor:ktor-server-netty-jvm</td>
   <td class="px-3 py-3 align-top text-gray-700">3.3.1</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
@@ -2849,7 +2195,7 @@
   <td class="px-3 py-3 align-top font-medium text-gray-950">io.ktor:ktor-server-test-host-jvm</td>
   <td class="px-3 py-3 align-top text-gray-700">3.3.1</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">backend-server</td>
+  <td class="px-3 py-3 align-top text-gray-700">test-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
@@ -2877,14 +2223,14 @@
   <td class="px-3 py-3 align-top font-medium text-gray-950">org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose</td>
   <td class="px-3 py-3 align-top text-gray-700">2.9.5</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose</td>
   <td class="px-3 py-3 align-top text-gray-700">2.9.5</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
@@ -2898,14 +2244,14 @@
   <td class="px-3 py-3 align-top font-medium text-gray-950">org.jetbrains.kotlinx:kotlinx-coroutines-swing</td>
   <td class="px-3 py-3 align-top text-gray-700">1.9.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">android-app</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
   <td class="px-3 py-3 align-top font-medium text-gray-950">org.jetbrains.kotlinx:kotlinx-coroutines-test</td>
   <td class="px-3 py-3 align-top text-gray-700">1.9.0</td>
   <td class="px-3 py-3 align-top text-gray-700">gradle-version-catalog</td>
-  <td class="px-3 py-3 align-top text-gray-700">submitted-ios</td>
+  <td class="px-3 py-3 align-top text-gray-700">test-tooling</td>
   <td class="px-3 py-3 align-top text-gray-700">The Apache Software License, Version 2.0 (fetched POM)</td>
 </tr>
 <tr class="border-b border-border/70">
@@ -2927,7 +2273,28 @@
   <td class="px-3 py-3 align-top text-gray-700">2.9.0</td>
   <td class="px-3 py-3 align-top text-gray-700">ruby-gem</td>
   <td class="px-3 py-3 align-top text-gray-700">release-tooling</td>
-  <td class="px-3 py-3 align-top text-gray-700">ruby</td>
+  <td class="px-3 py-3 align-top text-gray-700">ruby (fetched RubyGems version)</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@vercel/microfrontends</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.3.6</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-root</td>
+  <td class="px-3 py-3 align-top text-gray-700">workspace-tooling</td>
+  <td class="px-3 py-3 align-top text-gray-700">unknown</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@vercel/microfrontends</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.3.6</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">unknown</td>
+</tr>
+<tr class="border-b border-border/70">
+  <td class="px-3 py-3 align-top font-medium text-gray-950">@vercel/microfrontends</td>
+  <td class="px-3 py-3 align-top text-gray-700">2.3.6</td>
+  <td class="px-3 py-3 align-top text-gray-700">npm-web</td>
+  <td class="px-3 py-3 align-top text-gray-700">web-notice-surface</td>
+  <td class="px-3 py-3 align-top text-gray-700">unknown</td>
 </tr>
             </tbody>
           </table>

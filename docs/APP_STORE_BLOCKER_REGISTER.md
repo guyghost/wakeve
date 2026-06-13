@@ -1,6 +1,6 @@
 # App Store Blocker Register - Wakeve
 
-Date: 2026-06-01
+Date: 2026-06-13
 
 Status: NOT READY
 
@@ -46,7 +46,7 @@ Current audit baseline:
 APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/app-store-submission-audit.sh --skip-preflight
 ```
 
-Current result on 2026-06-01: 21 blockers, 1 warning. The phone number above is a non-placeholder test value used only to verify blocker accounting without committing personal information; the documented placeholder `+15551234567` is now rejected by the final audit.
+Current result on 2026-06-13: 21 blockers, 1 warning. The phone number above is a non-placeholder test value used only to verify blocker accounting without committing personal information; the documented placeholder `+15551234567` is now rejected by the final audit.
 
 Full local preflight baseline:
 
@@ -54,7 +54,7 @@ Full local preflight baseline:
 APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/app-store-submission-audit.sh
 ```
 
-Current result on 2026-06-01: 21 blockers, 0 warnings. This confirms the local Fastlane App Store preflight passes; the remaining blockers are Apple/App Store Connect/deployment/signoff gates.
+Current result on 2026-06-13: 21 blockers, 0 warnings. This confirms the local Fastlane App Store preflight passes; the remaining blockers are Apple/App Store Connect/deployment/signoff gates.
 
 Live deployment baseline:
 
@@ -62,7 +62,7 @@ Live deployment baseline:
 APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID='A1B2C3D4E5' ./scripts/lint-store-metadata.sh --ios-only --check-live-urls
 ```
 
-Current result on 2026-06-01: 9 live URL/AASA errors and 1 final-signoff warning. Direct `curl -I --max-time 12` checks on the same date show `Could not resolve host` for `wakeve.app` and `api.wakeve.app`. These errors keep AS-14 open until production DNS, legal/support pages, AASA files, and API health are reachable with the real Apple Team ID.
+Current result on 2026-06-13: 9 live URL/AASA errors and 1 final-signoff warning. Direct `curl -I --max-time 12` checks on the same date show `Could not resolve host` for `wakeve.app` and `api.wakeve.app`. These errors keep AS-14 open until production DNS, legal/support pages, AASA files, and API health are reachable with the real Apple Team ID.
 
 ## Blockers
 
@@ -76,8 +76,8 @@ Current result on 2026-06-01: 9 live URL/AASA errors and 1 final-signoff warning
 | AS-06 | Accessibility label decision | Manual signoff incomplete. | Accessibility Nutrition Labels are left unpublished or backed by device evidence in `docs/APP_STORE_ACCESSIBILITY_LABELS.md`; `docs/APP_STORE_ACCESSIBILITY_EVIDENCE.md` contains `APP_STORE_ACCESSIBILITY_EVIDENCE_COMPLETE=true`; `APP_STORE_ACCESSIBILITY_SIGNOFF=true`. | `docs/APP_STORE_FINAL_SIGNOFF.md` |
 | AS-07 | Mac/Vision Pro availability | Repository Release settings now disable Mac Apple silicon and Apple Vision Pro compatibility for first release; manual App Store Connect confirmation remains incomplete. | App Store Connect availability matches `docs/APP_STORE_AVAILABILITY_DECISIONS.md`; `docs/APP_STORE_AVAILABILITY_EVIDENCE.md` contains `APP_STORE_AVAILABILITY_EVIDENCE_COMPLETE=true`; `APP_STORE_AVAILABILITY_CONFIRMED=true`. | `docs/APP_STORE_FINAL_SIGNOFF.md` |
 | AS-08 | EU DSA trader status | Apple-source baseline refreshed on 2026-06-01; manual App Store Connect trader/non-trader/EU storefront decision remains incomplete. | Trader status is verified for EU distribution, non-trader status is declared with owner approval, or EU storefront availability is intentionally disabled as documented; `docs/APP_STORE_DSA_TRADER_STATUS.md` contains `APP_STORE_DSA_TRADER_STATUS_EVIDENCE_COMPLETE=true`; `APP_STORE_DSA_TRADER_STATUS_CONFIRMED=true`. | `docs/APP_STORE_DSA_TRADER_STATUS.md` |
-| AS-09 | Account deletion | Product blocker, not implemented. | OpenSpec `openspec/changes/add-in-app-account-deletion/` is approved using `docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md` and implemented; iOS Profile exposes Delete Account; backend deletion route, local cleanup, Sign in with Apple revocation evidence, and tests are recorded in `docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md`; `APP_STORE_ACCOUNT_DELETION_EVIDENCE_COMPLETE=true`; `APP_STORE_ACCOUNT_DELETION_CONFIRMED=true`. | `docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md`, `docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md`, `docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md` |
-| AS-10 | UGC moderation | Product blocker, not implemented. | OpenSpec `openspec/changes/add-ugc-moderation-controls/` is approved using `docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md` and implemented; filtering, reporting, blocking, moderation audit, support contact, and reviewer-visible evidence are recorded in `docs/APP_STORE_UGC_MODERATION_EVIDENCE.md`; `APP_STORE_UGC_MODERATION_EVIDENCE_COMPLETE=true`; `APP_STORE_UGC_MODERATION_CONFIRMED=true`. | `docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md`, `docs/APP_STORE_UGC_MODERATION_EVIDENCE.md`, `docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md` |
+| AS-09 | Account deletion | Local implementation and focused tests are now present; uploaded-build App Review evidence and final signoff remain incomplete. | OpenSpec `openspec/changes/add-in-app-account-deletion/` is completed or explicitly accepted with remaining release-only tasks; iOS Profile exposes Delete Account; backend deletion route, local cleanup, Sign in with Apple revocation evidence, and tests are recorded in `docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md`; `APP_STORE_ACCOUNT_DELETION_EVIDENCE_COMPLETE=true`; `APP_STORE_ACCOUNT_DELETION_CONFIRMED=true`. | `docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md`, `docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md`, `docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md` |
+| AS-10 | UGC moderation | Local implementation, focused tests, iOS discoverability checks, gates, and local final validation are now present; uploaded-build App Review evidence, live support/contact verification, and final signoff remain incomplete. | OpenSpec `openspec/changes/add-ugc-moderation-controls/` is approved using `docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md` and implemented; filtering, reporting, blocking, moderation audit, support contact, and reviewer-visible evidence are recorded in `docs/APP_STORE_UGC_MODERATION_EVIDENCE.md`; `APP_STORE_UGC_MODERATION_EVIDENCE_COMPLETE=true`; `APP_STORE_UGC_MODERATION_CONFIRMED=true`. | `docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md`, `docs/APP_STORE_UGC_MODERATION_EVIDENCE.md`, `docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md` |
 | AS-11 | Payment/external purchase compliance | Manual/product evidence incomplete. | `docs/APP_STORE_PAYMENT_COMPLIANCE.md` is verified against the review build; App Review notes explain real-world shared-event expenses and no digital unlocks; `docs/APP_STORE_PAYMENT_EVIDENCE.md` contains `APP_STORE_PAYMENT_EVIDENCE_COMPLETE=true`; `APP_STORE_PAYMENT_COMPLIANCE_CONFIRMED=true`. | `docs/APP_STORE_PAYMENT_COMPLIANCE.md` |
 | AS-12 | TestFlight smoke test | Apple-source baseline and repository-side evidence checklist refreshed on 2026-06-01; no uploaded TestFlight build, signed IPA/archive, real-device TestFlight install, 24-hour monitoring window, or uploaded-build crash/feedback evidence is recorded. | TestFlight smoke checklist passes on iPhone and iPad, including account deletion and UGC/payment surfaces if enabled; crash/dSYM/backend/support monitoring is recorded; `docs/APP_STORE_TESTFLIGHT_EVIDENCE.md` contains `TESTFLIGHT_SMOKE_EVIDENCE_COMPLETE=true`; `docs/APP_STORE_OBSERVABILITY_EVIDENCE.md` contains `APP_STORE_OBSERVABILITY_EVIDENCE_COMPLETE=true`; `TESTFLIGHT_SMOKE_PASSED=true`. | `docs/APP_STORE_LAUNCH_CHECKLIST.md` |
 | AS-13 | Apple Developer capabilities/profiles | External Apple Developer verification incomplete. | Signed IPA entitlements include Push Notifications, Siri, Sign in with Apple, Associated Domains, and production APNs; `docs/APP_STORE_CAPABILITIES_EVIDENCE.md` contains `APP_STORE_CAPABILITIES_EVIDENCE_COMPLETE=true`; `APP_STORE_CAPABILITIES_CONFIRMED=true`. | `bundle exec fastlane ios validate_ipa_entitlements ipa:build/ios/WakeveApp.ipa` |
@@ -101,7 +101,7 @@ Current result on 2026-06-01: 9 live URL/AASA errors and 1 final-signoff warning
 
 - Do not set final signoff variables to `true` from this document alone. Each row requires the named evidence source to be current.
 - Do not mark a row closed unless the final App Store Connect state is recorded with platform scope, draft submission membership, submitted items accepted or intentionally excluded, no Unresolved Issues state, and any removal, cancellation, or retry decision.
-- Product blockers AS-09 and AS-10 require OpenSpec approval before implementation, with approval decisions recorded in `docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md`.
+- Product blockers AS-09 and AS-10 required OpenSpec approval before implementation, with approval decisions recorded in `docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md`; both are now locally implemented, but release confirmation remains blocked until uploaded-build evidence is complete.
 - External blockers AS-01 through AS-04, AS-07, AS-08, AS-12, AS-13, AS-14, AS-15, AS-16, AS-17, AS-18, AS-19, AS-20, AS-21, and AS-22 require Apple/App Store Connect/deployment state that cannot be proven from the repository alone.
 - The final state is ready only when `./scripts/app-store-submission-audit.sh --check-live-urls --run-submission-ready` exits 0 and `docs/APP_STORE_FINAL_SIGNOFF.md` contains `APP_STORE_FINAL_SIGNOFF_COMPLETE=true`.
 

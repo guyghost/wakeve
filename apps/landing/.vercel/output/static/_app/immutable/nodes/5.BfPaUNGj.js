@@ -15,6 +15,9 @@ import{T as e,W as t,_ as n,k as r,u as i,y as a}from"../chunks/CI4Y1Uw7.js";imp
           privacy policies.</p></section> <section class="space-y-4"><h2 class="text-xl font-semibold text-gray-950">Disclaimers and Liability</h2> <p class="leading-7">Wakeve is provided without warranties of uninterrupted operation, error-free behavior, or
           scheduling accuracy. To the maximum extent permitted by law, Wakeve is not liable for
           indirect, incidental, special, or consequential damages, loss of data, or actions of other
-          users.</p></section> <section class="space-y-4"><h2 class="text-xl font-semibold text-gray-950">Termination, Law, and Contact</h2> <p class="leading-7">You may stop using Wakeve at any time and request account deletion by email. Wakeve may
-          suspend or terminate accounts that violate these terms. These terms are governed by the
-          laws of France, and disputes are resolved in the courts of Paris, France.</p> <p class="leading-7">For legal questions, contact <a class="font-medium text-wakeve-600 hover:underline" href="mailto:legal@wakeve.app">legal@wakeve.app</a>.</p></section></div></article></main>`);function l(t){var a=c();i(`1e0rsuc`,t=>{var i=s();e(()=>{r.title=`Terms of Service - Wakeve`}),n(t,i)}),n(t,a)}export{l as component,o as universal};
+          users.</p></section> <section class="space-y-4"><h2 class="text-xl font-semibold text-gray-950">Termination, Law, and Contact</h2> <p class="leading-7">You may stop using Wakeve at any time. Authenticated users can start account deletion in
+          the app from Profile Settings, then Data Management, then Delete Account, and guest users
+          can delete local guest data from the same Data Management area. If you cannot access the
+          app, you may request account deletion by email. Wakeve may suspend or terminate accounts
+          that violate these terms. These terms are governed by the laws of France, and disputes
+          are resolved in the courts of Paris, France.</p> <p class="leading-7">For legal questions, contact <a class="font-medium text-wakeve-600 hover:underline" href="mailto:legal@wakeve.app">legal@wakeve.app</a>.</p></section></div></article></main>`);function l(t){var a=c();i(`1e0rsuc`,t=>{var i=s();e(()=>{r.title=`Terms of Service - Wakeve`}),n(t,i)}),n(t,a)}export{l as component,o as universal};

@@ -39,7 +39,13 @@
       <section class="space-y-4">
         <h2 class="text-xl font-semibold text-gray-950">Account and Data Requests</h2>
         <p class="leading-7">
-          For privacy, export, correction, or deletion requests, contact
+          In the Wakeve app, authenticated users can start account deletion from Profile Settings,
+          then Data Management, then Delete Account. Guest users can delete local guest data from
+          the same Data Management area.
+        </p>
+        <p class="leading-7">
+          For privacy, export, correction, deletion follow-up, or help if you cannot access the app,
+          contact
           <a class="font-medium text-wakeve-600 hover:underline" href="mailto:privacy@wakeve.app">
             privacy@wakeve.app
           </a>.

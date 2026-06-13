@@ -59,7 +59,7 @@ Local scan date: 2026-05-28
 This is local repository and simulator evidence only. It does not complete App Review access for the uploaded App Store Connect review build.
 
 - Review notes exist at `composeApp/metadata/ios/review_information/notes.txt` and currently describe a `"Continuer en invité"` / `"Continue as guest"` guest flow, local-only guest session behavior, offline event creation, local-first sync, payment/Tricount review notes, no digital feature unlocks, trusted-domain Tricount links, and third-party notices at `https://wakeve.app/third-party-notices`.
-- Review notes byte length: `849`, under Apple's 4000-byte Notes limit.
+- Review notes byte length: `1548`, under Apple's 4000-byte Notes limit.
 - Review contact metadata exists with `first_name=Wakeve`, `last_name=Support`, and `email_address=support@wakeve.app`.
 - `composeApp/metadata/ios/review_information/` currently contains only `email_address.txt`, `first_name.txt`, `last_name.txt`, and `notes.txt`.
 - No `demo_password.txt` is committed. No `demo_user.txt` is committed. No `phone_number.txt` is committed; the review phone is supplied through `APP_REVIEW_PHONE_NUMBER` or entered manually in App Store Connect.

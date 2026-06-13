@@ -94,14 +94,14 @@ Fastlane verifies these entitlements from the signed IPA after `bundle exec fast
 
 ## Production Web/API Setup
 
-1. Deploy `webApp` from the `webApp/` project root. The SvelteKit app uses `@sveltejs/adapter-vercel`, so the Vercel project must keep `webApp/` as the root directory and build from the checked-in `pnpm-lock.yaml`.
+1. Deploy `apps/landing` from the `apps/landing/` project root. The SvelteKit app uses `@sveltejs/adapter-vercel`, so the Vercel project must keep `apps/landing/` as the root directory and build from the checked-in `pnpm-lock.yaml`.
 2. Configure production `APPLE_TEAM_ID` or `TEAM_ID` on the web deployment with the real Apple Developer Team ID.
 3. Point `wakeve.app` DNS to the deployed web app.
 4. Point `api.wakeve.app` DNS to the production backend.
 5. Verify:
 
 ```bash
-cd webApp
+cd apps/landing
 npx --yes pnpm@10 check
 npx --yes pnpm@10 build
 ```
@@ -109,7 +109,7 @@ npx --yes pnpm@10 build
 Optional Vercel CLI deployment sequence:
 
 ```bash
-cd webApp
+cd apps/landing
 vercel pull --yes --environment=production
 vercel build --prod
 vercel deploy --prebuilt --prod
@@ -142,7 +142,7 @@ Both AASA responses must be HTTPS, public, JSON, extensionless, and include `<AP
    - Record third-party SDK inventory, required listed-SDK privacy manifests, SDK signatures, and Xcode privacy report evidence in `docs/APP_STORE_SDK_PRIVACY_EVIDENCE.md` before final signoff.
    - Record App Store Version Release option, phased-release decision, release owner, release window, stop/pause criteria, and first-day monitoring plan in `docs/APP_STORE_RELEASE_CONTROL_EVIDENCE.md` before final signoff.
    - Record screenshot inventory, app preview decision, localized metadata review, and product-page consistency evidence in `docs/APP_STORE_MEDIA_LOCALIZATION_EVIDENCE.md` before final signoff.
-   - Run `./scripts/app-store-license-inventory.sh --fetch-remote-metadata --output docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md`, then run `./scripts/app-store-third-party-notices.sh --markdown-output docs/APP_STORE_THIRD_PARTY_NOTICES.md --web-output webApp/src/routes/third-party-notices/+page.svelte`, then record dependency license inventory, attribution/notice delivery path, prohibited-license review, and signed-build match evidence in `docs/APP_STORE_LICENSE_NOTICES_EVIDENCE.md` before final signoff.
+   - Run `./scripts/app-store-license-inventory.sh --fetch-remote-metadata --output docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md`, then run `./scripts/app-store-third-party-notices.sh --markdown-output docs/APP_STORE_THIRD_PARTY_NOTICES.md --web-output apps/landing/src/routes/third-party-notices/+page.svelte`, then record dependency license inventory, attribution/notice delivery path, prohibited-license review, and signed-build match evidence in `docs/APP_STORE_LICENSE_NOTICES_EVIDENCE.md` before final signoff.
    - Record App Store Connect License Agreement choice, Apple standard EULA or custom EULA decision, terms alignment, and legal approval in `docs/APP_STORE_EULA_EVIDENCE.md` before final signoff.
 3. Enter App Review contact details.
    - Set `APP_REVIEW_PHONE_NUMBER` in the release shell/CI secret store before final automation. As a fallback, `composeApp/metadata/ios/review_information/phone_number.txt` is also accepted. The strict Fastlane gate accepts common separators but requires a plausible 4-20 digit phone number, optionally prefixed with `+`.
