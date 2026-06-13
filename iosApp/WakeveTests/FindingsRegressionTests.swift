@@ -72,6 +72,20 @@ final class FindingsRegressionTests: XCTestCase {
         XCTAssertTrue(authState.contains("await completeLocalAccountDeletion()"))
     }
 
+    func testProfileExposesRequiredLegalAndNoticeLinks() throws {
+        let profile = try readProjectFile("iosApp/src/Views/Profile/ProfileTabView.swift")
+        let english = try readProjectFile("iosApp/src/Resources/en.lproj/Localizable.strings")
+        let french = try readProjectFile("iosApp/src/Resources/fr.lproj/Localizable.strings")
+
+        XCTAssertTrue(profile.contains("https://wakeve.app/support"))
+        XCTAssertTrue(profile.contains("https://wakeve.app/privacy"))
+        XCTAssertTrue(profile.contains("https://wakeve.app/terms"))
+        XCTAssertTrue(profile.contains("https://wakeve.app/third-party-notices"))
+        XCTAssertTrue(profile.contains("profile.third_party_notices"))
+        XCTAssertTrue(english.contains("\"profile.third_party_notices\" = \"Third-party notices\""))
+        XCTAssertTrue(french.contains("\"profile.third_party_notices\" = \"Notices tierces\""))
+    }
+
     func testUgcModerationReportBlockControlsAreReviewerVisible() throws {
         let commentItem = try readProjectFile("iosApp/src/Views/Collaboration/CommentItemView.swift")
         let commentList = try readProjectFile("iosApp/src/Views/Collaboration/CommentListView.swift")

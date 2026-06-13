@@ -56,6 +56,7 @@ cd apps/landing && npx --yes pnpm@10 licenses list --json
 bundle exec fastlane action update_fastlane
 find iosApp shared composeApp apps/landing fastlane -maxdepth 4 \( -iname '*license*' -o -iname 'NOTICE*' -o -iname 'COPYING*' \) | sort
 rg -n "license|notice|acknowledg|third-party|open source|OSS" iosApp/src shared/src composeApp/src apps/landing/src docs
+xcodebuild test -project iosApp/iosApp.xcodeproj -scheme WakeveApp -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:WakeveTests/FindingsRegressionTests/testProfileExposesRequiredLegalAndNoticeLinks
 ```
 
 If a command is not applicable to the final iOS artifact, record that decision in the evidence table with the reason.
@@ -103,7 +104,8 @@ Generated local notice coverage:
 - `apps/landing/src/routes/third-party-notices/+page.svelte` was regenerated from the same inventory for the public notices route.
 - The generated notices record `Dependencies listed: 316`, `Unknown licenses: 3`, `Copyleft keywords detected: 1`, and `Submitted iOS unknown/copyleft risks: 0`.
 - `scripts/app-store-license-inventory.sh` now classifies Android-only, test-only, backend, release-tooling, web notice surface, and submitted-iOS dependencies separately. AndroidX, Google Play Services, Firebase Android, ML Kit, Coil, and Compose/App Android dependencies are no longer counted as `submitted-ios` evidence for the iOS App Store build.
-- The notices route is local source evidence only. Final closure still requires the deployed `https://wakeve.app/third-party-notices` URL to be reachable and matched to the signed App Store review build.
+- `iosApp/src/Views/Profile/ProfileTabView.swift` exposes active Profile/About links to `https://wakeve.app/support`, `https://wakeve.app/privacy`, `https://wakeve.app/terms`, and `https://wakeve.app/third-party-notices`, with localized EN/FR copy for third-party notices. `FindingsRegressionTests.testProfileExposesRequiredLegalAndNoticeLinks` guards this source-level App Review surface.
+- The notices route and in-app link are local source evidence only. Final closure still requires the deployed `https://wakeve.app/third-party-notices` URL to be reachable and matched to the signed App Store review build.
 
 ## Evidence To Attach
 

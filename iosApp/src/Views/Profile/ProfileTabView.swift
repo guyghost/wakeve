@@ -335,20 +335,56 @@ struct AboutSection: View {
 
                     Divider()
 
-                    ProfilePlainLinkRow(
+                    AboutLinkRow(
                         icon: "questionmark.circle.fill",
-                        title: String(localized: "settings_sheet.help")
+                        title: String(localized: "settings_sheet.help"),
+                        action: {
+                            openExternalURL("https://wakeve.app/support")
+                        }
                     )
 
                     Divider()
 
-                    ProfilePlainLinkRow(
+                    AboutLinkRow(
+                        icon: "hand.raised.fill",
+                        title: String(localized: "settings_sheet.privacy"),
+                        action: {
+                            openExternalURL("https://wakeve.app/privacy")
+                        }
+                    )
+
+                    Divider()
+
+                    AboutLinkRow(
                         icon: "doc.text.fill",
-                        title: String(localized: "settings_sheet.terms")
+                        title: String(localized: "settings_sheet.terms"),
+                        action: {
+                            openExternalURL("https://wakeve.app/terms")
+                        }
+                    )
+
+                    Divider()
+
+                    AboutLinkRow(
+                        icon: "doc.append.fill",
+                        title: String(localized: "profile.third_party_notices"),
+                        action: {
+                            openExternalURL("https://wakeve.app/third-party-notices")
+                        }
                     )
                 }
             }
         }
+    }
+
+    private func openExternalURL(_ rawValue: String) {
+        guard let url = URL(string: rawValue) else {
+            return
+        }
+
+        #if canImport(UIKit)
+        UIApplication.shared.open(url)
+        #endif
     }
 }
 
@@ -636,32 +672,6 @@ struct ProfileNavigationRow: View {
             Image(systemName: "chevron.right")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundColor(.secondary)
-        }
-        .padding(.vertical, 12)
-        .contentShape(Rectangle())
-    }
-}
-
-// MARK: - Profile Plain Link Row
-
-struct ProfilePlainLinkRow: View {
-    let icon: String
-    let title: String
-
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundColor(WakeveColors.success)
-                .frame(width: 32, height: 32)
-
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
-                .multilineTextAlignment(.leading)
-
-            Spacer()
         }
         .padding(.vertical, 12)
         .contentShape(Rectangle())
