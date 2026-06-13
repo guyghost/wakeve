@@ -231,7 +231,7 @@ Preuves du 2026-06-13:
 - Lancement simulateur standard: `build_run_sim` passe. Screenshot accueil vide:
   - `/var/folders/1t/456kc0651bl7mgrc62_m43g80000gn/T/screenshot_optimized_619c494c-902e-4b14-81c6-e5f2ee9d1b24.jpg`
   - apres reset app: `/var/folders/1t/456kc0651bl7mgrc62_m43g80000gn/T/screenshot_optimized_4b84c20b-1411-4e5c-97c6-c2bedec4cb0b.jpg`
-- `./scripts/audit-ios-release-screen-evidence.sh` genere `docs/ios-release-screen-evidence/release-screen-evidence-2026-06-13T12-53-27Z.md` et rend la couverture screenshot actuelle explicite: onboarding, login/guest et creation event presents; event detail et organisation manquants.
+- `./scripts/audit-ios-release-screen-evidence.sh` genere `docs/ios-release-screen-evidence/release-screen-evidence-2026-06-13T13-32-47Z.md` et rend la couverture screenshot actuelle explicite: 3/5 ecrans requis couverts localement (onboarding, login/guest, creation event), event detail et organisation toujours manquants, avec cibles de capture TestFlight/App Review explicites.
 
 Definition of done:
 

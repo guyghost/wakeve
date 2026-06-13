@@ -62,10 +62,12 @@ else
         -maxdepth 1 \
         -type f \
         \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) \
-        -print 2>/dev/null | sed "s|$PROJECT_DIR/docs/app-store-evidence/||"
+        -print 2>/dev/null | sed "s|$PROJECT_DIR/docs/app-store-evidence/||" > "$inventory"
 fi
 
 missing=0
+required_count=0
+passed_count=0
 
 screen_match() {
     local pattern="$1"
@@ -76,8 +78,10 @@ append_screen() {
     local name="$1"
     local pattern="$2"
     local required="$3"
+    local capture_target="$4"
     local matches_file="$tmp_dir/$name.txt"
 
+    required_count=$((required_count + 1))
     screen_match "$pattern" > "$matches_file"
 
     local count
@@ -86,10 +90,12 @@ append_screen() {
     if [ "$count" -eq 0 ]; then
         result="MISSING"
         missing=$((missing + 1))
+    else
+        passed_count=$((passed_count + 1))
     fi
 
     {
-        echo "| $required | $result | $count |"
+        echo "| $required | $result | $count | $capture_target |"
     } >> "$report"
 
     {
@@ -102,6 +108,8 @@ append_screen() {
             sed 's/^/- /' "$matches_file"
             echo '```'
         fi
+        echo ""
+        echo "Next capture target: $capture_target"
         echo ""
     } >> "$tmp_dir/details.md"
 }
@@ -117,22 +125,33 @@ append_screen() {
     echo ""
     echo "## Summary"
     echo ""
-    echo "| Required screen | Result | Matches |"
-    echo "| --- | --- | ---: |"
+    echo "| Required screen | Local result | Local matches | Next capture target |"
+    echo "| --- | --- | ---: | --- |"
 } > "$report"
 
 details_file="$tmp_dir/details.md"
 : > "$details_file"
 
-append_screen "onboarding" "onboarding" "Onboarding"
-append_screen "login_guest" "login|guest" "Login and guest path"
-append_screen "create_event" "create[- ]event|event creation" "Create event"
-append_screen "event_detail" "event[- ]detail|detail view|event detail" "Event detail"
-append_screen "organization" "organization|organisation|organizing|scenario organization" "Organization"
+append_screen "onboarding" "onboarding" "Onboarding" "Uploaded review build: first-run onboarding carousel"
+append_screen "login_guest" "login|guest" "Login and guest path" "Uploaded review build: login screen plus Continue as guest result"
+append_screen "create_event" "create[- ]event|event creation" "Create event" "Uploaded review build: create-event wizard and preview"
+append_screen "event_detail" "event[- ]detail|detail view|event detail" "Event detail" "Uploaded review build: event detail for a seeded or reviewer-created event"
+append_screen "organization" "organization|organisation|organizing|scenario organization" "Organization" "Uploaded review build: confirmed/organizing event with scenario or organization dashboard visible"
 
 {
     echo ""
+    echo "Local coverage: $passed_count / $required_count required screens"
+    echo ""
     echo "Missing required screens: $missing"
+    echo ""
+    echo "## Inventory Source"
+    echo ""
+    if [ -f "$index_file" ]; then
+        echo "- Source index: \`docs/app-store-evidence/README.md\`"
+    else
+        echo "- Source index missing; inventory was built directly from \`docs/app-store-evidence/*.{jpg,jpeg,png}\`."
+    fi
+    echo "- Inventory rows considered: $(grep -c . "$inventory" 2>/dev/null || true)"
     echo ""
     echo "## Matched Evidence"
     echo ""
@@ -140,6 +159,7 @@ append_screen "organization" "organization|organisation|organizing|scenario orga
     echo "## Closure Notes"
     echo ""
     echo "- Treat MISSING rows as the next screenshot-capture targets."
+    echo "- Local PASS rows prove only that a matching local simulator screenshot is indexed; they do not prove App Store Connect media readiness."
     echo "- Do not set App Store media, accessibility, or TestFlight evidence markers true from this local audit alone."
     echo "- Re-run after capturing screenshots from the uploaded TestFlight/App Review build."
 } >> "$report"
