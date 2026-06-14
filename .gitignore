@@ -9,6 +9,8 @@ local.properties
 .env.*
 !.env.example
 !.env.*.example
+.dev.vars
+.dev.vars.*
 .idea
 .DS_Store
 captures
@@ -21,6 +23,7 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+server/wakev_server.db
 /.bundle/
 /vendor/bundle/
 fastlane/README.md
