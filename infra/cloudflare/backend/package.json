@@ -1,0 +1,20 @@
+{
+  "name": "wakeve-cloudflare-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "types": "wrangler types",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "^0.0.25"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260611.0",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.20.0"
+  }
+}

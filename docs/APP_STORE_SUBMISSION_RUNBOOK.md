@@ -97,8 +97,9 @@ Fastlane verifies these entitlements from the signed IPA after `bundle exec fast
 1. Deploy `apps/landing` from the `apps/landing/` project root. The SvelteKit app uses `@sveltejs/adapter-vercel`, so the Vercel project must keep `apps/landing/` as the root directory and build from the checked-in `pnpm-lock.yaml`.
 2. Configure production `APPLE_TEAM_ID` or `TEAM_ID` on the web deployment with the real Apple Developer Team ID.
 3. Point `wakeve.app` DNS to the deployed web app.
-4. Point `api.wakeve.app` DNS to the production backend.
-5. Verify:
+4. The Ktor backend is deployed to Cloudflare Containers using `docs/deployment/CLOUDFLARE_BACKEND.md`; redeploy with the same runbook after backend or Worker changes.
+5. `api.wakeve.app` is configured as the Cloudflare Worker custom domain for `infra/cloudflare/backend`; keep it attached to Worker `wakeve-backend`.
+6. Verify:
 
 ```bash
 cd apps/landing
@@ -115,7 +116,14 @@ vercel build --prod
 vercel deploy --prebuilt --prod
 ```
 
-6. Verify public review endpoints:
+Backend deployment sequence:
+
+```bash
+./scripts/deploy-cloudflare-backend.sh
+./scripts/smoke-cloudflare-backend.sh
+```
+
+7. Verify public review endpoints:
 
 ```bash
 curl -I https://wakeve.app/privacy
