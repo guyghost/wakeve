@@ -26,6 +26,18 @@ final class PremiumMessagesContractTests: XCTestCase {
         XCTAssertTrue(row.contains("conversation.requiresAction"))
     }
 
+    func testMessagesContentRowsUseSemanticBrandLayer() throws {
+        let source = try readProjectFile("iosApp/src/Views/Inbox/InboxView.swift")
+        let content = slice(source, from: "struct InboxView", to: "// MARK: - Filter Tab Button")
+        let row = slice(source, from: "private struct EventConversationRow", to: "struct InboxRow")
+
+        XCTAssertTrue(content.contains("SemanticColor.appBackground"))
+        XCTAssertTrue(row.contains("WakeveContentCard("))
+        XCTAssertTrue(row.contains("SemanticColor.selectedState"))
+        XCTAssertTrue(row.contains("SemanticColor.warning"))
+        XCTAssertFalse(row.contains("LiquidGlassCard("), "Message conversation rows are content and should not use Liquid Glass.")
+    }
+
     func testMessagesPreserveInboxModelAndViewModelBoundary() throws {
         let source = try readProjectFile("iosApp/src/Views/Inbox/InboxView.swift")
 

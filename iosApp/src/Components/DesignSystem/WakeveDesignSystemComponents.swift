@@ -19,7 +19,7 @@ struct WakeveScreenBackground: View {
         Group {
             switch style {
             case .app:
-                WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                SemanticColor.appBackground(for: colorScheme)
             case .utility:
                 WakeveTheme.EventGradient.utility
             case .profile:
@@ -27,7 +27,7 @@ struct WakeveScreenBackground: View {
             case .event:
                 eventBackground
             case .grouped:
-                WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                SemanticColor.appBackground(for: colorScheme)
             }
         }
         .ignoresSafeArea()
@@ -40,10 +40,10 @@ struct WakeveScreenBackground: View {
 
         return LinearGradient(
             colors: [
-                Color(hex: "FFF4FB"),
-                Color(hex: "E9DDFF"),
-                Color(hex: "D7E8FF"),
-                WakeveTheme.ColorToken.appLight
+                BrandColor.softIvory,
+                Color(hex: "EEF0EC"),
+                BrandColor.paleBlue.opacity(0.34),
+                BrandColor.softIvory
             ],
             startPoint: .top,
             endPoint: .bottom
@@ -52,6 +52,61 @@ struct WakeveScreenBackground: View {
 }
 
 // MARK: - Content Surface Card
+
+struct WakeveContentCard<Content: View>: View {
+    enum Prominence {
+        case subtle
+        case regular
+        case prominent
+    }
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    let prominence: Prominence
+    let cornerRadius: CGFloat
+    let padding: CGFloat
+    let content: Content
+
+    init(
+        prominence: Prominence = .regular,
+        cornerRadius: CGFloat = WakeveTheme.Radius.xl,
+        padding: CGFloat = WakeveTheme.Spacing.lg,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.prominence = prominence
+        self.cornerRadius = cornerRadius
+        self.padding = padding
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .padding(padding)
+            .background(fill)
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(SemanticColor.border(for: colorScheme), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .shadow(
+                color: prominence == .subtle ? .clear : WakeveTheme.Shadow.subtle.color,
+                radius: prominence == .prominent ? 18 : 10,
+                x: 0,
+                y: prominence == .prominent ? 10 : 5
+            )
+    }
+
+    private var fill: Color {
+        switch prominence {
+        case .subtle:
+            return SemanticColor.contentSurface(for: colorScheme).opacity(colorScheme == .dark ? 0.68 : 0.76)
+        case .regular:
+            return SemanticColor.contentSurface(for: colorScheme)
+        case .prominent:
+            return colorScheme == .dark ? BrandColor.midnightBlueRaised : Color.white
+        }
+    }
+}
 
 struct WakeveGlassCard<Content: View>: View {
     enum Prominence {
@@ -85,7 +140,7 @@ struct WakeveGlassCard<Content: View>: View {
             .background(fill)
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(WakeveTheme.ColorToken.cardBorder(for: colorScheme), lineWidth: 1)
+                    .stroke(SemanticColor.border(for: colorScheme), lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .shadow(
@@ -99,11 +154,11 @@ struct WakeveGlassCard<Content: View>: View {
     private var fill: Color {
         switch prominence {
         case .subtle:
-            return WakeveTheme.ColorToken.subtleCardFill(for: colorScheme)
+            return SemanticColor.contentSurface(for: colorScheme).opacity(colorScheme == .dark ? 0.72 : 0.78)
         case .regular:
-            return WakeveTheme.ColorToken.cardFill(for: colorScheme)
+            return SemanticColor.contentSurface(for: colorScheme)
         case .prominent:
-            return colorScheme == .dark ? Color(hex: "25252A") : Color.white
+            return colorScheme == .dark ? BrandColor.midnightBlueRaised : Color.white
         }
     }
 }

@@ -129,7 +129,7 @@ struct PollVotingContentView: View {
 
     var body: some View {
         ZStack {
-            WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+            SemanticColor.appBackground(for: colorScheme)
                 .ignoresSafeArea()
 
             ScrollView {
@@ -183,12 +183,12 @@ struct PollVotingContentView: View {
             if let deadline = formatDeadlineShort(event.deadline) {
                 Text(deadline)
                     .font(WakeveTheme.Typography.tiny)
-                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                     .lineLimit(1)
                     .minimumScaleFactor(0.78)
                     .padding(.horizontal, WakeveTheme.Spacing.sm)
                     .frame(height: 34)
-                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .background(SemanticColor.badge(for: colorScheme))
                     .clipShape(Capsule())
             }
         }
@@ -198,8 +198,8 @@ struct PollVotingContentView: View {
         .background(
             LinearGradient(
                 colors: [
-                    WakeveTheme.ColorToken.pageBackground(for: colorScheme),
-                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0)
+                    SemanticColor.appBackground(for: colorScheme),
+                    SemanticColor.appBackground(for: colorScheme).opacity(0)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -211,33 +211,33 @@ struct PollVotingContentView: View {
     private var headerQuestion: some View {
         VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
             Text(event.title)
-                .font(WakeveTheme.Typography.largeTitle)
-                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .font(TypographyTokens.screenTitle)
+                .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                 .lineLimit(2)
                 .minimumScaleFactor(0.76)
 
             Text(String(localized: "poll.voting.header_question"))
-                .font(WakeveTheme.Typography.callout)
-                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                .font(TypographyTokens.callout)
+                .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                 .lineLimit(3)
         }
     }
 
     private var voteSubmittedCard: some View {
-        LiquidGlassCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.xl) {
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.xl) {
             VStack(spacing: WakeveTheme.Spacing.lg) {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 58, weight: .semibold))
-                    .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+                    .foregroundColor(SemanticColor.confirmation(for: colorScheme))
 
                 VStack(spacing: WakeveTheme.Spacing.xs) {
                     Text(String(localized: "poll.voting.submitted_title"))
-                        .font(WakeveTheme.Typography.section)
-                        .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                        .font(TypographyTokens.cardTitle)
+                        .foregroundColor(SemanticColor.primaryText(for: colorScheme))
 
                     Text(String(localized: "poll.voting.submitted_subtitle"))
-                        .font(WakeveTheme.Typography.callout)
-                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .font(TypographyTokens.callout)
+                        .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                         .multilineTextAlignment(.center)
                 }
             }
@@ -246,24 +246,24 @@ struct PollVotingContentView: View {
     }
 
     private var progressCard: some View {
-        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveContentCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
                 HStack {
                     Text(String(localized: "poll.voting.progress"))
-                        .font(WakeveTheme.Typography.caption)
-                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .font(TypographyTokens.caption)
+                        .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                     Spacer()
                     Text("\(activeSlotIndex + 1) / \(event.proposedSlots.count)")
-                        .font(WakeveTheme.Typography.caption)
-                        .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                        .font(TypographyTokens.caption)
+                        .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                 }
 
                 GeometryReader { proxy in
                     Capsule()
-                        .fill(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                        .fill(SemanticColor.badge(for: colorScheme))
                         .overlay(alignment: .leading) {
                             Capsule()
-                                .fill(WakeveTheme.ColorToken.progress(for: colorScheme))
+                                .fill(SemanticColor.progress(for: colorScheme))
                                 .frame(width: proxy.size.width * progressValue)
                         }
                 }
@@ -273,24 +273,24 @@ struct PollVotingContentView: View {
     }
 
     private var activeSlotQuestionCard: some View {
-        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.xl) {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.xl) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 Text(String(localized: "poll.voting.slot_question"))
-                    .font(WakeveTheme.Typography.section)
-                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .font(TypographyTokens.cardTitle)
+                    .foregroundColor(SemanticColor.primaryText(for: colorScheme))
 
                 Text(formatDate(activeSlot.start ?? ""))
                     .font(WakeveTheme.Typography.title2)
-                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                     .lineLimit(2)
 
                 HStack(spacing: WakeveTheme.Spacing.xs) {
                     Image(systemName: "clock")
                         .font(.caption.weight(.bold))
                     Text("\(formatTime(activeSlot.start ?? "")) - \(formatTime(activeSlot.end ?? ""))")
-                        .font(WakeveTheme.Typography.metadata)
+                        .font(TypographyTokens.metadata)
                 }
-                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -332,14 +332,14 @@ struct PollVotingContentView: View {
         if let activeVote {
             HStack(spacing: WakeveTheme.Spacing.sm) {
                 Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+                    .foregroundColor(SemanticColor.confirmation(for: colorScheme))
                 Text(feedbackText(for: activeVote))
-                    .font(WakeveTheme.Typography.callout)
-                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .font(TypographyTokens.callout)
+                    .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
             }
             .padding(.horizontal, WakeveTheme.Spacing.md)
             .padding(.vertical, WakeveTheme.Spacing.sm)
-            .background(WakeveTheme.ColorToken.confirmation(for: colorScheme).opacity(0.12))
+            .background(SemanticColor.confirmation(for: colorScheme).opacity(0.12))
             .clipShape(Capsule())
         }
     }
@@ -348,8 +348,8 @@ struct PollVotingContentView: View {
         VStack(spacing: 0) {
             LinearGradient(
                 colors: [
-                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0),
-                    WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                    SemanticColor.appBackground(for: colorScheme).opacity(0),
+                    SemanticColor.appBackground(for: colorScheme)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -364,9 +364,9 @@ struct PollVotingContentView: View {
                     } label: {
                         Image(systemName: "chevron.left")
                             .font(.headline.weight(.bold))
-                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                            .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                             .frame(width: 52, height: 52)
-                            .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                            .background(SemanticColor.badge(for: colorScheme))
                             .clipShape(Circle())
                             .liquidGlass(cornerRadius: WakeveTheme.Radius.full)
                     }
@@ -384,7 +384,7 @@ struct PollVotingContentView: View {
             }
             .padding(.horizontal, WakeveTheme.Spacing.page)
             .padding(.bottom, WakeveTheme.Spacing.sm)
-            .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme))
+            .background(SemanticColor.appBackground(for: colorScheme))
         }
     }
 
@@ -512,7 +512,7 @@ struct TimeSlotVoteCard: View {
     let onVoteSelected: (PollVote) -> Void
 
     var body: some View {
-        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
+        WakeveContentCard(cornerRadius: WakeveTheme.Radius.xl) {
             VStack(spacing: WakeveTheme.Spacing.md) {
                 VStack(spacing: 6) {
                 Text(formatDate(timeSlot.start ?? ""))

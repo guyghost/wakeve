@@ -7,7 +7,7 @@ final class PremiumPollVotingContractTests: XCTestCase {
         let content = slice(source, from: "struct PollVotingContentView", to: "// MARK: - Vote Guide Row")
 
         XCTAssertTrue(content.contains("@State private var activeSlotIndex"))
-        XCTAssertTrue(content.contains("Text(\"Une question à la fois: est-ce que ce créneau vous convient ?\")"))
+        XCTAssertTrue(content.contains("String(localized: \"poll.voting.header_question\")"))
         XCTAssertTrue(content.contains("activeSlotQuestionCard"))
         XCTAssertTrue(content.contains("progressCard"))
         XCTAssertFalse(
@@ -25,6 +25,17 @@ final class PremiumPollVotingContractTests: XCTestCase {
         XCTAssertTrue(content.contains("LiquidGlassToolbar(title: \"Vote\""))
         XCTAssertTrue(content.contains("LiquidGlassButton("))
         XCTAssertTrue(content.contains("nextActionTitle"))
+    }
+
+    func testPollVotingContentCardsUseSemanticBrandLayer() throws {
+        let source = try readProjectFile("iosApp/src/Views/Polls/PollVotingView.swift")
+        let content = slice(source, from: "struct PollVotingContentView", to: "// MARK: - Vote Guide Row")
+
+        XCTAssertTrue(content.contains("SemanticColor.appBackground"))
+        XCTAssertTrue(content.contains("WakeveContentCard("))
+        XCTAssertTrue(content.contains("SemanticColor.progress"))
+        XCTAssertFalse(content.contains("LiquidGlassCard("), "Poll content cards should not use Liquid Glass.")
+        XCTAssertFalse(content.contains("WakeveGlassCard("), "Poll content cards should use WakeveContentCard.")
     }
 
     func testPollVotingPreservesRepositorySubmissionBoundary() throws {

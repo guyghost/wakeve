@@ -7,6 +7,7 @@ final class PremiumTransportContractTests: XCTestCase {
         let content = slice(source, from: "struct TransportPlanningView", to: "private struct TransportInfoPill")
 
         XCTAssertTrue(content.contains("EventHeroCard("))
+        XCTAssertTrue(content.contains("moodPalette: .travel"))
         XCTAssertTrue(content.contains("routePreviewCard"))
         XCTAssertTrue(content.contains("TransportRoutePoint("))
         XCTAssertTrue(content.contains("TransportMetricTile("))
@@ -27,6 +28,18 @@ final class PremiumTransportContractTests: XCTestCase {
             optimizationCard.contains("\"Générer le plan\""),
             "The generate action should live in the single bottom primary action, not as another primary button inside the card."
         )
+    }
+
+    func testTransportContentCardsUseSemanticBrandLayer() throws {
+        let source = try readProjectFile("iosApp/src/Views/Events/TransportPlanningView.swift")
+        let content = slice(source, from: "struct TransportPlanningView", to: "private struct TransportInfoPill")
+
+        XCTAssertTrue(content.contains("SemanticColor.appBackground"))
+        XCTAssertTrue(content.contains("WakeveContentCard("))
+        XCTAssertTrue(content.contains("SemanticColor.progress"))
+        XCTAssertTrue(content.contains("SemanticColor.warning"))
+        XCTAssertFalse(content.contains("WakeveGlassCard("), "Transport content cards should use WakeveContentCard.")
+        XCTAssertFalse(content.contains("LiquidGlassCard("), "Transport content cards should not use Liquid Glass.")
     }
 
     func testTransportPreservesMutationGuardsAndDepartureWriter() throws {

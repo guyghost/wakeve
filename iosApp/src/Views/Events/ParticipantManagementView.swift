@@ -294,7 +294,7 @@ struct ParticipantManagementView: View {
     }
 
     private var addParticipantCard: some View {
-        WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 Text(String(localized: "participants.invite_one"))
                     .font(WakeveTheme.Typography.section)
@@ -323,7 +323,7 @@ struct ParticipantManagementView: View {
                             ProgressView()
                                 .tint(.white)
                                 .frame(width: 52, height: 52)
-                                .background(Color.blue.opacity(0.86))
+                                .background(SemanticColor.selectedState(for: colorScheme))
                                 .clipShape(Circle())
                                 .accessibilityHidden(true)
                         } else {
@@ -331,7 +331,7 @@ struct ParticipantManagementView: View {
                                 .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(.white)
                                 .frame(width: 52, height: 52)
-                                .background(newParticipantEmail.isEmpty ? Color.gray.opacity(0.35) : Color.blue)
+                                .background(newParticipantEmail.isEmpty ? Color.gray.opacity(0.35) : SemanticColor.selectedState(for: colorScheme))
                                 .clipShape(Circle())
                         }
                     }
@@ -354,7 +354,7 @@ struct ParticipantManagementView: View {
     }
 
     private var statusSummary: some View {
-        WakeveGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveContentCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             HStack(spacing: WakeveTheme.Spacing.md) {
                 Image(systemName: statusIcon)
                     .font(.title3.weight(.bold))
@@ -1100,37 +1100,15 @@ private struct ParticipantGroupSection: View {
     let onModerationTarget: (ModerationActionTarget) -> Void
 
     var body: some View {
-        WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGroupCard(title: title, subtitle: subtitle, count: rows.count) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
-                        Text(title)
-                            .font(WakeveTheme.Typography.section)
-                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
-
-                        Text(subtitle)
-                            .font(WakeveTheme.Typography.callout)
-                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
-                            .lineLimit(2)
-                    }
-
-                    Spacer()
-
-                    Text("\(rows.count)")
-                        .font(WakeveTheme.Typography.caption)
-                        .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
-                        .frame(width: 32, height: 32)
-                        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
-                        .clipShape(Circle())
-                }
-
                 if rows.isEmpty {
                     Text(emptyText)
-                        .font(WakeveTheme.Typography.callout)
-                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .font(TypographyTokens.callout)
+                        .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(WakeveTheme.Spacing.sm)
-                        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                        .background(SemanticColor.badge(for: colorScheme))
                         .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
                 } else {
                     VStack(spacing: WakeveTheme.Spacing.sm) {

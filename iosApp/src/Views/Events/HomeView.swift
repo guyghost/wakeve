@@ -464,7 +464,7 @@ private struct HomeFeaturedEventView: View {
                 title: event.title,
                 subtitle: eventSubtitle(event),
                 metadata: featuredMetadata,
-                gradient: eventGradient(event)
+                moodPalette: EventMoodPalette.palette(for: event.eventType.name)
             ) {
                 HStack(spacing: WakeveTheme.Spacing.md) {
                     ParticipantAvatarStack(initials: participantInitials(event), size: 34, maxVisible: 4)
@@ -497,7 +497,7 @@ private struct HomeNextActionCard: View {
 
     var body: some View {
         Button(action: onTap) {
-            WakeveGlassCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
                 HStack(alignment: .center, spacing: WakeveTheme.Spacing.md) {
                     Image(systemName: action.systemImage)
                         .font(.headline.weight(.bold))
@@ -559,7 +559,7 @@ private struct HomeUpcomingEventsSection: View {
             }
 
             if events.isEmpty {
-                WakeveGlassCard(prominence: .subtle) {
+                WakeveContentCard(prominence: .subtle) {
                     Text(String(localized: "home.no_other_events"))
                         .font(WakeveTheme.Typography.body)
                         .foregroundColor(.secondary)
@@ -661,16 +661,7 @@ private func participantInitials(_ event: Event) -> [String] {
 }
 
 private func eventGradient(_ event: Event) -> LinearGradient {
-    let theme = EventTheme.theme(for: event.eventType.name)
-    return LinearGradient(
-        colors: [
-            theme.backgroundColor.opacity(0.92),
-            theme.accentColor.opacity(0.72),
-            WakeveTheme.ColorToken.midnight
-        ],
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
+    EventMoodPalette.palette(for: event.eventType.name).gradient(for: .dark)
 }
 
 private func parseHomeDate(_ value: String) -> Date? {
