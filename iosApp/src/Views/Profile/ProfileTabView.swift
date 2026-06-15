@@ -174,10 +174,10 @@ struct ProfileHeaderSection: View {
 
             Text(String(localized: "profile.edit"))
                 .font(WakeveTheme.Typography.bodySemibold)
-                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                 .padding(.horizontal, WakeveTheme.Spacing.lg)
                 .frame(height: 44)
-                .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                .background(SemanticColor.badge(for: colorScheme))
                 .clipShape(Capsule())
         }
         .padding(.vertical, WakeveTheme.Spacing.lg)
@@ -548,7 +548,7 @@ struct DataManagementView: View {
     }
 }
 
-// MARK: - Profile Card (Simplified Liquid Glass)
+// MARK: - Profile Card
 
 struct ProfileCard<Content: View>: View {
     let content: Content
@@ -558,7 +558,7 @@ struct ProfileCard<Content: View>: View {
     }
 
     var body: some View {
-        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
+        WakeveContentCard(cornerRadius: WakeveTheme.Radius.xl) {
             content
         }
     }

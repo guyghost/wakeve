@@ -7,11 +7,21 @@ final class PremiumParticipantsContractTests: XCTestCase {
         let content = slice(source, from: "struct ParticipantManagementView", to: "private struct ParticipantPresentationRow")
 
         XCTAssertTrue(content.contains("EventHeroCard("))
-        XCTAssertTrue(content.contains("LiquidGlassToolbar(title: \"Participants\""))
+        XCTAssertTrue(content.contains("LiquidGlassToolbar(title: String(localized: \"participants.title\")"))
         XCTAssertTrue(content.contains("ParticipantGroupSection("))
-        XCTAssertTrue(content.contains("title: \"Acceptés\""))
-        XCTAssertTrue(content.contains("title: \"En attente\""))
-        XCTAssertTrue(content.contains("title: \"Refusés\""))
+        XCTAssertTrue(content.contains("title: String(localized: \"participants.accepted\")"))
+        XCTAssertTrue(content.contains("title: String(localized: \"participants.pending\")"))
+        XCTAssertTrue(content.contains("title: String(localized: \"participants.declined\")"))
+    }
+
+    func testParticipantGroupsUseBrandContentCards() throws {
+        let source = try readProjectFile("iosApp/src/Views/Events/ParticipantManagementView.swift")
+        let section = slice(source, from: "private struct ParticipantGroupSection", to: "private struct ParticipantRowView")
+
+        XCTAssertTrue(section.contains("WakeveGroupCard("))
+        XCTAssertTrue(section.contains("SemanticColor.secondaryText"))
+        XCTAssertTrue(section.contains("SemanticColor.badge"))
+        XCTAssertFalse(section.contains("WakeveGlassCard("), "Participant groups are content surfaces and should not use glass cards.")
     }
 
     func testParticipantsExposeContextualInviteAction() throws {
@@ -20,7 +30,8 @@ final class PremiumParticipantsContractTests: XCTestCase {
 
         XCTAssertTrue(content.contains("if event.status == .draft"))
         XCTAssertTrue(content.contains("addParticipantCard"))
-        XCTAssertTrue(content.contains("Text(\"Inviter un participant\")"))
+        XCTAssertTrue(content.contains("WakeveContentCard(prominence: .regular"))
+        XCTAssertTrue(content.contains("String(localized: \"participants.invite_one\")"))
         XCTAssertTrue(content.contains("LiquidGlassButton("))
         XCTAssertTrue(content.contains("canStartPoll"))
     }

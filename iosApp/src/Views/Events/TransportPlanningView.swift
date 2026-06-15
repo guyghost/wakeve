@@ -61,7 +61,7 @@ struct TransportPlanningView: View {
 
     var body: some View {
         ZStack {
-            WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+            SemanticColor.appBackground(for: colorScheme)
                 .ignoresSafeArea()
 
             if canAccessDetails {
@@ -104,7 +104,7 @@ struct TransportPlanningView: View {
             title: "Transport",
             subtitle: event.title,
             metadata: transportStatusText,
-            gradient: WakeveTheme.EventGradient.work
+            moodPalette: .travel
         ) {
             HStack(spacing: WakeveTheme.Spacing.sm) {
                 TransportInfoPill(systemImage: "calendar", value: confirmedDate ?? "Date bientôt confirmée")
@@ -114,18 +114,18 @@ struct TransportPlanningView: View {
     }
 
     private var routePreviewCard: some View {
-        WakeveGlassCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
                 HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
                     VStack(spacing: 6) {
                         Circle()
-                            .fill(WakeveTheme.ColorToken.progress(for: colorScheme))
+                            .fill(SemanticColor.progress(for: colorScheme))
                             .frame(width: 12, height: 12)
                         Rectangle()
-                            .fill(WakeveTheme.ColorToken.separator(for: colorScheme))
+                            .fill(SemanticColor.separator(for: colorScheme))
                             .frame(width: 2, height: 34)
                         Circle()
-                            .fill(WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                            .fill(SemanticColor.warning(for: colorScheme))
                             .frame(width: 12, height: 12)
                     }
                     .padding(.top, 6)
@@ -152,11 +152,11 @@ struct TransportPlanningView: View {
     }
 
     private var readinessCard: some View {
-        WakeveGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveContentCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             HStack(spacing: WakeveTheme.Spacing.md) {
                 Image(systemName: isReadinessComplete ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .font(.title3.weight(.bold))
-                    .foregroundColor(isReadinessComplete ? WakeveTheme.ColorToken.confirmation(for: colorScheme) : WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                    .foregroundColor(isReadinessComplete ? SemanticColor.confirmation(for: colorScheme) : SemanticColor.warning(for: colorScheme))
                     .frame(width: 44, height: 44)
                     .background(controlFill)
                     .clipShape(Circle())
@@ -178,7 +178,7 @@ struct TransportPlanningView: View {
     }
 
     private var transportHelperCard: some View {
-        WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
@@ -198,7 +198,7 @@ struct TransportPlanningView: View {
                     } label: {
                         Image(systemName: "sparkles")
                             .font(.headline.weight(.bold))
-                            .foregroundColor(isGeneratingTransportAI ? secondaryText : WakeveTheme.ColorToken.accent(for: colorScheme))
+                            .foregroundColor(isGeneratingTransportAI ? secondaryText : SemanticColor.selectedState(for: colorScheme))
                             .frame(width: 44, height: 44)
                             .background(controlFill)
                             .clipShape(Circle())
@@ -221,7 +221,7 @@ struct TransportPlanningView: View {
                 if let transportAIError {
                     Text(transportAIError)
                         .font(WakeveTheme.Typography.callout)
-                        .foregroundColor(WakeveTheme.ColorToken.destructive(for: colorScheme))
+                        .foregroundColor(SemanticColor.destructive(for: colorScheme))
                 }
 
                 if let suggestion = transportAISuggestion {
@@ -262,7 +262,7 @@ struct TransportPlanningView: View {
                     if appliedTransportAISuggestion {
                         Label("Suggestion prête à être reprise dans le message de groupe", systemImage: "checkmark.circle.fill")
                             .font(WakeveTheme.Typography.caption)
-                            .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+                            .foregroundColor(SemanticColor.confirmation(for: colorScheme))
                     } else if ignoredTransportAISuggestion {
                         Label("Suggestion ignorée", systemImage: "minus.circle.fill")
                             .font(WakeveTheme.Typography.caption)
@@ -274,7 +274,7 @@ struct TransportPlanningView: View {
     }
 
     private var departureCard: some View {
-        WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             let hasSelectedDestination = selectedDestination != nil
             let mutationDisabled = !canAccessDetails || isReadOnly || !workflowAllowsMutation(eventStatus) || !hasSelectedDestination
             let trimmedDeparture = departureInput.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -300,7 +300,7 @@ struct TransportPlanningView: View {
                             .font(.headline.weight(.bold))
                             .foregroundColor(.white)
                             .frame(width: 52, height: 52)
-                            .background((mutationDisabled || trimmedDeparture.isEmpty) ? Color.gray.opacity(0.36) : WakeveTheme.ColorToken.accent(for: colorScheme))
+                            .background((mutationDisabled || trimmedDeparture.isEmpty) ? Color.gray.opacity(0.36) : SemanticColor.selectedState(for: colorScheme))
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
@@ -312,7 +312,7 @@ struct TransportPlanningView: View {
     }
 
     private var optimizationCard: some View {
-        WakeveGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveContentCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             let hasSelectedDestination = selectedDestination != nil
             let mutationDisabled = !isOrganizer || isReadOnly || !workflowAllowsMutation(eventStatus) || !hasSelectedDestination
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
@@ -352,7 +352,7 @@ struct TransportPlanningView: View {
     }
 
     private var generatedPlanCard: some View {
-        WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             let hasSelectedDestination = selectedDestination != nil
             let mutationDisabled = !isOrganizer || isReadOnly || !workflowAllowsMutation(eventStatus) || !hasSelectedDestination
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
@@ -377,10 +377,10 @@ struct TransportPlanningView: View {
                                 if selectedPlanId == plan.id {
                                     Text("Sélectionné")
                                         .font(WakeveTheme.Typography.tiny)
-                                        .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+                                        .foregroundColor(SemanticColor.confirmation(for: colorScheme))
                                         .padding(.horizontal, WakeveTheme.Spacing.xs)
                                         .padding(.vertical, 4)
-                                        .background(WakeveTheme.ColorToken.confirmation(for: colorScheme).opacity(0.14))
+                                        .background(SemanticColor.confirmation(for: colorScheme).opacity(0.14))
                                         .clipShape(Capsule())
                                 }
                             }
@@ -394,7 +394,7 @@ struct TransportPlanningView: View {
                             } label: {
                                 Label(selectedPlanId == plan.id ? "Plan sélectionné" : "Sélectionner le plan final", systemImage: "checkmark.seal.fill")
                                     .font(WakeveTheme.Typography.callout.weight(.semibold))
-                                    .foregroundColor(selectedPlanId == plan.id ? WakeveTheme.ColorToken.confirmation(for: colorScheme) : WakeveTheme.ColorToken.accent(for: colorScheme))
+                                    .foregroundColor(selectedPlanId == plan.id ? SemanticColor.confirmation(for: colorScheme) : SemanticColor.selectedState(for: colorScheme))
                             }
                             .buttonStyle(.plain)
                             .disabled(mutationDisabled || selectedPlanId == plan.id)
@@ -408,14 +408,14 @@ struct TransportPlanningView: View {
                 if transportNotNeeded {
                     Label("Transport indiqué non requis", systemImage: "checkmark.circle.fill")
                         .font(WakeveTheme.Typography.callout.weight(.semibold))
-                        .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+                        .foregroundColor(SemanticColor.confirmation(for: colorScheme))
                 }
             }
         }
     }
 
     private var participantsCard: some View {
-        WakeveGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveContentCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 HStack {
                     Text("Participants")
@@ -424,10 +424,10 @@ struct TransportPlanningView: View {
                     Spacer()
                     Text(isReadinessComplete ? "Prêts" : "\(displayedMissingDeparture.count) à compléter")
                         .font(WakeveTheme.Typography.tiny)
-                        .foregroundColor(isReadinessComplete ? WakeveTheme.ColorToken.confirmation(for: colorScheme) : WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                        .foregroundColor(isReadinessComplete ? SemanticColor.confirmation(for: colorScheme) : SemanticColor.warning(for: colorScheme))
                         .padding(.horizontal, WakeveTheme.Spacing.xs)
                         .padding(.vertical, 4)
-                        .background((isReadinessComplete ? WakeveTheme.ColorToken.confirmation(for: colorScheme) : WakeveTheme.ColorToken.eventHighlight(for: colorScheme)).opacity(0.14))
+                        .background((isReadinessComplete ? SemanticColor.confirmation(for: colorScheme) : SemanticColor.warning(for: colorScheme)).opacity(0.14))
                         .clipShape(Capsule())
                 }
 
@@ -473,7 +473,7 @@ struct TransportPlanningView: View {
                         .lineLimit(1)
                         .minimumScaleFactor(0.78)
                 }
-                .foregroundColor(WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                .foregroundColor(SemanticColor.warning(for: colorScheme))
                 .padding(.horizontal, WakeveTheme.Spacing.sm)
                 .frame(height: 40)
                     .background(controlFill)
@@ -487,8 +487,8 @@ struct TransportPlanningView: View {
         .background(
             LinearGradient(
                 colors: [
-                    WakeveTheme.ColorToken.pageBackground(for: colorScheme),
-                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0)
+                    SemanticColor.appBackground(for: colorScheme),
+                    SemanticColor.appBackground(for: colorScheme).opacity(0)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -501,8 +501,8 @@ struct TransportPlanningView: View {
         VStack(spacing: 0) {
             LinearGradient(
                 colors: [
-                    WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0),
-                    WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                    SemanticColor.appBackground(for: colorScheme).opacity(0),
+                    SemanticColor.appBackground(for: colorScheme)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -519,7 +519,7 @@ struct TransportPlanningView: View {
             )
             .padding(.horizontal, WakeveTheme.Spacing.page)
             .padding(.bottom, WakeveTheme.Spacing.sm)
-            .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme))
+            .background(SemanticColor.appBackground(for: colorScheme))
         }
     }
 
@@ -547,7 +547,7 @@ struct TransportPlanningView: View {
     }
 
     private var selectedOptimizationFill: Color {
-        colorScheme == .dark ? Color.white.opacity(0.9) : WakeveTheme.ColorToken.accent(for: colorScheme)
+        colorScheme == .dark ? Color.white.opacity(0.9) : SemanticColor.selectedState(for: colorScheme)
     }
 
     private var selectedOptimizationText: Color {
@@ -652,15 +652,15 @@ struct TransportPlanningView: View {
     }
 
     private var primaryText: Color {
-        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+        SemanticColor.primaryText(for: colorScheme)
     }
 
     private var secondaryText: Color {
-        WakeveTheme.ColorToken.secondaryText(for: colorScheme)
+        SemanticColor.secondaryText(for: colorScheme)
     }
 
     private var controlFill: Color {
-        WakeveTheme.ColorToken.controlFill(for: colorScheme)
+        SemanticColor.badge(for: colorScheme)
     }
 
     private func workflowAllowsMutation(_ eventStatus: EventStatus) -> Bool {
@@ -722,12 +722,12 @@ private struct TransportAIList: View {
         VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
             Text(title)
                 .font(WakeveTheme.Typography.bodySemibold)
-                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .foregroundColor(SemanticColor.primaryText(for: colorScheme))
 
             ForEach(values, id: \.self) { value in
                 Label(value, systemImage: "checkmark.circle")
                     .font(WakeveTheme.Typography.callout)
-                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                     .lineLimit(2)
             }
         }
@@ -744,10 +744,10 @@ private struct TransportAIActionButton: View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
                 .font(WakeveTheme.Typography.tiny.weight(.semibold))
-                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                 .frame(maxWidth: .infinity)
                 .frame(height: 36)
-                .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme).opacity(0.72))
+                .background(SemanticColor.badge(for: colorScheme))
                 .clipShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -785,13 +785,13 @@ private struct TransportRoutePoint: View {
         VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
             Text(title)
                 .font(WakeveTheme.Typography.bodySemibold)
-                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                 .lineLimit(1)
                 .minimumScaleFactor(0.78)
 
             Text(subtitle)
                 .font(WakeveTheme.Typography.callout)
-                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                 .lineLimit(2)
         }
     }
@@ -807,18 +807,18 @@ private struct TransportMetricTile: View {
         VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
             Text(title)
                 .font(WakeveTheme.Typography.tiny)
-                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                 .textCase(.uppercase)
 
             Text(value)
                 .font(WakeveTheme.Typography.caption)
-                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                 .lineLimit(1)
                 .minimumScaleFactor(0.76)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(WakeveTheme.Spacing.sm)
-        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .background(SemanticColor.badge(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
     }
 }
@@ -834,26 +834,26 @@ private struct TransportParticipantRow: View {
         HStack(spacing: WakeveTheme.Spacing.md) {
             Image(systemName: isReady ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
                 .font(.body.weight(.bold))
-                .foregroundColor(isReady ? WakeveTheme.ColorToken.confirmation(for: colorScheme) : WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                .foregroundColor(isReady ? SemanticColor.confirmation(for: colorScheme) : SemanticColor.warning(for: colorScheme))
                 .frame(width: 36, height: 36)
-                .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                .background(SemanticColor.badge(for: colorScheme))
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
                 Text(name)
                     .font(WakeveTheme.Typography.bodySemibold)
-                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                     .lineLimit(1)
                     .minimumScaleFactor(0.78)
                 Text(detail)
                     .font(WakeveTheme.Typography.callout)
-                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
             }
 
             Spacer()
         }
         .padding(WakeveTheme.Spacing.sm)
-        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .background(SemanticColor.badge(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
     }
 }

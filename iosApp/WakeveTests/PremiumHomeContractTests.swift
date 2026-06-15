@@ -6,11 +6,12 @@ final class PremiumHomeContractTests: XCTestCase {
         let source = try readProjectFile("iosApp/src/Views/Events/HomeView.swift")
         let content = slice(source, from: "struct HomeContentView", to: "// MARK: - Events Carousel View")
 
-        XCTAssertTrue(content.contains("Text(\"Bonjour\")"))
-        XCTAssertTrue(content.contains("Text(\"À venir\")"))
+        XCTAssertTrue(content.contains("String(localized: \"home.greeting\")"))
+        XCTAssertTrue(content.contains("String(localized: \"home.upcoming_title\")"))
         XCTAssertTrue(content.contains("HomeFeaturedEventView("))
         XCTAssertTrue(content.contains("HomeUpcomingEventsSection("))
         XCTAssertTrue(content.contains("HomeFloatingCreateButton(action: onCreateEvent)"))
+        XCTAssertTrue(source.contains("EventMoodPalette.palette(for: event.eventType.name)"))
         XCTAssertFalse(content.contains("EventsCarouselView("))
     }
 
@@ -33,6 +34,16 @@ final class PremiumHomeContractTests: XCTestCase {
             source.contains("StateMachine("),
             "Home should remain SwiftUI presentation and must not instantiate shared state machines directly."
         )
+    }
+
+    func testHomeContentLayerUsesBrandMoodTokensInsteadOfLegacyEventTheme() throws {
+        let source = try readProjectFile("iosApp/src/Views/Events/HomeView.swift")
+        let featured = slice(source, from: "private struct HomeFeaturedEventView", to: "private struct HomeNextActionCard")
+        let gradientHelper = slice(source, from: "private func eventGradient", to: "private func parseHomeDate")
+
+        XCTAssertTrue(featured.contains("moodPalette: EventMoodPalette.palette"))
+        XCTAssertTrue(gradientHelper.contains("EventMoodPalette.palette"))
+        XCTAssertFalse(featured.contains("EventTheme.theme"))
     }
 
     private func readProjectFile(_ relativePath: String) throws -> String {

@@ -29,63 +29,26 @@ struct InvitationShareSheet: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Event info header
-                    VStack(spacing: 8) {
-                        Image(systemName: "link.badge.plus")
-                            .font(.system(size: 48))
-                            .foregroundColor(.wakevePrimary)
-
-                        Text(String(localized: "invitation.title"))
-                            .font(.title2.weight(.bold))
-                            .foregroundColor(.primary)
-
-                        Text(eventTitle)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
+                    WakeveInvitationPreviewCard(
+                        title: eventTitle,
+                        subtitle: String(localized: "invitation.scan_to_join"),
+                        inviteUrl: inviteUrl,
+                        moodPalette: .weekend,
+                        qrImage: qrImage
+                    )
                     .padding(.top, 8)
-
-                    // QR Code Section
-                    VStack(spacing: 12) {
-                        Text(String(localized: "invitation.qr_code"))
-                            .font(.headline)
-                            .foregroundColor(.primary)
-
-                        if let qrImage = qrImage {
-                            Image(uiImage: qrImage)
-                                .interpolation(.none)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 200, height: 200)
-                                .background(Color.white)
-                                .cornerRadius(12)
-                                .shadow(color: .black.opacity(0.1), radius: 8)
-                        } else {
-                            ProgressView()
-                                .frame(width: 200, height: 200)
-                                .accessibilityLabel(String(localized: "common.loading"))
-                        }
-
-                        Text(String(localized: "invitation.scan_to_join"))
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemGroupedBackground))
-                    .cornerRadius(16)
 
                     // Link Section
                     VStack(spacing: 12) {
                         Text(String(localized: "invitation.link"))
-                            .font(.headline)
-                            .foregroundColor(.primary)
+                            .font(TypographyTokens.headline)
+                            .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                             .frame(maxWidth: .infinity, alignment: .leading)
 
                         HStack {
                             Text(inviteUrl)
                                 .font(.system(.footnote, design: .monospaced))
-                                .foregroundColor(.secondary)
+                                .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                                 .lineLimit(1)
                                 .minimumScaleFactor(0.72)
                                 .truncationMode(.middle)
@@ -99,23 +62,23 @@ struct InvitationShareSheet: View {
                                     Text(showCopiedFeedback ? String(localized: "invitation.copied") : String(localized: "invitation.copy"))
                                         .font(.caption.weight(.medium))
                                 }
-                                .foregroundColor(showCopiedFeedback ? .green : .wakevePrimary)
+                                .foregroundColor(showCopiedFeedback ? SemanticColor.confirmation(for: colorScheme) : SemanticColor.selectedState(for: colorScheme))
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 6)
                                 .background(
-                                    (showCopiedFeedback ? Color.green : Color.wakevePrimary)
+                                    (showCopiedFeedback ? SemanticColor.confirmation(for: colorScheme) : SemanticColor.selectedState(for: colorScheme))
                                         .opacity(0.1)
                                 )
                                 .cornerRadius(8)
                             }
                         }
                         .padding(12)
-                        .background(Color(.tertiarySystemGroupedBackground))
+                        .background(SemanticColor.badge(for: colorScheme))
                         .cornerRadius(10)
                     }
                     .padding()
                     .frame(maxWidth: .infinity)
-                    .background(Color(.secondarySystemGroupedBackground))
+                    .background(SemanticColor.contentSurface(for: colorScheme))
                     .cornerRadius(16)
 
                     // Share Button
@@ -133,8 +96,8 @@ struct InvitationShareSheet: View {
                         .background(
                             LinearGradient(
                                 gradient: Gradient(colors: [
-                                    Color.wakevePrimary,
-                                    Color.wakeveAccent
+                                    BrandColor.midnightBlue,
+                                    BrandColor.blueGrey
                                 ]),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
@@ -147,7 +110,7 @@ struct InvitationShareSheet: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .background(Color(.systemGroupedBackground))
+            .background(SemanticColor.appBackground(for: colorScheme))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -164,6 +127,8 @@ struct InvitationShareSheet: View {
             generateQRCode()
         }
     }
+
+    @Environment(\.colorScheme) private var colorScheme
 
     // MARK: - Actions
 

@@ -4,7 +4,8 @@ import XCTest
 final class PremiumNavigationContractTests: XCTestCase {
     func testWakeveTabsAreDestinationOnly() {
         XCTAssertEqual(WakeveTab.allCases, [.home, .groups, .messages, .profile])
-        XCTAssertEqual(WakeveTab.allCases.map(\.title), ["Accueil", "Groupes", "Messages", "Profil"])
+        XCTAssertEqual(WakeveTab.allCases.map(\.title), ["À venir", "Groupes", "Messages", "Profil"])
+        XCTAssertEqual(WakeveTab.allCases.map(\.systemImage), ["calendar", "person.2", "message", "person.crop.circle"])
     }
 
     func testWakeveTabsDoNotExposeCreateEventAsDestination() {

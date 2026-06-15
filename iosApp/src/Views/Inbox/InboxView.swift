@@ -47,7 +47,7 @@ struct InboxView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                WakeveTheme.ColorToken.pageBackground(for: colorScheme)
+                SemanticColor.appBackground(for: colorScheme)
                     .ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
@@ -225,11 +225,11 @@ struct InboxView: View {
         VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
             Text("Messages")
                 .font(WakeveTheme.Typography.largeTitle)
-                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .foregroundColor(SemanticColor.primaryText(for: colorScheme))
 
             Text("\(eventConversations.count) conversation\(eventConversations.count > 1 ? "s" : "") d’événement")
                 .font(WakeveTheme.Typography.callout)
-                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
         }
     }
 
@@ -398,7 +398,7 @@ struct InboxView: View {
         .background(WakeveTheme.ColorToken.cardFill(for: colorScheme))
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(WakeveTheme.ColorToken.separator(for: colorScheme))
+                .fill(SemanticColor.separator(for: colorScheme))
                 .frame(height: 1)
         }
         .accessibilityElement(children: .contain)
@@ -646,7 +646,7 @@ private struct EventConversationRow: View {
     let conversation: EventConversationPreview
 
     var body: some View {
-        LiquidGlassCard(prominence: conversation.unreadCount > 0 ? .regular : .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveContentCard(prominence: conversation.unreadCount > 0 ? .regular : .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             HStack(spacing: WakeveTheme.Spacing.md) {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: conversation.requiresAction ? "calendar.badge.clock" : "message.fill")
@@ -658,9 +658,9 @@ private struct EventConversationRow: View {
 
                     if conversation.unreadCount > 0 {
                         Circle()
-                            .fill(WakeveTheme.ColorToken.destructive(for: colorScheme))
+                            .fill(SemanticColor.destructive(for: colorScheme))
                             .frame(width: 12, height: 12)
-                            .overlay(Circle().stroke(WakeveTheme.ColorToken.pageBackground(for: colorScheme), lineWidth: 2))
+                            .overlay(Circle().stroke(SemanticColor.appBackground(for: colorScheme), lineWidth: 2))
                     }
                 }
 
@@ -668,30 +668,30 @@ private struct EventConversationRow: View {
                     HStack(spacing: WakeveTheme.Spacing.xs) {
                         Text(conversation.eventName)
                             .font(WakeveTheme.Typography.rowTitle)
-                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                            .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                             .lineLimit(1)
                             .minimumScaleFactor(0.78)
 
                         if conversation.requiresAction {
                             Text("Action")
                                 .font(WakeveTheme.Typography.tiny)
-                                .foregroundColor(WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                                .foregroundColor(SemanticColor.warning(for: colorScheme))
                                 .padding(.horizontal, WakeveTheme.Spacing.xs)
                                 .padding(.vertical, 3)
-                                .background(WakeveTheme.ColorToken.eventHighlight(for: colorScheme).opacity(0.14))
+                                .background(SemanticColor.warning(for: colorScheme).opacity(0.14))
                                 .clipShape(Capsule())
                         }
                     }
 
                     Text(conversation.latestItem?.title ?? "Aucun message")
                         .font(WakeveTheme.Typography.callout.weight(conversation.unreadCount > 0 ? .semibold : .regular))
-                        .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                        .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                         .lineLimit(1)
                         .minimumScaleFactor(0.78)
 
                     Text(conversation.latestItem?.message ?? "Les échanges de cet événement apparaîtront ici.")
                         .font(WakeveTheme.Typography.callout)
-                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                         .lineLimit(2)
                 }
 
@@ -700,14 +700,14 @@ private struct EventConversationRow: View {
                 VStack(alignment: .trailing, spacing: WakeveTheme.Spacing.xs) {
                     Text(conversation.latestItem?.timeAgo ?? "")
                         .font(WakeveTheme.Typography.tiny)
-                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
 
                     if conversation.unreadCount > 0 {
                         Text("\(conversation.unreadCount)")
                             .font(WakeveTheme.Typography.tiny)
                             .foregroundColor(.white)
                             .frame(width: 24, height: 24)
-                            .background(WakeveTheme.ColorToken.accent(for: colorScheme))
+                            .background(SemanticColor.selectedState(for: colorScheme))
                             .clipShape(Circle())
                     }
                 }
@@ -718,8 +718,8 @@ private struct EventConversationRow: View {
 
     private var iconColor: Color {
         conversation.requiresAction
-            ? WakeveTheme.ColorToken.eventHighlight(for: colorScheme)
-            : WakeveTheme.ColorToken.accent(for: colorScheme)
+            ? SemanticColor.warning(for: colorScheme)
+            : SemanticColor.selectedState(for: colorScheme)
     }
 }
 
@@ -804,7 +804,7 @@ struct ActionBarButton: View {
                 .padding(.vertical, 12)
                 .background(
                     Capsule()
-                        .fill(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                        .fill(SemanticColor.badge(for: colorScheme))
                 )
         }
         .disabled(!isEnabled)

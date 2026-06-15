@@ -288,6 +288,7 @@ struct EventHeroCard<Content: View>: View {
     let subtitle: String
     let metadata: String?
     let gradient: LinearGradient
+    let moodPalette: EventMoodPalette?
     let content: Content
 
     init(
@@ -295,18 +296,20 @@ struct EventHeroCard<Content: View>: View {
         subtitle: String,
         metadata: String? = nil,
         gradient: LinearGradient = WakeveTheme.EventGradient.invitation,
+        moodPalette: EventMoodPalette? = nil,
         @ViewBuilder content: () -> Content = { EmptyView() }
     ) {
         self.title = title
         self.subtitle = subtitle
         self.metadata = metadata
         self.gradient = gradient
+        self.moodPalette = moodPalette
         self.content = content()
     }
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            gradient
+            heroGradient
 
             LinearGradient(
                 colors: [.clear, .black.opacity(colorScheme == .dark ? 0.42 : 0.28)],
@@ -316,22 +319,37 @@ struct EventHeroCard<Content: View>: View {
 
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
                 if let metadata {
-                    Text(metadata)
-                        .font(WakeveTheme.Typography.caption)
-                        .foregroundColor(.white.opacity(0.78))
-                        .textCase(.uppercase)
+                    HStack(spacing: WakeveTheme.Spacing.xs) {
+                        if let moodPalette {
+                            Image(systemName: moodPalette.symbolName)
+                                .font(.caption.weight(.semibold))
+                                .accessibilityHidden(true)
+                        }
+
+                        Text(metadata)
+                            .font(TypographyTokens.badge)
+                            .textCase(.uppercase)
+                    }
+                    .foregroundColor(.white.opacity(0.80))
                 }
 
                 Text(title)
-                    .font(WakeveTheme.Typography.hero)
+                    .font(TypographyTokens.contentHero)
                     .foregroundColor(.white)
                     .lineLimit(3)
                     .minimumScaleFactor(0.78)
 
                 Text(subtitle)
-                    .font(WakeveTheme.Typography.metadata)
+                    .font(TypographyTokens.metadata)
                     .foregroundColor(.white.opacity(0.82))
                     .lineLimit(2)
+
+                if let moodPalette {
+                    Text(moodPalette.microcopy)
+                        .font(TypographyTokens.caption)
+                        .foregroundColor(.white.opacity(0.76))
+                        .lineLimit(2)
+                }
 
                 content
                     .padding(.top, WakeveTheme.Spacing.xs)
@@ -345,6 +363,10 @@ struct EventHeroCard<Content: View>: View {
             RoundedRectangle(cornerRadius: WakeveTheme.Radius.panel, style: .continuous)
                 .stroke(Color.white.opacity(WakeveTheme.Opacity.border), lineWidth: 1)
         )
+    }
+
+    private var heroGradient: LinearGradient {
+        moodPalette?.gradient(for: colorScheme) ?? gradient
     }
 }
 
@@ -363,31 +385,31 @@ struct EventListRow: View {
             HStack(spacing: WakeveTheme.Spacing.md) {
                 VStack(spacing: 2) {
                     Text(dateLabel)
-                        .font(WakeveTheme.Typography.caption)
-                        .foregroundColor(WakeveTheme.ColorToken.eventHighlight(for: colorScheme))
+                        .font(TypographyTokens.caption)
+                        .foregroundColor(SemanticColor.warning(for: colorScheme))
                         .multilineTextAlignment(.center)
                         .lineLimit(2)
                 }
                 .frame(width: 58, height: 58)
-                .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                .background(SemanticColor.badge(for: colorScheme))
                 .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
 
                 VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
                     Text(title)
-                        .font(WakeveTheme.Typography.rowTitle)
-                        .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                        .font(TypographyTokens.headline)
+                        .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                         .lineLimit(2)
 
                     Text(subtitle)
-                        .font(WakeveTheme.Typography.callout)
-                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .font(TypographyTokens.callout)
+                        .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                         .lineLimit(1)
                         .minimumScaleFactor(0.78)
 
                     if let nextActionHint {
                         Text(nextActionHint)
-                            .font(WakeveTheme.Typography.caption)
-                            .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                            .font(TypographyTokens.caption)
+                            .foregroundColor(SemanticColor.selectedState(for: colorScheme))
                             .lineLimit(1)
                             .minimumScaleFactor(0.78)
                     }
@@ -398,7 +420,11 @@ struct EventListRow: View {
                 ParticipantAvatarStack(initials: participantInitials, size: 30, maxVisible: 3)
             }
             .padding(WakeveTheme.Spacing.md)
-            .background(WakeveTheme.ColorToken.secondaryBackground(for: colorScheme))
+            .background(SemanticColor.contentSurface(for: colorScheme))
+            .overlay(
+                RoundedRectangle(cornerRadius: WakeveTheme.Radius.xl, style: .continuous)
+                    .stroke(SemanticColor.border(for: colorScheme), lineWidth: 1)
+            )
             .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.xl, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -603,24 +629,23 @@ struct EmptyState: View {
             if !dynamicTypeSize.isAccessibilitySize {
                 Image(systemName: systemImage)
                     .font(.system(size: 44, weight: .semibold))
-                    .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                    .foregroundColor(BrandColor.calmAccent(for: colorScheme))
                     .frame(width: 82, height: 82)
-                    .background(WakeveTheme.ColorToken.glassTint(for: colorScheme))
+                    .background(SemanticColor.badge(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.xl, style: .continuous))
-                    .liquidGlass(cornerRadius: WakeveTheme.Radius.xl)
                     .accessibilityHidden(true)
             }
 
             VStack(spacing: WakeveTheme.Spacing.xs) {
                 Text(title)
-                    .font(WakeveTheme.Typography.section)
-                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .font(TypographyTokens.cardTitle)
+                    .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text(subtitle)
-                    .font(WakeveTheme.Typography.body)
-                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .font(TypographyTokens.body)
+                    .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                     .multilineTextAlignment(.center)
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
@@ -666,7 +691,11 @@ struct LoadingSkeleton: View {
                     Spacer()
                 }
                 .padding(WakeveTheme.Spacing.md)
-                .background(WakeveTheme.ColorToken.secondaryBackground(for: colorScheme))
+                .background(SemanticColor.contentSurface(for: colorScheme))
+                .overlay(
+                    RoundedRectangle(cornerRadius: WakeveTheme.Radius.xl, style: .continuous)
+                        .stroke(SemanticColor.border(for: colorScheme), lineWidth: 1)
+                )
                 .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.xl, style: .continuous))
             }
         }
@@ -676,7 +705,7 @@ struct LoadingSkeleton: View {
 
     private func skeletonBlock(width: CGFloat? = nil, height: CGFloat, radius: CGFloat) -> some View {
         RoundedRectangle(cornerRadius: radius, style: .continuous)
-            .fill(WakeveTheme.ColorToken.skeletonFill(for: colorScheme))
+            .fill(SemanticColor.separator(for: colorScheme).opacity(colorScheme == .dark ? 0.86 : 0.72))
             .frame(width: width, height: height)
     }
 }
