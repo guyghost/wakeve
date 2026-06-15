@@ -172,21 +172,21 @@
 "scenario.lodging" = "Logement";
 "scenario.votes" = "Votes";
 "scenario.votes_total_format" = "%lld au total";
-"scenario.vote.prefer" = "Préférer";
+"scenario.vote.prefer" = "Je préfère";
 "scenario.vote.neutral" = "Neutre";
 "scenario.vote.against" = "Contre";
-"scenario.select_final" = "Sélectionner cette option";
+"scenario.select_final" = "Retenir cette option";
 "scenario.status.draft" = "Brouillon";
-"scenario.status.retained" = "Retenu";
+"scenario.status.retained" = "Option retenue";
 "scenario.status.rejected" = "Écarté";
 "scenario.status.to_compare" = "Option à comparer";
-"scenario.status.selected" = "Sélectionné";
+"scenario.status.selected" = "Option retenue";
 "scenario.status.proposed" = "Proposé";
 "scenario.matrix_source_format" = "Matrice : créneau %@ - destination %@";
 
 // MARK: - Notifications
 "notifications.title" = "Notifications";
-"notifications.mark_all_read" = "Tout lire";
+"notifications.mark_all_read" = "Tout marquer comme lu";
 "notifications.delete" = "Supprimer";
 "notifications.read" = "Lu";
 "notifications.mark_as_read" = "Marquer comme lu";
@@ -270,10 +270,10 @@
 "dashboard.overview" = "Vue d'ensemble";
 "dashboard.events" = "Événements";
 "dashboard.participants" = "Participants";
-"dashboard.avg_per_event" = "Moy. / évt";
+"dashboard.avg_per_event" = "Moyenne / événement";
 "dashboard.votes" = "Votes";
 "dashboard.comments" = "Commentaires";
-"dashboard.response_rate" = "Taux rép.";
+"dashboard.response_rate" = "Taux de réponse";
 "dashboard.events_by_status" = "Événements par statut";
 "dashboard.my_events" = "Mes événements";
 "dashboard.status.draft" = "Brouillon";
@@ -301,12 +301,12 @@
 "dashboard.votes_count" = "%lld votes";
 
 // MARK: - Profile
-"profile.title" = "Mon Profil";
+"profile.title" = "Profil";
 "profile.edit" = "Modifier";
 "profile.organizer" = "Organisateur";
 "profile.dashboard" = "Tableau de bord";
 "profile.dashboard_subtitle" = "Statistiques et analytiques de vos événements";
-"profile.preferences" = "Mes Préférences";
+"profile.preferences" = "Préférences";
 "profile.push_notifications" = "Notifications push";
 "profile.push_notifications_desc" = "Recevoir des notifications sur l'appareil";
 "profile.appearance" = "Apparence";
@@ -429,8 +429,8 @@
 "events.about" = "À propos";
 "events.hosted_by" = "Organisé par";
 "events.organizer" = "Organisateur";
-"events.going" = "Présents";
-"events.going_count" = "Présents";
+"events.going" = "Participants confirmés";
+"events.going_count" = "Confirmés";
 "events.no_participants" = "Aucun participant pour le moment";
 "events.more_participants" = "+%lld de plus";
 "events.participating" = "Participe";
@@ -444,7 +444,7 @@
 "events.status.finalized" = "Finalisé";
 "events.status.event" = "Événement";
 "events.next_action.label" = "Prochaine action";
-"events.next_action.blocked_label" = "Bloqué";
+"events.next_action.blocked_label" = "À compléter";
 "events.next_action.draft.title" = "Lancer le sondage";
 "events.next_action.draft.short" = "Finaliser le brouillon";
 "events.next_action.draft.subtitle" = "Le sondage est prêt à être envoyé aux invités.";
@@ -468,7 +468,7 @@
 "events.next_action.default.subtitle" = "Continuez la préparation de l'événement.";
 "events.manage_participants" = "Gérer les participants";
 "events.view_results" = "Voir les résultats";
-"events.scenario_planning" = "Planification de scénarios";
+"events.scenario_planning" = "Comparaison des options";
 "events.budget_overview" = "Aperçu du budget";
 "events.accommodation" = "Hébergement";
 "events.meal_planning" = "Planification des repas";
@@ -500,9 +500,9 @@
 "participants.poll_started.title" = "Sondage lancé";
 "participants.poll_started.message" = "Le sondage est maintenant ouvert aux participants.";
 "participants.title" = "Participants";
-"participants.accepted" = "Acceptés";
+"participants.accepted" = "Confirmés";
 "participants.pending" = "En attente";
-"participants.declined" = "Refusés";
+"participants.declined" = "Indisponibles";
 "participants.role.organizer" = "Organisateur";
 "participants.role.member" = "Membre";
 "participants.status.polling" = "Sondage actif";
@@ -523,9 +523,9 @@
 "participants.accepted_subtitle" = "Ont confirmé ou ont accès aux détails";
 "participants.pending_subtitle" = "Invitations envoyées ou réponses à venir";
 "participants.declined_subtitle" = "Participants indisponibles";
-"participants.empty.accepted" = "Aucun participant accepté pour le moment.";
+"participants.empty.accepted" = "Aucun participant confirmé pour le moment.";
 "participants.empty.pending" = "Aucune invitation en attente.";
-"participants.empty.declined" = "Aucun refus enregistré.";
+"participants.empty.declined" = "Aucune indisponibilité enregistrée.";
 "participants.error.no_email_contacts" = "Aucun contact avec adresse email disponible";
 "participants.error.no_new_participants" = "Aucun nouveau participant à ajouter";
 "participants.error.contacts_permission_denied" = "L'accès aux contacts est optionnel et a été refusé.";
@@ -537,7 +537,7 @@
 "participants.draft_status.ready" = "Prêt à lancer le sondage";
 
 // MARK: - Scenario Accessibility
-"scenario.refresh_accessibility" = "Actualiser les scénarios";
+"scenario.refresh_accessibility" = "Actualiser les options";
 "scenario.add_to_comparison_accessibility" = "Ajouter à la comparaison";
 "scenario.remove_from_comparison_accessibility" = "Retirer de la comparaison";
 
@@ -647,7 +647,7 @@
 "meetings.add_to_calendar_title" = "Ajouter au calendrier ?";
 "meetings.cancelled" = "Annulée";
 "meetings.cancelled_plural" = "Annulées";
-"meetings.generate_link" = "Générer un lien";
+"meetings.generate_link" = "Créer un lien";
 "meetings.loading" = "Chargement des réunions...";
 
 // MARK: - Status Labels
@@ -883,7 +883,7 @@
 "meetings.ended" = "Terminée";
 "meetings.ended_plural" = "Terminées";
 "meetings.field_title" = "Titre";
-"meetings.generate" = "Générer";
+"meetings.generate" = "Créer";
 "meetings.generate_link_description" = "Un nouveau lien de réunion sera généré.";
 "meetings.generate_link_info" = "Le lien existant sera remplacé.";
 "meetings.hours" = "Heures";

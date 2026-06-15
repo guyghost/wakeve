@@ -27,15 +27,15 @@ class NotificationPreferencesViewModel: ObservableObject {
         NotificationTypeToggle(id: "EVENT_INVITE", rawName: "EVENT_INVITE", displayName: "Invitation événement", iconName: "envelope.fill"),
         NotificationTypeToggle(id: "VOTE_REMINDER", rawName: "VOTE_REMINDER", displayName: "Rappel de vote", iconName: "chart.bar.fill"),
         NotificationTypeToggle(id: "DATE_CONFIRMED", rawName: "DATE_CONFIRMED", displayName: "Date confirmée", iconName: "calendar.badge.checkmark"),
-        NotificationTypeToggle(id: "NEW_SCENARIO", rawName: "NEW_SCENARIO", displayName: "Nouveau scénario", iconName: "doc.badge.plus"),
-        NotificationTypeToggle(id: "SCENARIO_SELECTED", rawName: "SCENARIO_SELECTED", displayName: "Scénario sélectionné", iconName: "star.fill"),
+        NotificationTypeToggle(id: "NEW_SCENARIO", rawName: "NEW_SCENARIO", displayName: "Nouvelle option", iconName: "doc.badge.plus"),
+        NotificationTypeToggle(id: "SCENARIO_SELECTED", rawName: "SCENARIO_SELECTED", displayName: "Option retenue", iconName: "star.fill"),
         NotificationTypeToggle(id: "NEW_COMMENT", rawName: "NEW_COMMENT", displayName: "Nouveau commentaire", iconName: "bubble.left.fill"),
         NotificationTypeToggle(id: "MENTION", rawName: "MENTION", displayName: "Mention", iconName: "at"),
         NotificationTypeToggle(id: "MEETING_REMINDER", rawName: "MEETING_REMINDER", displayName: "Rappel réunion", iconName: "bell.badge.fill"),
         NotificationTypeToggle(id: "PAYMENT_DUE", rawName: "PAYMENT_DUE", displayName: "Paiement dû", iconName: "creditcard.fill"),
         NotificationTypeToggle(id: "EVENT_UPDATE", rawName: "EVENT_UPDATE", displayName: "Mise à jour événement", iconName: "arrow.triangle.2.circlepath"),
         NotificationTypeToggle(id: "VOTE_CLOSE_REMINDER", rawName: "VOTE_CLOSE_REMINDER", displayName: "Fin de vote imminente", iconName: "clock.badge"),
-        NotificationTypeToggle(id: "DEADLINE_REMINDER", rawName: "DEADLINE_REMINDER", displayName: "Rappel deadline", iconName: "exclamationmark.circle"),
+        NotificationTypeToggle(id: "DEADLINE_REMINDER", rawName: "DEADLINE_REMINDER", displayName: "Rappel d'échéance", iconName: "exclamationmark.circle"),
         NotificationTypeToggle(id: "COMMENT_REPLY", rawName: "COMMENT_REPLY", displayName: "Réponse à un commentaire", iconName: "bubble.left.and.bubble.right.fill")
     ]
 

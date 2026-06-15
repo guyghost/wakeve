@@ -122,17 +122,17 @@
 "poll.results.error.confirm_failed" = "Unable to confirm this date right now.";
 
 // MARK: - Poll Voting
-"poll.voting.success_message" = "Your votes have been submitted successfully.";
+"poll.voting.success_message" = "Your votes have been sent.";
 "poll.voting.error.submit_failed" = "Unable to submit some votes.";
 "poll.voting.header_question" = "One question at a time: does this time work for you?";
-"poll.voting.submitted_title" = "Votes submitted";
+"poll.voting.submitted_title" = "Votes sent";
 "poll.voting.submitted_subtitle" = "Thanks for your response. The organizer will be notified once everyone has voted.";
 "poll.voting.progress" = "Progress";
 "poll.voting.slot_question" = "Does this time work for you?";
 "poll.voting.option.yes.subtitle" = "This time works for me.";
 "poll.voting.option.maybe.subtitle" = "Possible if needed.";
 "poll.voting.option.no.subtitle" = "I cannot make it.";
-"poll.voting.submit_votes" = "Submit my votes";
+"poll.voting.submit_votes" = "Send my votes";
 "poll.voting.next_slot" = "Next time";
 "poll.voting.feedback.yes" = "Response saved: yes.";
 "poll.voting.feedback.maybe" = "Response saved: maybe.";
@@ -175,18 +175,18 @@
 "scenario.vote.prefer" = "Prefer";
 "scenario.vote.neutral" = "Neutral";
 "scenario.vote.against" = "Against";
-"scenario.select_final" = "Select this option";
+"scenario.select_final" = "Keep this option";
 "scenario.status.draft" = "Draft";
-"scenario.status.retained" = "Retained";
+"scenario.status.retained" = "Selected option";
 "scenario.status.rejected" = "Rejected";
 "scenario.status.to_compare" = "Option to compare";
-"scenario.status.selected" = "Selected";
+"scenario.status.selected" = "Selected option";
 "scenario.status.proposed" = "Proposed";
 "scenario.matrix_source_format" = "Matrix: time slot %@ - destination %@";
 
 // MARK: - Notifications
 "notifications.title" = "Notifications";
-"notifications.mark_all_read" = "Read all";
+"notifications.mark_all_read" = "Mark all as read";
 "notifications.delete" = "Delete";
 "notifications.read" = "Read";
 "notifications.mark_as_read" = "Mark as read";
@@ -270,10 +270,10 @@
 "dashboard.overview" = "Overview";
 "dashboard.events" = "Events";
 "dashboard.participants" = "Participants";
-"dashboard.avg_per_event" = "Avg / event";
+"dashboard.avg_per_event" = "Average / event";
 "dashboard.votes" = "Votes";
 "dashboard.comments" = "Comments";
-"dashboard.response_rate" = "Resp. rate";
+"dashboard.response_rate" = "Response rate";
 "dashboard.events_by_status" = "Events by status";
 "dashboard.my_events" = "My events";
 "dashboard.status.draft" = "Draft";
@@ -301,12 +301,12 @@
 "dashboard.votes_count" = "%lld votes";
 
 // MARK: - Profile
-"profile.title" = "My Profile";
+"profile.title" = "Profile";
 "profile.edit" = "Edit";
 "profile.organizer" = "Organizer";
 "profile.dashboard" = "Dashboard";
 "profile.dashboard_subtitle" = "Statistics and analytics for your events";
-"profile.preferences" = "My Preferences";
+"profile.preferences" = "Preferences";
 "profile.push_notifications" = "Push notifications";
 "profile.push_notifications_desc" = "Receive notifications on this device";
 "profile.appearance" = "Appearance";
@@ -444,7 +444,7 @@
 "events.status.finalized" = "Finalized";
 "events.status.event" = "Event";
 "events.next_action.label" = "Next action";
-"events.next_action.blocked_label" = "Blocked";
+"events.next_action.blocked_label" = "To complete";
 "events.next_action.draft.title" = "Start the poll";
 "events.next_action.draft.short" = "Finish draft";
 "events.next_action.draft.subtitle" = "The poll is ready to send to guests.";
@@ -468,7 +468,7 @@
 "events.next_action.default.subtitle" = "Continue preparing the event.";
 "events.manage_participants" = "Manage participants";
 "events.view_results" = "View results";
-"events.scenario_planning" = "Scenario planning";
+"events.scenario_planning" = "Option comparison";
 "events.budget_overview" = "Budget overview";
 "events.accommodation" = "Accommodation";
 "events.meal_planning" = "Meal planning";
@@ -500,9 +500,9 @@
 "participants.poll_started.title" = "Poll started";
 "participants.poll_started.message" = "The poll is now open to participants.";
 "participants.title" = "Participants";
-"participants.accepted" = "Accepted";
+"participants.accepted" = "Confirmed";
 "participants.pending" = "Pending";
-"participants.declined" = "Declined";
+"participants.declined" = "Unavailable";
 "participants.role.organizer" = "Organizer";
 "participants.role.member" = "Member";
 "participants.status.polling" = "Poll active";
@@ -523,9 +523,9 @@
 "participants.accepted_subtitle" = "Confirmed or able to access details";
 "participants.pending_subtitle" = "Invitations sent or awaiting responses";
 "participants.declined_subtitle" = "Unavailable participants";
-"participants.empty.accepted" = "No accepted participant yet.";
+"participants.empty.accepted" = "No confirmed participant yet.";
 "participants.empty.pending" = "No pending invitation.";
-"participants.empty.declined" = "No declined invitation.";
+"participants.empty.declined" = "No unavailable participant yet.";
 "participants.error.no_email_contacts" = "No contact with an email address is available";
 "participants.error.no_new_participants" = "No new participant to add";
 "participants.error.contacts_permission_denied" = "Contacts access is optional and was denied.";
@@ -537,7 +537,7 @@
 "participants.draft_status.ready" = "Ready to start the poll";
 
 // MARK: - Scenario Accessibility
-"scenario.refresh_accessibility" = "Refresh scenarios";
+"scenario.refresh_accessibility" = "Refresh options";
 "scenario.add_to_comparison_accessibility" = "Add to comparison";
 "scenario.remove_from_comparison_accessibility" = "Remove from comparison";
 
@@ -647,7 +647,7 @@
 "meetings.add_to_calendar_title" = "Add to calendar?";
 "meetings.cancelled" = "Cancelled";
 "meetings.cancelled_plural" = "Cancelled";
-"meetings.generate_link" = "Generate link";
+"meetings.generate_link" = "Create link";
 "meetings.loading" = "Loading meetings...";
 
 // MARK: - Status Labels
@@ -883,8 +883,8 @@
 "meetings.ended" = "Ended";
 "meetings.ended_plural" = "Ended";
 "meetings.field_title" = "Title";
-"meetings.generate" = "Generate";
-"meetings.generate_link_description" = "A new meeting link will be generated.";
+"meetings.generate" = "Create";
+"meetings.generate_link_description" = "A new meeting link will be created.";
 "meetings.generate_link_info" = "The existing link will be replaced.";
 "meetings.hours" = "Hours";
 "meetings.join" = "Join meeting";

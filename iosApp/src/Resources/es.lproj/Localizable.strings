@@ -118,7 +118,7 @@
 
 // MARK: - Notifications
 "notifications.title" = "Notificaciones";
-"notifications.mark_all_read" = "Leer todo";
+"notifications.mark_all_read" = "Marcar todo como leído";
 "notifications.delete" = "Eliminar";
 "notifications.read" = "Leída";
 "notifications.mark_as_read" = "Marcar como leída";
@@ -327,8 +327,8 @@
 "events.about" = "Acerca de";
 "events.hosted_by" = "Organizado por";
 "events.organizer" = "Organizador";
-"events.going" = "Asistentes";
-"events.going_count" = "Asistentes";
+"events.going" = "Participantes confirmados";
+"events.going_count" = "Confirmados";
 "events.no_participants" = "Sin participantes aún";
 "events.more_participants" = "+%lld más";
 "events.participating" = "Participa";
@@ -338,7 +338,7 @@
 "events.status.confirmed" = "Confirmado";
 "events.manage_participants" = "Gestionar participantes";
 "events.view_results" = "Ver resultados";
-"events.scenario_planning" = "Planificación de escenarios";
+"events.scenario_planning" = "Comparación de opciones";
 "events.budget_overview" = "Resumen del presupuesto";
 "events.accommodation" = "Alojamiento";
 "events.meal_planning" = "Planificación de comidas";
@@ -365,7 +365,7 @@
 "participants.details_unlocked_accessibility" = "Detalles desbloqueados";
 
 // MARK: - Scenario Accessibility
-"scenario.refresh_accessibility" = "Actualizar escenarios";
+"scenario.refresh_accessibility" = "Actualizar opciones";
 "scenario.add_to_comparison_accessibility" = "Añadir a la comparación";
 "scenario.remove_from_comparison_accessibility" = "Quitar de la comparación";
 
@@ -475,7 +475,7 @@
 "meetings.add_to_calendar_title" = "¿Añadir al calendario?";
 "meetings.cancelled" = "Cancelada";
 "meetings.cancelled_plural" = "Canceladas";
-"meetings.generate_link" = "Generar enlace";
+"meetings.generate_link" = "Crear enlace";
 "meetings.loading" = "Cargando reuniones...";
 
 // MARK: - Status Labels
@@ -666,7 +666,7 @@
 "inbox.empty.notifications_subtitle" = "Tus notificaciones aparecerán aquí.";
 "inbox.empty.unread_subtitle" = "Has leído todos tus mensajes.";
 "inbox.filter_by_event" = "Filtrar por evento";
-"inbox.filter.inbox" = "Bandeja";
+"inbox.filter.inbox" = "Notificaciones";
 "inbox.filter.focused" = "Prioritarios";
 "inbox.filter.new" = "Nuevo";
 "inbox.filter.unread" = "No leídos";
@@ -708,8 +708,8 @@
 "meetings.ended" = "Finalizada";
 "meetings.ended_plural" = "Finalizadas";
 "meetings.field_title" = "Título";
-"meetings.generate" = "Generar";
-"meetings.generate_link_description" = "Se generará un nuevo enlace de reunión.";
+"meetings.generate" = "Crear";
+"meetings.generate_link_description" = "Se creará un nuevo enlace de reunión.";
 "meetings.generate_link_info" = "El enlace existente será reemplazado.";
 "meetings.hours" = "Horas";
 "meetings.join" = "Unirse a la reunión";

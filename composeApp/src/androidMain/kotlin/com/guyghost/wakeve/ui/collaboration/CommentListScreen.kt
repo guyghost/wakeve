@@ -236,7 +236,7 @@ fun EmptyCommentsSection() {
 private fun getSectionTitle(section: CommentSection): String {
     return when (section) {
         CommentSection.GENERAL -> "Comments"
-        CommentSection.SCENARIO -> "Scenario Comments"
+        CommentSection.SCENARIO -> "Option Comments"
         CommentSection.POLL -> "Poll Comments"
         CommentSection.TRANSPORT -> "Transport Comments"
         CommentSection.ACCOMMODATION -> "Accommodation Comments"

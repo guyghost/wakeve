@@ -497,15 +497,15 @@ private val sampleNotifications = listOf(
         isRead = true,
         createdAt = Date(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(2))
     ),
-    NotificationItem(
-        id = "n4",
-        type = NotificationItemType.DEADLINE,
-        title = "Deadline approche",
-        body = "Il reste 1 heure pour voter sur \"Anniversaire Bob\"",
-        eventId = "event4",
-        isRead = false,
-        createdAt = Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1))
-    ),
+        NotificationItem(
+            id = "n4",
+            type = NotificationItemType.DEADLINE,
+            title = "Échéance proche",
+            body = "Il reste 1 heure pour voter sur \"Anniversaire Bob\"",
+            eventId = "event4",
+            isRead = false,
+            createdAt = Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1))
+        ),
     NotificationItem(
         id = "n5",
         type = NotificationItemType.REMINDER,
