@@ -17,6 +17,7 @@ struct PollResultsView: View {
     @State private var errorMessage = ""
     @State private var showError = false
     @State private var showSuccess = false
+    @State private var showConfirmDateDialog = false
 
     var body: some View {
         PollResultsContentView(
@@ -26,7 +27,7 @@ struct PollResultsView: View {
             canConfirmDate: repository.isOrganizer(eventId: event.id, userId: userId),
             isLoading: isLoading,
             onConfirmDate: {
-                Task { await confirmDate() }
+                showConfirmDateDialog = true
             },
             onBack: onBack
         )
@@ -44,6 +45,18 @@ struct PollResultsView: View {
             }
         } message: {
             Text(String(localized: "poll.results.date_confirmed"))
+        }
+        .confirmationDialog(
+            String(localized: "poll.results.confirm_dialog_title"),
+            isPresented: $showConfirmDateDialog,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "poll.results.confirm_date")) {
+                Task { await confirmDate() }
+            }
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "poll.results.confirm_dialog_message"))
         }
     }
 
@@ -63,7 +76,7 @@ struct PollResultsView: View {
         guard let bestSlot = bestSlot else { return }
 
         guard repository.isOrganizer(eventId: event.id, userId: userId) else {
-            errorMessage = "Only the organizer can confirm the date"
+            errorMessage = String(localized: "poll.results.error.organizer_only")
             showError = true
             return
         }
@@ -83,7 +96,7 @@ struct PollResultsView: View {
                 showSuccess = true
             } else {
                 isLoading = false
-                errorMessage = "Failed to confirm date"
+                errorMessage = String(localized: "poll.results.error.confirm_failed")
                 showError = true
             }
         } catch {

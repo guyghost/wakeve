@@ -11,67 +11,71 @@ struct OnboardingStepView: View {
     let step: OnboardingStep
     
     @State private var isAnimating = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var visibleFeatures: [String] {
+        dynamicTypeSize.isAccessibilitySize ? Array(step.features.prefix(1)) : step.features
+    }
     
     var body: some View {
-        VStack(spacing: WakeveTheme.Spacing.xl) {
-            Spacer()
-            
-            ZStack {
-                Circle()
-                    .fill(Color.white.opacity(0.08))
-                    .frame(width: 132, height: 132)
-                    .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
-                
-                Image(systemName: step.icon)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 62, height: 62)
-                    .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
-                    .scaleEffect(isAnimating ? 1.1 : 1.0)
-                    .animation(
-                        Animation.spring(response: 1.0, dampingFraction: 0.7)
-                            .repeatForever(autoreverses: true),
-                        value: isAnimating
-                    )
-            }
-            .clipShape(Circle())
-            .shadow(color: WakeveTheme.ColorToken.permissionBlue.opacity(0.22), radius: 22, x: 0, y: 10)
-            .onAppear { isAnimating = true }
-            
-            Text(step.title)
-                .font(WakeveTheme.Typography.largeTitle)
-                .multilineTextAlignment(.center)
-                .foregroundColor(.white)
-                .lineLimit(3)
-                .minimumScaleFactor(0.82)
-            
-            Text(step.description)
-                .font(WakeveTheme.Typography.body)
-                .multilineTextAlignment(.center)
-                .foregroundColor(Color.white.opacity(0.78))
-                .padding(.horizontal, WakeveTheme.Spacing.md)
-                .lineSpacing(3)
-            
-            VStack(spacing: WakeveTheme.Spacing.sm) {
-                ForEach(step.features, id: \.self) { feature in
-                    HStack(spacing: WakeveTheme.Spacing.sm) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(WakeveColors.success)
-                        
-                        Text(feature)
-                            .font(WakeveTheme.Typography.metadata)
-                            .foregroundColor(Color.white.opacity(0.72))
-                            .lineLimit(2)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: dynamicTypeSize.isAccessibilitySize ? WakeveTheme.Spacing.md : WakeveTheme.Spacing.xl) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.08))
+                        .frame(width: dynamicTypeSize.isAccessibilitySize ? 88 : 132, height: dynamicTypeSize.isAccessibilitySize ? 88 : 132)
+                        .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                    
+                    Image(systemName: step.icon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: dynamicTypeSize.isAccessibilitySize ? 42 : 62, height: dynamicTypeSize.isAccessibilitySize ? 42 : 62)
+                        .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
+                        .scaleEffect(isAnimating ? 1.1 : 1.0)
+                        .animation(
+                            Animation.spring(response: 1.0, dampingFraction: 0.7)
+                                .repeatForever(autoreverses: true),
+                            value: isAnimating
+                        )
                 }
+                .clipShape(Circle())
+                .shadow(color: WakeveTheme.ColorToken.permissionBlue.opacity(0.22), radius: 22, x: 0, y: 10)
+                .onAppear { isAnimating = true }
+                
+                Text(step.title)
+                    .font(dynamicTypeSize.isAccessibilitySize ? WakeveTheme.Typography.title : WakeveTheme.Typography.largeTitle)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                Text(step.description)
+                    .font(dynamicTypeSize.isAccessibilitySize ? WakeveTheme.Typography.callout : WakeveTheme.Typography.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(Color.white.opacity(0.78))
+                    .padding(.horizontal, WakeveTheme.Spacing.sm)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                
+                VStack(spacing: WakeveTheme.Spacing.sm) {
+                    ForEach(visibleFeatures, id: \.self) { feature in
+                        HStack(spacing: WakeveTheme.Spacing.sm) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(WakeveColors.success)
+                            
+                            Text(feature)
+                                .font(WakeveTheme.Typography.metadata)
+                                .foregroundColor(Color.white.opacity(0.72))
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .padding(.horizontal, WakeveTheme.Spacing.md)
             }
-            .padding(.horizontal, WakeveTheme.Spacing.md)
-            
-            Spacer()
+            .padding(dynamicTypeSize.isAccessibilitySize ? WakeveTheme.Spacing.md : WakeveTheme.Spacing.xl)
+            .frame(maxWidth: .infinity, minHeight: dynamicTypeSize.isAccessibilitySize ? nil : 520)
         }
-        .padding(WakeveTheme.Spacing.xl)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white.opacity(0.035))
         .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.panel, style: .continuous))
@@ -139,6 +143,7 @@ struct OnboardingView: View {
             #if os(iOS)
             .tabViewStyle(.page(indexDisplayMode: .automatic))
             #endif
+            .padding(.bottom, 160)
             
             VStack {
                 Spacer()

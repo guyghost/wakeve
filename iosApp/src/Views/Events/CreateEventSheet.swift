@@ -61,6 +61,8 @@ struct CreateEventSheet: View {
     @State private var showValidationError = false
     @State private var validationMessage: String? = nil
     @State private var currentStep: CreateEventStep = .name
+    @State private var showNameAdvancedOptions = false
+    @State private var showConfirmAdvancedOptions = false
     
     var onEventCreated: (Event) -> Void = { _ in }
     
@@ -270,10 +272,6 @@ struct CreateEventSheet: View {
             nameStep
         case .date:
             dateStep
-        case .place:
-            placeStep
-        case .invite:
-            inviteStep
         case .confirm:
             confirmStep
         }
@@ -282,8 +280,6 @@ struct CreateEventSheet: View {
     private var nameStep: some View {
         LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
-                smartEventDraftCard
-
                 TextField(String(localized: "events.title_placeholder"), text: $title)
                     .font(WakeveTheme.Typography.title2)
                     .foregroundColor(primaryTextColor)
@@ -300,14 +296,26 @@ struct CreateEventSheet: View {
                     .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
 
-                Button(action: { showingEventTypePicker = true }) {
-                    CreateEventChoiceRow(
-                        systemImage: "sparkles",
-                        title: "Type d'événement",
-                        value: selectedEventType == Shared.EventType.other ? "Choisir un type" : eventTypeDisplayName(selectedEventType)
-                    )
+                DisclosureGroup(isExpanded: $showNameAdvancedOptions) {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                        smartEventDraftCard
+
+                        Button(action: { showingEventTypePicker = true }) {
+                            CreateEventChoiceRow(
+                                systemImage: "sparkles",
+                                title: String(localized: "events.type"),
+                                value: selectedEventType == Shared.EventType.other ? String(localized: "events.type.choose") : eventTypeDisplayName(selectedEventType)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.top, WakeveTheme.Spacing.sm)
+                } label: {
+                    Label(String(localized: "events.advanced_options"), systemImage: "slider.horizontal.3")
+                        .font(WakeveTheme.Typography.bodySemibold)
+                        .foregroundColor(primaryTextColor)
                 }
-                .buttonStyle(.plain)
+                .tint(WakeveTheme.ColorToken.accent(for: colorScheme))
             }
         }
     }
@@ -616,6 +624,63 @@ struct CreateEventSheet: View {
                     .font(WakeveTheme.Typography.callout)
                     .foregroundColor(secondaryTextColor)
 
+                DisclosureGroup(isExpanded: $showConfirmAdvancedOptions) {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                        Button(action: { showingLocationSheet = true }) {
+                            CreateEventChoiceRow(
+                                systemImage: "mappin.circle.fill",
+                                title: "Lieu",
+                                value: selectedLocation ?? "À choisir plus tard"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                            Text("Taille du groupe")
+                                .font(WakeveTheme.Typography.caption)
+                                .foregroundColor(secondaryTextColor)
+                                .textCase(.uppercase)
+
+                            Stepper(value: expectedParticipantsBinding, in: 1...200) {
+                                let count = expectedParticipants ?? 1
+                                Text("\(count) participant\(count > 1 ? "s" : "") attendu\(count > 1 ? "s" : "")")
+                                    .font(WakeveTheme.Typography.bodySemibold)
+                                    .foregroundColor(primaryTextColor)
+                            }
+
+                            Button("Réinitialiser") {
+                                expectedParticipants = nil
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .disabled(expectedParticipants == nil)
+                        }
+
+                        Button(action: { showingBackgroundPicker = true }) {
+                            CreateEventChoiceRow(
+                                systemImage: "photo.on.rectangle",
+                                title: "Fond",
+                                value: hasCustomBackground ? "Personnalisé" : "Par défaut"
+                            )
+                        }
+                        .buttonStyle(.plain)
+
+                        planningModePicker
+
+                        if planningMode == .scenarioMatrix {
+                            Text("Le mode scénarios combine les créneaux avec le lieu choisi. Gardez le mode créneaux pour un sondage simple.")
+                                .font(WakeveTheme.Typography.callout)
+                                .foregroundColor(secondaryTextColor)
+                        }
+                    }
+                    .padding(.top, WakeveTheme.Spacing.sm)
+                } label: {
+                    Label("Options avancées", systemImage: "slider.horizontal.3")
+                        .font(WakeveTheme.Typography.bodySemibold)
+                        .foregroundColor(primaryTextColor)
+                }
+                .tint(WakeveTheme.ColorToken.accent(for: colorScheme))
+
                 if showValidationError, let msg = validationMessage {
                     Text(msg)
                         .font(WakeveTheme.Typography.callout)
@@ -684,8 +749,6 @@ struct CreateEventSheet: View {
             return !proposedSlotDrafts.isEmpty
         case .confirm:
             return canCreate
-        case .place, .invite:
-            return true
         }
     }
 
@@ -693,6 +756,9 @@ struct CreateEventSheet: View {
         guard canAdvanceStep else {
             showValidationError = true
             validationMessage = validationMessageForCurrentStep
+            if currentStep == .confirm {
+                showConfirmAdvancedOptions = true
+            }
             return
         }
 
@@ -990,10 +1056,10 @@ struct CreateEventSheet: View {
                             .font(.system(size: 20))
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Type d'événement")
+                            Text(String(localized: "events.type"))
                                 .font(WakeveTheme.Typography.tiny)
                                 .foregroundColor(secondaryTextColor)
-                            Text(selectedEventType == Shared.EventType.other ? "Choisir un type" : eventTypeDisplayName(selectedEventType))
+                            Text(selectedEventType == Shared.EventType.other ? String(localized: "events.type.choose") : eventTypeDisplayName(selectedEventType))
                                 .font(WakeveTheme.Typography.bodySemibold)
                                 .foregroundColor(selectedEventType == Shared.EventType.other ? placeholderTextColor : primaryTextColor)
                         }
@@ -1324,8 +1390,6 @@ struct CreateEventSheet: View {
 private enum CreateEventStep: CaseIterable {
     case name
     case date
-    case place
-    case invite
     case confirm
 
     var index: Int {
@@ -1340,8 +1404,6 @@ private enum CreateEventStep: CaseIterable {
         switch self {
         case .name: return "Nom"
         case .date: return "Date"
-        case .place: return "Lieu"
-        case .invite: return "Invités"
         case .confirm: return "Confirmer"
         }
     }
@@ -1350,8 +1412,6 @@ private enum CreateEventStep: CaseIterable {
         switch self {
         case .name: return "Nom"
         case .date: return "Date"
-        case .place: return "Lieu"
-        case .invite: return "Inviter"
         case .confirm: return "Confirmation"
         }
     }
@@ -1360,8 +1420,6 @@ private enum CreateEventStep: CaseIterable {
         switch self {
         case .name: return "Comment s’appelle l’événement ?"
         case .date: return "Quand aura-t-il lieu ?"
-        case .place: return "Où se retrouve-t-on ?"
-        case .invite: return "Qui souhaitez-vous inviter ?"
         case .confirm: return "Vérifiez les détails."
         }
     }
@@ -1370,9 +1428,7 @@ private enum CreateEventStep: CaseIterable {
         switch self {
         case .name: return "Un nom clair et une courte description aident les invités à comprendre l’événement."
         case .date: return "Ajoutez un ou plusieurs créneaux pour lancer le sondage avec de vraies options."
-        case .place: return "Ajoutez un lieu maintenant ou gardez-le pour plus tard."
-        case .invite: return "Définissez une taille de groupe attendue avant d’ajouter les invités précis."
-        case .confirm: return "Prévisualisez l’invitation avant de créer l’événement."
+        case .confirm: return "Ajustez seulement les options utiles, puis prévisualisez l’invitation."
         }
     }
 

@@ -1415,7 +1415,7 @@ struct EventDetailView: View {
     }
 
     private var metadataOverview: some View {
-        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 Text("Résumé")
                     .font(WakeveTheme.Typography.section)
@@ -1467,11 +1467,14 @@ struct EventDetailView: View {
     }
 
     private var urgentNextAction: some View {
-        EventDetailNextActionCard(
-            title: primaryActionTitle,
-            subtitle: nextActionSubtitle,
-            systemImage: nextActionIcon,
-            isDisabled: primaryActionDisabled,
+        let action = nextAction
+
+        return EventDetailNextActionCard(
+            title: action.title,
+            subtitle: action.displaySubtitle,
+            systemImage: action.systemImage,
+            blockedReason: action.blockedReason,
+            isDisabled: action.isBlocked,
             action: primaryAction
         )
     }
@@ -1553,7 +1556,7 @@ struct EventDetailView: View {
     }
 
     private var eventAISuggestionPanel: some View {
-        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
@@ -1786,7 +1789,7 @@ struct EventDetailView: View {
 
             LiquidGlassButton(
                 primaryActionTitle,
-                systemImage: nextActionIcon,
+                systemImage: nextAction.systemImage,
                 variant: .primary,
                 isDisabled: primaryActionDisabled,
                 action: primaryAction
@@ -1842,12 +1845,12 @@ struct EventDetailView: View {
 
     private var statusText: String {
         switch event.status {
-        case .draft: return "Prévisualisation organisateur"
-        case .polling: return "Sondage actif"
-        case .confirmed: return "Date confirmée"
-        case .organizing: return "Organisation"
-        case .finalized: return "Finalisé"
-        default: return "Événement"
+        case .draft: return String(localized: "events.status.draft_preview")
+        case .polling: return String(localized: "events.status.polling")
+        case .confirmed: return String(localized: "events.status.date_confirmed")
+        case .organizing: return String(localized: "events.status.organizing")
+        case .finalized: return String(localized: "events.status.finalized")
+        default: return String(localized: "events.status.event")
         }
     }
 
@@ -1872,32 +1875,8 @@ struct EventDetailView: View {
         return "Date à choisir"
     }
 
-    private var nextActionSubtitle: String {
-        switch event.status {
-        case .draft:
-            return primaryActionDisabled ? "Ajoutez au moins un participant pour lancer le sondage." : "Le sondage est prêt à être envoyé aux invités."
-        case .polling:
-            return "Consultez les votes et confirmez le créneau le plus solide."
-        case .confirmed, .comparing:
-            return "Passez à la destination, au logement et aux choix collectifs."
-        case .organizing:
-            return "Coordonnez réunions, budget, transport et confirmations."
-        case .finalized:
-            return "L’événement est finalisé; les sections restent consultables."
-        default:
-            return "Continuez la préparation de l’événement."
-        }
-    }
-
-    private var nextActionIcon: String {
-        switch event.status {
-        case .draft: return "paperplane.fill"
-        case .polling: return "chart.bar.fill"
-        case .confirmed, .comparing: return "map.fill"
-        case .organizing: return "checklist"
-        case .finalized: return "checkmark.seal.fill"
-        default: return "arrow.right"
-        }
+    private var nextAction: EventNextAction {
+        EventNextAction(event: event)
     }
 
     private var participantRangeText: String {
@@ -1987,13 +1966,7 @@ struct EventDetailView: View {
     }
 
     private var primaryActionTitle: String {
-        switch event.status {
-        case .draft: return "Lancer le sondage"
-        case .polling: return "Voir les résultats"
-        case .confirmed, .comparing: return "Comparer les scénarios"
-        case .organizing, .finalized: return "Voir l'organisation"
-        default: return "Continuer"
-        }
+        nextAction.title
     }
 
     private var eventHeroGradient: LinearGradient {
@@ -2005,7 +1978,7 @@ struct EventDetailView: View {
     }
 
     private var primaryActionDisabled: Bool {
-        event.status == .draft && event.participants.isEmpty
+        nextAction.isBlocked
     }
 
     private var heroColors: [Color] {
@@ -2603,11 +2576,12 @@ private struct EventDetailNextActionCard: View {
     let title: String
     let subtitle: String
     let systemImage: String
+    let blockedReason: String?
     let isDisabled: Bool
     let action: () -> Void
 
     var body: some View {
-        LiquidGlassCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             HStack(spacing: WakeveTheme.Spacing.md) {
                 Image(systemName: systemImage)
                     .font(.title3.weight(.bold))
@@ -2617,10 +2591,23 @@ private struct EventDetailNextActionCard: View {
                     .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
-                    Text("Prochaine action")
-                        .font(WakeveTheme.Typography.tiny)
-                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
-                        .textCase(.uppercase)
+                    HStack(spacing: WakeveTheme.Spacing.xs) {
+                        Text(String(localized: "events.next_action.label"))
+                            .font(WakeveTheme.Typography.tiny)
+                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                            .textCase(.uppercase)
+
+                        if blockedReason != nil {
+                            Text(String(localized: "events.next_action.blocked_label"))
+                                .font(WakeveTheme.Typography.tiny)
+                                .foregroundColor(.orange)
+                                .padding(.horizontal, WakeveTheme.Spacing.xs)
+                                .padding(.vertical, 2)
+                                .background(Color.orange.opacity(0.14))
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .lineLimit(1)
 
                     Text(title)
                         .font(WakeveTheme.Typography.rowTitle)
@@ -2660,7 +2647,7 @@ private struct EventDetailParticipantsPreview: View {
     let action: () -> Void
 
     var body: some View {
-        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             Button(action: action) {
                 HStack(spacing: WakeveTheme.Spacing.md) {
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
@@ -2700,7 +2687,7 @@ private struct EventDetailSectionCard<Content: View>: View {
     }
 
     var body: some View {
-        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
                 Text(title)
                     .font(WakeveTheme.Typography.section)
@@ -2765,7 +2752,7 @@ private struct EventDetailMessagePreview: View {
     let badgeText: String
 
     var body: some View {
-        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             HStack(spacing: WakeveTheme.Spacing.md) {
                 Image(systemName: "message.fill")
                     .font(.title3.weight(.bold))

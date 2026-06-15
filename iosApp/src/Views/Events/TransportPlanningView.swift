@@ -114,7 +114,7 @@ struct TransportPlanningView: View {
     }
 
     private var routePreviewCard: some View {
-        LiquidGlassCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+        WakeveGlassCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
                 HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
                     VStack(spacing: 6) {
@@ -152,7 +152,7 @@ struct TransportPlanningView: View {
     }
 
     private var readinessCard: some View {
-        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             HStack(spacing: WakeveTheme.Spacing.md) {
                 Image(systemName: isReadinessComplete ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                     .font(.title3.weight(.bold))
@@ -178,7 +178,7 @@ struct TransportPlanningView: View {
     }
 
     private var transportHelperCard: some View {
-        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
@@ -274,7 +274,7 @@ struct TransportPlanningView: View {
     }
 
     private var departureCard: some View {
-        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             let hasSelectedDestination = selectedDestination != nil
             let mutationDisabled = !canAccessDetails || isReadOnly || !workflowAllowsMutation(eventStatus) || !hasSelectedDestination
             let trimmedDeparture = departureInput.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -312,7 +312,7 @@ struct TransportPlanningView: View {
     }
 
     private var optimizationCard: some View {
-        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             let hasSelectedDestination = selectedDestination != nil
             let mutationDisabled = !isOrganizer || isReadOnly || !workflowAllowsMutation(eventStatus) || !hasSelectedDestination
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
@@ -352,7 +352,7 @@ struct TransportPlanningView: View {
     }
 
     private var generatedPlanCard: some View {
-        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             let hasSelectedDestination = selectedDestination != nil
             let mutationDisabled = !isOrganizer || isReadOnly || !workflowAllowsMutation(eventStatus) || !hasSelectedDestination
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
@@ -415,7 +415,7 @@ struct TransportPlanningView: View {
     }
 
     private var participantsCard: some View {
-        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 HStack {
                     Text("Participants")

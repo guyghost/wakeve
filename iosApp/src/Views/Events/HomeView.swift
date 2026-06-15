@@ -40,6 +40,76 @@ enum HomeEventFilter: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - Event Next Action
+
+struct EventNextAction {
+    let title: String
+    let shortTitle: String
+    let subtitle: String
+    let blockedReason: String?
+    let systemImage: String
+
+    var isBlocked: Bool { blockedReason != nil }
+    var displaySubtitle: String { blockedReason ?? subtitle }
+
+    init(event: Event) {
+        switch event.status {
+        case .draft:
+            title = String(localized: "events.next_action.draft.title")
+            shortTitle = String(localized: "events.next_action.draft.short")
+            systemImage = "paperplane.fill"
+
+            let hasParticipants = !event.participants.isEmpty
+            let hasSlots = !event.proposedSlots.isEmpty
+            if !hasParticipants && !hasSlots {
+                blockedReason = String(localized: "events.next_action.draft.blocked.participants_and_slots")
+            } else if !hasParticipants {
+                blockedReason = String(localized: "events.next_action.draft.blocked.participants")
+            } else if !hasSlots {
+                blockedReason = String(localized: "events.next_action.draft.blocked.slots")
+            } else {
+                blockedReason = nil
+            }
+            subtitle = String(localized: "events.next_action.draft.subtitle")
+
+        case .polling:
+            title = String(localized: "events.next_action.polling.title")
+            shortTitle = String(localized: "events.next_action.polling.short")
+            subtitle = String(localized: "events.next_action.polling.subtitle")
+            blockedReason = nil
+            systemImage = "chart.bar.fill"
+
+        case .confirmed, .comparing:
+            title = String(localized: "events.next_action.confirmed.title")
+            shortTitle = String(localized: "events.next_action.confirmed.short")
+            subtitle = String(localized: "events.next_action.confirmed.subtitle")
+            blockedReason = nil
+            systemImage = "map.fill"
+
+        case .organizing:
+            title = String(localized: "events.next_action.organizing.title")
+            shortTitle = String(localized: "events.next_action.organizing.short")
+            subtitle = String(localized: "events.next_action.organizing.subtitle")
+            blockedReason = nil
+            systemImage = "checklist"
+
+        case .finalized:
+            title = String(localized: "events.next_action.finalized.title")
+            shortTitle = String(localized: "events.next_action.finalized.short")
+            subtitle = String(localized: "events.next_action.finalized.subtitle")
+            blockedReason = nil
+            systemImage = "checkmark.seal.fill"
+
+        default:
+            title = String(localized: "events.next_action.default.title")
+            shortTitle = String(localized: "events.next_action.default.short")
+            subtitle = String(localized: "events.next_action.default.subtitle")
+            blockedReason = nil
+            systemImage = "arrow.right"
+        }
+    }
+}
+
 // MARK: - Event Theme
 
 struct EventTheme {
@@ -179,6 +249,7 @@ struct HomeContentView: View {
 
     @State private var selectedFilter: HomeEventFilter = .upcoming
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(
         events: [Event],
@@ -207,27 +278,33 @@ struct HomeContentView: View {
                     .padding(.horizontal, WakeveTheme.Spacing.page)
                     .padding(.top, WakeveTheme.Navigation.controlTopSpacing + 76)
             } else if filteredEvents.isEmpty {
-                VStack(spacing: 0) {
-                    headerView
-                        .padding(.horizontal, WakeveTheme.Spacing.page)
-                        .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: WakeveTheme.Spacing.xl) {
+                        headerView
 
-                    Spacer(minLength: 0)
-
-                    EmptyState(
-                        systemImage: "calendar.badge.plus",
-                        title: emptyStateTitle,
-                        subtitle: emptyStateSubtitle,
-                        actionTitle: String(localized: "home.create_event"),
-                        action: onCreateEvent
-                    )
-
-                    Spacer(minLength: 0)
+                        EmptyState(
+                            systemImage: "calendar.badge.plus",
+                            title: emptyStateTitle,
+                            subtitle: displayedEmptyStateSubtitle,
+                            actionTitle: dynamicTypeSize.isAccessibilitySize ? nil : String(localized: "home.create_event"),
+                            action: dynamicTypeSize.isAccessibilitySize ? nil : onCreateEvent
+                        )
+                        .padding(.top, WakeveTheme.Spacing.lg)
+                    }
+                    .padding(.horizontal, WakeveTheme.Spacing.page)
+                    .padding(.top, WakeveTheme.Navigation.controlTopSpacing)
+                    .padding(.bottom, 144)
                 }
             } else {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xl) {
                         headerView
+
+                        HomeNextActionCard(
+                            event: featuredEvent,
+                            action: EventNextAction(event: featuredEvent),
+                            onTap: { onEventSelected(featuredEvent) }
+                        )
 
                         HomeFeaturedEventView(
                             event: featuredEvent,
@@ -247,10 +324,12 @@ struct HomeContentView: View {
                 }
             }
 
-            HomeFloatingCreateButton(action: onCreateEvent)
-                .padding(.trailing, WakeveTheme.Spacing.lg)
-                .padding(.bottom, WakeveTheme.Spacing.xl)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+            if !filteredEvents.isEmpty || dynamicTypeSize.isAccessibilitySize {
+                HomeFloatingCreateButton(action: onCreateEvent)
+                    .padding(.trailing, WakeveTheme.Spacing.lg)
+                    .padding(.bottom, WakeveTheme.Spacing.xl)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+            }
         }
     }
     
@@ -307,6 +386,14 @@ struct HomeContentView: View {
         }
     }
 
+    private var displayedEmptyStateSubtitle: String {
+        if dynamicTypeSize.isAccessibilitySize {
+            return String(localized: "home.empty.compact_subtitle")
+        }
+
+        return emptyStateSubtitle
+    }
+
     private var backgroundView: some View {
         WakeveScreenBackground(style: .grouped)
     }
@@ -314,11 +401,11 @@ struct HomeContentView: View {
     private var headerView: some View {
         HStack {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
-                Text("Bonjour")
+                Text(String(localized: "home.greeting"))
                     .font(WakeveTheme.Typography.callout)
                     .foregroundColor(.secondary)
 
-                Text("À venir")
+                Text(String(localized: "home.upcoming_title"))
                     .font(WakeveTheme.Typography.display)
                     .foregroundColor(.primary)
                     .lineLimit(1)
@@ -370,6 +457,8 @@ private struct HomeFeaturedEventView: View {
     let onTap: () -> Void
 
     var body: some View {
+        let nextAction = EventNextAction(event: event)
+
         Button(action: onTap) {
             EventHeroCard(
                 title: event.title,
@@ -380,7 +469,7 @@ private struct HomeFeaturedEventView: View {
                 HStack(spacing: WakeveTheme.Spacing.md) {
                     ParticipantAvatarStack(initials: participantInitials(event), size: 34, maxVisible: 4)
 
-                    Text(nextActionHint(event))
+                    Text(nextAction.shortTitle)
                         .font(WakeveTheme.Typography.caption)
                         .foregroundColor(.white.opacity(0.84))
                         .padding(.horizontal, WakeveTheme.Spacing.sm)
@@ -395,7 +484,58 @@ private struct HomeFeaturedEventView: View {
     }
 
     private var featuredMetadata: String {
-        isOrganizer ? "Organisé par moi" : "Prochain moment"
+        isOrganizer ? String(localized: "home.organized_by_me_badge") : String(localized: "home.featured.next_moment")
+    }
+}
+
+private struct HomeNextActionCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let event: Event
+    let action: EventNextAction
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            WakeveGlassCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+                HStack(alignment: .center, spacing: WakeveTheme.Spacing.md) {
+                    Image(systemName: action.systemImage)
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(action.isBlocked ? Color.orange.opacity(0.86) : WakeveTheme.ColorToken.progress(for: colorScheme))
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text(String(localized: "events.next_action.label"))
+                            .font(WakeveTheme.Typography.tiny)
+                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                            .textCase(.uppercase)
+
+                        Text(action.title)
+                            .font(WakeveTheme.Typography.rowTitle)
+                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                        Text(action.displaySubtitle)
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                            .lineLimit(2)
+                    }
+
+                    Spacer(minLength: WakeveTheme.Spacing.xs)
+
+                    Text(compactDateLabel(event))
+                        .font(WakeveTheme.Typography.caption)
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                        .padding(.horizontal, WakeveTheme.Spacing.sm)
+                        .padding(.vertical, WakeveTheme.Spacing.xs)
+                        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                        .clipShape(Capsule())
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -407,20 +547,20 @@ private struct HomeUpcomingEventsSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
             HStack {
-                Text("Ensuite")
-                    .font(WakeveTheme.Typography.section)
-                    .foregroundColor(.primary)
+                    Text(String(localized: "home.next_events"))
+                        .font(WakeveTheme.Typography.section)
+                        .foregroundColor(.primary)
 
                 Spacer()
 
-                Text("\(events.count) événement\(events.count > 1 ? "s" : "")")
+                Text(String(format: String(localized: "home.events_count_format"), events.count))
                     .font(WakeveTheme.Typography.caption)
                     .foregroundColor(.secondary)
             }
 
             if events.isEmpty {
-                LiquidGlassCard(prominence: .subtle) {
-                    Text("Aucun autre événement à préparer.")
+                WakeveGlassCard(prominence: .subtle) {
+                    Text(String(localized: "home.no_other_events"))
                         .font(WakeveTheme.Typography.body)
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -433,7 +573,7 @@ private struct HomeUpcomingEventsSection: View {
                             subtitle: eventSubtitle(event),
                             dateLabel: compactDateLabel(event),
                             participantInitials: participantInitials(event),
-                            nextActionHint: nextActionHint(event),
+                            nextActionHint: EventNextAction(event: event).shortTitle,
                             action: { onEventSelected(event) }
                         )
                     }
@@ -495,23 +635,6 @@ private func compactDateLabel(_ event: Event) -> String {
     }
 
     return compactHomeDateFormatter.string(from: date)
-}
-
-private func nextActionHint(_ event: Event) -> String {
-    switch event.status {
-    case .draft:
-        return "Finaliser le brouillon"
-    case .polling:
-        return "Vote en cours"
-    case .confirmed, .comparing:
-        return "Organiser la suite"
-    case .organizing:
-        return "Logistique active"
-    case .finalized:
-        return "Prêt"
-    default:
-        return "Voir l’événement"
-    }
 }
 
 private func participantCountText(_ event: Event) -> String {
