@@ -31,17 +31,17 @@ struct PollVotingView: View {
         .onAppear {
             checkExistingVotes()
         }
-        .alert("Error", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
+        .alert(String(localized: "common.error"), isPresented: $showError) {
+            Button(String(localized: "common.ok"), role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
-        .alert("Success", isPresented: $showSuccess) {
-            Button("OK", role: .cancel) {
+        .alert(String(localized: "common.success"), isPresented: $showSuccess) {
+            Button(String(localized: "common.ok"), role: .cancel) {
                 onVoteSubmitted()
             }
         } message: {
-            Text("Your votes have been submitted successfully!")
+            Text(String(localized: "poll.voting.success_message"))
         }
     }
 
@@ -108,7 +108,7 @@ struct PollVotingView: View {
             hasVoted = true
             showSuccess = true
         } else {
-            errorMessage = lastError?.localizedDescription ?? "Failed to submit some votes"
+            errorMessage = lastError?.localizedDescription ?? String(localized: "poll.voting.error.submit_failed")
             showError = true
         }
     }
@@ -216,7 +216,7 @@ struct PollVotingContentView: View {
                 .lineLimit(2)
                 .minimumScaleFactor(0.76)
 
-            Text("Une question à la fois: est-ce que ce créneau vous convient ?")
+            Text(String(localized: "poll.voting.header_question"))
                 .font(WakeveTheme.Typography.callout)
                 .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                 .lineLimit(3)
@@ -231,11 +231,11 @@ struct PollVotingContentView: View {
                     .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
 
                 VStack(spacing: WakeveTheme.Spacing.xs) {
-                    Text("Votes envoyés")
+                    Text(String(localized: "poll.voting.submitted_title"))
                         .font(WakeveTheme.Typography.section)
                         .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
 
-                    Text("Merci pour votre réponse. L’organisateur sera prévenu quand tout le monde aura voté.")
+                    Text(String(localized: "poll.voting.submitted_subtitle"))
                         .font(WakeveTheme.Typography.callout)
                         .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                         .multilineTextAlignment(.center)
@@ -249,7 +249,7 @@ struct PollVotingContentView: View {
         LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
                 HStack {
-                    Text("Progression")
+                    Text(String(localized: "poll.voting.progress"))
                         .font(WakeveTheme.Typography.caption)
                         .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                     Spacer()
@@ -275,7 +275,7 @@ struct PollVotingContentView: View {
     private var activeSlotQuestionCard: some View {
         LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.xl) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
-                Text("Ce créneau vous convient ?")
+                Text(String(localized: "poll.voting.slot_question"))
                     .font(WakeveTheme.Typography.section)
                     .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
 
@@ -300,8 +300,8 @@ struct PollVotingContentView: View {
         VStack(spacing: WakeveTheme.Spacing.sm) {
             VoteOptionCard(
                 vote: .yes,
-                title: "Oui",
-                subtitle: "Ce créneau me convient.",
+                title: String(localized: "poll.results.vote.yes"),
+                subtitle: String(localized: "poll.voting.option.yes.subtitle"),
                 isSelected: activeVote == .yes
             ) {
                 votes[activeSlot.id] = .yes
@@ -309,8 +309,8 @@ struct PollVotingContentView: View {
 
             VoteOptionCard(
                 vote: .maybe,
-                title: "Peut-être",
-                subtitle: "Possible si nécessaire.",
+                title: String(localized: "poll.results.vote.maybe"),
+                subtitle: String(localized: "poll.voting.option.maybe.subtitle"),
                 isSelected: activeVote == .maybe
             ) {
                 votes[activeSlot.id] = .maybe
@@ -318,8 +318,8 @@ struct PollVotingContentView: View {
 
             VoteOptionCard(
                 vote: .no,
-                title: "Non",
-                subtitle: "Je ne peux pas venir.",
+                title: String(localized: "poll.results.vote.no"),
+                subtitle: String(localized: "poll.voting.option.no.subtitle"),
                 isSelected: activeVote == .no
             ) {
                 votes[activeSlot.id] = .no
@@ -418,7 +418,7 @@ struct PollVotingContentView: View {
     }
 
     private var nextActionTitle: String {
-        isLastSlot ? "Envoyer mes votes" : "Créneau suivant"
+        isLastSlot ? String(localized: "poll.voting.submit_votes") : String(localized: "poll.voting.next_slot")
     }
 
     private func advanceOrSubmit() {
@@ -432,18 +432,18 @@ struct PollVotingContentView: View {
 
     private func feedbackText(for vote: PollVote) -> String {
         switch vote {
-        case .yes: return "Réponse enregistrée: oui."
-        case .maybe: return "Réponse enregistrée: peut-être."
-        case .no: return "Réponse enregistrée: non."
+        case .yes: return String(localized: "poll.voting.feedback.yes")
+        case .maybe: return String(localized: "poll.voting.feedback.maybe")
+        case .no: return String(localized: "poll.voting.feedback.no")
         }
     }
 
     private func formatDeadlineShort(_ deadlineString: String) -> String? {
         if let date = ISO8601DateFormatter().date(from: deadlineString) {
             let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "fr_FR")
+            formatter.locale = .current
             formatter.dateFormat = "MMM d"
-            return "Avant le " + formatter.string(from: date)
+            return String(format: String(localized: "poll.voting.deadline_before_format"), formatter.string(from: date))
         }
         return nil
     }
@@ -451,7 +451,7 @@ struct PollVotingContentView: View {
     private func formatDate(_ dateString: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "fr_FR")
+            formatter.locale = .current
             formatter.dateFormat = "EEEE d MMM"
             return formatter.string(from: date)
         }
@@ -461,7 +461,7 @@ struct PollVotingContentView: View {
     private func formatTime(_ dateString: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "fr_FR")
+            formatter.locale = .current
             formatter.timeStyle = .short
             return formatter.string(from: date)
         }
@@ -541,6 +541,7 @@ struct TimeSlotVoteCard: View {
     private func formatDate(_ dateString: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
+            formatter.locale = .current
             formatter.dateFormat = "EEEE, MMM d"
             return formatter.string(from: date)
         }
@@ -550,6 +551,7 @@ struct TimeSlotVoteCard: View {
     private func formatTime(_ dateString: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
+            formatter.locale = .current
             formatter.timeStyle = .short
             return formatter.string(from: date)
         }
