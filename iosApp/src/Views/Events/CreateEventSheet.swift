@@ -615,7 +615,7 @@ struct CreateEventSheet: View {
                 if planningMode == .scenarioMatrix {
                     CreateEventChoiceRow(
                         systemImage: "square.grid.2x2.fill",
-                        title: "Scénarios",
+                        title: "Options",
                         value: "\(scenarioMatrixPreviewCount) combinaison(s) créneau × destination"
                     )
                 }
@@ -668,7 +668,7 @@ struct CreateEventSheet: View {
                         planningModePicker
 
                         if planningMode == .scenarioMatrix {
-                            Text("Le mode scénarios combine les créneaux avec le lieu choisi. Gardez le mode créneaux pour un sondage simple.")
+                            Text("Le mode options combine les créneaux avec le lieu choisi. Gardez le mode créneaux pour un sondage simple.")
                                 .font(WakeveTheme.Typography.callout)
                                 .foregroundColor(secondaryTextColor)
                         }
@@ -1218,7 +1218,7 @@ struct CreateEventSheet: View {
 
             Picker("Mode de vote", selection: $planningMode) {
                 Text("Créneaux").tag(EventPlanningMode.timeSlotPoll)
-                Text("Scénarios").tag(EventPlanningMode.scenarioMatrix)
+                Text("Options").tag(EventPlanningMode.scenarioMatrix)
             }
             .pickerStyle(.segmented)
         }
@@ -1951,7 +1951,7 @@ private struct EventPreviewSheet: View {
                         }
 
                         if planningMode == .scenarioMatrix {
-                            Text("\(matrixScenarioCount) scénario(s) créneau × destination à préparer")
+                            Text("\(matrixScenarioCount) option(s) créneau × destination à préparer")
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(.white.opacity(0.82))
                                 .lineLimit(1)
@@ -2049,7 +2049,7 @@ private struct EventPreviewSheet: View {
                             .frame(width: 24)
                             .padding(.top, 2)
 
-                        Text("Les participants voteront sur des scénarios complets combinant créneau et destination.")
+                        Text("Les participants voteront sur des options complètes combinant créneau et destination.")
                             .font(.system(size: 15))
                             .foregroundColor(previewSecondaryText)
                             .lineSpacing(4)

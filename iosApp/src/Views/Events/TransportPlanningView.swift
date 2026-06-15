@@ -568,7 +568,7 @@ struct TransportPlanningView: View {
             return "Compléter les départs"
         }
         if plans.isEmpty {
-            return "Générer le plan"
+            return "Préparer le plan"
         }
         if selectedPlanId == nil {
             return "Choisir un plan final"

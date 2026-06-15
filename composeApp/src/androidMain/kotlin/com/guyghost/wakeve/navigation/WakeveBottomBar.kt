@@ -23,8 +23,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
  * Bottom Navigation Bar for Wakeve Android app.
  *
  * Implements Material You design with 3 tabs:
- * - Home: Main dashboard with event overview
- * - Inbox: Notifications, tasks and messages (with unread badge)
+ * - À venir: Upcoming event overview
+ * - Notifications: Event alerts and updates (with unread badge)
  * - Explore: Featured events, templates, tips
  *
  * @param navController The navigation controller for routing
@@ -42,15 +42,15 @@ fun WakeveBottomBar(
     val items = listOf(
         BottomNavItem(
             screen = Screen.Home,
-            label = "Accueil",
+            label = "À venir",
             icon = Icons.Filled.Home,
-            contentDescription = "Accueil - Tableau de bord principal"
+            contentDescription = "À venir - événements à venir"
         ),
         BottomNavItem(
             screen = Screen.Inbox,
             label = "Notifications",
             icon = Icons.Filled.Inbox,
-            contentDescription = "Notifications - Notifications, tâches et messages"
+            contentDescription = "Notifications - alertes et mises à jour"
         ),
         BottomNavItem(
             screen = Screen.Explore,

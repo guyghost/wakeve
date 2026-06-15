@@ -320,7 +320,7 @@ struct AutoGenerateMealsSheet: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Générer") {
+                    Button("Préparer") {
                         generateMeals()
                     }
                 }

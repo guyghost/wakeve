@@ -105,7 +105,7 @@ struct MeetingDetailView: View {
                         Button {
                             showGenerateLinkSheet = true
                         } label: {
-                            Label("Générer un lien", systemImage: "link")
+                            Label("Créer un lien", systemImage: "link")
                         }
                         Divider()
                         Button(role: .destructive) {

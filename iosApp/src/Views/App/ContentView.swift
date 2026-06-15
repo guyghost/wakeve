@@ -352,7 +352,7 @@ struct AuthenticatedView: View {
                     }
                 )
             } else {
-                Text("Sélectionnez un événement pour voir les scénarios")
+                Text("Sélectionnez un événement pour voir les options")
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -374,7 +374,7 @@ struct AuthenticatedView: View {
                     }
                 )
             } else {
-                Text("Sélectionnez un événement pour comparer les scénarios")
+                Text("Sélectionnez un événement pour comparer les options")
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -437,7 +437,7 @@ struct AuthenticatedView: View {
                 .foregroundColor(.secondary)
             
         case .scenarioDetail:
-            Text("Détail du scénario")
+            Text("Détail de l'option")
                 .font(.title2)
                 .foregroundColor(.secondary)
             
@@ -1500,7 +1500,7 @@ struct EventDetailView: View {
             if canAccessScenarioPlanning {
                 EventDetailActionRow(
                     icon: "map.fill",
-                    label: "Scénarios, destination et logement",
+                    label: "Options, destination et logement",
                     value: scenarioPlanningText,
                     action: onOrganize
                 )

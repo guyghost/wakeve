@@ -327,8 +327,8 @@
 "events.about" = "Informazioni";
 "events.hosted_by" = "Organizzato da";
 "events.organizer" = "Organizzatore";
-"events.going" = "Partecipanti";
-"events.going_count" = "Partecipanti";
+"events.going" = "Partecipanti confermati";
+"events.going_count" = "Confermati";
 "events.no_participants" = "Nessun partecipante ancora";
 "events.more_participants" = "+%lld altri";
 "events.participating" = "Partecipa";
@@ -338,7 +338,7 @@
 "events.status.confirmed" = "Confermato";
 "events.manage_participants" = "Gestisci partecipanti";
 "events.view_results" = "Vedi risultati";
-"events.scenario_planning" = "Pianificazione scenari";
+"events.scenario_planning" = "Confronto opzioni";
 "events.budget_overview" = "Panoramica budget";
 "events.accommodation" = "Alloggio";
 "events.meal_planning" = "Pianificazione pasti";
@@ -365,7 +365,7 @@
 "participants.details_unlocked_accessibility" = "Dettagli sbloccati";
 
 // MARK: - Scenario Accessibility
-"scenario.refresh_accessibility" = "Aggiorna scenari";
+"scenario.refresh_accessibility" = "Aggiorna opzioni";
 "scenario.add_to_comparison_accessibility" = "Aggiungi al confronto";
 "scenario.remove_from_comparison_accessibility" = "Rimuovi dal confronto";
 
@@ -475,7 +475,7 @@
 "meetings.add_to_calendar_title" = "Aggiungere al calendario?";
 "meetings.cancelled" = "Annullata";
 "meetings.cancelled_plural" = "Annullate";
-"meetings.generate_link" = "Genera link";
+"meetings.generate_link" = "Crea link";
 "meetings.loading" = "Caricamento riunioni...";
 
 // MARK: - Status Labels
@@ -708,8 +708,8 @@
 "meetings.ended" = "Terminata";
 "meetings.ended_plural" = "Terminate";
 "meetings.field_title" = "Titolo";
-"meetings.generate" = "Genera";
-"meetings.generate_link_description" = "Verrà generato un nuovo link per la riunione.";
+"meetings.generate" = "Crea";
+"meetings.generate_link_description" = "Verrà creato un nuovo link per la riunione.";
 "meetings.generate_link_info" = "Il link esistente verrà sostituito.";
 "meetings.hours" = "Ore";
 "meetings.join" = "Partecipa alla riunione";

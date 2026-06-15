@@ -338,7 +338,7 @@
 "events.status.confirmed" = "Confirmado";
 "events.manage_participants" = "Gerir participantes";
 "events.view_results" = "Ver resultados";
-"events.scenario_planning" = "Planeamento de cenários";
+"events.scenario_planning" = "Comparação de opções";
 "events.budget_overview" = "Visão geral do orçamento";
 "events.accommodation" = "Alojamento";
 "events.meal_planning" = "Planeamento de refeições";
@@ -365,7 +365,7 @@
 "participants.details_unlocked_accessibility" = "Detalhes desbloqueados";
 
 // MARK: - Scenario Accessibility
-"scenario.refresh_accessibility" = "Atualizar cenários";
+"scenario.refresh_accessibility" = "Atualizar opções";
 "scenario.add_to_comparison_accessibility" = "Adicionar à comparação";
 "scenario.remove_from_comparison_accessibility" = "Remover da comparação";
 
@@ -475,7 +475,7 @@
 "meetings.add_to_calendar_title" = "Adicionar ao calendário?";
 "meetings.cancelled" = "Cancelada";
 "meetings.cancelled_plural" = "Canceladas";
-"meetings.generate_link" = "Gerar link";
+"meetings.generate_link" = "Criar link";
 "meetings.loading" = "A carregar reuniões...";
 
 // MARK: - Status Labels
@@ -708,8 +708,8 @@
 "meetings.ended" = "Terminada";
 "meetings.ended_plural" = "Terminadas";
 "meetings.field_title" = "Título";
-"meetings.generate" = "Gerar";
-"meetings.generate_link_description" = "Um novo link de reunião será gerado.";
+"meetings.generate" = "Criar";
+"meetings.generate_link_description" = "Um novo link de reunião será criado.";
 "meetings.generate_link_info" = "O link existente será substituído.";
 "meetings.hours" = "Horas";
 "meetings.join" = "Participar na reunião";

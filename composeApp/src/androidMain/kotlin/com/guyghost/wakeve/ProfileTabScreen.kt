@@ -239,7 +239,7 @@ fun ProfileTabScreen(
             item {
                 ProfileActionItem(
                     icon = Icons.Default.Notifications,
-                    title = "Boîte de réception",
+                    title = "Notifications",
                     subtitle = "Notifications et invitations",
                     onClick = onNavigateToInbox
                 )

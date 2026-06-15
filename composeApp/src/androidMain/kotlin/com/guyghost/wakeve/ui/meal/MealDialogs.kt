@@ -310,7 +310,7 @@ fun AutoGenerateMealsDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Générer un plan de repas") },
+        title = { Text("Préparer un plan de repas") },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -450,7 +450,7 @@ fun AutoGenerateMealsDialog(
                     }
                 }
             ) {
-                Text("Générer")
+                Text("Préparer")
             }
         },
         dismissButton = {

@@ -84,8 +84,8 @@ object ServerLocalizer {
         ))
 
         put("notification.status.polling_title", mapOf(
-            "en" to "Vote now!",
-            "fr" to "Votez maintenant !",
+            "en" to "Poll open",
+            "fr" to "Sondage ouvert",
             "es" to "¡Vota ahora!",
             "it" to "Vota adesso!",
             "pt" to "Vote agora!"
@@ -153,7 +153,7 @@ object ServerLocalizer {
 
         put("notification.deadline.title", mapOf(
             "en" to "Deadline approaching",
-            "fr" to "Deadline approche",
+            "fr" to "Échéance proche",
             "es" to "Fecha límite cerca",
             "it" to "Scadenza in arrivo",
             "pt" to "Prazo se aproxima"
@@ -680,26 +680,26 @@ object ServerLocalizer {
             "pt" to "Opinador"
         ))
         put("badge.opinionated.description", mapOf(
-            "en" to "Voted on 20 scenarios",
-            "fr" to "A voté sur 20 scénarios",
-            "es" to "Votó en 20 escenarios",
-            "it" to "Ha votato su 20 scenari",
-            "pt" to "Votou em 20 cenários"
+            "en" to "Voted on 20 options",
+            "fr" to "A voté sur 20 options",
+            "es" to "Votó en 20 opciones",
+            "it" to "Ha votato su 20 opzioni",
+            "pt" to "Votou em 20 opções"
         ))
 
         put("badge.scenario_creator.name", mapOf(
-            "en" to "Scenario Creator",
-            "fr" to "Créateur de Scénarios",
-            "es" to "Creador de Escenarios",
-            "it" to "Creatore di Scenari",
-            "pt" to "Criador de Cenários"
+            "en" to "Option Builder",
+            "fr" to "Créateur d'options",
+            "es" to "Creador de opciones",
+            "it" to "Creatore di opzioni",
+            "pt" to "Criador de opções"
         ))
         put("badge.scenario_creator.description", mapOf(
-            "en" to "Created 5 scenarios",
-            "fr" to "A créé 5 scénarios",
-            "es" to "Creó 5 escenarios",
-            "it" to "Ha creato 5 scenari",
-            "pt" to "Criou 5 cenários"
+            "en" to "Created 5 options",
+            "fr" to "A créé 5 options",
+            "es" to "Creó 5 opciones",
+            "it" to "Ha creato 5 opzioni",
+            "pt" to "Criou 5 opções"
         ))
 
         put("badge.legend.name", mapOf(
