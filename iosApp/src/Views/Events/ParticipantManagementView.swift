@@ -19,10 +19,12 @@ struct ParticipantManagementView: View {
     @State private var errorMessage = ""
     @State private var showError = false
     @State private var showSuccess = false
+    @State private var showStartPollConfirmation = false
     @State private var contactCandidates: [DeviceContactParticipantCandidate] = []
     @State private var selectedContactEmails: Set<String> = []
     @State private var contactSearchQuery = ""
     @State private var showContactSheet = false
+    @State private var showContactPermissionRationale = false
     @State private var isLoadingContacts = false
     @State private var moderationTarget: ModerationActionTarget?
 
@@ -87,17 +89,41 @@ struct ParticipantManagementView: View {
         .onAppear {
             loadParticipants()
         }
-        .alert("Erreur", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
+        .alert(String(localized: "common.error"), isPresented: $showError) {
+            Button(String(localized: "common.ok"), role: .cancel) {}
         } message: {
             Text(errorMessage)
         }
-        .alert("Sondage lancé", isPresented: $showSuccess) {
-            Button("OK", role: .cancel) {
+        .alert(String(localized: "participants.poll_started.title"), isPresented: $showSuccess) {
+            Button(String(localized: "common.ok"), role: .cancel) {
                 onBack()
             }
         } message: {
-            Text("Le sondage est maintenant ouvert aux participants.")
+            Text(String(localized: "participants.poll_started.message"))
+        }
+        .confirmationDialog(
+            String(localized: "participants.start_poll.title"),
+            isPresented: $showStartPollConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "participants.start_poll.action")) {
+                Task { await startPoll() }
+            }
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "participants.start_poll.message"))
+        }
+        .confirmationDialog(
+            String(localized: "participants.contacts_permission.title"),
+            isPresented: $showContactPermissionRationale,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "participants.contacts_permission.continue")) {
+                Task { await loadContacts() }
+            }
+            Button(String(localized: "common.cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "participants.contacts_permission.message"))
         }
         .sheet(isPresented: $showContactSheet) {
             ContactParticipantSelectionSheet(
@@ -117,15 +143,15 @@ struct ParticipantManagementView: View {
 
     private var headerSummary: some View {
         EventHeroCard(
-            title: "Participants",
+            title: String(localized: "participants.title"),
             subtitle: event.title,
             metadata: statusTitle,
             gradient: WakeveTheme.EventGradient.invitation
         ) {
             HStack(spacing: WakeveTheme.Spacing.sm) {
-                ParticipantSummaryPill(title: "Acceptés", value: "\(acceptedRows.count)")
-                ParticipantSummaryPill(title: "En attente", value: "\(pendingRows.count)")
-                ParticipantSummaryPill(title: "Refusés", value: "\(declinedRows.count)")
+                ParticipantSummaryPill(title: String(localized: "participants.accepted"), value: "\(acceptedRows.count)")
+                ParticipantSummaryPill(title: String(localized: "participants.pending"), value: "\(pendingRows.count)")
+                ParticipantSummaryPill(title: String(localized: "participants.declined"), value: "\(declinedRows.count)")
             }
         }
     }
@@ -156,11 +182,11 @@ struct ParticipantManagementView: View {
             VStack(alignment: .leading, spacing: 10) {
                 statusBadge
 
-                Text("Participants")
+                Text(String(localized: "participants.title"))
                     .font(.system(size: 42, weight: .bold))
                     .foregroundColor(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.74)
 
                 Text(event.title)
                     .font(.system(size: 20, weight: .semibold))
@@ -190,17 +216,17 @@ struct ParticipantManagementView: View {
                     Button {
                         newParticipantEmail = ""
                     } label: {
-                        Label("Réinitialiser l’invitation", systemImage: "arrow.counterclockwise")
+                        Label(String(localized: "participants.reset_invitation"), systemImage: "arrow.counterclockwise")
                     }
 
-                    if canStartPoll {
-                        Button {
-                            Task { await startPoll() }
-                        } label: {
-                            Label("Lancer le sondage", systemImage: "chart.bar.xaxis")
-                        }
+                if canStartPoll {
+                    Button {
+                        showStartPollConfirmation = true
+                    } label: {
+                        Label(String(localized: "participants.start_poll.action"), systemImage: "chart.bar.xaxis")
                     }
-                } label: {
+                }
+            } label: {
                     WakeveGlassControl {
                         Image(systemName: "ellipsis")
                             .font(.system(size: 17, weight: .bold))
@@ -218,7 +244,7 @@ struct ParticipantManagementView: View {
     }
 
     private var topControls: some View {
-        LiquidGlassToolbar(title: "Participants", subtitle: participantCountText) {
+        LiquidGlassToolbar(title: String(localized: "participants.title"), subtitle: participantCountText) {
             WakeveCircleButton(
                 systemImage: "xmark",
                 accessibilityLabel: String(localized: "common.close"),
@@ -231,15 +257,15 @@ struct ParticipantManagementView: View {
                 Button {
                     newParticipantEmail = ""
                 } label: {
-                    Label("Réinitialiser l’invitation", systemImage: "arrow.counterclockwise")
+                    Label(String(localized: "participants.reset_invitation"), systemImage: "arrow.counterclockwise")
                 }
 
-                if canStartPoll {
-                    Button {
-                        Task { await startPoll() }
-                    } label: {
-                        Label("Lancer le sondage", systemImage: "chart.bar.xaxis")
-                    }
+                    if canStartPoll {
+                        Button {
+                            showStartPollConfirmation = true
+                        } label: {
+                            Label(String(localized: "participants.start_poll.action"), systemImage: "chart.bar.xaxis")
+                        }
                 }
             } label: {
                 Image(systemName: "ellipsis")
@@ -268,14 +294,14 @@ struct ParticipantManagementView: View {
     }
 
     private var addParticipantCard: some View {
-        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
-                Text("Inviter un participant")
+                Text(String(localized: "participants.invite_one"))
                     .font(WakeveTheme.Typography.section)
                     .foregroundColor(primaryText)
 
                 HStack(spacing: 12) {
-                    TextField("Adresse email", text: $newParticipantEmail)
+                    TextField(String(localized: "participants.email_placeholder"), text: $newParticipantEmail)
                         .font(.system(size: 17, weight: .medium))
                         .textFieldStyle(.plain)
                         .padding(.horizontal, 16)
@@ -314,13 +340,13 @@ struct ParticipantManagementView: View {
                 }
 
                 LiquidGlassButton(
-                    "Choisir depuis les contacts",
+                    String(localized: "participants.choose_from_contacts"),
                     systemImage: "person.crop.circle.badge.plus",
                     variant: .secondary,
                     isDisabled: isLoadingContacts,
                     isLoading: isLoadingContacts
                 ) {
-                    Task { await loadContacts() }
+                    beginContactSelection()
                 }
                 .accessibilityLabel(String(localized: "participants.choose_from_contacts_accessibility"))
             }
@@ -328,7 +354,7 @@ struct ParticipantManagementView: View {
     }
 
     private var statusSummary: some View {
-        LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             HStack(spacing: WakeveTheme.Spacing.md) {
                 Image(systemName: statusIcon)
                     .font(.title3.weight(.bold))
@@ -358,37 +384,43 @@ struct ParticipantManagementView: View {
         if participantRows.isEmpty {
             EmptyState(
                 systemImage: "person.crop.circle.badge.plus",
-                title: "Aucun participant",
-                subtitle: event.status == .draft ? "Ajoutez au moins un participant pour ouvrir le sondage." : "Personne n’a encore rejoint cet événement."
+                title: String(localized: "participants.empty.title"),
+                subtitle: event.status == .draft ? String(localized: "participants.empty.draft_subtitle") : String(localized: "participants.empty.joined_subtitle")
             )
         } else {
             VStack(spacing: WakeveTheme.Spacing.md) {
-                ParticipantGroupSection(
-                    title: "Acceptés",
-                    subtitle: "Ont confirmé ou ont accès aux détails",
-                    rows: acceptedRows,
-                    emptyText: "Aucun participant accepté pour le moment.",
-                    eventId: event.id,
-                    onModerationTarget: { moderationTarget = $0 }
-                )
+                if !acceptedRows.isEmpty {
+                    ParticipantGroupSection(
+                        title: String(localized: "participants.accepted"),
+                        subtitle: String(localized: "participants.accepted_subtitle"),
+                        rows: acceptedRows,
+                        emptyText: String(localized: "participants.empty.accepted"),
+                        eventId: event.id,
+                        onModerationTarget: { moderationTarget = $0 }
+                    )
+                }
 
-                ParticipantGroupSection(
-                    title: "En attente",
-                    subtitle: "Invitations envoyées ou réponses à venir",
-                    rows: pendingRows,
-                    emptyText: "Aucune invitation en attente.",
-                    eventId: event.id,
-                    onModerationTarget: { moderationTarget = $0 }
-                )
+                if !pendingRows.isEmpty {
+                    ParticipantGroupSection(
+                        title: String(localized: "participants.pending"),
+                        subtitle: String(localized: "participants.pending_subtitle"),
+                        rows: pendingRows,
+                        emptyText: String(localized: "participants.empty.pending"),
+                        eventId: event.id,
+                        onModerationTarget: { moderationTarget = $0 }
+                    )
+                }
 
-                ParticipantGroupSection(
-                    title: "Refusés",
-                    subtitle: "Participants indisponibles",
-                    rows: declinedRows,
-                    emptyText: "Aucun refus enregistré.",
-                    eventId: event.id,
-                    onModerationTarget: { moderationTarget = $0 }
-                )
+                if !declinedRows.isEmpty {
+                    ParticipantGroupSection(
+                        title: String(localized: "participants.declined"),
+                        subtitle: String(localized: "participants.declined_subtitle"),
+                        rows: declinedRows,
+                        emptyText: String(localized: "participants.empty.declined"),
+                        eventId: event.id,
+                        onModerationTarget: { moderationTarget = $0 }
+                    )
+                }
             }
         }
     }
@@ -404,13 +436,13 @@ struct ParticipantManagementView: View {
             .allowsHitTesting(false)
 
             LiquidGlassButton(
-                "Lancer le sondage",
+                String(localized: "participants.start_poll.action"),
                 systemImage: "chart.bar.xaxis",
                 variant: .primary,
                 isDisabled: !canStartPoll,
                 isLoading: isLoading
             ) {
-                Task { await startPoll() }
+                showStartPollConfirmation = true
             }
             .padding(.horizontal, WakeveTheme.Spacing.page)
             .padding(.top, WakeveTheme.Spacing.xs)
@@ -453,18 +485,18 @@ struct ParticipantManagementView: View {
     private var statusText: String {
         switch event.status {
         case .draft: return draftStatusText
-        case .polling: return "Sondage actif"
-        case .confirmed: return "Événement confirmé"
-        default: return "Statut indisponible"
+        case .polling: return String(localized: "participants.status.polling")
+        case .confirmed: return String(localized: "participants.status.confirmed")
+        default: return String(localized: "participants.status.unavailable")
         }
     }
 
     private var statusTitle: String {
         switch event.status {
-        case .draft: return "Préparation du sondage"
-        case .polling: return "Sondage actif"
-        case .confirmed: return "Date confirmée"
-        default: return "Participants"
+        case .draft: return String(localized: "participants.status_title.draft")
+        case .polling: return String(localized: "participants.status.polling")
+        case .confirmed: return String(localized: "participants.status_title.confirmed")
+        default: return String(localized: "participants.title")
         }
     }
 
@@ -483,21 +515,19 @@ struct ParticipantManagementView: View {
 
     private var acceptedRows: [ParticipantPresentationRow] {
         participantRows.filter { participant in
-            participant.statusLabel == "Confirmed" || participant.canAccessOrganizationDetails
+            participant.status == .accepted || participant.canAccessOrganizationDetails
         }
     }
 
     private var pendingRows: [ParticipantPresentationRow] {
         participantRows.filter { participant in
-            participant.statusLabel != "Confirmed" &&
-                participant.statusLabel != "Declined" &&
-                !participant.canAccessOrganizationDetails
+            participant.status == .pending && !participant.canAccessOrganizationDetails
         }
     }
 
     private var declinedRows: [ParticipantPresentationRow] {
         participantRows.filter { participant in
-            participant.statusLabel == "Declined"
+            participant.status == .declined
         }
     }
 
@@ -507,14 +537,14 @@ struct ParticipantManagementView: View {
 
     private var draftStatusText: String {
         if participantRows.isEmpty {
-            return "Brouillon - ajoutez les participants pour commencer"
+            return String(localized: "participants.draft_status.no_participants")
         }
 
         if event.proposedSlots.isEmpty {
-            return "Brouillon - ajoutez au moins un créneau"
+            return String(localized: "participants.draft_status.no_slots")
         }
 
-        return "Prêt à lancer le sondage"
+        return String(localized: "participants.draft_status.ready")
     }
 
     private var heroColors: [Color] {
@@ -578,12 +608,14 @@ struct ParticipantManagementView: View {
 
     private func makeFallbackRows(from participants: [String]) -> [ParticipantPresentationRow] {
         participants.map { participant in
-            ParticipantPresentationRow(
+            let isOrganizer = participant == event.organizerId
+            return ParticipantPresentationRow(
                 id: participant,
                 email: participant,
-                roleLabel: participant == event.organizerId ? "Organizer" : "Member",
-                statusLabel: participant == event.organizerId ? "Confirmed" : "Pending",
-                canAccessOrganizationDetails: participant == event.organizerId
+                roleLabel: isOrganizer ? String(localized: "participants.role.organizer") : String(localized: "participants.role.member"),
+                statusLabel: isOrganizer ? String(localized: "participants.status.confirmed_short") : String(localized: "participants.pending"),
+                status: isOrganizer ? .accepted : .pending,
+                canAccessOrganizationDetails: isOrganizer
             )
         }
     }
@@ -605,8 +637,9 @@ struct ParticipantManagementView: View {
                 ParticipantPresentationRow(
                     id: participantEmail,
                     email: participantEmail,
-                    roleLabel: "Member",
-                    statusLabel: "Pending",
+                    roleLabel: String(localized: "participants.role.member"),
+                    statusLabel: String(localized: "participants.pending"),
+                    status: .pending,
                     canAccessOrganizationDetails: false
                 )
             )
@@ -651,7 +684,7 @@ struct ParticipantManagementView: View {
 
             guard !normalizedContacts.isEmpty else {
                 isLoadingContacts = false
-                errorMessage = "Aucun contact avec adresse email disponible"
+                errorMessage = String(localized: "participants.error.no_email_contacts")
                 showError = true
                 return
             }
@@ -668,6 +701,15 @@ struct ParticipantManagementView: View {
         }
     }
 
+    private func beginContactSelection() {
+        switch CNContactStore.authorizationStatus(for: .contacts) {
+        case .authorized, .limited:
+            Task { await loadContacts() }
+        default:
+            showContactPermissionRationale = true
+        }
+    }
+
     private func addSelectedContacts() async {
         let existingEmails = Set(participantRows.compactMap { normalizedEmail($0.email) })
         let emailsToAdd = selectedContactEmails
@@ -677,7 +719,7 @@ struct ParticipantManagementView: View {
 
         guard !emailsToAdd.isEmpty else {
             showContactSheet = false
-            errorMessage = "Aucun nouveau participant à ajouter"
+            errorMessage = String(localized: "participants.error.no_new_participants")
             showError = true
             return
         }
@@ -702,8 +744,9 @@ struct ParticipantManagementView: View {
                     ParticipantPresentationRow(
                         id: $0,
                         email: $0,
-                        roleLabel: "Member",
-                        statusLabel: "Pending",
+                        roleLabel: String(localized: "participants.role.member"),
+                        statusLabel: String(localized: "participants.pending"),
+                        status: .pending,
                         canAccessOrganizationDetails: false
                     )
                 }
@@ -843,7 +886,7 @@ private enum ContactParticipantError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .permissionDenied:
-            return "L'accès aux contacts est optionnel et a été refusé."
+            return String(localized: "participants.error.contacts_permission_denied")
         }
     }
 }
@@ -884,7 +927,7 @@ private struct ContactParticipantSelectionSheet: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(contact.displayName)
                                 .foregroundColor(.primary)
-                            Text(alreadyAdded ? "\(contact.email) - déjà ajouté" : contact.email)
+                            Text(alreadyAdded ? String(format: String(localized: "participants.contact_already_added_format"), contact.email) : contact.email)
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
                         }
@@ -892,14 +935,14 @@ private struct ContactParticipantSelectionSheet: View {
                 }
                 .disabled(alreadyAdded)
             }
-            .searchable(text: $searchQuery, prompt: "Rechercher")
-            .navigationTitle("Contacts")
+            .searchable(text: $searchQuery, prompt: String(localized: "common.search"))
+            .navigationTitle(String(localized: "participants.contacts"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Annuler") { dismiss() }
+                    Button(String(localized: "common.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Ajouter (\(selectedEmails.count))") {
+                    Button(String(format: String(localized: "participants.add_selected_format"), selectedEmails.count)) {
                         onAddSelected()
                     }
                     .disabled(selectedEmails.isEmpty)
@@ -975,6 +1018,7 @@ private struct ParticipantPresentationRow: Identifiable, Equatable {
     let email: String
     let roleLabel: String
     let statusLabel: String
+    let status: ParticipantDisplayStatus
     let canAccessOrganizationDetails: Bool
 
     init(
@@ -982,12 +1026,14 @@ private struct ParticipantPresentationRow: Identifiable, Equatable {
         email: String,
         roleLabel: String,
         statusLabel: String,
+        status: ParticipantDisplayStatus? = nil,
         canAccessOrganizationDetails: Bool
     ) {
         self.id = id
         self.email = email
         self.roleLabel = roleLabel
         self.statusLabel = statusLabel
+        self.status = status ?? ParticipantDisplayStatus(statusLabel: statusLabel, canAccessOrganizationDetails: canAccessOrganizationDetails)
         self.canAccessOrganizationDetails = canAccessOrganizationDetails
     }
 
@@ -996,7 +1042,28 @@ private struct ParticipantPresentationRow: Identifiable, Equatable {
         self.email = sharedRow.userIdOrEmail
         self.roleLabel = sharedRow.roleLabel
         self.statusLabel = sharedRow.statusLabel
+        self.status = ParticipantDisplayStatus(statusLabel: sharedRow.statusLabel, canAccessOrganizationDetails: sharedRow.canAccessOrganizationDetails)
         self.canAccessOrganizationDetails = sharedRow.canAccessOrganizationDetails
+    }
+}
+
+private enum ParticipantDisplayStatus: Equatable {
+    case accepted
+    case pending
+    case declined
+
+    init(statusLabel: String, canAccessOrganizationDetails: Bool) {
+        let normalized = statusLabel
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: .current)
+            .lowercased()
+
+        if normalized.contains("declined") || normalized.contains("refuse") {
+            self = .declined
+        } else if canAccessOrganizationDetails || normalized.contains("confirmed") || normalized.contains("confirme") {
+            self = .accepted
+        } else {
+            self = .pending
+        }
     }
 }
 
@@ -1033,7 +1100,7 @@ private struct ParticipantGroupSection: View {
     let onModerationTarget: (ModerationActionTarget) -> Void
 
     var body: some View {
-        LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        WakeveGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
@@ -1097,12 +1164,12 @@ private struct ParticipantRowView: View {
     }
 
     private var statusColor: Color {
-        switch participant.statusLabel {
-        case "Confirmed":
+        switch participant.status {
+        case .accepted:
             return WakeveColors.success
-        case "Declined":
+        case .declined:
             return WakeveColors.error
-        default:
+        case .pending:
             return WakeveColors.warning
         }
     }

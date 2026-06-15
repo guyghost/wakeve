@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -159,8 +160,8 @@ struct ProfileHeaderSection: View {
                 Text(displayName)
                     .font(WakeveTheme.Typography.largeTitle)
                     .fontWeight(.bold)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.74)
 
                 if let displayEmail {
                     Text(displayEmail)
@@ -191,6 +192,7 @@ struct PreferencesSection: View {
     @AppStorage("notificationsEnabled") private var notificationsEnabled = true
     @AppStorage("calendarSyncEnabled") private var calendarSyncEnabled = false
     @AppStorage("emailNotificationsEnabled") private var emailNotificationsEnabled = false
+    @State private var notificationSystemPermission: UNAuthorizationStatus = .notDetermined
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -216,7 +218,7 @@ struct PreferencesSection: View {
                         ProfileNavigationRow(
                             icon: "bell.badge.fill",
                             title: String(localized: "settings_sheet.notifications"),
-                            value: notificationsEnabled ? String(localized: "settings_sheet.enabled") : String(localized: "settings_sheet.disabled")
+                            value: notificationPreferenceSummary
                         )
                     }
                     .buttonStyle(.plain)
@@ -240,6 +242,34 @@ struct PreferencesSection: View {
                     )
                 }
             }
+        }
+        .onAppear(perform: refreshNotificationPermission)
+    }
+
+    private var notificationPreferenceSummary: String {
+        String(
+            format: String(localized: "settings_sheet.notifications_summary_format"),
+            notificationsEnabled ? String(localized: "settings_sheet.wakeve_enabled") : String(localized: "settings_sheet.wakeve_disabled"),
+            notificationSystemPermissionLabel
+        )
+    }
+
+    private var notificationSystemPermissionLabel: String {
+        switch notificationSystemPermission {
+        case .authorized, .provisional, .ephemeral:
+            return String(localized: "settings_sheet.ios_allowed")
+        case .denied:
+            return String(localized: "settings_sheet.ios_denied")
+        case .notDetermined:
+            return String(localized: "settings_sheet.ios_not_requested")
+        @unknown default:
+            return String(localized: "settings_sheet.ios_unknown")
+        }
+    }
+
+    private func refreshNotificationPermission() {
+        APNsService.shared.checkAuthorizationStatus { status in
+            notificationSystemPermission = status
         }
     }
 }
