@@ -70,8 +70,8 @@ struct ScenarioOrganizationView: View {
             viewModel.navigationRoute = nil
             onOpenMeetings()
         }
-        .alert("Scenario", isPresented: toastBinding) {
-            Button("OK", role: .cancel) {
+        .alert(String(localized: "scenario.alert.title"), isPresented: toastBinding) {
+            Button(String(localized: "common.ok"), role: .cancel) {
                 viewModel.toastMessage = nil
             }
         } message: {
@@ -105,11 +105,11 @@ struct ScenarioOrganizationView: View {
             VStack(alignment: .leading, spacing: 10) {
                 phaseBadge
 
-                Text("Scenarios")
+                Text(String(localized: "scenario.title"))
                     .font(.system(size: 42, weight: .bold))
                     .foregroundColor(.white)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.82)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.74)
 
                 Text(event.title)
                     .font(.system(size: 20, weight: .semibold))
@@ -154,7 +154,7 @@ struct ScenarioOrganizationView: View {
         HStack(spacing: 6) {
             Image(systemName: isLocked ? "lock.fill" : "rectangle.3.group.fill")
                 .font(.system(size: 13, weight: .bold))
-            Text(isLocked ? "Acces verrouille" : phaseText)
+            Text(isLocked ? String(localized: "scenario.access_locked") : phaseText)
                 .font(.system(size: 14, weight: .bold))
         }
         .foregroundColor(.white)
@@ -169,7 +169,7 @@ struct ScenarioOrganizationView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("\(viewModel.scenarios.count) option\(viewModel.scenarios.count > 1 ? "s" : "") a comparer")
+                        Text(String(format: String(localized: "scenario.options_count_format"), viewModel.scenarios.count))
                             .font(.system(size: 22, weight: .bold))
                             .foregroundColor(primaryText)
 
@@ -222,7 +222,7 @@ struct ScenarioOrganizationView: View {
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                Text("Classement")
+                Text(String(localized: "scenario.ranking"))
                     .font(.system(size: 20, weight: .bold))
                     .foregroundColor(primaryText)
 
@@ -256,13 +256,13 @@ struct ScenarioOrganizationView: View {
         WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Label("Comparaison", systemImage: "rectangle.split.3x1.fill")
+                    Label(String(localized: "scenario.comparison"), systemImage: "rectangle.split.3x1.fill")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundColor(primaryText)
 
                     Spacer()
 
-                    Button("Fermer") {
+                    Button(String(localized: "common.close")) {
                         viewModel.clearComparison()
                         selectedComparisonIds.removeAll()
                     }
@@ -277,9 +277,9 @@ struct ScenarioOrganizationView: View {
                             .foregroundColor(primaryText)
 
                         HStack(spacing: 8) {
-                            comparisonMetric("Score", "\(item.votingResult.score)")
-                            comparisonMetric("Budget", formatBudget(item.scenario.estimatedBudgetPerPerson))
-                            comparisonMetric("Duree", "\(item.scenario.duration) j")
+                            comparisonMetric(String(localized: "scenario.score"), "\(item.votingResult.score)")
+                            comparisonMetric(String(localized: "scenario.budget"), formatBudget(item.scenario.estimatedBudgetPerPerson))
+                            comparisonMetric(String(localized: "scenario.duration"), String(format: String(localized: "scenario.duration_days_format"), item.scenario.duration))
                         }
                     }
                     .padding(.vertical, 4)
@@ -298,12 +298,12 @@ struct ScenarioOrganizationView: View {
                     .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
                     .clipShape(Circle())
 
-                Text("Details reserves aux participants confirmes")
+                Text(String(localized: "scenario.locked.title"))
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(primaryText)
                     .multilineTextAlignment(.center)
 
-                Text("Votez et confirmez votre presence sur la date retenue pour acceder aux destinations, logements et votes scenario.")
+                Text(String(localized: "scenario.locked.subtitle"))
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(secondaryText)
                     .multilineTextAlignment(.center)
@@ -320,11 +320,11 @@ struct ScenarioOrganizationView: View {
                     .font(.system(size: 40, weight: .semibold))
                     .foregroundColor(secondaryText)
 
-                Text("Aucun scenario pour le moment")
+                Text(String(localized: "scenario.empty.title"))
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(primaryText)
 
-                Text(isOrganizer ? "Ajoutez une option destination/logement pour lancer la comparaison." : "L'organisateur n'a pas encore publie d'option.")
+                Text(isOrganizer ? String(localized: "scenario.empty.organizer_subtitle") : String(localized: "scenario.empty.participant_subtitle"))
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(secondaryText)
                     .multilineTextAlignment(.center)
@@ -463,34 +463,34 @@ struct ScenarioOrganizationView: View {
 
     private var summaryText: String {
         if isLocked {
-            return "Les details logistiques se debloquent apres confirmation de presence."
+            return String(localized: "scenario.summary.locked")
         }
-        return "Comparez les destinations, budgets, participants et options de logement avant la selection finale."
+        return String(localized: "scenario.summary.open")
     }
 
     private var bestLocationText: String {
-        viewModel.scenariosRanked.first?.scenario.location ?? "Destination a definir"
+        viewModel.scenariosRanked.first?.scenario.location ?? String(localized: "scenario.destination_tbd")
     }
 
     private var participantText: String {
         if let expected = event.expectedParticipants?.intValue {
-            return "\(expected) invites"
+            return String(format: String(localized: "scenario.invited_count_format"), expected)
         }
-        return "\(event.participants.count) invites"
+        return String(format: String(localized: "scenario.invited_count_format"), event.participants.count)
     }
 
     private var phaseText: String {
         switch viewModel.eventStatus ?? event.status {
         case .confirmed:
-            return "Options ouvertes"
+            return String(localized: "scenario.phase.options_open")
         case .comparing:
-            return "Comparaison"
+            return String(localized: "scenario.phase.comparison")
         case .organizing:
-            return "Organisation"
+            return String(localized: "scenario.phase.organization")
         case .finalized:
-            return "Finalise"
+            return String(localized: "scenario.phase.finalized")
         default:
-            return "Preparation"
+            return String(localized: "scenario.phase.preparation")
         }
     }
 
@@ -562,7 +562,7 @@ private struct ScenarioOrganizationCard: View {
                 HStack(spacing: 8) {
                     statusBadge
 
-                    Text("Score \(votingResult.score)")
+                    Text(String(format: String(localized: "scenario.score_format"), votingResult.score))
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(secondaryText)
                 }
@@ -601,31 +601,31 @@ private struct ScenarioOrganizationCard: View {
 
     private var logisticsGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-            detailTile(icon: "mappin.and.ellipse", label: "Destination", value: scenario.location)
-            detailTile(icon: "calendar", label: "Dates", value: scenario.dateOrPeriod)
-            detailTile(icon: "person.2.fill", label: "Participants", value: "\(scenario.estimatedParticipants)")
-            detailTile(icon: "eurosign.circle.fill", label: "Budget", value: formatBudget(scenario.estimatedBudgetPerPerson))
-            detailTile(icon: "moon.stars.fill", label: "Duree", value: "\(scenario.duration) nuit\(scenario.duration > 1 ? "s" : "")")
-            detailTile(icon: "house.fill", label: "Logement", value: lodgingLabel)
+            detailTile(icon: "mappin.and.ellipse", label: String(localized: "scenario.destination"), value: scenario.location)
+            detailTile(icon: "calendar", label: String(localized: "scenario.dates"), value: scenario.dateOrPeriod)
+            detailTile(icon: "person.2.fill", label: String(localized: "scenario.participants"), value: "\(scenario.estimatedParticipants)")
+            detailTile(icon: "eurosign.circle.fill", label: String(localized: "scenario.budget"), value: formatBudget(scenario.estimatedBudgetPerPerson))
+            detailTile(icon: "moon.stars.fill", label: String(localized: "scenario.duration"), value: String(format: String(localized: "scenario.duration_nights_format"), scenario.duration))
+            detailTile(icon: "house.fill", label: String(localized: "scenario.lodging"), value: lodgingLabel)
         }
     }
 
     private var votingSummary: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Votes")
+                Text(String(localized: "scenario.votes"))
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(primaryText)
                 Spacer()
-                Text("\(votingResult.totalVotes) total")
+                Text(String(format: String(localized: "scenario.votes_total_format"), votingResult.totalVotes))
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(secondaryText)
             }
 
             HStack(spacing: 8) {
-                voteMetric("Prefer", votingResult.preferCount, .green)
-                voteMetric("Neutre", votingResult.neutralCount, .blue)
-                voteMetric("Contre", votingResult.againstCount, .red)
+                voteMetric(String(localized: "scenario.vote.prefer"), votingResult.preferCount, .green)
+                voteMetric(String(localized: "scenario.vote.neutral"), votingResult.neutralCount, .blue)
+                voteMetric(String(localized: "scenario.vote.against"), votingResult.againstCount, .red)
             }
         }
     }
@@ -633,14 +633,14 @@ private struct ScenarioOrganizationCard: View {
     private var actionRows: some View {
         VStack(spacing: 10) {
             HStack(spacing: 8) {
-                voteButton(title: "Prefer", icon: "hand.thumbsup.fill", vote: .prefer)
-                voteButton(title: "Neutre", icon: "minus.circle.fill", vote: .neutral)
-                voteButton(title: "Contre", icon: "hand.thumbsdown.fill", vote: .against)
+                voteButton(title: String(localized: "scenario.vote.prefer"), icon: "hand.thumbsup.fill", vote: .prefer)
+                voteButton(title: String(localized: "scenario.vote.neutral"), icon: "minus.circle.fill", vote: .neutral)
+                voteButton(title: String(localized: "scenario.vote.against"), icon: "hand.thumbsdown.fill", vote: .against)
             }
 
             if isOrganizer && canSelectFinal && scenario.status != .selected {
                 WakeveActionButton(
-                    "Selectionner ce scenario",
+                    String(localized: "scenario.select_final"),
                     systemImage: "checkmark.seal.fill",
                     variant: .eventNext,
                     action: onSelectFinal
@@ -737,26 +737,26 @@ private struct ScenarioOrganizationCard: View {
     private var lodgingLabel: String {
         switch scenario.status {
         case .draft:
-            return "Brouillon"
+            return String(localized: "scenario.status.draft")
         case .selected:
-            return "Retenu"
+            return String(localized: "scenario.status.retained")
         case .rejected:
-            return "Ecarte"
+            return String(localized: "scenario.status.rejected")
         default:
-            return "Option a comparer"
+            return String(localized: "scenario.status.to_compare")
         }
     }
 
     private var statusText: String {
         switch scenario.status {
         case .draft:
-            return "Brouillon"
+            return String(localized: "scenario.status.draft")
         case .selected:
-            return "Selectionne"
+            return String(localized: "scenario.status.selected")
         case .rejected:
-            return "Rejete"
+            return String(localized: "scenario.status.rejected")
         default:
-            return "Propose"
+            return String(localized: "scenario.status.proposed")
         }
     }
 
@@ -784,6 +784,6 @@ private struct ScenarioOrganizationCard: View {
     private var matrixSourceLabel: String {
         let slot = scenario.sourceTimeSlotId ?? "-"
         let destination = scenario.sourcePotentialLocationId ?? "-"
-        return "Matrice: creneau \(slot) - destination \(destination)"
+        return String(format: String(localized: "scenario.matrix_source_format"), slot, destination)
     }
 }

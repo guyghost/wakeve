@@ -73,6 +73,7 @@ struct LiquidGlassButton: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let title: String
     let systemImage: String?
@@ -112,13 +113,14 @@ struct LiquidGlassButton: View {
 
                     Text(title)
                         .font(WakeveTheme.Typography.bodySemibold)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.82)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                        .minimumScaleFactor(dynamicTypeSize.isAccessibilitySize ? 1 : 0.82)
+                        .multilineTextAlignment(.center)
                 }
             }
             .foregroundColor(foreground)
             .frame(maxWidth: .infinity)
-            .frame(height: 54)
+            .frame(minHeight: dynamicTypeSize.isAccessibilitySize ? 62 : 54)
             .padding(.horizontal, WakeveTheme.Spacing.md)
             .background(background.opacity(isDisabled ? WakeveTheme.Opacity.disabled : 1))
             .clipShape(Capsule())
@@ -574,6 +576,7 @@ struct BottomSheet<Content: View>: View {
 
 struct EmptyState: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let systemImage: String
     let title: String
@@ -596,35 +599,39 @@ struct EmptyState: View {
     }
 
     var body: some View {
-        VStack(spacing: WakeveTheme.Spacing.lg) {
-            Image(systemName: systemImage)
-                .font(.system(size: 44, weight: .semibold))
-                .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
-                .frame(width: 82, height: 82)
-                .background(WakeveTheme.ColorToken.glassTint(for: colorScheme))
-                .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.xl, style: .continuous))
-                .liquidGlass(cornerRadius: WakeveTheme.Radius.xl)
-                .accessibilityHidden(true)
+        VStack(spacing: dynamicTypeSize.isAccessibilitySize ? WakeveTheme.Spacing.md : WakeveTheme.Spacing.lg) {
+            if !dynamicTypeSize.isAccessibilitySize {
+                Image(systemName: systemImage)
+                    .font(.system(size: 44, weight: .semibold))
+                    .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                    .frame(width: 82, height: 82)
+                    .background(WakeveTheme.ColorToken.glassTint(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.xl, style: .continuous))
+                    .liquidGlass(cornerRadius: WakeveTheme.Radius.xl)
+                    .accessibilityHidden(true)
+            }
 
             VStack(spacing: WakeveTheme.Spacing.xs) {
                 Text(title)
                     .font(WakeveTheme.Typography.section)
                     .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
                     .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text(subtitle)
                     .font(WakeveTheme.Typography.body)
                     .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                     .multilineTextAlignment(.center)
                     .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if let actionTitle, let action {
                 LiquidGlassButton(actionTitle, systemImage: "plus", variant: .primary, action: action)
-                    .frame(maxWidth: 260)
+                    .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : 260)
             }
         }
-        .padding(WakeveTheme.Spacing.xl)
+        .padding(dynamicTypeSize.isAccessibilitySize ? WakeveTheme.Spacing.md : WakeveTheme.Spacing.xl)
         .frame(maxWidth: .infinity)
     }
 }

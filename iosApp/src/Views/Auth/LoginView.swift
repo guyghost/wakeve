@@ -24,6 +24,7 @@ struct LoginView: View {
     @EnvironmentObject var authStateManager: AuthStateManager
     @Environment(\.openURL) private var openURL
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -39,23 +40,18 @@ struct LoginView: View {
             // Pattern overlay
             patternOverlay
             
-            // Main content
-            VStack(spacing: 0) {
-                Spacer()
-                
-                // App Branding
-                appBrandingView
-                    .padding(.bottom, 32)
-                
-                // Welcome Text
-                welcomeTextView
-                    .padding(.bottom, 60)
-                
-                Spacer()
-                
-                // Sign-in section
-                signInSection
-                    .padding(.bottom, 60)
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: dynamicTypeSize.isAccessibilitySize ? 28 : 42) {
+                    appBrandingView
+
+                    welcomeTextView
+
+                    signInSection
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, dynamicTypeSize.isAccessibilitySize ? 48 : 72)
+                .padding(.bottom, 48)
+                .frame(maxWidth: .infinity)
             }
         }
         .alert(String(localized: "auth.sign_in_failed"), isPresented: $showError) {
@@ -150,13 +146,17 @@ struct LoginView: View {
             Text(String(localized: "auth.sign_in"))
                 .font(.system(size: 42, weight: .bold))
                 .foregroundColor(primaryTextColor)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
                 .shadow(color: .black.opacity(colorScheme == .dark ? 0.18 : 0.04), radius: 4, x: 0, y: 2)
             
             Text(String(localized: "auth.sign_in_subtitle"))
                 .font(.system(size: 17))
                 .foregroundColor(secondaryTextColor)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 8)
         }
     }
     
@@ -210,13 +210,15 @@ struct LoginView: View {
             // Privacy & Terms
             privacyTermsView
         }
-        .padding(.horizontal, 40)
+        .padding(.horizontal, 0)
     }
 
     private var guestAccessButton: some View {
         Button(action: { continueAsGuest() }) {
             HStack(spacing: 8) {
                 Text(String(localized: "auth.continue_as_guest"))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
                 Image(systemName: "chevron.right")
             }
             .font(.headline)
@@ -239,6 +241,8 @@ struct LoginView: View {
         Button(action: { skipAuthForDevelopment() }) {
             HStack(spacing: 8) {
                 Text(String(localized: "auth.skip_dev"))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
                 Image(systemName: "chevron.right")
             }
             .font(.headline)
@@ -263,13 +267,14 @@ struct LoginView: View {
                 .font(.system(size: 13))
                 .foregroundColor(secondaryTextColor)
             
-            HStack(spacing: 6) {
+            VStack(spacing: 6) {
                 Button {
                     openLegalURL("https://wakeve.app/privacy")
                 } label: {
                     Text(String(localized: "auth.privacy_policy"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(primaryTextColor)
+                        .multilineTextAlignment(.center)
                 }
                 .accessibilityLabel(Text(String(localized: "auth.read_privacy_policy_accessibility_label")))
                 
@@ -283,6 +288,7 @@ struct LoginView: View {
                     Text(String(localized: "auth.terms_of_service"))
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(primaryTextColor)
+                        .multilineTextAlignment(.center)
                 }
                 .accessibilityLabel(Text(String(localized: "auth.read_terms_accessibility_label")))
             }

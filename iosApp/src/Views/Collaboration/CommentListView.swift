@@ -39,6 +39,7 @@ struct CommentListView: View {
     let eventId: String
     let section: CommentSectionType
     let comments: [CommentThread]
+    var mentionableUsers: [String] = []
     let currentUserId: String
     let isOrganizer: Bool
 
@@ -121,6 +122,7 @@ struct CommentListView: View {
                         text: $commentText,
                         mentionedUsers: $mentionedUsers,
                         showMentionAutocomplete: $showMentionAutocomplete,
+                        hasMentionableUsers: !mentionableUsers.isEmpty,
                         onSend: {
                             if !commentText.isEmpty {
                                 onAddComment(commentText, mentionedUsers)
@@ -133,8 +135,9 @@ struct CommentListView: View {
                 }
 
                 // Mention Autocomplete Overlay
-                if showMentionAutocomplete {
+                if showMentionAutocomplete && !mentionableUsers.isEmpty {
                     MentionAutocompleteView(
+                        users: mentionableUsers,
                         onUserSelected: { username in
                             insertMention(username)
                             showMentionAutocomplete = false
@@ -186,11 +189,11 @@ struct CommentListView: View {
                 .font(.system(size: 60))
                 .foregroundColor(WakeveColors.onSurfaceVariant)
 
-            Text("No comments yet")
+            Text(String(localized: "comments.empty.title"))
                 .font(.title2)
                 .foregroundColor(WakeveColors.onSurfaceVariant)
 
-            Text("Be the first to share your thoughts!")
+            Text(String(localized: "comments.empty.subtitle"))
                 .font(.body)
                 .foregroundColor(WakeveColors.onSurfaceVariant)
         }
@@ -205,15 +208,15 @@ struct CommentListView: View {
 
     private func getSectionTitle(_ section: CommentSectionType) -> String {
         switch section {
-        case .general: return "Comments"
-        case .scenario: return "Scenario Comments"
-        case .poll: return "Poll Comments"
-        case .transport: return "Transport Comments"
-        case .accommodation: return "Accommodation Comments"
-        case .meal: return "Meal Comments"
-        case .equipment: return "Equipment Comments"
-        case .activity: return "Activity Comments"
-        case .budget: return "Budget Comments"
+        case .general: return String(localized: "comments.section.general")
+        case .scenario: return String(localized: "comments.section.scenario")
+        case .poll: return String(localized: "comments.section.poll")
+        case .transport: return String(localized: "comments.section.transport")
+        case .accommodation: return String(localized: "comments.section.accommodation")
+        case .meal: return String(localized: "comments.section.meal")
+        case .equipment: return String(localized: "comments.section.equipment")
+        case .activity: return String(localized: "comments.section.activity")
+        case .budget: return String(localized: "comments.section.budget")
         }
     }
 }
@@ -279,7 +282,10 @@ struct CommentThreadView: View {
             // Load more replies indicator
             if thread.hasMoreReplies {
                 Button(action: {}) {
-                    Text("Load more replies (\(thread.comment.replyCount))")
+                    Text(String.localizedStringWithFormat(
+                        String(localized: "comments.load_more_replies"),
+                        thread.comment.replyCount
+                    ))
                         .font(.body)
                         .foregroundColor(WakeveColors.primary)
                 }
@@ -295,6 +301,7 @@ struct CommentInputView: View {
     @Binding var text: String
     @Binding var mentionedUsers: [String]
     @Binding var showMentionAutocomplete: Bool
+    let hasMentionableUsers: Bool
     var onSend: () -> Void
 
     var body: some View {
@@ -303,7 +310,7 @@ struct CommentInputView: View {
             
             HStack(spacing: 12) {
                 // Text field
-                TextField("Add a comment...", text: $text, axis: .vertical)
+                TextField(String(localized: "comments.add_placeholder"), text: $text, axis: .vertical)
                     .lineLimit(1...5)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
@@ -315,6 +322,7 @@ struct CommentInputView: View {
                     Image(systemName: "at")
                         .foregroundColor(showMentionAutocomplete ? WakeveColors.primary : WakeveColors.onSurfaceVariant)
                 }
+                .disabled(!hasMentionableUsers)
                 .accessibilityLabel(String(localized: "comments.mention"))
                 
                 // Send button
@@ -335,20 +343,18 @@ struct CommentInputView: View {
 
 /// Mention Autocomplete View
 struct MentionAutocompleteView: View {
+    let users: [String]
     var onUserSelected: (String) -> Void
-    
-    // Sample users - in production, this would come from the event participants
-    private let sampleUsers = ["alice", "bob", "charlie", "david"]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Mention someone")
+            Text(String(localized: "comments.mention"))
                 .font(.caption)
                 .foregroundColor(WakeveColors.onSurfaceVariant)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
             
-            ForEach(sampleUsers, id: \.self) { user in
+            ForEach(users, id: \.self) { user in
                 Button(action: { onUserSelected(user) }) {
                     HStack {
                         Image(systemName: "person.circle")
