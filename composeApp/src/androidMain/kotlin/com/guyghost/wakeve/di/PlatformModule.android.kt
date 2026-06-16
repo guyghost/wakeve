@@ -1,6 +1,10 @@
 package com.guyghost.wakeve.di
 
 import com.guyghost.wakeve.AndroidDatabaseFactory
+import com.guyghost.wakeve.ai.EventPlanningAiAssistant
+import com.guyghost.wakeve.ai.FallbackEventPlanningAiAssistant
+import com.guyghost.wakeve.ai.MlKitEventPlanningAiAssistant
+import com.guyghost.wakeve.ai.RuleBasedEventPlanningAiAssistant
 import com.guyghost.wakeve.database.DatabaseFactory
 import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.repository.DatabaseEventRepository
@@ -165,6 +169,15 @@ fun platformModule(): Module = module {
         AuthViewModel(
             authStateMachine = get(),
             tokenStorage = get()
+        )
+    }
+
+    single<EventPlanningAiAssistant> {
+        FallbackEventPlanningAiAssistant(
+            primary = MlKitEventPlanningAiAssistant(
+                fallback = RuleBasedEventPlanningAiAssistant()
+            ),
+            fallback = RuleBasedEventPlanningAiAssistant()
         )
     }
 }

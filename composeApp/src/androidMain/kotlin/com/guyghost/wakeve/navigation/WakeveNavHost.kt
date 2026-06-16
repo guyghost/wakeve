@@ -55,6 +55,7 @@ import com.guyghost.wakeve.ui.accommodation.AccommodationScreen
 import com.guyghost.wakeve.ui.meal.MealPlanningScreen
 import com.guyghost.wakeve.ui.equipment.EquipmentChecklistScreen
 import com.guyghost.wakeve.ui.activity.ActivityPlanningScreen
+import com.guyghost.wakeve.ui.ai.EventPlanningAssistantScreen
 import com.guyghost.wakeve.ui.activity.ParticipantInfo
 import com.guyghost.wakeve.ui.comment.CommentsScreen
 import com.guyghost.wakeve.ui.invitation.InvitationShareScreen
@@ -85,6 +86,7 @@ import com.guyghost.wakeve.payment.TricountHandoffRepository
 import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.transport.TransportRepository
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
+import com.guyghost.wakeve.viewmodel.EventPlanningAssistantViewModel
 import com.guyghost.wakeve.repository.EventRepositoryInterface as EventRepository
 import com.guyghost.wakeve.viewmodel.MeetingManagementViewModel
 import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
@@ -189,6 +191,14 @@ fun WakeveNavHost(
                 onCreateAccount = {
                     navController.navigate(Screen.Auth.route)
                 }
+            )
+        }
+
+        composable(Screen.EventPlanningAssistant.route) {
+            val viewModel: EventPlanningAssistantViewModel = koinInject()
+            EventPlanningAssistantScreen(
+                viewModel = viewModel,
+                onClose = { navigateBackOrHome() }
             )
         }
         

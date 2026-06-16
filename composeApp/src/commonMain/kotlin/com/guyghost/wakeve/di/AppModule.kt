@@ -2,6 +2,8 @@ package com.guyghost.wakeve.di
 
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.repository.ScenarioRepository
+import com.guyghost.wakeve.ai.EventPlanningAiAssistant
+import com.guyghost.wakeve.ai.RuleBasedEventPlanningAiAssistant
 import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
 import com.guyghost.wakeve.presentation.statemachine.ScenarioManagementStateMachine
 import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
@@ -13,6 +15,7 @@ import com.guyghost.wakeve.presentation.usecase.LoadScenariosUseCase
 import com.guyghost.wakeve.presentation.usecase.UpdateScenarioUseCase
 import com.guyghost.wakeve.presentation.usecase.VoteScenarioUseCase
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
+import com.guyghost.wakeve.viewmodel.EventPlanningAssistantViewModel
 import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -205,5 +208,11 @@ val appModule: Module = module {
     factory {
         val stateMachine = get<ScenarioManagementStateMachine>()
         ScenarioManagementViewModel(stateMachine = stateMachine)
+    }
+
+    factory {
+        EventPlanningAssistantViewModel(
+            assistant = getOrNull<EventPlanningAiAssistant>() ?: RuleBasedEventPlanningAiAssistant()
+        )
     }
 }
