@@ -64,6 +64,39 @@ assert_ios_profile_legal_notice_links() {
     echo "PASS: iOS Profile exposes support, privacy, terms, and third-party notices links"
 }
 
+assert_wakeve_ai_device_profile_helper() {
+    local output_dir
+    local report
+    output_dir="$(mktemp -d)"
+
+    bash -n "$PROJECT_DIR/scripts/prepare-wakeve-ai-device-profile.sh"
+    report="$(OUTPUT_DIR="$output_dir" "$PROJECT_DIR/scripts/prepare-wakeve-ai-device-profile.sh")"
+
+    if [ ! -f "$report" ]; then
+        echo "FAIL: WakeveAI device profile helper did not create a report at $report" >&2
+        exit 1
+    fi
+
+    local required_patterns=(
+        'Status: `'
+        'Foundation Models availability | TODO: must be `.available`'
+        'Generation latency | TODO'
+        'Cancellation latency | TODO'
+        'Peak memory during generation | TODO'
+        'Production log privacy checked | TODO'
+        'Do not mark `6.6` complete'
+    )
+
+    for pattern in "${required_patterns[@]}"; do
+        if ! grep -Fq "$pattern" "$report"; then
+            echo "FAIL: WakeveAI device profile report is missing required field: $pattern" >&2
+            exit 1
+        fi
+    done
+
+    echo "PASS: WakeveAI device profile helper generates the required 6.6 evidence template"
+}
+
 cd "$PROJECT_DIR"
 
 run openspec validate add-in-app-account-deletion --strict
@@ -74,6 +107,7 @@ run ./scripts/test-app-store-ugc-gates.sh
 
 assert_no_sensitive_server_logs
 assert_ios_profile_legal_notice_links
+assert_wakeve_ai_device_profile_helper
 run ./scripts/audit-ios-localization-parity.sh --fail-on-findings
 
 run ./gradlew :server:test \

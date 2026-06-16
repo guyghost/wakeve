@@ -54,6 +54,18 @@ If a build fails or exceeds its timeout, the report records the platform section
 as `SKIPPED` and points to the raw build log for that run. The default timeout is
 600 seconds per platform build.
 
+For the WakeveAI-specific physical-device gate, prepare a dedicated capture note:
+
+```bash
+./scripts/prepare-wakeve-ai-device-profile.sh
+```
+
+The helper writes `docs/performance/wakeve-ai-device-profile-<timestamp>.md`.
+It records currently visible Apple devices and creates the exact evidence table
+needed for OpenSpec task `add-on-device-wakeve-ai` / `6.6`. A generated report
+with status `PENDING_PHYSICAL_IOS_DEVICE` or missing `TODO` values is preparation
+only; it does not close the task.
+
 Each generated report also includes a runtime profiling matrix for the flows
 that still require device traces: cold start, home/list, create event, scenario
 matrix, and WakeveAI generation/cancellation/memory. Rows remain
