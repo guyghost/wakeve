@@ -75,6 +75,7 @@ kotlin {
                 // ML Kit
                 implementation(libs.mlkit.image.labeling)
                 implementation(libs.mlkit.face.detection.legacy)
+                implementation(libs.mlkit.genai.prompt)
                 
                 // Google Play Services
                 implementation(libs.google.services.auth)
