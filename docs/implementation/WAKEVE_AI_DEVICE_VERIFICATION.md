@@ -60,6 +60,72 @@ Artifacts:
 
 Automation limitation: XcodeBuildMCP runtime UI snapshots failed in this environment because the installed Xcode beta does not include the expected `SimulatorKit.framework` private framework path. The fallback path is therefore verified by deterministic tests plus a successful simulator launch with the Debug-only availability override.
 
+### 2026-06-15 Simulator Regression Refresh
+
+Command:
+
+```bash
+XcodeBuildMCP test_sim \
+  -only-testing:WakeveTests/WakeveAIContractTests \
+  -only-testing:WakeveTests/WakeveAIGeneratorTests \
+  -only-testing:WakeveTests/WakeveAIValidationTests
+```
+
+Result: `TEST SUCCEEDED` on `iPhone 17` simulator. The focused WakeveAI suite passed `22/22` tests.
+
+Artifacts:
+
+- Build log: `/Users/guy/Library/Developer/XcodeBuildMCP/workspaces/wakeve-cf467b3193b0/logs/test_sim_2026-06-15T17-46-54-503Z_pid86608_81c924d6.log`
+- Result bundle: `/Users/guy/Library/Developer/XcodeBuildMCP/workspaces/wakeve-cf467b3193b0/result-bundles/test_sim_2026-06-15T17-46-54-504Z_pid86608_52125868.xcresult`
+
+This refresh confirms the simulator-testable WakeveAI contracts, generator fallbacks, timeout handling, validation bounds, and debug availability override remain green. It does not close OpenSpec task `6.6`, because that task requires profiling on a real supported device with Foundation Models available.
+
+Device-profile preparation report: `docs/performance/wakeve-ai-device-profile-2026-06-15T18-04-07Z.md`. Current status is `PENDING_PHYSICAL_IOS_DEVICE`; Xcode only reported a paired Apple Watch and simulated iPhones.
+
+### 2026-06-15 Physical Device Connection Attempt
+
+An iPhone was connected after the initial simulator-only verification.
+
+Device detection:
+
+- CoreDevice sees `iPhone de GuyGhost`, model `iPhone 15 Pro (iPhone16,1)`, as a physical paired device.
+- Xcode destinations include the device as `platform:iOS,id=00008130-001E39811A12001C`.
+- Instruments still lists the same device under `Devices Offline`.
+
+Device-profile preparation reports:
+
+- `docs/performance/wakeve-ai-device-profile-2026-06-15T19-32-13Z.md`: physical device detected, but not trace-ready.
+- `docs/performance/wakeve-ai-device-profile-2026-06-15T19-37-38Z.md`: physical device detected, not trace-ready in Instruments, and signing readiness is incomplete.
+
+Current status is `PHYSICAL_IOS_DEVICE_NOT_TRACE_READY`.
+
+Build command attempted:
+
+```bash
+xcodebuild \
+  -project iosApp/iosApp.xcodeproj \
+  -scheme WakeveApp \
+  -configuration Debug \
+  -destination 'platform=iOS,id=00008130-001E39811A12001C' \
+  build
+```
+
+First result: build did not start because Xcode timed out waiting for the destination to become available. The destination error was `Developer Mode disabled`.
+
+After Developer Mode was enabled, Xcode listed the iPhone as a compatible destination, but the Debug device build failed at signing:
+
+```text
+Signing for "WakeveApp" requires a development team.
+```
+
+Signing diagnostics from the profile helper:
+
+- `TEAM_ID` environment value is missing.
+- `security find-identity -v -p codesigning` reports `0 valid identities found`.
+- No local provisioning profile matches bundle ID `com.guyghost.wakeve`.
+
+Before the WakeveAI real-device trace can be captured, configure a concrete Apple Developer `TEAM_ID`, install a valid Apple Development certificate in the login keychain, and ensure a development provisioning profile exists for `com.guyghost.wakeve`. The iPhone must also move from `Devices Offline` to `Devices` in `xcrun xctrace list devices`.
+
 ## Production Privacy Constraints
 
 - Production builds do not read the Debug availability override.
