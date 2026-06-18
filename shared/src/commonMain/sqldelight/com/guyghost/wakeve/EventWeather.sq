@@ -1,0 +1,93 @@
+CREATE TABLE eventWeatherSnapshot (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    locationId TEXT NOT NULL,
+    locationLabel TEXT NOT NULL,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    startDate TEXT NOT NULL,
+    endDate TEXT NOT NULL,
+    providerName TEXT NOT NULL,
+    fetchedAt TEXT NOT NULL,
+    expiresAt TEXT NOT NULL,
+    dailyForecastsJson TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+CREATE TABLE resolvedEventLocation (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    sourceLocationId TEXT,
+    label TEXT NOT NULL,
+    address TEXT,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    providerName TEXT NOT NULL,
+    providerPlaceId TEXT,
+    resolvedAt TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+upsertWeatherSnapshot:
+INSERT OR REPLACE INTO eventWeatherSnapshot(
+    id,
+    eventId,
+    locationId,
+    locationLabel,
+    latitude,
+    longitude,
+    startDate,
+    endDate,
+    providerName,
+    fetchedAt,
+    expiresAt,
+    dailyForecastsJson
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectWeatherSnapshot:
+SELECT * FROM eventWeatherSnapshot
+WHERE eventId = ?
+  AND locationId = ?
+  AND startDate = ?
+  AND endDate = ?
+  AND providerName = ?;
+
+selectLatestWeatherSnapshotForEvent:
+SELECT * FROM eventWeatherSnapshot
+WHERE eventId = ?
+ORDER BY fetchedAt DESC
+LIMIT 1;
+
+deleteWeatherSnapshotsByEvent:
+DELETE FROM eventWeatherSnapshot WHERE eventId = ?;
+
+upsertResolvedLocation:
+INSERT OR REPLACE INTO resolvedEventLocation(
+    id,
+    eventId,
+    sourceLocationId,
+    label,
+    address,
+    latitude,
+    longitude,
+    providerName,
+    providerPlaceId,
+    resolvedAt
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+selectResolvedLocationByEvent:
+SELECT * FROM resolvedEventLocation
+WHERE eventId = ?
+ORDER BY resolvedAt DESC
+LIMIT 1;
+
+deleteResolvedLocationsByEvent:
+DELETE FROM resolvedEventLocation WHERE eventId = ?;
+
+CREATE INDEX IF NOT EXISTS idx_event_weather_lookup
+ON eventWeatherSnapshot(eventId, locationId, startDate, endDate, providerName);
+
+CREATE INDEX IF NOT EXISTS idx_resolved_event_location_event
+ON resolvedEventLocation(eventId, resolvedAt DESC);

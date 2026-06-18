@@ -262,6 +262,13 @@ buildConfig {
         "APPLE_REDIRECT_URI",
         "\"${localProperties["apple.redirect.uri"] as? String ?: "wakeve://apple-auth-callback"}\""
     )
+
+    // Google Maps Platform Weather API key (optional Android weather provider).
+    buildConfigField(
+        "String",
+        "GOOGLE_MAPS_API_KEY",
+        "\"${localProperties["google.maps.api.key"] as? String ?: ""}\""
+    )
 }
 
 // Allow local builds without Firebase config checked into the repo

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -61,6 +62,8 @@ import com.guyghost.wakeve.ui.event.EventDetailUiState
 import com.guyghost.wakeve.ui.event.EventRsvpResponseCard
 import com.guyghost.wakeve.ui.event.toEventDetailUiState
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
+import com.guyghost.wakeve.weather.EventWeatherContext
+import com.guyghost.wakeve.weather.WeatherAvailability
 import kotlinx.datetime.toLocalDateTime
 
 private object OrganizationUxLabels {
@@ -311,6 +314,15 @@ fun EventDetailContent(
                     StatusCard(event = event)
                 }
 
+                if (event.status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED)) {
+                    item {
+                        AndroidWeatherStatusCard(
+                            context = null,
+                            event = event
+                        )
+                    }
+                }
+
                 state.rsvp?.let { rsvp ->
                     item {
                         EventRsvpResponseCard(
@@ -399,6 +411,69 @@ fun EventDetailContent(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AndroidWeatherStatusCard(
+    context: EventWeatherContext?,
+    event: Event,
+    modifier: Modifier = Modifier
+) {
+    val availability = context?.availability ?: WeatherAvailability.PROVIDER_UNAVAILABLE
+    val dailyForecasts = context?.dailyForecasts.orEmpty()
+    val body = when (availability) {
+        WeatherAvailability.AVAILABLE, WeatherAvailability.STALE -> {
+            val forecast = dailyForecasts.firstOrNull()
+            val temp = forecast?.let { daily ->
+                val low = daily.temperatureLowCelsius?.let { "${it.toInt()}°" } ?: "--"
+                val high = daily.temperatureHighCelsius?.let { "${it.toInt()}°" } ?: "--"
+                "$low / $high"
+            } ?: "Prévision disponible"
+            val freshness = if (availability == WeatherAvailability.STALE) {
+                "Données météo en cache, à actualiser."
+            } else {
+                "Prévision météo à jour."
+            }
+            "$temp · $freshness"
+        }
+        WeatherAvailability.PENDING_FORECAST_WINDOW ->
+            "La météo de ${event.title} sera disponible quand la date entrera dans la fenêtre de prévision."
+        WeatherAvailability.MISSING_LOCATION ->
+            "Ajoutez ou précisez un lieu pour afficher la météo de l'événement."
+        WeatherAvailability.OFFLINE_UNAVAILABLE ->
+            "La météo sera disponible hors ligne après une première consultation en ligne."
+        WeatherAvailability.PERMISSION_OR_ENTITLEMENT_REQUIRED ->
+            "La météo nécessite une configuration fournisseur valide."
+        WeatherAvailability.PROVIDER_UNAVAILABLE ->
+            "Météo Android non configurée. Le fournisseur recommandé est Google Maps Platform Weather API."
+    }
+
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(WakeveSpacing.sm),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.CloudOff,
+                contentDescription = null,
+                modifier = Modifier.size(WakeveSpacing.xl),
+                tint = MaterialTheme.colorScheme.tertiary
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)) {
+                Text(
+                    text = "Météo",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = body,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

@@ -1,0 +1,37 @@
+-- Migration 5: event weather snapshots and resolved map locations.
+
+CREATE TABLE IF NOT EXISTS eventWeatherSnapshot (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    locationId TEXT NOT NULL,
+    locationLabel TEXT NOT NULL,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    startDate TEXT NOT NULL,
+    endDate TEXT NOT NULL,
+    providerName TEXT NOT NULL,
+    fetchedAt TEXT NOT NULL,
+    expiresAt TEXT NOT NULL,
+    dailyForecastsJson TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS resolvedEventLocation (
+    id TEXT PRIMARY KEY NOT NULL,
+    eventId TEXT NOT NULL,
+    sourceLocationId TEXT,
+    label TEXT NOT NULL,
+    address TEXT,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL,
+    providerName TEXT NOT NULL,
+    providerPlaceId TEXT,
+    resolvedAt TEXT NOT NULL,
+    FOREIGN KEY (eventId) REFERENCES event(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_weather_lookup
+ON eventWeatherSnapshot(eventId, locationId, startDate, endDate, providerName);
+
+CREATE INDEX IF NOT EXISTS idx_resolved_event_location_event
+ON resolvedEventLocation(eventId, resolvedAt DESC);
