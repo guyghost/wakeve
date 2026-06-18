@@ -6,7 +6,14 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+    },
+    "traces": {
+      "enabled": false,
+    },
   },
   "vars": {
     "ENVIRONMENT": "production",
@@ -14,36 +21,36 @@
     "JWT_AUDIENCE": "wakev-client",
     "GOOGLE_REDIRECT_URI": "https://api.wakeve.app/auth/google/callback",
     "APPLE_REDIRECT_URI": "https://api.wakeve.app/auth/apple/callback",
-    "METRICS_WHITELIST_IPS": ""
+    "METRICS_WHITELIST_IPS": "",
   },
   "secrets": {
-    "required": ["JWT_SECRET"]
+    "required": ["JWT_SECRET"],
   },
   "routes": [
     {
       "pattern": "api.wakeve.app",
-      "custom_domain": true
-    }
+      "custom_domain": true,
+    },
   ],
   "containers": [
     {
       "class_name": "WakeveBackendContainer",
       "image": "../../../Dockerfile",
-      "max_instances": 1
-    }
+      "max_instances": 1,
+    },
   ],
   "durable_objects": {
     "bindings": [
       {
         "name": "WAKEVE_BACKEND",
-        "class_name": "WakeveBackendContainer"
-      }
-    ]
+        "class_name": "WakeveBackendContainer",
+      },
+    ],
   },
   "migrations": [
     {
       "tag": "v1",
-      "new_sqlite_classes": ["WakeveBackendContainer"]
-    }
-  ]
+      "new_sqlite_classes": ["WakeveBackendContainer"],
+    },
+  ],
 }
