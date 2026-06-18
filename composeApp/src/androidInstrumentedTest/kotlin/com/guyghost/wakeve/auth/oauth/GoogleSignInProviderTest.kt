@@ -50,7 +50,7 @@ class GoogleSignInProviderTest {
      * THEN all user and token data is correctly populated
      */
     @Test
-    fun `AuthResult success with complete user data`() = runTest {
+    fun AuthResult_success_with_complete_user_data() = runTest {
         // ARRANGE
         val testId = "google-user-123"
         val testEmail = "test@gmail.com"
@@ -62,12 +62,13 @@ class GoogleSignInProviderTest {
             id = testId,
             email = testEmail,
             name = testName,
-            authMethod = AuthMethod.GOOGLE
+            authMethod = AuthMethod.GOOGLE,
+            currentTime = System.currentTimeMillis()
         )
-        val token = AuthToken.createLongLived(
+        val token = AuthToken(
             value = testIdToken,
             type = TokenType.BEARER,
-            expiresInDays = 30
+            expiresAt = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000)
         )
         val result = AuthResult.success(user, token)
 
@@ -89,7 +90,7 @@ class GoogleSignInProviderTest {
      * THEN user is created with null name
      */
     @Test
-    fun `AuthResult success handles null display name`() = runTest {
+    fun AuthResult_success_handles_null_display_name() = runTest {
         // ARRANGE
         val testId = "google-user-123"
         val testEmail = "test@gmail.com"
@@ -100,12 +101,13 @@ class GoogleSignInProviderTest {
             id = testId,
             email = testEmail,
             name = null,
-            authMethod = AuthMethod.GOOGLE
+            authMethod = AuthMethod.GOOGLE,
+            currentTime = System.currentTimeMillis()
         )
-        val token = AuthToken.createLongLived(
+        val token = AuthToken(
             value = testIdToken,
             type = TokenType.BEARER,
-            expiresInDays = 30
+            expiresAt = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000)
         )
         val result = AuthResult.success(user, token)
 
@@ -127,7 +129,7 @@ class GoogleSignInProviderTest {
      * THEN OAuthCancelled error is created with GOOGLE provider
      */
     @Test
-    fun `AuthError OAuthCancelled for user cancellation`() = runTest {
+    fun AuthError_OAuthCancelled_for_user_cancellation() = runTest {
         // ACT
         val error = AuthError.OAuthCancelled(provider = AuthMethod.GOOGLE)
         val result = AuthResult.error(error)
@@ -147,7 +149,7 @@ class GoogleSignInProviderTest {
      * THEN OAuthError is created with re-auth message
      */
     @Test
-    fun `AuthError OAuthError for sign in required`() = runTest {
+    fun AuthError_OAuthError_for_sign_in_required() = runTest {
         // ACT
         val error = AuthError.OAuthError(
             provider = AuthMethod.GOOGLE,
@@ -171,7 +173,7 @@ class GoogleSignInProviderTest {
      * THEN OAuthError is created with status code in message
      */
     @Test
-    fun `AuthError OAuthError for generic sign in failure`() = runTest {
+    fun AuthError_OAuthError_for_generic_sign_in_failure() = runTest {
         // ARRANGE
         val testStatusCode = 10
         val testMessage = "Test error message"
@@ -200,7 +202,7 @@ class GoogleSignInProviderTest {
      * THEN OAuthError is created
      */
     @Test
-    fun `AuthError OAuthError for null account data`() = runTest {
+    fun AuthError_OAuthError_for_null_account_data() = runTest {
         // ACT
         val error = AuthError.OAuthError(
             provider = AuthMethod.GOOGLE,
@@ -222,7 +224,7 @@ class GoogleSignInProviderTest {
      * THEN OAuthError is created
      */
     @Test
-    fun `AuthError OAuthError for missing email`() = runTest {
+    fun AuthError_OAuthError_for_missing_email() = runTest {
         // ACT
         val error = AuthError.OAuthError(
             provider = AuthMethod.GOOGLE,
@@ -236,7 +238,7 @@ class GoogleSignInProviderTest {
     }
 
     @Test
-    fun `AuthError OAuthError for missing id token`() = runTest {
+    fun AuthError_OAuthError_for_missing_id_token() = runTest {
         // ACT
         val error = AuthError.OAuthError(
             provider = AuthMethod.GOOGLE,
@@ -259,15 +261,16 @@ class GoogleSignInProviderTest {
      * THEN token has correct type and expiration
      */
     @Test
-    fun `AuthToken created with correct properties`() = runTest {
+    fun AuthToken_created_with_correct_properties() = runTest {
         // ARRANGE
         val testIdToken = "test-id-token"
+        val currentTime = System.currentTimeMillis()
 
         // ACT
-        val token = AuthToken.createLongLived(
+        val token = AuthToken(
             value = testIdToken,
             type = TokenType.BEARER,
-            expiresInDays = 30
+            expiresAt = currentTime + (30L * 24 * 60 * 60 * 1000)
         )
 
         // ASSERT
@@ -275,7 +278,7 @@ class GoogleSignInProviderTest {
         assertEquals(TokenType.BEARER, token.type)
 
         // Verify expiration is set to approximately 30 days from now
-        val expectedExpiration = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000)
+        val expectedExpiration = currentTime + (30L * 24 * 60 * 60 * 1000)
         val timeDifference = kotlin.math.abs(expectedExpiration - token.expiresAt)
         assertTrue(timeDifference < 5000, "Token expiration should be ~30 days from now")
     }
@@ -288,15 +291,15 @@ class GoogleSignInProviderTest {
      * THEN token is not expired
      */
     @Test
-    fun `AuthToken is not expired immediately after creation`() = runTest {
+    fun AuthToken_is_not_expired_immediately_after_creation() = runTest {
         // ARRANGE
         val testIdToken = "test-id-token"
 
         // ACT
-        val token = AuthToken.createLongLived(
+        val token = AuthToken(
             value = testIdToken,
             type = TokenType.BEARER,
-            expiresInDays = 30
+            expiresAt = System.currentTimeMillis() + (30L * 24 * 60 * 60 * 1000)
         )
 
         // ASSERT
@@ -313,7 +316,7 @@ class GoogleSignInProviderTest {
      * THEN user has GOOGLE auth method and is not a guest
      */
     @Test
-    fun `User created with GOOGLE auth method`() = runTest {
+    fun User_created_with_GOOGLE_auth_method() = runTest {
         // ARRANGE
         val testId = "google-user-123"
         val testEmail = "test@gmail.com"
@@ -323,7 +326,8 @@ class GoogleSignInProviderTest {
             id = testId,
             email = testEmail,
             name = "Test User",
-            authMethod = AuthMethod.GOOGLE
+            authMethod = AuthMethod.GOOGLE,
+            currentTime = System.currentTimeMillis()
         )
 
         // ASSERT
@@ -341,13 +345,14 @@ class GoogleSignInProviderTest {
      * THEN user is not guest (isGuest = false)
      */
     @Test
-    fun `Google authenticated user is not guest`() = runTest {
+    fun Google_authenticated_user_is_not_guest() = runTest {
         // ARRANGE
         val user = User.createAuthenticated(
             id = "google-user-123",
             email = "test@gmail.com",
             name = "Test User",
-            authMethod = AuthMethod.GOOGLE
+            authMethod = AuthMethod.GOOGLE,
+            currentTime = System.currentTimeMillis()
         )
 
         // ASSERT
@@ -366,7 +371,7 @@ class GoogleSignInProviderTest {
      * THEN GOOGLE auth method is used
      */
     @Test
-    fun `AuthMethod GOOGLE is used for Google sign in`() {
+    fun AuthMethod_GOOGLE_is_used_for_Google_sign_in() {
         // ASSERT
         assertEquals("GOOGLE", AuthMethod.GOOGLE.name)
         assertNotNull(AuthMethod.GOOGLE)

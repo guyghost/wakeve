@@ -8,27 +8,23 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -50,13 +46,20 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.access.ParticipantRsvp
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.presentation.state.EventManagementContract
-import com.guyghost.wakeve.access.DateValidationState
 import com.guyghost.wakeve.ui.components.HeroImageSection
+import com.guyghost.wakeve.ui.designsystem.WakeveCard
+import com.guyghost.wakeve.ui.designsystem.WakeveProgressIndicator
+import com.guyghost.wakeve.ui.designsystem.WakeveSize
+import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
+import com.guyghost.wakeve.ui.designsystem.WakeveStateMessage
+import com.guyghost.wakeve.ui.event.EventDetailUiState
+import com.guyghost.wakeve.ui.event.EventRsvpResponseCard
+import com.guyghost.wakeve.ui.event.toEventDetailUiState
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
 import kotlinx.datetime.toLocalDateTime
 
@@ -139,6 +142,10 @@ fun EventDetailScreen(
     val state by viewModel.state.collectAsState()
     var showDeleteConfirmation by remember { mutableStateOf(false) }
 
+    LaunchedEffect(eventId) {
+        viewModel.dispatch(EventManagementContract.Intent.SelectEvent(eventId))
+    }
+
     // Handle side effects (navigation, toasts)
     LaunchedEffect(Unit) {
         viewModel.sideEffect.collect { effect ->
@@ -160,183 +167,19 @@ fun EventDetailScreen(
         }
     }
 
-    val selectedEvent = state.selectedEvent
-    val participants = state.participantIds
-    val pollVotes = state.pollVotes[eventId] ?: emptyMap()
-    
-    // Determine if user can delete: must be organizer and event not FINALIZED
-    val isOrganizer = selectedEvent?.organizerId == userId
-    val isParticipantConfirmed = state.participantAccessStates
-        .firstOrNull { it.userId == userId }
-        ?.dateValidation == DateValidationState.VALIDATED_RETAINED_DATE
-    val canAccessOrganizationDetails = isOrganizer || isParticipantConfirmed
-    val canDelete = isOrganizer && selectedEvent?.status != EventStatus.FINALIZED
+    val uiState = state.toEventDetailUiState(eventId = eventId, currentUserId = userId)
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Détails de l'événement") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Retour")
-                    }
-                },
-                actions = {
-                    // Share / Invite button (always visible)
-                    IconButton(
-                        onClick = {
-                            val title = selectedEvent?.title ?: ""
-                            onShareInvite?.invoke(eventId, title)
-                        }
-                    ) {
-                        Icon(Icons.Default.Share, contentDescription = "Partager l'invitation")
-                    }
-                    if (isOrganizer) {
-                        IconButton(onClick = { onNavigateTo("edit_event/$eventId") }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Éditer")
-                        }
-                    }
-                    if (canDelete) {
-                        IconButton(
-                            onClick = { showDeleteConfirmation = true },
-                            modifier = Modifier.semantics {
-                                contentDescription = "Supprimer l'événement. Action irréversible."
-                                role = Role.Button
-                            }
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = null)
-                        }
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        if (selectedEvent == null) {
-            // Loading or not found state
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                if (state.isLoading) {
-                    CircularProgressIndicator()
-                } else {
-                    Text("Événement non trouvé")
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Hero Image Section (NEW - feature parity with iOS)
-                item {
-                    HeroImageSection(event = selectedEvent)
-                }
-
-                // Event info card
-                item {
-                    EventInfoCard(event = selectedEvent)
-                }
-
-                // Status card
-                item {
-                    StatusCard(event = selectedEvent)
-                }
-
-                if (canAccessOrganizationDetails &&
-                    (selectedEvent.status == EventStatus.CONFIRMED ||
-                        selectedEvent.status == EventStatus.ORGANIZING ||
-                        selectedEvent.status == EventStatus.FINALIZED)
-                ) {
-                    item {
-                        TransportPlanningEntryCard(
-                            event = selectedEvent,
-                            readOnly = selectedEvent.status == EventStatus.FINALIZED,
-                            onOpenTransport = {
-                                onNavigateTo("event/${selectedEvent.id}/transport")
-                            }
-                        )
-                    }
-                }
-
-                if ((selectedEvent.status == EventStatus.ORGANIZING ||
-                        selectedEvent.status == EventStatus.FINALIZED) &&
-                    canAccessOrganizationDetails
-                ) {
-                    item {
-                        Phase5OrganizationEntryCard(
-                            event = selectedEvent,
-                            readOnly = selectedEvent.status == EventStatus.FINALIZED,
-                            onOpenMeetings = { onNavigateTo("event/${selectedEvent.id}/meetings") },
-                            onOpenBudget = { onNavigateTo("event/${selectedEvent.id}/budget") },
-                            onOpenPayment = { onNavigateTo("event/${selectedEvent.id}/payment") },
-                            onOpenTricount = { onNavigateTo("event/${selectedEvent.id}/tricount") }
-                        )
-                    }
-                }
-
-                // Participants section
-                item {
-                    ParticipantsHeader()
-                }
-
-                items(participants) { participantId ->
-                    ParticipantItem(participantId = participantId)
-                }
-
-                // Poll results section
-                if (pollVotes.isNotEmpty()) {
-                    item {
-                        PollResultsHeader()
-                    }
-
-                    items(pollVotes.toList()) { (participantId, vote) ->
-                        PollVoteItem(participantId = participantId, vote = vote)
-                    }
-                }
-
-                // Action buttons (only for organizer)
-                if (isOrganizer) {
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Button(
-                                onClick = { onNavigateTo("edit_event/$eventId") },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(48.dp)
-                            ) {
-                                Text("Éditer")
-                            }
-                            if (canDelete) {
-                                FilledTonalButton(
-                                    onClick = { showDeleteConfirmation = true },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(48.dp)
-                                        .semantics {
-                                            contentDescription = "Supprimer l'événement. Action irréversible."
-                                            role = Role.Button
-                                        }
-                                ) {
-                                    Text("Supprimer")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    EventDetailContent(
+        state = uiState,
+        onNavigateTo = onNavigateTo,
+        onNavigateBack = onNavigateBack,
+        onShareInvite = onShareInvite,
+        onRsvpSelected = { response ->
+            onShowToast("Réponse RSVP sélectionnée : ${response.toFrenchLabel()}")
+        },
+        onRequestDelete = { showDeleteConfirmation = true },
+        modifier = modifier
+    )
 
     // Delete confirmation dialog
     if (showDeleteConfirmation) {
@@ -377,6 +220,190 @@ fun EventDetailScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EventDetailContent(
+    state: EventDetailUiState,
+    onNavigateTo: (String) -> Unit,
+    onNavigateBack: () -> Unit,
+    onShareInvite: ((eventId: String, eventTitle: String) -> Unit)?,
+    onRsvpSelected: (ParticipantRsvp) -> Unit,
+    onRequestDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val event = state.event
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Détails de l'événement") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
+                    }
+                },
+                actions = {
+                    // Share / Invite button (always visible)
+                    IconButton(
+                        onClick = {
+                            val title = event?.title ?: ""
+                            onShareInvite?.invoke(state.eventId, title)
+                        }
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = "Partager l'invitation")
+                    }
+                    if (state.isOrganizer) {
+                        IconButton(onClick = { onNavigateTo("edit_event/${state.eventId}") }) {
+                            Icon(Icons.Default.Edit, contentDescription = "Éditer")
+                        }
+                    }
+                    if (state.canDelete) {
+                        IconButton(
+                            onClick = onRequestDelete,
+                            modifier = Modifier.semantics {
+                                contentDescription = "Supprimer l'événement. Action irréversible."
+                                role = Role.Button
+                            }
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = null)
+                        }
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        if (event == null) {
+            // Loading or not found state
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                if (state.isLoading) {
+                    WakeveProgressIndicator()
+                } else {
+                    WakeveStateMessage(
+                        title = "Événement non trouvé",
+                        body = "Revenez à la liste pour sélectionner un événement disponible."
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentPadding = PaddingValues(WakeveSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(WakeveSpacing.md)
+            ) {
+                // Hero Image Section (NEW - feature parity with iOS)
+                item {
+                    HeroImageSection(event = event)
+                }
+
+                // Event info card
+                item {
+                    EventInfoCard(event = event)
+                }
+
+                // Status card
+                item {
+                    StatusCard(event = event)
+                }
+
+                state.rsvp?.let { rsvp ->
+                    item {
+                        EventRsvpResponseCard(
+                            state = rsvp,
+                            onResponseSelected = onRsvpSelected
+                        )
+                    }
+                }
+
+                if (state.showTransportPlanning) {
+                    item {
+                        TransportPlanningEntryCard(
+                            event = event,
+                            readOnly = event.status == EventStatus.FINALIZED,
+                            onOpenTransport = {
+                                onNavigateTo("event/${event.id}/transport")
+                            }
+                        )
+                    }
+                }
+
+                if (state.showOrganizationTools) {
+                    item {
+                        Phase5OrganizationEntryCard(
+                            event = event,
+                            readOnly = event.status == EventStatus.FINALIZED,
+                            onOpenMeetings = { onNavigateTo("event/${event.id}/meetings") },
+                            onOpenBudget = { onNavigateTo("event/${event.id}/budget") },
+                            onOpenPayment = { onNavigateTo("event/${event.id}/payment") },
+                            onOpenTricount = { onNavigateTo("event/${event.id}/tricount") }
+                        )
+                    }
+                }
+
+                // Participants section
+                item {
+                    ParticipantsHeader()
+                }
+
+                items(state.participants) { participantId ->
+                    ParticipantItem(participantId = participantId)
+                }
+
+                // Poll results section
+                if (state.pollVotes.isNotEmpty()) {
+                    item {
+                        PollResultsHeader()
+                    }
+
+                    items(state.pollVotes.toList()) { (participantId, vote) ->
+                        PollVoteItem(participantId = participantId, vote = vote)
+                    }
+                }
+
+                // Action buttons (only for organizer)
+                if (state.isOrganizer) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = WakeveSpacing.md),
+                            horizontalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)
+                        ) {
+                            Button(
+                                onClick = { onNavigateTo("edit_event/${state.eventId}") },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .heightIn(min = WakeveSize.minTouchTarget)
+                            ) {
+                                Text("Éditer")
+                            }
+                            if (state.canDelete) {
+                                FilledTonalButton(
+                                    onClick = onRequestDelete,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = WakeveSize.minTouchTarget)
+                                        .semantics {
+                                            contentDescription = "Supprimer l'événement. Action irréversible."
+                                            role = Role.Button
+                                        }
+                                ) {
+                                    Text("Supprimer")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun Phase5OrganizationEntryCard(
     event: Event,
@@ -387,14 +414,9 @@ private fun Phase5OrganizationEntryCard(
     onOpenTricount: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)
         ) {
             Text(
                 text = "Organisation",
@@ -431,14 +453,9 @@ private fun EventInfoCard(
     event: Event,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)
         ) {
             Text(
                 text = event.title,
@@ -450,7 +467,7 @@ private fun EventInfoCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = WakeveSpacing.sm))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -489,14 +506,9 @@ private fun StatusCard(
     event: Event,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)
         ) {
             Text(
                 text = "Statut",
@@ -526,14 +538,9 @@ private fun TransportPlanningEntryCard(
     onOpenTransport: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)
         ) {
             Text(
                 text = "Transport",
@@ -564,16 +571,16 @@ private fun ParticipantsHeader(modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = WakeveSpacing.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             imageVector = Icons.Default.Person,
             contentDescription = null,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(WakeveSize.progressIndicator),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(WakeveSpacing.sm))
         Text(
             text = "Participants",
             style = MaterialTheme.typography.titleMedium,
@@ -587,24 +594,19 @@ private fun ParticipantItem(
     participantId: String,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+                .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = null,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(WakeveSpacing.lg),
                 tint = MaterialTheme.colorScheme.primary
             )
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(WakeveSpacing.sm))
             Text(
                 text = participantId,
                 style = MaterialTheme.typography.bodyMedium,
@@ -622,7 +624,7 @@ private fun PollResultsHeader(modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.onSurface,
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = WakeveSpacing.sm)
     )
 }
 
@@ -632,15 +634,10 @@ private fun PollVoteItem(
     vote: Vote,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-    ) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -659,22 +656,22 @@ private fun VoteChip(
     vote: Vote,
     modifier: Modifier = Modifier
 ) {
-    val (label, color) = when (vote) {
-        Vote.YES -> "Oui" to androidx.compose.ui.graphics.Color(0xFF059669)
-        Vote.MAYBE -> "Peut-être" to androidx.compose.ui.graphics.Color(0xFFF59E0B)
-        Vote.NO -> "Non" to androidx.compose.ui.graphics.Color(0xFFDC2626)
+    val (label, containerColor, contentColor) = when (vote) {
+        Vote.YES -> Triple("Oui", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+        Vote.MAYBE -> Triple("Peut-être", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
+        Vote.NO -> Triple("Non", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
     }
 
     Surface(
-        color = color.copy(alpha = 0.1f),
-        modifier = modifier.padding(4.dp),
-        shape = RoundedCornerShape(8.dp)
+        color = containerColor,
+        modifier = modifier.padding(WakeveSpacing.xs),
+        shape = MaterialTheme.shapes.small
     ) {
         Text(
             text = label,
-            color = color,
+            color = contentColor,
             style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+            modifier = Modifier.padding(horizontal = WakeveSpacing.sm, vertical = WakeveSpacing.xs)
         )
     }
 }
@@ -688,3 +685,10 @@ private fun formatDateTime(isoDate: String): String {
         isoDate.take(10)
     }
 }
+
+private fun ParticipantRsvp.toFrenchLabel(): String =
+    when (this) {
+        ParticipantRsvp.ACCEPTED -> "oui"
+        ParticipantRsvp.DECLINED -> "non"
+        ParticipantRsvp.PENDING -> "peut-être"
+    }

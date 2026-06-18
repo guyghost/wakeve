@@ -2,7 +2,10 @@ package com.guyghost.wakeve.viewmodel
 
 import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.analytics.AnalyticsEvent
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Poll
+import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -116,7 +119,7 @@ class PollViewModelTest : ViewModelTestBase() {
         val response = "yes"
         val errorMessage = "Vote failed"
 
-        doReturn(kotlin.Result.failure<Unit>(IllegalArgumentException(errorMessage))).`when`(eventRepository)
+        doReturn(kotlin.Result.failure<Boolean>(IllegalArgumentException(errorMessage))).`when`(eventRepository)
             .addVote(any(), any(), any(), any())
 
         // Act
@@ -149,6 +152,48 @@ class PollViewModelTest : ViewModelTestBase() {
 
         // Assert
         verify(eventRepository).addVote(eq(eventId), eq(participantId), eq(slotId), eq(Vote.YES))
+    }
+
+    @Test
+    fun `selectVote should update selected vote state`() = runTest {
+        viewModel.selectVote("slot1", Vote.YES)
+
+        assertEquals(Vote.YES, viewModel.selectedVotes.value["slot1"])
+        assertEquals(null, viewModel.errorMessage.value)
+    }
+
+    @Test
+    fun `submitVotes should require every proposed slot`() = runTest {
+        val event = testEvent(slotIds = listOf("slot1", "slot2"))
+
+        viewModel.selectVote("slot1", Vote.YES)
+        viewModel.submitVotes(event, participantId = "participant-1", onSuccess = {})
+        advanceUntilIdle()
+
+        assertEquals("Please vote on all time slots", viewModel.errorMessage.value)
+        verify(eventRepository, never()).addVote(any(), any(), any(), any())
+    }
+
+    @Test
+    fun `submitVotes should use provided participant id and mark submitted`() = runTest {
+        val event = testEvent(slotIds = listOf("slot1", "slot2"))
+        doReturn(kotlin.Result.success(true)).`when`(eventRepository)
+            .addVote(eq(eventId), eq("participant-42"), any(), any())
+
+        viewModel.selectVote("slot1", Vote.YES)
+        viewModel.selectVote("slot2", Vote.MAYBE)
+
+        var successCalled = false
+        viewModel.submitVotes(event, participantId = "participant-42") {
+            successCalled = true
+        }
+        advanceUntilIdle()
+
+        verify(eventRepository).addVote(eq(eventId), eq("participant-42"), eq("slot1"), eq(Vote.YES))
+        verify(eventRepository).addVote(eq(eventId), eq("participant-42"), eq("slot2"), eq(Vote.MAYBE))
+        assertTrue(successCalled)
+        assertTrue(viewModel.hasSubmitted.value)
+        assertEquals(null, viewModel.errorMessage.value)
     }
 
     @Test
@@ -219,4 +264,25 @@ class PollViewModelTest : ViewModelTestBase() {
         val currentPoll = viewModel.poll.value
         assertEquals("poll2", currentPoll?.id, "Poll ID should be updated")
     }
+
+    private fun testEvent(slotIds: List<String>): Event =
+        Event(
+            id = eventId,
+            title = "Poll event",
+            description = "Poll description",
+            organizerId = "organizer",
+            participants = listOf("participant-42"),
+            proposedSlots = slotIds.map { slotId ->
+                TimeSlot(
+                    id = slotId,
+                    start = "2026-07-14T09:00:00Z",
+                    end = "2026-07-14T18:00:00Z",
+                    timezone = "Europe/Paris"
+                )
+            },
+            deadline = "2026-07-01T12:00:00Z",
+            status = EventStatus.POLLING,
+            createdAt = "2026-06-01T08:00:00Z",
+            updatedAt = "2026-06-01T08:00:00Z"
+        )
 }

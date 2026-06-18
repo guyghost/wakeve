@@ -16,7 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.Image
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,11 +29,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.guyghost.wakeve.R
 
 /**
  * Get Started screen - Welcome/branding screen before login.
@@ -87,12 +90,13 @@ fun GetStartedScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Logo placeholder (replace with actual logo)
-                    Icon(
-                        painter = painterResource(id = android.R.drawable.ic_dialog_info), // TODO: Replace with Wakeve logo
+                    Image(
+                        painter = painterResource(id = R.drawable.wakeve_app_icon),
                         contentDescription = "Wakeve Logo",
-                        modifier = Modifier.size(120.dp),
-                        tint = MaterialTheme.colorScheme.primary
+                        modifier = Modifier
+                            .size(120.dp)
+                            .clip(RoundedCornerShape(28.dp)),
+                        contentScale = ContentScale.Fit
                     )
                     
                     Spacer(modifier = Modifier.height(32.dp))

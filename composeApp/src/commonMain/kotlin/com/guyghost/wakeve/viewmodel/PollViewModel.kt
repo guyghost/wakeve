@@ -1,11 +1,13 @@
 package com.guyghost.wakeve.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.analytics.AnalyticsEvent
 import com.guyghost.wakeve.analytics.AnalyticsProvider
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Poll
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -44,7 +46,7 @@ import kotlinx.coroutines.launch
  * @property analyticsProvider Analytics provider for tracking user actions
  */
 class PollViewModel(
-    private val eventRepository: EventRepository,
+    private val eventRepository: EventRepositoryInterface,
     private val eventId: String,
     analyticsProvider: AnalyticsProvider
 ) : AnalyticsViewModel(analyticsProvider) {
@@ -57,6 +59,27 @@ class PollViewModel(
 
     private val _isClosing = MutableStateFlow(false)
     val isClosing: StateFlow<Boolean> = _isClosing.asStateFlow()
+
+    private val _selectedVotes = MutableStateFlow<Map<String, Vote>>(emptyMap())
+    val selectedVotes: StateFlow<Map<String, Vote>> = _selectedVotes.asStateFlow()
+
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    private val _hasSubmitted = MutableStateFlow(false)
+    val hasSubmitted: StateFlow<Boolean> = _hasSubmitted.asStateFlow()
+
+    private val _selectedFinalSlotId = MutableStateFlow<String?>(null)
+    val selectedFinalSlotId: StateFlow<String?> = _selectedFinalSlotId.asStateFlow()
+
+    private val _isConfirmingFinalDate = MutableStateFlow(false)
+    val isConfirmingFinalDate: StateFlow<Boolean> = _isConfirmingFinalDate.asStateFlow()
+
+    private val _confirmationError = MutableStateFlow<String?>(null)
+    val confirmationError: StateFlow<String?> = _confirmationError.asStateFlow()
+
+    private val _hasConfirmedFinalDate = MutableStateFlow(false)
+    val hasConfirmedFinalDate: StateFlow<Boolean> = _hasConfirmedFinalDate.asStateFlow()
 
     init {
         trackScreenView("poll", "PollViewModel")
@@ -74,14 +97,15 @@ class PollViewModel(
      * @param response The vote response (yes, no, maybe)
      * @param isChanging Whether this user is changing an existing vote
      */
-    fun vote(slotId: String, response: String, isChanging: Boolean = false) {
+    fun vote(
+        slotId: String,
+        response: String,
+        isChanging: Boolean = false,
+        participantId: String = "current_user_id"
+    ) {
         viewModelScope.launch {
             _isVoting.value = true
             try {
-                // In a real implementation, we'd need to participant ID
-                // For now, this is a simplified version
-                val participantId = "current_user_id" // Would come from auth state
-
                 // Convert string response to Vote enum
                 val voteValue = try {
                     Vote.valueOf(response.uppercase())
@@ -89,12 +113,15 @@ class PollViewModel(
                     Vote.MAYBE // Default fallback
                 }
 
-                eventRepository.addVote(
+                val result = eventRepository.addVote(
                     eventId = eventId,
                     participantId = participantId,
                     slotId = slotId,
                     vote = voteValue
                 )
+                if (result.isFailure) {
+                    throw result.exceptionOrNull() ?: IllegalStateException("Failed to submit vote")
+                }
 
                 // Update the poll state
                 _poll.value = eventRepository.getPoll(eventId)
@@ -109,6 +136,64 @@ class PollViewModel(
                 )
             } catch (e: Exception) {
                 trackError("vote_failed", e.message)
+            } finally {
+                _isVoting.value = false
+            }
+        }
+    }
+
+    fun selectVote(slotId: String, vote: Vote) {
+        _selectedVotes.value = _selectedVotes.value + (slotId to vote)
+        _errorMessage.value = null
+    }
+
+    fun selectFinalSlot(slotId: String) {
+        _selectedFinalSlotId.value = slotId
+        _confirmationError.value = null
+    }
+
+    fun submitVotes(
+        event: Event,
+        participantId: String,
+        onSuccess: () -> Unit
+    ) {
+        val votes = _selectedVotes.value
+        if (votes.size != event.proposedSlots.size) {
+            _errorMessage.value = "Please vote on all time slots"
+            return
+        }
+
+        viewModelScope.launch {
+            _isVoting.value = true
+            _errorMessage.value = null
+            try {
+                votes.forEach { (slotId, vote) ->
+                    val result = eventRepository.addVote(
+                        eventId = event.id,
+                        participantId = participantId,
+                        slotId = slotId,
+                        vote = vote
+                    )
+                    if (result.isFailure) {
+                        throw result.exceptionOrNull() ?: IllegalStateException("Failed to submit vote")
+                    }
+
+                    trackEvent(
+                        AnalyticsEvent.PollVoted(
+                            eventId = event.id,
+                            response = vote.name.lowercase(),
+                            isChangingVote = false
+                        )
+                    )
+                }
+
+                _poll.value = eventRepository.getPoll(event.id)
+                _hasSubmitted.value = true
+                onSuccess()
+            } catch (e: Exception) {
+                val message = e.message ?: "Failed to submit vote"
+                _errorMessage.value = message
+                trackError("vote_failed", message)
             } finally {
                 _isVoting.value = false
             }
@@ -149,6 +234,54 @@ class PollViewModel(
                 trackError("close_poll_failed", e.message)
             } finally {
                 _isClosing.value = false
+            }
+        }
+    }
+
+    fun confirmFinalDate(
+        event: Event,
+        userId: String,
+        onSuccess: () -> Unit
+    ) {
+        val slotId = _selectedFinalSlotId.value
+        val selectedSlot = event.proposedSlots.firstOrNull { it.id == slotId }
+        if (selectedSlot == null) {
+            _confirmationError.value = "Select a time slot before confirming"
+            return
+        }
+
+        viewModelScope.launch {
+            _isConfirmingFinalDate.value = true
+            _confirmationError.value = null
+            try {
+                if (!eventRepository.isOrganizer(event.id, userId)) {
+                    throw IllegalStateException("Only the organizer can confirm the final date")
+                }
+
+                val result = eventRepository.updateEventStatus(
+                    id = event.id,
+                    status = EventStatus.CONFIRMED,
+                    finalDate = selectedSlot.start
+                )
+                if (result.isFailure) {
+                    throw result.exceptionOrNull() ?: IllegalStateException("Failed to confirm final date")
+                }
+
+                _hasConfirmedFinalDate.value = true
+                trackEvent(
+                    AnalyticsEvent.PollClosed(
+                        eventId = event.id,
+                        participantsCount = event.participants.size,
+                        votesCount = eventRepository.getPoll(event.id)?.votes?.size ?: 0
+                    )
+                )
+                onSuccess()
+            } catch (e: Exception) {
+                val message = e.message ?: "Failed to confirm final date"
+                _confirmationError.value = message
+                trackError("confirm_final_date_failed", message)
+            } finally {
+                _isConfirmingFinalDate.value = false
             }
         }
     }

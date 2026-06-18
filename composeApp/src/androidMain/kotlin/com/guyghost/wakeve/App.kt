@@ -4,8 +4,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -21,8 +19,9 @@ import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
 import com.guyghost.wakeve.deeplink.AndroidNavigationDeepLinkHandler
 import com.guyghost.wakeve.deeplink.DeepLinkStateManager
 import com.guyghost.wakeve.navigation.Screen
-import com.guyghost.wakeve.navigation.WakeveBottomBar
+import com.guyghost.wakeve.navigation.WakeveAdaptiveNavigationScaffold
 import com.guyghost.wakeve.navigation.WakeveNavHost
+import com.guyghost.wakeve.theme.WakeveTheme
 import com.guyghost.wakeve.ui.auth.AuthViewModel
 import com.guyghost.wakeve.ui.components.ProfileBottomSheet
 import org.koin.compose.koinInject
@@ -154,16 +153,11 @@ fun App() {
         )
     }
     
-    MaterialTheme {
-        Scaffold(
-            bottomBar = {
-                if (showBottomBar) {
-                    WakeveBottomBar(
-                        navController = navController,
-                        inboxUnreadCount = inboxUnreadCount
-                    )
-                }
-            }
+    WakeveTheme {
+        WakeveAdaptiveNavigationScaffold(
+            navController = navController,
+            showNavigation = showBottomBar,
+            inboxUnreadCount = inboxUnreadCount
         ) { paddingValues ->
             WakeveNavHost(
                 navController = navController,
@@ -229,7 +223,7 @@ fun App() {
  */
 @Composable
 fun AppPreview() {
-    MaterialTheme {
+    WakeveTheme(dynamicColor = false) {
         App()
     }
 }

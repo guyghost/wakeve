@@ -43,4 +43,20 @@ internal class DraftEventWizardEventFactory(
             heroImageUrl = initialEvent?.heroImageUrl
         )
     }
+
+    fun buildEvent(
+        userId: String,
+        state: DraftEventWizardUiState,
+        status: EventStatus
+    ): Event =
+        buildEvent(
+            userId = userId,
+            title = state.title,
+            description = state.description,
+            eventType = state.eventType,
+            eventTypeCustom = state.eventTypeCustom,
+            participantCount = state.participantCount,
+            timeSlots = state.timeSlots,
+            status = status
+        )
 }

@@ -67,7 +67,7 @@ class SimpleOAuthProviderTest {
      * THEN special characters are properly encoded
      */
     @Test
-    fun `URL encoding handles special characters correctly`() {
+    fun URL_encoding_handles_special_characters_correctly() {
         // ARRANGE
         val originalString = "test@example.com?param=value&other=data"
 
@@ -92,7 +92,7 @@ class SimpleOAuthProviderTest {
      * THEN spaces are encoded as + or %20
      */
     @Test
-    fun `URL encoding handles spaces correctly`() {
+    fun URL_encoding_handles_spaces_correctly() {
         // ARRANGE
         val originalString = "test string with spaces"
 
@@ -116,7 +116,7 @@ class SimpleOAuthProviderTest {
      * THEN client is created successfully
      */
     @Test
-    fun `HTTP client with mock engine creates successfully`() {
+    fun HTTP_client_with_mock_engine_creates_successfully() {
         // ASSERT
         assertNotNull(httpClient)
     }
@@ -129,7 +129,7 @@ class SimpleOAuthProviderTest {
      * THEN mock response is returned
      */
     @Test
-    fun `HTTP client can make POST request`() = runTest {
+    fun HTTP_client_can_make_POST_request() = runTest {
         // ARRANGE
         mockEngine = MockEngine { request ->
             val responseContent = when (request.url.encodedPath) {
@@ -173,7 +173,7 @@ class SimpleOAuthProviderTest {
      * THEN object is parsed correctly
      */
     @Test
-    fun `JSON parsing handles simple objects correctly`() {
+    fun JSON_parsing_handles_simple_objects_correctly() {
         // ARRANGE
         val jsonString = """{"name": "test", "value": 123}"""
         val json = KotlinxJson {
@@ -199,7 +199,7 @@ class SimpleOAuthProviderTest {
      * THEN parameters are properly encoded
      */
     @Test
-    fun `form URL encoding encodes parameters correctly`() {
+    fun form_URL_encoding_encodes_parameters_correctly() {
         // ARRANGE
         val parameters = listOf(
             "client_id" to "test@example.com",
@@ -230,7 +230,7 @@ class SimpleOAuthProviderTest {
      * THEN URL has correct structure and parameters
      */
     @Test
-    fun `Apple Sign-In URL construction works correctly`() {
+    fun Apple_Sign_In_URL_construction_works_correctly() {
         // ARRANGE
         val clientId = "com.example.wakeve"
         val redirectUri = "https://wakeve.example.com/callback"
@@ -272,7 +272,7 @@ class SimpleOAuthProviderTest {
      * THEN appropriate response is returned
      */
     @Test
-    fun `Apple token exchange mock returns correct response`() = runTest {
+    fun Apple_token_exchange_mock_returns_correct_response() = runTest {
         // ARRANGE
         val tokenMockEngine = MockEngine { request ->
             if (request.url.encodedPath == "/auth/token") {
