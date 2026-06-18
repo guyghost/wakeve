@@ -87,6 +87,7 @@ kotlin {
                 // Firebase
                 implementation(libs.firebase.bom)
                 implementation(libs.firebase.analytics)
+                implementation(libs.firebase.ai)
             }
         }
         

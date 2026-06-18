@@ -1,9 +1,18 @@
 package com.guyghost.wakeve.di
 
 import com.guyghost.wakeve.AndroidDatabaseFactory
+import com.guyghost.wakeve.ai.AiTextGenerationClient
+import com.guyghost.wakeve.ai.EventSummaryAiAssistant
+import com.guyghost.wakeve.ai.FirebaseAiLogicCloudTextGenerationClient
 import com.guyghost.wakeve.ai.EventPlanningAiAssistant
 import com.guyghost.wakeve.ai.FallbackEventPlanningAiAssistant
+import com.guyghost.wakeve.ai.HybridOrganizerMessageAiAssistant
+import com.guyghost.wakeve.ai.MlKitLocalTextGenerationClient
 import com.guyghost.wakeve.ai.MlKitEventPlanningAiAssistant
+import com.guyghost.wakeve.ai.OnDeviceEventSummaryAiAssistant
+import com.guyghost.wakeve.ai.OrganizerMessageAiAssistant
+import com.guyghost.wakeve.ai.PlanningAgentClient
+import com.guyghost.wakeve.ai.FakePlanningAgentClient
 import com.guyghost.wakeve.ai.RuleBasedEventPlanningAiAssistant
 import com.guyghost.wakeve.database.DatabaseFactory
 import com.guyghost.wakeve.database.DatabaseProvider
@@ -23,6 +32,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 /**
@@ -179,5 +189,30 @@ fun platformModule(): Module = module {
             ),
             fallback = RuleBasedEventPlanningAiAssistant()
         )
+    }
+
+    single<AiTextGenerationClient>(named("onDeviceAiTextGeneration")) {
+        MlKitLocalTextGenerationClient()
+    }
+
+    single<AiTextGenerationClient>(named("firebaseAiLogicTextGeneration")) {
+        FirebaseAiLogicCloudTextGenerationClient()
+    }
+
+    single<EventSummaryAiAssistant> {
+        OnDeviceEventSummaryAiAssistant(
+            localClient = get(named("onDeviceAiTextGeneration"))
+        )
+    }
+
+    single<OrganizerMessageAiAssistant> {
+        HybridOrganizerMessageAiAssistant(
+            onDeviceClient = get(named("onDeviceAiTextGeneration")),
+            cloudClient = get(named("firebaseAiLogicTextGeneration"))
+        )
+    }
+
+    single<PlanningAgentClient> {
+        FakePlanningAgentClient()
     }
 }

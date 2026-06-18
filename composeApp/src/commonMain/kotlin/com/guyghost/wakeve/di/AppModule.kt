@@ -3,6 +3,10 @@ package com.guyghost.wakeve.di
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.ai.EventPlanningAiAssistant
+import com.guyghost.wakeve.ai.EventSummaryAiAssistant
+import com.guyghost.wakeve.ai.FakePlanningAgentClient
+import com.guyghost.wakeve.ai.OrganizerMessageAiAssistant
+import com.guyghost.wakeve.ai.PlanningAgentClient
 import com.guyghost.wakeve.ai.RuleBasedEventPlanningAiAssistant
 import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
 import com.guyghost.wakeve.presentation.statemachine.ScenarioManagementStateMachine
@@ -14,6 +18,7 @@ import com.guyghost.wakeve.presentation.usecase.LoadEventsUseCase
 import com.guyghost.wakeve.presentation.usecase.LoadScenariosUseCase
 import com.guyghost.wakeve.presentation.usecase.UpdateScenarioUseCase
 import com.guyghost.wakeve.presentation.usecase.VoteScenarioUseCase
+import com.guyghost.wakeve.viewmodel.AiWorkflowDemoViewModel
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
 import com.guyghost.wakeve.viewmodel.EventPlanningAssistantViewModel
 import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
@@ -214,5 +219,21 @@ val appModule: Module = module {
         EventPlanningAssistantViewModel(
             assistant = getOrNull<EventPlanningAiAssistant>() ?: RuleBasedEventPlanningAiAssistant()
         )
+    }
+
+    factory {
+        val summaryAssistant = getOrNull<EventSummaryAiAssistant>()
+        val messageAssistant = getOrNull<OrganizerMessageAiAssistant>()
+        val planningAgentClient = getOrNull<PlanningAgentClient>() ?: FakePlanningAgentClient()
+
+        if (summaryAssistant != null && messageAssistant != null) {
+            AiWorkflowDemoViewModel(
+                summaryAssistant = summaryAssistant,
+                messageAssistant = messageAssistant,
+                planningAgentClient = planningAgentClient
+            )
+        } else {
+            AiWorkflowDemoViewModel(planningAgentClient = planningAgentClient)
+        }
     }
 }
