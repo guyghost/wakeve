@@ -42,6 +42,7 @@ coil = "2.6.0"
 firebase-messaging = "24.1.0"
 firebase-bom = "32.7.0"
 firebase-analytics = "21.5.0"
+firebase-ai = "17.13.0"
 koin-androidx-compose = "3.5.3"
 compose-ui-test = "1.6.0"
 androidx-test-core = "1.5.0"
@@ -116,6 +117,7 @@ coil-svg = { module = "io.coil-kt:coil-svg", version.ref = "coil" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebase-messaging" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebase-bom" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics-ktx", version.ref = "firebase-analytics" }
+firebase-ai = { module = "com.google.firebase:firebase-ai", version.ref = "firebase-ai" }
 
 # AndroidX additional
 activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activity-ktx" }
