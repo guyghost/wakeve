@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
+import com.guyghost.wakeve.ui.designsystem.WakeveShapes
 
 private val LightColorScheme = lightColorScheme(
     primary = WakevePrimary,
@@ -113,6 +114,7 @@ fun WakeveTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = WakeveShapes,
         content = content
     )
 }

@@ -30,7 +30,6 @@ import androidx.navigation.navArgument
 import com.guyghost.wakeve.EventDetailScreen
 import com.guyghost.wakeve.ExploreTabScreen
 import com.guyghost.wakeve.GetStartedScreen
-import com.guyghost.wakeve.HomeScreen
 import com.guyghost.wakeve.InboxScreen
 import com.guyghost.wakeve.OnboardingScreen
 import com.guyghost.wakeve.ProfileTabScreen
@@ -40,7 +39,10 @@ import com.guyghost.wakeve.ui.auth.AuthScreen
 import com.guyghost.wakeve.ui.auth.AuthSideEffect
 import com.guyghost.wakeve.ui.auth.AuthViewModel
 import com.guyghost.wakeve.ui.auth.EmailAuthScreen
+import com.guyghost.wakeve.ui.event.DraftEventCreationRouteUiState
+import com.guyghost.wakeve.ui.event.DraftEventWizardEventFactory
 import com.guyghost.wakeve.ui.event.DraftEventWizard
+import com.guyghost.wakeve.ui.event.EventWorkspaceRoute
 import com.guyghost.wakeve.ui.meeting.MeetingListScreen
 import com.guyghost.wakeve.ui.scenario.ScenarioComparisonScreen
 import com.guyghost.wakeve.ui.scenario.ScenarioDetailScreen
@@ -91,6 +93,7 @@ import com.guyghost.wakeve.repository.EventRepositoryInterface as EventRepositor
 import com.guyghost.wakeve.viewmodel.MeetingManagementViewModel
 import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
@@ -138,17 +141,16 @@ fun WakeveNavHost(
         
         composable(Screen.Home.route) {
             val viewModel: EventManagementViewModel = koinInject()
-            val isDarkTheme = isSystemInDarkTheme()
-            HomeScreen(
+            EventWorkspaceRoute(
                 viewModel = viewModel,
+                currentUserId = userId,
                 onNavigateTo = { route ->
                     navController.navigate(route)
                 },
                 onShowToast = { message ->
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 },
-                onProfileClick = onProfileClick,
-                isDarkTheme = isDarkTheme
+                onOpenProfile = onProfileClick
             )
         }
         
@@ -379,31 +381,51 @@ fun WakeveNavHost(
         
         composable(Screen.EventCreation.route) {
             val viewModel: EventManagementViewModel = koinInject()
-            // Track if the event has been created to avoid duplicates
-            var eventCreated by remember { mutableStateOf(false) }
+            var routeState by remember { mutableStateOf(DraftEventCreationRouteUiState()) }
+            val eventFactory = remember {
+                DraftEventWizardEventFactory(
+                    initialEvent = null,
+                    generatedId = "event-${Clock.System.now().toEpochMilliseconds()}",
+                    nowIso = { Clock.System.now().toString() }
+                )
+            }
             
             DraftEventWizard(
                 initialEvent = null,
                 userId = userId,
-                onSaveStep = { event ->
+                onSaveStep = { wizardState ->
+                    val event = eventFactory.buildEvent(
+                        userId = userId,
+                        state = wizardState,
+                        status = EventStatus.DRAFT
+                    )
                     // Auto-save draft event on each step
-                    if (!eventCreated) {
+                    if (!routeState.hasPersistedDraft) {
                         // First save: create the event
                         viewModel.dispatch(
                             com.guyghost.wakeve.presentation.state.EventManagementContract.Intent.CreateEvent(event)
                         )
-                        eventCreated = true
+                        routeState = routeState.copy(
+                            hasPersistedDraft = true,
+                            lastSavedEventId = event.id
+                        )
                     } else {
                         // Subsequent saves: update the event
                         viewModel.dispatch(
                             com.guyghost.wakeve.presentation.state.EventManagementContract.Intent.UpdateEvent(event)
                         )
+                        routeState = routeState.copy(lastSavedEventId = event.id)
                     }
                 },
-                onComplete = { event ->
+                onComplete = { wizardState ->
+                    val event = eventFactory.buildEvent(
+                        userId = userId,
+                        state = wizardState,
+                        status = EventStatus.DRAFT
+                    )
                     // Final save and navigate to participant management
                     // The event should already exist from onSaveStep, so just update it
-                    if (!eventCreated) {
+                    if (!routeState.hasPersistedDraft) {
                         // Edge case: direct completion without intermediate saves
                         viewModel.dispatch(
                             com.guyghost.wakeve.presentation.state.EventManagementContract.Intent.CreateEvent(event)
@@ -413,6 +435,10 @@ fun WakeveNavHost(
                             com.guyghost.wakeve.presentation.state.EventManagementContract.Intent.UpdateEvent(event)
                         )
                     }
+                    routeState = routeState.copy(
+                        hasPersistedDraft = true,
+                        lastSavedEventId = event.id
+                    )
                     navController.navigate(Screen.ParticipantManagement.createRoute(event.id)) {
                         popUpTo(Screen.EventCreation.route) { inclusive = true }
                     }

@@ -9,8 +9,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
-import com.guyghost.wakeve.models.Event
-import com.guyghost.wakeve.models.EventStatus
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -401,13 +399,13 @@ class DraftEventWizardTest {
     @Test
     fun wizard_callsOnSaveStepWhenNavigating() {
         // Given
-        var savedEvent: Event? = null
+        var savedState: DraftEventWizardUiState? = null
         
         // When
         composeTestRule.setContent {
             DraftEventWizard(
                 initialEvent = null,
-                onSaveStep = { savedEvent = it },
+                onSaveStep = { savedState = it },
                 onComplete = {},
                 onCancel = {}
             )
@@ -430,23 +428,22 @@ class DraftEventWizardTest {
         composeTestRule.waitForIdle()
         
         // Then - onSaveStep should have been called
-        assertNotNull(savedEvent)
-        assertEquals("Test Event", savedEvent?.title)
-        assertEquals("Test Description", savedEvent?.description)
-        assertEquals(EventStatus.DRAFT, savedEvent?.status)
+        assertNotNull(savedState)
+        assertEquals("Test Event", savedState?.title)
+        assertEquals("Test Description", savedState?.description)
     }
     
     @Test
     fun wizard_callsOnCompleteAtEnd() {
         // Given
-        var completedEvent: Event? = null
+        var completedState: DraftEventWizardUiState? = null
         
         // When
         composeTestRule.setContent {
             DraftEventWizard(
                 initialEvent = null,
                 onSaveStep = {},
-                onComplete = { completedEvent = it },
+                onComplete = { completedState = it },
                 onCancel = {}
             )
         }

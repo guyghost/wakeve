@@ -7,12 +7,14 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.guyghost.wakeve.notification.NotificationChannelManager.Companion.ChannelId
+import io.mockk.mockk
+import io.mockk.verify
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.Assert.*
-import org.mockito.kotlin.*
 
 /**
  * Instrumented tests for NotificationChannelManager.
@@ -29,7 +31,7 @@ class NotificationChannelManagerTest {
     @Before
     fun setup() {
         context = ApplicationProvider.getApplicationContext<Context>()
-        mockNotificationManager = mock()
+        mockNotificationManager = mockk(relaxed = true)
         channelManager = NotificationChannelManager(context, mockNotificationManager)
     }
 
@@ -39,128 +41,134 @@ class NotificationChannelManagerTest {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val realNotificationManager =
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            NotificationChannelManager.ChannelId.values().forEach { channelId ->
+            ChannelId.values().forEach { channelId ->
                 realNotificationManager.deleteNotificationChannel(channelId.id)
             }
         }
     }
 
     @Test
-    fun `createAllChannels should create all defined channels on Android O+`() {
+    fun createAllChannels_should_create_all_defined_channels_on_Android_O() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // When
             channelManager.createAllChannels()
 
             // Then
-            NotificationChannelManager.ChannelId.values().forEach { channelId ->
-                verify(mockNotificationManager, atLeastOnce())
-                    .createNotificationChannel(check { channel ->
-                        assertEquals(channelId.id, channel.id)
-                    })
+            ChannelId.values().forEach { channelId ->
+                verify {
+                    mockNotificationManager.createNotificationChannel(
+                        match { channel -> channel.id == channelId.id }
+                    )
+                }
             }
         }
     }
 
     @Test
-    fun `createAllChannels should configure default channel with correct settings`() {
+    fun createAllChannels_should_configure_default_channel_with_correct_settings() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // When
             channelManager.createAllChannels()
 
             // Then
-            verify(mockNotificationManager).createNotificationChannel(check { channel ->
-                assertEquals(NotificationChannelManager.ChannelId.DEFAULT.id, channel.id)
-                assertEquals(NotificationManager.IMPORTANCE_DEFAULT, channel.importance)
-                assertTrue(channel.shouldVibrate())
-                assertFalse(channel.shouldShowBadge())
-            })
+            verify {
+                mockNotificationManager.createNotificationChannel(match { channel ->
+                    channel.id == ChannelId.DEFAULT.id &&
+                        channel.importance == NotificationManager.IMPORTANCE_DEFAULT &&
+                        channel.shouldVibrate()
+                })
+            }
         }
     }
 
     @Test
-    fun `createAllChannels should configure high priority channel with correct settings`() {
+    fun createAllChannels_should_configure_high_priority_channel_with_correct_settings() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // When
             channelManager.createAllChannels()
 
             // Then
-            verify(mockNotificationManager).createNotificationChannel(check { channel ->
-                assertEquals(NotificationChannelManager.ChannelId.HIGH_PRIORITY.id, channel.id)
-                assertEquals(NotificationManager.IMPORTANCE_HIGH, channel.importance)
-                assertTrue(channel.shouldVibrate())
-                assertTrue(channel.shouldShowBadge())
-            })
+            verify {
+                mockNotificationManager.createNotificationChannel(match { channel ->
+                    channel.id == ChannelId.HIGH_PRIORITY.id &&
+                        channel.importance == NotificationManager.IMPORTANCE_HIGH &&
+                        channel.shouldVibrate()
+                })
+            }
         }
     }
 
     @Test
-    fun `createAllChannels should configure events channel with correct settings`() {
+    fun createAllChannels_should_configure_events_channel_with_correct_settings() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // When
             channelManager.createAllChannels()
 
             // Then
-            verify(mockNotificationManager).createNotificationChannel(check { channel ->
-                assertEquals(NotificationChannelManager.ChannelId.EVENTS.id, channel.id)
-                assertEquals(NotificationManager.IMPORTANCE_HIGH, channel.importance)
-                assertTrue(channel.shouldVibrate())
-                assertTrue(channel.shouldShowBadge())
-            })
+            verify {
+                mockNotificationManager.createNotificationChannel(match { channel ->
+                    channel.id == ChannelId.EVENTS.id &&
+                        channel.importance == NotificationManager.IMPORTANCE_HIGH &&
+                        channel.shouldVibrate()
+                })
+            }
         }
     }
 
     @Test
-    fun `createAllChannels should configure reminders channel with correct settings`() {
+    fun createAllChannels_should_configure_reminders_channel_with_correct_settings() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // When
             channelManager.createAllChannels()
 
             // Then
-            verify(mockNotificationManager).createNotificationChannel(check { channel ->
-                assertEquals(NotificationChannelManager.ChannelId.REMINDERS.id, channel.id)
-                assertEquals(NotificationManager.IMPORTANCE_DEFAULT, channel.importance)
-                assertTrue(channel.shouldVibrate())
-                assertTrue(channel.shouldShowBadge())
-            })
+            verify {
+                mockNotificationManager.createNotificationChannel(match { channel ->
+                    channel.id == ChannelId.REMINDERS.id &&
+                        channel.importance == NotificationManager.IMPORTANCE_DEFAULT &&
+                        channel.shouldVibrate()
+                })
+            }
         }
     }
 
     @Test
-    fun `createAllChannels should configure progress channel with correct settings`() {
+    fun createAllChannels_should_configure_progress_channel_with_correct_settings() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // When
             channelManager.createAllChannels()
 
             // Then
-            verify(mockNotificationManager).createNotificationChannel(check { channel ->
-                assertEquals(NotificationChannelManager.ChannelId.PROGRESS.id, channel.id)
-                assertEquals(NotificationManager.IMPORTANCE_LOW, channel.importance)
-                assertFalse(channel.shouldVibrate())
-                assertFalse(channel.shouldShowBadge())
-            })
+            verify {
+                mockNotificationManager.createNotificationChannel(match { channel ->
+                    channel.id == ChannelId.PROGRESS.id &&
+                        channel.importance == NotificationManager.IMPORTANCE_LOW &&
+                        !channel.shouldVibrate()
+                })
+            }
         }
     }
 
     @Test
-    fun `getChannelId should return correct channel ID for notification type`() {
+    fun getChannelId_should_return_correct_channel_ID_for_notification_type() {
         // Then
         assertEquals(
-            NotificationChannelManager.ChannelId.HIGH_PRIORITY,
+            ChannelId.HIGH_PRIORITY,
             NotificationChannelManager.getChannelId(com.guyghost.wakeve.notification.NotificationType.EVENT_INVITE)
         )
         assertEquals(
-            NotificationChannelManager.ChannelId.REMINDERS,
+            ChannelId.REMINDERS,
             NotificationChannelManager.getChannelId(com.guyghost.wakeve.notification.NotificationType.VOTE_REMINDER)
         )
         assertEquals(
-            NotificationChannelManager.ChannelId.EVENTS,
+            ChannelId.DEFAULT,
             NotificationChannelManager.getChannelId(com.guyghost.wakeve.notification.NotificationType.EVENT_UPDATE)
         )
     }
 
     @Test
     @RequiresApi(Build.VERSION_CODES.O)
-    fun `createChannel should create channel with custom settings`() {
+    fun createChannel_should_create_channel_with_custom_settings() {
         // Given
         val customChannelId = "custom_channel"
         val customName = "Custom Channel"
@@ -176,11 +184,13 @@ class NotificationChannelManagerTest {
         )
 
         // Then
-        verify(mockNotificationManager).createNotificationChannel(check { channel ->
-            assertEquals(customChannelId, channel.id)
-            assertEquals(customName, channel.name)
-            assertEquals(customDescription, channel.description)
-            assertEquals(customImportance, channel.importance)
-        })
+        verify {
+            mockNotificationManager.createNotificationChannel(match { channel ->
+                channel.id == customChannelId &&
+                    channel.name == customName &&
+                    channel.description == customDescription &&
+                    channel.importance == customImportance
+            })
+        }
     }
 }

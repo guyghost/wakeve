@@ -64,16 +64,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.R
 import com.guyghost.wakeve.models.Event
-import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
-import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.ui.components.EventTypeSelector
 import com.guyghost.wakeve.ui.components.LocationInputDialog
 import com.guyghost.wakeve.ui.components.PotentialLocationsList
 import com.guyghost.wakeve.ui.components.TimeSlotInputAndroid
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
@@ -106,31 +103,22 @@ import java.util.Locale
 @Composable
 fun DraftEventWizard(
     initialEvent: Event?,
-    userId: String,
-    onSaveStep: (Event) -> Unit,
-    onComplete: (Event) -> Unit,
+    userId: String = "currentUser",
+    onSaveStep: (DraftEventWizardUiState) -> Unit,
+    onComplete: (DraftEventWizardUiState) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var currentStep by remember { mutableStateOf(0) }
-    
-    // State for Step 1: Basic Info
-    var title by remember(initialEvent) { mutableStateOf(initialEvent?.title ?: "") }
-    var description by remember(initialEvent) { mutableStateOf(initialEvent?.description ?: "") }
-    var eventType by remember(initialEvent) { mutableStateOf(initialEvent?.eventType ?: EventType.OTHER) }
-    var eventTypeCustom by remember(initialEvent) { mutableStateOf(initialEvent?.eventTypeCustom ?: "") }
-    
-    // State for Step 2: Participants (single field)
-    var participantCount by remember(initialEvent) { mutableStateOf(initialEvent?.expectedParticipants?.toString() ?: "") }
-    
-    // State for Step 2: Locations
-    var locations by remember { mutableStateOf<List<PotentialLocation>>(emptyList()) }
-    var showLocationDialog by remember { mutableStateOf(false) }
-    
-    // State for Step 3: Time Slots
-    var timeSlots by remember(initialEvent) { mutableStateOf(initialEvent?.proposedSlots ?: emptyList()) }
-    var editingTimeSlot by remember { mutableStateOf<TimeSlot?>(null) }
-    var showTimeSlotInput by remember { mutableStateOf(false) }
+    var wizardState by remember(initialEvent) { mutableStateOf(initialEvent.toDraftEventWizardUiState()) }
+    val currentStep = wizardState.currentStep
+    val title = wizardState.title
+    val description = wizardState.description
+    val eventType = wizardState.eventType
+    val eventTypeCustom = wizardState.eventTypeCustom
+    val participantCount = wizardState.participantCount
+    val locations = wizardState.locations
+    val timeSlots = wizardState.timeSlots
+    val editingTimeSlot = wizardState.editingTimeSlot
     
     val steps = listOf(
         stringResource(R.string.step_basic_info),
@@ -139,14 +127,6 @@ fun DraftEventWizard(
         stringResource(R.string.step_preview)
     )
     
-    val eventFactory = remember(initialEvent) {
-        DraftEventWizardEventFactory(
-            initialEvent = initialEvent,
-            generatedId = "event-${Clock.System.now().toEpochMilliseconds()}",
-            nowIso = { Clock.System.now().toString() }
-        )
-    }
-
     // Formatters for preview
     val dateFormatter = remember { 
         DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.FRENCH)
@@ -154,21 +134,6 @@ fun DraftEventWizard(
     val timeFormatter = remember {
         DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.FRENCH)
     }
-    
-    // Build current event
-    fun buildEvent(status: EventStatus = EventStatus.DRAFT): Event {
-        return eventFactory.buildEvent(
-            userId = userId,
-            title = title,
-            description = description,
-            eventType = eventType,
-            eventTypeCustom = eventTypeCustom,
-            participantCount = participantCount,
-            timeSlots = timeSlots,
-            status = status
-        )
-    }
-    
     // Validation for each step
     fun isStepValid(step: Int): Boolean {
         return when (step) {
@@ -252,7 +217,7 @@ fun DraftEventWizard(
                 navigationIcon = {
                     IconButton(onClick = {
                         if (currentStep > 0) {
-                            currentStep--
+                            wizardState = wizardState.copy(currentStep = currentStep - 1)
                         } else {
                             onCancel()
                         }
@@ -305,7 +270,7 @@ fun DraftEventWizard(
                         if (currentStep > 0) {
                             OutlinedButton(
                                 onClick = {
-                                    onSaveStep(buildEvent())
+                                    onSaveStep(wizardState)
                                     onCancel() // Return to home page
                                 }
                             ) {
@@ -323,8 +288,8 @@ fun DraftEventWizard(
                             FilledTonalButton(
                                 onClick = {
                                     if (isStepValid(currentStep)) {
-                                        onSaveStep(buildEvent())
-                                        currentStep++
+                                        onSaveStep(wizardState)
+                                        wizardState = wizardState.copy(currentStep = currentStep + 1)
                                     }
                                 },
                                 enabled = isStepValid(currentStep)
@@ -341,7 +306,7 @@ fun DraftEventWizard(
                             Button(
                                 onClick = {
                                     if (isStepValid(currentStep)) {
-                                        onComplete(buildEvent())
+                                        onComplete(wizardState)
                                     }
                                 },
                                 enabled = isStepValid(currentStep)
@@ -390,7 +355,7 @@ fun DraftEventWizard(
                         
                         OutlinedTextField(
                             value = title,
-                            onValueChange = { title = it },
+                            onValueChange = { wizardState = wizardState.copy(title = it) },
                             label = { Text(stringResource(R.string.event_title)) },
                             placeholder = { Text(stringResource(R.string.event_title_hint)) },
                             modifier = Modifier.fillMaxWidth(),
@@ -400,7 +365,7 @@ fun DraftEventWizard(
                         
                         OutlinedTextField(
                             value = description,
-                            onValueChange = { description = it },
+                            onValueChange = { wizardState = wizardState.copy(description = it) },
                             label = { Text(stringResource(R.string.event_description)) },
                             placeholder = { Text(stringResource(R.string.event_description_hint)) },
                             modifier = Modifier.fillMaxWidth(),
@@ -412,8 +377,8 @@ fun DraftEventWizard(
                         EventTypeSelector(
                             selectedType = eventType,
                             customTypeValue = eventTypeCustom,
-                            onTypeSelected = { eventType = it },
-                            onCustomTypeChanged = { eventTypeCustom = it },
+                            onTypeSelected = { wizardState = wizardState.copy(eventType = it) },
+                            onCustomTypeChanged = { wizardState = wizardState.copy(eventTypeCustom = it) },
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -436,7 +401,7 @@ fun DraftEventWizard(
                             onValueChange = { newValue ->
                                 // Only allow digits
                                 if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                                    participantCount = newValue
+                                    wizardState = wizardState.copy(participantCount = newValue)
                                 }
                             },
                             label = { Text(stringResource(R.string.participant_count)) },
@@ -461,9 +426,11 @@ fun DraftEventWizard(
                         
                         PotentialLocationsList(
                             locations = locations,
-                            onAddLocation = { showLocationDialog = true },
+                            onAddLocation = { wizardState = wizardState.copy(showLocationDialog = true) },
                             onRemoveLocation = { locationId ->
-                                locations = locations.filter { it.id != locationId }
+                                wizardState = wizardState.copy(
+                                    locations = locations.filter { it.id != locationId }
+                                )
                             }
                         )
                     }
@@ -500,7 +467,7 @@ fun DraftEventWizard(
                         }
                         
                         FilledTonalButton(
-                            onClick = { showTimeSlotInput = true },
+                            onClick = { wizardState = wizardState.copy(showTimeSlotInput = true) },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(stringResource(R.string.add_time_slot))
@@ -511,8 +478,10 @@ fun DraftEventWizard(
                                 ElevatedCard(
                                     modifier = Modifier.fillMaxWidth(),
                                     onClick = {
-                                        editingTimeSlot = slot
-                                        showTimeSlotInput = true
+                                        wizardState = wizardState.copy(
+                                            editingTimeSlot = slot,
+                                            showTimeSlotInput = true
+                                        )
                                     }
                                 ) {
                                     Row(
@@ -575,7 +544,9 @@ fun DraftEventWizard(
                                         
                                         IconButton(
                                             onClick = {
-                                                timeSlots = timeSlots.filter { it.id != slot.id }
+                                                wizardState = wizardState.copy(
+                                                    timeSlots = timeSlots.filter { it.id != slot.id }
+                                                )
                                             }
                                         ) {
                                             Icon(
@@ -804,26 +775,30 @@ fun DraftEventWizard(
     }
     
     // Location dialog
-    if (showLocationDialog) {
+    if (wizardState.showLocationDialog) {
         LocationInputDialog(
-            onDismiss = { showLocationDialog = false },
+            onDismiss = { wizardState = wizardState.copy(showLocationDialog = false) },
             onConfirm = { location ->
-                locations = locations + location
-                showLocationDialog = false
+                wizardState = wizardState.copy(
+                    locations = locations + location,
+                    showLocationDialog = false
+                )
             },
             eventId = initialEvent?.id ?: "temp-event-id"
         )
     }
     
     // Time slot input dialog
-    if (showTimeSlotInput) {
+    if (wizardState.showTimeSlotInput) {
         // Track the current slot being created/edited
         var pendingTimeSlot by remember(editingTimeSlot) { mutableStateOf(editingTimeSlot) }
         
         AlertDialog(
             onDismissRequest = { 
-                showTimeSlotInput = false
-                editingTimeSlot = null
+                wizardState = wizardState.copy(
+                    showTimeSlotInput = false,
+                    editingTimeSlot = null
+                )
             },
             title = { Text(if (editingTimeSlot != null) stringResource(R.string.edit_time_slot_title) else stringResource(R.string.add_time_slot_title)) },
             text = {
@@ -840,14 +815,17 @@ fun DraftEventWizard(
                     onClick = {
                         // Only add/update the slot when user confirms
                         pendingTimeSlot?.let { slot ->
-                            if (editingTimeSlot != null) {
-                                timeSlots = timeSlots.map { if (it.id == editingTimeSlot?.id) slot else it }
+                            val updatedTimeSlots = if (editingTimeSlot != null) {
+                                timeSlots.map { if (it.id == editingTimeSlot.id) slot else it }
                             } else {
-                                timeSlots = timeSlots + slot
+                                timeSlots + slot
                             }
+                            wizardState = wizardState.copy(timeSlots = updatedTimeSlots)
                         }
-                        showTimeSlotInput = false
-                        editingTimeSlot = null
+                        wizardState = wizardState.copy(
+                            showTimeSlotInput = false,
+                            editingTimeSlot = null
+                        )
                     }
                 ) {
                     Text(stringResource(R.string.done))

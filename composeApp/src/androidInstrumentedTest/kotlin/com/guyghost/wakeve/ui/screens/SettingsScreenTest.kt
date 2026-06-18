@@ -55,7 +55,7 @@ class SettingsScreenTest {
      * THEN the language selector title is visible
      */
     @Test
-    fun `settings screen displays language title`() {
+    fun settings_screen_displays_language_title() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -74,7 +74,7 @@ class SettingsScreenTest {
      * THEN the language description is visible
      */
     @Test
-    fun `settings screen displays language description`() {
+    fun settings_screen_displays_language_description() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -93,7 +93,7 @@ class SettingsScreenTest {
      * THEN all three locales are visible (French, English, Spanish)
      */
     @Test
-    fun `settings screen displays all locale options`() {
+    fun settings_screen_displays_all_locale_options() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -112,7 +112,7 @@ class SettingsScreenTest {
      * THEN each locale name is in its native language/script
      */
     @Test
-    fun `locale options displayed in native script`() {
+    fun locale_options_displayed_in_native_script() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -133,7 +133,7 @@ class SettingsScreenTest {
      * THEN a clickable back button exists
      */
     @Test
-    fun `back button exists and is clickable`() {
+    fun back_button_exists_and_is_clickable() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -152,7 +152,7 @@ class SettingsScreenTest {
      * THEN the settings title is visible
      */
     @Test
-    fun `settings title is displayed`() {
+    fun settings_title_is_displayed() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -173,7 +173,7 @@ class SettingsScreenTest {
      * THEN the locale is changed to French
      */
     @Test
-    fun `selecting French locale works`() {
+    fun selecting_French_locale_works() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -195,7 +195,7 @@ class SettingsScreenTest {
      * THEN the locale is changed to English
      */
     @Test
-    fun `selecting English locale works`() {
+    fun selecting_English_locale_works() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -217,7 +217,7 @@ class SettingsScreenTest {
      * THEN the locale is changed to Spanish
      */
     @Test
-    fun `selecting Spanish locale works`() {
+    fun selecting_Spanish_locale_works() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -239,7 +239,7 @@ class SettingsScreenTest {
      * THEN the onBack callback is invoked
      */
     @Test
-    fun `back button invokes callback`() {
+    fun back_button_invokes_callback() {
         var backClicked = false
         composeTestRule.setContent {
             SettingsScreen(onBack = { backClicked = true })
@@ -261,7 +261,7 @@ class SettingsScreenTest {
      * THEN each selection is applied correctly
      */
     @Test
-    fun `switching locales multiple times works`() {
+    fun switching_locales_multiple_times_works() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -289,7 +289,7 @@ class SettingsScreenTest {
      * THEN the screen displays in English
      */
     @Test
-    fun `settings screen displays in English`() {
+    fun settings_screen_displays_in_English() {
         LocalizationService.getInstance().setLocale(AppLocale.ENGLISH)
         
         composeTestRule.setContent {
@@ -308,7 +308,7 @@ class SettingsScreenTest {
      * THEN the screen displays in French
      */
     @Test
-    fun `settings screen displays in French`() {
+    fun settings_screen_displays_in_French() {
         LocalizationService.getInstance().setLocale(AppLocale.FRENCH)
         
         composeTestRule.setContent {
@@ -328,7 +328,7 @@ class SettingsScreenTest {
      * THEN the screen displays in Spanish
      */
     @Test
-    fun `settings screen displays in Spanish`() {
+    fun settings_screen_displays_in_Spanish() {
         LocalizationService.getInstance().setLocale(AppLocale.SPANISH)
         
         composeTestRule.setContent {
@@ -349,7 +349,7 @@ class SettingsScreenTest {
      * THEN locale options have accessibility labels
      */
     @Test
-    fun `locale options have accessibility support`() {
+    fun locale_options_have_accessibility_support() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -368,7 +368,7 @@ class SettingsScreenTest {
      * THEN it has an accessibility description
      */
     @Test
-    fun `back button has accessibility label`() {
+    fun back_button_has_accessibility_label() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -388,7 +388,7 @@ class SettingsScreenTest {
      * THEN the selected locale is still active
      */
     @Test
-    fun `locale selection persists after screen close`() {
+    fun locale_selection_persists_after_screen_close() {
         // First render - select French
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
@@ -412,7 +412,7 @@ class SettingsScreenTest {
      * THEN the last selected locale is active
      */
     @Test
-    fun `multiple locale changes persist correctly`() {
+    fun multiple_locale_changes_persist_correctly() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -436,7 +436,7 @@ class SettingsScreenTest {
      * THEN all locale options are visible (not cut off)
      */
     @Test
-    fun `locale options are visible and properly spaced`() {
+    fun locale_options_are_visible_and_properly_spaced() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }
@@ -455,7 +455,7 @@ class SettingsScreenTest {
      * THEN the screen is responsive to content
      */
     @Test
-    fun `screen layout is responsive`() {
+    fun screen_layout_is_responsive() {
         composeTestRule.setContent {
             SettingsScreen(onBack = {})
         }

@@ -15,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,9 +28,14 @@ import androidx.core.content.ContextCompat
 import com.guyghost.wakeve.contacts.ContactParticipantCandidate
 import com.guyghost.wakeve.contacts.loadAndroidContactParticipantCandidates
 import com.guyghost.wakeve.repository.EventRepositoryInterface
+import com.guyghost.wakeve.analytics.AnalyticsEvent
+import com.guyghost.wakeve.analytics.AnalyticsProvider
 import com.guyghost.wakeve.ParticipantManagementScreen
+import com.guyghost.wakeve.PollVotingState
 import com.guyghost.wakeve.PollResultsScreen
 import com.guyghost.wakeve.PollVotingScreen
+import com.guyghost.wakeve.ui.event.toPollResultsUiState
+import com.guyghost.wakeve.viewmodel.PollViewModel
 import org.koin.compose.koinInject
 
 /**
@@ -112,11 +118,36 @@ fun PollVotingScreenWrapper(
             )
         }
         else -> {
+            val pollViewModel = remember(eventId, participantId) {
+                PollViewModel(
+                    eventRepository = repository,
+                    eventId = eventId,
+                    analyticsProvider = NoOpAnalyticsProvider
+                )
+            }
+            val selectedVotes by pollViewModel.selectedVotes.collectAsState()
+            val isVoting by pollViewModel.isVoting.collectAsState()
+            val errorMessage by pollViewModel.errorMessage.collectAsState()
+            val hasSubmitted by pollViewModel.hasSubmitted.collectAsState()
+
             PollVotingScreen(
                 event = event,
-                repository = repository,
-                participantId = participantId,
-                onVoteSubmitted = { onVoteSubmitted() }
+                state = PollVotingState(
+                    eventId = event.id,
+                    participantId = participantId,
+                    votes = selectedVotes,
+                    hasVoted = hasSubmitted,
+                    isSubmitting = isVoting,
+                    errorMessage = errorMessage
+                ),
+                onVoteChange = pollViewModel::selectVote,
+                onSubmitVotes = {
+                    pollViewModel.submitVotes(
+                        event = event,
+                        participantId = participantId,
+                        onSuccess = onVoteSubmitted
+                    )
+                }
             )
         }
     }
@@ -143,14 +174,52 @@ fun PollResultsScreenWrapper(
             )
         }
         else -> {
+            val pollViewModel = remember(eventId, userId) {
+                PollViewModel(
+                    eventRepository = repository,
+                    eventId = eventId,
+                    analyticsProvider = NoOpAnalyticsProvider
+                )
+            }
+            val poll by pollViewModel.poll.collectAsState()
+            val selectedSlotId by pollViewModel.selectedFinalSlotId.collectAsState()
+            val isConfirming by pollViewModel.isConfirmingFinalDate.collectAsState()
+            val confirmationError by pollViewModel.confirmationError.collectAsState()
+            val hasConfirmed by pollViewModel.hasConfirmedFinalDate.collectAsState()
+            val isOrganizer = remember(eventId, userId, event) {
+                repository.isOrganizer(eventId, userId)
+            }
+            val uiState = event.toPollResultsUiState(
+                poll = poll,
+                isOrganizer = isOrganizer,
+                selectedSlotId = selectedSlotId,
+                isConfirming = isConfirming,
+                hasConfirmed = hasConfirmed,
+                errorMessage = confirmationError
+            )
+
             PollResultsScreen(
-                event = event,
-                repository = repository,
-                userId = userId,
-                onDateConfirmed = { onDateConfirmed() }
+                state = uiState,
+                onSlotSelected = pollViewModel::selectFinalSlot,
+                onConfirmFinalDate = {
+                    pollViewModel.confirmFinalDate(
+                        event = event,
+                        userId = userId,
+                        onSuccess = onDateConfirmed
+                    )
+                },
+                onBack = onBack
             )
         }
     }
+}
+
+private object NoOpAnalyticsProvider : AnalyticsProvider {
+    override fun trackEvent(event: AnalyticsEvent, properties: Map<String, Any?>) = Unit
+    override fun setUserProperty(name: String, value: String) = Unit
+    override fun setUserId(userId: String?) = Unit
+    override fun setEnabled(enabled: Boolean) = Unit
+    override fun clearUserData() = Unit
 }
 
 /**

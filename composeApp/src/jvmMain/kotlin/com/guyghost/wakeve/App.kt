@@ -29,6 +29,7 @@ import com.guyghost.wakeve.security.JvmSecureTokenStorage
 import com.guyghost.wakeve.sync.JvmNetworkStatusDetector
 import com.guyghost.wakeve.sync.KtorSyncHttpClient
 import com.guyghost.wakeve.sync.SyncManager
+import com.guyghost.wakeve.ui.event.toPollResultsUiState
 import kotlinx.coroutines.launch
 
 /**
@@ -245,22 +246,16 @@ fun App() {
                             }
                         }
                         Screen.EVENT_CREATION -> {
-                            EventCreationScreen(
-                                userId = state.userId,
-                                onEventCreated = { event ->
-                                    scope.launch {
-                                        repository.createEvent(event).onSuccess {
-                                            appState = appState.copy(
-                                                currentEventId = event.id,
-                                                currentScreen = Screen.PARTICIPANT_MANAGEMENT
-                                            )
-                                        }
+                            Column {
+                                Text("Event creation is available in the Android app via DraftEventWizard.")
+                                Button(
+                                    onClick = {
+                                        appState = appState.copy(currentScreen = Screen.HOME)
                                     }
-                                },
-                                onBack = {
-                                    appState = appState.copy(currentScreen = Screen.HOME)
+                                ) {
+                                    Text("Back")
                                 }
-                            )
+                            }
                         }
                         Screen.PARTICIPANT_MANAGEMENT -> {
                             val event = repository.getEvent(appState.currentEventId ?: "")
@@ -283,15 +278,51 @@ fun App() {
                         Screen.POLL_VOTING -> {
                             val event = repository.getEvent(appState.currentEventId ?: "")
                             if (event != null) {
+                                var selectedVotes by remember(event.id, state.userId) {
+                                    mutableStateOf<Map<String, Vote>>(emptyMap())
+                                }
+                                var isSubmitting by remember(event.id, state.userId) { mutableStateOf(false) }
+                                var errorMessage by remember(event.id, state.userId) { mutableStateOf<String?>(null) }
+                                var hasSubmitted by remember(event.id, state.userId) { mutableStateOf(false) }
+
                                 PollVotingScreen(
                                     event = event,
-                                    repository = repository,
-                                    participantId = state.userId,
-                                    onVoteSubmitted = { eventId ->
-                                        appState = appState.copy(
-                                            currentEventId = eventId,
-                                            currentScreen = Screen.POLL_RESULTS
-                                        )
+                                    state = PollVotingState(
+                                        eventId = event.id,
+                                        participantId = state.userId,
+                                        votes = selectedVotes,
+                                        hasVoted = hasSubmitted,
+                                        isSubmitting = isSubmitting,
+                                        errorMessage = errorMessage
+                                    ),
+                                    onVoteChange = { slotId, vote ->
+                                        selectedVotes = selectedVotes + (slotId to vote)
+                                        errorMessage = null
+                                    },
+                                    onSubmitVotes = onSubmit@{
+                                        if (selectedVotes.size != event.proposedSlots.size) {
+                                            errorMessage = "Please vote on all time slots"
+                                            return@onSubmit
+                                        }
+
+                                        scope.launch {
+                                            isSubmitting = true
+                                            errorMessage = null
+                                            val failure = selectedVotes.entries.firstNotNullOfOrNull { (slotId, vote) ->
+                                                repository.addVote(event.id, state.userId, slotId, vote)
+                                                    .exceptionOrNull()
+                                            }
+                                            isSubmitting = false
+                                            if (failure == null) {
+                                                hasSubmitted = true
+                                                appState = appState.copy(
+                                                    currentEventId = event.id,
+                                                    currentScreen = Screen.POLL_RESULTS
+                                                )
+                                            } else {
+                                                errorMessage = failure.message ?: "Failed to submit vote"
+                                            }
+                                        }
                                     }
                                 )
                             }
@@ -299,13 +330,51 @@ fun App() {
                         Screen.POLL_RESULTS -> {
                             val event = repository.getEvent(appState.currentEventId ?: "")
                             if (event != null) {
+                                val poll = repository.getPoll(event.id)
+                                var selectedFinalSlotId by remember(event.id, state.userId) {
+                                    mutableStateOf<String?>(null)
+                                }
+                                var isConfirming by remember(event.id, state.userId) { mutableStateOf(false) }
+                                var confirmationError by remember(event.id, state.userId) { mutableStateOf<String?>(null) }
+                                var hasConfirmed by remember(event.id, state.userId) { mutableStateOf(false) }
+                                val pollResultsState = event.toPollResultsUiState(
+                                    poll = poll,
+                                    isOrganizer = repository.isOrganizer(event.id, state.userId),
+                                    selectedSlotId = selectedFinalSlotId,
+                                    isConfirming = isConfirming,
+                                    hasConfirmed = hasConfirmed,
+                                    errorMessage = confirmationError
+                                )
+
                                 PollResultsScreen(
-                                    event = event,
-                                    repository = repository,
-                                    userId = state.userId,
-                                    onDateConfirmed = { eventId ->
-                                        // Could navigate to event details or home
-                                        appState = appState.copy(currentEventId = eventId)
+                                    state = pollResultsState,
+                                    onSlotSelected = { selectedFinalSlotId = it },
+                                    onConfirmFinalDate = onConfirmFinalDate@{
+                                        val selectedSlot = event.proposedSlots.firstOrNull { it.id == selectedFinalSlotId }
+                                        if (selectedSlot == null) {
+                                            confirmationError = "Select a time slot before confirming"
+                                            return@onConfirmFinalDate
+                                        }
+                                        scope.launch {
+                                            isConfirming = true
+                                            val result = repository.updateEventStatus(
+                                                event.id,
+                                                EventStatus.CONFIRMED,
+                                                selectedSlot.start
+                                            )
+                                            isConfirming = false
+                                            result
+                                                .onSuccess {
+                                                    hasConfirmed = true
+                                                    appState = appState.copy(currentEventId = event.id)
+                                                }
+                                                .onFailure { failure ->
+                                                    confirmationError = failure.message ?: "Failed to confirm final date"
+                                                }
+                                        }
+                                    },
+                                    onBack = {
+                                        appState = appState.copy(currentScreen = Screen.HOME)
                                     }
                                 )
                             }

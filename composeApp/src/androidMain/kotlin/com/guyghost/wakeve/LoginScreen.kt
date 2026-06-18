@@ -1,6 +1,7 @@
 package com.guyghost.wakeve
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,7 +29,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -252,26 +256,14 @@ fun LoginScreen(
  */
 @Composable
 private fun AppBranding() {
-    // TODO: Add actual logo resource when available
-    Card(
-        modifier = Modifier.size(120.dp),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "W",
-                style = MaterialTheme.typography.displayLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-    }
+    Image(
+        painter = painterResource(id = R.drawable.wakeve_app_icon),
+        contentDescription = "Wakeve Logo",
+        modifier = Modifier
+            .size(120.dp)
+            .clip(MaterialTheme.shapes.large),
+        contentScale = ContentScale.Fit
+    )
 }
 
 /**

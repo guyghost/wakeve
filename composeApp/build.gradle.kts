@@ -127,6 +127,9 @@ kotlin {
         }
         
         androidUnitTest {
+            dependencies {
+                implementation(libs.kotlinx.coroutines.test)
+            }
             kotlin {
                 // Temporarily exclude JVM/Mockito-heavy test until migrated to KMP-friendly stack
                 exclude("**/viewmodel/SmartAlbumsViewModelTest.kt")
@@ -188,6 +191,8 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/LICENSE.md"
+            excludes += "/META-INF/LICENSE-notice.md"
         }
     }
     

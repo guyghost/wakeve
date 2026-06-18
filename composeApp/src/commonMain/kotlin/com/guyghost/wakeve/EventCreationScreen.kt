@@ -131,7 +131,7 @@ data class EventCreationState(
     message = "Use DraftEventWizard instead for better UX with multi-step wizard. " +
              "See docs/implementation/draft-event-wizard-guide.md for migration details.",
     replaceWith = ReplaceWith("DraftEventWizard"),
-    level = DeprecationLevel.WARNING
+    level = DeprecationLevel.ERROR
 )
 @Composable
 fun EventCreationScreen(

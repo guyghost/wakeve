@@ -102,7 +102,7 @@ class AppleSignInProviderTest {
      * THEN URL contains all required parameters with correct values
      */
     @Test
-    fun `getAuthorizationUrl contains correct base URL and parameters`() = runTest {
+    fun getAuthorizationUrl_contains_correct_base_URL_and_parameters() = runTest {
         // ACT
         val url = provider.getAuthorizationUrl(testClientId, testRedirectUri, testState)
 
@@ -122,7 +122,7 @@ class AppleSignInProviderTest {
      * THEN URL contains default scopes (name email)
      */
     @Test
-    fun `getAuthorizationUrl uses default scopes when not specified`() = runTest {
+    fun getAuthorizationUrl_uses_default_scopes_when_not_specified() = runTest {
         // ACT
         val url = provider.getAuthorizationUrl(testClientId, testRedirectUri, testState)
 
@@ -139,7 +139,7 @@ class AppleSignInProviderTest {
      * THEN URL contains the custom scopes
      */
     @Test
-    fun `getAuthorizationUrl uses custom scopes when specified`() = runTest {
+    fun getAuthorizationUrl_uses_custom_scopes_when_specified() = runTest {
         // ARRANGE
         val customScopes = listOf("email")
 
@@ -158,7 +158,7 @@ class AppleSignInProviderTest {
      * THEN URL contains empty scope parameter
      */
     @Test
-    fun `getAuthorizationUrl handles empty scopes`() = runTest {
+    fun getAuthorizationUrl_handles_empty_scopes() = runTest {
         // ARRANGE
         val emptyScopes = emptyList<String>()
 
@@ -179,7 +179,7 @@ class AppleSignInProviderTest {
      * THEN Result.success with AppleTokenResponse is returned
      */
     @Test
-    fun `exchangeCodeForTokens success returns AppleTokenResponse`() = runTest {
+    fun exchangeCodeForTokens_success_returns_AppleTokenResponse() = runTest {
         // ACT
         val result = provider.exchangeCodeForTokens(testCode, testClientId, testClientSecret, testRedirectUri)
 
@@ -201,7 +201,7 @@ class AppleSignInProviderTest {
      * THEN Result.success is returned (depends on Apple's response)
      */
     @Test
-    fun `exchangeCodeForTokens works without client secret`() = runTest {
+    fun exchangeCodeForTokens_works_without_client_secret() = runTest {
         // ACT
         val result = provider.exchangeCodeForTokens(testCode, testClientId, null, testRedirectUri)
 
@@ -223,7 +223,7 @@ class AppleSignInProviderTest {
      * THEN Result.failure with AppleSignInException is returned
      */
     @Test
-    fun `exchangeCodeForTokens invalid code returns failure`() = runTest {
+    fun exchangeCodeForTokens_invalid_code_returns_failure() = runTest {
         // ARRANGE - Create mock engine that returns error
         val errorMockEngine = MockEngine { _ ->
             respond(
@@ -257,7 +257,7 @@ class AppleSignInProviderTest {
      * THEN Result.failure with AppleSignInException is returned
      */
     @Test
-    fun `exchangeCodeForTokens network error returns failure`() = runTest {
+    fun exchangeCodeForTokens_network_error_returns_failure() = runTest {
         // ARRANGE
         val networkErrorEngine = MockEngine { _ ->
             throw Exception("Network error")
@@ -289,7 +289,7 @@ class AppleSignInProviderTest {
      * THEN Result.success with AppleUserInfo containing all user data is returned
      */
     @Test
-    fun `parseIdToken success extracts complete user information`() = runTest {
+    fun parseIdToken_success_extracts_complete_user_information() = runTest {
         // ACT
         val result = provider.parseIdToken(validIdToken)
 
@@ -311,7 +311,7 @@ class AppleSignInProviderTest {
      * THEN user info is extracted successfully
      */
     @Test
-    fun `parseIdToken validates correct Apple issuer`() = runTest {
+    fun parseIdToken_validates_correct_Apple_issuer() = runTest {
         // ACT
         val result = provider.parseIdToken(validIdToken)
 
@@ -329,7 +329,7 @@ class AppleSignInProviderTest {
      * THEN Result.failure with AppleSignInException is returned
      */
     @Test
-    fun `parseIdToken malformed JWT returns failure`() = runTest {
+    fun parseIdToken_malformed_JWT_returns_failure() = runTest {
         // ARRANGE
         val malformedJWT = "not.a.valid.jwt"
 
@@ -350,7 +350,7 @@ class AppleSignInProviderTest {
      * THEN Result.failure is returned
      */
     @Test
-    fun `parseIdToken empty JWT returns failure`() = runTest {
+    fun parseIdToken_empty_JWT_returns_failure() = runTest {
         // ACT
         val result = provider.parseIdToken("")
 
@@ -368,7 +368,7 @@ class AppleSignInProviderTest {
      * THEN Result.failure with issuer validation error is returned
      */
     @Test
-    fun `parseIdToken invalid issuer returns failure`() = runTest {
+    fun parseIdToken_invalid_issuer_returns_failure() = runTest {
         // ARRANGE
         // JWT with invalid issuer: {"iss":"https://evil.com","sub":"test.user.123"}
         val invalidIssuerJWT = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2V2aWwuY29tIiwic3ViIjoidGVzdC51c2VyLjEyMyJ9."
@@ -391,7 +391,7 @@ class AppleSignInProviderTest {
      * THEN Result.failure with missing sub error is returned
      */
     @Test
-    fun `parseIdToken missing sub claim returns failure`() = runTest {
+    fun parseIdToken_missing_sub_claim_returns_failure() = runTest {
         // ARRANGE
         // JWT without sub: {"iss":"https://appleid.apple.com","email":"user@icloud.com"}
         val noSubJWT = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2FwcGxlaWQuYXBwbGUuY29tIiwiZW1haWwiOiJ1c2VyQGljbG91ZC5jb20ifQ."
@@ -416,7 +416,7 @@ class AppleSignInProviderTest {
      * THEN AppleUserInfo with null email is returned
      */
     @Test
-    fun `parseIdToken no email returns user info with null email`() = runTest {
+    fun parseIdToken_no_email_returns_user_info_with_null_email() = runTest {
         // ACT
         val result = provider.parseIdToken(idTokenNoEmail)
 
@@ -437,7 +437,7 @@ class AppleSignInProviderTest {
      * THEN AppleUserInfo with null name is returned
      */
     @Test
-    fun `parseIdToken no name returns user info with null name`() = runTest {
+    fun parseIdToken_no_name_returns_user_info_with_null_name() = runTest {
         // ACT
         val result = provider.parseIdToken(idTokenNoName)
 
@@ -459,7 +459,7 @@ class AppleSignInProviderTest {
      * THEN AppleUserInfo with emailVerified=false is returned
      */
     @Test
-    fun `parseIdToken unverified email returns emailVerified false`() = runTest {
+    fun parseIdToken_unverified_email_returns_emailVerified_false() = runTest {
         // ARRANGE
         // JWT with unverified email: {"iss":"https://appleid.apple.com","sub":"test.user.123","email":"user@icloud.com","email_verified":false}
         val unverifiedEmailJWT = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2FwcGxlaWQuYXBwbGUuY29tIiwic3ViIjoidGVzdC51c2VyLjEyMyIsImVtYWlsIjoidXNlckBpY2xvdWQuY29tIiwiZW1haWxfdmVyaWZpZWQiOmZhbHNlfQ."
@@ -484,7 +484,7 @@ class AppleSignInProviderTest {
      * THEN AppleUserInfo with first name only is returned
      */
     @Test
-    fun `parseIdToken name with only first name returns first name`() = runTest {
+    fun parseIdToken_name_with_only_first_name_returns_first_name() = runTest {
         // ARRANGE
         // JWT with only first name: {"iss":"https://appleid.apple.com","sub":"test.user.123","email":"user@icloud.com","email_verified":true,"name":{"firstName":"John"}}
         val firstNameOnlyJWT = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2FwcGxlaWQuYXBwbGUuY29tIiwic3ViIjoidGVzdC51c2VyLjEyMyIsImVtYWlsIjoidXNlckBpY2xvdWQuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOnsiZmlyc3ROYW1lIjoiSm9obiJ9fQ."
@@ -507,7 +507,7 @@ class AppleSignInProviderTest {
      * THEN AppleUserInfo with last name only is returned
      */
     @Test
-    fun `parseIdToken name with only last name returns last name`() = runTest {
+    fun parseIdToken_name_with_only_last_name_returns_last_name() = runTest {
         // ARRANGE
         // JWT with only last name: {"iss":"https://appleid.apple.com","sub":"test.user.123","email":"user@icloud.com","email_verified":true,"name":{"lastName":"Doe"}}
         val lastNameOnlyJWT = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpc3MiOiJodHRwczovL2FwcGxlaWQuYXBwbGUuY29tIiwic3ViIjoidGVzdC51c2VyLjEyMyIsImVtYWlsIjoidXNlckBpY2xvdWQuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOnsibGFzdE5hbWUiOiJEb2UifX0."

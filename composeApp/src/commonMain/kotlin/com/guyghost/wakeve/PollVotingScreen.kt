@@ -2,14 +2,15 @@ package com.guyghost.wakeve
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContentPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AssistChip
@@ -18,167 +19,137 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.testTag
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
-import com.guyghost.wakeve.repository.EventRepositoryInterface
-import kotlinx.coroutines.launch
+import com.guyghost.wakeve.ui.designsystem.WakeveButtonGroup
+import com.guyghost.wakeve.ui.designsystem.WakeveCard
+import com.guyghost.wakeve.ui.designsystem.WakeveProgressIndicator
+import com.guyghost.wakeve.ui.designsystem.WakeveSize
+import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
 
 data class PollVotingState(
     val eventId: String = "",
     val participantId: String = "",
     val votes: Map<String, Vote> = emptyMap(),
     val hasVoted: Boolean = false,
-    val isError: Boolean = false,
-    val errorMessage: String = ""
+    val isSubmitting: Boolean = false,
+    val errorMessage: String? = null
 )
 
 @Composable
 fun PollVotingScreen(
     event: Event,
-    repository: EventRepositoryInterface,
-    participantId: String,
-    onVoteSubmitted: (String) -> Unit
+    state: PollVotingState,
+    onVoteChange: (slotId: String, vote: Vote) -> Unit,
+    onSubmitVotes: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    var state by remember {
-        mutableStateOf(PollVotingState(eventId = event.id, participantId = participantId))
-    }
-    val scope = rememberCoroutineScope()
-
-    Column(
-        modifier = Modifier
-            .background(MaterialTheme.colorScheme.background)
-            .safeContentPadding()
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        Text(
-            "Vote on Time Slots",
-            style = MaterialTheme.typography.headlineLarge,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        Text(
-            "Event: ${event.title}",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
-
-        // Deadline Info
-        Card(
+    Scaffold(
+        modifier = modifier.testTag("poll_voting_screen"),
+        containerColor = MaterialTheme.colorScheme.background
+    ) { paddingValues ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                .background(MaterialTheme.colorScheme.background)
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(WakeveSpacing.md)
         ) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text(
-                    "Voting Deadline",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    event.deadline,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
+            Text(
+                "Vote on Time Slots",
+                style = MaterialTheme.typography.headlineLarge,
+                modifier = Modifier.padding(bottom = WakeveSpacing.sm)
+            )
+            Text(
+                "Event: ${event.title}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = WakeveSpacing.lg)
+            )
 
-        // Time Slots Voting
-        Text(
-            "Proposed Time Slots",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-
-        LazyColumn(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(event.proposedSlots) { slot ->
-                TimeSlotVoteCard(
-                    slot = slot,
-                    currentVote = state.votes[slot.id],
-                    onVoteChange = { vote ->
-                        state = state.copy(
-                            votes = state.votes + (slot.id to vote),
-                            isError = false
-                        )
-                    }
-                )
-            }
-        }
-
-        // Error Display
-        if (state.isError) {
-            Card(
+            WakeveCard(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                    .padding(bottom = WakeveSpacing.md)
             ) {
-                Text(
-                    state.errorMessage,
-                    modifier = Modifier.padding(12.dp),
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-
-        // Submit Button
-        Button(
-            onClick = {
-                // Validate all slots have votes
-                if (state.votes.size != event.proposedSlots.size) {
-                    state = state.copy(
-                        isError = true,
-                        errorMessage = "Please vote on all time slots"
+                Column {
+                    Text(
+                        "Voting Deadline",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                } else {
-                    // Submit votes
-                    scope.launch {
-                        var allSuccess = true
-                        state.votes.forEach { (slotId, vote) ->
-                            val result = repository.addVote(
-                                event.id,
-                                state.participantId,
-                                slotId,
-                                vote
-                            )
-                            if (result.isFailure) {
-                                allSuccess = false
-                                state = state.copy(
-                                    isError = true,
-                                    errorMessage = result.exceptionOrNull()?.message ?: "Failed to submit vote"
-                                )
-                            }
-                        }
-                        if (allSuccess) {
-                            state = state.copy(hasVoted = true)
-                            onVoteSubmitted(event.id)
-                        }
-                    }
+                    Text(
+                        event.deadline,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            enabled = state.votes.size == event.proposedSlots.size && !state.hasVoted
-        ) {
-            Text("Submit Votes", style = MaterialTheme.typography.labelLarge)
+            }
+
+            Text(
+                "Proposed Time Slots",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = WakeveSpacing.sm)
+            )
+
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(bottom = WakeveSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)
+            ) {
+                items(event.proposedSlots, key = { it.id }) { slot ->
+                    TimeSlotVoteCard(
+                        slot = slot,
+                        currentVote = state.votes[slot.id],
+                        onVoteChange = { vote -> onVoteChange(slot.id, vote) }
+                    )
+                }
+            }
+
+            if (state.errorMessage != null) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = WakeveSpacing.sm),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
+                ) {
+                    Text(
+                        state.errorMessage,
+                        modifier = Modifier.padding(WakeveSpacing.sm),
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
+            Button(
+                onClick = onSubmitVotes,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = WakeveSize.minTouchTarget),
+                enabled = state.votes.size == event.proposedSlots.size &&
+                    !state.hasVoted &&
+                    !state.isSubmitting
+            ) {
+                if (state.isSubmitting) {
+                    Box(contentAlignment = Alignment.Center) {
+                        WakeveProgressIndicator(modifier = Modifier.size(WakeveSize.progressIndicator))
+                    }
+                } else {
+                    Text(
+                        if (state.hasVoted) "Votes submitted" else "Submit Votes",
+                        style = MaterialTheme.typography.labelLarge
+                    )
+                }
+            }
         }
     }
 }
@@ -192,11 +163,11 @@ fun TimeSlotVoteCard(
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(WakeveSpacing.md)) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
+                    .padding(bottom = WakeveSpacing.sm),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
@@ -216,11 +187,7 @@ fun TimeSlotVoteCard(
             }
 
             // Vote Options
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+            WakeveButtonGroup {
                 VoteButton(
                     label = "Yes",
                     vote = Vote.YES,
@@ -254,7 +221,7 @@ fun RowScope.VoteButton(
     Button(
         onClick = onClick,
         modifier = Modifier
-            .height(40.dp)
+            .heightIn(min = WakeveSize.minTouchTarget)
             .weight(1f),
         colors = if (isSelected) {
             ButtonDefaults.buttonColors()
