@@ -1335,6 +1335,7 @@ struct EventDetailView: View {
     @State private var isGeneratingEventAI = false
     @State private var eventAIError: String?
     @State private var moderationTarget: ModerationActionTarget?
+    @StateObject private var eventWeatherViewModel = EventWeatherViewModel()
 
     var body: some View {
         ZStack {
@@ -1345,6 +1346,7 @@ struct EventDetailView: View {
                 VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
                     heroSection
                     metadataOverview
+                    EventWeatherMapCard(state: eventWeatherViewModel.state)
                     eventAISuggestionPanel
                     urgentNextAction
                     participantsPreview
@@ -1372,6 +1374,9 @@ struct EventDetailView: View {
         }
         .sheet(item: $moderationTarget) { target in
             ModerationActionSheet(target: target)
+        }
+        .task(id: event.id) {
+            await eventWeatherViewModel.load(event: event)
         }
     }
 

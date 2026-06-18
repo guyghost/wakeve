@@ -8,6 +8,7 @@ final class PremiumEventDetailContractTests: XCTestCase {
 
         XCTAssertTrue(content.contains("EventHeroCard("))
         XCTAssertTrue(content.contains("metadataOverview"))
+        XCTAssertTrue(content.contains("EventWeatherMapCard(state: eventWeatherViewModel.state)"))
         XCTAssertTrue(content.contains("urgentNextAction"))
         XCTAssertTrue(content.contains("participantsPreview"))
         XCTAssertTrue(content.contains("messagePreview"))
@@ -41,6 +42,16 @@ final class PremiumEventDetailContractTests: XCTestCase {
             content.contains("StateMachine("),
             "Event Detail should keep presentation local and not instantiate shared state machines."
         )
+    }
+
+    func testEventDetailWeatherCardUsesWeatherKitAndMapKit() throws {
+        let source = try readProjectFile("iosApp/src/Components/EventWeatherMapCard.swift")
+
+        XCTAssertTrue(source.contains("import WeatherKit"))
+        XCTAssertTrue(source.contains("import MapKit"))
+        XCTAssertTrue(source.contains("WeatherService.shared"))
+        XCTAssertTrue(source.contains("MKLocalSearch"))
+        XCTAssertTrue(source.contains("potentialLocationQueries"))
     }
 
     private func readProjectFile(_ relativePath: String) throws -> String {
