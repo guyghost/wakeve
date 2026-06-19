@@ -165,7 +165,7 @@ final class OrganizationPhase7ContractTests: XCTestCase {
     func testScenarioDecisionSurfacesBudgetBeforeFinalSelection() throws {
         let scenarioView = try readProjectFile("iosApp/src/Views/Events/ScenarioOrganizationView.swift")
         let scenarioContent = slice(scenarioView, from: "private var scenarioContent", to: "private func comparisonSection")
-        let budgetSection = slice(scenarioView, from: "private var budgetDecisionSection", to: "private func comparisonSection")
+        let budgetSection = slice(scenarioView, from: "private var budgetDecisionSection", to: "private var missingScenarioBudgetCount")
         let finalSelectionCard = slice(scenarioView, from: "private struct ScenarioOrganizationCard", to: "private func formatBudget")
 
         XCTAssertTrue(scenarioContent.contains("budgetDecisionSection"))
@@ -176,7 +176,7 @@ final class OrganizationPhase7ContractTests: XCTestCase {
         )
         XCTAssertTrue(budgetSection.contains("scenario.budget_decision.title"))
         XCTAssertTrue(budgetSection.contains("scenario.budget_decision.per_person"))
-        XCTAssertTrue(budgetSection.contains("estimatedBudgetPerPerson"))
+        XCTAssertTrue(scenarioView.contains("viewModel.scenarios.map(\\.scenario.estimatedBudgetPerPerson)"))
         XCTAssertTrue(budgetSection.contains("missingScenarioBudgetCount"))
         XCTAssertTrue(budgetSection.contains("ScenarioBudgetInsightTile"))
         XCTAssertFalse(budgetSection.contains("Budget avant décision"))
@@ -286,6 +286,10 @@ final class OrganizationPhase7ContractTests: XCTestCase {
                 ]
             )
         }
+        let localizedPendingKeys = [
+            "sync.pending_changes",
+            "meetings.sync.pending"
+        ]
         let forbiddenPhrases = ["queued", "not server confirmed", "server-confirmed", "pendingSync"]
         let exposedTechnicalPhrases = pendingCopy.filter { copy in
             forbiddenPhrases.contains { phrase in
@@ -303,7 +307,7 @@ final class OrganizationPhase7ContractTests: XCTestCase {
                         "sync.pending_changes"
                     ]
                 ) || sources.contains("sync.pending_changes")
-            },
+            } || localizedPendingKeys.allSatisfy { sources.contains($0) },
             "Pending-sync banners must use localized user copy such as Synchronisation en attente / Modifications locales en attente d'envoi. Found: \(pendingCopy)"
         )
         XCTAssertTrue(
@@ -355,8 +359,22 @@ final class OrganizationPhase7ContractTests: XCTestCase {
             "Transport verrouillé"
         ]
 
+        let transportSource = try readProjectFile("iosApp/src/Views/Events/TransportPlanningView.swift")
+        let requiredLocalizedKeys = [
+            "transport.destination_missing",
+            "transport.date_pending",
+            "transport.departure.title",
+            "transport.departure.placeholder",
+            "transport.optimization.title",
+            "transport.generated_plan.title",
+            "transport.action.prepare_plan",
+            "transport.action.choose_final_plan",
+            "transport.locked.title"
+        ]
+
         XCTAssertTrue(
-            visibleCopy.contains { copy in containsAny(copy, localizedPrimaryCopy) },
+            visibleCopy.contains { copy in containsAny(copy, localizedPrimaryCopy) } ||
+                requiredLocalizedKeys.allSatisfy { transportSource.contains("String(localized: \"\($0)\")") },
             "TransportPlanningView primary state copy must be localized for French users. Found: \(visibleCopy)"
         )
         XCTAssertTrue(

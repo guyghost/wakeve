@@ -24,12 +24,13 @@ final class PremiumInvitationContractTests: XCTestCase {
 
     func testParticipantInviteCardProvidesReadyToSendSocialMessage() throws {
         let source = try readProjectFile("iosApp/src/Views/Events/ParticipantManagementView.swift")
-        let inviteCard = slice(source, from: "private var invitationShareCard", to: "private var canStartPoll")
+        let inviteCard = slice(source, from: "private var invitationShareCard", to: "private var statusSummary")
+        let copyAction = slice(source, from: "private func copyInvitationMessage", to: "private func presentInvitationPreview")
 
         XCTAssertTrue(inviteCard.contains("ShareLink(item: invitationShareMessage)"))
         XCTAssertTrue(inviteCard.contains("copyInvitationMessage"))
-        XCTAssertTrue(inviteCard.contains("UIPasteboard.general.string = invitationShareMessage"))
-        XCTAssertTrue(inviteCard.contains("WakeveHaptics.success()"))
+        XCTAssertTrue(copyAction.contains("UIPasteboard.general.string = invitationShareMessage"))
+        XCTAssertTrue(copyAction.contains("WakeveHaptics.success()"))
         XCTAssertTrue(inviteCard.contains("invitation.copy_message"))
         XCTAssertTrue(inviteCard.contains("invitation.copied_message"))
         XCTAssertTrue(source.contains("invitation.social_share_text"))
