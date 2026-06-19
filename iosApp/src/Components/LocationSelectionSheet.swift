@@ -380,8 +380,7 @@ struct LocationSelectionSheet: View {
     }
     
     private func triggerVoiceSearch() {
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
+        WakeveHaptics.success()
     }
     
     private func confirmSelection() {

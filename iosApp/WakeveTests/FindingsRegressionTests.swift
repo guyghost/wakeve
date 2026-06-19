@@ -86,6 +86,147 @@ final class FindingsRegressionTests: XCTestCase {
         XCTAssertTrue(french.contains("\"profile.third_party_notices\" = \"Notices tierces\""))
     }
 
+    func testAuthAndOnboardingProveWakeveValueBeforeSignIn() throws {
+        let login = try readProjectFile("iosApp/src/Views/Auth/LoginView.swift")
+        let onboarding = try readProjectFile("iosApp/src/Views/Auth/OnboardingView.swift")
+        let english = try readProjectFile("iosApp/src/Resources/en.lproj/Localizable.strings")
+        let french = try readProjectFile("iosApp/src/Resources/fr.lproj/Localizable.strings")
+
+        XCTAssertTrue(login.contains("loginValueProofCard"))
+        XCTAssertTrue(login.contains("auth.value_proof_title"))
+        XCTAssertTrue(login.contains("auth.value_proof_relaunch"))
+        XCTAssertTrue(login.contains("LoginProofRow"))
+        XCTAssertTrue(onboarding.contains("OnboardingProofCard"))
+        XCTAssertTrue(onboarding.contains("proofTitle: String(localized: \"onboarding.proof.create_title\")"))
+        XCTAssertTrue(onboarding.contains("proofTitle: String(localized: \"onboarding.proof.enjoy_title\")"))
+        XCTAssertTrue(english.contains("Why Wakeve beats the thread"))
+        XCTAssertTrue(english.contains("WhatsApp or Messages"))
+        XCTAssertTrue(french.contains("Pourquoi Wakeve bat le groupe"))
+        XCTAssertTrue(french.contains("WhatsApp ou Messages"))
+    }
+
+    func testLoginAppleSignInErrorsUseLocalizedTrustCopy() throws {
+        let login = try readProjectFile("iosApp/src/Views/Auth/LoginView.swift")
+        let requiredKeys = [
+            "auth.error.sign_in_failed_retry",
+            "auth.error.invalid_response",
+            "auth.error.not_handled",
+            "auth.error.unknown",
+            "auth.error.sign_in_failed_format",
+            "auth.error.authentication_failed_format"
+        ]
+
+        for key in requiredKeys {
+            XCTAssertTrue(login.contains("String(localized: \"\(key)\")"), "LoginView must use localized key \(key).")
+        }
+
+        XCTAssertFalse(login.contains("Sign-in failed. Please try again."))
+        XCTAssertFalse(login.contains("Invalid response from Apple. Please try again."))
+        XCTAssertFalse(login.contains("Sign-in request not handled."))
+        XCTAssertFalse(login.contains("An unknown error occurred."))
+        XCTAssertFalse(login.contains("Sign-in failed: \\("))
+        XCTAssertFalse(login.contains("Authentication failed: \\("))
+
+        for locale in ["en", "fr", "es", "it", "pt"] {
+            let strings = try readProjectFile("iosApp/src/Resources/\(locale).lproj/Localizable.strings")
+            for key in requiredKeys {
+                XCTAssertTrue(strings.contains("\"\(key)\""), "Missing localized auth error key \(key) for \(locale).")
+            }
+        }
+    }
+
+    func testProfilePrioritizesOrganizerTrustOverGamification() throws {
+        let profile = try readProjectFile("iosApp/src/Views/Profile/ProfileTabView.swift")
+        let profileViewModel = try readProjectFile("iosApp/src/ViewModels/ProfileViewModel.swift")
+        let hierarchy = slice(profile, from: "VStack(spacing: WakeveTheme.Spacing.xl)", to: "PreferencesSection(userId: userId)")
+        let english = try readProjectFile("iosApp/src/Resources/en.lproj/Localizable.strings")
+        let french = try readProjectFile("iosApp/src/Resources/fr.lproj/Localizable.strings")
+
+        XCTAssertTrue(hierarchy.contains("ProfileReliabilitySection()"))
+        XCTAssertFalse(hierarchy.contains("GamificationSummarySection()"))
+        XCTAssertFalse(hierarchy.contains("ProfileTabBadgesSection()"))
+        XCTAssertFalse(hierarchy.contains("LeaderboardLinkSection("))
+        XCTAssertFalse(profile.contains("struct GamificationSummarySection"))
+        XCTAssertFalse(profile.contains("ProfileTabBadgeItemView"))
+        XCTAssertFalse(profile.contains("badgeSystemImage: \"sparkles\""))
+        XCTAssertFalse(profile.contains("showDashboard"))
+        XCTAssertTrue(profile.contains("OrganizerUtilitySection()"))
+        XCTAssertTrue(profile.contains("profileOrganizerUtilitySection"))
+        XCTAssertTrue(profile.contains("profile.organizer.dashboard_title"))
+        XCTAssertTrue(profile.contains("profileReliabilitySection"))
+        XCTAssertTrue(profile.contains("profileIdentityReadyPill"))
+        XCTAssertTrue(profile.contains("profile.identity_ready"))
+        XCTAssertTrue(profile.contains("profile.reliability.invite_title"))
+        XCTAssertTrue(profile.contains("profile.reliability.privacy_detail"))
+        XCTAssertTrue(english.contains("Organizer confidence"))
+        XCTAssertTrue(english.contains("Identity ready for invites"))
+        XCTAssertTrue(english.contains("Event dashboards live inside events"))
+        XCTAssertTrue(french.contains("Confiance organisateur"))
+        XCTAssertTrue(french.contains("Identité prête pour les invitations"))
+        XCTAssertTrue(french.contains("Les tableaux de bord vivent dans les événements"))
+        XCTAssertTrue(profileViewModel.contains("leaderboard.you"))
+        XCTAssertTrue(profileViewModel.contains("badges = []"))
+        XCTAssertTrue(profileViewModel.contains("leaderboard = []"))
+        XCTAssertTrue(profileViewModel.contains("wakeve_guest_user_id"))
+        XCTAssertFalse(profileViewModel.contains("Mock data for demonstration"))
+        XCTAssertFalse(profileViewModel.contains("Alice Martin"))
+        XCTAssertFalse(profileViewModel.contains("totalPoints: 1250"))
+        XCTAssertFalse(profileViewModel.contains("Premier Événement"))
+        XCTAssertFalse(profileViewModel.contains("Maître du Vote"))
+        XCTAssertFalse(profileViewModel.contains("username: \"Vous\""))
+    }
+
+    func testLeaderboardDoesNotShowFakeSocialProof() throws {
+        let leaderboard = try readProjectFile("iosApp/src/Views/Explore/LeaderboardView.swift")
+        let english = try readProjectFile("iosApp/src/Resources/en.lproj/Localizable.strings")
+        let french = try readProjectFile("iosApp/src/Resources/fr.lproj/Localizable.strings")
+
+        XCTAssertTrue(leaderboard.contains("WakeveScreenBackground(style: .grouped)"))
+        XCTAssertTrue(leaderboard.contains("WakeveContentCard(prominence: .prominent"))
+        XCTAssertTrue(leaderboard.contains("leaderboardEmptyState"))
+        XCTAssertTrue(leaderboard.contains("leaderboard.empty.title"))
+        XCTAssertTrue(leaderboard.contains("init(entries: [LeaderboardEntryData] = [])"))
+        XCTAssertFalse(leaderboard.contains("mockData"))
+        XCTAssertFalse(leaderboard.contains("Mock data"))
+        XCTAssertFalse(leaderboard.contains("Simulate network refresh"))
+        XCTAssertFalse(leaderboard.contains("Alice Martin"))
+        XCTAssertFalse(leaderboard.contains("Bob Dupont"))
+        XCTAssertFalse(leaderboard.contains("totalPoints: 1250"))
+        XCTAssertTrue(english.contains("\"leaderboard.empty.title\" = \"No trusted ranking yet\""))
+        XCTAssertTrue(french.contains("\"leaderboard.empty.title\" = \"Aucun classement fiable pour l’instant\""))
+    }
+
+    func testOperationalLogisticsCopyIsLocalizedAcrossCoreSurfaces() throws {
+        let photoPermissions = try readProjectFile("iosApp/src/PhotoPickerPermissionHandler.swift")
+        let notifications = try readProjectFile("iosApp/src/ViewModels/NotificationPreferencesViewModel.swift")
+        let meals = try readProjectFile("iosApp/src/Views/Events/MealPlanningSheets.swift")
+        let english = try readProjectFile("iosApp/src/Resources/en.lproj/Localizable.strings")
+        let french = try readProjectFile("iosApp/src/Resources/fr.lproj/Localizable.strings")
+
+        XCTAssertTrue(photoPermissions.contains("photos.permission.disabled_title"))
+        XCTAssertTrue(photoPermissions.contains("photos.permission.disabled_message"))
+        XCTAssertFalse(photoPermissions.contains("Accès aux photos désactivé"))
+        XCTAssertTrue(notifications.contains("notifications.type.event_invite"))
+        XCTAssertTrue(notifications.contains("notifications.type.payment_due"))
+        XCTAssertFalse(notifications.contains("Invitation événement"))
+        XCTAssertTrue(meals.contains("meal.form.name"))
+        XCTAssertTrue(meals.contains("meal.auto.estimated_count_format"))
+        XCTAssertTrue(meals.contains("meal.dietary.constraint_type"))
+        XCTAssertFalse(meals.contains("Nom du repas"))
+        XCTAssertFalse(meals.contains("Génération automatique"))
+
+        for key in [
+            "photos.permission.disabled_title",
+            "budget.item.shared_cost_format",
+            "notifications.type.payment_due",
+            "meal.validation.start_before_end",
+            "meal.dietary.lactose_intolerant"
+        ] {
+            XCTAssertTrue(english.contains("\"\(key)\""), "Missing English localized key: \(key)")
+            XCTAssertTrue(french.contains("\"\(key)\""), "Missing French localized key: \(key)")
+        }
+    }
+
     func testUgcModerationReportBlockControlsAreReviewerVisible() throws {
         let commentItem = try readProjectFile("iosApp/src/Views/Collaboration/CommentItemView.swift")
         let commentList = try readProjectFile("iosApp/src/Views/Collaboration/CommentListView.swift")
@@ -135,11 +276,70 @@ final class FindingsRegressionTests: XCTestCase {
 
     func testParticipantManagementRequiresAtLeastOneProposedSlotBeforeStartingPoll() throws {
         let source = try readProjectFile("iosApp/src/Views/Events/ParticipantManagementView.swift")
-        let canStartPoll = slice(source, from: "private var canStartPoll", to: "private var heroColors")
+        let canStartPoll = slice(source, from: "private var canStartPoll", to: "private var hasTimezoneCoordinationContext")
 
         XCTAssertTrue(
             canStartPoll.contains("!event.proposedSlots.isEmpty"),
             "A draft poll must not be startable until at least one time slot exists."
+        )
+        XCTAssertFalse(
+            canStartPoll.contains("!participantRows.isEmpty"),
+            "Invitation-first sharing must allow starting the poll before manually adding email/contact participants."
+        )
+        XCTAssertTrue(
+            source.contains("participants.draft_status.link_ready"),
+            "Draft status should explain that the share link can carry guests into the poll."
+        )
+    }
+
+    func testParticipantManagementSurfacesTimezoneCoordinationForInternationalGuests() throws {
+        let source = try readProjectFile("iosApp/src/Views/Events/ParticipantManagementView.swift")
+        let timezoneCard = slice(source, from: "private var timezoneCoordinationCard", to: "@ViewBuilder")
+
+        XCTAssertTrue(source.contains("participantTimezoneCoordinationCard"))
+        XCTAssertTrue(source.contains("hasTimezoneCoordinationContext"))
+        XCTAssertTrue(source.contains("!event.proposedSlots.isEmpty"))
+        XCTAssertTrue(source.contains("event.proposedSlots"))
+        XCTAssertTrue(source.contains("map(\\.timezone)"))
+        XCTAssertTrue(source.contains("TimeZone.current.identifier"))
+        XCTAssertTrue(source.contains("timezoneDisplayName"))
+        XCTAssertTrue(timezoneCard.contains("ParticipantTimezoneCoordinationCard"))
+        XCTAssertTrue(timezoneCard.contains("participants.timezone.footnote"))
+
+        for locale in ["en", "fr", "es", "it", "pt"] {
+            let strings = try readProjectFile("iosApp/src/Resources/\(locale).lproj/Localizable.strings")
+            for key in [
+                "participants.timezone.title",
+                "participants.timezone.single_subtitle_format",
+                "participants.timezone.multi_subtitle_format",
+                "participants.timezone.event_label",
+                "participants.timezone.local_label",
+                "participants.timezone.options_label",
+                "participants.timezone.options_format",
+                "participants.timezone.same_badge",
+                "participants.timezone.local_badge",
+                "participants.timezone.footnote"
+            ] {
+                XCTAssertTrue(strings.contains("\"\(key)\""), "Missing localized participant timezone key \(key) for \(locale).")
+            }
+        }
+    }
+
+    func testEventNextActionDoesNotBlockInvitationFirstPollsOnParticipants() throws {
+        let source = try readProjectFile("iosApp/src/Views/Events/HomeView.swift")
+        let nextAction = slice(source, from: "struct EventNextAction", to: "// MARK: - Event Theme")
+
+        XCTAssertTrue(
+            nextAction.contains("let hasSlots = !event.proposedSlots.isEmpty"),
+            "Draft next action should stay gated by concrete poll options."
+        )
+        XCTAssertFalse(
+            nextAction.contains("let hasParticipants = !event.participants.isEmpty"),
+            "Draft next action must not require manual participants because share links can collect guests."
+        )
+        XCTAssertFalse(
+            nextAction.contains("events.next_action.draft.blocked.participants"),
+            "The primary action should not block an invitation-first poll when only participants are missing."
         )
     }
 

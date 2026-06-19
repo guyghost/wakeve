@@ -32,16 +32,16 @@ struct MealFormSheet: View {
         NavigationView {
             Form {
                 // Basic info section
-                Section("Informations") {
-                    TextField("Nom du repas", text: $name)
+                Section(String(localized: "meal.form.info")) {
+                    TextField(String(localized: "meal.form.name"), text: $name)
                     
-                     Picker("Type", selection: $selectedType) {
+                     Picker(String(localized: "meal.form.type"), selection: $selectedType) {
                          ForEach(MealType.allCases, id: \.self) { type in
                              Text(displayName(for: type)).tag(type)
                          }
                      }
                     
-                     Picker("Statut", selection: $selectedStatus) {
+                     Picker(String(localized: "meal.form.status"), selection: $selectedStatus) {
                          ForEach(MealStatus.allCases, id: \.self) { status in
                              Text(displayName(for: status)).tag(status)
                          }
@@ -49,33 +49,33 @@ struct MealFormSheet: View {
                 }
                 
                 // Date and time section
-                Section("Date et heure") {
-                    DatePicker("Date", selection: $date, displayedComponents: .date)
-                    DatePicker("Heure", selection: $time, displayedComponents: .hourAndMinute)
+                Section(String(localized: "meal.form.date_time")) {
+                    DatePicker(String(localized: "meal.form.date"), selection: $date, displayedComponents: .date)
+                    DatePicker(String(localized: "meal.form.time"), selection: $time, displayedComponents: .hourAndMinute)
                 }
                 
                 // Location section
-                Section("Lieu") {
-                    TextField("Lieu (optionnel)", text: $location)
+                Section(String(localized: "meal.form.location_section")) {
+                    TextField(String(localized: "meal.form.location_placeholder"), text: $location)
                 }
                 
                 // Cost and servings section
-                Section("Coût et portions") {
+                Section(String(localized: "meal.form.cost_servings")) {
                     HStack {
-                        TextField("Coût estimé", text: $estimatedCost)
+                        TextField(String(localized: "meal.form.estimated_cost"), text: $estimatedCost)
                         Text("€")
                             .foregroundColor(.secondary)
                     }
                     
                     HStack {
-                        TextField("Nombre de personnes", text: $servings)
-                        Text("pers.")
+                        TextField(String(localized: "meal.form.servings"), text: $servings)
+                        Text(String(localized: "meal.form.people_abbrev"))
                             .foregroundColor(.secondary)
                     }
                 }
                 
                 // Responsible participants section
-                Section("Responsables") {
+                Section(String(localized: "meal.form.responsibles")) {
                     ForEach(participants, id: \.id) { participant in
                         Button {
                             toggleParticipant(participant.id)
@@ -97,12 +97,12 @@ struct MealFormSheet: View {
                 }
                 
                 // Notes section
-                Section("Notes") {
+                Section(String(localized: "meal.form.notes")) {
                     TextEditor(text: $notes)
                         .frame(minHeight: 80)
                 }
             }
-            .navigationTitle(isEditing ? "Modifier le repas" : "Nouveau repas")
+            .navigationTitle(isEditing ? String(localized: "meal.form.edit_title") : String(localized: "meal.form.new_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -116,8 +116,8 @@ struct MealFormSheet: View {
                     }
                 }
             }
-            .alert("Erreur de validation", isPresented: $showValidationError) {
-                Button("OK", role: .cancel) {}
+            .alert(String(localized: "meal.validation.title"), isPresented: $showValidationError) {
+                Button(String(localized: "common.ok"), role: .cancel) {}
             } message: {
                 Text(validationMessage)
             }
@@ -165,19 +165,19 @@ struct MealFormSheet: View {
     private func saveMeal() {
         // Validate
         if name.isEmpty {
-            validationMessage = "Le nom du repas est requis"
+            validationMessage = String(localized: "meal.validation.name_required")
             showValidationError = true
             return
         }
         
         guard let cost = Double(estimatedCost.replacingOccurrences(of: ",", with: ".")), cost >= 0 else {
-            validationMessage = "Le coût doit être un nombre positif"
+            validationMessage = String(localized: "meal.validation.cost_positive")
             showValidationError = true
             return
         }
         
         guard let servingsInt = Int(servings), servingsInt > 0 else {
-            validationMessage = "Le nombre de personnes doit être supérieur à 0"
+            validationMessage = String(localized: "meal.validation.servings_positive")
             showValidationError = true
             return
         }
@@ -218,21 +218,21 @@ struct MealFormSheet: View {
     
     private func displayName(for type: MealType) -> String {
         switch type {
-        case .breakfast: return "Petit-déjeuner"
-        case .lunch: return "Déjeuner"
-        case .dinner: return "Dîner"
-        case .snack: return "Goûter"
-        case .aperitif: return "Apéritif"
+        case .breakfast: return String(localized: "meal.type.breakfast")
+        case .lunch: return String(localized: "meal.type.lunch")
+        case .dinner: return String(localized: "meal.type.dinner")
+        case .snack: return String(localized: "meal.type.snack")
+        case .aperitif: return String(localized: "meal.type.aperitif")
         }
     }
     
     private func displayName(for status: MealStatus) -> String {
         switch status {
-        case .planned: return "Planifié"
-        case .assigned: return "Assigné"
-        case .inProgress: return "En cours"
-        case .completed: return "Terminé"
-        case .cancelled: return "Annulé"
+        case .planned: return String(localized: "meal.status.planned")
+        case .assigned: return String(localized: "meal.status.assigned")
+        case .inProgress: return String(localized: "meal.status.in_progress")
+        case .completed: return String(localized: "meal.status.completed")
+        case .cancelled: return String(localized: "meal.status.cancelled")
         }
     }
 }
@@ -255,22 +255,22 @@ struct AutoGenerateMealsSheet: View {
     @State private var validationMessage = ""
     
     private let mealTypes = [
-        (MealType.breakfast, "Petit-déjeuner", "cup.and.saucer.fill"),
-        (MealType.lunch, "Déjeuner", "fork.knife"),
-        (MealType.dinner, "Dîner", "moon.stars.fill"),
-        (MealType.snack, "Goûter", "birthday.cake.fill"),
-        (MealType.aperitif, "Apéritif", "wineglass.fill")
+        (MealType.breakfast, String(localized: "meal.type.breakfast"), "cup.and.saucer.fill"),
+        (MealType.lunch, String(localized: "meal.type.lunch"), "fork.knife"),
+        (MealType.dinner, String(localized: "meal.type.dinner"), "moon.stars.fill"),
+        (MealType.snack, String(localized: "meal.type.snack"), "birthday.cake.fill"),
+        (MealType.aperitif, String(localized: "meal.type.aperitif"), "wineglass.fill")
     ]
     
     var body: some View {
         NavigationView {
             Form {
-                Section("Période") {
-                    DatePicker("Date de début", selection: $startDate, displayedComponents: .date)
-                    DatePicker("Date de fin", selection: $endDate, displayedComponents: .date)
+                Section(String(localized: "meal.auto.period")) {
+                    DatePicker(String(localized: "meal.auto.start_date"), selection: $startDate, displayedComponents: .date)
+                    DatePicker(String(localized: "meal.auto.end_date"), selection: $endDate, displayedComponents: .date)
                 }
                 
-                Section("Types de repas") {
+                Section(String(localized: "meal.auto.meal_types")) {
                      ForEach(mealTypes, id: \.0) { type in
                          Button {
                              toggleMealType(type.0)
@@ -293,25 +293,25 @@ struct AutoGenerateMealsSheet: View {
                      }
                  }
                 
-                Section("Budget") {
+                Section(String(localized: "meal.auto.budget")) {
                     HStack {
-                        TextField("Coût estimé par repas", text: $estimatedCostPerMeal)
+                        TextField(String(localized: "meal.auto.estimated_cost_per_meal"), text: $estimatedCostPerMeal)
                         Text("€")
                             .foregroundColor(.secondary)
                     }
                     
-                    Text("\(participantCount) participants")
+                    Text(String(format: String(localized: "meal.auto.participant_count_format"), Int64(participantCount)))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
                 
                 Section {
-                    Text("Un total de \(estimatedMealCount) repas sera généré.")
+                    Text(String(format: String(localized: "meal.auto.estimated_count_format"), Int64(estimatedMealCount)))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
             }
-            .navigationTitle("Génération automatique")
+            .navigationTitle(String(localized: "meal.auto.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -320,13 +320,13 @@ struct AutoGenerateMealsSheet: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Préparer") {
+                    Button(String(localized: "meal.auto.prepare")) {
                         generateMeals()
                     }
                 }
             }
-            .alert("Erreur de validation", isPresented: $showValidationError) {
-                Button("OK", role: .cancel) {}
+            .alert(String(localized: "meal.validation.title"), isPresented: $showValidationError) {
+                Button(String(localized: "common.ok"), role: .cancel) {}
             } message: {
                 Text(validationMessage)
             }
@@ -349,19 +349,19 @@ struct AutoGenerateMealsSheet: View {
     private func generateMeals() {
         // Validate
         if startDate > endDate {
-            validationMessage = "La date de début doit être avant la date de fin"
+            validationMessage = String(localized: "meal.validation.start_before_end")
             showValidationError = true
             return
         }
         
         if selectedMealTypes.isEmpty {
-            validationMessage = "Sélectionnez au moins un type de repas"
+            validationMessage = String(localized: "meal.validation.select_type")
             showValidationError = true
             return
         }
         
         guard let costPerMeal = Double(estimatedCostPerMeal.replacingOccurrences(of: ",", with: ".")), costPerMeal >= 0 else {
-            validationMessage = "Le coût doit être un nombre positif"
+            validationMessage = String(localized: "meal.validation.cost_positive")
             showValidationError = true
             return
         }
@@ -426,15 +426,15 @@ struct AutoGenerateMealsSheet: View {
     private func defaultName(for type: MealType, date: Date) -> String {
         let dayFormatter = DateFormatter()
         dayFormatter.dateFormat = "EEEE"
-        dayFormatter.locale = Locale(identifier: "fr_FR")
+        dayFormatter.locale = .current
         let dayOfWeek = dayFormatter.string(from: date).capitalized
         
         switch type {
-        case .breakfast: return "Petit-déjeuner"
-        case .lunch: return "Déjeuner"
-        case .dinner: return "Dîner du \(dayOfWeek)"
-        case .snack: return "Goûter"
-        case .aperitif: return "Apéritif"
+        case .breakfast: return String(localized: "meal.type.breakfast")
+        case .lunch: return String(localized: "meal.type.lunch")
+        case .dinner: return String(format: String(localized: "meal.default_name.dinner_format"), dayOfWeek)
+        case .snack: return String(localized: "meal.type.snack")
+        case .aperitif: return String(localized: "meal.type.aperitif")
         }
     }
 }
@@ -461,7 +461,7 @@ struct DietaryRestrictionsSheet: View {
                     restrictionsList
                 }
             }
-            .navigationTitle("Contraintes alimentaires")
+            .navigationTitle(String(localized: "meal.dietary.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -550,11 +550,11 @@ struct DietaryRestrictionsSheet: View {
                 .font(.system(size: 64))
                 .foregroundColor(.green)
             
-            Text("Aucune contrainte")
+            Text(String(localized: "meal.dietary.empty_title"))
                 .font(.title2)
                 .fontWeight(.bold)
             
-            Text("Ajoutez les contraintes alimentaires des participants.")
+            Text(String(localized: "meal.dietary.empty_body"))
                 .font(.body)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -563,7 +563,7 @@ struct DietaryRestrictionsSheet: View {
             Button {
                 showAddSheet = true
             } label: {
-                Label("Ajouter", systemImage: "plus")
+                Label(String(localized: "meal.dietary.add"), systemImage: "plus")
                     .font(.headline)
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
@@ -583,16 +583,16 @@ struct DietaryRestrictionsSheet: View {
     
     private func formatRestriction(_ restriction: DietaryRestriction) -> String {
         switch restriction {
-        case .vegetarian: return "Végétarien"
-        case .vegan: return "Végétalien"
-        case .glutenFree: return "Sans gluten"
-        case .lactoseIntolerant: return "Intolérant au lactose"
-        case .nutAllergy: return "Allergie aux noix"
-        case .shellfishAllergy: return "Allergie aux fruits de mer"
-        case .kosher: return "Casher"
-        case .halal: return "Halal"
-        case .diabetic: return "Diabétique"
-        case .other: return "Autre"
+        case .vegetarian: return String(localized: "meal.dietary.vegetarian")
+        case .vegan: return String(localized: "meal.dietary.vegan")
+        case .glutenFree: return String(localized: "meal.dietary.gluten_free")
+        case .lactoseIntolerant: return String(localized: "meal.dietary.lactose_intolerant")
+        case .nutAllergy: return String(localized: "meal.dietary.nut_allergy")
+        case .shellfishAllergy: return String(localized: "meal.dietary.shellfish_allergy")
+        case .kosher: return String(localized: "meal.dietary.kosher")
+        case .halal: return String(localized: "meal.dietary.halal")
+        case .diabetic: return String(localized: "meal.dietary.diabetic")
+        case .other: return String(localized: "meal.dietary.other")
         }
     }
 }
@@ -611,44 +611,44 @@ struct AddDietaryRestrictionSheet: View {
     @State private var notes: String = ""
     
     private let restrictions = [
-        (DietaryRestriction.vegetarian, "Végétarien"),
-        (DietaryRestriction.vegan, "Végétalien"),
-        (DietaryRestriction.glutenFree, "Sans gluten"),
-        (DietaryRestriction.lactoseIntolerant, "Intolérant au lactose"),
-        (DietaryRestriction.nutAllergy, "Allergie aux noix"),
-        (DietaryRestriction.shellfishAllergy, "Allergie aux fruits de mer"),
-        (DietaryRestriction.kosher, "Casher"),
-        (DietaryRestriction.halal, "Halal"),
-        (DietaryRestriction.diabetic, "Diabétique"),
-        (DietaryRestriction.other, "Autre")
+        (DietaryRestriction.vegetarian, String(localized: "meal.dietary.vegetarian")),
+        (DietaryRestriction.vegan, String(localized: "meal.dietary.vegan")),
+        (DietaryRestriction.glutenFree, String(localized: "meal.dietary.gluten_free")),
+        (DietaryRestriction.lactoseIntolerant, String(localized: "meal.dietary.lactose_intolerant")),
+        (DietaryRestriction.nutAllergy, String(localized: "meal.dietary.nut_allergy")),
+        (DietaryRestriction.shellfishAllergy, String(localized: "meal.dietary.shellfish_allergy")),
+        (DietaryRestriction.kosher, String(localized: "meal.dietary.kosher")),
+        (DietaryRestriction.halal, String(localized: "meal.dietary.halal")),
+        (DietaryRestriction.diabetic, String(localized: "meal.dietary.diabetic")),
+        (DietaryRestriction.other, String(localized: "meal.dietary.other"))
     ]
     
     var body: some View {
         NavigationView {
             Form {
-                Section("Participant") {
-                    Picker("Sélectionner", selection: $selectedParticipantId) {
-                        Text("Choisir un participant").tag("")
+                Section(String(localized: "meal.dietary.participant")) {
+                    Picker(String(localized: "meal.dietary.select"), selection: $selectedParticipantId) {
+                        Text(String(localized: "meal.dietary.choose_participant")).tag("")
                         ForEach(participants, id: \.id) { participant in
                             Text(participant.name).tag(participant.id)
                         }
                     }
                 }
                 
-                Section("Type de contrainte") {
-                    Picker("Type", selection: $selectedRestriction) {
+                Section(String(localized: "meal.dietary.constraint_type")) {
+                    Picker(String(localized: "meal.form.type"), selection: $selectedRestriction) {
                         ForEach(restrictions, id: \.0) { restriction in
                             Text(restriction.1).tag(restriction.0)
                         }
                     }
                 }
                 
-                Section("Notes") {
+                Section(String(localized: "meal.form.notes")) {
                     TextEditor(text: $notes)
                         .frame(minHeight: 80)
                 }
             }
-            .navigationTitle("Ajouter une contrainte")
+            .navigationTitle(String(localized: "meal.dietary.add_title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

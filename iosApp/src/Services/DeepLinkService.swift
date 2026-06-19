@@ -13,6 +13,34 @@ enum DeepLinkType {
     case invite(token: String)
 }
 
+enum InvitationTokenCodec {
+    private static let eventPrefix = "event-"
+
+    static func invitationCode(forEventId eventId: String) -> String {
+        let encoded = Data(eventId.utf8)
+            .base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+        return "\(eventPrefix)\(encoded)"
+    }
+
+    static func eventId(fromInvitationCode code: String) -> String? {
+        guard code.hasPrefix(eventPrefix) else { return nil }
+        var payload = String(code.dropFirst(eventPrefix.count))
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+
+        let padding = payload.count % 4
+        if padding > 0 {
+            payload.append(String(repeating: "=", count: 4 - padding))
+        }
+
+        guard let data = Data(base64Encoded: payload) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+}
+
 /**
  * Deep link service for Wakeve iOS app.
  *

@@ -122,10 +122,16 @@ class InboxViewModel: ObservableObject {
         let date = Date(timeIntervalSince1970: Double(ms) / 1000.0)
         let interval = Date().timeIntervalSince(date)
 
-        if interval < 60 { return "À l'instant" }
-        if interval < 3600 { return "Il y a \(Int(interval / 60))m" }
-        if interval < 86400 { return "Il y a \(Int(interval / 3600))h" }
-        if interval < 604800 { return "Il y a \(Int(interval / 86400))j" }
+        if interval < 60 { return String(localized: "notifications.time.just_now") }
+        if interval < 3600 {
+            return String(format: String(localized: "notifications.time.minutes_ago"), Int64(interval / 60))
+        }
+        if interval < 86400 {
+            return String(format: String(localized: "notifications.time.hours_ago"), Int64(interval / 3600))
+        }
+        if interval < 604800 {
+            return String(format: String(localized: "notifications.time.days_ago"), Int64(interval / 86400))
+        }
 
         let df = DateFormatter()
         df.dateStyle = .short

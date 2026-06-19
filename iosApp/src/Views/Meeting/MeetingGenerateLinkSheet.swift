@@ -5,7 +5,7 @@ import Shared
  * MeetingGenerateLinkSheet - Sheet for generating meeting links
  *
  * Allows organizers to select a platform and generate a new meeting link.
- * Uses Liquid Glass design system.
+ * Uses the Wakeve design system.
  */
 
 struct MeetingGenerateLinkSheet: View {
@@ -30,25 +30,26 @@ struct MeetingGenerateLinkSheet: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(.systemGroupedBackground)
-                    .ignoresSafeArea()
+                WakeveScreenBackground(style: .grouped)
 
                 ScrollView {
-                    VStack(spacing: 24) {
-                        // Header
+                    VStack(spacing: WakeveTheme.Spacing.lg) {
                         headerSection
-
-                        // Platform selection
                         platformSelectionSection
-
-                        // Info text
                         infoSection
 
-                        Spacer()
-                            .frame(height: 20)
+                        WakeveActionButton(
+                            String(localized: "meetings.generate"),
+                            systemImage: "link",
+                            variant: .primary,
+                            isLoading: isGenerating
+                        ) {
+                            isGenerating = true
+                            WakeveHaptics.success()
+                            onGenerate(selectedPlatform)
+                        }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
+                    .padding(WakeveTheme.Spacing.page)
                 }
             }
             .navigationTitle(String(localized: "meetings.regenerate_link"))
@@ -58,14 +59,6 @@ struct MeetingGenerateLinkSheet: View {
                     Button(String(localized: "common.cancel"), action: onCancel)
                         .foregroundColor(.secondary)
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(String(localized: "meetings.generate")) {
-                        isGenerating = true
-                        onGenerate(selectedPlatform)
-                    }
-                    .fontWeight(.semibold)
-                    .disabled(isGenerating)
-                }
             }
         }
         .presentationDetents([.medium, .large])
@@ -74,44 +67,53 @@ struct MeetingGenerateLinkSheet: View {
     // MARK: - Header Section
 
     private var headerSection: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "link.circle.fill")
-                .font(.system(size: 48))
-                .foregroundColor(.wakevePrimary)
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(spacing: WakeveTheme.Spacing.md) {
+                Image(systemName: "link.circle.fill")
+                    .font(.system(size: 44, weight: .semibold))
+                    .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
+                    .frame(width: 74, height: 74)
+                    .background(WakeveTheme.ColorToken.permissionBlue.opacity(0.12))
+                    .clipShape(Circle())
 
-            Text(String(localized: "meetings.select_platform"))
-                .font(.title2.weight(.semibold))
-                .foregroundColor(.primary)
-                .multilineTextAlignment(.center)
+                Text(String(localized: "meetings.select_platform"))
+                    .font(WakeveTheme.Typography.title2)
+                    .foregroundColor(.primary)
+                    .multilineTextAlignment(.center)
 
-            Text(String(localized: "meetings.generate_link_description"))
-                .font(.body)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
+                Text(String(localized: "meetings.generate_link_description"))
+                    .font(WakeveTheme.Typography.body)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity)
         }
-        .padding(.vertical, 8)
     }
 
     // MARK: - Platform Selection Section
 
     private var platformSelectionSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(String(localized: "meetings.platform"))
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundColor(.primary)
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                Text(String(localized: "meetings.platform"))
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundColor(.primary)
 
-            LazyVGrid(columns: [
-                GridItem(.flexible(), spacing: 12),
-                GridItem(.flexible(), spacing: 12)
-            ], spacing: 12) {
-                ForEach([Shared.MeetingPlatform.zoom,
-                          Shared.MeetingPlatform.googleMeet,
-                          Shared.MeetingPlatform.facetime,
-                          Shared.MeetingPlatform.teams,
-                          Shared.MeetingPlatform.webex], id: \.self) { platform in
-                    platformOption(platform: platform)
+                LazyVGrid(columns: [
+                    GridItem(.flexible(), spacing: WakeveTheme.Spacing.sm),
+                    GridItem(.flexible(), spacing: WakeveTheme.Spacing.sm)
+                ], spacing: WakeveTheme.Spacing.sm) {
+                    ForEach([Shared.MeetingPlatform.zoom,
+                              Shared.MeetingPlatform.googleMeet,
+                              Shared.MeetingPlatform.facetime,
+                              Shared.MeetingPlatform.teams,
+                              Shared.MeetingPlatform.webex], id: \.self) { platform in
+                        platformOption(platform: platform)
+                    }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -120,6 +122,7 @@ struct MeetingGenerateLinkSheet: View {
     private func platformOption(platform: Shared.MeetingPlatform) -> some View {
         Button(action: {
             selectedPlatform = platform
+            WakeveHaptics.selection()
         }) {
             GenerateLinkPlatformOption(
                 platform: platform,
@@ -135,44 +138,22 @@ struct MeetingGenerateLinkSheet: View {
     // MARK: - Info Section
 
     private var infoSection: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "info.circle.fill")
-                .foregroundColor(.wakeveAccent)
-                .font(.system(size: 20))
+        WakeveContentCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.lg, padding: WakeveTheme.Spacing.md) {
+            HStack(spacing: WakeveTheme.Spacing.sm) {
+                Image(systemName: "info.circle.fill")
+                    .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
+                    .font(.system(size: 20))
 
-            Text(String(localized: "meetings.generate_link_info"))
-                .font(.caption)
-                .foregroundColor(.secondary)
+                Text(String(localized: "meetings.generate_link_info"))
+                    .font(WakeveTheme.Typography.metadata)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background(Color.wakeveAccent.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     // MARK: - Helpers
-
-    private func platformIcon(for platform: Shared.MeetingPlatform) -> String {
-        switch platform {
-        case .zoom: return "video.fill"
-        case .googleMeet: return "video.badge.plus"
-        case .facetime: return "video.fill"
-        case .teams: return "video.fill"
-        case .webex: return "video.fill"
-        default: return "video.fill"
-        }
-    }
-
-    private func platformColor(for platform: Shared.MeetingPlatform) -> Color {
-        switch platform {
-        case .zoom: return .wakevePrimary
-        case .googleMeet: return .wakeveSuccess
-        case .facetime: return .wakeveAccent
-        case .teams: return .iOSSystemBlue
-        case .webex: return .iOSSystemGreen
-        default: return .wakevePrimary
-        }
-    }
 
     private func platformName(for platform: Shared.MeetingPlatform) -> String {
         switch platform {
@@ -181,7 +162,7 @@ struct MeetingGenerateLinkSheet: View {
         case .facetime: return "FaceTime"
         case .teams: return "Microsoft Teams"
         case .webex: return "Webex"
-        default: return "Meeting"
+        default: return String(localized: "meetings.platform_other")
         }
     }
 }
@@ -191,7 +172,7 @@ struct MeetingGenerateLinkSheet: View {
 private struct GenerateLinkPlatformOption: View {
     let platform: Shared.MeetingPlatform
     let isSelected: Bool
-    
+
     var body: some View {
         VStack(spacing: 12) {
             ZStack {
@@ -203,63 +184,34 @@ private struct GenerateLinkPlatformOption: View {
                     .font(.system(size: 28))
                     .foregroundColor(platformColor)
             }
-            
+
             VStack(spacing: 4) {
                 Text(platformName)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(isSelected ? .wakevePrimary : .primary)
-                
+                    .font(WakeveTheme.Typography.metadata.weight(.semibold))
+                    .foregroundColor(isSelected ? WakeveTheme.ColorToken.permissionBlue : .primary)
+
                 if isSelected {
                     Text(String(localized: "common.selected"))
-                        .font(.caption)
-                        .foregroundColor(.wakevePrimary)
+                        .font(WakeveTheme.Typography.caption)
+                        .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
                 }
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .background(backgroundView)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .overlay(borderOverlay)
-    }
-    
-    @ViewBuilder
-    private var backgroundView: some View {
-        if isSelected {
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.wakevePrimary.opacity(0.15),
-                    Color.wakeveAccent.opacity(0.15)
-                ]),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        } else {
-            Color(.secondarySystemBackground)
-        }
-    }
-    
-    @ViewBuilder
-    private var borderOverlay: some View {
-        if isSelected {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+        .background(
+            isSelected ? WakeveTheme.ColorToken.permissionBlue.opacity(0.10) : Color.secondary.opacity(0.08),
+            in: RoundedRectangle(cornerRadius: WakeveTheme.Radius.lg, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: WakeveTheme.Radius.lg, style: .continuous)
                 .stroke(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            Color.wakevePrimary.opacity(0.5),
-                            Color.wakeveAccent.opacity(0.5)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 2
+                    isSelected ? WakeveTheme.ColorToken.permissionBlue.opacity(0.55) : Color.secondary.opacity(0.16),
+                    lineWidth: isSelected ? 1.5 : 1
                 )
-        } else {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(Color(.separator), lineWidth: 1)
-        }
+        )
     }
-    
+
     private var platformIcon: String {
         switch platform {
         case .zoom: return "video.fill"
@@ -270,18 +222,18 @@ private struct GenerateLinkPlatformOption: View {
         default: return "video.fill"
         }
     }
-    
+
     private var platformColor: Color {
         switch platform {
-        case .zoom: return .wakevePrimary
-        case .googleMeet: return .wakeveSuccess
-        case .facetime: return .wakeveAccent
-        case .teams: return .iOSSystemBlue
-        case .webex: return .iOSSystemGreen
-        default: return .wakevePrimary
+        case .zoom: return WakeveTheme.ColorToken.permissionBlue
+        case .googleMeet: return .green
+        case .facetime: return WakeveTheme.ColorToken.permissionBlue
+        case .teams: return .purple
+        case .webex: return .orange
+        default: return WakeveTheme.ColorToken.permissionBlue
         }
     }
-    
+
     private var platformName: String {
         switch platform {
         case .zoom: return "Zoom"
@@ -289,7 +241,7 @@ private struct GenerateLinkPlatformOption: View {
         case .facetime: return "FaceTime"
         case .teams: return "Microsoft Teams"
         case .webex: return "Webex"
-        default: return "Meeting"
+        default: return String(localized: "meetings.platform_other")
         }
     }
 }
@@ -309,8 +261,8 @@ struct MeetingGenerateLinkSheet_Previews: PreviewProvider {
             meetingUrl: "https://zoom.us/j/123456789",
             dialInNumber: nil,
             dialInPassword: nil,
-            title: "Réunion de planification",
-            description: "Discussion sur les détails de l'événement",
+            title: "Planning meeting",
+            description: "Discussion about event details",
             scheduledFor: Kotlinx_datetimeInstant.companion.fromEpochSeconds(epochSeconds: Int64(Date().timeIntervalSince1970), nanosecondAdjustment: 0),
             duration: 3600000000000, // 1 hour
             timezone: TimeZone.current.identifier,

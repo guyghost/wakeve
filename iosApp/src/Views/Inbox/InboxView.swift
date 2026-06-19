@@ -53,6 +53,7 @@ struct InboxView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
                         messagesHeader
+                        coordinationOverviewCard
                         searchField
 
                         if viewModel.isLoading {
@@ -78,7 +79,7 @@ struct InboxView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     if isSelectionMode {
-                        Button("Cancel") {
+                        Button(String(localized: "common.cancel")) {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                 isSelectionMode = false
                                 showActionBar = false
@@ -87,7 +88,7 @@ struct InboxView: View {
                         }
                     } else {
                         if !filteredItems.isEmpty {
-                            Button("Select") {
+                            Button(String(localized: "inbox.selection.select")) {
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                                     isSelectionMode = true
                                     showActionBar = true
@@ -98,7 +99,7 @@ struct InboxView: View {
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if isSelectionMode {
-                        Button("Select All") {
+                        Button(String(localized: "inbox.selection.select_all")) {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 selectedItemIds = Set(filteredItems.map { $0.id })
                             }
@@ -210,7 +211,7 @@ struct InboxView: View {
         case .inbox:
             return viewModel.items
         case .focused:
-            return viewModel.items.filter { $0.isFocused }
+            return viewModel.items.filter { $0.isFocused || $0.requiresAction }
         case .unread:
             return viewModel.items.filter { !$0.isRead }
         case .event:
@@ -221,13 +222,36 @@ struct InboxView: View {
         }
     }
 
+    private var coordinationOverviewCard: some View {
+        InboxCoordinationOverviewCard(
+            unreadCount: unreadMessageCount,
+            actionRequiredCount: actionRequiredCount,
+            eventCount: eventConversations.count,
+            onUnread: {
+                WakeveHaptics.selection()
+                selectedFilter = .unread
+                selectedEventFilter = nil
+            },
+            onActionRequired: {
+                WakeveHaptics.selection()
+                selectedFilter = .focused
+                selectedEventFilter = nil
+            },
+            onAllEvents: {
+                WakeveHaptics.selection()
+                selectedFilter = .inbox
+                selectedEventFilter = nil
+            }
+        )
+    }
+
     private var messagesHeader: some View {
         VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
-            Text("Messages")
+            Text(String(localized: "inbox.title"))
                 .font(WakeveTheme.Typography.largeTitle)
                 .foregroundColor(SemanticColor.primaryText(for: colorScheme))
 
-            Text("\(eventConversations.count) conversation\(eventConversations.count > 1 ? "s" : "") d’événement")
+            Text(eventConversationCountText(eventConversations.count))
                 .font(WakeveTheme.Typography.callout)
                 .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
         }
@@ -235,7 +259,7 @@ struct InboxView: View {
 
     private var searchField: some View {
         WakeveSearchField(
-            placeholder: "Rechercher un événement ou un message",
+            placeholder: String(localized: "inbox.search_placeholder"),
             text: $searchText
         )
     }
@@ -245,7 +269,7 @@ struct InboxView: View {
             ForEach(filteredConversations) { conversation in
                 if let latest = conversation.latestItem {
                     NavigationLink {
-                        InboxDetailView(item: latest)
+                        InboxDetailView(item: latest, conversationItems: conversation.items)
                             .onAppear {
                                 markConversationAsRead(conversation)
                             }
@@ -256,6 +280,14 @@ struct InboxView: View {
                 }
             }
         }
+    }
+
+    private var unreadMessageCount: Int {
+        viewModel.items.filter { !$0.isRead }.count
+    }
+
+    private var actionRequiredCount: Int {
+        viewModel.items.filter { $0.requiresAction }.count
     }
 
     private var eventConversations: [EventConversationPreview] {
@@ -270,7 +302,7 @@ struct InboxView: View {
             let latest = sortedItems.first
             return EventConversationPreview(
                 id: key,
-                eventName: latest?.eventName ?? "Conversation générale",
+                eventName: latest?.eventName ?? String(localized: "inbox.general_conversation"),
                 latestItem: latest,
                 items: sortedItems,
                 unreadCount: sortedItems.filter { !$0.isRead }.count,
@@ -283,6 +315,12 @@ struct InboxView: View {
             }
             return (lhs.latestItem?.id ?? "") > (rhs.latestItem?.id ?? "")
         }
+    }
+
+    private func eventConversationCountText(_ count: Int) -> String {
+        count == 1
+            ? String(format: String(localized: "inbox.event_conversation_count_singular_format"), count)
+            : String(format: String(localized: "inbox.event_conversation_count_plural_format"), count)
     }
 
     private var filteredConversations: [EventConversationPreview] {
@@ -372,7 +410,7 @@ struct InboxView: View {
     private var actionBarView: some View {
         HStack(spacing: 12) {
             ActionBarButton(
-                title: "Mark as Read",
+                title: String(localized: "inbox.action.mark_read"),
                 isEnabled: !selectedItemIds.isEmpty,
                 action: {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -383,7 +421,7 @@ struct InboxView: View {
             )
             
             ActionBarButton(
-                title: "Mark as Done",
+                title: String(localized: "inbox.action.mark_done"),
                 isEnabled: !selectedItemIds.isEmpty,
                 action: {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -450,6 +488,99 @@ struct InboxView: View {
         conversation.items.forEach { item in
             markItemAsRead(item.id)
         }
+    }
+}
+
+// MARK: - Coordination Overview
+
+private struct InboxCoordinationOverviewCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let unreadCount: Int
+    let actionRequiredCount: Int
+    let eventCount: Int
+    let onUnread: @MainActor () -> Void
+    let onActionRequired: @MainActor () -> Void
+    let onAllEvents: @MainActor () -> Void
+
+    var body: some View {
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+                    Label(String(localized: "inbox.coordination.title"), systemImage: "checklist.checked")
+                        .font(WakeveTheme.Typography.section)
+                        .foregroundColor(SemanticColor.primaryText(for: colorScheme))
+
+                    Text(String(localized: "inbox.coordination.subtitle"))
+                        .font(WakeveTheme.Typography.callout)
+                        .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    InboxCoordinationMetricButton(
+                        title: String(localized: "inbox.coordination.unread"),
+                        value: "\(unreadCount)",
+                        systemImage: "envelope.badge.fill",
+                        color: SemanticColor.selectedState(for: colorScheme),
+                        action: onUnread
+                    )
+                    InboxCoordinationMetricButton(
+                        title: String(localized: "inbox.coordination.action_required"),
+                        value: "\(actionRequiredCount)",
+                        systemImage: "exclamationmark.bubble.fill",
+                        color: SemanticColor.warning(for: colorScheme),
+                        action: onActionRequired
+                    )
+                    InboxCoordinationMetricButton(
+                        title: String(localized: "inbox.coordination.events"),
+                        value: "\(eventCount)",
+                        systemImage: "calendar.badge.clock",
+                        color: SemanticColor.confirmation(for: colorScheme),
+                        action: onAllEvents
+                    )
+                }
+            }
+        }
+        .accessibilityIdentifier("inboxCoordinationOverviewCard")
+    }
+}
+
+private struct InboxCoordinationMetricButton: View {
+    let title: String
+    let value: String
+    let systemImage: String
+    let color: Color
+    let action: @MainActor () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(color)
+                    .frame(width: 30, height: 30)
+                    .background(color.opacity(0.14))
+                    .clipShape(Circle())
+
+                Text(value)
+                    .font(WakeveTheme.Typography.rowTitle)
+                    .foregroundColor(color)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+
+                Text(title)
+                    .font(WakeveTheme.Typography.tiny)
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.76)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(WakeveTheme.Spacing.sm)
+            .background(color.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -571,51 +702,53 @@ struct EventFilterSheet: View {
     @Binding var selectedEvent: String?
     let onSelect: @MainActor () -> Void
     let onDismiss: @MainActor () -> Void
+    @Environment(\.colorScheme) private var colorScheme
     
     var body: some View {
-        NavigationView {
-            List {
-                // All events option
-                Section {
-                    Button {
-                        selectedEvent = nil
-                        onSelect()
-                        onDismiss()
-                    } label: {
-                        HStack {
-                            Text(String(localized: "inbox.all_events"))
-                                .foregroundColor(.primary)
-                            Spacer()
-                            if selectedEvent == nil {
-                                Image(systemName: "checkmark")
-                                    .foregroundColor(.blue)
-                            }
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                    WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+                        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+                            Label(String(localized: "inbox.filter_by_event"), systemImage: "line.3.horizontal.decrease.circle.fill")
+                                .font(WakeveTheme.Typography.title2)
+                                .foregroundColor(SemanticColor.primaryText(for: colorScheme))
+
+                            Text(String(localized: "inbox.events"))
+                                .font(WakeveTheme.Typography.callout)
+                                .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                         }
                     }
-                }
-                
-                // List of events
-                Section(header: Text(String(localized: "inbox.events"))) {
-                    ForEach(events, id: \.self) { event in
-                        Button {
-                            selectedEvent = event
+
+                    EventFilterOptionRow(
+                        title: String(localized: "inbox.all_events"),
+                        subtitle: String(localized: "inbox.filter_all_subtitle"),
+                        systemImage: "tray.full.fill",
+                        isSelected: selectedEvent == nil,
+                        action: {
+                            selectedEvent = nil
                             onSelect()
                             onDismiss()
-                        } label: {
-                            HStack {
-                                Text(event)
-                                    .foregroundColor(.primary)
-                                Spacer()
-                                if selectedEvent == event {
-                                    Image(systemName: "checkmark")
-                                        .foregroundColor(.blue)
-                                }
-                            }
                         }
+                    )
+
+                    ForEach(events, id: \.self) { event in
+                        EventFilterOptionRow(
+                            title: event,
+                            subtitle: String(localized: "inbox.filter_event_subtitle"),
+                            systemImage: "calendar",
+                            isSelected: selectedEvent == event,
+                            action: {
+                                selectedEvent = event
+                                onSelect()
+                                onDismiss()
+                            }
+                        )
                     }
                 }
+                .padding(WakeveTheme.Spacing.page)
             }
-            .listStyle(.insetGrouped)
+            .background(WakeveScreenBackground(style: .grouped))
             .navigationTitle(String(localized: "inbox.filter_by_event"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -626,6 +759,53 @@ struct EventFilterSheet: View {
                 }
             }
         }
+    }
+}
+
+private struct EventFilterOptionRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    let subtitle: String
+    let systemImage: String
+    let isSelected: Bool
+    let action: @MainActor () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            WakeveContentCard(prominence: isSelected ? .regular : .subtle, cornerRadius: WakeveTheme.Radius.lg, padding: WakeveTheme.Spacing.md) {
+                HStack(spacing: WakeveTheme.Spacing.md) {
+                    Image(systemName: systemImage)
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(isSelected ? .white : SemanticColor.selectedState(for: colorScheme))
+                        .frame(width: 42, height: 42)
+                        .background(isSelected ? SemanticColor.selectedState(for: colorScheme) : SemanticColor.selectedState(for: colorScheme).opacity(0.14))
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(title)
+                            .font(WakeveTheme.Typography.rowTitle)
+                            .foregroundColor(SemanticColor.primaryText(for: colorScheme))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.78)
+
+                        Text(subtitle)
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
+                            .lineLimit(2)
+                    }
+
+                    Spacer()
+
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title3.weight(.bold))
+                            .foregroundColor(SemanticColor.selectedState(for: colorScheme))
+                    }
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -673,7 +853,7 @@ private struct EventConversationRow: View {
                             .minimumScaleFactor(0.78)
 
                         if conversation.requiresAction {
-                            Text("Action")
+                            Text(String(localized: "inbox.action_required"))
                                 .font(WakeveTheme.Typography.tiny)
                                 .foregroundColor(SemanticColor.warning(for: colorScheme))
                                 .padding(.horizontal, WakeveTheme.Spacing.xs)
@@ -683,13 +863,13 @@ private struct EventConversationRow: View {
                         }
                     }
 
-                    Text(conversation.latestItem?.title ?? "Aucun message")
+                    Text(conversation.latestItem?.title ?? String(localized: "inbox.empty.no_message"))
                         .font(WakeveTheme.Typography.callout.weight(conversation.unreadCount > 0 ? .semibold : .regular))
                         .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                         .lineLimit(1)
                         .minimumScaleFactor(0.78)
 
-                    Text(conversation.latestItem?.message ?? "Les échanges de cet événement apparaîtront ici.")
+                    Text(conversation.latestItem?.message ?? String(localized: "inbox.conversation_fallback_message"))
                         .font(WakeveTheme.Typography.callout)
                         .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
                         .lineLimit(2)

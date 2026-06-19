@@ -46,6 +46,8 @@ struct LoginView: View {
 
                     welcomeTextView
 
+                    loginValueProofCard
+
                     signInSection
                 }
                 .padding(.horizontal, 24)
@@ -59,8 +61,31 @@ struct LoginView: View {
                 showError = false
             }
         } message: {
-            Text(errorMessage ?? "An unknown error occurred. Please try again.")
+            Text(errorMessage ?? String(localized: "auth.error.unknown"))
         }
+    }
+
+    private var loginValueProofCard: some View {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+
+                    Text(String(localized: "auth.value_proof_title"))
+                        .font(WakeveTheme.Typography.rowTitle)
+                        .foregroundColor(primaryTextColor)
+                }
+
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+                    LoginProofRow(text: String(localized: "auth.value_proof_invite"))
+                    LoginProofRow(text: String(localized: "auth.value_proof_decide"))
+                    LoginProofRow(text: String(localized: "auth.value_proof_relaunch"))
+                }
+            }
+        }
+        .accessibilityIdentifier("loginValueProofCard")
     }
     
     // MARK: - Background Components
@@ -378,28 +403,37 @@ struct LoginView: View {
                             // User cancelled - don't show error
                             break
                         case .failed:
-                            errorMessage = "Sign-in failed. Please try again."
+                            errorMessage = String(localized: "auth.error.sign_in_failed_retry")
                             showError = true
                         case .invalidResponse:
-                            errorMessage = "Invalid response from Apple. Please try again."
+                            errorMessage = String(localized: "auth.error.invalid_response")
                             showError = true
                         case .notHandled:
-                            errorMessage = "Sign-in request not handled."
+                            errorMessage = String(localized: "auth.error.not_handled")
                             showError = true
                         case .unknown:
-                            errorMessage = "An unknown error occurred."
+                            errorMessage = String(localized: "auth.error.unknown")
                             showError = true
                         default:
-                            errorMessage = "Sign-in failed: \(authError.localizedDescription)"
+                            errorMessage = String(
+                                format: String(localized: "auth.error.sign_in_failed_format"),
+                                authError.localizedDescription
+                            )
                             showError = true
                         }
                     } else {
-                        errorMessage = "Sign-in failed: \(error.localizedDescription)"
+                        errorMessage = String(
+                            format: String(localized: "auth.error.sign_in_failed_format"),
+                            error.localizedDescription
+                        )
                         showError = true
                     }
                 }
             } catch {
-                errorMessage = "Authentication failed: \(error.localizedDescription)"
+                errorMessage = String(
+                    format: String(localized: "auth.error.authentication_failed_format"),
+                    error.localizedDescription
+                )
                 showError = true
             }
             
@@ -433,6 +467,24 @@ struct LoginView: View {
         }
     }
     #endif
+}
+
+private struct LoginProofRow: View {
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: WakeveTheme.Spacing.xs) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(WakeveColors.success)
+                .padding(.top, 2)
+
+            Text(text)
+                .font(WakeveTheme.Typography.callout)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
 }
 
 // MARK: - Authentication Error

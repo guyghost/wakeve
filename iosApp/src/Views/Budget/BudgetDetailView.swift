@@ -3,6 +3,8 @@ import SwiftUI
 // MARK: - BudgetDetailView
 
 struct BudgetDetailView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let eventId: String
 
     @StateObject private var viewModel: BudgetViewModel
@@ -38,11 +40,12 @@ struct BudgetDetailView: View {
                 listView
             }
         }
-        .navigationTitle("Dépenses")
+        .navigationTitle(String(localized: "budget.expenses_title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
+                    WakeveHaptics.selection()
                     showAddItem = true
                 } label: {
                     Image(systemName: "plus")
@@ -63,16 +66,17 @@ struct BudgetDetailView: View {
             }
         }
         .confirmationDialog(
-            "Supprimer cette dépense ?",
+            String(localized: "budget.delete_confirmation.title"),
             isPresented: $showDeleteConfirm,
             titleVisibility: .visible
         ) {
-            Button("Supprimer", role: .destructive) {
+            Button(String(localized: "common.delete"), role: .destructive) {
                 if let item = itemToDelete, !isPreviewing {
+                    WakeveHaptics.warning()
                     viewModel.deleteItem(itemId: item.id)
                 }
             }
-            Button("Annuler", role: .cancel) {}
+            Button(String(localized: "common.cancel"), role: .cancel) {}
         }
         .onAppear {
             guard !isPreviewing else { return }
@@ -96,83 +100,107 @@ struct BudgetDetailView: View {
     // MARK: - Empty
 
     private var emptyView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "eurosign.circle")
-                .font(.system(size: 56))
-                .foregroundStyle(.secondary.opacity(0.5))
-            Text("Aucune dépense")
-                .font(.title3.bold())
-            Text("Ajoutez des dépenses pour suivre\nle budget de votre événement.")
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-            Button {
-                showAddItem = true
-            } label: {
-                Label("Ajouter une dépense", systemImage: "plus.circle.fill")
-                    .fontWeight(.semibold)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(.blue, in: RoundedRectangle(cornerRadius: 12))
-                    .foregroundStyle(.white)
+        ZStack {
+            WakeveScreenBackground(style: .grouped)
+
+            WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.xl) {
+                VStack(spacing: WakeveTheme.Spacing.md) {
+                    Image(systemName: "eurosign.circle.fill")
+                        .font(.system(size: 56, weight: .semibold))
+                        .foregroundStyle(SemanticColor.selectedState(for: colorScheme))
+                        .frame(width: 72, height: 72)
+                        .background(SemanticColor.badge(for: colorScheme), in: Circle())
+
+                    VStack(spacing: WakeveTheme.Spacing.xs) {
+                        Text(String(localized: "budget.empty_expenses_title"))
+                            .font(WakeveTheme.Typography.section)
+                            .foregroundStyle(SemanticColor.primaryText(for: colorScheme))
+
+                        Text(String(localized: "budget.empty_expenses_body"))
+                            .font(WakeveTheme.Typography.body)
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(SemanticColor.secondaryText(for: colorScheme))
+                    }
+
+                    WakeveActionButton(
+                        String(localized: "budget.add_expense"),
+                        systemImage: "plus.circle.fill",
+                        variant: .primary
+                    ) {
+                        WakeveHaptics.selection()
+                        showAddItem = true
+                    }
+                }
             }
+            .padding(WakeveTheme.Spacing.page)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .padding()
     }
 
     // MARK: - List
 
     private var listView: some View {
-        List {
-            // Summary header
-            BudgetSyncBanner(pendingSync: viewModel.pendingSync, isOnline: viewModel.isOnline)
+        ScrollView {
+            LazyVStack(spacing: WakeveTheme.Spacing.md) {
+                BudgetSyncBanner(pendingSync: viewModel.pendingSync, isOnline: viewModel.isOnline)
 
-            Section {
-                BudgetSummaryRow(
-                    totalEstimated: totalEstimated,
-                    totalActual: totalActual,
-                    isOverBudget: isOverBudget
-                )
-            }
+                WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+                    BudgetSummaryRow(
+                        totalEstimated: totalEstimated,
+                        totalActual: totalActual,
+                        isOverBudget: isOverBudget
+                    )
+                }
 
-            // Items grouped by category
-            ForEach(categoryOrder, id: \.rawValue) { category in
-                let items = itemsByCategoryName[category.rawValue] ?? []
-                if !items.isEmpty {
-                    Section(category.displayName) {
-                        ForEach(items) { item in
-                            BudgetItemRow(item: item) {
-                                guard !isPreviewing else { return }
-                                viewModel.markItemAsPaid(
-                                    itemId: item.id,
-                                    actualCost: item.estimatedCost,
-                                    paidBy: "current-user"
-                                )
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    itemToDelete = item
-                                    showDeleteConfirm = true
-                                } label: {
-                                    Label("Supprimer", systemImage: "trash")
+                ForEach(categoryOrder, id: \.rawValue) { category in
+                    let items = itemsByCategoryName[category.rawValue] ?? []
+                    if !items.isEmpty {
+                        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+                            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                                BudgetSectionHeader(category: category, itemCount: items.count)
+
+                                ForEach(items) { item in
+                                    BudgetDetailItemRow(
+                                        item: item,
+                                        onMarkAsPaid: {
+                                            guard !isPreviewing else { return }
+                                            viewModel.markItemAsPaid(
+                                                itemId: item.id,
+                                                actualCost: item.estimatedCost,
+                                                paidBy: "current-user"
+                                            )
+                                            WakeveHaptics.success()
+                                        },
+                                        onDelete: {
+                                            itemToDelete = item
+                                            showDeleteConfirm = true
+                                        }
+                                    )
+
+                                    if item.id != items.last?.id {
+                                        Divider()
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            // Add item button at the bottom
-            Section {
                 Button {
+                    WakeveHaptics.selection()
                     showAddItem = true
                 } label: {
-                    Label("Ajouter une dépense", systemImage: "plus.circle.fill")
-                        .foregroundStyle(.blue)
+                    Label(String(localized: "budget.add_expense"), systemImage: "plus.circle.fill")
+                        .font(.headline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
                 }
+                .buttonStyle(.borderedProminent)
+                .padding(.top, WakeveTheme.Spacing.xs)
             }
+            .padding(WakeveTheme.Spacing.md)
         }
-        .listStyle(.insetGrouped)
+        .background(WakeveScreenBackground(style: .grouped))
     }
 
     private var isPreviewing: Bool {
@@ -208,6 +236,69 @@ struct BudgetDetailView: View {
     }
 }
 
+private struct BudgetSectionHeader: View {
+    let category: BudgetCategoryUI
+    let itemCount: Int
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: category.iconName)
+                .font(.callout.weight(.bold))
+                .foregroundStyle(.blue)
+                .frame(width: 30, height: 30)
+                .background(Color.blue.opacity(0.12), in: Circle())
+
+            Text(category.displayName)
+                .font(.headline)
+
+            Spacer()
+
+            Text("\(itemCount)")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.secondary.opacity(0.12), in: Capsule())
+        }
+    }
+}
+
+private struct BudgetDetailItemRow: View {
+    let item: BudgetItemModel
+    let onMarkAsPaid: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            BudgetItemRow(item: item, onMarkAsPaid: onMarkAsPaid)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Menu {
+                if !item.isPaid {
+                    Button {
+                        onMarkAsPaid()
+                    } label: {
+                        Label(String(localized: "budget.mark_paid"), systemImage: "checkmark.circle.fill")
+                    }
+                }
+
+                Button(role: .destructive) {
+                    WakeveHaptics.warning()
+                    onDelete()
+                } label: {
+                    Label(String(localized: "common.delete"), systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 36, height: 36)
+            }
+            .accessibilityLabel(String(localized: "budget.expense_actions_accessibility"))
+        }
+    }
+}
+
 // MARK: - BudgetSummaryRow
 
 struct BudgetSummaryRow: View {
@@ -219,7 +310,7 @@ struct BudgetSummaryRow: View {
         VStack(spacing: 10) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Total dépensé")
+                    Text(String(localized: "budget.total_spent"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text(String(format: "%.2f €", totalActual))
@@ -228,7 +319,7 @@ struct BudgetSummaryRow: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("Budget estimé")
+                    Text(String(localized: "budget.total_estimated"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text(String(format: "%.2f €", totalEstimated))

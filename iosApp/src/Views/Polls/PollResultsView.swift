@@ -1,5 +1,8 @@
 import SwiftUI
 import Shared
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Poll results view inspired by Apple Invites
 /// Features: Clean results visualization, progress indicators, clear winner highlighting
@@ -27,6 +30,7 @@ struct PollResultsView: View {
             canConfirmDate: repository.isOrganizer(eventId: event.id, userId: userId),
             isLoading: isLoading,
             onConfirmDate: {
+                WakeveHaptics.selection()
                 showConfirmDateDialog = true
             },
             onBack: onBack
@@ -93,14 +97,17 @@ struct PollResultsView: View {
 
             if updatedEvent?.status == EventStatus.confirmed {
                 isLoading = false
+                WakeveHaptics.success()
                 showSuccess = true
             } else {
                 isLoading = false
+                WakeveHaptics.warning()
                 errorMessage = String(localized: "poll.results.error.confirm_failed")
                 showError = true
             }
         } catch {
             isLoading = false
+            WakeveHaptics.warning()
             errorMessage = error.localizedDescription
             showError = true
         }
@@ -157,16 +164,21 @@ struct PollResultsContentView: View {
                     VStack(spacing: 16) {
                         if event.status == .confirmed, let finalDate = event.finalDate {
                             // Confirmed State
-                            ConfirmedDateCard(
-                                event: event,
-                                finalSlot: event.proposedSlots.first { $0.id == finalDate }
-                            )
+                            let finalSlot = event.proposedSlots.first { $0.id == finalDate }
+                            ConfirmedDateCard(event: event, finalSlot: finalSlot)
+                            if let finalSlot {
+                                PollDecisionAnnouncementCard(event: event, slot: finalSlot, isConfirmed: true)
+                            }
+                            PollResolutionNextStepsCard()
                         } else {
                             // Polling State - Show Results
                             if !slotScores.isEmpty {
                                 // Best Slot Highlight
                                 if let best = bestSlot {
                                     BestSlotCard(slot: best)
+                                    if canConfirmDate {
+                                        PollDecisionAnnouncementCard(event: event, slot: best, isConfirmed: false)
+                                    }
                                 }
 
                                 // Results List
@@ -258,7 +270,7 @@ struct BestSlotCard: View {
             }
             
             VStack(spacing: 8) {
-                Text(formatDate(slot.start ?? ""))
+                Text(formatDate(slot.start ?? "", timezone: slot.timezone))
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.primary)
                 
@@ -267,10 +279,16 @@ struct BestSlotCard: View {
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
                     
-                    Text("\(formatTime(slot.start ?? "")) - \(formatTime(slot.end ?? ""))")
+                    Text("\(formatTime(slot.start ?? "", timezone: slot.timezone)) - \(formatTime(slot.end ?? "", timezone: slot.timezone))")
                         .font(.system(size: 17))
                         .foregroundColor(.secondary)
                 }
+
+                PollTimeZoneBadge(
+                    label: formatTimeZoneLabel(slot.timezone, at: slot.start),
+                    foregroundColor: .secondary,
+                    backgroundColor: Color(.tertiarySystemFill)
+                )
             }
         }
         .padding(20)
@@ -282,23 +300,51 @@ struct BestSlotCard: View {
         )
     }
     
-    private func formatDate(_ dateString: String) -> String {
+    private func formatDate(_ dateString: String, timezone: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
-            formatter.locale = Locale.current
+            formatter.locale = .autoupdatingCurrent
+            formatter.timeZone = timeZone(for: timezone)
             formatter.setLocalizedDateFormatFromTemplate("EEEEdMMMM")
             return formatter.string(from: date)
         }
         return dateString
     }
     
-    private func formatTime(_ dateString: String) -> String {
+    private func formatTime(_ dateString: String, timezone: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
+            formatter.locale = .autoupdatingCurrent
+            formatter.timeZone = timeZone(for: timezone)
             formatter.timeStyle = .short
             return formatter.string(from: date)
         }
         return dateString
+    }
+
+    private func timeZone(for identifier: String) -> TimeZone {
+        TimeZone(identifier: identifier.trimmingCharacters(in: .whitespacesAndNewlines)) ?? .current
+    }
+
+    private func formatTimeZoneLabel(_ identifier: String, at dateString: String?) -> String {
+        String(
+            format: String(localized: "poll.timezone.label_format"),
+            formatTimeZoneDisplay(identifier, at: dateString)
+        )
+    }
+
+    private func formatTimeZoneDisplay(_ identifier: String, at dateString: String?) -> String {
+        let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return TimeZone.current.identifier }
+        guard let timeZone = TimeZone(identifier: trimmed) else {
+            return trimmed.replacingOccurrences(of: "_", with: " ")
+        }
+
+        let date = dateString.flatMap { ISO8601DateFormatter().date(from: $0) }
+        let abbreviation = date.flatMap { timeZone.abbreviation(for: $0) } ?? timeZone.abbreviation() ?? trimmed
+        let city = trimmed.split(separator: "/").last.map { String($0).replacingOccurrences(of: "_", with: " ") } ?? trimmed
+
+        return city == abbreviation ? abbreviation : "\(abbreviation) · \(city)"
     }
 }
 
@@ -335,7 +381,7 @@ struct ConfirmedDateCard: View {
             // Confirmed Date
             if let slot = finalSlot {
                 VStack(spacing: 8) {
-                    Text(formatDate(slot.start ?? ""))
+                    Text(formatDate(slot.start ?? "", timezone: slot.timezone))
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(.primary)
                     
@@ -344,10 +390,16 @@ struct ConfirmedDateCard: View {
                             .font(.system(size: 14))
                             .foregroundColor(.secondary)
                         
-                        Text("\(formatTime(slot.start ?? "")) - \(formatTime(slot.end ?? ""))")
+                        Text("\(formatTime(slot.start ?? "", timezone: slot.timezone)) - \(formatTime(slot.end ?? "", timezone: slot.timezone))")
                             .font(.system(size: 15))
                             .foregroundColor(.secondary)
                     }
+
+                    PollTimeZoneBadge(
+                        label: formatTimeZoneLabel(slot.timezone, at: slot.start),
+                        foregroundColor: .secondary,
+                        backgroundColor: Color(.secondarySystemFill)
+                    )
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity)
@@ -360,23 +412,304 @@ struct ConfirmedDateCard: View {
         .glassCard(cornerRadius: 20)
     }
     
-    private func formatDate(_ dateString: String) -> String {
+    private func formatDate(_ dateString: String, timezone: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
-            formatter.locale = Locale.current
+            formatter.locale = .autoupdatingCurrent
+            formatter.timeZone = timeZone(for: timezone)
             formatter.setLocalizedDateFormatFromTemplate("EEEEdMMMMy")
             return formatter.string(from: date)
         }
         return dateString
     }
     
-    private func formatTime(_ dateString: String) -> String {
+    private func formatTime(_ dateString: String, timezone: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
+            formatter.locale = .autoupdatingCurrent
+            formatter.timeZone = timeZone(for: timezone)
             formatter.timeStyle = .short
             return formatter.string(from: date)
         }
         return dateString
+    }
+
+    private func timeZone(for identifier: String) -> TimeZone {
+        TimeZone(identifier: identifier.trimmingCharacters(in: .whitespacesAndNewlines)) ?? .current
+    }
+
+    private func formatTimeZoneLabel(_ identifier: String, at dateString: String?) -> String {
+        String(
+            format: String(localized: "poll.timezone.label_format"),
+            formatTimeZoneDisplay(identifier, at: dateString)
+        )
+    }
+
+    private func formatTimeZoneDisplay(_ identifier: String, at dateString: String?) -> String {
+        let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return TimeZone.current.identifier }
+        guard let timeZone = TimeZone(identifier: trimmed) else {
+            return trimmed.replacingOccurrences(of: "_", with: " ")
+        }
+
+        let date = dateString.flatMap { ISO8601DateFormatter().date(from: $0) }
+        let abbreviation = date.flatMap { timeZone.abbreviation(for: $0) } ?? timeZone.abbreviation() ?? trimmed
+        let city = trimmed.split(separator: "/").last.map { String($0).replacingOccurrences(of: "_", with: " ") } ?? trimmed
+
+        return city == abbreviation ? abbreviation : "\(abbreviation) · \(city)"
+    }
+}
+
+// MARK: - Decision Announcement Card
+
+struct PollDecisionAnnouncementCard: View {
+    let event: Event
+    let slot: TimeSlot
+    let isConfirmed: Bool
+    @State private var showCopiedAnnouncementMessage = false
+
+    private var announcementMessage: String {
+        let date = formatDate(slot.start ?? "", timezone: slot.timezone)
+        let time = formatTimeRange(start: slot.start, end: slot.end, timezone: slot.timezone)
+
+        if isConfirmed {
+            return String(format: String(localized: "poll.results.announcement.confirmed_message_format"), event.title, date, time)
+        }
+
+        return String(format: String(localized: "poll.results.announcement.pending_message_format"), event.title, date, time)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: isConfirmed ? "megaphone.fill" : "text.bubble.fill")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(.blue)
+                    .frame(width: 36, height: 36)
+                    .background(Color.blue.opacity(0.12))
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(isConfirmed ? String(localized: "poll.results.announcement.confirmed_title") : String(localized: "poll.results.announcement.pending_title"))
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundColor(.primary)
+
+                    Text(announcementMessage)
+                        .font(.system(size: 15))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            HStack(spacing: 10) {
+                ShareLink(item: announcementMessage) {
+                    Label(String(localized: "poll.results.announcement.share_action"), systemImage: "square.and.arrow.up")
+                        .font(.system(size: 16, weight: .semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.76)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                }
+                .buttonStyle(.borderedProminent)
+                .simultaneousGesture(TapGesture().onEnded {
+                    WakeveHaptics.selection()
+                })
+                .accessibilityIdentifier("pollDecisionAnnouncementShareLink")
+
+                Button {
+                    copyAnnouncementMessage()
+                } label: {
+                    Label(String(localized: "poll.results.announcement.copy_action"), systemImage: showCopiedAnnouncementMessage ? "checkmark" : "doc.on.doc.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .labelStyle(.iconOnly)
+                        .frame(width: 46, height: 46)
+                }
+                .buttonStyle(.bordered)
+                .accessibilityLabel(showCopiedAnnouncementMessage ? String(localized: "poll.results.announcement.copied") : String(localized: "poll.results.announcement.copy_action"))
+                .accessibilityIdentifier("pollDecisionAnnouncementCopyButton")
+            }
+
+            Text(String(localized: "poll.results.announcement.share_hint"))
+                .font(.system(size: 13))
+                .foregroundColor(.secondary)
+
+            if showCopiedAnnouncementMessage {
+                Label(String(localized: "poll.results.announcement.copied"), systemImage: "checkmark.circle.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.green)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .accessibilityIdentifier("pollDecisionAnnouncementCopiedFeedback")
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(cornerRadius: 20)
+        .accessibilityIdentifier("pollDecisionAnnouncementCard")
+    }
+
+    private func copyAnnouncementMessage() {
+        #if canImport(UIKit)
+        UIPasteboard.general.string = announcementMessage
+        #endif
+        WakeveHaptics.success()
+        withAnimation(.easeInOut(duration: 0.18)) {
+            showCopiedAnnouncementMessage = true
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation(.easeInOut(duration: 0.18)) {
+                showCopiedAnnouncementMessage = false
+            }
+        }
+    }
+
+    private func formatDate(_ dateString: String, timezone: String) -> String {
+        if let date = ISO8601DateFormatter().date(from: dateString) {
+            let formatter = DateFormatter()
+            formatter.locale = .autoupdatingCurrent
+            formatter.timeZone = timeZone(for: timezone)
+            formatter.setLocalizedDateFormatFromTemplate("EEEEdMMM")
+            return formatter.string(from: date)
+        }
+        return dateString
+    }
+
+    private func formatTimeRange(start: String?, end: String?, timezone: String) -> String {
+        let startValue = formatTime(start ?? "", timezone: timezone)
+        let endValue = formatTime(end ?? "", timezone: timezone)
+        let timezoneDisplay = formatTimeZoneDisplay(timezone, at: start)
+
+        if startValue.isEmpty {
+            return ""
+        }
+
+        if endValue.isEmpty || endValue == startValue {
+            let time = String(format: String(localized: "poll.results.announcement.time_at_format"), startValue)
+            return "\(time) (\(timezoneDisplay))"
+        }
+
+        let time = String(format: String(localized: "poll.results.announcement.time_range_format"), startValue, endValue)
+        return "\(time) (\(timezoneDisplay))"
+    }
+
+    private func formatTime(_ dateString: String, timezone: String) -> String {
+        guard let date = ISO8601DateFormatter().date(from: dateString) else {
+            return dateString
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.timeZone = timeZone(for: timezone)
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+
+    private func timeZone(for identifier: String) -> TimeZone {
+        TimeZone(identifier: identifier.trimmingCharacters(in: .whitespacesAndNewlines)) ?? .current
+    }
+
+    private func formatTimeZoneDisplay(_ identifier: String, at dateString: String?) -> String {
+        let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return TimeZone.current.identifier }
+        guard let timeZone = TimeZone(identifier: trimmed) else {
+            return trimmed.replacingOccurrences(of: "_", with: " ")
+        }
+
+        let date = dateString.flatMap { ISO8601DateFormatter().date(from: $0) }
+        let abbreviation = date.flatMap { timeZone.abbreviation(for: $0) } ?? timeZone.abbreviation() ?? trimmed
+        let city = trimmed.split(separator: "/").last.map { String($0).replacingOccurrences(of: "_", with: " ") } ?? trimmed
+
+        return city == abbreviation ? abbreviation : "\(abbreviation) · \(city)"
+    }
+}
+
+// MARK: - Resolution Next Steps Card
+
+struct PollResolutionNextStepsCard: View {
+    private let steps: [PollResolutionStep] = [
+        PollResolutionStep(
+            icon: "megaphone.fill",
+            titleKey: "poll.results.next_steps.announce_title",
+            detailKey: "poll.results.next_steps.announce_detail"
+        ),
+        PollResolutionStep(
+            icon: "calendar.badge.checkmark",
+            titleKey: "poll.results.next_steps.calendar_title",
+            detailKey: "poll.results.next_steps.calendar_detail"
+        ),
+        PollResolutionStep(
+            icon: "map.fill",
+            titleKey: "poll.results.next_steps.plan_title",
+            detailKey: "poll.results.next_steps.plan_detail"
+        ),
+        PollResolutionStep(
+            icon: "checklist.checked",
+            titleKey: "poll.results.next_steps.owners_title",
+            detailKey: "poll.results.next_steps.owners_detail"
+        )
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                Label(String(localized: "poll.results.next_steps.title"), systemImage: "sparkles")
+                    .font(.system(size: 19, weight: .semibold))
+                    .foregroundColor(.primary)
+
+                Text(String(localized: "poll.results.next_steps.subtitle"))
+                    .font(.system(size: 15))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            VStack(spacing: 12) {
+                ForEach(steps) { step in
+                    PollResolutionStepRow(step: step)
+                }
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassCard(cornerRadius: 20)
+        .accessibilityIdentifier("pollResolutionNextStepsCard")
+    }
+}
+
+private struct PollResolutionStep: Identifiable {
+    let id = UUID()
+    let icon: String
+    let titleKey: LocalizedStringResource
+    let detailKey: LocalizedStringResource
+}
+
+private struct PollResolutionStepRow: View {
+    let step: PollResolutionStep
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: step.icon)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(.blue)
+                .frame(width: 34, height: 34)
+                .background(Color.blue.opacity(0.12))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(localized: step.titleKey))
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.primary)
+
+                Text(String(localized: step.detailKey))
+                    .font(.system(size: 13))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .background(Color(.tertiarySystemFill))
+        .continuousCornerRadius(14)
     }
 }
 
@@ -391,7 +724,7 @@ struct SlotResultCard: View {
         VStack(spacing: 16) {
             // Date and Time
             VStack(spacing: 6) {
-                Text(formatDate(slot.start ?? ""))
+                Text(formatDate(slot.start ?? "", timezone: slot.timezone))
                     .font(.system(size: 17, weight: .semibold))
                     .foregroundColor(.primary)
 
@@ -400,10 +733,16 @@ struct SlotResultCard: View {
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
 
-                    Text("\(formatTime(slot.start ?? "")) - \(formatTime(slot.end ?? ""))")
+                    Text("\(formatTime(slot.start ?? "", timezone: slot.timezone)) - \(formatTime(slot.end ?? "", timezone: slot.timezone))")
                         .font(.system(size: 15))
                         .foregroundColor(.secondary)
                 }
+
+                PollTimeZoneBadge(
+                    label: formatTimeZoneLabel(slot.timezone, at: slot.start),
+                    foregroundColor: .secondary,
+                    backgroundColor: Color(.tertiarySystemFill)
+                )
             }
 
             // Vote Breakdown
@@ -468,23 +807,51 @@ struct SlotResultCard: View {
         )
     }
 
-    private func formatDate(_ dateString: String) -> String {
+    private func formatDate(_ dateString: String, timezone: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
-            formatter.locale = Locale.current
+            formatter.locale = .autoupdatingCurrent
+            formatter.timeZone = timeZone(for: timezone)
             formatter.setLocalizedDateFormatFromTemplate("EEEdMMM")
             return formatter.string(from: date)
         }
         return dateString
     }
 
-    private func formatTime(_ dateString: String) -> String {
+    private func formatTime(_ dateString: String, timezone: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
+            formatter.locale = .autoupdatingCurrent
+            formatter.timeZone = timeZone(for: timezone)
             formatter.timeStyle = .short
             return formatter.string(from: date)
         }
         return dateString
+    }
+
+    private func timeZone(for identifier: String) -> TimeZone {
+        TimeZone(identifier: identifier.trimmingCharacters(in: .whitespacesAndNewlines)) ?? .current
+    }
+
+    private func formatTimeZoneLabel(_ identifier: String, at dateString: String?) -> String {
+        String(
+            format: String(localized: "poll.timezone.label_format"),
+            formatTimeZoneDisplay(identifier, at: dateString)
+        )
+    }
+
+    private func formatTimeZoneDisplay(_ identifier: String, at dateString: String?) -> String {
+        let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return TimeZone.current.identifier }
+        guard let timeZone = TimeZone(identifier: trimmed) else {
+            return trimmed.replacingOccurrences(of: "_", with: " ")
+        }
+
+        let date = dateString.flatMap { ISO8601DateFormatter().date(from: $0) }
+        let abbreviation = date.flatMap { timeZone.abbreviation(for: $0) } ?? timeZone.abbreviation() ?? trimmed
+        let city = trimmed.split(separator: "/").last.map { String($0).replacingOccurrences(of: "_", with: " ") } ?? trimmed
+
+        return city == abbreviation ? abbreviation : "\(abbreviation) · \(city)"
     }
 }
 

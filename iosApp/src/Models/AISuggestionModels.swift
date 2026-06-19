@@ -29,50 +29,50 @@ struct AIBadge: Identifiable, Codable, Hashable {
         .aiSuggestion: AIBadge(
             id: "ai-suggestion",
             type: .aiSuggestion,
-            displayName: "Suggestion",
+            displayName: String(localized: "ai.badge.suggestion"),
             icon: "✦",
             colorHex: "#2563EB",
-            tooltip: "Proposition locale à relire avant application"
+            tooltip: String(localized: "ai.badge.suggestion.tooltip")
         ),
         .highConfidence: AIBadge(
             id: "high-confidence",
             type: .highConfidence,
-            displayName: "Solide",
+            displayName: String(localized: "ai.badge.high_confidence"),
             icon: "✓",
             colorHex: "#2F855A",
-            tooltip: "Suggestion cohérente avec les informations visibles"
+            tooltip: String(localized: "ai.badge.high_confidence.tooltip")
         ),
         .mediumConfidence: AIBadge(
             id: "medium-confidence",
             type: .mediumConfidence,
-            displayName: "À vérifier",
+            displayName: String(localized: "ai.badge.medium_confidence"),
             icon: "…",
             colorHex: "#B7791F",
-            tooltip: "Suggestion utile, à compléter avant usage"
+            tooltip: String(localized: "ai.badge.medium_confidence.tooltip")
         ),
         .personalized: AIBadge(
             id: "personalized",
             type: .personalized,
-            displayName: "Adapté",
+            displayName: String(localized: "ai.badge.personalized"),
             icon: "✦",
             colorHex: "#0F766E",
-            tooltip: "Suggestion adaptée au contexte de cet événement"
+            tooltip: String(localized: "ai.badge.personalized.tooltip")
         ),
         .popularChoice: AIBadge(
             id: "popular-choice",
             type: .popularChoice,
-            displayName: "Souvent choisi",
+            displayName: String(localized: "ai.badge.popular_choice"),
             icon: "↑",
             colorHex: "#C2410C",
-            tooltip: "Option souvent retenue dans ce type d'organisation"
+            tooltip: String(localized: "ai.badge.popular_choice.tooltip")
         ),
         .seasonal: AIBadge(
             id: "seasonal",
             type: .seasonal,
-            displayName: "Saisonnier",
+            displayName: String(localized: "ai.badge.seasonal"),
             icon: "◐",
             colorHex: "#64748B",
-            tooltip: "Suggestion liée à la période de l'événement"
+            tooltip: String(localized: "ai.badge.seasonal.tooltip")
         )
     ]
     
@@ -84,7 +84,7 @@ struct AIBadge: Identifiable, Codable, Hashable {
             displayName: type.rawValue.replacingOccurrences(of: "_", with: " "),
             icon: "✦",
             colorHex: "#2563EB",
-            tooltip: "Proposition à relire avant application"
+            tooltip: String(localized: "ai.badge.fallback.tooltip")
         )
     }
 }
@@ -102,17 +102,17 @@ enum AIBadgeType: String, Codable, CaseIterable, Hashable {
     var displayName: String {
         switch self {
         case .aiSuggestion:
-            return "Suggestion"
+            return String(localized: "ai.badge.suggestion")
         case .highConfidence:
-            return "Solide"
+            return String(localized: "ai.badge.high_confidence")
         case .mediumConfidence:
-            return "À vérifier"
+            return String(localized: "ai.badge.medium_confidence")
         case .personalized:
-            return "Adapté"
+            return String(localized: "ai.badge.personalized")
         case .popularChoice:
-            return "Souvent choisi"
+            return String(localized: "ai.badge.popular_choice")
         case .seasonal:
-            return "Saisonnier"
+            return String(localized: "ai.badge.seasonal")
         }
     }
     

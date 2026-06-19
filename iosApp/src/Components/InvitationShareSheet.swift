@@ -142,9 +142,7 @@ struct InvitationShareSheet: View {
             showCopiedFeedback = true
         }
 
-        // Haptic feedback
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.success)
+        WakeveHaptics.success()
 
         // Reset after delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {

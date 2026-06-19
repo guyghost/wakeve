@@ -97,7 +97,7 @@ struct ErrorView: View {
                     .font(.system(size: 60))
                     .foregroundColor(.red.opacity(0.8))
 
-                Text("Something went wrong")
+                Text(String(localized: "common.error_generic"))
                     .font(.title2)
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
@@ -109,7 +109,7 @@ struct ErrorView: View {
                     .padding(.horizontal, 32)
 
                 Button(action: onRetry) {
-                    Text("Try Again")
+                    Text(String(localized: "common.try_again"))
                         .font(.headline)
                         .foregroundColor(.white)
                         .padding(.horizontal, 32)
@@ -129,9 +129,12 @@ struct AuthenticatedView: View {
     @State private var selectedTab: WakeveTab = .home
     @State private var currentView: AppView = .eventList
     @State private var selectedEvent: Event?
+    @State private var invitationLandingEventId: String?
     // Use persistent database-backed repository instead of in-memory mock
     private let repository: EventRepositoryInterface = RepositoryProvider.shared.repository
     @State private var showEventCreationSheet = false
+    @State private var eventCreationScenario: EventScenario?
+    @State private var preparedCreationChecklists: [String: [ChecklistItem]] = [:]
     
     // New state variables for PRD features
     @State private var showScenarioList = false
@@ -150,6 +153,7 @@ struct AuthenticatedView: View {
 
     // Get auth state from environment
     @EnvironmentObject var authStateManager: AuthStateManager
+    @EnvironmentObject private var deepLinkService: DeepLinkService
 
     var body: some View {
         // Main tabs are destinations only. One-off actions such as Create Event
@@ -185,17 +189,20 @@ struct AuthenticatedView: View {
         .fullScreenCover(isPresented: $showEventCreationSheet) {
             CreateEventSheet(
                 userId: userId,
-                userName: authStateManager.currentUser?.name
-            ) { event in
+                userName: authStateManager.currentUser?.name,
+                initialScenario: eventCreationScenario
+            ) { event, context in
                 // Save event to repository
                 Task {
                     do {
                         try await repository.saveEvent(event: event)
+                        persistCreationContext(context, for: event)
                         await MainActor.run {
                             // Navigate to participant management
                             selectedEvent = event
                             selectedTab = .home
-                            currentView = .participantManagement
+                            currentView = event.planningMode == .scenarioMatrix ? .scenarioList : .participantManagement
+                            eventCreationScenario = nil
                         }
                     } catch {
                         debugLog("Failed to save event: \(error)")
@@ -207,6 +214,9 @@ struct AuthenticatedView: View {
             NavigationStack {
                 NotificationPreferencesView(userId: userId)
             }
+        }
+        .onReceive(deepLinkService.$navigationPath) { path in
+            handleDeepLinkNavigation(path)
         }
     }
 
@@ -229,6 +239,7 @@ struct AuthenticatedView: View {
                 },
                 onCreateEvent: {
                     // Show bottom sheet instead of navigating
+                    eventCreationScenario = nil
                     showEventCreationSheet = true
                 },
                 onProfileClick: {
@@ -237,7 +248,7 @@ struct AuthenticatedView: View {
             )
             
         case .eventCreation:
-            Text("Création d'événement")
+            Text(String(localized: "navigation.placeholder.event_creation"))
                 .font(.title2)
                 .foregroundColor(.secondary)
             
@@ -247,6 +258,7 @@ struct AuthenticatedView: View {
                     event: event,
                     repository: repository,
                     userId: userId,
+                    preparedCreationChecklist: preparedCreationChecklists[event.id] ?? [],
                     onManageParticipants: {
                         currentView = .participantManagement
                     },
@@ -274,7 +286,12 @@ struct AuthenticatedView: View {
                     onOpenTricount: {
                         currentView = .tricount
                     },
+                    isInvitationLanding: invitationLandingEventId == event.id,
+                    onDismissInvitationLanding: {
+                        invitationLandingEventId = nil
+                    },
                     onBack: {
+                        invitationLandingEventId = nil
                         currentView = .eventList
                     }
                 )
@@ -352,7 +369,7 @@ struct AuthenticatedView: View {
                     }
                 )
             } else {
-                Text("Sélectionnez un événement pour voir les options")
+                Text(String(localized: "navigation.placeholder.select_event_options"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -374,7 +391,7 @@ struct AuthenticatedView: View {
                     }
                 )
             } else {
-                Text("Sélectionnez un événement pour comparer les options")
+                Text(String(localized: "navigation.placeholder.select_event_compare_options"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -384,12 +401,12 @@ struct AuthenticatedView: View {
                 if canAccessOrganizationDashboard(for: event) {
                     BudgetOverviewView(eventId: event.id)
                 } else {
-                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir le budget.") {
+                    AccessDenied(message: String(localized: "organization.access.confirm_before_budget")) {
                         currentView = .eventDetail
                     }
                 }
             } else {
-                Text("Sélectionnez un événement pour voir le budget")
+                Text(String(localized: "navigation.placeholder.select_event_budget"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -411,7 +428,7 @@ struct AuthenticatedView: View {
                     }
                 )
             } else {
-                Text("Selectionnez un evenement pour voir le logement")
+                Text(String(localized: "navigation.placeholder.select_event_accommodation"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -419,25 +436,25 @@ struct AuthenticatedView: View {
         case .mealPlanning:
             if selectedEvent != nil {
                 // Meal planning stays behind a placeholder until shared types are integrated.
-                Text("Planification des repas")
+                Text(String(localized: "events.meal_planning"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
             
         case .equipmentChecklist:
             if selectedEvent != nil {
-                Text("Liste d'équipement")
+                Text(String(localized: "events.equipment_checklist"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
             
         case .activityPlanning:
-            Text("Planification des activités")
+            Text(String(localized: "events.activity_planning"))
                 .font(.title2)
                 .foregroundColor(.secondary)
             
         case .scenarioDetail:
-            Text("Détail de l'option")
+            Text(String(localized: "navigation.placeholder.scenario_detail"))
                 .font(.title2)
                 .foregroundColor(.secondary)
             
@@ -446,12 +463,12 @@ struct AuthenticatedView: View {
                 if canAccessOrganizationDashboard(for: event) {
                     BudgetDetailView(eventId: event.id)
                 } else {
-                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir les dépenses.") {
+                    AccessDenied(message: String(localized: "organization.access.confirm_before_expenses")) {
                         currentView = .eventDetail
                     }
                 }
             } else {
-                Text("Sélectionnez un événement pour voir les dépenses")
+                Text(String(localized: "navigation.placeholder.select_event_expenses"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -467,12 +484,12 @@ struct AuthenticatedView: View {
                         isReadOnly: isFinalizedOrganizationState(event)
                     )
                 } else {
-                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir les réunions.") {
+                    AccessDenied(message: String(localized: "organization.access.confirm_before_meetings")) {
                         currentView = .eventDetail
                     }
                 }
             } else {
-                Text("Sélectionnez un événement pour voir les réunions")
+                Text(String(localized: "navigation.placeholder.select_event_meetings"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -488,12 +505,12 @@ struct AuthenticatedView: View {
                         isReadOnly: isFinalizedOrganizationState(event)
                     )
                 } else {
-                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir cette réunion.") {
+                    AccessDenied(message: String(localized: "organization.access.confirm_before_meeting_detail")) {
                         currentView = .eventDetail
                     }
                 }
             } else {
-                Text("Sélectionnez une réunion")
+                Text(String(localized: "navigation.placeholder.select_meeting"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -505,18 +522,19 @@ struct AuthenticatedView: View {
                     let canManagePayment = event.status == .organizing && event.organizerId == userId
                     PaymentPotView(
                         eventId: event.id,
+                        eventTitle: event.title,
                         currentUserId: userId,
                         isOrganizer: event.organizerId == userId,
                         canManagePayment: canManagePayment,
                         isReadOnly: isFinalizedOrganizationState(event)
                     )
                 } else {
-                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir la cagnotte.") {
+                    AccessDenied(message: String(localized: "organization.access.confirm_before_payment_pot")) {
                         currentView = .eventDetail
                     }
                 }
             } else {
-                Text("Sélectionnez un événement pour voir la cagnotte")
+                Text(String(localized: "navigation.placeholder.select_event_payment_pot"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -534,12 +552,12 @@ struct AuthenticatedView: View {
                         isReadOnly: isFinalizedOrganizationState(event)
                     )
                 } else {
-                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir Tricount.") {
+                    AccessDenied(message: String(localized: "organization.access.confirm_before_tricount")) {
                         currentView = .eventDetail
                     }
                 }
             } else {
-                Text("Sélectionnez un événement pour voir Tricount")
+                Text(String(localized: "navigation.placeholder.select_event_tricount"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -600,6 +618,9 @@ struct AuthenticatedView: View {
                                 location: location
                             )
                         },
+                        onChooseDestination: {
+                            currentView = .scenarioList
+                        },
                         onBack: {
                             currentView = .eventDetail
                         }
@@ -613,12 +634,12 @@ struct AuthenticatedView: View {
                         )
                     }
                 } else {
-                    AccessDenied(message: "Confirmez votre présence avant d'ouvrir le transport.") {
+                    AccessDenied(message: String(localized: "organization.access.confirm_before_transport")) {
                         currentView = .eventDetail
                     }
                 }
             } else {
-                Text("Sélectionnez un événement pour le transport")
+                Text(String(localized: "navigation.placeholder.select_event_transport"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
@@ -640,7 +661,8 @@ struct AuthenticatedView: View {
         case .home:
             homeTabContent
         case .groups:
-            ExploreTabView { _ in
+            ExploreTabView { scenario in
+                eventCreationScenario = scenario
                 showEventCreationSheet = true
             }
         case .messages:
@@ -660,6 +682,103 @@ struct AuthenticatedView: View {
                 }
             )
         }
+    }
+
+    private func persistCreationContext(_ context: EventCreationContext, for event: Event) {
+        if !context.preparedChecklist.isEmpty {
+            preparedCreationChecklists[event.id] = context.preparedChecklist
+        }
+
+        guard let locationName = context.potentialLocationName else { return }
+
+        let existingLocations = RepositoryProvider.shared.database.potentialLocationQueries
+            .selectByEventId(eventId: event.id)
+            .executeAsList()
+
+        guard !existingLocations.contains(where: { $0.name.caseInsensitiveCompare(locationName) == .orderedSame }) else {
+            return
+        }
+
+        let now = ISO8601DateFormatter().string(from: Date())
+        RepositoryProvider.shared.database.potentialLocationQueries.insertLocation(
+            id: "location-\(UUID().uuidString.prefix(8))",
+            eventId: event.id,
+            name: locationName,
+            locationType: "SPECIFIC_VENUE",
+            address: nil,
+            coordinates: nil,
+            createdAt: now
+        )
+    }
+
+    private func handleDeepLinkNavigation(_ path: [String]) {
+        guard !path.isEmpty else { return }
+
+        let route = path[0]
+        let identifier = path.count > 1 ? path[1] : nil
+        let subroute = path.count > 2 ? path[2] : nil
+
+        switch (route, identifier, subroute) {
+        case ("event", let eventId?, nil):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .eventDetail)
+        case ("event", let eventId?, "poll"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .pollVoting)
+        case ("meeting", let meetingId?, _):
+            invitationLandingEventId = nil
+            navigateToMeeting(meetingId: meetingId)
+        case ("invite", let token?, _):
+            if let eventId = InvitationTokenCodec.eventId(fromInvitationCode: token) {
+                invitationLandingEventId = eventId
+                navigateToEvent(eventId: eventId, destination: .eventDetail)
+            } else {
+                invitationLandingEventId = nil
+                selectedTab = .home
+                currentView = .eventList
+            }
+        default:
+            break
+        }
+
+        deepLinkService.clearPendingInvite()
+        deepLinkService.clearPendingDeepLink()
+        deepLinkService.resetNavigation()
+    }
+
+    private func navigateToEvent(eventId: String, destination: AppView) {
+        guard let event = repository.getEvent(id: eventId) else {
+            selectedTab = .home
+            currentView = .eventList
+            return
+        }
+
+        selectedEvent = event
+        selectedTab = .home
+
+        if destination == .pollVoting, event.status != .polling {
+            currentView = .eventDetail
+        } else {
+            currentView = destination
+        }
+    }
+
+    private func navigateToMeeting(meetingId: String) {
+        guard let meeting = RepositoryProvider.shared.database.meetingQueries
+            .selectById(id: meetingId)
+            .executeAsOneOrNull(),
+            let event = repository.getEvent(id: meeting.eventId)
+        else {
+            selectedTab = .home
+            currentView = .eventList
+            selectedMeetingId = nil
+            return
+        }
+
+        selectedMeetingId = meetingId
+        selectedEvent = event
+        selectedTab = .home
+        currentView = .meetingDetail
     }
 
     private func isParticipantConfirmed(for event: Event) -> Bool? {
@@ -827,20 +946,28 @@ private struct AccessDenied: View {
     let onBack: () -> Void
 
     var body: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "lock.fill")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
-            Text("Accès restreint")
-                .font(.title3.bold())
-            Text(message)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.secondary)
-            Button("Retour", action: onBack)
-                .buttonStyle(.borderedProminent)
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.xl) {
+            VStack(spacing: WakeveTheme.Spacing.md) {
+                Image(systemName: "lock.fill")
+                    .font(.largeTitle)
+                    .foregroundStyle(WakeveTheme.ColorToken.permissionBlue)
+                Text(String(localized: "access_denied.title"))
+                    .font(WakeveTheme.Typography.title2)
+                Text(message)
+                    .font(WakeveTheme.Typography.body)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+                WakeveActionButton(
+                    String(localized: "common.back"),
+                    systemImage: "chevron.left",
+                    variant: .primary,
+                    action: onBack
+                )
+            }
         }
-        .padding()
+        .padding(WakeveTheme.Spacing.page)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(WakeveScreenBackground(style: .grouped))
     }
 }
 
@@ -850,97 +977,312 @@ private struct Phase5SyncBanner: View {
 
     var body: some View {
         if pendingSync || !isOnline {
-            Label(
-                pendingSync ? "Modifications locales en attente d'envoi" : "Données locales disponibles hors ligne",
-                systemImage: "arrow.triangle.2.circlepath"
-            )
-            .font(.footnote.weight(.semibold))
-            .padding(12)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.yellow.opacity(0.16), in: RoundedRectangle(cornerRadius: 12))
+            WakeveContentCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.lg, padding: WakeveTheme.Spacing.md) {
+                Label(
+                    pendingSync ? String(localized: "sync.pending_changes") : String(localized: "sync.offline_available"),
+                    systemImage: "arrow.triangle.2.circlepath"
+                )
+                .font(WakeveTheme.Typography.metadata.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 }
 
+private struct PaymentTrustChecklistCard: View {
+    let title: String
+    let items: [PaymentTrustChecklistItem]
+
+    var body: some View {
+        WakeveContentCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                Label(title, systemImage: "checkmark.shield.fill")
+                    .font(WakeveTheme.Typography.section)
+
+                ForEach(items) { item in
+                    HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
+                        Image(systemName: item.systemImage)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.green)
+                            .frame(width: 24, height: 24)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.title)
+                                .font(WakeveTheme.Typography.bodySemibold)
+                            Text(item.detail)
+                                .font(WakeveTheme.Typography.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct PaymentTrustChecklistItem: Identifiable {
+    let id: String
+    let systemImage: String
+    let title: String
+    let detail: String
+}
+
+private func formatCurrencyAmount(_ amount: Double, currency: String) -> String {
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .currency
+    formatter.currencyCode = currency
+    formatter.maximumFractionDigits = amount.rounded() == amount ? 0 : 2
+    return formatter.string(from: NSNumber(value: amount)) ?? "\(currency) \(amount)"
+}
+
 private struct PaymentPotView: View {
     let eventId: String
+    let eventTitle: String
     let currentUserId: String
     let isOrganizer: Bool
     let isReadOnly: Bool
     private let canManagePayment: Bool
     private let pendingSync: Bool
-    @State private var statusText = "Aucune cagnotte active"
+    @State private var activePot: PaymentPotRecord?
+    @State private var goalAmountText: String
+    @State private var statusText: String
 
-    init(eventId: String, currentUserId: String, isOrganizer: Bool, canManagePayment: Bool, isReadOnly: Bool = false) {
+    init(eventId: String, eventTitle: String, currentUserId: String, isOrganizer: Bool, canManagePayment: Bool, isReadOnly: Bool = false) {
         self.eventId = eventId
+        self.eventTitle = eventTitle
         self.currentUserId = currentUserId
         self.isOrganizer = isOrganizer
         self.isReadOnly = isReadOnly
         self.canManagePayment = canManagePayment
         self.pendingSync = Phase5PendingSync.selectPending(eventId: eventId)
+        let existingPot = Self.loadActivePot(eventId: eventId)
+        self._activePot = State(initialValue: existingPot)
+        self._goalAmountText = State(initialValue: Self.initialGoalAmountText(for: existingPot))
+        self._statusText = State(initialValue: Self.statusText(for: existingPot))
     }
 
     var body: some View {
         NavigationStack {
-            List {
+            ScrollView {
                 Phase5SyncBanner(pendingSync: pendingSync, isOnline: !pendingSync)
-                Section("Cagnotte") {
-                    Label("Cagnotte partagée", systemImage: "creditcard.fill")
-                    Text(statusText)
-                        .foregroundStyle(.secondary)
-                    Text("Les contributions pour \(eventId) restent disponibles sur cet appareil et seront envoyées dès que la connexion sera disponible.")
-                        .foregroundStyle(.secondary)
-                    Button("Créer une cagnotte") {
-                        onCreatePaymentPot()
+
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                    WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+                        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                            Label(String(localized: "payment.shared_title"), systemImage: "creditcard.fill")
+                                .font(WakeveTheme.Typography.section)
+
+                            Text(statusText)
+                                .font(WakeveTheme.Typography.callout)
+                                .foregroundStyle(.secondary)
+
+                            if let activePot {
+                                HStack {
+                                    PriceDisplay(amount: activePot.currentAmount, currency: activePot.currency, style: .large)
+                                    Text(String(format: String(localized: "payment.goal_ratio_format"), formatCurrencyAmount(activePot.goalAmount, currency: activePot.currency)))
+                                        .font(WakeveTheme.Typography.callout)
+                                        .foregroundStyle(.secondary)
+                                }
+                            } else {
+                                Text(String(localized: "payment.no_active_body"))
+                                    .font(WakeveTheme.Typography.callout)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
-                    .disabled(!canManagePayment)
-                    Button("Activer la cagnotte") {
-                        onActivatePaymentPot()
+
+                    PaymentTrustChecklistCard(
+                        title: String(localized: "payment.trust.title"),
+                        items: [
+                            PaymentTrustChecklistItem(
+                                id: "positive-goal",
+                                systemImage: "number.circle.fill",
+                                title: String(localized: "payment.trust.goal_title"),
+                                detail: String(localized: "payment.trust.goal_detail")
+                            ),
+                            PaymentTrustChecklistItem(
+                                id: "local-sync",
+                                systemImage: "arrow.triangle.2.circlepath.circle.fill",
+                                title: String(localized: "payment.trust.sync_title"),
+                                detail: String(localized: "payment.trust.sync_detail")
+                            ),
+                            PaymentTrustChecklistItem(
+                                id: "verified-links",
+                                systemImage: "lock.shield.fill",
+                                title: String(localized: "payment.trust.link_title"),
+                                detail: String(localized: "payment.trust.link_detail")
+                            )
+                        ]
+                    )
+
+                    WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+                        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                            Text(String(localized: "payment.goal_section"))
+                                .font(WakeveTheme.Typography.section)
+
+                            TextField(String(localized: "payment.goal_placeholder"), text: $goalAmountText)
+                                .keyboardType(.decimalPad)
+                                .padding(.horizontal, WakeveTheme.Spacing.md)
+                                .frame(height: 52)
+                                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+                                .disabled(!canManagePayment || activePot != nil)
+                                .accessibilityLabel(String(localized: "payment.goal_section"))
+
+                            Text(goalAmountHelpText)
+                                .font(WakeveTheme.Typography.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
-                    .disabled(!canManagePayment)
-                    Button("Ouvrir la cagnotte") {
-                        onOpenPaymentPot()
+
+                    WakeveContentCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+                        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                            Text(String(localized: "payment.actions"))
+                                .font(WakeveTheme.Typography.section)
+
+                            WakeveActionButton(
+                                String(localized: "payment.create_pot"),
+                                systemImage: "plus.circle.fill",
+                                variant: .primary,
+                                isDisabled: !canCreateConfiguredPot
+                            ) {
+                                onCreatePaymentPot()
+                            }
+
+                            WakeveActionButton(
+                                String(localized: "payment.activate_pot"),
+                                systemImage: "checkmark.seal.fill",
+                                variant: .secondary,
+                                isDisabled: activePot == nil && !canCreateConfiguredPot
+                            ) {
+                                onActivatePaymentPot()
+                            }
+
+                            WakeveActionButton(
+                                String(localized: "payment.open_pot"),
+                                systemImage: "arrow.up.right.square",
+                                variant: .neutral,
+                                isDisabled: activePot == nil
+                            ) {
+                                onOpenPaymentPot()
+                            }
+
+                            WakeveActionButton(
+                                String(localized: "payment.close_pot"),
+                                systemImage: "xmark.circle",
+                                variant: .destructive,
+                                isDisabled: !canManagePayment || activePot == nil
+                            ) {
+                                onClosePaymentPot()
+                            }
+                        }
                     }
-                    Button("Clôturer la cagnotte") {
-                        onClosePaymentPot()
-                    }
-                    .disabled(!canManagePayment)
                 }
+                .padding(WakeveTheme.Spacing.md)
             }
-            .navigationTitle("Cagnotte")
+            .background(WakeveScreenBackground(style: .grouped))
+            .navigationTitle(String(localized: "payment.title"))
         }
     }
 
-    private func onCreatePaymentPot() {
-        guard canManagePayment else { return }
+    private var parsedGoalAmount: Double? {
+        let normalized = goalAmountText
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: ",", with: ".")
+        return Double(normalized)
+    }
+
+    private var canCreateConfiguredPot: Bool {
+        canManagePayment && activePot == nil && (parsedGoalAmount ?? 0) > 0
+    }
+
+    private var goalAmountHelpText: String {
+        if activePot != nil {
+            return String(localized: "payment.help.locked")
+        }
+
+        if !canManagePayment {
+            return isReadOnly ? String(localized: "payment.help.read_only") : String(localized: "payment.help.organizer_only")
+        }
+
+        return String(localized: "payment.help.positive_required")
+    }
+
+    private static func loadActivePot(eventId: String) -> PaymentPotRecord? {
         let repository = PaymentPotRepository(db: RepositoryProvider.shared.database)
-        _ = repository.createPot(
+        return repository.getActivePotForEvent(eventId: eventId)
+    }
+
+    private static func initialGoalAmountText(for pot: PaymentPotRecord?) -> String {
+        guard let pot, pot.goalAmount > 0 else { return "" }
+        return decimalText(pot.goalAmount)
+    }
+
+    private static func statusText(for pot: PaymentPotRecord?) -> String {
+        guard let pot else { return String(localized: "payment.status.none") }
+        return String(format: String(localized: "payment.status.active_format"), formatCurrencyAmount(pot.goalAmount, currency: pot.currency))
+    }
+
+    private static func decimalText(_ amount: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 2
+        formatter.minimumFractionDigits = 0
+        formatter.usesGroupingSeparator = false
+        return formatter.string(from: NSNumber(value: amount)) ?? "\(amount)"
+    }
+
+    private func onCreatePaymentPot() {
+        guard canCreateConfiguredPot, let goalAmount = parsedGoalAmount else {
+            statusText = String(localized: "payment.status.create_requires_positive")
+            return
+        }
+
+        let repository = PaymentPotRepository(db: RepositoryProvider.shared.database)
+        let pot = repository.createPot(
             eventId: eventId,
             organizerId: currentUserId,
-            goalAmount: 0,
-            title: "Cagnotte \(eventId)",
+            goalAmount: goalAmount,
+            title: String(format: String(localized: "payment.default_title_format"), eventTitle),
             currency: "EUR",
-            paymentProvider: "TRICOUNT",
+            paymentProvider: "WAKEVE_LOCAL",
             tricountGroupId: nil,
             tricountGroupUrl: nil
         )
-            statusText = "Cagnotte créée. Synchronisation en attente."
+        activePot = pot
+        statusText = String(format: String(localized: "payment.status.created_pending_format"), formatCurrencyAmount(pot.goalAmount, currency: pot.currency))
     }
 
     private func onActivatePaymentPot() {
-        onCreatePaymentPot()
+        if activePot == nil {
+            onCreatePaymentPot()
+        } else {
+            statusText = String(localized: "payment.status.ready_to_share")
+        }
     }
 
     private func onOpenPaymentPot() {
-        statusText = "Cagnotte ouverte localement"
+        guard let activePot else {
+            statusText = String(localized: "payment.status.none_to_open")
+            return
+        }
+
+        if let url = activePot.tricountGroupUrl, !url.isEmpty {
+            statusText = String(localized: "payment.status.provider_verified")
+        } else {
+            statusText = String(localized: "payment.status.local_only")
+        }
     }
 
     private func onClosePaymentPot() {
         guard canManagePayment else { return }
         let repository = PaymentPotRepository(db: RepositoryProvider.shared.database)
-        if let pot = repository.getActivePotForEvent(eventId: eventId),
+        if let pot = activePot ?? repository.getActivePotForEvent(eventId: eventId),
            repository.closePot(id: pot.id) != nil {
-            statusText = "Cagnotte clôturée. Synchronisation en attente."
+            activePot = nil
+            goalAmountText = ""
+            statusText = String(localized: "payment.status.closed_pending")
         }
     }
 }
@@ -954,6 +1296,8 @@ private struct TricountHandoffView: View {
     private let pendingSync: Bool
     @Environment(\.openURL) private var openURL
     @State private var safeLink: SafeExternalLink?
+    @State private var handoffStatusText: String
+    @State private var tricountURLText: String
 
     init(eventId: String, currentUserId: String, isOrganizer: Bool, canManageTricount: Bool, isReadOnly: Bool = false) {
         self.eventId = eventId
@@ -963,6 +1307,8 @@ private struct TricountHandoffView: View {
         self.canManageTricount = canManageTricount
         self.pendingSync = Phase5PendingSync.selectPending(eventId: eventId)
         self._safeLink = State(initialValue: Self.loadSafeLink(eventId: eventId))
+        self._handoffStatusText = State(initialValue: Self.loadStatusText(eventId: eventId))
+        self._tricountURLText = State(initialValue: Self.initialTricountURLText(eventId: eventId))
     }
 
     private static func loadSafeLink(eventId: String) -> SafeExternalLink? {
@@ -970,7 +1316,7 @@ private struct TricountHandoffView: View {
         let handoff = repository.getHandoff(eventId: eventId)
         return handoff?.providerUrl.flatMap { rawUrl in
             SafeExternalLink.sanitize(
-                label: "Ouvrir Tricount",
+                label: String(localized: "tricount.open"),
                 provider: "TRICOUNT",
                 rawURL: rawUrl,
                 verifier: { provider, url in
@@ -980,54 +1326,163 @@ private struct TricountHandoffView: View {
         }
     }
 
+    private static func loadStatusText(eventId: String) -> String {
+        let repository = TricountHandoffRepository(db: RepositoryProvider.shared.database)
+        let readiness = repository.getPaymentReadiness(eventId: eventId)
+
+        if readiness.handoff?.explicitNotNeeded == true {
+            return String(localized: "tricount.status.not_needed")
+        }
+
+        if readiness.complete {
+            return String(localized: "tricount.status.verified")
+        }
+
+        return String(localized: "tricount.status.missing")
+    }
+
+    private static func initialTricountURLText(eventId: String) -> String {
+        let repository = TricountHandoffRepository(db: RepositoryProvider.shared.database)
+        return repository.getHandoff(eventId: eventId)?.providerUrl ?? ""
+    }
+
     var body: some View {
         NavigationStack {
-            List {
+            ScrollView {
                 Phase5SyncBanner(pendingSync: pendingSync, isOnline: !pendingSync)
-                Section("Tricount") {
-                    if let safeLink, safeLink.isVerified, safeLink.validatedURL != nil {
-                        Button {
-                            openSafeURL(safeLink)
-                        } label: {
-                            Label(safeLink.label, systemImage: "link")
+
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                    WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+                        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                            Label(String(localized: "tricount.title"), systemImage: "link.circle.fill")
+                                .font(WakeveTheme.Typography.section)
+
+                            Text(handoffStatusText)
+                                .font(WakeveTheme.Typography.callout)
+                                .foregroundStyle(.secondary)
+
+                            if let safeLink, safeLink.isVerified, safeLink.validatedURL != nil {
+                                WakeveActionButton(
+                                    safeLink.label,
+                                    systemImage: "link",
+                                    variant: .primary
+                                ) {
+                                    WakeveHaptics.selection()
+                                    openSafeURL(safeLink)
+                                }
+                                Text(String(format: String(localized: "tricount.link_status_format"), safeLink.verificationStatus))
+                                    .font(WakeveTheme.Typography.caption)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Label(String(localized: "tricount.no_verified_link"), systemImage: "lock.shield")
+                                    .font(WakeveTheme.Typography.callout)
+                                Text(String(localized: "tricount.safe_link_explanation"))
+                                    .font(WakeveTheme.Typography.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
-                        Text("Lien \(safeLink.verificationStatus)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Label("Aucun lien Tricount vérifié", systemImage: "lock.shield")
-                        Text("Ajoutez un lien Tricount validé avant toute ouverture externe.")
-                            .foregroundStyle(.secondary)
                     }
-                    Button("Associer Tricount") {
-                        onLinkTricount()
+
+                    PaymentTrustChecklistCard(
+                        title: String(localized: "tricount.trust.title"),
+                        items: [
+                            PaymentTrustChecklistItem(
+                                id: "verified-url",
+                                systemImage: "link.circle.fill",
+                                title: String(localized: "tricount.trust.url_title"),
+                                detail: String(localized: "tricount.trust.url_detail")
+                            ),
+                            PaymentTrustChecklistItem(
+                                id: "explicit-decision",
+                                systemImage: "checkmark.circle.fill",
+                                title: String(localized: "tricount.trust.decision_title"),
+                                detail: String(localized: "tricount.trust.decision_detail")
+                            ),
+                            PaymentTrustChecklistItem(
+                                id: "readonly-final",
+                                systemImage: "lock.fill",
+                                title: String(localized: "tricount.trust.readonly_title"),
+                                detail: String(localized: "tricount.trust.readonly_detail")
+                            )
+                        ]
+                    )
+
+                    WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+                        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                            Text(String(localized: "tricount.decision"))
+                                .font(WakeveTheme.Typography.section)
+
+                            TextField(String(localized: "tricount.url_placeholder"), text: $tricountURLText)
+                                .keyboardType(.URL)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .padding(.horizontal, WakeveTheme.Spacing.md)
+                                .frame(height: 52)
+                                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+                                .disabled(!canManageTricount)
+                                .accessibilityLabel(String(localized: "tricount.url_section"))
+
+                            Text(String(localized: "tricount.url_help"))
+                                .font(WakeveTheme.Typography.caption)
+                                .foregroundStyle(.secondary)
+
+                            WakeveActionButton(
+                                String(localized: "tricount.link"),
+                                systemImage: "link.badge.plus",
+                                variant: .primary,
+                                isDisabled: !canManageTricount
+                            ) {
+                                onLinkTricount()
+                            }
+
+                            WakeveActionButton(
+                                String(localized: "tricount.unlink"),
+                                systemImage: "link.badge.minus",
+                                variant: .neutral,
+                                isDisabled: !canManageTricount
+                            ) {
+                                onUnlinkTricount()
+                            }
+
+                            WakeveActionButton(
+                                String(localized: "tricount.not_needed"),
+                                systemImage: "checkmark.shield",
+                                variant: .secondary,
+                                isDisabled: !canManageTricount
+                            ) {
+                                onMarkTricountNotNeeded()
+                            }
+                        }
                     }
-                    .disabled(!canManageTricount)
-                    Button("Dissocier Tricount") {
-                        onUnlinkTricount()
-                    }
-                    .disabled(!canManageTricount)
-                    Button("Tricount non requis") {
-                        onMarkTricountNotNeeded()
-                    }
-                    .disabled(!canManageTricount)
                 }
+                .padding(WakeveTheme.Spacing.md)
             }
-            .navigationTitle("Tricount")
+            .background(WakeveScreenBackground(style: .grouped))
+            .navigationTitle(String(localized: "tricount.title"))
         }
     }
 
     private func onLinkTricount() {
         guard canManageTricount else { return }
         let repository = TricountHandoffRepository(db: RepositoryProvider.shared.database)
+        let trimmedURL = tricountURLText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard repository.isTrustedProviderUrl(provider: "TRICOUNT", providerUrl: trimmedURL) else {
+            safeLink = nil
+            handoffStatusText = String(localized: "tricount.status.invalid_url")
+            WakeveHaptics.warning()
+            return
+        }
+
         _ = repository.linkHandoff(
             eventId: eventId,
             provider: "TRICOUNT",
             providerId: "tricount-\(eventId)",
-            providerUrl: "https://tricount.com/group/\(eventId)",
+            providerUrl: trimmedURL,
             syncStatus: "LINKED"
         )
         safeLink = Self.loadSafeLink(eventId: eventId)
+        handoffStatusText = Self.loadStatusText(eventId: eventId)
+        WakeveHaptics.success()
     }
 
     private func onUnlinkTricount() {
@@ -1035,6 +1490,9 @@ private struct TricountHandoffView: View {
         let repository = TricountHandoffRepository(db: RepositoryProvider.shared.database)
         repository.unlinkHandoff(eventId: eventId)
         safeLink = nil
+        tricountURLText = ""
+        handoffStatusText = Self.loadStatusText(eventId: eventId)
+        WakeveHaptics.selection()
     }
 
     private func onMarkTricountNotNeeded() {
@@ -1042,6 +1500,9 @@ private struct TricountHandoffView: View {
         let repository = TricountHandoffRepository(db: RepositoryProvider.shared.database)
         _ = repository.markNotNeeded(eventId: eventId, decidedBy: currentUserId)
         safeLink = nil
+        tricountURLText = ""
+        handoffStatusText = Self.loadStatusText(eventId: eventId)
+        WakeveHaptics.success()
     }
 
     private func openSafeURL(_ link: SafeExternalLink) {
@@ -1049,6 +1510,7 @@ private struct TricountHandoffView: View {
         _ = link.validatedURL
     }
 }
+
 
 private enum SafeURLOpener {
     static func openSafeURL(_ link: SafeExternalLink, openURL: OpenURLAction) {
@@ -1082,7 +1544,7 @@ private struct SafeExternalLink {
             label: label,
             provider: provider,
             validatedURL: url,
-            verificationStatus: "vérifié",
+            verificationStatus: String(localized: "safe_link.verified"),
             isVerified: true
         )
     }
@@ -1124,7 +1586,7 @@ struct EventListView: View {
                     .font(.system(size: 32, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
                 
-                Text("Collaborative Event Planning")
+                Text(String(localized: "events.legacy_list.subtitle"))
                     .font(.system(size: 16, weight: .medium, design: .rounded))
                     .foregroundColor(.secondary)
             }
@@ -1140,11 +1602,11 @@ struct EventListView: View {
                                     .font(.system(size: 48))
                                     .foregroundColor(.blue)
                                 
-                                Text("Create New Event")
+                                Text(String(localized: "events.legacy_list.create_title"))
                                     .font(.system(size: 18, weight: .semibold, design: .rounded))
                                     .foregroundColor(.primary)
                                 
-                                Text("Start planning your collaborative event")
+                                Text(String(localized: "events.legacy_list.create_subtitle"))
                                     .font(.system(size: 14, design: .rounded))
                                     .foregroundColor(.secondary)
                                     .multilineTextAlignment(.center)
@@ -1174,11 +1636,11 @@ struct EventListView: View {
                                 .font(.system(size: 48))
                                 .foregroundColor(Color(.tertiaryLabel))
                             
-                            Text("No events yet")
+                            Text(String(localized: "events.empty.title"))
                                 .font(.system(size: 16, weight: .medium, design: .rounded))
                                 .foregroundColor(.secondary)
                             
-                            Text("Create your first event to get started")
+                            Text(String(localized: "events.empty.subtitle"))
                                 .font(.system(size: 14, design: .rounded))
                                 .foregroundColor(Color(.tertiaryLabel))
                                 .multilineTextAlignment(.center)
@@ -1246,7 +1708,7 @@ struct EventCard: View {
                             .background(statusColor.opacity(0.2))
                             .cornerRadius(8)
                         
-                        Text("\(event.participants.count) participants")
+                        Text(participantCountText)
                             .font(.system(size: 12, design: .rounded))
                             .foregroundColor(Color(.tertiaryLabel))
                     }
@@ -1257,7 +1719,7 @@ struct EventCard: View {
                         .font(.system(size: 14))
                         .foregroundColor(Color(.tertiaryLabel))
                     
-                    Text("\(event.proposedSlots.count) time slots")
+                    Text(slotOptionsText)
                         .font(.system(size: 14, design: .rounded))
                         .foregroundColor(.secondary)
                     
@@ -1280,11 +1742,25 @@ struct EventCard: View {
     
     private var statusText: String {
         switch event.status {
-        case .draft: return "Draft"
-        case .polling: return "Polling"
-        case .confirmed: return "Confirmed"
-        default: return "Unknown"
+        case .draft: return String(localized: "events.status.draft_preview")
+        case .polling: return String(localized: "events.status.polling")
+        case .confirmed: return String(localized: "events.status.confirmed")
+        case .organizing: return String(localized: "events.status.organizing")
+        case .finalized: return String(localized: "events.status.finalized")
+        default: return String(localized: "events.status.event")
         }
+    }
+
+    private var participantCountText: String {
+        event.participants.count == 1
+            ? String(format: String(localized: "participants.count.singular_format"), event.participants.count)
+            : String(format: String(localized: "participants.count.plural_format"), event.participants.count)
+    }
+
+    private var slotOptionsText: String {
+        event.proposedSlots.count == 1
+            ? String(format: String(localized: "event.detail.slot_option_singular_format"), event.proposedSlots.count)
+            : String(format: String(localized: "event.detail.slot_options_plural_format"), event.proposedSlots.count)
     }
     
     private var statusColor: Color {
@@ -1299,6 +1775,7 @@ struct EventCard: View {
     private func formatDeadline(_ deadlineString: String) -> String {
         if let date = ISO8601DateFormatter().date(from: deadlineString) {
             let formatter = DateFormatter()
+            formatter.locale = .autoupdatingCurrent
             formatter.dateStyle = .short
             formatter.timeStyle = .none
             return formatter.string(from: date)
@@ -1313,6 +1790,7 @@ struct EventDetailView: View {
     let event: Event
     let repository: EventRepositoryInterface
     let userId: String
+    let preparedCreationChecklist: [ChecklistItem]
     let onManageParticipants: () -> Void
     let onVote: () -> Void
     let onViewResults: () -> Void
@@ -1322,6 +1800,8 @@ struct EventDetailView: View {
     let onOpenBudget: () -> Void
     let onOpenPayment: () -> Void
     let onOpenTricount: () -> Void
+    let isInvitationLanding: Bool
+    let onDismissInvitationLanding: () -> Void
     let onBack: () -> Void
 
     @State private var eventAISummary: EventSummary?
@@ -1334,7 +1814,9 @@ struct EventDetailView: View {
     @State private var ignoredEventAISuggestions: Set<String> = []
     @State private var isGeneratingEventAI = false
     @State private var eventAIError: String?
+    @State private var seededPreparedCreationChecklist = false
     @State private var moderationTarget: ModerationActionTarget?
+    @State private var didPlayInvitationLandingHaptic = false
     @StateObject private var eventWeatherViewModel = EventWeatherViewModel()
 
     var body: some View {
@@ -1345,10 +1827,17 @@ struct EventDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
                     heroSection
+                    if isInvitationLanding {
+                        invitationLandingCard
+                    }
                     metadataOverview
                     EventWeatherMapCard(state: eventWeatherViewModel.state)
+                    anticipationPanel
                     eventAISuggestionPanel
                     urgentNextAction
+                    if canShowGroupReadiness {
+                        groupReadinessPanel
+                    }
                     participantsPreview
                     detailRows
                     messagePreview
@@ -1377,6 +1866,10 @@ struct EventDetailView: View {
         }
         .task(id: event.id) {
             await eventWeatherViewModel.load(event: event)
+        }
+        .onAppear {
+            seedPreparedCreationChecklistIfNeeded()
+            triggerInvitationLandingHapticIfNeeded()
         }
     }
 
@@ -1422,18 +1915,80 @@ struct EventDetailView: View {
     private var metadataOverview: some View {
         WakeveGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
-                Text("Résumé")
+                Text(String(localized: "event.detail.summary_title"))
                     .font(WakeveTheme.Typography.section)
                     .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: WakeveTheme.Spacing.sm) {
-                    EventDetailMetadataPill(icon: statusIcon, title: "Statut", value: statusText)
-                    EventDetailMetadataPill(icon: "timer", title: "Sondage", value: pollDurationText)
-                    EventDetailMetadataPill(icon: "calendar", title: "Créneaux", value: "\(event.proposedSlots.count) option\(event.proposedSlots.count > 1 ? "s" : "")")
-                    EventDetailMetadataPill(icon: "person.2.fill", title: "Invités", value: participantSummary)
+                    EventDetailMetadataPill(icon: statusIcon, title: String(localized: "event.detail.metadata.status"), value: statusText)
+                    EventDetailMetadataPill(icon: "timer", title: String(localized: "event.detail.metadata.poll"), value: pollDurationText)
+                    EventDetailMetadataPill(icon: "calendar", title: String(localized: "event.detail.metadata.slots"), value: slotOptionsText)
+                    EventDetailMetadataPill(icon: "person.2.fill", title: String(localized: "event.detail.metadata.guests"), value: participantSummary)
                 }
             }
         }
+    }
+
+    private var invitationLandingCard: some View {
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
+                    Image(systemName: "envelope.open.fill")
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(.white)
+                        .frame(width: 42, height: 42)
+                        .background(WakeveTheme.ColorToken.permissionBlue, in: Circle())
+
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text(String(localized: "event.detail.invite_landing.title"))
+                            .font(WakeveTheme.Typography.section)
+                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                        Text(invitationLandingSubtitle)
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                VStack(spacing: WakeveTheme.Spacing.sm) {
+                    WakeveActionButton(
+                        invitationLandingPrimaryActionTitle,
+                        systemImage: invitationLandingPrimaryActionIcon,
+                        variant: .primary
+                    ) {
+                        WakeveHaptics.selection()
+                        if event.status == .polling {
+                            onVote()
+                        } else {
+                            onManageParticipants()
+                        }
+                    }
+                    .accessibilityIdentifier("eventInvitationLandingPrimaryAction")
+
+                    WakeveActionButton(
+                        String(localized: "event.detail.invite_landing.continue_action"),
+                        systemImage: "checkmark.circle.fill",
+                        variant: .neutral
+                    ) {
+                        WakeveHaptics.selection()
+                        onDismissInvitationLanding()
+                    }
+                    .accessibilityIdentifier("eventInvitationLandingContinueAction")
+                }
+            }
+        }
+        .accessibilityIdentifier("eventInvitationLandingCard")
+    }
+
+    private var anticipationPanel: some View {
+        EventDetailAnticipationCard(
+            countdownTitle: countdownTitle,
+            countdownSubtitle: countdownSubtitle,
+            items: anticipationItems,
+            returnHookTitle: String(localized: "event.detail.return_hook.share_action"),
+            returnHookMessage: returnHookMessage
+        )
     }
 
     private var titleBlock: some View {
@@ -1455,15 +2010,15 @@ struct EventDetailView: View {
         HStack(spacing: 10) {
             OrganizerChip(
                 icon: "person.badge.plus",
-                title: "Inviter",
-                subtitle: "Participants",
+                title: String(localized: "event.detail.organizer.invite_title"),
+                subtitle: String(localized: "event.detail.participants_title"),
                 tint: Color(hex: "7DD3FC"),
                 action: onManageParticipants
             )
 
             OrganizerChip(
                 icon: "chart.bar.xaxis",
-                title: "Sondage",
+                title: String(localized: "event.detail.organizer.poll_title"),
                 subtitle: pollDurationText,
                 tint: Color(hex: "FDE68A"),
                 action: event.status == .draft ? onManageParticipants : onViewResults
@@ -1484,9 +2039,18 @@ struct EventDetailView: View {
         )
     }
 
+    private var groupReadinessPanel: some View {
+        EventDetailReadinessCard(
+            title: String(localized: "event.detail.readiness.title"),
+            subtitle: String(localized: "event.detail.readiness.subtitle"),
+            progressText: readinessProgressText,
+            items: groupReadinessItems
+        )
+    }
+
     private var participantsPreview: some View {
         EventDetailParticipantsPreview(
-            title: "Participants",
+            title: String(localized: "event.detail.participants_title"),
             subtitle: participantPreviewSubtitle,
             initials: participantInitials,
             action: onManageParticipants
@@ -1494,18 +2058,18 @@ struct EventDetailView: View {
     }
 
     private var detailRows: some View {
-        EventDetailSectionCard(title: "Organisation") {
+        EventDetailSectionCard(title: String(localized: "event.detail.section.organization")) {
             EventDetailActionRow(
                 icon: "calendar",
-                label: "Créneaux proposés",
-                value: "\(event.proposedSlots.count) option\(event.proposedSlots.count > 1 ? "s" : "")",
+                label: String(localized: "event.detail.organization.slots_label"),
+                value: slotOptionsSummary,
                 action: event.status == .polling ? onVote : onViewResults
             )
 
             if canAccessScenarioPlanning {
                 EventDetailActionRow(
                     icon: "map.fill",
-                    label: "Options, destination et logement",
+                    label: String(localized: "event.detail.organization.scenario_label"),
                     value: scenarioPlanningText,
                     action: onOrganize
                 )
@@ -1514,8 +2078,8 @@ struct EventDetailView: View {
             if canAccessTransportPlanning {
                 EventDetailActionRow(
                     icon: "point.topleft.down.curvedto.point.bottomright.up.fill",
-                    label: "Transport",
-                    value: "Départs, optimisation et plan final",
+                    label: String(localized: "event.detail.organization.transport_label"),
+                    value: String(localized: "event.detail.organization.transport_value"),
                     action: onOpenTransport
                 )
             }
@@ -1523,29 +2087,29 @@ struct EventDetailView: View {
             if canShowOrganizationDashboard {
                 EventDetailActionRow(
                     icon: "video.fill",
-                    label: "Réunions",
-                    value: organizationDashboardValue("Réunions et liens de coordination"),
+                    label: String(localized: "event.detail.organization.meetings_label"),
+                    value: organizationDashboardValue(String(localized: "event.detail.organization.meetings_value")),
                     action: onOpenMeetings
                 )
 
                 EventDetailActionRow(
                     icon: "eurosign.circle.fill",
-                    label: "Budget et dépenses",
-                    value: organizationDashboardValue("Dépenses, soldes et baseline"),
+                    label: String(localized: "event.detail.organization.budget_label"),
+                    value: organizationDashboardValue(String(localized: "event.detail.organization.budget_value")),
                     action: onOpenBudget
                 )
 
                 EventDetailActionRow(
                     icon: "creditcard.fill",
-                    label: "Cagnotte",
-                    value: organizationDashboardValue("Cagnotte commune"),
+                    label: String(localized: "event.detail.organization.payment_pot_label"),
+                    value: paymentPotSummaryValue(),
                     action: onOpenPayment
                 )
 
                 EventDetailActionRow(
                     icon: "link.circle.fill",
-                    label: "Tricount",
-                    value: organizationDashboardValue("Handoff sécurisé"),
+                    label: String(localized: "event.detail.menu.tricount"),
+                    value: tricountSummaryValue(),
                     action: onOpenTricount
                 )
             }
@@ -1554,9 +2118,9 @@ struct EventDetailView: View {
 
     private var messagePreview: some View {
         EventDetailMessagePreview(
-            title: "Messages",
+            title: String(localized: "event.detail.messages_title"),
             subtitle: compactMessageSubtitle,
-            badgeText: event.status == .polling ? "Vote" : "Événement"
+            badgeText: event.status == .polling ? String(localized: "event.detail.message_preview.vote_badge") : String(localized: "event.detail.message_preview.event_badge")
         )
     }
 
@@ -1565,11 +2129,11 @@ struct EventDetailView: View {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
-                        Text("Suggestion")
+                        Text(String(localized: "event.detail.ai.title"))
                             .font(WakeveTheme.Typography.section)
                             .foregroundColor(primaryText)
 
-                        Text("Préparez les prochaines actions à relire avant application.")
+                        Text(String(localized: "event.detail.ai.review_subtitle"))
                             .font(WakeveTheme.Typography.callout)
                             .foregroundColor(secondaryText)
                     }
@@ -1621,7 +2185,7 @@ struct EventDetailView: View {
 
                 if !eventAIPolls.isEmpty {
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
-                        Text("Sondages proposés")
+                        Text(String(localized: "event.detail.ai.polls_title"))
                             .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(primaryText)
 
@@ -1641,7 +2205,7 @@ struct EventDetailView: View {
 
                 if !eventAIChecklist.isEmpty {
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
-                        Text("Checklist")
+                        Text(String(localized: "event.detail.ai.checklist_title"))
                             .font(WakeveTheme.Typography.bodySemibold)
                             .foregroundColor(primaryText)
 
@@ -1677,7 +2241,7 @@ struct EventDetailView: View {
     }
 
     private var topControls: some View {
-        LiquidGlassToolbar(title: "Événement", subtitle: statusText) {
+        LiquidGlassToolbar(title: String(localized: "event.detail.title"), subtitle: statusText) {
             WakeveCircleButton(
                 systemImage: "chevron.left",
                 accessibilityLabel: String(localized: "common.back"),
@@ -1717,43 +2281,43 @@ struct EventDetailView: View {
     @ViewBuilder
     private var organizerMenuContent: some View {
         Button(action: onManageParticipants) {
-            Label("Ajouter des participants", systemImage: "person.badge.plus")
+            Label(String(localized: "event.detail.menu.add_participants"), systemImage: "person.badge.plus")
         }
 
         Button(action: event.status == .polling ? onViewResults : onManageParticipants) {
-            Label("Régler le sondage", systemImage: "timer")
+            Label(String(localized: "event.detail.menu.configure_poll"), systemImage: "timer")
         }
 
         if event.status == .polling {
             Button(action: onViewResults) {
-                Label("Voir les résultats", systemImage: "chart.bar.fill")
+                Label(String(localized: "event.detail.menu.view_results"), systemImage: "chart.bar.fill")
             }
         }
 
         if canAccessScenarioPlanning {
             Button(action: onOrganize) {
-                Label("Organiser les scénarios", systemImage: "map.fill")
+                Label(String(localized: "event.detail.menu.organize_scenarios"), systemImage: "map.fill")
             }
         }
 
         if canAccessTransportPlanning {
             Button(action: onOpenTransport) {
-                Label("Transport", systemImage: "point.topleft.down.curvedto.point.bottomright.up.fill")
+                Label(String(localized: "event.detail.menu.transport"), systemImage: "point.topleft.down.curvedto.point.bottomright.up.fill")
             }
         }
 
         if canShowOrganizationDashboard {
             Button(action: onOpenMeetings) {
-                Label("Réunions", systemImage: "video.fill")
+                Label(String(localized: "event.detail.menu.meetings"), systemImage: "video.fill")
             }
             Button(action: onOpenBudget) {
-                Label("Budget", systemImage: "eurosign.circle.fill")
+                Label(String(localized: "event.detail.menu.budget"), systemImage: "eurosign.circle.fill")
             }
             Button(action: onOpenPayment) {
-                Label("Pot commun", systemImage: "creditcard.fill")
+                Label(String(localized: "event.detail.menu.payment_pot"), systemImage: "creditcard.fill")
             }
             Button(action: onOpenTricount) {
-                Label("Tricount", systemImage: "link.circle.fill")
+                Label(String(localized: "event.detail.menu.tricount"), systemImage: "link.circle.fill")
             }
         }
 
@@ -1863,7 +2427,7 @@ struct EventDetailView: View {
         if let firstSlot = event.proposedSlots.first {
             return formatSlot(firstSlot)
         }
-        return "Configurez les participants et la durée du sondage avant de publier."
+        return String(localized: "event.detail.subtitle.empty")
     }
 
     private var primaryDateText: String {
@@ -1877,21 +2441,164 @@ struct EventDetailView: View {
             return formatEventDate(start)
         }
 
-        return "Date à choisir"
+        return String(localized: "event.detail.date_to_choose")
     }
 
     private var nextAction: EventNextAction {
         EventNextAction(event: event)
     }
 
+    private var eventMomentDate: Date? {
+        if let finalDate = event.finalDate {
+            if let finalSlot = event.proposedSlots.first(where: { $0.id == finalDate }),
+               let startValue = finalSlot.start,
+               let start = parseDate(startValue) {
+                return start
+            }
+
+            if let date = parseDate(finalDate) {
+                return date
+            }
+        }
+
+        if let firstSlot = event.proposedSlots.first,
+           let startValue = firstSlot.start,
+           let start = parseDate(startValue) {
+            return start
+        }
+
+        return nil
+    }
+
+    private var countdownTitle: String {
+        guard let eventMomentDate else {
+            return String(localized: "event.detail.countdown.to_create")
+        }
+
+        let days = Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: Date()), to: Calendar.current.startOfDay(for: eventMomentDate)).day ?? 0
+
+        if days < 0 {
+            return String(localized: "event.detail.countdown.past")
+        }
+
+        if days == 0 {
+            return String(localized: "event.detail.countdown.today")
+        }
+
+        if days == 1 {
+            return String(localized: "event.detail.countdown.tomorrow")
+        }
+
+        return String(format: String(localized: "event.detail.countdown.days_format"), days)
+    }
+
+    private var countdownSubtitle: String {
+        guard let eventMomentDate else {
+            return String(localized: "event.detail.countdown.empty_subtitle")
+        }
+
+        return "\(formatLongEventDate(eventMomentDate)) · \(anticipationStatusText)"
+    }
+
+    private var anticipationStatusText: String {
+        switch event.status {
+        case .draft:
+            return String(localized: "event.detail.anticipation.status.draft")
+        case .polling:
+            return String(localized: "event.detail.anticipation.status.polling")
+        case .confirmed:
+            return String(localized: "event.detail.anticipation.status.confirmed")
+        case .comparing:
+            return String(localized: "event.detail.anticipation.status.comparing")
+        case .organizing:
+            return String(localized: "event.detail.anticipation.status.organizing")
+        case .finalized:
+            return String(localized: "event.detail.anticipation.status.finalized")
+        default:
+            return String(localized: "event.detail.anticipation.status.default")
+        }
+    }
+
+    private var invitationLandingSubtitle: String {
+        if event.status == .polling {
+            return String(localized: "event.detail.invite_landing.polling_subtitle")
+        }
+
+        return String(localized: "event.detail.invite_landing.default_subtitle")
+    }
+
+    private var invitationLandingPrimaryActionTitle: String {
+        event.status == .polling
+            ? String(localized: "event.detail.invite_landing.vote_action")
+            : String(localized: "event.detail.invite_landing.view_invite_action")
+    }
+
+    private var invitationLandingPrimaryActionIcon: String {
+        event.status == .polling ? "checklist.checked" : "person.badge.plus"
+    }
+
+    private var anticipationItems: [EventAnticipationItem] {
+        var items: [EventAnticipationItem] = []
+
+        if event.participants.isEmpty {
+            items.append(EventAnticipationItem(icon: "person.badge.plus", title: String(localized: "event.detail.anticipation.invite.title"), subtitle: String(localized: "event.detail.anticipation.invite.subtitle")))
+        } else {
+            items.append(EventAnticipationItem(icon: "person.2.fill", title: participantSummary, subtitle: participantPreviewSubtitle))
+        }
+
+        switch event.status {
+        case .draft:
+            items.append(EventAnticipationItem(icon: "chart.bar.doc.horizontal", title: String(localized: "event.detail.anticipation.start_poll.title"), subtitle: String(localized: "event.detail.anticipation.start_poll.subtitle")))
+        case .polling:
+            items.append(EventAnticipationItem(icon: "megaphone.fill", title: String(localized: "event.detail.anticipation.announcement.title"), subtitle: String(localized: "event.detail.anticipation.announcement.subtitle")))
+        case .confirmed, .comparing:
+            items.append(EventAnticipationItem(icon: "map.fill", title: String(localized: "event.detail.anticipation.final_option.title"), subtitle: String(localized: "event.detail.anticipation.final_option.subtitle")))
+        case .organizing:
+            items.append(EventAnticipationItem(icon: "checklist", title: String(localized: "event.detail.anticipation.lock_next.title"), subtitle: String(localized: "event.detail.anticipation.lock_next.subtitle")))
+        case .finalized:
+            items.append(EventAnticipationItem(icon: "checkmark.seal.fill", title: String(localized: "event.detail.anticipation.ready.title"), subtitle: String(localized: "event.detail.anticipation.ready.subtitle")))
+        default:
+            items.append(EventAnticipationItem(icon: "sparkles", title: String(localized: "event.detail.anticipation.next_step.title"), subtitle: nextAction.title))
+        }
+
+        if event.status != .finalized {
+            items.append(EventAnticipationItem(icon: "photo.on.rectangle.angled", title: String(localized: "event.detail.anticipation.excitement.title"), subtitle: String(localized: "event.detail.anticipation.excitement.subtitle")))
+        }
+
+        return Array(items.prefix(3))
+    }
+
+    private var returnHookMessage: String {
+        String(
+            format: String(localized: "event.detail.return_hook.message_format"),
+            event.title,
+            countdownTitle,
+            nextAction.title,
+            eventInviteURLString
+        )
+    }
+
+    private var eventInviteURLString: String {
+        let invitationCode = InvitationTokenCodec.invitationCode(forEventId: event.id)
+        return "https://wakeve.app/invite/\(invitationCode)"
+    }
+
     private var participantRangeText: String {
         if let min = event.minParticipants?.intValue, let max = event.maxParticipants?.intValue {
-            return "\(min) à \(max) participants"
+            return String(format: String(localized: "event.detail.participant_range_format"), min, max)
         }
         if let expected = event.expectedParticipants?.intValue {
-            return "\(expected) participants attendus"
+            return String(format: String(localized: "event.detail.expected_participants_format"), expected)
         }
-        return "\(event.participants.count) participant\(event.participants.count > 1 ? "s" : "") invité\(event.participants.count > 1 ? "s" : "")"
+        return event.participants.count == 1
+            ? String(format: String(localized: "event.detail.invited_participant_singular_format"), event.participants.count)
+            : String(format: String(localized: "event.detail.invited_participants_plural_format"), event.participants.count)
+    }
+
+    private var slotOptionsText: String {
+        event.proposedSlots.count == 1
+            ? String(format: String(localized: "event.detail.slot_option_singular_format"), event.proposedSlots.count)
+            : String(format: String(localized: "event.detail.slot_options_plural_format"), event.proposedSlots.count)
     }
 
     private var participantInitials: [String] {
@@ -1916,30 +2623,42 @@ struct EventDetailView: View {
 
     private var participantPreviewSubtitle: String {
         event.participants.isEmpty
-            ? "Aucun invité ajouté pour le moment."
-            : "\(event.participants.count) invité\(event.participants.count > 1 ? "s" : "") à suivre."
+            ? String(localized: "event.detail.participant_preview.empty")
+            : participantPreviewCountText
     }
 
     private var participantSummary: String {
         if event.participants.isEmpty {
-            return "Vous"
+            return String(localized: "event.detail.participant_summary.you")
         }
-        return "Vous + \(event.participants.count)"
+        return String(format: String(localized: "event.detail.participant_summary.you_plus_format"), event.participants.count)
+    }
+
+    private var participantPreviewCountText: String {
+        event.participants.count == 1
+            ? String(format: String(localized: "event.detail.participant_preview.singular_format"), event.participants.count)
+            : String(format: String(localized: "event.detail.participant_preview.plural_format"), event.participants.count)
+    }
+
+    private var slotOptionsSummary: String {
+        event.proposedSlots.count == 1
+            ? String(format: String(localized: "event.detail.slot_option_singular_format"), event.proposedSlots.count)
+            : String(format: String(localized: "event.detail.slot_options_plural_format"), event.proposedSlots.count)
     }
 
     private var pollDurationText: String {
         guard let deadline = parseDate(event.deadline) else {
-            return "À définir"
+            return String(localized: "event.detail.poll_duration.to_define")
         }
 
         let interval = deadline.timeIntervalSince(Date())
         if interval <= 0 {
-            return "Terminé"
+            return String(localized: "event.detail.poll_duration.done")
         }
 
         let days = Int(ceil(interval / 86_400))
         if days >= 2 {
-            return "\(days) jours"
+            return String(format: String(localized: "event.detail.poll_duration.days_format"), days)
         }
 
         let hours = max(1, Int(ceil(interval / 3_600)))
@@ -1949,24 +2668,24 @@ struct EventDetailView: View {
     private var footerHint: String {
         switch event.status {
         case .draft:
-            return "Ajoutez des participants et vérifiez la durée du sondage avant de lancer l’événement."
+            return String(localized: "event.detail.footer.draft")
         case .polling:
-            return "Suivez les votes en temps réel avant de confirmer le meilleur créneau."
+            return String(localized: "event.detail.footer.polling")
         default:
-            return "Les participants retrouvent ici le résumé de l’événement."
+            return String(localized: "event.detail.footer.default")
         }
     }
 
     private var compactMessageSubtitle: String {
         switch event.status {
         case .draft:
-            return "La conversation apparaîtra quand l’événement sera partagé."
+            return String(localized: "event.detail.message_preview.draft")
         case .polling:
-            return "Rappels, réponses et questions de vote regroupés ici."
+            return String(localized: "event.detail.message_preview.polling")
         case .confirmed, .comparing:
-            return "Les échanges restent attachés au scénario en cours."
+            return String(localized: "event.detail.message_preview.scenario")
         default:
-            return "Coordination, décisions et rappels visibles depuis l’événement."
+            return String(localized: "event.detail.message_preview.default")
         }
     }
 
@@ -2070,27 +2789,28 @@ struct EventDetailView: View {
         )
         let client = HeuristicWakeveAIClient()
         let knownFacts = contextProvider.facts
+        let localeIdentifier = Locale.autoupdatingCurrent.identifier
 
         Task {
             do {
                 async let summary = EventSummaryGenerator(
                     client: client,
                     contextProvider: contextProvider
-                ).generate(eventId: event.id, localeIdentifier: "fr_FR")
+                ).generate(eventId: event.id, localeIdentifier: localeIdentifier)
                 async let polls = PollSuggestionGenerator(client: client).generate(
                     context: contextProvider.promptSummary,
                     knownFacts: knownFacts,
-                    localeIdentifier: "fr_FR"
+                    localeIdentifier: localeIdentifier
                 )
                 async let checklist = ChecklistGenerator(client: client).generate(
                     context: contextProvider.promptSummary,
                     knownFacts: knownFacts,
-                    localeIdentifier: "fr_FR"
+                    localeIdentifier: localeIdentifier
                 )
                 async let messages = InvitationMessageGenerator(client: client).generate(
                     context: contextProvider.promptSummary,
                     knownFacts: knownFacts,
-                    localeIdentifier: "fr_FR"
+                    localeIdentifier: localeIdentifier
                 )
 
                 let results = try await (summary, polls, checklist, messages)
@@ -2105,11 +2825,26 @@ struct EventDetailView: View {
                 }
             } catch {
                 await MainActor.run {
-                    eventAIError = "La suggestion n'est pas disponible pour le moment."
+                    eventAIError = String(localized: "event.detail.ai.error_unavailable")
                     isGeneratingEventAI = false
                 }
             }
         }
+    }
+
+    private func seedPreparedCreationChecklistIfNeeded() {
+        guard !seededPreparedCreationChecklist, eventAIChecklist.isEmpty, !preparedCreationChecklist.isEmpty else {
+            return
+        }
+
+        eventAIChecklist = preparedCreationChecklist
+        seededPreparedCreationChecklist = true
+    }
+
+    private func triggerInvitationLandingHapticIfNeeded() {
+        guard isInvitationLanding, !didPlayInvitationLandingHaptic else { return }
+        WakeveHaptics.success()
+        didPlayInvitationLandingHaptic = true
     }
 
     private func updateInvitationDraft(_ variant: EventAIInvitationVariant) {
@@ -2144,6 +2879,15 @@ struct EventDetailView: View {
         canAccessOrganizationDetails && organizationDashboardVisible
     }
 
+    private var canShowGroupReadiness: Bool {
+        switch event.status {
+        case .confirmed, .comparing, .organizing, .finalized:
+            return canAccessOrganizationDetails
+        default:
+            return false
+        }
+    }
+
     private var organizationDashboardVisible: Bool {
         switch event.status {
         case .organizing:
@@ -2173,20 +2917,144 @@ struct EventDetailView: View {
     private var scenarioPlanningText: String {
         switch event.status {
         case .confirmed:
-            return "Options ouvertes"
+            return String(localized: "event.detail.scenario.open")
         case .comparing:
-            return "Comparaison active"
+            return String(localized: "event.detail.scenario.comparing")
         case .organizing:
-            return "Logistique en cours"
+            return String(localized: "event.detail.scenario.organizing")
         case .finalized:
-            return "Organisation finalisée en lecture seule"
+            return String(localized: "event.detail.scenario.finalized_readonly")
         default:
-            return "Indisponible"
+            return String(localized: "event.detail.scenario.unavailable")
         }
     }
 
     private func organizationDashboardValue(_ value: String) -> String {
-        isFinalizedOrganizationState(event) ? "\(value) - détails finalisés, aucune modification possible" : value
+        isFinalizedOrganizationState(event)
+            ? String(format: String(localized: "event.detail.organization.finalized_value_format"), value)
+            : value
+    }
+
+    private func paymentPotSummaryValue() -> String {
+        let repository = PaymentPotRepository(db: RepositoryProvider.shared.database)
+        guard let pot = repository.getActivePotForEvent(eventId: event.id) else {
+            return organizationDashboardValue(String(localized: "event.detail.payment_pot.define_before_share"))
+        }
+
+        guard pot.goalAmount > 0 else {
+            return organizationDashboardValue(String(localized: "event.detail.payment_pot.define_goal"))
+        }
+
+        let amount = formatCurrencyAmount(pot.goalAmount, currency: pot.currency)
+        return organizationDashboardValue(String(format: String(localized: "event.detail.payment_pot.goal_format"), amount))
+    }
+
+    private func tricountSummaryValue() -> String {
+        let repository = TricountHandoffRepository(db: RepositoryProvider.shared.database)
+        let readiness = repository.getPaymentReadiness(eventId: event.id)
+
+        if readiness.handoff?.explicitNotNeeded == true {
+            return organizationDashboardValue(String(localized: "event.detail.tricount.not_required"))
+        }
+
+        if readiness.complete {
+            return organizationDashboardValue(String(localized: "event.detail.tricount.link_verified"))
+        }
+
+        if readiness.handoff != nil {
+            return organizationDashboardValue(String(localized: "event.detail.tricount.link_to_check"))
+        }
+
+        return organizationDashboardValue(String(localized: "event.detail.tricount.decide_before_expenses"))
+    }
+
+    private var groupReadinessItems: [EventDetailReadinessItem] {
+        [
+            EventDetailReadinessItem(
+                icon: "person.2.fill",
+                title: String(localized: "event.detail.readiness.participants.title"),
+                subtitle: event.participants.isEmpty
+                    ? String(localized: "event.detail.readiness.participants.missing")
+                    : String(localized: "event.detail.readiness.participants.ready"),
+                isReady: !event.participants.isEmpty
+            ),
+            EventDetailReadinessItem(
+                icon: "map.fill",
+                title: String(localized: "event.detail.readiness.scenario.title"),
+                subtitle: selectedScenarioLocation == nil
+                    ? String(localized: "event.detail.readiness.scenario.missing")
+                    : String(localized: "event.detail.readiness.scenario.ready"),
+                isReady: selectedScenarioLocation != nil
+            ),
+            EventDetailReadinessItem(
+                icon: "point.topleft.down.curvedto.point.bottomright.up.fill",
+                title: String(localized: "event.detail.readiness.transport.title"),
+                subtitle: isTransportReady
+                    ? String(localized: "event.detail.readiness.transport.ready")
+                    : String(localized: "event.detail.readiness.transport.missing"),
+                isReady: isTransportReady
+            ),
+            EventDetailReadinessItem(
+                icon: "video.fill",
+                title: String(localized: "event.detail.readiness.meetings.title"),
+                subtitle: hasScheduledMeeting
+                    ? String(localized: "event.detail.readiness.meetings.ready")
+                    : String(localized: "event.detail.readiness.meetings.missing"),
+                isReady: hasScheduledMeeting
+            ),
+            EventDetailReadinessItem(
+                icon: "eurosign.circle.fill",
+                title: String(localized: "event.detail.readiness.payment.title"),
+                subtitle: isPaymentReady
+                    ? String(localized: "event.detail.readiness.payment.ready")
+                    : String(localized: "event.detail.readiness.payment.missing"),
+                isReady: isPaymentReady
+            ),
+            EventDetailReadinessItem(
+                icon: "checklist",
+                title: String(localized: "event.detail.readiness.checklist.title"),
+                subtitle: hasPreparedChecklist
+                    ? String(localized: "event.detail.readiness.checklist.ready")
+                    : String(localized: "event.detail.readiness.checklist.missing"),
+                isReady: hasPreparedChecklist
+            )
+        ]
+    }
+
+    private var readinessProgressText: String {
+        let readyCount = groupReadinessItems.filter(\.isReady).count
+        return String(format: String(localized: "event.detail.readiness.progress_format"), readyCount, groupReadinessItems.count)
+    }
+
+    private var selectedScenarioLocation: String? {
+        let repository = ScenarioRepository(db: RepositoryProvider.shared.database)
+        let selected = repository.getSelectedScenario(eventId: event.id)
+            ?? repository.getScenariosByEventIdAndStatus(eventId: event.id, status: ScenarioStatus.selected).first
+        let location = selected?.location.trimmingCharacters(in: .whitespacesAndNewlines)
+        return location?.isEmpty == false ? location : nil
+    }
+
+    private var isTransportReady: Bool {
+        canAccessTransportPlanning && selectedScenarioLocation != nil
+    }
+
+    private var hasScheduledMeeting: Bool {
+        RepositoryProvider.shared.database.meetingQueries
+            .selectByEventId(eventId: event.id)
+            .executeAsList()
+            .contains { $0.status != "CANCELLED" }
+    }
+
+    private var isPaymentReady: Bool {
+        let pot = PaymentPotRepository(db: RepositoryProvider.shared.database)
+            .getActivePotForEvent(eventId: event.id)
+        let tricountReadiness = TricountHandoffRepository(db: RepositoryProvider.shared.database)
+            .getPaymentReadiness(eventId: event.id)
+        return (pot?.goalAmount ?? 0) > 0 || tricountReadiness.complete
+    }
+
+    private var hasPreparedChecklist: Bool {
+        !eventAIChecklist.isEmpty || !preparedCreationChecklist.isEmpty
     }
 
     private func parseDate(_ value: String) -> Date? {
@@ -2203,25 +3071,246 @@ struct EventDetailView: View {
 
     private func formatSlot(_ slot: TimeSlot) -> String {
         guard let startValue = slot.start, let start = parseDate(startValue) else {
-            return "Créneau à confirmer"
+            return String(localized: "event.detail.slot_to_confirm")
         }
 
         let dateFormatter = DateFormatter()
-        dateFormatter.locale = Locale(identifier: "fr_FR")
-        dateFormatter.dateFormat = "d MMM"
+        dateFormatter.locale = .autoupdatingCurrent
+        dateFormatter.setLocalizedDateFormatFromTemplate("d MMM")
 
         let timeFormatter = DateFormatter()
-        timeFormatter.locale = Locale(identifier: "fr_FR")
-        timeFormatter.dateFormat = "HH:mm"
+        timeFormatter.locale = .autoupdatingCurrent
+        timeFormatter.timeStyle = .short
 
         return "\(dateFormatter.string(from: start)) · \(timeFormatter.string(from: start))"
     }
 
     private func formatEventDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "fr_FR")
-        formatter.dateFormat = "d MMM"
+        formatter.locale = .autoupdatingCurrent
+        formatter.setLocalizedDateFormatFromTemplate("d MMM")
         return formatter.string(from: date)
+    }
+
+    private func formatLongEventDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.setLocalizedDateFormatFromTemplate("EEEEdMMMM")
+        return formatter.string(from: date)
+    }
+}
+
+private struct EventDetailReadinessItem: Identifiable {
+    let id = UUID()
+    let icon: String
+    let title: String
+    let subtitle: String
+    let isReady: Bool
+}
+
+private struct EventDetailReadinessCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    let subtitle: String
+    let progressText: String
+    let items: [EventDetailReadinessItem]
+
+    var body: some View {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
+                    Image(systemName: isComplete ? "checkmark.seal.fill" : "checklist")
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(statusColor)
+                        .frame(width: 42, height: 42)
+                        .background(statusColor.opacity(0.14), in: Circle())
+
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text(title)
+                            .font(WakeveTheme.Typography.section)
+                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                        Text(subtitle)
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                            .lineLimit(2)
+                    }
+
+                    Spacer(minLength: WakeveTheme.Spacing.sm)
+
+                    Text(progressText)
+                        .font(WakeveTheme.Typography.caption.weight(.bold))
+                        .foregroundColor(statusColor)
+                        .padding(.horizontal, WakeveTheme.Spacing.sm)
+                        .padding(.vertical, WakeveTheme.Spacing.xs)
+                        .background(statusColor.opacity(0.12), in: Capsule())
+                }
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: WakeveTheme.Spacing.sm) {
+                    ForEach(items) { item in
+                        EventDetailReadinessTile(item: item)
+                    }
+                }
+            }
+        }
+    }
+
+    private var isComplete: Bool {
+        !items.isEmpty && items.allSatisfy(\.isReady)
+    }
+
+    private var statusColor: Color {
+        isComplete ? SemanticColor.confirmation(for: colorScheme) : SemanticColor.warning(for: colorScheme)
+    }
+}
+
+private struct EventDetailReadinessTile: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let item: EventDetailReadinessItem
+
+    var body: some View {
+        HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
+            Image(systemName: item.isReady ? "checkmark.circle.fill" : item.icon)
+                .font(.caption.weight(.bold))
+                .foregroundColor(statusColor)
+                .frame(width: 28, height: 28)
+                .background(statusColor.opacity(0.12), in: Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(WakeveTheme.Typography.caption.weight(.semibold))
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+
+                Text(item.subtitle)
+                    .font(WakeveTheme.Typography.tiny)
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(WakeveTheme.Spacing.sm)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+
+    private var statusColor: Color {
+        item.isReady ? SemanticColor.confirmation(for: colorScheme) : SemanticColor.warning(for: colorScheme)
+    }
+}
+
+private struct EventAnticipationItem: Identifiable {
+    let id = UUID()
+    let icon: String
+    let title: String
+    let subtitle: String
+}
+
+private struct EventDetailAnticipationCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let countdownTitle: String
+    let countdownSubtitle: String
+    let items: [EventAnticipationItem]
+    let returnHookTitle: String
+    let returnHookMessage: String
+
+    var body: some View {
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                HStack(alignment: .center, spacing: WakeveTheme.Spacing.md) {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text(String(localized: "event.detail.anticipation.upcoming_label"))
+                            .font(WakeveTheme.Typography.caption)
+                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                            .textCase(.uppercase)
+
+                        Text(countdownTitle)
+                            .font(.system(size: 34, weight: .black, design: .rounded))
+                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                        Text(countdownSubtitle)
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    }
+
+                    Spacer()
+
+                    Image(systemName: "sparkles")
+                        .font(.title2.weight(.bold))
+                        .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                        .frame(width: 48, height: 48)
+                        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme), in: Circle())
+                }
+
+                VStack(spacing: WakeveTheme.Spacing.sm) {
+                    ForEach(items) { item in
+                        EventAnticipationRow(item: item)
+                    }
+                }
+
+                ShareLink(item: returnHookMessage) {
+                    HStack(spacing: WakeveTheme.Spacing.sm) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.caption.weight(.bold))
+
+                        Text(returnHookTitle)
+                            .font(WakeveTheme.Typography.callout.weight(.semibold))
+
+                        Spacer(minLength: 0)
+
+                        Image(systemName: "message.fill")
+                            .font(.caption.weight(.bold))
+                    }
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .padding(.horizontal, WakeveTheme.Spacing.md)
+                    .frame(height: 48)
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+                }
+                .simultaneousGesture(TapGesture().onEnded {
+                    WakeveHaptics.selection()
+                })
+                .accessibilityIdentifier("eventAnticipationReturnHookShare")
+            }
+        }
+    }
+}
+
+private struct EventAnticipationRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let item: EventAnticipationItem
+
+    var body: some View {
+        HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
+            Image(systemName: item.icon)
+                .font(.caption.weight(.bold))
+                .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                .frame(width: 28, height: 28)
+                .background(WakeveTheme.ColorToken.controlFill(for: colorScheme), in: Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.title)
+                    .font(WakeveTheme.Typography.callout.weight(.semibold))
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
+
+                Text(item.subtitle)
+                    .font(WakeveTheme.Typography.caption)
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 0)
+        }
     }
 }
 
@@ -2234,9 +3323,9 @@ private enum EventAIInvitationVariant: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .simple: return "Simple"
-        case .warm: return "Chaleureux"
-        case .shortWhatsApp: return "WhatsApp"
+        case .simple: return String(localized: "event.detail.ai.invitation_variant.simple")
+        case .warm: return String(localized: "event.detail.ai.invitation_variant.warm")
+        case .shortWhatsApp: return String(localized: "event.detail.ai.invitation_variant.short_whatsapp")
         }
     }
 }
@@ -2324,9 +3413,9 @@ private struct EventAISummaryBlock: View {
     let onIgnore: () -> Void
 
     var body: some View {
-        EventAIReviewBox(title: "Résumé", colorScheme: colorScheme, applied: applied, ignored: ignored, onModify: onModify, onApply: onApply, onIgnore: onIgnore) {
-            EventAIList(title: "Décidé", values: summary.decided, colorScheme: colorScheme)
-            EventAIList(title: "Manquant", values: summary.missing, colorScheme: colorScheme)
+        EventAIReviewBox(title: String(localized: "event.detail.ai.summary_title"), colorScheme: colorScheme, applied: applied, ignored: ignored, onModify: onModify, onApply: onApply, onIgnore: onIgnore) {
+            EventAIList(title: String(localized: "event.detail.ai.decided_title"), values: summary.decided, colorScheme: colorScheme)
+            EventAIList(title: String(localized: "event.detail.ai.missing_title"), values: summary.missing, colorScheme: colorScheme)
             Text(summary.recommendedNextAction)
                 .font(WakeveTheme.Typography.callout)
                 .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
@@ -2364,9 +3453,28 @@ private struct EventAIChecklistRow: View {
 
     var body: some View {
         EventAIReviewBox(title: item.title, colorScheme: colorScheme, applied: applied, ignored: ignored, onModify: onModify, onApply: onApply, onIgnore: onIgnore) {
-            Text("\(item.category.rawValue) · \(item.priority.rawValue)")
+            Text("\(categoryLabel) · \(priorityLabel)")
                 .font(WakeveTheme.Typography.caption)
                 .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+        }
+    }
+
+    private var categoryLabel: String {
+        switch item.category {
+        case .food: return String(localized: "create_event.checklist.food")
+        case .transport: return String(localized: "create_event.checklist.transport")
+        case .venue: return String(localized: "create_event.checklist.venue")
+        case .guests: return String(localized: "create_event.checklist.guests")
+        case .equipment: return String(localized: "create_event.checklist.equipment")
+        case .budget: return String(localized: "create_event.checklist.budget")
+        }
+    }
+
+    private var priorityLabel: String {
+        switch item.priority {
+        case .high: return String(localized: "event.detail.ai.priority.high")
+        case .medium: return String(localized: "event.detail.ai.priority.medium")
+        case .low: return String(localized: "event.detail.ai.priority.low")
         }
     }
 }
@@ -2384,7 +3492,7 @@ private struct EventAIInvitationBlock: View {
     let onIgnore: () -> Void
 
     var body: some View {
-        EventAIReviewBox(title: "Invitation", colorScheme: colorScheme, applied: applied, ignored: ignored, onModify: onModify, onApply: onApply, onIgnore: onIgnore) {
+        EventAIReviewBox(title: String(localized: "event.detail.ai.invitation_title"), colorScheme: colorScheme, applied: applied, ignored: ignored, onModify: onModify, onApply: onApply, onIgnore: onIgnore) {
             HStack(spacing: 8) {
                 ForEach(EventAIInvitationVariant.allCases) { option in
                     Button {
@@ -2454,11 +3562,11 @@ private struct EventAIReviewBox<Content: View>: View {
                 Spacer()
 
                 if applied {
-                    Label("Appliqué", systemImage: "checkmark.circle.fill")
+                    Label(String(localized: "event.detail.ai.applied"), systemImage: "checkmark.circle.fill")
                         .font(WakeveTheme.Typography.tiny)
                         .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
                 } else if ignored {
-                    Label("Ignoré", systemImage: "minus.circle.fill")
+                    Label(String(localized: "event.detail.ai.ignored"), systemImage: "minus.circle.fill")
                         .font(WakeveTheme.Typography.tiny)
                         .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
                 }
@@ -2467,9 +3575,9 @@ private struct EventAIReviewBox<Content: View>: View {
             content
 
             HStack(spacing: WakeveTheme.Spacing.sm) {
-                EventAIActionButton(title: "Modifier", systemImage: "pencil", colorScheme: colorScheme, action: onModify)
-                EventAIActionButton(title: "Appliquer", systemImage: "checkmark", colorScheme: colorScheme, action: onApply)
-                EventAIActionButton(title: "Ignorer", systemImage: "xmark", colorScheme: colorScheme, action: onIgnore)
+                EventAIActionButton(title: String(localized: "common.edit"), systemImage: "pencil", colorScheme: colorScheme, action: onModify)
+                EventAIActionButton(title: String(localized: "common.apply"), systemImage: "checkmark", colorScheme: colorScheme, action: onApply)
+                EventAIActionButton(title: String(localized: "event.detail.ai.ignore_action"), systemImage: "xmark", colorScheme: colorScheme, action: onIgnore)
             }
         }
         .padding(WakeveTheme.Spacing.sm)

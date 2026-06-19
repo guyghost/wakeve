@@ -8,6 +8,7 @@ import MapKit
 struct CreateEventSheet: View {
     let userId: String
     let userName: String?
+    let initialScenario: EventScenario?
     
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -63,8 +64,24 @@ struct CreateEventSheet: View {
     @State private var currentStep: CreateEventStep = .name
     @State private var showNameAdvancedOptions = false
     @State private var showConfirmAdvancedOptions = false
+    @State private var didApplyInitialScenario = false
+    @State private var appliedSmartDateOptionLabels: [String] = []
+    @State private var appliedSmartChecklist: [ChecklistItem] = []
+    @State private var appliedTemplateChecklist: [String] = []
     
-    var onEventCreated: (Event) -> Void = { _ in }
+    var onEventCreated: (Event, EventCreationContext) -> Void = { _, _ in }
+
+    init(
+        userId: String,
+        userName: String?,
+        initialScenario: EventScenario? = nil,
+        onEventCreated: @escaping (Event, EventCreationContext) -> Void = { _, _ in }
+    ) {
+        self.userId = userId
+        self.userName = userName
+        self.initialScenario = initialScenario
+        self.onEventCreated = onEventCreated
+    }
     
     var body: some View {
         ZStack {
@@ -154,7 +171,7 @@ struct CreateEventSheet: View {
         .fullScreenCover(isPresented: $showingPreview) {
             EventPreviewSheet(
                 title: title,
-                description: description,
+                description: eventDescriptionForPersistence,
                 userName: userName,
                 proposedSlots: proposedSlotDrafts,
                 selectedDate: selectedDate,
@@ -174,12 +191,15 @@ struct CreateEventSheet: View {
                 }
             )
         }
+        .onAppear {
+            applyInitialScenarioIfNeeded()
+        }
     }
 
     // MARK: - Gradient Background
 
     private var createToolbar: some View {
-        LiquidGlassToolbar(title: "Nouvel événement", subtitle: currentStep.title) {
+        LiquidGlassToolbar(title: String(localized: "create_event.title"), subtitle: currentStep.title) {
             WakeveCircleButton(
                 systemImage: "xmark",
                 accessibilityLabel: String(localized: "common.close"),
@@ -242,7 +262,7 @@ struct CreateEventSheet: View {
         LiquidGlassCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
                 HStack {
-                    Text("Étape \(currentStep.index + 1) / \(CreateEventStep.allCases.count)")
+                    Text(String(format: String(localized: "create_event.progress_format"), currentStep.index + 1, CreateEventStep.allCases.count))
                         .font(WakeveTheme.Typography.caption)
                         .foregroundColor(secondaryTextColor)
                     Spacer()
@@ -272,6 +292,10 @@ struct CreateEventSheet: View {
             nameStep
         case .date:
             dateStep
+        case .place:
+            placeStep
+        case .invite:
+            inviteStep
         case .confirm:
             confirmStep
         }
@@ -288,7 +312,7 @@ struct CreateEventSheet: View {
                     .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
                     .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
 
-                TextField("Description courte", text: $description, axis: .vertical)
+                TextField(String(localized: "create_event.description_placeholder"), text: $description, axis: .vertical)
                     .font(WakeveTheme.Typography.body)
                     .foregroundColor(primaryTextColor)
                     .lineLimit(3...5)
@@ -323,13 +347,13 @@ struct CreateEventSheet: View {
     private var smartEventDraftCard: some View {
         VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
             HStack {
-                Label("Créer avec une phrase", systemImage: "sparkles")
+                Label(String(localized: "create_event.ai.title"), systemImage: "sparkles")
                     .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(primaryTextColor)
 
                 Spacer()
 
-                Text("Suggestion")
+                Text(String(localized: "create_event.ai.badge"))
                     .font(WakeveTheme.Typography.tiny)
                     .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
                     .padding(.horizontal, WakeveTheme.Spacing.sm)
@@ -339,7 +363,7 @@ struct CreateEventSheet: View {
             }
 
             TextField(
-                "Décris ton événement",
+                String(localized: "create_event.ai.prompt_placeholder"),
                 text: Binding(
                     get: { viewModel.smartEventDraftState.phrase },
                     set: { viewModel.updateSmartEventDraftPhrase($0) }
@@ -359,7 +383,7 @@ struct CreateEventSheet: View {
                 Button {
                     viewModel.generateSmartEventDraft()
                 } label: {
-                    Label("Préparer", systemImage: "wand.and.stars")
+                    Label(String(localized: "create_event.ai.prepare"), systemImage: "wand.and.stars")
                         .font(WakeveTheme.Typography.bodySemibold)
                         .frame(maxWidth: .infinity)
                         .frame(height: 44)
@@ -425,7 +449,7 @@ struct CreateEventSheet: View {
                 .font(WakeveTheme.Typography.callout)
                 .foregroundColor(WakeveTheme.ColorToken.destructive(for: colorScheme))
         case .cancelled:
-            Text("Suggestion annulée")
+            Text(String(localized: "create_event.ai.cancelled"))
                 .font(WakeveTheme.Typography.callout)
                 .foregroundColor(secondaryTextColor)
         }
@@ -470,7 +494,7 @@ struct CreateEventSheet: View {
             if !dateOptions.isEmpty {
                 smartEventDraftSection(
                     icon: "calendar",
-                    title: "Dates",
+                    title: String(localized: "create_event.ai.dates_title"),
                     values: dateOptions.map { $0.label }
                 )
             }
@@ -478,7 +502,7 @@ struct CreateEventSheet: View {
             if !checklist.isEmpty {
                 smartEventDraftSection(
                     icon: "checklist",
-                    title: "Checklist",
+                    title: String(localized: "create_event.ai.checklist_title"),
                     values: checklist.map(\.title)
                 )
             }
@@ -486,14 +510,14 @@ struct CreateEventSheet: View {
             if !polls.isEmpty {
                 smartEventDraftSection(
                     icon: "chart.bar.doc.horizontal",
-                    title: "Sondages",
+                    title: String(localized: "create_event.ai.polls_title"),
                     values: polls.map(\.question)
                 )
             }
 
             if let draft {
                 HStack(spacing: WakeveTheme.Spacing.sm) {
-                    Button("Modifier") {
+                    Button(String(localized: "common.edit")) {
                         applySmartEventDraft(draft, advance: false)
                     }
                     .buttonStyle(.bordered)
@@ -503,7 +527,7 @@ struct CreateEventSheet: View {
                     }
                     .buttonStyle(.borderedProminent)
 
-                    Button("Ignorer") {
+                    Button(String(localized: "create_event.ai.ignore")) {
                         viewModel.ignoreSmartEventDraft()
                     }
                     .buttonStyle(.bordered)
@@ -539,14 +563,14 @@ struct CreateEventSheet: View {
                 Button(action: prepareNewSlotDraft) {
                     CreateEventChoiceRow(
                         systemImage: "calendar.badge.plus",
-                        title: "Ajouter un créneau",
+                        title: String(localized: "create_event.add_slot"),
                         value: proposedSlotsSummary
                     )
                 }
                 .buttonStyle(.plain)
 
                 if proposedSlotDrafts.isEmpty {
-                    Text("Ajoutez au moins un créneau pour ouvrir le sondage.")
+                    Text(String(localized: "create_event.add_slot_hint"))
                         .font(WakeveTheme.Typography.callout)
                         .foregroundColor(secondaryTextColor)
                 } else {
@@ -570,7 +594,7 @@ struct CreateEventSheet: View {
             Button(action: { showingLocationSheet = true }) {
                 CreateEventChoiceRow(
                     systemImage: "mappin.circle.fill",
-                    title: "Lieu",
+                    title: String(localized: "create_event.location_label"),
                     value: selectedLocation ?? String(localized: "events.location")
                 )
             }
@@ -581,18 +605,18 @@ struct CreateEventSheet: View {
     private var inviteStep: some View {
         LiquidGlassCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
-                Text("Combien de personnes attendez-vous ?")
+                Text(String(localized: "create_event.invite_question"))
                     .font(WakeveTheme.Typography.section)
                     .foregroundColor(primaryTextColor)
 
                 Stepper(value: expectedParticipantsBinding, in: 1...200) {
                     let count = expectedParticipants ?? 1
-                    Text("\(count) participant\(count > 1 ? "s" : "")")
+                    Text(expectedParticipantsText(count))
                         .font(WakeveTheme.Typography.bodySemibold)
                         .foregroundColor(primaryTextColor)
                 }
 
-                Text("Vous pourrez inviter les personnes précises après la création.")
+                Text(String(localized: "create_event.invite_hint"))
                     .font(WakeveTheme.Typography.callout)
                     .foregroundColor(secondaryTextColor)
             }
@@ -602,25 +626,26 @@ struct CreateEventSheet: View {
     private var confirmStep: some View {
         LiquidGlassCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
-                Text("Prêt à créer")
+                Text(String(localized: "create_event.confirm.ready"))
                     .font(WakeveTheme.Typography.section)
                     .foregroundColor(primaryTextColor)
 
-                CreateEventChoiceRow(systemImage: "textformat", title: "Nom", value: title.isEmpty ? "Sans titre" : title)
-                CreateEventChoiceRow(systemImage: "calendar", title: "Créneaux", value: proposedSlotsSummaryForConfirm)
-                CreateEventChoiceRow(systemImage: "mappin.and.ellipse", title: "Lieu", value: selectedLocation ?? "À choisir plus tard")
+                CreateEventChoiceRow(systemImage: "textformat", title: String(localized: "create_event.name_label"), value: title.isEmpty ? String(localized: "create_event.untitled") : title)
+                CreateEventChoiceRow(systemImage: "calendar", title: String(localized: "create_event.slots_label"), value: proposedSlotsSummaryForConfirm)
+                CreateEventChoiceRow(systemImage: "mappin.and.ellipse", title: String(localized: "create_event.location_label"), value: selectedLocation ?? String(localized: "create_event.location_later"))
                 let count = expectedParticipants ?? 1
-                CreateEventChoiceRow(systemImage: "person.2.fill", title: "Invités", value: "\(count) attendu\(count > 1 ? "s" : "")")
+                CreateEventChoiceRow(systemImage: "person.2.fill", title: String(localized: "create_event.guests_label"), value: expectedParticipantsExpectedText(count))
+                smartAppliedPlanSummary
                 planningModePicker
                 if planningMode == .scenarioMatrix {
                     CreateEventChoiceRow(
                         systemImage: "square.grid.2x2.fill",
-                        title: "Options",
-                        value: "\(scenarioMatrixPreviewCount) combinaison(s) créneau × destination"
+                        title: String(localized: "create_event.options_label"),
+                        value: String(format: String(localized: "create_event.scenario_matrix_count_format"), scenarioMatrixPreviewCount)
                     )
                 }
 
-                Text("Un aperçu s’ouvrira avant la création de l’événement.")
+                Text(String(localized: "create_event.preview_hint"))
                     .font(WakeveTheme.Typography.callout)
                     .foregroundColor(secondaryTextColor)
 
@@ -629,26 +654,26 @@ struct CreateEventSheet: View {
                         Button(action: { showingLocationSheet = true }) {
                             CreateEventChoiceRow(
                                 systemImage: "mappin.circle.fill",
-                                title: "Lieu",
-                                value: selectedLocation ?? "À choisir plus tard"
+                                title: String(localized: "create_event.location_label"),
+                                value: selectedLocation ?? String(localized: "create_event.location_later")
                             )
                         }
                         .buttonStyle(.plain)
 
                         VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
-                            Text("Taille du groupe")
+                            Text(String(localized: "create_event.group_size"))
                                 .font(WakeveTheme.Typography.caption)
                                 .foregroundColor(secondaryTextColor)
                                 .textCase(.uppercase)
 
                             Stepper(value: expectedParticipantsBinding, in: 1...200) {
                                 let count = expectedParticipants ?? 1
-                                Text("\(count) participant\(count > 1 ? "s" : "") attendu\(count > 1 ? "s" : "")")
+                                Text(expectedParticipantsExpectedText(count))
                                     .font(WakeveTheme.Typography.bodySemibold)
                                     .foregroundColor(primaryTextColor)
                             }
 
-                            Button("Réinitialiser") {
+                            Button(String(localized: "create_event.reset")) {
                                 expectedParticipants = nil
                             }
                             .buttonStyle(.bordered)
@@ -659,8 +684,8 @@ struct CreateEventSheet: View {
                         Button(action: { showingBackgroundPicker = true }) {
                             CreateEventChoiceRow(
                                 systemImage: "photo.on.rectangle",
-                                title: "Fond",
-                                value: hasCustomBackground ? "Personnalisé" : "Par défaut"
+                                title: String(localized: "create_event.background_label"),
+                                value: hasCustomBackground ? String(localized: "create_event.background_custom") : String(localized: "create_event.background_default")
                             )
                         }
                         .buttonStyle(.plain)
@@ -668,14 +693,14 @@ struct CreateEventSheet: View {
                         planningModePicker
 
                         if planningMode == .scenarioMatrix {
-                            Text("Le mode options combine les créneaux avec le lieu choisi. Gardez le mode créneaux pour un sondage simple.")
+                            Text(String(localized: "create_event.mode_hint"))
                                 .font(WakeveTheme.Typography.callout)
                                 .foregroundColor(secondaryTextColor)
                         }
                     }
                     .padding(.top, WakeveTheme.Spacing.sm)
                 } label: {
-                    Label("Options avancées", systemImage: "slider.horizontal.3")
+                    Label(String(localized: "events.advanced_options"), systemImage: "slider.horizontal.3")
                         .font(WakeveTheme.Typography.bodySemibold)
                         .foregroundColor(primaryTextColor)
                 }
@@ -721,7 +746,7 @@ struct CreateEventSheet: View {
                 }
 
                 LiquidGlassButton(
-                    currentStep == .confirm ? "Voir l’aperçu" : "Continuer",
+                    currentStep == .confirm ? String(localized: "create_event.preview_action") : String(localized: "common.continue"),
                     systemImage: currentStep == .confirm ? "eye.fill" : "arrow.right",
                     variant: .primary,
                     isDisabled: !canAdvanceStep,
@@ -741,12 +766,74 @@ struct CreateEventSheet: View {
         )
     }
 
+    @ViewBuilder
+    private var smartAppliedPlanSummary: some View {
+        if !appliedSmartDateOptionLabels.isEmpty || !appliedSmartChecklist.isEmpty || !appliedTemplateChecklist.isEmpty {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                Label(initialScenario == nil ? String(localized: "create_event.smart_plan.wakeve") : String(localized: "create_event.smart_plan.explore"), systemImage: "sparkles")
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundColor(primaryTextColor)
+
+                if !appliedSmartDateOptionLabels.isEmpty {
+                    smartAppliedPlanRow(
+                        icon: "calendar.badge.clock",
+                        title: String(localized: "create_event.smart_plan.slots_created"),
+                        value: appliedSmartDateOptionLabels.prefix(3).joined(separator: ", ")
+                    )
+                }
+
+                ForEach(appliedSmartChecklist.prefix(3), id: \.title) { item in
+                    smartAppliedPlanRow(
+                        icon: item.priority == .high ? "exclamationmark.circle.fill" : "checkmark.circle",
+                        title: item.title,
+                        value: smartChecklistCategoryLabel(item.category)
+                    )
+                }
+
+                ForEach(appliedTemplateChecklist.prefix(3), id: \.self) { item in
+                    smartAppliedPlanRow(
+                        icon: "checkmark.circle",
+                        title: item,
+                        value: String(localized: "create_event.smart_plan.to_validate")
+                    )
+                }
+
+                Text(String(localized: "create_event.smart_plan.editable_hint"))
+                    .font(WakeveTheme.Typography.caption)
+                    .foregroundColor(secondaryTextColor)
+            }
+            .padding(WakeveTheme.Spacing.md)
+            .background(WakeveTheme.ColorToken.controlFill(for: colorScheme).opacity(0.72))
+            .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.lg, style: .continuous))
+        }
+    }
+
+    private func smartAppliedPlanRow(icon: String, title: String, value: String) -> some View {
+        HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(WakeveTheme.Typography.callout)
+                    .foregroundColor(primaryTextColor)
+                Text(value)
+                    .font(WakeveTheme.Typography.caption)
+                    .foregroundColor(secondaryTextColor)
+            }
+        }
+    }
+
     private var canAdvanceStep: Bool {
         switch currentStep {
         case .name:
             return hasRequiredEventText
         case .date:
-            return !proposedSlotDrafts.isEmpty
+            return true
+        case .place, .invite:
+            return true
         case .confirm:
             return canCreate
         }
@@ -1179,30 +1266,37 @@ struct CreateEventSheet: View {
     }
 
     private var hasRequiredEventText: Bool {
-        !title.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !description.trimmingCharacters(in: .whitespaces).isEmpty
+        !title.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var eventDescriptionForPersistence: String {
+        let trimmedDescription = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedDescription.isEmpty {
+            return trimmedDescription
+        }
+
+        if let initialScenario {
+            return initialScenario.description.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        return String(localized: "create_event.default_description")
     }
     
     private var canCreate: Bool {
         hasRequiredEventText &&
-        !proposedSlotDrafts.isEmpty &&
         (planningMode == .timeSlotPoll || selectedLocation != nil)
     }
 
     private var validationMessageForCurrentStep: String {
         if !hasRequiredEventText {
-            return "Le titre et la description sont requis pour créer l’événement."
-        }
-
-        if proposedSlotDrafts.isEmpty {
-            return "Ajoutez au moins un créneau avant de continuer."
+            return String(localized: "create_event.validation.title_required")
         }
 
         if planningMode == .scenarioMatrix && selectedLocation == nil {
-            return "Ajoutez au moins une destination pour le mode scénarios."
+            return String(localized: "create_event.validation.destination_required")
         }
 
-        return "Vérifiez les détails avant de continuer."
+        return String(localized: "create_event.validation.review_details")
     }
 
     private var scenarioMatrixPreviewCount: Int {
@@ -1211,14 +1305,14 @@ struct CreateEventSheet: View {
 
     private var planningModePicker: some View {
         VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
-            Text("Mode de vote")
+            Text(String(localized: "create_event.vote_mode"))
                 .font(WakeveTheme.Typography.caption)
                 .foregroundColor(secondaryTextColor)
                 .textCase(.uppercase)
 
-            Picker("Mode de vote", selection: $planningMode) {
-                Text("Créneaux").tag(EventPlanningMode.timeSlotPoll)
-                Text("Options").tag(EventPlanningMode.scenarioMatrix)
+            Picker(String(localized: "create_event.vote_mode"), selection: $planningMode) {
+                Text(String(localized: "create_event.vote_mode.slots")).tag(EventPlanningMode.timeSlotPoll)
+                Text(String(localized: "create_event.vote_mode.options")).tag(EventPlanningMode.scenarioMatrix)
             }
             .pickerStyle(.segmented)
         }
@@ -1227,23 +1321,35 @@ struct CreateEventSheet: View {
     private var proposedSlotsSummary: String {
         switch proposedSlotDrafts.count {
         case 0:
-            return String(localized: "events.date_and_time")
+            return String(localized: "create_event.date_later")
         case 1:
             return proposedSlotDrafts[0].displayTitle
         default:
-            return "\(proposedSlotDrafts.count) créneaux proposés"
+            return String(format: String(localized: "create_event.proposed_slots_count_format"), proposedSlotDrafts.count)
         }
     }
 
     private var proposedSlotsSummaryForConfirm: String {
         switch proposedSlotDrafts.count {
         case 0:
-            return "Aucun créneau"
+            return String(localized: "create_event.date_later")
         case 1:
             return proposedSlotDrafts[0].displayTitle
         default:
-            return "\(proposedSlotDrafts.count) options de vote"
+            return String(format: String(localized: "create_event.vote_options_count_format"), proposedSlotDrafts.count)
         }
+    }
+
+    private func expectedParticipantsText(_ count: Int) -> String {
+        count == 1
+            ? String(format: String(localized: "create_event.participant_singular_format"), count)
+            : String(format: String(localized: "create_event.participant_plural_format"), count)
+    }
+
+    private func expectedParticipantsExpectedText(_ count: Int) -> String {
+        count == 1
+            ? String(format: String(localized: "create_event.expected_participant_singular_format"), count)
+            : String(format: String(localized: "create_event.expected_participant_plural_format"), count)
     }
 
     private func prepareNewSlotDraft() {
@@ -1316,6 +1422,14 @@ struct CreateEventSheet: View {
         title = draft.title
         description = draft.description
 
+        let smartSlots = materializeSmartDateOptions(draft.dateOptions)
+        if !smartSlots.isEmpty {
+            mergeSmartSlotDrafts(smartSlots)
+            appliedSmartDateOptionLabels = draft.dateOptions.map(\.label).filter { !$0.isEmpty }
+        }
+
+        appliedSmartChecklist = Array(draft.checklist.prefix(3))
+
         let location = draft.destinationName.isEmpty ? draft.locationHint : draft.destinationName
         if !location.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             selectedLocation = location
@@ -1334,6 +1448,133 @@ struct CreateEventSheet: View {
             currentStep = proposedSlotDrafts.isEmpty ? .date : .confirm
         }
     }
+
+    private func materializeSmartDateOptions(_ dateOptions: [DateOption]) -> [EventSlotDraft] {
+        dateOptions.prefix(3).enumerated().map { index, option in
+            let start = parsedSmartDate(from: option.startDateHint) ?? parsedSmartDate(from: option.label) ?? fallbackSmartDateOption(index: index)
+            let end = parsedSmartDate(from: option.endDateHint)
+            return EventSlotDraft(
+                id: UUID(),
+                startDate: start,
+                startTime: start,
+                isAllDay: false,
+                hasEndTime: end != nil,
+                endTime: end ?? Calendar.current.date(byAdding: .hour, value: 2, to: start) ?? start.addingTimeInterval(7200)
+            )
+        }
+    }
+
+    private func mergeSmartSlotDrafts(_ smartSlots: [EventSlotDraft]) {
+        if proposedSlotDrafts.isEmpty {
+            proposedSlotDrafts = smartSlots
+        } else {
+            proposedSlotDrafts.append(contentsOf: smartSlots.filter { smartSlot in
+                !proposedSlotDrafts.contains { existing in
+                    Calendar.current.isDate(existing.startDate, inSameDayAs: smartSlot.startDate) &&
+                    existing.displaySubtitle == smartSlot.displaySubtitle
+                }
+            })
+        }
+
+        selectedDate = proposedSlotDrafts.first?.startDate
+    }
+
+    private func parsedSmartDate(from rawValue: String) -> Date? {
+        let value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return nil }
+
+        let isoFormatter = ISO8601DateFormatter()
+        if let date = isoFormatter.date(from: value) {
+            return date
+        }
+
+        let formats = ["yyyy-MM-dd'T'HH:mm:ssZ", "yyyy-MM-dd", "dd/MM/yyyy", "d MMM yyyy", "d MMMM yyyy"]
+        for format in formats {
+            let formatter = DateFormatter()
+            formatter.locale = .autoupdatingCurrent
+            formatter.dateFormat = format
+            formatter.isLenient = true
+            if let date = formatter.date(from: value) {
+                return defaultSmartTime(on: date)
+            }
+        }
+
+        return nil
+    }
+
+    private func fallbackSmartDateOption(index: Int) -> Date {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let weekday = calendar.component(.weekday, from: today)
+        let daysUntilSaturday = (7 - weekday + 7) % 7
+        let firstSaturdayOffset = daysUntilSaturday == 0 ? 7 : daysUntilSaturday
+        let fallbackDay = calendar.date(byAdding: .day, value: firstSaturdayOffset + (index * 7), to: today) ?? today
+        return defaultSmartTime(on: fallbackDay)
+    }
+
+    private func defaultSmartTime(on date: Date) -> Date {
+        Calendar.current.date(bySettingHour: 19, minute: 0, second: 0, of: date) ?? date
+    }
+
+    private func smartChecklistCategoryLabel(_ category: ChecklistCategory) -> String {
+        switch category {
+        case .food: return String(localized: "create_event.checklist.food")
+        case .transport: return String(localized: "create_event.checklist.transport")
+        case .venue: return String(localized: "create_event.checklist.venue")
+        case .guests: return String(localized: "create_event.checklist.guests")
+        case .equipment: return String(localized: "create_event.checklist.equipment")
+        case .budget: return String(localized: "create_event.checklist.budget")
+        }
+    }
+
+    private var preparedCreationChecklist: [ChecklistItem] {
+        let templateItems = appliedTemplateChecklist.map {
+            ChecklistItem(title: $0, category: .guests, priority: .medium)
+        }
+
+        return Array((appliedSmartChecklist + templateItems).prefix(5))
+    }
+
+    private func applyInitialScenarioIfNeeded() {
+        guard !didApplyInitialScenario, let initialScenario else { return }
+        didApplyInitialScenario = true
+
+        if title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            title = initialScenario.suggestedTitle
+        }
+
+        if description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            description = initialScenario.description
+        }
+
+        if let index = eventTypes.firstIndex(where: { eventTypeCode($0) == initialScenario.eventType }) {
+            selectedEventTypeIndex = index
+        }
+
+        appliedTemplateChecklist = initialScenario.checklistItems
+        showNameAdvancedOptions = true
+    }
+
+    private func eventTypeCode(_ eventType: Shared.EventType) -> String {
+        switch eventType {
+        case .birthday: return "BIRTHDAY"
+        case .wedding: return "WEDDING"
+        case .teamBuilding: return "TEAM_BUILDING"
+        case .conference: return "CONFERENCE"
+        case .workshop: return "WORKSHOP"
+        case .party: return "PARTY"
+        case .sportsEvent: return "SPORTS_EVENT"
+        case .culturalEvent: return "CULTURAL_EVENT"
+        case .familyGathering: return "FAMILY_GATHERING"
+        case .outdoorActivity: return "OUTDOOR_ACTIVITY"
+        case .foodTasting: return "FOOD_TASTING"
+        case .techMeetup: return "TECH_MEETUP"
+        case .wellnessEvent: return "WELLNESS_EVENT"
+        case .creativeWorkshop: return "CREATIVE_WORKSHOP"
+        case .custom: return "CUSTOM"
+        default: return "OTHER"
+        }
+    }
     
     private func darkenColor(_ color: Color, by amount: CGFloat) -> Color {
         let uiColor = UIColor(color)
@@ -1350,15 +1591,16 @@ struct CreateEventSheet: View {
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
         dateFormatter.timeStyle = .none
-        dateFormatter.locale = Locale(identifier: "fr_FR")
+        dateFormatter.locale = .autoupdatingCurrent
         
         let timeFormatter = DateFormatter()
-        timeFormatter.dateFormat = "HH:mm"
+        timeFormatter.locale = .autoupdatingCurrent
+        timeFormatter.timeStyle = .short
         
         if isAllDay {
             return dateFormatter.string(from: startDate) + " (\(String(localized: "events.all_day")))"
         } else {
-            return dateFormatter.string(from: startDate) + " à " + timeFormatter.string(from: startTime)
+            return String(format: String(localized: "create_event.date_time_at_format"), dateFormatter.string(from: startDate), timeFormatter.string(from: startTime))
         }
     }
     
@@ -1370,11 +1612,18 @@ struct CreateEventSheet: View {
         }
 
         viewModel.onEventCreated = { event in
-            onEventCreated(event)
+            onEventCreated(
+                event,
+                EventCreationContext(
+                    potentialLocationName: selectedLocation?.nilIfEmpty,
+                    sourceScenario: initialScenario,
+                    preparedChecklist: preparedCreationChecklist
+                )
+            )
         }
         viewModel.createEvent(
             title: title,
-            description: description,
+            description: eventDescriptionForPersistence,
             userId: userId,
             eventType: selectedEventType,
             selectedSlots: selectedSlotInputs(),
@@ -1387,9 +1636,17 @@ struct CreateEventSheet: View {
 
 }
 
+struct EventCreationContext {
+    let potentialLocationName: String?
+    let sourceScenario: EventScenario?
+    let preparedChecklist: [ChecklistItem]
+}
+
 private enum CreateEventStep: CaseIterable {
     case name
     case date
+    case place
+    case invite
     case confirm
 
     var index: Int {
@@ -1402,33 +1659,41 @@ private enum CreateEventStep: CaseIterable {
 
     var title: String {
         switch self {
-        case .name: return "Nom"
-        case .date: return "Date"
-        case .confirm: return "Confirmer"
+        case .name: return String(localized: "create_event.step.name.title")
+        case .date: return String(localized: "create_event.step.date.title")
+        case .place: return String(localized: "create_event.step.place.title")
+        case .invite: return String(localized: "create_event.step.invite.title")
+        case .confirm: return String(localized: "create_event.step.confirm.title")
         }
     }
 
     var eyebrow: String {
         switch self {
-        case .name: return "Nom"
-        case .date: return "Date"
-        case .confirm: return "Confirmation"
+        case .name: return String(localized: "create_event.step.name.eyebrow")
+        case .date: return String(localized: "create_event.step.date.eyebrow")
+        case .place: return String(localized: "create_event.step.place.eyebrow")
+        case .invite: return String(localized: "create_event.step.invite.eyebrow")
+        case .confirm: return String(localized: "create_event.step.confirm.eyebrow")
         }
     }
 
     var question: String {
         switch self {
-        case .name: return "Comment s’appelle l’événement ?"
-        case .date: return "Quand aura-t-il lieu ?"
-        case .confirm: return "Vérifiez les détails."
+        case .name: return String(localized: "create_event.step.name.question")
+        case .date: return String(localized: "create_event.step.date.question")
+        case .place: return String(localized: "create_event.step.place.question")
+        case .invite: return String(localized: "create_event.step.invite.question")
+        case .confirm: return String(localized: "create_event.step.confirm.question")
         }
     }
 
     var subtitle: String {
         switch self {
-        case .name: return "Un nom clair et une courte description aident les invités à comprendre l’événement."
-        case .date: return "Ajoutez un ou plusieurs créneaux pour lancer le sondage avec de vraies options."
-        case .confirm: return "Ajustez seulement les options utiles, puis prévisualisez l’invitation."
+        case .name: return String(localized: "create_event.step.name.subtitle")
+        case .date: return String(localized: "create_event.step.date.subtitle")
+        case .place: return String(localized: "create_event.step.place.subtitle")
+        case .invite: return String(localized: "create_event.step.invite.subtitle")
+        case .confirm: return String(localized: "create_event.step.confirm.subtitle")
         }
     }
 
@@ -1497,7 +1762,7 @@ private struct EventSlotDraft: Identifiable, Equatable {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
-        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.locale = .autoupdatingCurrent
         return formatter.string(from: startDateTime)
     }
 
@@ -1507,7 +1772,8 @@ private struct EventSlotDraft: Identifiable, Equatable {
         }
 
         let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
+        formatter.locale = .autoupdatingCurrent
+        formatter.timeStyle = .short
         let start = formatter.string(from: startDateTime)
 
         if let endDateTime {
@@ -1798,13 +2064,14 @@ struct DateTimePickerPopup: View {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
-        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.locale = .autoupdatingCurrent
         return formatter.string(from: date)
     }
     
     private func formattedTime(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
+        formatter.locale = .autoupdatingCurrent
+        formatter.timeStyle = .short
         return formatter.string(from: date)
     }
 }
@@ -1934,7 +2201,7 @@ private struct EventPreviewSheet: View {
                         if !proposedSlots.isEmpty || selectedDate != nil || selectedLocation != nil {
                             VStack(spacing: 4) {
                                 if !proposedSlots.isEmpty {
-                                    Text(proposedSlots.count == 1 ? proposedSlots[0].displayTitle : "\(proposedSlots.count) créneaux proposés")
+                                    Text(proposedSlots.count == 1 ? proposedSlots[0].displayTitle : String(format: String(localized: "create_event.proposed_slots_count_format"), proposedSlots.count))
                                         .font(.system(size: 15, weight: .medium))
                                         .foregroundColor(.white.opacity(0.7))
                                 } else if selectedDate != nil {
@@ -1951,7 +2218,7 @@ private struct EventPreviewSheet: View {
                         }
 
                         if planningMode == .scenarioMatrix {
-                            Text("\(matrixScenarioCount) option(s) créneau × destination à préparer")
+                            Text(String(format: String(localized: "create_event.scenario_matrix_count_format"), matrixScenarioCount))
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(.white.opacity(0.82))
                                 .lineLimit(1)
@@ -2049,7 +2316,7 @@ private struct EventPreviewSheet: View {
                             .frame(width: 24)
                             .padding(.top, 2)
 
-                        Text("Les participants voteront sur des options complètes combinant créneau et destination.")
+                        Text(String(localized: "create_event.preview.scenario_matrix_explanation"))
                             .font(.system(size: 15))
                             .foregroundColor(previewSecondaryText)
                             .lineSpacing(4)
@@ -2116,7 +2383,7 @@ private struct EventPreviewSheet: View {
 
     private var proposedSlotsPreviewCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Créneaux proposés")
+            Text(String(localized: "create_event.proposed_slots_title"))
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(Color(hex: "8B9FFF"))
 
@@ -2148,7 +2415,7 @@ private struct EventPreviewSheet: View {
             }
 
             if proposedSlots.count > 4 {
-                Text("+\(proposedSlots.count - 4) autre\(proposedSlots.count - 4 > 1 ? "s" : "") option\(proposedSlots.count - 4 > 1 ? "s" : "")")
+                Text(remainingProposedSlotsText(proposedSlots.count - 4))
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.white.opacity(0.72))
             }
@@ -2158,6 +2425,12 @@ private struct EventPreviewSheet: View {
         .background(Color(hex: "12143A").opacity(0.7))
         .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.white.opacity(0.08), lineWidth: 1))
         .cornerRadius(20)
+    }
+
+    private func remainingProposedSlotsText(_ count: Int) -> String {
+        count == 1
+            ? String(format: String(localized: "create_event.preview.more_options_singular_format"), count)
+            : String(format: String(localized: "create_event.preview.more_options_plural_format"), count)
     }
 
     private var itineraryPreviewCard: some View {
@@ -2211,17 +2484,18 @@ private struct EventPreviewSheet: View {
         let dateFormatter = DateFormatter()
         dateFormatter.dateStyle = .medium
         dateFormatter.timeStyle = .none
-        dateFormatter.locale = Locale(identifier: "fr_FR")
+        dateFormatter.locale = .autoupdatingCurrent
 
         let timeFormatter = DateFormatter()
-        timeFormatter.dateFormat = "HH:mm"
+        timeFormatter.locale = .autoupdatingCurrent
+        timeFormatter.timeStyle = .short
 
         var result = dateFormatter.string(from: startDate)
 
         if isAllDay {
             result += " (\(String(localized: "events.all_day")))"
         } else {
-            result += " à " + timeFormatter.string(from: startTime)
+            result = String(format: String(localized: "create_event.date_time_at_format"), result, timeFormatter.string(from: startTime))
             if hasEndTime {
                 result += " - " + timeFormatter.string(from: endTime)
             }
@@ -2258,6 +2532,13 @@ struct RoundedCorner: Shape {
             cornerRadii: CGSize(width: radius, height: radius)
         )
         return Path(path.cgPath)
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        let value = trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
     }
 }
 
@@ -2298,11 +2579,11 @@ struct EventTypePickerSheet: View {
                     .listRowBackground(Color(uiColor: .secondarySystemGroupedBackground))
                 }
             }
-            .navigationTitle("Type d'événement")
+            .navigationTitle(String(localized: "events.type"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Fermer") { dismiss() }
+                    Button(String(localized: "common.close")) { dismiss() }
                 }
             }
         }

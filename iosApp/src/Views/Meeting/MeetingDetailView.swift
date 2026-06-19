@@ -87,16 +87,20 @@ struct MeetingDetailView: View {
 #endif
 
     var body: some View {
-        Group {
-            if shouldShowLoading {
-                loadingView
-            } else if let meeting {
-                contentView(meeting: meeting)
-            } else {
-                errorView
+        ZStack {
+            WakeveScreenBackground(style: .grouped)
+
+            Group {
+                if shouldShowLoading {
+                    loadingView
+                } else if let meeting {
+                    contentView(meeting: meeting)
+                } else {
+                    errorView
+                }
             }
         }
-        .navigationTitle("Réunion")
+        .navigationTitle(String(localized: "meetings.detail_title"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if canMutateMeetings {
@@ -105,13 +109,13 @@ struct MeetingDetailView: View {
                         Button {
                             showGenerateLinkSheet = true
                         } label: {
-                            Label("Créer un lien", systemImage: "link")
+                            Label(String(localized: "meetings.generate_link"), systemImage: "link")
                         }
                         Divider()
                         Button(role: .destructive) {
                             showDeleteConfirm = true
                         } label: {
-                            Label("Annuler la réunion", systemImage: "xmark.circle")
+                            Label(String(localized: "meetings.cancel"), systemImage: "xmark.circle")
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
@@ -141,17 +145,17 @@ struct MeetingDetailView: View {
             }
         }
         .confirmationDialog(
-            "Annuler cette réunion ?",
+            String(localized: "meetings.cancel_confirm"),
             isPresented: $showDeleteConfirm,
             titleVisibility: .visible
         ) {
-            Button("Annuler la réunion", role: .destructive) {
+            Button(String(localized: "meetings.cancel"), role: .destructive) {
                 if canMutateMeetings && !isPreviewing {
                     viewModel.cancelMeeting(currentUserId: currentUserId)
                 }
                 dismiss()
             }
-            Button("Garder", role: .cancel) {}
+            Button(String(localized: "meetings.keep"), role: .cancel) {}
         }
         .onAppear {
             guard !isPreviewing else { return }
@@ -165,6 +169,7 @@ struct MeetingDetailView: View {
         VStack(spacing: 16) {
             ProgressView()
                 .scaleEffect(1.2)
+                .tint(WakeveTheme.ColorToken.permissionBlue)
                 .accessibilityLabel(String(localized: "common.loading"))
             Text(String(localized: "common.loading"))
                 .foregroundStyle(.secondary)
@@ -175,17 +180,20 @@ struct MeetingDetailView: View {
     // MARK: - Error
 
     private var errorView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.largeTitle)
-                .foregroundStyle(.orange)
-            Text("Réunion introuvable")
-                .font(.headline)
-            Text("Cette réunion n'existe plus ou a été annulée.")
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.xl) {
+            VStack(spacing: WakeveTheme.Spacing.md) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.largeTitle)
+                    .foregroundStyle(.orange)
+                Text(String(localized: "meetings.not_found"))
+                    .font(WakeveTheme.Typography.title2)
+                Text(String(localized: "meetings.not_found_subtitle"))
+                    .font(WakeveTheme.Typography.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
         }
-        .padding()
+        .padding(WakeveTheme.Spacing.page)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -193,167 +201,161 @@ struct MeetingDetailView: View {
 
     private func contentView(meeting: VirtualMeeting) -> some View {
         ScrollView {
-            VStack(spacing: 16) {
-                // Header card
+            VStack(spacing: WakeveTheme.Spacing.md) {
                 headerCard(meeting: meeting)
 
-                // Meeting URL card
                 if !meeting.meetingUrl.isEmpty {
                     meetingUrlCard(url: meeting.meetingUrl)
                 }
 
-                // Details card
                 detailsCard(meeting: meeting)
-
-                // Generated link (if any)
-                // Note: link generation is handled via MeetingListViewModel
-
-                // Action buttons
                 actionButtons(meeting: meeting)
             }
-            .padding()
+            .padding(WakeveTheme.Spacing.page)
         }
     }
 
     // MARK: - Cards
 
     private func headerCard(meeting: VirtualMeeting) -> some View {
-        VStack(spacing: 12) {
-            // Platform icon
-            ZStack {
-                Circle()
-                    .fill(platformColor(meeting.platform).opacity(0.15))
-                    .frame(width: 72, height: 72)
-                Image(systemName: platformIcon(meeting.platform))
-                    .font(.system(size: 32))
-                    .foregroundStyle(platformColor(meeting.platform))
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(spacing: WakeveTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(platformColor(meeting.platform).opacity(0.15))
+                        .frame(width: 72, height: 72)
+                    Image(systemName: platformIcon(meeting.platform))
+                        .font(.system(size: 32))
+                        .foregroundStyle(platformColor(meeting.platform))
+                }
+
+                Text(meeting.title)
+                    .font(WakeveTheme.Typography.title2)
+                    .multilineTextAlignment(.center)
+
+                statusBadge(meeting.status)
+
+                HStack(spacing: WakeveTheme.Spacing.md) {
+                    Label(platformDisplayName(meeting.platform), systemImage: platformIcon(meeting.platform))
+                        .font(WakeveTheme.Typography.metadata)
+                        .foregroundStyle(.secondary)
+                    Label(formatScheduledFor(meeting.scheduledFor), systemImage: "calendar")
+                        .font(WakeveTheme.Typography.metadata)
+                        .foregroundStyle(.secondary)
+                }
             }
-
-            Text(meeting.title)
-                .font(.title2.bold())
-                .multilineTextAlignment(.center)
-
-            // Status badge
-            statusBadge(meeting.status)
-
-            HStack(spacing: 16) {
-                Label(platformDisplayName(meeting.platform), systemImage: platformIcon(meeting.platform))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Label(formatScheduledFor(meeting.scheduledFor), systemImage: "calendar")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            .frame(maxWidth: .infinity)
         }
-        .frame(maxWidth: .infinity)
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private func meetingUrlCard(url: String) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: "link")
-                    .foregroundStyle(.blue)
-                Text("Lien de la réunion")
-                    .font(.headline)
-                Spacer()
-            }
-            HStack {
-                Text(url)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                Spacer()
-                Button {
-                    UIPasteboard.general.string = url
-                } label: {
-                    Image(systemName: "doc.on.doc")
-                        .foregroundStyle(.blue)
-                }
-                .accessibilityLabel(String(localized: "invitation.copy"))
-                if let meetingURL = URL(string: url) {
-                    Link(destination: meetingURL) {
-                        Image(systemName: "arrow.up.right.square")
-                            .foregroundStyle(.blue)
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                Label(String(localized: "meetings.link_label"), systemImage: "link")
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundStyle(.primary)
+
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    Text(url)
+                        .font(WakeveTheme.Typography.metadata)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                    Spacer()
+                    Button {
+                        UIPasteboard.general.string = url
+                        WakeveHaptics.success()
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                            .foregroundStyle(WakeveTheme.ColorToken.permissionBlue)
+                    }
+                    .accessibilityLabel(String(localized: "invitation.copy"))
+                    if let meetingURL = URL(string: url) {
+                        Link(destination: meetingURL) {
+                            Image(systemName: "arrow.up.right.square")
+                                .foregroundStyle(WakeveTheme.ColorToken.permissionBlue)
+                        }
                     }
                 }
             }
         }
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private func detailsCard(meeting: VirtualMeeting) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "info.circle.fill")
-                    .foregroundStyle(.blue)
-                Text("Détails")
-                    .font(.headline)
-            }
-            Divider()
-            detailRow(icon: "clock", label: "Durée", value: "\(meeting.duration / 60) min")
-            detailRow(icon: "globe", label: "Fuseau", value: meeting.timezone)
-            if let desc = meeting.description_, !desc.isEmpty {
-                detailRow(icon: "text.alignleft", label: "Description", value: desc)
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                Label(String(localized: "meetings.detail_title"), systemImage: "info.circle.fill")
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundStyle(.primary)
+
+                Divider()
+
+                detailRow(
+                    icon: "clock",
+                    label: String(localized: "meetings.duration"),
+                    value: "\(meeting.duration / 60) \(String(localized: "meetings.minutes"))"
+                )
+                detailRow(
+                    icon: "globe",
+                    label: String(localized: "meetings.timezone"),
+                    value: meeting.timezone
+                )
+                if let desc = meeting.description_, !desc.isEmpty {
+                    detailRow(
+                        icon: "text.alignleft",
+                        label: String(localized: "meetings.description_label"),
+                        value: desc
+                    )
+                }
             }
         }
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private func generatedLinkCard(linkResponse: MeetingLinkResponse) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-                Text("Lien généré")
-                    .font(.headline)
-                Spacer()
-                Button("Copier") {
-                    UIPasteboard.general.string = linkResponse.meetingUrl
+        WakeveContentCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.lg, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text(String(localized: "meetings.generated_link"))
+                        .font(WakeveTheme.Typography.bodySemibold)
+                    Spacer()
+                    Button(String(localized: "invitation.copy")) {
+                        UIPasteboard.general.string = linkResponse.meetingUrl
+                        WakeveHaptics.success()
+                    }
+                    .font(WakeveTheme.Typography.metadata.weight(.semibold))
                 }
-                .font(.caption)
-                .buttonStyle(.bordered)
+                Text(linkResponse.meetingUrl)
+                    .font(WakeveTheme.Typography.metadata)
+                    .foregroundStyle(.secondary)
             }
-            Text(linkResponse.meetingUrl)
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
-        .padding()
-        .background(Color.green.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
     }
 
     private func actionButtons(meeting: VirtualMeeting) -> some View {
-        VStack(spacing: 12) {
-            // Join meeting button
+        VStack(spacing: WakeveTheme.Spacing.sm) {
             if let url = URL(string: meeting.meetingUrl), !meeting.meetingUrl.isEmpty {
                 Link(destination: url) {
                     HStack {
                         Image(systemName: "video.fill")
-                        Text("Rejoindre la réunion")
+                        Text(String(localized: "meetings.join"))
                             .fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(.blue, in: RoundedRectangle(cornerRadius: 12))
+                    .frame(height: 56)
+                    .background(WakeveTheme.ColorToken.permissionBlue, in: Capsule())
                     .foregroundStyle(.white)
                 }
             }
 
-            // Share button
-            Button {
+            WakeveActionButton(
+                String(localized: "meetings.share_link"),
+                systemImage: "square.and.arrow.up",
+                variant: .secondary,
+                isDisabled: meeting.meetingUrl.isEmpty
+            ) {
+                WakeveHaptics.selection()
                 shareLink(meeting.meetingUrl)
-            } label: {
-                HStack {
-                    Image(systemName: "square.and.arrow.up")
-                    Text("Partager le lien")
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
-                .foregroundStyle(.blue)
             }
         }
     }
@@ -363,14 +365,15 @@ struct MeetingDetailView: View {
     private func detailRow(icon: String, label: String, value: String) -> some View {
         HStack(alignment: .top) {
             Image(systemName: icon)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WakeveTheme.ColorToken.permissionBlue)
                 .frame(width: 20)
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
                 Text(label)
-                    .font(.caption)
+                    .font(WakeveTheme.Typography.metadata)
                     .foregroundStyle(.secondary)
                 Text(value)
-                    .font(.subheadline)
+                    .font(WakeveTheme.Typography.body)
+                    .foregroundStyle(.primary)
             }
         }
     }
@@ -406,7 +409,7 @@ struct MeetingDetailView: View {
         case .facetime:   return "FaceTime"
         case .teams:      return "Teams"
         case .webex:      return "Webex"
-        default:          return "Autre"
+        default:          return String(localized: "meetings.platform_other")
         }
     }
 
@@ -416,18 +419,18 @@ struct MeetingDetailView: View {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
-        formatter.locale = Locale(identifier: "fr_FR")
+        formatter.locale = .current
         return formatter.string(from: date)
     }
 
     private func statusBadge(_ status: MeetingStatus_) -> some View {
         let (label, color): (String, Color) = {
             switch status {
-            case .scheduled:  return ("Planifiée", .blue)
-            case .started:    return ("En cours", .green)
-            case .ended:      return ("Terminée", .secondary)
-            case .cancelled:  return ("Annulée", .red)
-            default:          return ("—", .gray)
+            case .scheduled:  return (String(localized: "meetings.scheduled"), .blue)
+            case .started:    return (String(localized: "meetings.started"), .green)
+            case .ended:      return (String(localized: "meetings.ended"), .secondary)
+            case .cancelled:  return (String(localized: "meetings.cancelled"), .red)
+            default:          return (String(localized: "meetings.status_unknown"), .gray)
             }
         }()
         return Text(label)

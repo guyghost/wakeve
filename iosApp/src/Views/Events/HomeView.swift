@@ -59,13 +59,8 @@ struct EventNextAction {
             shortTitle = String(localized: "events.next_action.draft.short")
             systemImage = "paperplane.fill"
 
-            let hasParticipants = !event.participants.isEmpty
             let hasSlots = !event.proposedSlots.isEmpty
-            if !hasParticipants && !hasSlots {
-                blockedReason = String(localized: "events.next_action.draft.blocked.participants_and_slots")
-            } else if !hasParticipants {
-                blockedReason = String(localized: "events.next_action.draft.blocked.participants")
-            } else if !hasSlots {
+            if !hasSlots {
                 blockedReason = String(localized: "events.next_action.draft.blocked.slots")
             } else {
                 blockedReason = nil
@@ -282,6 +277,14 @@ struct HomeContentView: View {
                     VStack(spacing: WakeveTheme.Spacing.xl) {
                         headerView
 
+                        if shouldShowDraftResumeCard, let primaryDraft {
+                            HomeDraftResumeCard(
+                                event: primaryDraft,
+                                additionalDraftCount: additionalDraftCount,
+                                onTap: { onEventSelected(primaryDraft) }
+                            )
+                        }
+
                         EmptyState(
                             systemImage: "calendar.badge.plus",
                             title: emptyStateTitle,
@@ -299,6 +302,14 @@ struct HomeContentView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xl) {
                         headerView
+
+                        if shouldShowDraftResumeCard, let primaryDraft {
+                            HomeDraftResumeCard(
+                                event: primaryDraft,
+                                additionalDraftCount: additionalDraftCount,
+                                onTap: { onEventSelected(primaryDraft) }
+                            )
+                        }
 
                         HomeNextActionCard(
                             event: featuredEvent,
@@ -351,6 +362,26 @@ struct HomeContentView: View {
     }
     
     private var draftCount: Int { events.filter { $0.status == .draft }.count }
+
+    private var draftEvents: [Event] {
+        events
+            .filter { $0.status == .draft }
+            .sorted { lhs, rhs in
+                eventSortDate(lhs) < eventSortDate(rhs)
+            }
+    }
+
+    private var primaryDraft: Event? {
+        draftEvents.first
+    }
+
+    private var additionalDraftCount: Int {
+        max(draftEvents.count - 1, 0)
+    }
+
+    private var shouldShowDraftResumeCard: Bool {
+        selectedFilter == .upcoming && primaryDraft != nil
+    }
 
     private var featuredEvent: Event {
         sortedFilteredEvents.first ?? filteredEvents[0]
@@ -539,6 +570,62 @@ private struct HomeNextActionCard: View {
     }
 }
 
+private struct HomeDraftResumeCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let event: Event
+    let additionalDraftCount: Int
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+                HStack(alignment: .center, spacing: WakeveTheme.Spacing.md) {
+                    Image(systemName: "pencil.and.outline")
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(WakeveTheme.ColorToken.midnight)
+                        .frame(width: 44, height: 44)
+                        .background(SemanticColor.warning(for: colorScheme).opacity(0.18))
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text(String(localized: "home.draft_resume.eyebrow"))
+                            .font(WakeveTheme.Typography.tiny)
+                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                            .textCase(.uppercase)
+
+                        Text(event.title)
+                            .font(WakeveTheme.Typography.rowTitle)
+                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                            .lineLimit(1)
+
+                        Text(draftSubtitle)
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                            .lineLimit(2)
+                    }
+
+                    Spacer(minLength: WakeveTheme.Spacing.xs)
+
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var draftSubtitle: String {
+        if additionalDraftCount > 0 {
+            return String(format: String(localized: "home.draft_resume.subtitle_with_count_format"), additionalDraftCount)
+        }
+
+        return String(localized: "home.draft_resume.subtitle")
+    }
+}
+
 private struct HomeUpcomingEventsSection: View {
     let events: [Event]
     let userId: String
@@ -624,14 +711,14 @@ private func eventPrimaryDate(_ event: Event) -> Date? {
 }
 
 private func eventSubtitle(_ event: Event) -> String {
-    let dateText = eventPrimaryDate(event).map(longHomeDateFormatter.string(from:)) ?? "Date à confirmer"
+    let dateText = eventPrimaryDate(event).map(longHomeDateFormatter.string(from:)) ?? String(localized: "home.date_to_confirm")
     let participantText = participantCountText(event)
     return "\(dateText) · \(participantText)"
 }
 
 private func compactDateLabel(_ event: Event) -> String {
     guard let date = eventPrimaryDate(event) else {
-        return "À définir"
+        return String(localized: "home.to_define")
     }
 
     return compactHomeDateFormatter.string(from: date)
@@ -639,11 +726,16 @@ private func compactDateLabel(_ event: Event) -> String {
 
 private func participantCountText(_ event: Event) -> String {
     if let expected = event.expectedParticipants?.intValue {
-        return "\(expected) attendus"
+        return String(format: String(localized: "home.expected_participants_format"), expected)
     }
 
     let count = event.participants.count
-    return "\(max(count, 1)) participant\(count > 1 ? "s" : "")"
+    let visibleCount = max(count, 1)
+    if visibleCount == 1 {
+        return String(format: String(localized: "home.participant_count_singular_format"), visibleCount)
+    }
+
+    return String(format: String(localized: "home.participant_count_plural_format"), visibleCount)
 }
 
 private func participantInitials(_ event: Event) -> [String] {
@@ -678,7 +770,7 @@ private func parseHomeDate(_ value: String) -> Date? {
 
 private let longHomeDateFormatter: DateFormatter = {
     let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "fr_FR")
+    formatter.locale = .autoupdatingCurrent
     formatter.dateStyle = .medium
     formatter.timeStyle = .none
     return formatter
@@ -686,7 +778,7 @@ private let longHomeDateFormatter: DateFormatter = {
 
 private let compactHomeDateFormatter: DateFormatter = {
     let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "fr_FR")
+    formatter.locale = .autoupdatingCurrent
     formatter.setLocalizedDateFormatFromTemplate("d MMM")
     return formatter
 }()
