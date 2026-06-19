@@ -96,12 +96,13 @@ final class PremiumCreateEventContractTests: XCTestCase {
     func testCreateEventVisibleDateFormattingUsesUserLocale() throws {
         let source = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
         let eventSlotDraft = slice(source, from: "private struct EventSlotDraft", to: "// MARK: - Date Time Picker Popup")
-        let datePickerPopup = slice(source, from: "struct DateTimePickerPopup", to: "struct EventPreviewSheet")
-        let previewSheet = slice(source, from: "struct EventPreviewSheet", to: "private var previewPageBackground")
+        let datePickerPopup = slice(source, from: "struct DateTimePickerPopup", to: "private struct EventPreviewSheet")
+        let previewSheet = slice(source, from: "private struct EventPreviewSheet", to: "// MARK: - Rounded Corner Shape")
 
         XCTAssertTrue(eventSlotDraft.contains("formatter.locale = .autoupdatingCurrent"))
         XCTAssertTrue(eventSlotDraft.contains("formatter.timeStyle = .short"))
         XCTAssertTrue(datePickerPopup.contains("formatter.locale = .autoupdatingCurrent"))
+        XCTAssertTrue(source.contains("formatter.timeStyle = .short"))
         XCTAssertTrue(previewSheet.contains("dateFormatter.locale = .autoupdatingCurrent"))
         XCTAssertFalse(eventSlotDraft.contains("Locale(identifier: \"fr_FR\")"), "Visible event slot dates should respect the user's locale.")
         XCTAssertFalse(datePickerPopup.contains("Locale(identifier: \"fr_FR\")"), "Date picker summaries should respect the user's locale.")

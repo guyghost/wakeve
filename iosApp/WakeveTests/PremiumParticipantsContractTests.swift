@@ -46,7 +46,7 @@ final class PremiumParticipantsContractTests: XCTestCase {
 
     func testParticipantsExposeGroupPresencePulse() throws {
         let source = try readProjectFile("iosApp/src/Views/Events/ParticipantManagementView.swift")
-        let content = slice(source, from: "struct ParticipantManagementView", to: "private struct ParticipantPresentationRow")
+        let content = slice(source, from: "struct ParticipantManagementView", to: "private struct ParticipantTimezoneRow")
 
         XCTAssertTrue(content.contains("groupPresenceCard"))
         XCTAssertTrue(content.contains("ParticipantPresenceCard("))
