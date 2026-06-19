@@ -16,7 +16,7 @@ struct AddToCalendarButton: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
                 
-                Text("Add to Calendar")
+                Text(String(localized: "meetings.add_to_calendar"))
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.white)
                 

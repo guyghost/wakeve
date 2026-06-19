@@ -70,6 +70,7 @@ final class TransportPlanningViewModel: ObservableObject {
                     repository: repository,
                     selectedDestination: selectedDestination
                 )
+                WakeveHaptics.success()
             }
         }
     }
@@ -86,6 +87,7 @@ final class TransportPlanningViewModel: ObservableObject {
             planId: plan.id,
             selectedByOrganizerId: userId
         )
+        WakeveHaptics.success()
         reloadState(
             event: event,
             userId: userId,
@@ -104,6 +106,7 @@ final class TransportPlanningViewModel: ObservableObject {
             eventId: event.id,
             updatedByUserId: userId
         )
+        WakeveHaptics.success()
         reloadState(
             event: event,
             userId: userId,

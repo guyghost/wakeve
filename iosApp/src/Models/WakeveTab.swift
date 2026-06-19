@@ -13,17 +13,17 @@ enum WakeveTab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .home: return "À venir"
-        case .groups: return "Groupes"
-        case .messages: return "Messages"
-        case .profile: return "Profil"
+        case .home: return String(localized: "tab.upcoming")
+        case .groups: return String(localized: "tab.explore")
+        case .messages: return String(localized: "tab.messages")
+        case .profile: return String(localized: "tab.profile")
         }
     }
 
     var systemImage: String {
         switch self {
         case .home: return "calendar"
-        case .groups: return "person.2"
+        case .groups: return "sparkles"
         case .messages: return "message"
         case .profile: return "person.crop.circle"
         }

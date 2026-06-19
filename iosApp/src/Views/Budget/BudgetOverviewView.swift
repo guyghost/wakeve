@@ -4,6 +4,8 @@ import Shared
 // MARK: - BudgetOverviewView
 
 struct BudgetOverviewView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let eventId: String
 
     @StateObject private var viewModel: BudgetViewModel
@@ -46,7 +48,7 @@ struct BudgetOverviewView: View {
                     contentView
                 }
             }
-            .navigationTitle("Budget")
+            .navigationTitle(String(localized: "budget.overview_title"))
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -87,22 +89,28 @@ struct BudgetOverviewView: View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.largeTitle)
-                .foregroundStyle(.orange)
+                .foregroundStyle(SemanticColor.warning(for: colorScheme))
             Text(message)
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-            Button("Réessayer") { viewModel.load() }
-                .buttonStyle(.bordered)
+            WakeveActionButton(
+                String(localized: "common.try_again"),
+                systemImage: "arrow.clockwise",
+                variant: .secondary
+            ) {
+                viewModel.load()
+            }
         }
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(WakeveScreenBackground(style: .grouped))
     }
 
     // MARK: - Main content
 
     private var contentView: some View {
         ScrollView {
-            LazyVStack(spacing: 16) {
+            LazyVStack(spacing: WakeveTheme.Spacing.md) {
                 BudgetSyncBanner(pendingSync: viewModel.pendingSync, isOnline: viewModel.isOnline)
                 summaryCard
                 if !categoryModels.isEmpty {
@@ -113,40 +121,42 @@ struct BudgetOverviewView: View {
                 }
                 detailButton
             }
-            .padding()
+            .padding(WakeveTheme.Spacing.md)
         }
+        .background(WakeveScreenBackground(style: .grouped))
     }
 
     // MARK: - Summary card
 
     private var summaryCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
             HStack {
                 Image(systemName: "eurosign.circle.fill")
-                    .foregroundStyle(.blue)
-                Text("Résumé")
-                    .font(.headline)
+                    .foregroundStyle(WakeveTheme.ColorToken.accent(for: colorScheme))
+                Text(String(localized: "budget.overview.summary"))
+                    .font(WakeveTheme.Typography.section)
                 Spacer()
                 if isOverBudget {
-                    Label("Dépassé", systemImage: "exclamationmark.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                    Label(String(localized: "budget.overview.over_budget"), systemImage: "exclamationmark.circle.fill")
+                        .font(WakeveTheme.Typography.caption)
+                        .foregroundStyle(WakeveTheme.ColorToken.destructive(for: colorScheme))
                 }
             }
 
             // Progress bar
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text("Budget utilisé")
-                        .font(.caption)
+                    Text(String(localized: "budget.overview.used"))
+                        .font(WakeveTheme.Typography.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
                     Text(String(format: "%.0f%%", budgetUsagePercentage * 100))
                         .font(.caption.bold())
-                        .foregroundStyle(isOverBudget ? .red : .primary)
+                        .foregroundStyle(isOverBudget ? WakeveTheme.ColorToken.destructive(for: colorScheme) : WakeveTheme.ColorToken.primaryText(for: colorScheme))
                 }
                 ProgressView(value: budgetUsagePercentage)
-                    .tint(isOverBudget ? .red : .blue)
+                    .tint(isOverBudget ? WakeveTheme.ColorToken.destructive(for: colorScheme) : WakeveTheme.ColorToken.accent(for: colorScheme))
             }
 
             Divider()
@@ -154,21 +164,21 @@ struct BudgetOverviewView: View {
             // Amounts grid
             HStack(spacing: 0) {
                 amountCell(
-                    title: "Estimé",
+                    title: String(localized: "budget.overview.estimated"),
                     amount: totalEstimated,
                     color: .secondary
                 )
                 Divider().frame(height: 44)
                 amountCell(
-                    title: "Réel",
+                    title: String(localized: "budget.overview.actual"),
                     amount: totalActual,
-                    color: isOverBudget ? .red : .green
+                    color: isOverBudget ? WakeveTheme.ColorToken.destructive(for: colorScheme) : WakeveTheme.ColorToken.confirmation(for: colorScheme)
                 )
                 Divider().frame(height: 44)
                 amountCell(
-                    title: "Restant",
+                    title: String(localized: "budget.overview.remaining"),
                     amount: remainingBudget,
-                    color: isOverBudget ? .red : .blue
+                    color: isOverBudget ? WakeveTheme.ColorToken.destructive(for: colorScheme) : WakeveTheme.ColorToken.accent(for: colorScheme)
                 )
             }
 
@@ -178,8 +188,8 @@ struct BudgetOverviewView: View {
                     Image(systemName: "person.2.fill")
                         .foregroundStyle(.secondary)
                         .font(.caption)
-                    Text("Coût estimé par personne")
-                        .font(.caption)
+                    Text(String(localized: "budget.overview.per_person"))
+                        .font(WakeveTheme.Typography.caption)
                         .foregroundStyle(.secondary)
                     Spacer()
                     Text(formatAmount(costPerPerson))
@@ -187,8 +197,7 @@ struct BudgetOverviewView: View {
                 }
             }
         }
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        }
     }
 
     private func amountCell(title: String, amount: Double, color: Color) -> some View {
@@ -206,12 +215,13 @@ struct BudgetOverviewView: View {
     // MARK: - Category breakdown card
 
     private var categoryBreakdownCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
             HStack {
                 Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(.purple)
-                Text("Par catégorie")
-                    .font(.headline)
+                    .foregroundStyle(WakeveTheme.ColorToken.accent(for: colorScheme))
+                Text(String(localized: "budget.overview.by_category"))
+                    .font(WakeveTheme.Typography.section)
             }
 
             ForEach(categoryModels) { categoryModel in
@@ -221,19 +231,19 @@ struct BudgetOverviewView: View {
                 }
             }
         }
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        }
     }
 
     // MARK: - Participant balances card
 
     private var participantBalancesCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
             HStack {
                 Image(systemName: "person.2.fill")
-                    .foregroundStyle(.teal)
-                Text("Soldes participants")
-                    .font(.headline)
+                    .foregroundStyle(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+                Text(String(localized: "budget.overview.participant_balances"))
+                    .font(WakeveTheme.Typography.section)
             }
 
             ForEach(participantBalances) { balance in
@@ -252,35 +262,35 @@ struct BudgetOverviewView: View {
                         Text(formatAmount(abs(balance.balance)))
                             .font(.subheadline.bold())
                             .foregroundStyle(balance.owesMore ? .orange : .green)
-                        Text(balance.owesMore ? "doit" : "à recevoir")
+                        Text(balance.owesMore ? String(localized: "budget.overview.owes") : String(localized: "budget.overview.to_receive"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
                 }
             }
         }
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+        }
     }
 
     // MARK: - Detail button
 
     private var detailButton: some View {
+        WakeveContentCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.lg, padding: 0) {
         Button {
             navigateToDetail = true
         } label: {
             HStack {
                 Image(systemName: "list.bullet.rectangle.fill")
-                Text("Voir toutes les dépenses")
+                Text(String(localized: "budget.overview.view_all_expenses"))
                     .fontWeight(.semibold)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption)
             }
-            .padding()
+            .padding(WakeveTheme.Spacing.md)
             .frame(maxWidth: .infinity)
-            .background(.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
-            .foregroundStyle(.blue)
+            .foregroundStyle(WakeveTheme.ColorToken.accent(for: colorScheme))
+        }
         }
     }
 
@@ -344,7 +354,7 @@ struct BudgetSyncBanner: View {
     var body: some View {
         if pendingSync || !isOnline {
             Label(
-                pendingSync ? "Modifications locales en attente d'envoi" : "Données locales disponibles hors ligne",
+                pendingSync ? String(localized: "sync.pending_changes") : String(localized: "sync.offline_available"),
                 systemImage: "arrow.triangle.2.circlepath"
             )
             .font(.footnote.weight(.semibold))

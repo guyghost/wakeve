@@ -17,7 +17,7 @@ final class EventWeatherViewModel: ObservableObject {
         }
 
         guard let eventDate = event.weatherTargetDate else {
-            state = .unavailable(message: "Date confirmée requise pour afficher la météo.")
+            state = .unavailable(message: String(localized: "weather.required_date_message"))
             return
         }
 
@@ -28,7 +28,7 @@ final class EventWeatherViewModel: ObservableObject {
         ).day ?? 0
 
         guard daysUntilEvent >= 0 else {
-            state = .unavailable(message: "La météo n'est plus disponible pour cette date passée.")
+            state = .unavailable(message: String(localized: "weather.past_date_message"))
             return
         }
 
@@ -71,7 +71,7 @@ final class EventWeatherViewModel: ObservableObject {
                 )
             )
         } catch {
-            state = .unavailable(message: "Météo indisponible. Vérifiez la capacité WeatherKit et la connexion.")
+            state = .unavailable(message: String(localized: "weather.unavailable_message"))
         }
     }
 
@@ -158,7 +158,7 @@ struct EventWeatherMapCard: View {
             shell {
                 HStack(spacing: WakeveTheme.Spacing.sm) {
                     ProgressView()
-                    Text("Chargement météo")
+                    Text(String(localized: "weather.loading"))
                         .font(WakeveTheme.Typography.callout)
                         .foregroundColor(secondaryText)
                 }
@@ -175,7 +175,7 @@ struct EventWeatherMapCard: View {
                             .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
 
                         VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
-                            Text("Météo")
+                            Text(String(localized: "weather.title"))
                                 .font(WakeveTheme.Typography.section)
                                 .foregroundColor(primaryText)
 
@@ -199,25 +199,25 @@ struct EventWeatherMapCard: View {
                     }
                     .frame(height: 118)
                     .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
-                    .accessibilityLabel("Carte du lieu météo \(summary.placeName)")
+                    .accessibilityLabel(String(format: String(localized: "weather.map_accessibility_format"), summary.placeName))
                 }
             }
         case .pending(let refreshDate):
             stateMessage(
                 icon: "calendar.badge.clock",
-                title: "Météo bientôt disponible",
-                body: "Les prévisions seront demandées à partir du \(refreshDate.formatted(date: .abbreviated, time: .omitted))."
+                title: String(localized: "weather.pending_title"),
+                body: String(format: String(localized: "weather.pending_body_format"), refreshDate.formatted(date: .abbreviated, time: .omitted))
             )
         case .missingLocation:
             stateMessage(
                 icon: "mappin.slash",
-                title: "Lieu à préciser",
-                body: "Ajoutez un lieu ou une adresse pour afficher la météo de l'événement."
+                title: String(localized: "weather.missing_location_title"),
+                body: String(localized: "weather.missing_location_body")
             )
         case .unavailable(let message):
             stateMessage(
                 icon: "exclamationmark.triangle",
-                title: "Météo indisponible",
+                title: String(localized: "weather.unavailable_title"),
                 body: message
             )
         }

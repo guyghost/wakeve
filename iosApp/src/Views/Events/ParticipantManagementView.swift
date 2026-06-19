@@ -1,6 +1,9 @@
 import Contacts
 import SwiftUI
 import Shared
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Participant management view inspired by Apple Invites
 /// Features: Clean list design, easy participant management, clear status indicators
@@ -25,6 +28,8 @@ struct ParticipantManagementView: View {
     @State private var contactSearchQuery = ""
     @State private var showContactSheet = false
     @State private var showContactPermissionRationale = false
+    @State private var showInvitationShareSheet = false
+    @State private var showCopiedInvitationMessage = false
     @State private var isLoadingContacts = false
     @State private var moderationTarget: ModerationActionTarget?
 
@@ -65,8 +70,13 @@ struct ParticipantManagementView: View {
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
                         headerSummary
                         statusSummary
+                        groupPresenceCard
+                        if hasTimezoneCoordinationContext {
+                            timezoneCoordinationCard
+                        }
 
                         if event.status == .draft {
+                            invitationShareCard
                             addParticipantCard
                         }
 
@@ -133,6 +143,16 @@ struct ParticipantManagementView: View {
                 existingEmails: Set(participantRows.compactMap { normalizedEmail($0.email) }),
                 onAddSelected: {
                     Task { await addSelectedContacts() }
+                }
+            )
+        }
+        .sheet(isPresented: $showInvitationShareSheet) {
+            InvitationShareSheet(
+                eventId: event.id,
+                eventTitle: event.title,
+                invitationCode: invitationCode,
+                onDismiss: {
+                    showInvitationShareSheet = false
                 }
             )
         }
@@ -219,14 +239,20 @@ struct ParticipantManagementView: View {
                         Label(String(localized: "participants.reset_invitation"), systemImage: "arrow.counterclockwise")
                     }
 
-                if canStartPoll {
                     Button {
-                        showStartPollConfirmation = true
+                        showInvitationShareSheet = true
                     } label: {
-                        Label(String(localized: "participants.start_poll.action"), systemImage: "chart.bar.xaxis")
+                        Label(String(localized: "invitation.share"), systemImage: "square.and.arrow.up")
                     }
-                }
-            } label: {
+
+                    if canStartPoll {
+                        Button {
+                            presentStartPollConfirmation()
+                        } label: {
+                            Label(String(localized: "participants.start_poll.action"), systemImage: "chart.bar.xaxis")
+                        }
+                    }
+                } label: {
                     WakeveGlassControl {
                         Image(systemName: "ellipsis")
                             .font(.system(size: 17, weight: .bold))
@@ -260,12 +286,18 @@ struct ParticipantManagementView: View {
                     Label(String(localized: "participants.reset_invitation"), systemImage: "arrow.counterclockwise")
                 }
 
-                    if canStartPoll {
-                        Button {
-                            showStartPollConfirmation = true
-                        } label: {
-                            Label(String(localized: "participants.start_poll.action"), systemImage: "chart.bar.xaxis")
-                        }
+                Button {
+                    showInvitationShareSheet = true
+                } label: {
+                    Label(String(localized: "invitation.share"), systemImage: "square.and.arrow.up")
+                }
+
+                if canStartPoll {
+                    Button {
+                        presentStartPollConfirmation()
+                    } label: {
+                        Label(String(localized: "participants.start_poll.action"), systemImage: "chart.bar.xaxis")
+                    }
                 }
             } label: {
                 Image(systemName: "ellipsis")
@@ -291,6 +323,92 @@ struct ParticipantManagementView: View {
             )
             .ignoresSafeArea(edges: .top)
         )
+    }
+
+    private var invitationShareCard: some View {
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                WakeveInvitationPreviewCard(
+                    title: event.title,
+                    subtitle: invitationPosterSubtitle,
+                    inviteUrl: invitationInviteUrl,
+                    moodPalette: invitationMoodPalette,
+                    qrImage: nil
+                )
+
+                HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
+                    Image(systemName: "square.and.arrow.up.circle.fill")
+                        .font(.title2.weight(.bold))
+                        .foregroundColor(SemanticColor.selectedState(for: colorScheme))
+                        .frame(width: 46, height: 46)
+                        .background(SemanticColor.badge(for: colorScheme))
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text(String(localized: "invitation.share"))
+                            .font(WakeveTheme.Typography.section)
+                            .foregroundColor(primaryText)
+
+                        Text(invitationDeliveryStateText)
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(secondaryText)
+                            .lineLimit(3)
+                    }
+
+                    Spacer(minLength: WakeveTheme.Spacing.xs)
+                }
+
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    Text(invitationInviteUrl)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(secondaryText)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .padding(.horizontal, WakeveTheme.Spacing.md)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(height: 44)
+                        .background(inputBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+
+                    HStack(spacing: WakeveTheme.Spacing.xs) {
+                        Button(action: copyInvitationMessage) {
+                            Image(systemName: showCopiedInvitationMessage ? "checkmark" : "doc.on.doc")
+                                .font(.headline.weight(.bold))
+                                .foregroundColor(showCopiedInvitationMessage ? SemanticColor.confirmation(for: colorScheme) : SemanticColor.selectedState(for: colorScheme))
+                                .frame(width: 44, height: 44)
+                                .background(SemanticColor.badge(for: colorScheme))
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(showCopiedInvitationMessage ? String(localized: "invitation.copied_message") : String(localized: "invitation.copy_message"))
+
+                        ShareLink(item: invitationShareMessage) {
+                            Label(String(localized: "invitation.share_whatsapp_messages"), systemImage: "paperplane.fill")
+                                .labelStyle(.iconOnly)
+                                .font(.headline.weight(.bold))
+                                .foregroundColor(.white)
+                                .frame(width: 44, height: 44)
+                                .background(SemanticColor.selectedState(for: colorScheme))
+                                .clipShape(Circle())
+                        }
+                        .accessibilityLabel(String(localized: "invitation.share_whatsapp_messages"))
+                    }
+                }
+
+                Button {
+                    showInvitationShareSheet = true
+                } label: {
+                    Label(String(localized: "invitation.preview_poster"), systemImage: "qrcode")
+                        .font(WakeveTheme.Typography.bodySemibold)
+                        .foregroundColor(SemanticColor.selectedState(for: colorScheme))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                        .background(SemanticColor.badge(for: colorScheme))
+                        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 
     private var addParticipantCard: some View {
@@ -379,6 +497,27 @@ struct ParticipantManagementView: View {
         }
     }
 
+    private var groupPresenceCard: some View {
+        ParticipantPresenceCard(
+            rows: participantRows,
+            acceptedCount: acceptedRows.count,
+            pendingCount: pendingRows.count,
+            declinedCount: declinedRows.count,
+            subtitle: groupPresenceSubtitle,
+            nextAction: groupPresenceNextAction,
+            progress: groupPresenceProgress
+        )
+    }
+
+    private var timezoneCoordinationCard: some View {
+        ParticipantTimezoneCoordinationCard(
+            subtitle: timezoneCoordinationSubtitle,
+            rows: participantTimezoneRows,
+            footnote: String(localized: "participants.timezone.footnote")
+        )
+        .accessibilityIdentifier("participantTimezoneCoordinationCard")
+    }
+
     @ViewBuilder
     private var participantsContent: some View {
         if participantRows.isEmpty {
@@ -442,7 +581,7 @@ struct ParticipantManagementView: View {
                 isDisabled: !canStartPoll,
                 isLoading: isLoading
             ) {
-                showStartPollConfirmation = true
+                presentStartPollConfirmation()
             }
             .padding(.horizontal, WakeveTheme.Spacing.page)
             .padding(.top, WakeveTheme.Spacing.xs)
@@ -510,7 +649,11 @@ struct ParticipantManagementView: View {
     }
 
     private var participantCountText: String {
-        "\(participantRows.count) participant\(participantRows.count > 1 ? "s" : "")"
+        if participantRows.count == 1 {
+            return String(format: String(localized: "participants.count.singular_format"), participantRows.count)
+        }
+
+        return String(format: String(localized: "participants.count.plural_format"), participantRows.count)
     }
 
     private var acceptedRows: [ParticipantPresentationRow] {
@@ -532,19 +675,204 @@ struct ParticipantManagementView: View {
     }
 
     private var canStartPoll: Bool {
-        event.status == .draft && !participantRows.isEmpty && !event.proposedSlots.isEmpty
+        event.status == .draft && !event.proposedSlots.isEmpty
+    }
+
+    private var hasTimezoneCoordinationContext: Bool {
+        !event.proposedSlots.isEmpty
+    }
+
+    private var eventTimezoneIdentifiers: [String] {
+        Array(
+            Set(
+                event.proposedSlots
+                    .map(\.timezone)
+                    .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            )
+        )
+        .sorted()
+    }
+
+    private var primaryEventTimezoneIdentifier: String {
+        eventTimezoneIdentifiers.first ?? TimeZone.current.identifier
+    }
+
+    private var participantTimezoneRows: [ParticipantTimezoneRow] {
+        [
+            ParticipantTimezoneRow(
+                id: "event",
+                icon: "calendar.badge.clock",
+                title: String(localized: "participants.timezone.event_label"),
+                value: timezoneDisplayName(primaryEventTimezoneIdentifier)
+            ),
+            ParticipantTimezoneRow(
+                id: "local",
+                icon: "location.fill",
+                title: String(localized: "participants.timezone.local_label"),
+                value: timezoneDisplayName(TimeZone.current.identifier),
+                badge: TimeZone.current.identifier == primaryEventTimezoneIdentifier
+                    ? String(localized: "participants.timezone.same_badge")
+                    : String(localized: "participants.timezone.local_badge")
+            ),
+            ParticipantTimezoneRow(
+                id: "options",
+                icon: "clock.badge.checkmark",
+                title: String(localized: "participants.timezone.options_label"),
+                value: String(
+                    format: String(localized: "participants.timezone.options_format"),
+                    event.proposedSlots.count
+                )
+            )
+        ]
+    }
+
+    private var timezoneCoordinationSubtitle: String {
+        if eventTimezoneIdentifiers.count > 1 {
+            return String(
+                format: String(localized: "participants.timezone.multi_subtitle_format"),
+                eventTimezoneIdentifiers.count
+            )
+        }
+
+        return String(
+            format: String(localized: "participants.timezone.single_subtitle_format"),
+            timezoneDisplayName(primaryEventTimezoneIdentifier)
+        )
+    }
+
+    private var invitationCode: String {
+        InvitationTokenCodec.invitationCode(forEventId: event.id)
+    }
+
+    private var invitationInviteUrl: String {
+        "https://wakeve.app/invite/\(invitationCode)"
+    }
+
+    private var invitationMoodPalette: EventMoodPalette {
+        EventMoodPalette.palette(for: event.eventType.name)
+    }
+
+    private var invitationPosterSubtitle: String {
+        if let firstSlot = event.proposedSlots.first {
+            let start = firstSlot.start ?? String(localized: "invitation.poster_subtitle")
+            if let end = firstSlot.end, end != start {
+                return "\(start) / \(end)"
+            }
+            return start
+        }
+
+        return String(localized: "invitation.poster_subtitle")
+    }
+
+    private var invitationShareMessage: String {
+        String(
+            format: String(localized: "invitation.social_share_text"),
+            event.title,
+            invitationPosterSubtitle,
+            invitationInviteUrl
+        )
+    }
+
+    private func copyInvitationMessage() {
+        #if canImport(UIKit)
+        UIPasteboard.general.string = invitationShareMessage
+        #endif
+
+        WakeveHaptics.success()
+
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showCopiedInvitationMessage = true
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showCopiedInvitationMessage = false
+            }
+        }
+    }
+
+    private func presentStartPollConfirmation() {
+        WakeveHaptics.selection()
+        showStartPollConfirmation = true
+    }
+
+    private var invitationDeliveryStateText: String {
+        if acceptedRows.isEmpty && pendingRows.isEmpty {
+            return String(localized: "invitation.delivery_state.not_sent")
+        }
+
+        if acceptedRows.isEmpty {
+            return String(
+                format: String(localized: "invitation.delivery_state.pending_only"),
+                pendingRows.count
+            )
+        }
+
+        return String(
+            format: String(localized: "invitation.delivery_state.with_acceptances"),
+            acceptedRows.count,
+            pendingRows.count
+        )
+    }
+
+    private var groupPresenceSubtitle: String {
+        if participantRows.isEmpty {
+            return String(localized: "participants.presence.subtitle.empty")
+        }
+
+        if acceptedRows.isEmpty {
+            return String(
+                format: String(localized: "participants.presence.subtitle.pending_only"),
+                pendingRows.count
+            )
+        }
+
+        return String(
+            format: String(localized: "participants.presence.subtitle.active"),
+            acceptedRows.count,
+            pendingRows.count,
+            declinedRows.count
+        )
+    }
+
+    private var groupPresenceNextAction: String {
+        if participantRows.isEmpty {
+            return String(localized: "participants.presence.next_action.share")
+        }
+
+        if !pendingRows.isEmpty {
+            return String(localized: "participants.presence.next_action.nudge")
+        }
+
+        if event.status == .draft {
+            return String(localized: "participants.presence.next_action.poll")
+        }
+
+        return String(localized: "participants.presence.next_action.ready")
+    }
+
+    private var groupPresenceProgress: Double {
+        guard !participantRows.isEmpty else { return 0 }
+        let resolvedCount = acceptedRows.count + declinedRows.count
+        return Double(resolvedCount) / Double(participantRows.count)
     }
 
     private var draftStatusText: String {
-        if participantRows.isEmpty {
-            return String(localized: "participants.draft_status.no_participants")
-        }
-
         if event.proposedSlots.isEmpty {
             return String(localized: "participants.draft_status.no_slots")
         }
 
+        if participantRows.isEmpty {
+            return String(localized: "participants.draft_status.link_ready")
+        }
+
         return String(localized: "participants.draft_status.ready")
+    }
+
+    private func timezoneDisplayName(_ identifier: String) -> String {
+        let timeZone = TimeZone(identifier: identifier) ?? .current
+        let name = timeZone.localizedName(for: .shortGeneric, locale: .autoupdatingCurrent) ?? timeZone.identifier
+        return "\(name) · \(timeZone.identifier)"
     }
 
     private var heroColors: [Color] {
@@ -625,7 +953,7 @@ struct ParticipantManagementView: View {
 
         // Basic email validation
         guard let participantEmail = normalizedEmail(newParticipantEmail) else {
-            errorMessage = "Saisissez une adresse email valide"
+            errorMessage = String(localized: "participants.error.invalid_email")
             showError = true
             return
         }
@@ -659,7 +987,7 @@ struct ParticipantManagementView: View {
                 onParticipantsUpdated()
             } else {
                 isLoading = false
-                errorMessage = "Impossible d’ajouter ce participant"
+                errorMessage = String(localized: "participants.error.add_failed")
                 showError = true
             }
         } catch {
@@ -760,7 +1088,10 @@ struct ParticipantManagementView: View {
         onParticipantsUpdated()
 
         if !failedEmails.isEmpty {
-            errorMessage = "Impossible d'ajouter \(failedEmails.count) participant(s)"
+            errorMessage = String(
+                format: String(localized: "participants.error.add_selected_failed_format"),
+                failedEmails.count
+            )
             showError = true
         }
     }
@@ -775,9 +1106,8 @@ struct ParticipantManagementView: View {
 
     private func startPoll() async {
         guard canStartPoll else {
-            errorMessage = event.proposedSlots.isEmpty
-                ? "Ajoutez au moins un créneau avant de lancer le sondage"
-                : "Ajoutez au moins un participant avant de lancer le sondage"
+            WakeveHaptics.warning()
+            errorMessage = String(localized: "participants.start_poll.requires_slot")
             showError = true
             return
         }
@@ -786,6 +1116,7 @@ struct ParticipantManagementView: View {
 
         guard let repository else {
             isLoading = false
+            WakeveHaptics.success()
             showSuccess = true
             onParticipantsUpdated()
             return
@@ -801,15 +1132,18 @@ struct ParticipantManagementView: View {
 
             if updatedEvent?.status == EventStatus.polling {
                 isLoading = false
+                WakeveHaptics.success()
                 showSuccess = true
                 onParticipantsUpdated()
             } else {
                 isLoading = false
-                errorMessage = "Impossible de lancer le sondage"
+                WakeveHaptics.warning()
+                errorMessage = String(localized: "participants.error.start_poll_failed")
                 showError = true
             }
         } catch {
             isLoading = false
+            WakeveHaptics.warning()
             errorMessage = error.localizedDescription
             showError = true
         }
@@ -1086,6 +1420,275 @@ private struct ParticipantSummaryPill: View {
         .padding(.vertical, WakeveTheme.Spacing.sm)
         .background(Color.black.opacity(0.24))
         .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+}
+
+private struct ParticipantPresenceCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let rows: [ParticipantPresentationRow]
+    let acceptedCount: Int
+    let pendingCount: Int
+    let declinedCount: Int
+    let subtitle: String
+    let nextAction: String
+    let progress: Double
+
+    var body: some View {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Label(String(localized: "participants.presence.title"), systemImage: "person.2.wave.2.fill")
+                            .font(WakeveTheme.Typography.section)
+                            .foregroundColor(primaryText)
+
+                        Text(subtitle)
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: WakeveTheme.Spacing.sm)
+
+                    ParticipantFacePile(rows: Array(rows.prefix(5)))
+                }
+
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+                    GeometryReader { proxy in
+                        ZStack(alignment: .leading) {
+                            Capsule()
+                                .fill(SemanticColor.separator(for: colorScheme))
+
+                            Capsule()
+                                .fill(SemanticColor.progress(for: colorScheme))
+                                .frame(width: max(8, proxy.size.width * progress))
+                        }
+                    }
+                    .frame(height: 8)
+                    .accessibilityHidden(true)
+
+                    HStack(spacing: WakeveTheme.Spacing.sm) {
+                        ParticipantPresenceMetric(
+                            title: String(localized: "participants.presence.metric.going"),
+                            value: "\(acceptedCount)",
+                            color: SemanticColor.confirmation(for: colorScheme)
+                        )
+                        ParticipantPresenceMetric(
+                            title: String(localized: "participants.presence.metric.waiting"),
+                            value: "\(pendingCount)",
+                            color: SemanticColor.warning(for: colorScheme)
+                        )
+                        ParticipantPresenceMetric(
+                            title: String(localized: "participants.presence.metric.unavailable"),
+                            value: "\(declinedCount)",
+                            color: SemanticColor.destructive(for: colorScheme)
+                        )
+                    }
+                }
+
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    Text(String(localized: "participants.presence.next_action.label"))
+                        .font(WakeveTheme.Typography.tiny)
+                        .foregroundColor(secondaryText)
+                        .textCase(.uppercase)
+
+                    Text(nextAction)
+                        .font(WakeveTheme.Typography.callout.weight(.semibold))
+                        .foregroundColor(primaryText)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.82)
+
+                    Spacer(minLength: WakeveTheme.Spacing.xs)
+                }
+                .padding(.horizontal, WakeveTheme.Spacing.sm)
+                .padding(.vertical, WakeveTheme.Spacing.xs)
+                .background(SemanticColor.badge(for: colorScheme))
+                .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+            }
+        }
+    }
+
+    private var primaryText: Color {
+        SemanticColor.primaryText(for: colorScheme)
+    }
+
+    private var secondaryText: Color {
+        SemanticColor.secondaryText(for: colorScheme)
+    }
+}
+
+private struct ParticipantPresenceMetric: View {
+    let title: String
+    let value: String
+    let color: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+            Text(value)
+                .font(WakeveTheme.Typography.rowTitle)
+                .foregroundColor(color)
+
+            Text(title)
+                .font(WakeveTheme.Typography.tiny)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.76)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(WakeveTheme.Spacing.sm)
+        .background(color.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+}
+
+private struct ParticipantTimezoneRow: Identifiable {
+    let id: String
+    let icon: String
+    let title: String
+    let value: String
+    let badge: String?
+
+    init(id: String, icon: String, title: String, value: String, badge: String? = nil) {
+        self.id = id
+        self.icon = icon
+        self.title = title
+        self.value = value
+        self.badge = badge
+    }
+}
+
+private struct ParticipantTimezoneCoordinationCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let subtitle: String
+    let rows: [ParticipantTimezoneRow]
+    let footnote: String
+
+    var body: some View {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
+                    Image(systemName: "globe.europe.africa.fill")
+                        .font(.title3.weight(.bold))
+                        .foregroundColor(SemanticColor.selectedState(for: colorScheme))
+                        .frame(width: 46, height: 46)
+                        .background(SemanticColor.badge(for: colorScheme))
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text(String(localized: "participants.timezone.title"))
+                            .font(WakeveTheme.Typography.section)
+                            .foregroundColor(primaryText)
+
+                        Text(subtitle)
+                            .font(WakeveTheme.Typography.callout)
+                            .foregroundColor(secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                VStack(spacing: WakeveTheme.Spacing.sm) {
+                    ForEach(rows) { row in
+                        ParticipantTimezoneCoordinationRow(row: row)
+                    }
+                }
+
+                Label(footnote, systemImage: "checkmark.shield.fill")
+                    .font(WakeveTheme.Typography.tiny)
+                    .foregroundColor(secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, WakeveTheme.Spacing.sm)
+                    .padding(.vertical, WakeveTheme.Spacing.xs)
+                    .background(SemanticColor.badge(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+            }
+        }
+    }
+
+    private var primaryText: Color {
+        SemanticColor.primaryText(for: colorScheme)
+    }
+
+    private var secondaryText: Color {
+        SemanticColor.secondaryText(for: colorScheme)
+    }
+}
+
+private struct ParticipantTimezoneCoordinationRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let row: ParticipantTimezoneRow
+
+    var body: some View {
+        HStack(spacing: WakeveTheme.Spacing.sm) {
+            Image(systemName: row.icon)
+                .font(.body.weight(.semibold))
+                .foregroundColor(SemanticColor.selectedState(for: colorScheme))
+                .frame(width: 32, height: 32)
+                .background(SemanticColor.badge(for: colorScheme))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                Text(row.title)
+                    .font(WakeveTheme.Typography.tiny)
+                    .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
+                    .textCase(.uppercase)
+
+                Text(row.value)
+                    .font(WakeveTheme.Typography.callout.weight(.semibold))
+                    .foregroundColor(SemanticColor.primaryText(for: colorScheme))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.78)
+            }
+
+            Spacer(minLength: WakeveTheme.Spacing.xs)
+
+            if let badge = row.badge {
+                Text(badge)
+                    .font(WakeveTheme.Typography.tiny.weight(.semibold))
+                    .foregroundColor(SemanticColor.selectedState(for: colorScheme))
+                    .padding(.horizontal, WakeveTheme.Spacing.sm)
+                    .padding(.vertical, WakeveTheme.Spacing.xxs)
+                    .background(SemanticColor.badge(for: colorScheme))
+                    .clipShape(Capsule())
+            }
+        }
+        .padding(WakeveTheme.Spacing.sm)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+}
+
+private struct ParticipantFacePile: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let rows: [ParticipantPresentationRow]
+
+    var body: some View {
+        HStack(spacing: -10) {
+            if rows.isEmpty {
+                Image(systemName: "person.crop.circle.badge.plus")
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 42, height: 42)
+                    .background(SemanticColor.selectedState(for: colorScheme))
+                    .clipShape(Circle())
+            } else {
+                ForEach(rows) { row in
+                    WakeveAvatar(initials: initials(for: row), size: 42)
+                        .overlay(Circle().stroke(Color.white.opacity(0.84), lineWidth: 2))
+                }
+            }
+        }
+        .frame(minWidth: 42, alignment: .trailing)
+        .accessibilityHidden(true)
+    }
+
+    private func initials(for row: ParticipantPresentationRow) -> String {
+        let localPart = row.email.components(separatedBy: "@").first ?? row.email
+        guard let first = localPart.first else { return "?" }
+        return String(first).uppercased()
     }
 }
 

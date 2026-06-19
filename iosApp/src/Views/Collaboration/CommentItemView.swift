@@ -67,18 +67,21 @@ struct CommentItemView: View {
                     if !comment.isDeleted {
                         Menu {
                             Button(action: { onReply(comment.id, comment.authorName) }) {
-                                Label("Reply", systemImage: "arrow.uturn.backward")
+                                Label(String(localized: "comment.action.reply"), systemImage: "arrow.uturn.backward")
                             }
 
                             if comment.canEdit(currentUserId) {
                                 Button(action: { onEdit(comment.id, comment.content) }) {
-                                    Label("Edit", systemImage: "pencil")
+                                    Label(String(localized: "comment.action.edit"), systemImage: "pencil")
                                 }
                             }
 
                             if comment.canPin(currentUserId, isOrganizer) {
                                 Button(action: { onPin(comment.id, !comment.isPinned) }) {
-                                    Label(comment.isPinned ? "Unpin" : "Pin", systemImage: "pin")
+                                    Label(
+                                        String(localized: comment.isPinned ? "comment.action.unpin" : "comment.action.pin"),
+                                        systemImage: "pin"
+                                    )
                                 }
                             }
 
@@ -105,8 +108,10 @@ struct CommentItemView: View {
 
                             if comment.canDelete(currentUserId, isOrganizer) {
                                 Button(role: .destructive, action: { onDelete(comment.id) }) {
-                                    Label(comment.authorId == currentUserId ? "Delete" : "Remove",
-                                          systemImage: "trash")
+                                    Label(
+                                        String(localized: comment.authorId == currentUserId ? "common.delete" : "common.remove"),
+                                        systemImage: "trash"
+                                    )
                                 }
                             }
                         } label: {
@@ -132,7 +137,7 @@ struct CommentItemView: View {
                 // Reply button (for parent comments only)
                 if isParent && !comment.isDeleted {
                     Button(action: { onReply(comment.id, comment.authorName) }) {
-                        Text("Reply")
+                        Text(String(localized: "comment.action.reply"))
                             .font(.body)
                             .foregroundColor(WakeveColors.primary)
                     }
@@ -187,7 +192,7 @@ struct AttributedComment: View {
 
     var body: some View {
         if isDeleted {
-            Text("[Deleted]")
+            Text(String(localized: "comment.deleted"))
                 .font(.body)
                 .foregroundColor(WakeveColors.onSurfaceVariant)
                 .italic()
@@ -250,19 +255,35 @@ func formatTimestamp(_ timestamp: String) -> String {
         let interval = now.timeIntervalSince(date)
 
         if interval < 60 {
-            return "Just now"
+            return String(localized: "comment.time.just_now")
         } else if interval < 3600 {
-            return "\(Int(interval / 60))m ago"
+            return String(
+                format: String(localized: "comment.time.minutes_ago_format"),
+                locale: Locale.autoupdatingCurrent,
+                arguments: [Int64(interval / 60)]
+            )
         } else if interval < 86400 {
-            return "\(Int(interval / 3600))h ago"
+            return String(
+                format: String(localized: "comment.time.hours_ago_format"),
+                locale: Locale.autoupdatingCurrent,
+                arguments: [Int64(interval / 3600)]
+            )
         } else if interval < 604800 {
-            return "\(Int(interval / 86400))d ago"
+            return String(
+                format: String(localized: "comment.time.days_ago_format"),
+                locale: Locale.autoupdatingCurrent,
+                arguments: [Int64(interval / 86400)]
+            )
         } else {
-            return "\(Int(interval / 604800))w ago"
+            return String(
+                format: String(localized: "comment.time.weeks_ago_format"),
+                locale: Locale.autoupdatingCurrent,
+                arguments: [Int64(interval / 604800)]
+            )
         }
     }
 
-    return "Unknown time"
+    return String(localized: "comment.time.unknown")
 }
 
 /// ISO 8601 date formatter

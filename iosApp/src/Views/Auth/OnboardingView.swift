@@ -5,6 +5,8 @@ struct OnboardingStep {
     let description: String
     let icon: String
     let features: [String]
+    let proofTitle: String
+    let proofDetail: String
 }
 
 struct OnboardingStepView: View {
@@ -55,6 +57,12 @@ struct OnboardingStepView: View {
                     .padding(.horizontal, WakeveTheme.Spacing.sm)
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
+
+                OnboardingProofCard(
+                    title: step.proofTitle,
+                    detail: step.proofDetail,
+                    icon: step.icon
+                )
                 
                 VStack(spacing: WakeveTheme.Spacing.sm) {
                     ForEach(visibleFeatures, id: \.self) { feature in
@@ -83,6 +91,43 @@ struct OnboardingStepView: View {
     }
 }
 
+private struct OnboardingProofCard: View {
+    let title: String
+    let detail: String
+    let icon: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
+                .frame(width: 32, height: 32)
+                .background(Color.white.opacity(0.08))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(WakeveTheme.Typography.metadata.weight(.semibold))
+                    .foregroundColor(.white)
+
+                Text(detail)
+                    .font(WakeveTheme.Typography.metadata)
+                    .foregroundColor(Color.white.opacity(0.74))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(WakeveTheme.Spacing.md)
+        .background(Color.white.opacity(0.06))
+        .overlay(
+            RoundedRectangle(cornerRadius: WakeveTheme.Radius.lg, style: .continuous)
+                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.lg, style: .continuous))
+        .accessibilityIdentifier("onboardingProofCard")
+    }
+}
+
 struct OnboardingView: View {
     @State private var currentPage = 0
     let onOnboardingComplete: () -> Void
@@ -96,7 +141,9 @@ struct OnboardingView: View {
                 String(localized: "onboarding.feature.quick_creation"),
                 String(localized: "onboarding.feature.availability_poll"),
                 String(localized: "onboarding.feature.auto_calculate")
-            ]
+            ],
+            proofTitle: String(localized: "onboarding.proof.create_title"),
+            proofDetail: String(localized: "onboarding.proof.create_detail")
         ),
         OnboardingStep(
             title: String(localized: "onboarding.collaborate_title"),
@@ -106,7 +153,9 @@ struct OnboardingView: View {
                 String(localized: "onboarding.feature.participant_management"),
                 String(localized: "onboarding.feature.task_assignment"),
                 String(localized: "onboarding.feature.realtime_tracking")
-            ]
+            ],
+            proofTitle: String(localized: "onboarding.proof.collaborate_title"),
+            proofDetail: String(localized: "onboarding.proof.collaborate_detail")
         ),
         OnboardingStep(
             title: String(localized: "onboarding.organize_title"),
@@ -116,7 +165,9 @@ struct OnboardingView: View {
                 String(localized: "onboarding.feature.accommodation_planning"),
                 String(localized: "onboarding.feature.meal_organization"),
                 String(localized: "onboarding.feature.budget_tracking")
-            ]
+            ],
+            proofTitle: String(localized: "onboarding.proof.organize_title"),
+            proofDetail: String(localized: "onboarding.proof.organize_detail")
         ),
         OnboardingStep(
             title: String(localized: "onboarding.enjoy_title"),
@@ -126,7 +177,9 @@ struct OnboardingView: View {
                 String(localized: "onboarding.feature.overview"),
                 String(localized: "onboarding.feature.built_in_reminders"),
                 String(localized: "onboarding.feature.native_calendar")
-            ]
+            ],
+            proofTitle: String(localized: "onboarding.proof.enjoy_title"),
+            proofDetail: String(localized: "onboarding.proof.enjoy_detail")
         )
     ]
     

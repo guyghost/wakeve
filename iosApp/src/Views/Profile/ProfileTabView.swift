@@ -15,9 +15,6 @@ struct ProfileTabView: View {
 
     @AppStorage("darkMode") private var darkMode = false
 
-    @State private var showLeaderboard = false
-    @State private var showDashboard = false
-
     init(
         userId: String,
         userName: String? = nil,
@@ -41,10 +38,8 @@ struct ProfileTabView: View {
                     VStack(spacing: WakeveTheme.Spacing.xl) {
                         ProfileHeaderSection(userName: userName, userEmail: userEmail)
 
-                        DashboardLinkSection(showDashboard: $showDashboard)
-                        GamificationSummarySection()
-                        ProfileTabBadgesSection()
-                        LeaderboardLinkSection(showLeaderboard: $showLeaderboard)
+                        OrganizerUtilitySection()
+                        ProfileReliabilitySection()
                         PreferencesSection(userId: userId)
                         AppearanceSection()
                         AboutSection()
@@ -67,18 +62,13 @@ struct ProfileTabView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showLeaderboard) {
-                LeaderboardView()
-            }
         }
     }
 }
 
-// MARK: - Dashboard Link Section
+// MARK: - Organizer Utility Section
 
-struct DashboardLinkSection: View {
-    @Binding var showDashboard: Bool
-
+struct OrganizerUtilitySection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(String(localized: "profile.organizer"))
@@ -86,35 +76,116 @@ struct DashboardLinkSection: View {
                 .foregroundColor(.primary)
 
             ProfileCard {
-                Button(action: {
-                    showDashboard = true
-                }) {
-                    HStack(spacing: 16) {
-                        Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.title2)
-                            .foregroundColor(.purple)
-                            .frame(width: 32, height: 32)
+                VStack(spacing: WakeveTheme.Spacing.sm) {
+                    OrganizerUtilityRow(
+                        icon: "chart.line.uptrend.xyaxis",
+                        title: String(localized: "profile.organizer.dashboard_title"),
+                        detail: String(localized: "profile.organizer.dashboard_detail")
+                    )
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(String(localized: "profile.dashboard"))
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
+                    Divider()
 
-                            Text(String(localized: "profile.dashboard_subtitle"))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.secondary)
-                    }
-                    .contentShape(Rectangle())
+                    OrganizerUtilityRow(
+                        icon: "person.2.fill",
+                        title: String(localized: "profile.organizer.guest_status_title"),
+                        detail: String(localized: "profile.organizer.guest_status_detail")
+                    )
                 }
-                .buttonStyle(.plain)
+            }
+        }
+        .accessibilityIdentifier("profileOrganizerUtilitySection")
+    }
+}
+
+private struct OrganizerUtilityRow: View {
+    let icon: String
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
+                .frame(width: 30, height: 30)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundColor(.primary)
+
+                Text(detail)
+                    .font(WakeveTheme.Typography.metadata)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+// MARK: - Profile Reliability Section
+
+struct ProfileReliabilitySection: View {
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(String(localized: "profile.reliability_title"))
+                .font(.headline)
+                .foregroundColor(.primary)
+
+            ProfileCard {
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                    Text(String(localized: "profile.reliability_subtitle"))
+                        .font(WakeveTheme.Typography.body)
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Divider()
+
+                    ProfileReliabilityRow(
+                        icon: "link",
+                        title: String(localized: "profile.reliability.invite_title"),
+                        detail: String(localized: "profile.reliability.invite_detail")
+                    )
+
+                    ProfileReliabilityRow(
+                        icon: "checklist.checked",
+                        title: String(localized: "profile.reliability.decisions_title"),
+                        detail: String(localized: "profile.reliability.decisions_detail")
+                    )
+
+                    ProfileReliabilityRow(
+                        icon: "lock.shield.fill",
+                        title: String(localized: "profile.reliability.privacy_title"),
+                        detail: String(localized: "profile.reliability.privacy_detail")
+                    )
+                }
+            }
+        }
+        .accessibilityIdentifier("profileReliabilitySection")
+    }
+}
+
+private struct ProfileReliabilityRow: View {
+    let icon: String
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
+                .frame(width: 30, height: 30)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundColor(.primary)
+
+                Text(detail)
+                    .font(WakeveTheme.Typography.metadata)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -153,7 +224,7 @@ struct ProfileHeaderSection: View {
 
     var body: some View {
         VStack(spacing: WakeveTheme.Spacing.md) {
-            WakeveAvatar(initials: initials, size: 112, badgeSystemImage: "sparkles")
+            WakeveAvatar(initials: initials, size: 112, badgeSystemImage: "checkmark.shield.fill")
                 .shadow(color: .black.opacity(0.18), radius: 20, x: 0, y: 10)
 
             VStack(spacing: WakeveTheme.Spacing.xs) {
@@ -172,13 +243,14 @@ struct ProfileHeaderSection: View {
                 }
             }
 
-            Text(String(localized: "profile.edit"))
+            Label(String(localized: "profile.identity_ready"), systemImage: "checkmark.seal.fill")
                 .font(WakeveTheme.Typography.bodySemibold)
                 .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                 .padding(.horizontal, WakeveTheme.Spacing.lg)
                 .frame(height: 44)
                 .background(SemanticColor.badge(for: colorScheme))
                 .clipShape(Capsule())
+                .accessibilityIdentifier("profileIdentityReadyPill")
         }
         .padding(.vertical, WakeveTheme.Spacing.lg)
     }
@@ -728,308 +800,6 @@ struct SignOutButton: View {
                 onSignOut()
             } else {
                 authStateManager.signOut()
-            }
-        }
-    }
-}
-
-// MARK: - Gamification Summary Section
-
-struct GamificationSummarySection: View {
-    // Mock data - in production, this comes from GamificationService
-    private let totalPoints = 1250
-    private let level = 7
-    private let levelName = "Champion"
-    private let levelProgress: Double = 0.25 // 1250 of 1200-1800 range => (1250-1200)/(1800-1200) = 50/600
-    private let pointsToNextLevel = 1800
-
-    private let eventCreationPoints = 500
-    private let votingPoints = 300
-    private let commentPoints = 250
-    private let participationPoints = 200
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "gamification.points_and_level"))
-                .font(.headline)
-                .foregroundColor(.primary)
-
-            ProfileCard {
-                VStack(spacing: 16) {
-                    // Total Points + Level
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(String(localized: "gamification.total_points"))
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Text("\(totalPoints)")
-                                .font(.system(size: 32, weight: .bold, design: .rounded))
-                                .foregroundColor(.blue)
-                        }
-
-                        Spacer()
-
-                        // Level badge
-                        VStack(spacing: 2) {
-                            ZStack {
-                                Circle()
-                                    .fill(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [.blue, .purple]),
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .frame(width: 56, height: 56)
-
-                                Image(systemName: "star.fill")
-                                    .font(.title2)
-                                    .foregroundColor(.white)
-                            }
-
-                            Text(String(format: String(localized: "gamification.level_short"), level))
-                                .font(.caption2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.blue)
-                        }
-                    }
-
-                    // Level name + progress bar
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text(levelName)
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
-
-                            Spacer()
-
-                            Text("\(totalPoints) / \(pointsToNextLevel) pts")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-
-                        // Progress bar
-                        GeometryReader { geometry in
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(Color.gray.opacity(0.2))
-                                    .frame(height: 8)
-
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(
-                                        LinearGradient(
-                                            gradient: Gradient(colors: [.blue, .purple]),
-                                            startPoint: .leading,
-                                            endPoint: .trailing
-                                        )
-                                    )
-                                    .frame(width: geometry.size.width * levelProgress, height: 8)
-                                    .animation(.easeInOut(duration: 0.8), value: levelProgress)
-                            }
-                        }
-                        .frame(height: 8)
-                    }
-
-                    Divider()
-
-                    // Points breakdown
-                    PointsBreakdownRow(label: String(localized: "gamification.event_creation"), points: eventCreationPoints, color: .red.opacity(0.8))
-                    PointsBreakdownRow(label: String(localized: "gamification.voting"), points: votingPoints, color: .teal)
-                    PointsBreakdownRow(label: String(localized: "gamification.commenting"), points: commentPoints, color: .yellow.opacity(0.8))
-                    PointsBreakdownRow(label: String(localized: "gamification.participation"), points: participationPoints, color: .green.opacity(0.7))
-                }
-            }
-        }
-    }
-}
-
-struct PointsBreakdownRow: View {
-    let label: String
-    let points: Int
-    let color: Color
-
-    var body: some View {
-        HStack {
-            Circle()
-                .fill(color)
-                .frame(width: 10, height: 10)
-
-            Text(label)
-                .font(.subheadline)
-                .foregroundColor(.primary)
-
-            Spacer()
-
-            Text("\(points)")
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundColor(color)
-        }
-    }
-}
-
-// MARK: - Badges Section
-
-fileprivate struct ProfileTabBadgesSection: View {
-    // Mock data - in production, this comes from GamificationService
-    private var earnedBadges: [(id: String, name: String, icon: String, rarity: String)] {
-        [
-            ("badge-first-event", String(localized: "gamification.badge.first_event"), "\u{1F389}", "common"),
-            ("badge-super-organizer", String(localized: "gamification.badge.super_organizer"), "\u{1F3C6}", "epic"),
-            ("badge-early-bird", String(localized: "gamification.badge.early_bird"), "\u{1F426}", "rare"),
-            ("badge-voting-master", String(localized: "gamification.badge.voting_master"), "\u{1F5F3}\u{FE0F}", "rare"),
-            ("badge-active-participant", String(localized: "gamification.badge.active_participant"), "\u{1F64B}", "common"),
-            ("badge-event-master", String(localized: "gamification.badge.event_master"), "\u{1F3AD}", "legendary"),
-            ("badge-commentator", String(localized: "gamification.badge.commentator"), "\u{1F4AC}", "rare"),
-            ("badge-dedicated", String(localized: "gamification.badge.dedicated"), "\u{2B50}", "rare")
-        ]
-    }
-
-    private var lockedBadges: [(id: String, name: String, rarity: String)] {
-        [
-            ("badge-social-butterfly", String(localized: "gamification.badge.social_butterfly"), "epic"),
-            ("badge-party-animal", String(localized: "gamification.badge.party_animal"), "legendary"),
-            ("badge-century-club", String(localized: "gamification.badge.century_club"), "common"),
-            ("badge-millenium-club", String(localized: "gamification.badge.millennium_club"), "epic")
-        ]
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Image(systemName: "trophy.fill")
-                    .foregroundColor(.orange)
-                Text("Badges")
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                Spacer()
-                Text("\(earnedBadges.count) / \(earnedBadges.count + lockedBadges.count)")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-
-            // Earned badges
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(earnedBadges, id: \.id) { badge in
-                        ProfileTabBadgeItemView(
-                            name: badge.name,
-                            icon: badge.icon,
-                            rarity: badge.rarity,
-                            isEarned: true
-                        )
-                    }
-
-                    // Locked badges
-                    ForEach(lockedBadges, id: \.id) { badge in
-                        ProfileTabBadgeItemView(
-                            name: badge.name,
-                            icon: "\u{1F512}",
-                            rarity: badge.rarity,
-                            isEarned: false
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-fileprivate struct ProfileTabBadgeItemView: View {
-    let name: String
-    let icon: String
-    let rarity: String
-    let isEarned: Bool
-
-    @State private var appeared = false
-
-    private var rarityColor: Color {
-        switch rarity {
-        case "common": return .gray
-        case "rare": return .blue
-        case "epic": return .purple
-        case "legendary": return .orange
-        default: return .gray
-        }
-    }
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Text(icon)
-                .font(.system(size: 32))
-                .frame(width: 48, height: 48)
-
-            Text(name)
-                .font(.caption2)
-                .fontWeight(.medium)
-                .foregroundColor(isEarned ? .primary : .secondary)
-                .multilineTextAlignment(.center)
-                .lineLimit(2)
-
-            Text(isEarned ? rarity.capitalized : String(localized: "gamification.locked"))
-                .font(.caption2)
-                .foregroundColor(isEarned ? rarityColor : .gray)
-                .fontWeight(.medium)
-        }
-        .frame(width: 90, height: 110)
-        .padding(8)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(isEarned ? rarityColor.opacity(0.1) : Color.gray.opacity(0.05))
-        )
-        .opacity(isEarned ? 1.0 : 0.5)
-        .scaleEffect(appeared && isEarned ? 1.0 : 0.9)
-        .animation(.spring(response: 0.4, dampingFraction: 0.7), value: appeared)
-        .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                appeared = true
-            }
-        }
-    }
-}
-
-// MARK: - Leaderboard Link Section
-
-struct LeaderboardLinkSection: View {
-    @Binding var showLeaderboard: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(String(localized: "gamification.leaderboard"))
-                .font(.headline)
-                .foregroundColor(.primary)
-
-            ProfileCard {
-                Button(action: {
-                    showLeaderboard = true
-                }) {
-                    HStack(spacing: 16) {
-                        Image(systemName: "chart.bar.fill")
-                            .font(.title2)
-                            .foregroundColor(.blue)
-                            .frame(width: 32, height: 32)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(String(localized: "gamification.view_leaderboard"))
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
-
-                            Text(String(localized: "gamification.leaderboard_subtitle"))
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.secondary)
-                    }
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
             }
         }
     }

@@ -1,13 +1,18 @@
 import SwiftUI
 import Shared
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Detail view for inbox notifications.
 /// Displays notification header, type-specific content, event status stepper, and conversations.
 struct InboxDetailView: View {
     let item: InboxItemModel
+    var conversationItems: [InboxItemModel] = []
 
     @Environment(\.dismiss) private var dismiss
     @State private var moderationTarget: ModerationActionTarget?
+    @State private var showCopiedHandoffMessage = false
 
     var body: some View {
         ScrollView {
@@ -21,7 +26,13 @@ struct InboxDetailView: View {
                 // C. Event Status Stepper
                 eventStatusStepper
 
-                // D. Conversations
+                // D. Decision snapshot
+                decisionSnapshotCard
+
+                // E. External group handoff
+                groupHandoffCard
+
+                // F. Timeline
                 conversationsSection
 
                 Spacer().frame(height: 40)
@@ -44,13 +55,131 @@ struct InboxDetailView: View {
                     HStack(spacing: 4) {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .semibold))
-                        Text("Back")
+                        Text(String(localized: "common.back"))
                             .font(.system(size: 17))
                     }
                     .foregroundColor(.wakevePrimary)
                 }
             }
         }
+    }
+
+    private var timelineItems: [InboxItemModel] {
+        conversationItems.isEmpty ? [item] : conversationItems
+    }
+
+    private var eventDisplayName: String {
+        item.eventName ?? item.title
+    }
+
+    private var groupHandoffMessage: String {
+        let invitationCode = item.eventId.map { InvitationTokenCodec.invitationCode(forEventId: $0) }
+        let codeLine = invitationCode.map { String(format: String(localized: "inbox.handoff.code_line_format"), $0) } ?? ""
+
+        switch item.type {
+        case .invitation:
+            return handoffMessage("inbox.handoff.message.invitation_format", codeLine: codeLine)
+        case .pollUpdate:
+            return handoffMessage("inbox.handoff.message.poll_format", codeLine: codeLine)
+        case .comment:
+            return handoffMessage("inbox.handoff.message.comment_format", codeLine: codeLine)
+        case .eventUpdate:
+            return handoffMessage("inbox.handoff.message.event_update_format", codeLine: codeLine)
+        }
+    }
+
+    private func handoffMessage(_ key: String.LocalizationValue, codeLine: String) -> String {
+        String(format: String(localized: key), eventDisplayName, item.message, codeLine)
+    }
+
+    private var actionableItems: [InboxItemModel] {
+        timelineItems.filter { !$0.isRead || $0.requiresAction }
+    }
+
+    private var pollSignalItems: [InboxItemModel] {
+        let pollItems = timelineItems.filter { $0.type == .pollUpdate }
+        if pollItems.isEmpty, item.type == .pollUpdate {
+            return [item]
+        }
+        return pollItems
+    }
+
+    private var inferredCurrentStepKey: EventStepKey {
+        let source = timelineItems.first ?? item
+        let searchableText = "\(source.title) \(source.message)".localizedLowercase
+
+        if searchableText.contains("final") || searchableText.contains("ready") {
+            return .finalized
+        }
+        if searchableText.contains("organizing") || searchableText.contains("meeting") || searchableText.contains("transport") || searchableText.contains("budget") {
+            return .organizing
+        }
+        if searchableText.contains("confirm") || searchableText.contains("date selected") {
+            return .confirmed
+        }
+        if searchableText.contains("scenario") || searchableText.contains("compare") || searchableText.contains("option") {
+            return .comparing
+        }
+        if searchableText.contains("poll") || searchableText.contains("vote") {
+            return .polling
+        }
+
+        switch source.type {
+        case .invitation:
+            return .draft
+        case .pollUpdate:
+            return .polling
+        case .comment:
+            return .confirmed
+        case .eventUpdate:
+            return .organizing
+        }
+    }
+
+    private var eventSteps: [EventStep] {
+        buildEventSteps(current: inferredCurrentStepKey)
+    }
+
+    private var decisionSnapshotRows: [InboxDecisionSnapshotRow] {
+        [
+            InboxDecisionSnapshotRow(
+                id: "latest",
+                icon: "sparkle.magnifyingglass",
+                title: String(localized: "inbox.decision.latest_signal"),
+                value: timelineItems.first?.title ?? item.title
+            ),
+            InboxDecisionSnapshotRow(
+                id: "open",
+                icon: "checklist",
+                title: String(localized: "inbox.decision.open_items"),
+                value: String(
+                    format: String(localized: "inbox.decision.open_items_format"),
+                    actionableItems.count
+                )
+            ),
+            InboxDecisionSnapshotRow(
+                id: "next",
+                icon: "arrow.turn.down.right",
+                title: String(localized: "inbox.decision.next_action"),
+                value: decisionNextAction
+            )
+        ]
+    }
+
+    private var decisionNextAction: String {
+        if actionableItems.contains(where: { $0.type == .invitation }) {
+            return String(localized: "inbox.decision.next.invitation")
+        }
+
+        if actionableItems.contains(where: { $0.type == .pollUpdate }) {
+            return String(localized: "inbox.decision.next.poll")
+        }
+
+        if timelineItems.contains(where: { $0.type == .comment }) {
+            return String(localized: "inbox.decision.next.comment")
+        }
+
+        return String(localized: "inbox.decision.next.updated")
     }
 
     // MARK: - A. Notification Header
@@ -115,28 +244,18 @@ struct InboxDetailView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.wakevePrimary)
 
-                Text("Poll Trends")
+                Text(String(localized: "inbox.detail.poll_trends"))
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
             }
 
-            ForEach(samplePollSlots, id: \.label) { slot in
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(slot.label)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundColor(.primary)
-
-                    // Vote bars
-                    HStack(spacing: 8) {
-                        VoteBar(label: "Yes", count: slot.yes, total: slot.total, color: .green)
-                        VoteBar(label: "Maybe", count: slot.maybe, total: slot.total, color: .orange)
-                        VoteBar(label: "No", count: slot.no, total: slot.total, color: .red)
-                    }
-                }
+            ForEach(Array(pollSignalItems.prefix(4))) { signal in
+                InboxPollSignalRow(item: signal)
             }
         }
         .padding(16)
         .glassCard()
+        .accessibilityIdentifier("inboxPollSignalSection")
     }
 
     // MARK: Invitation Card
@@ -148,7 +267,7 @@ struct InboxDetailView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.wakevePrimary)
 
-                Text("You're Invited")
+                Text(String(localized: "inbox.detail.invited_title"))
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
 
@@ -159,7 +278,7 @@ struct InboxDetailView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "calendar")
                         .foregroundColor(.secondary)
-                    Text(item.eventName ?? "Event")
+                    Text(item.eventName ?? String(localized: "inbox.detail.event_fallback"))
                         .font(.system(size: 15))
                         .foregroundColor(.primary)
                 }
@@ -167,7 +286,7 @@ struct InboxDetailView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "person.2.fill")
                         .foregroundColor(.secondary)
-                    Text("6 participants invited")
+                    Text(String(format: String(localized: "inbox.detail.participants_invited_format"), 6))
                         .font(.system(size: 15))
                         .foregroundColor(.secondary)
                 }
@@ -175,9 +294,9 @@ struct InboxDetailView: View {
 
             // RSVP Buttons
             HStack(spacing: 12) {
-                RSVPActionButton(title: "Accept", color: .wakeveSuccess, icon: "checkmark") {}
-                RSVPActionButton(title: "Maybe", color: .wakeveWarning, icon: "questionmark") {}
-                RSVPActionButton(title: "Decline", color: .wakeveError, icon: "xmark") {}
+                RSVPActionButton(title: String(localized: "events.rsvp.going"), color: .wakeveSuccess, icon: "checkmark") {}
+                RSVPActionButton(title: String(localized: "events.rsvp.maybe"), color: .wakeveWarning, icon: "questionmark") {}
+                RSVPActionButton(title: String(localized: "events.rsvp.not_going"), color: .wakeveError, icon: "xmark") {}
             }
         }
         .padding(16)
@@ -193,7 +312,7 @@ struct InboxDetailView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.wakeveSuccess)
 
-                Text("New Comment")
+                Text(String(localized: "inbox.detail.new_comment"))
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
             }
@@ -201,17 +320,17 @@ struct InboxDetailView: View {
             // Comment bubble
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 8) {
-                    Text("AM")
+                    Text("GR")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundColor(.white)
                         .frame(width: 32, height: 32)
                         .background(Circle().fill(Color.wakevePrimary))
 
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Alice Martin")
+                        Text(String(localized: "inbox.author.group"))
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(.primary)
-                        Text("2h ago")
+                        Text(item.timeAgo)
                             .font(.system(size: 12))
                             .foregroundColor(.secondary)
                     }
@@ -247,15 +366,15 @@ struct InboxDetailView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.wakeveWarning)
 
-                Text("Event Update")
+                Text(String(localized: "inbox.detail.event_update"))
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                UpdateRow(icon: "arrow.triangle.2.circlepath", text: "Status changed to Polling")
-                UpdateRow(icon: "person.badge.plus", text: "2 new participants joined")
-                UpdateRow(icon: "calendar.badge.exclamationmark", text: "Deadline extended to next Friday")
+                UpdateRow(icon: "arrow.triangle.2.circlepath", text: String(localized: "inbox.detail.update.status_polling"))
+                UpdateRow(icon: "person.badge.plus", text: String(localized: "inbox.detail.update.new_participants"))
+                UpdateRow(icon: "calendar.badge.exclamationmark", text: String(localized: "inbox.detail.update.deadline_extended"))
             }
         }
         .padding(16)
@@ -271,7 +390,7 @@ struct InboxDetailView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.wakevePrimary)
 
-                Text("Event Progress")
+                Text(String(localized: "inbox.detail.event_progress"))
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
             }
@@ -314,7 +433,7 @@ struct InboxDetailView: View {
                                 .foregroundColor(step.state == .upcoming ? .secondary : .primary)
 
                             if step.state == .current {
-                                Text("Current step")
+                                Text(String(localized: "inbox.current_step"))
                                     .font(.system(size: 12))
                                     .foregroundColor(.wakevePrimary)
                             }
@@ -330,7 +449,145 @@ struct InboxDetailView: View {
         .glassCard()
     }
 
-    // MARK: - D. Conversations
+    // MARK: - D. Decision Snapshot
+
+    private var decisionSnapshotCard: some View {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.wakevePrimary)
+                        .frame(width: 36, height: 36)
+                        .background(Color.wakevePrimary.opacity(0.12))
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(String(localized: "inbox.decision.title"))
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.primary)
+
+                        Text(String(localized: "inbox.decision.subtitle"))
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                VStack(spacing: 10) {
+                    ForEach(decisionSnapshotRows) { row in
+                        InboxDecisionSnapshotRowView(row: row)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    ForEach(Array(timelineItems.prefix(3))) { signal in
+                        Label(signal.type.shortLabel, systemImage: signal.icon)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(signal.iconColor)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.74)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(signal.iconColor.opacity(0.12))
+                            .clipShape(Capsule())
+                    }
+                }
+                .accessibilityIdentifier("inboxDecisionSnapshotSignals")
+            }
+        }
+        .accessibilityIdentifier("inboxDecisionSnapshotCard")
+    }
+
+    // MARK: - E. External Group Handoff
+
+    private var groupHandoffCard: some View {
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(.wakevePrimary)
+                        .frame(width: 36, height: 36)
+                        .background(Color.wakevePrimary.opacity(0.12))
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(String(localized: "inbox.handoff.title"))
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.primary)
+
+                        Text(String(localized: "inbox.handoff.subtitle"))
+                            .font(.system(size: 14))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Text(groupHandoffMessage)
+                    .font(.system(size: 14))
+                    .foregroundColor(.primary)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.secondarySystemGroupedBackground))
+                    .continuousCornerRadius(12)
+                    .accessibilityIdentifier("groupHandoffMessagePreview")
+
+                HStack(spacing: 10) {
+                    ShareLink(item: groupHandoffMessage) {
+                        Label(String(localized: "inbox.handoff.share_action"), systemImage: "square.and.arrow.up")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.76)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.wakevePrimary)
+                            .continuousCornerRadius(14)
+                    }
+                    .simultaneousGesture(TapGesture().onEnded {
+                        WakeveHaptics.selection()
+                    })
+                    .accessibilityIdentifier("groupHandoffShareLink")
+
+                    Button {
+                        copyGroupHandoffMessage()
+                    } label: {
+                        Label(String(localized: "inbox.handoff.copy_action"), systemImage: "doc.on.doc.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.wakevePrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.76)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.wakevePrimary.opacity(0.12))
+                            .continuousCornerRadius(14)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("groupHandoffCopyButton")
+                }
+
+                if showCopiedHandoffMessage {
+                    Label(String(localized: "inbox.handoff.copied"), systemImage: "checkmark.circle.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.wakeveSuccess)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                }
+            }
+        }
+    }
+
+    private func copyGroupHandoffMessage() {
+        #if canImport(UIKit)
+        UIPasteboard.general.string = groupHandoffMessage
+        #endif
+        WakeveHaptics.success()
+        withAnimation(.easeInOut(duration: 0.18)) {
+            showCopiedHandoffMessage = true
+        }
+    }
+
+    // MARK: - F. Timeline
 
     private var conversationsSection: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -339,13 +596,13 @@ struct InboxDetailView: View {
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundColor(.wakevePrimary)
 
-                Text("Conversations")
+                Text(String(localized: "inbox.detail.conversations"))
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.primary)
 
                 Spacer()
 
-                Text("\(sampleComments.count)")
+                Text("\(timelineItems.count)")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 8)
@@ -354,9 +611,9 @@ struct InboxDetailView: View {
                     .continuousCornerRadius(10)
             }
 
-            ForEach(sampleComments) { comment in
-                InboxCommentRow(
-                    comment: comment,
+            ForEach(Array(timelineItems.reversed())) { conversationItem in
+                InboxTimelineMessageRow(
+                    item: conversationItem,
                     onModerationTarget: { moderationTarget = $0 }
                 )
             }
@@ -416,6 +673,61 @@ struct InboxDetailView: View {
 }
 
 // MARK: - Vote Bar
+
+private struct InboxDecisionSnapshotRow: Identifiable {
+    let id: String
+    let icon: String
+    let title: String
+    let value: String
+}
+
+private struct InboxDecisionSnapshotRowView: View {
+    let row: InboxDecisionSnapshotRow
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: row.icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.wakevePrimary)
+                .frame(width: 30, height: 30)
+                .background(Color.wakevePrimary.opacity(0.12))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(row.title)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .textCase(.uppercase)
+
+                Text(row.value)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.78)
+            }
+
+            Spacer(minLength: 4)
+        }
+        .padding(10)
+        .background(Color(.secondarySystemGroupedBackground))
+        .continuousCornerRadius(12)
+    }
+}
+
+private extension InboxItemType {
+    var shortLabel: String {
+        switch self {
+        case .invitation:
+            return String(localized: "inbox.decision.signal.invite")
+        case .pollUpdate:
+            return String(localized: "inbox.decision.signal.poll")
+        case .comment:
+            return String(localized: "inbox.decision.signal.comment")
+        case .eventUpdate:
+            return String(localized: "inbox.decision.signal.update")
+        }
+    }
+}
 
 private struct VoteBar: View {
     let label: String
@@ -499,30 +811,29 @@ private struct UpdateRow: View {
     }
 }
 
-// MARK: - Inbox Comment Row (simplified, without importing CommentItemView)
+// MARK: - Inbox Timeline Message Row
 
-private struct InboxCommentRow: View {
-    let comment: SampleComment
+private struct InboxTimelineMessageRow: View {
+    let item: InboxItemModel
     let onModerationTarget: (ModerationActionTarget) -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            // Avatar
-            Text(comment.initials)
+            Text(authorInitials)
                 .font(.system(size: 12, weight: .bold))
                 .foregroundColor(.white)
                 .frame(width: 32, height: 32)
-                .background(Circle().fill(comment.avatarColor))
+                .background(Circle().fill(item.iconColor))
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    Text(comment.authorName)
+                    Text(authorName)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.primary)
 
                     Spacer()
 
-                    Text(comment.timeAgo)
+                    Text(item.timeAgo)
                         .font(.system(size: 12))
                         .foregroundColor(.secondary)
 
@@ -531,9 +842,9 @@ private struct InboxCommentRow: View {
                             onModerationTarget(
                                 ModerationActionTarget(
                                     type: .chatMessage,
-                                    targetId: comment.id,
-                                    eventId: comment.eventId,
-                                    authorId: comment.authorId,
+                                    targetId: item.id,
+                                    eventId: item.eventId,
+                                    authorId: "wakeve-system",
                                     displayName: String(localized: "moderation.report_chat_context"),
                                     allowsBlock: true
                                 )
@@ -547,10 +858,10 @@ private struct InboxCommentRow: View {
                             onModerationTarget(
                                 ModerationActionTarget(
                                     type: .user,
-                                    targetId: comment.authorId,
-                                    eventId: comment.eventId,
-                                    authorId: comment.authorId,
-                                    displayName: comment.authorName,
+                                    targetId: "wakeve-system",
+                                    eventId: item.eventId,
+                                    authorId: "wakeve-system",
+                                    displayName: authorName,
                                     allowsBlock: true
                                 )
                             )
@@ -564,13 +875,44 @@ private struct InboxCommentRow: View {
                     }
                 }
 
-                Text(comment.content)
-                    .font(.system(size: 14))
+                Text(item.title)
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(item.message)
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private var authorName: String {
+        switch item.type {
+        case .comment:
+            return String(localized: "inbox.author.group")
+        case .invitation:
+            return String(localized: "inbox.author.invitation")
+        case .pollUpdate:
+            return String(localized: "inbox.author.poll")
+        case .eventUpdate:
+            return String(localized: "inbox.author.event_update")
+        }
+    }
+
+    private var authorInitials: String {
+        switch item.type {
+        case .comment:
+            return "GR"
+        case .invitation:
+            return "IN"
+        case .pollUpdate:
+            return "SO"
+        case .eventUpdate:
+            return "EV"
+        }
     }
 }
 
@@ -585,96 +927,81 @@ private struct EventStep {
     let state: StepState
 }
 
-/// Compute event steps based on a mock status (polling for sample).
-/// Uses EventStatus enum values: draft, polling, comparing, confirmed, organizing, finalized
-private let eventSteps: [EventStep] = {
-    // Mock current status — change to test different states
-    let currentStatus: String = "polling"
+private enum EventStepKey: CaseIterable {
+    case draft, polling, comparing, confirmed, organizing, finalized
 
-    let allSteps = [
-        ("Draft", "draft"),
-        ("Polling", "polling"),
-        ("Comparing", "comparing"),
-        ("Confirmed", "confirmed"),
-        ("Organizing", "organizing"),
-        ("Finalized", "finalized")
-    ]
-
-    var passedCurrent = false
-    return allSteps.map { (title, key) in
-        if passedCurrent {
-            return EventStep(title: title, state: .upcoming)
-        } else if key == currentStatus {
-            passedCurrent = true
-            return EventStep(title: title, state: .current)
-        } else {
-            return EventStep(title: title, state: .completed)
+    var title: String {
+        switch self {
+        case .draft:
+            return String(localized: "inbox.step.draft")
+        case .polling:
+            return String(localized: "inbox.step.polling")
+        case .comparing:
+            return String(localized: "inbox.step.comparing")
+        case .confirmed:
+            return String(localized: "inbox.step.confirmed")
+        case .organizing:
+            return String(localized: "inbox.step.organizing")
+        case .finalized:
+            return String(localized: "inbox.step.finalized")
         }
     }
-}()
-
-// MARK: - Sample Poll Data
-
-private struct SamplePollSlot {
-    let label: String
-    let yes: Int
-    let maybe: Int
-    let no: Int
-    var total: Int { yes + maybe + no }
 }
 
-private let samplePollSlots: [SamplePollSlot] = [
-    SamplePollSlot(label: "Sat, Mar 8 - Morning", yes: 4, maybe: 1, no: 1),
-    SamplePollSlot(label: "Sat, Mar 8 - Afternoon", yes: 3, maybe: 2, no: 1),
-    SamplePollSlot(label: "Sun, Mar 9 - Morning", yes: 2, maybe: 3, no: 1),
-    SamplePollSlot(label: "Sun, Mar 9 - Afternoon", yes: 1, maybe: 1, no: 4)
-]
-
-// MARK: - Sample Comments Data
-
-struct SampleComment: Identifiable {
-    let id: String
-    let eventId: String
-    let authorId: String
-    let authorName: String
-    let initials: String
-    let content: String
-    let timeAgo: String
-    let avatarColor: Color
+private func buildEventSteps(current currentKey: EventStepKey) -> [EventStep] {
+    var passedCurrent = false
+    return EventStepKey.allCases.map { key in
+        if passedCurrent {
+            return EventStep(title: key.title, state: .upcoming)
+        } else if key == currentKey {
+            passedCurrent = true
+            return EventStep(title: key.title, state: .current)
+        } else {
+            return EventStep(title: key.title, state: .completed)
+        }
+    }
 }
 
-private let sampleComments: [SampleComment] = [
-    SampleComment(
-        id: "c1",
-        eventId: "evt-preview",
-        authorId: "alice-martin",
-        authorName: "Alice Martin",
-        initials: "AM",
-        content: "I'd prefer the Saturday morning slot. Anyone else?",
-        timeAgo: "2h",
-        avatarColor: .wakevePrimary
-    ),
-    SampleComment(
-        id: "c2",
-        eventId: "evt-preview",
-        authorId: "bob-chen",
-        authorName: "Bob Chen",
-        initials: "BC",
-        content: "Saturday works for me too! Let's finalize the location.",
-        timeAgo: "1h",
-        avatarColor: .wakeveAccent
-    ),
-    SampleComment(
-        id: "c3",
-        eventId: "evt-preview",
-        authorId: "clara-dupont",
-        authorName: "Clara Dupont",
-        initials: "CD",
-        content: "Can we also discuss transport arrangements?",
-        timeAgo: "45m",
-        avatarColor: .wakeveSuccess
-    )
-]
+// MARK: - Poll Signal Row
+
+private struct InboxPollSignalRow: View {
+    let item: InboxItemModel
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: item.icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(item.iconColor)
+                .frame(width: 30, height: 30)
+                .background(item.iconColor.opacity(0.12))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(item.title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.primary)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.82)
+
+                    Spacer(minLength: 8)
+
+                    Text(item.timeAgo)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+
+                Text(item.message)
+                    .font(.system(size: 14))
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(12)
+        .background(Color(.secondarySystemGroupedBackground))
+        .continuousCornerRadius(12)
+    }
+}
 
 // MARK: - Preview
 

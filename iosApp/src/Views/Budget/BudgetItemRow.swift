@@ -44,13 +44,13 @@ struct BudgetItemRow: View {
                         Text(String(format: "%.2f €", item.actualCost))
                             .font(.subheadline.bold())
                             .foregroundStyle(.green)
-                        Text("payé")
+                        Text(String(localized: "budget.item.paid"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     } else {
                         Text(String(format: "%.2f €", item.estimatedCost))
                             .font(.subheadline.bold())
-                        Text("estimé")
+                        Text(String(localized: "budget.item.estimated"))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                     }
@@ -63,7 +63,11 @@ struct BudgetItemRow: View {
                     Image(systemName: "person.2")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                    Text("\(item.sharedBy.count) personnes · \(String(format: "%.2f €", item.costPerPerson))/pers.")
+                    Text(String(
+                        format: String(localized: "budget.item.shared_cost_format"),
+                        Int64(item.sharedBy.count),
+                        String(format: "%.2f €", item.costPerPerson)
+                    ))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -88,43 +92,50 @@ struct BudgetItemRow: View {
 
 private struct BudgetItemRowPreviewContent: View {
     var body: some View {
-    List {
-        BudgetItemRow(
-            item: BudgetItemModel(
-                id: "1",
-                budgetId: "b1",
-                categoryName: "TRANSPORT",
-                name: "Train Paris-Lyon",
-                description: "TGV aller-retour",
-                estimatedCost: 89.0,
-                actualCost: 0,
-                isPaid: false,
-                paidBy: nil,
-                sharedBy: ["u1", "u2", "u3"],
-                notes: "",
-                createdAt: "",
-                updatedAt: ""
-            ),
-            onMarkAsPaid: {}
-        )
-        BudgetItemRow(
-            item: BudgetItemModel(
-                id: "2",
-                budgetId: "b1",
-                categoryName: "ACCOMMODATION",
-                name: "Airbnb Lyon",
-                description: "3 nuits",
-                estimatedCost: 450.0,
-                actualCost: 420.0,
-                isPaid: true,
-                paidBy: "u1",
-                sharedBy: ["u1", "u2"],
-                notes: "",
-                createdAt: "",
-                updatedAt: ""
-            ),
-            onMarkAsPaid: {}
-        )
-    }
+        VStack(spacing: WakeveTheme.Spacing.md) {
+            WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+                BudgetItemRow(
+                    item: BudgetItemModel(
+                        id: "1",
+                        budgetId: "b1",
+                        categoryName: "TRANSPORT",
+                        name: "Train Paris-Lyon",
+                        description: "TGV aller-retour",
+                        estimatedCost: 89.0,
+                        actualCost: 0,
+                        isPaid: false,
+                        paidBy: nil,
+                        sharedBy: ["u1", "u2", "u3"],
+                        notes: "",
+                        createdAt: "",
+                        updatedAt: ""
+                    ),
+                    onMarkAsPaid: {}
+                )
+            }
+
+            WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+                BudgetItemRow(
+                    item: BudgetItemModel(
+                        id: "2",
+                        budgetId: "b1",
+                        categoryName: "ACCOMMODATION",
+                        name: "Airbnb Lyon",
+                        description: "3 nuits",
+                        estimatedCost: 450.0,
+                        actualCost: 420.0,
+                        isPaid: true,
+                        paidBy: "u1",
+                        sharedBy: ["u1", "u2"],
+                        notes: "",
+                        createdAt: "",
+                        updatedAt: ""
+                    ),
+                    onMarkAsPaid: {}
+                )
+            }
+        }
+        .padding(WakeveTheme.Spacing.page)
+        .background(WakeveScreenBackground(style: .grouped))
     }
 }

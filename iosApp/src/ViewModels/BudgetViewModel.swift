@@ -83,12 +83,12 @@ enum BudgetCategoryUI: String, CaseIterable, Identifiable {
 
     var displayName: String {
         switch self {
-        case .transport:     return "Transport"
-        case .accommodation: return "Hébergement"
-        case .meals:         return "Repas"
-        case .activities:    return "Activités"
-        case .equipment:     return "Équipement"
-        case .other:         return "Autre"
+        case .transport:     return String(localized: "budget.category.transport")
+        case .accommodation: return String(localized: "budget.category.accommodation")
+        case .meals:         return String(localized: "budget.category.meals")
+        case .activities:    return String(localized: "budget.category.activities")
+        case .equipment:     return String(localized: "budget.category.equipment")
+        case .other:         return String(localized: "budget.category.other")
         }
     }
 

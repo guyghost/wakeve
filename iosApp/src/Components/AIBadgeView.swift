@@ -108,7 +108,7 @@ struct AIBadgeView: View {
             }
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("À relire")
+                Text(String(localized: "ai.badge_sheet.review_title"))
                     .font(.subheadline)
                     .fontWeight(.medium)
                 
@@ -117,7 +117,7 @@ struct AIBadgeView: View {
                         .fill(badge.color)
                         .frame(width: 12, height: 12)
                     
-                    Text("Repère visuel : \(badge.displayName)")
+                    Text(String(format: String(localized: "ai.badge_sheet.visual_marker_format"), badge.displayName))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -126,7 +126,7 @@ struct AIBadgeView: View {
                     Image(systemName: "checkmark.circle")
                         .foregroundColor(.secondary)
                     
-                    Text("Aucune action n'est appliquée sans validation.")
+                    Text(String(localized: "ai.badge_sheet.validation_hint"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -138,7 +138,7 @@ struct AIBadgeView: View {
             
             Spacer()
             
-            Button("Fermer") {
+            Button(String(localized: "common.close")) {
                 showDetail = false
             }
             .buttonStyle(.borderedProminent)

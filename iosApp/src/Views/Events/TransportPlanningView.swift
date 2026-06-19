@@ -20,6 +20,7 @@ struct TransportPlanningView: View {
     let onSelectFinalPlan: (TransportPlanningPlan) -> Void
     let onMarkTransportNotNeeded: () -> Void
     let onSaveDepartureLocation: (TransportLocation) -> Void
+    let onChooseDestination: () -> Void
     let onBack: () -> Void
 
     @State private var selectedOptimization: TransportPlanningOptimizationType = .BALANCED
@@ -44,7 +45,7 @@ struct TransportPlanningView: View {
     }
 
     private var destinationName: String {
-        selectedDestination?.name ?? "Destination non sélectionnée"
+        selectedDestination?.name ?? String(localized: "transport.destination_missing")
     }
 
     private var displayedMissingDeparture: [String] {
@@ -107,7 +108,7 @@ struct TransportPlanningView: View {
             moodPalette: .travel
         ) {
             HStack(spacing: WakeveTheme.Spacing.sm) {
-                TransportInfoPill(systemImage: "calendar", value: confirmedDate ?? "Date bientôt confirmée")
+                TransportInfoPill(systemImage: "calendar", value: confirmedDate ?? String(localized: "transport.date_pending"))
                 TransportInfoPill(systemImage: "mappin.and.ellipse", value: destinationName)
             }
         }
@@ -132,20 +133,20 @@ struct TransportPlanningView: View {
 
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                         TransportRoutePoint(
-                            title: "Départs participants",
-                            subtitle: isReadinessComplete ? "Tous les points de départ sont prêts" : "\(displayedMissingDeparture.count) départ\(displayedMissingDeparture.count > 1 ? "s" : "") à compléter"
+                            title: String(localized: "transport.route.departures_title"),
+                            subtitle: departureReadinessRouteSubtitle
                         )
 
                         TransportRoutePoint(
-                            title: "Point de rencontre",
+                            title: String(localized: "transport.route.meeting_point_title"),
                             subtitle: destinationName
                         )
                     }
                 }
 
                 HStack(spacing: WakeveTheme.Spacing.sm) {
-                    TransportMetricTile(title: "Heure", value: confirmedDate ?? "À confirmer")
-                    TransportMetricTile(title: "Mode", value: selectedOptimization.title)
+                    TransportMetricTile(title: String(localized: "transport.metric.time"), value: confirmedDate ?? String(localized: "transport.to_confirm"))
+                    TransportMetricTile(title: String(localized: "transport.metric.mode"), value: selectedOptimization.title)
                 }
             }
         }
@@ -162,7 +163,7 @@ struct TransportPlanningView: View {
                     .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
-                    Text(isReadinessComplete ? "Préparation complète" : "Départs à compléter")
+                    Text(isReadinessComplete ? String(localized: "transport.readiness.complete_title") : String(localized: "transport.readiness.incomplete_title"))
                         .font(WakeveTheme.Typography.rowTitle)
                         .foregroundColor(primaryText)
 
@@ -182,11 +183,11 @@ struct TransportPlanningView: View {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
                     VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
-                        Text("Suggestion transport")
+                        Text(String(localized: "transport.ai.title"))
                             .font(WakeveTheme.Typography.section)
                             .foregroundColor(primaryText)
 
-                        Text("Préparez la coordination du groupe à relire avant partage.")
+                        Text(String(localized: "transport.ai.subtitle"))
                             .font(WakeveTheme.Typography.callout)
                             .foregroundColor(secondaryText)
                     }
@@ -226,14 +227,14 @@ struct TransportPlanningView: View {
 
                 if let suggestion = transportAISuggestion {
                     if !suggestion.missingDetails.isEmpty {
-                        TransportAIList(title: "À compléter", values: suggestion.missingDetails, colorScheme: colorScheme)
+                        TransportAIList(title: String(localized: "transport.ai.missing_details"), values: suggestion.missingDetails, colorScheme: colorScheme)
                     }
 
                     if !suggestion.coordinationIdeas.isEmpty {
-                        TransportAIList(title: "Idées", values: suggestion.coordinationIdeas, colorScheme: colorScheme)
+                        TransportAIList(title: String(localized: "transport.ai.ideas"), values: suggestion.coordinationIdeas, colorScheme: colorScheme)
                     }
 
-                    Text("Message à envoyer")
+                    Text(String(localized: "transport.ai.message_to_send"))
                         .font(WakeveTheme.Typography.bodySemibold)
                         .foregroundColor(primaryText)
 
@@ -246,25 +247,28 @@ struct TransportPlanningView: View {
                         .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
 
                     HStack(spacing: WakeveTheme.Spacing.sm) {
-                        TransportAIActionButton(title: "Modifier", systemImage: "pencil", colorScheme: colorScheme) {
+                        TransportAIActionButton(title: String(localized: "common.edit"), systemImage: "pencil", colorScheme: colorScheme) {
+                            WakeveHaptics.selection()
                             appliedTransportAISuggestion = false
                         }
-                        TransportAIActionButton(title: "Appliquer", systemImage: "checkmark", colorScheme: colorScheme) {
+                        TransportAIActionButton(title: String(localized: "common.apply"), systemImage: "checkmark", colorScheme: colorScheme) {
+                            WakeveHaptics.success()
                             appliedTransportAISuggestion = true
                             ignoredTransportAISuggestion = false
                         }
-                        TransportAIActionButton(title: "Ignorer", systemImage: "xmark", colorScheme: colorScheme) {
+                        TransportAIActionButton(title: String(localized: "transport.ai.ignore_action"), systemImage: "xmark", colorScheme: colorScheme) {
+                            WakeveHaptics.warning()
                             ignoredTransportAISuggestion = true
                             appliedTransportAISuggestion = false
                         }
                     }
 
                     if appliedTransportAISuggestion {
-                        Label("Suggestion prête à être reprise dans le message de groupe", systemImage: "checkmark.circle.fill")
+                        Label(String(localized: "transport.ai.applied"), systemImage: "checkmark.circle.fill")
                             .font(WakeveTheme.Typography.caption)
                             .foregroundColor(SemanticColor.confirmation(for: colorScheme))
                     } else if ignoredTransportAISuggestion {
-                        Label("Suggestion ignorée", systemImage: "minus.circle.fill")
+                        Label(String(localized: "transport.ai.ignored"), systemImage: "minus.circle.fill")
                             .font(WakeveTheme.Typography.caption)
                             .foregroundColor(secondaryText)
                     }
@@ -279,12 +283,12 @@ struct TransportPlanningView: View {
             let mutationDisabled = !canAccessDetails || isReadOnly || !workflowAllowsMutation(eventStatus) || !hasSelectedDestination
             let trimmedDeparture = departureInput.trimmingCharacters(in: .whitespacesAndNewlines)
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
-                Text("Départ")
+                Text(String(localized: "transport.departure.title"))
                     .font(WakeveTheme.Typography.section)
                     .foregroundColor(primaryText)
 
                 HStack(spacing: WakeveTheme.Spacing.sm) {
-                    TextField("Point de départ", text: $departureInput)
+                    TextField(String(localized: "transport.departure.placeholder"), text: $departureInput)
                         .textInputAutocapitalization(.words)
                         .autocorrectionDisabled(false)
                         .padding(.horizontal, WakeveTheme.Spacing.md)
@@ -316,13 +320,14 @@ struct TransportPlanningView: View {
             let hasSelectedDestination = selectedDestination != nil
             let mutationDisabled = !isOrganizer || isReadOnly || !workflowAllowsMutation(eventStatus) || !hasSelectedDestination
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
-                Text("Mode de trajet")
+                Text(String(localized: "transport.optimization.title"))
                     .font(WakeveTheme.Typography.section)
                     .foregroundColor(primaryText)
 
                 HStack(spacing: 8) {
                     ForEach(TransportPlanningOptimizationType.allCases) { option in
                         Button {
+                            WakeveHaptics.selection()
                             selectedOptimization = option
                         } label: {
                             Text(option.title)
@@ -339,8 +344,11 @@ struct TransportPlanningView: View {
                 }
 
                 if isOrganizer && !transportNotNeeded {
-                    Button(action: onMarkTransportNotNeeded) {
-                        Label("Transport non requis", systemImage: "xmark.circle.fill")
+                    Button {
+                        WakeveHaptics.warning()
+                        onMarkTransportNotNeeded()
+                    } label: {
+                        Label(String(localized: "transport.not_required"), systemImage: "xmark.circle.fill")
                             .font(WakeveTheme.Typography.callout.weight(.semibold))
                             .foregroundColor(secondaryText)
                     }
@@ -356,12 +364,12 @@ struct TransportPlanningView: View {
             let hasSelectedDestination = selectedDestination != nil
             let mutationDisabled = !isOrganizer || isReadOnly || !workflowAllowsMutation(eventStatus) || !hasSelectedDestination
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
-                Text("Plan généré")
+                Text(String(localized: "transport.generated_plan.title"))
                     .font(WakeveTheme.Typography.section)
                     .foregroundColor(primaryText)
 
                 if plans.isEmpty {
-                    Text("Aucun trajet n'a encore été généré.")
+                    Text(String(localized: "transport.generated_plan.empty"))
                         .font(WakeveTheme.Typography.callout)
                         .foregroundColor(secondaryText)
                 } else {
@@ -375,7 +383,7 @@ struct TransportPlanningView: View {
                                 Spacer()
 
                                 if selectedPlanId == plan.id {
-                                    Text("Sélectionné")
+                                    Text(String(localized: "common.selected"))
                                         .font(WakeveTheme.Typography.tiny)
                                         .foregroundColor(SemanticColor.confirmation(for: colorScheme))
                                         .padding(.horizontal, WakeveTheme.Spacing.xs)
@@ -385,14 +393,15 @@ struct TransportPlanningView: View {
                                 }
                             }
 
-                            Text("Coût total : \(plan.totalCost, specifier: "%.2f") \(plan.currency)")
+                            Text(String(format: String(localized: "transport.plan.total_cost_format"), plan.totalCost, plan.currency))
                                 .font(WakeveTheme.Typography.callout)
                                 .foregroundColor(secondaryText)
 
                             Button {
+                                WakeveHaptics.success()
                                 onSelectFinalPlan(plan)
                             } label: {
-                                Label(selectedPlanId == plan.id ? "Plan sélectionné" : "Sélectionner le plan final", systemImage: "checkmark.seal.fill")
+                                Label(selectedPlanId == plan.id ? String(localized: "transport.plan.selected") : String(localized: "transport.plan.select_final"), systemImage: "checkmark.seal.fill")
                                     .font(WakeveTheme.Typography.callout.weight(.semibold))
                                     .foregroundColor(selectedPlanId == plan.id ? SemanticColor.confirmation(for: colorScheme) : SemanticColor.selectedState(for: colorScheme))
                             }
@@ -406,7 +415,7 @@ struct TransportPlanningView: View {
                 }
 
                 if transportNotNeeded {
-                    Label("Transport indiqué non requis", systemImage: "checkmark.circle.fill")
+                    Label(String(localized: "transport.not_required_set"), systemImage: "checkmark.circle.fill")
                         .font(WakeveTheme.Typography.callout.weight(.semibold))
                         .foregroundColor(SemanticColor.confirmation(for: colorScheme))
                 }
@@ -418,11 +427,11 @@ struct TransportPlanningView: View {
         WakeveContentCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
             VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
                 HStack {
-                    Text("Participants")
+                    Text(String(localized: "transport.participants.title"))
                         .font(WakeveTheme.Typography.section)
                         .foregroundColor(primaryText)
                     Spacer()
-                    Text(isReadinessComplete ? "Prêts" : "\(displayedMissingDeparture.count) à compléter")
+                    Text(isReadinessComplete ? String(localized: "transport.participants.ready") : missingDepartureBadgeText)
                         .font(WakeveTheme.Typography.tiny)
                         .foregroundColor(isReadinessComplete ? SemanticColor.confirmation(for: colorScheme) : SemanticColor.warning(for: colorScheme))
                         .padding(.horizontal, WakeveTheme.Spacing.xs)
@@ -432,10 +441,10 @@ struct TransportPlanningView: View {
                 }
 
                 if displayedMissingDeparture.isEmpty {
-                    TransportParticipantRow(name: "Tous les participants confirmés", detail: "Point de départ disponible", isReady: true)
+                    TransportParticipantRow(name: String(localized: "transport.participants.all_confirmed"), detail: String(localized: "transport.departure.available"), isReady: true)
                 } else {
                     ForEach(displayedMissingDeparture, id: \.self) { participant in
-                        TransportParticipantRow(name: participant, detail: "Point de départ manquant", isReady: false)
+                        TransportParticipantRow(name: participant, detail: String(localized: "transport.departure.missing"), isReady: false)
                     }
                 }
             }
@@ -446,8 +455,8 @@ struct TransportPlanningView: View {
         VStack {
             EmptyState(
                 systemImage: "lock.fill",
-                title: "Transport verrouillé",
-                subtitle: "Seuls les organisateurs et les participants confirmés peuvent accéder aux départs et aux plans générés."
+                title: String(localized: "transport.locked.title"),
+                subtitle: String(localized: "transport.locked.subtitle")
             )
             .padding(.horizontal, WakeveTheme.Spacing.page)
         }
@@ -468,7 +477,7 @@ struct TransportPlanningView: View {
                 HStack(spacing: WakeveTheme.Spacing.xs) {
                     Image(systemName: "icloud.slash.fill")
                         .font(.caption.weight(.bold))
-                    Text("Synchronisation en attente")
+                    Text(String(localized: "sync.pending_changes"))
                         .font(WakeveTheme.Typography.tiny)
                         .lineLimit(1)
                         .minimumScaleFactor(0.78)
@@ -525,25 +534,27 @@ struct TransportPlanningView: View {
 
     private var transportStatusText: String {
         if transportNotNeeded {
-            return "Non requis"
+            return String(localized: "transport.status.not_required")
         }
         if selectedPlanId != nil {
-            return "Plan final sélectionné"
+            return String(localized: "transport.status.final_selected")
         }
         if plans.isEmpty {
-            return "Plan à générer"
+            return String(localized: "transport.status.to_generate")
         }
-        return "Plans disponibles"
+        return String(localized: "transport.status.available")
     }
 
     private var readinessSubtitle: String {
         if transportNotNeeded {
-            return "Transport non requis pour cet événement."
+            return String(localized: "transport.readiness.not_required")
         }
         if displayedMissingDeparture.isEmpty {
-            return "Tous les participants confirmés ont un point de départ."
+            return String(localized: "transport.readiness.all_departures_ready")
         }
-        return "\(displayedMissingDeparture.count) participant\(displayedMissingDeparture.count > 1 ? "s" : "") doi\(displayedMissingDeparture.count > 1 ? "vent" : "t") préciser son départ."
+        return displayedMissingDeparture.count == 1
+            ? String(format: String(localized: "transport.readiness.missing_departure_singular_format"), displayedMissingDeparture.count)
+            : String(format: String(localized: "transport.readiness.missing_departure_plural_format"), displayedMissingDeparture.count)
     }
 
     private var selectedOptimizationFill: Color {
@@ -556,24 +567,24 @@ struct TransportPlanningView: View {
 
     private var primaryActionTitle: String {
         if isReadOnly {
-            return "Transport en lecture seule"
+            return String(localized: "transport.action.read_only")
         }
         if selectedDestination == nil {
-            return "Choisir une destination"
+            return String(localized: "transport.action.choose_destination")
         }
         if transportNotNeeded {
-            return "Transport non requis"
+            return String(localized: "transport.not_required")
         }
         if !isReadinessComplete {
-            return "Compléter les départs"
+            return String(localized: "transport.action.complete_departures")
         }
         if plans.isEmpty {
-            return "Préparer le plan"
+            return String(localized: "transport.action.prepare_plan")
         }
         if selectedPlanId == nil {
-            return "Choisir un plan final"
+            return String(localized: "transport.action.choose_final_plan")
         }
-        return "Plan final sélectionné"
+        return String(localized: "transport.status.final_selected")
     }
 
     private var primaryActionIcon: String {
@@ -587,12 +598,22 @@ struct TransportPlanningView: View {
     }
 
     private var primaryActionDisabled: Bool {
-        let mutationDisabled = !isOrganizer || isReadOnly || !workflowAllowsMutation(eventStatus) || selectedDestination == nil
+        let mutationDisabled = !isOrganizer || isReadOnly || !workflowAllowsMutation(eventStatus)
+        if selectedDestination == nil {
+            return mutationDisabled
+        }
         return mutationDisabled || transportNotNeeded || !isReadinessComplete || (!plans.isEmpty && selectedPlanId != nil)
     }
 
     private func primaryAction() {
+        if selectedDestination == nil {
+            WakeveHaptics.selection()
+            onChooseDestination()
+            return
+        }
+
         if plans.isEmpty {
+            WakeveHaptics.selection()
             onGenerate(selectedOptimization)
             return
         }
@@ -600,6 +621,7 @@ struct TransportPlanningView: View {
         guard selectedPlanId == nil, let firstPlan = plans.first else {
             return
         }
+        WakeveHaptics.success()
         onSelectFinalPlan(firstPlan)
     }
 
@@ -636,16 +658,18 @@ struct TransportPlanningView: View {
 
         Task {
             do {
-                let suggestion = try await generator.generate(eventId: event.id, localeIdentifier: "fr_FR")
+                let suggestion = try await generator.generate(eventId: event.id, localeIdentifier: Locale.autoupdatingCurrent.identifier)
                 await MainActor.run {
                     transportAISuggestion = suggestion
                     editableTransportMessage = suggestion.groupMessageDraft
                     isGeneratingTransportAI = false
+                    WakeveHaptics.success()
                 }
             } catch {
                 await MainActor.run {
-                    transportAIError = "La suggestion n'est pas disponible pour le moment."
+                    transportAIError = String(localized: "transport.ai.error_unavailable")
                     isGeneratingTransportAI = false
+                    WakeveHaptics.warning()
                 }
             }
         }
@@ -665,6 +689,22 @@ struct TransportPlanningView: View {
 
     private func workflowAllowsMutation(_ eventStatus: EventStatus) -> Bool {
         eventStatus == EventStatus.confirmed || eventStatus == EventStatus.comparing || eventStatus == EventStatus.organizing
+    }
+
+    private var departureReadinessRouteSubtitle: String {
+        if isReadinessComplete {
+            return String(localized: "transport.route.departures_ready")
+        }
+
+        return displayedMissingDeparture.count == 1
+            ? String(format: String(localized: "transport.route.departure_missing_singular_format"), displayedMissingDeparture.count)
+            : String(format: String(localized: "transport.route.departure_missing_plural_format"), displayedMissingDeparture.count)
+    }
+
+    private var missingDepartureBadgeText: String {
+        displayedMissingDeparture.count == 1
+            ? String(format: String(localized: "transport.participants.to_complete_singular_format"), displayedMissingDeparture.count)
+            : String(format: String(localized: "transport.participants.to_complete_plural_format"), displayedMissingDeparture.count)
     }
 }
 
@@ -709,7 +749,8 @@ private struct TransportPlanningWakeveAIContextProvider: WakeveAIContextProvidin
     }
 
     func userPreferences() async -> WakeveAIUserPreferences? {
-        WakeveAIUserPreferences(languageCode: "fr", localPreferences: [])
+        let languageCode = Locale.autoupdatingCurrent.language.languageCode?.identifier ?? "en"
+        return WakeveAIUserPreferences(languageCode: languageCode, localPreferences: [])
     }
 }
 
@@ -893,11 +934,11 @@ enum TransportPlanningOptimizationType: String, CaseIterable, Identifiable, Coda
     var title: String {
         switch self {
         case .COST_MINIMIZE:
-            return "Coût"
+            return String(localized: "transport.optimization.cost")
         case .TIME_MINIMIZE:
-            return "Temps"
+            return String(localized: "transport.optimization.time")
         case .BALANCED:
-            return "Équilibré"
+            return String(localized: "transport.optimization.balanced")
         }
     }
 

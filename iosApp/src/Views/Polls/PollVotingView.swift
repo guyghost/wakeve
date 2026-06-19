@@ -106,8 +106,10 @@ struct PollVotingView: View {
 
         if successCount == votes.count {
             hasVoted = true
+            WakeveHaptics.success()
             showSuccess = true
         } else {
+            WakeveHaptics.warning()
             errorMessage = lastError?.localizedDescription ?? String(localized: "poll.voting.error.submit_failed")
             showError = true
         }
@@ -141,8 +143,8 @@ struct PollVotingContentView: View {
                     } else if event.proposedSlots.isEmpty {
                         EmptyState(
                             systemImage: "calendar.badge.exclamationmark",
-                            title: "Aucun créneau",
-                            subtitle: "L’organisateur doit ajouter au moins une option avant le vote."
+                            title: String(localized: "poll.voting.empty_title"),
+                            subtitle: String(localized: "poll.voting.empty_subtitle")
                         )
                     } else {
                         progressCard
@@ -171,7 +173,10 @@ struct PollVotingContentView: View {
     }
 
     private var toolbar: some View {
-        LiquidGlassToolbar(title: "Vote", subtitle: "\(completedCount) / \(event.proposedSlots.count) réponses") {
+        LiquidGlassToolbar(
+            title: String(localized: "poll.voting.title"),
+            subtitle: String(format: String(localized: "poll.voting.responses_progress_format"), completedCount, event.proposedSlots.count)
+        ) {
             WakeveCircleButton(
                 systemImage: "chevron.left",
                 accessibilityLabel: String(localized: "common.back"),
@@ -279,7 +284,7 @@ struct PollVotingContentView: View {
                     .font(TypographyTokens.cardTitle)
                     .foregroundColor(SemanticColor.primaryText(for: colorScheme))
 
-                Text(formatDate(activeSlot.start ?? ""))
+                Text(formatDate(activeSlot.start ?? "", timezone: activeSlot.timezone))
                     .font(WakeveTheme.Typography.title2)
                     .foregroundColor(SemanticColor.primaryText(for: colorScheme))
                     .lineLimit(2)
@@ -287,10 +292,16 @@ struct PollVotingContentView: View {
                 HStack(spacing: WakeveTheme.Spacing.xs) {
                     Image(systemName: "clock")
                         .font(.caption.weight(.bold))
-                    Text("\(formatTime(activeSlot.start ?? "")) - \(formatTime(activeSlot.end ?? ""))")
+                    Text("\(formatTime(activeSlot.start ?? "", timezone: activeSlot.timezone)) - \(formatTime(activeSlot.end ?? "", timezone: activeSlot.timezone))")
                         .font(TypographyTokens.metadata)
                 }
                 .foregroundColor(SemanticColor.secondaryText(for: colorScheme))
+
+                PollTimeZoneBadge(
+                    label: formatTimeZoneLabel(activeSlot.timezone, at: activeSlot.start),
+                    foregroundColor: SemanticColor.secondaryText(for: colorScheme),
+                    backgroundColor: SemanticColor.badge(for: colorScheme)
+                )
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -304,7 +315,7 @@ struct PollVotingContentView: View {
                 subtitle: String(localized: "poll.voting.option.yes.subtitle"),
                 isSelected: activeVote == .yes
             ) {
-                votes[activeSlot.id] = .yes
+                selectVote(.yes)
             }
 
             VoteOptionCard(
@@ -313,7 +324,7 @@ struct PollVotingContentView: View {
                 subtitle: String(localized: "poll.voting.option.maybe.subtitle"),
                 isSelected: activeVote == .maybe
             ) {
-                votes[activeSlot.id] = .maybe
+                selectVote(.maybe)
             }
 
             VoteOptionCard(
@@ -322,7 +333,7 @@ struct PollVotingContentView: View {
                 subtitle: String(localized: "poll.voting.option.no.subtitle"),
                 isSelected: activeVote == .no
             ) {
-                votes[activeSlot.id] = .no
+                selectVote(.no)
             }
         }
     }
@@ -426,8 +437,14 @@ struct PollVotingContentView: View {
         if isLastSlot {
             onSubmitVotes()
         } else {
+            WakeveHaptics.selection()
             activeSlotIndex = min(activeSlotIndex + 1, event.proposedSlots.count - 1)
         }
+    }
+
+    private func selectVote(_ vote: PollVote) {
+        WakeveHaptics.selection()
+        votes[activeSlot.id] = vote
     }
 
     private func feedbackText(for vote: PollVote) -> String {
@@ -441,31 +458,58 @@ struct PollVotingContentView: View {
     private func formatDeadlineShort(_ deadlineString: String) -> String? {
         if let date = ISO8601DateFormatter().date(from: deadlineString) {
             let formatter = DateFormatter()
-            formatter.locale = .current
+            formatter.locale = .autoupdatingCurrent
             formatter.dateFormat = "MMM d"
             return String(format: String(localized: "poll.voting.deadline_before_format"), formatter.string(from: date))
         }
         return nil
     }
 
-    private func formatDate(_ dateString: String) -> String {
+    private func formatDate(_ dateString: String, timezone: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
-            formatter.locale = .current
+            formatter.locale = .autoupdatingCurrent
+            formatter.timeZone = timeZone(for: timezone)
             formatter.dateFormat = "EEEE d MMM"
             return formatter.string(from: date)
         }
         return dateString
     }
 
-    private func formatTime(_ dateString: String) -> String {
+    private func formatTime(_ dateString: String, timezone: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
-            formatter.locale = .current
+            formatter.locale = .autoupdatingCurrent
+            formatter.timeZone = timeZone(for: timezone)
             formatter.timeStyle = .short
             return formatter.string(from: date)
         }
         return dateString
+    }
+
+    private func timeZone(for identifier: String) -> TimeZone {
+        TimeZone(identifier: identifier.trimmingCharacters(in: .whitespacesAndNewlines)) ?? .current
+    }
+
+    private func formatTimeZoneLabel(_ identifier: String, at dateString: String?) -> String {
+        String(
+            format: String(localized: "poll.timezone.label_format"),
+            formatTimeZoneDisplay(identifier, at: dateString)
+        )
+    }
+
+    private func formatTimeZoneDisplay(_ identifier: String, at dateString: String?) -> String {
+        let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return TimeZone.current.identifier }
+        guard let timeZone = TimeZone(identifier: trimmed) else {
+            return trimmed.replacingOccurrences(of: "_", with: " ")
+        }
+
+        let date = dateString.flatMap { ISO8601DateFormatter().date(from: $0) }
+        let abbreviation = date.flatMap { timeZone.abbreviation(for: $0) } ?? timeZone.abbreviation() ?? trimmed
+        let city = trimmed.split(separator: "/").last.map { String($0).replacingOccurrences(of: "_", with: " ") } ?? trimmed
+
+        return city == abbreviation ? abbreviation : "\(abbreviation) · \(city)"
     }
 }
 
@@ -515,7 +559,7 @@ struct TimeSlotVoteCard: View {
         WakeveContentCard(cornerRadius: WakeveTheme.Radius.xl) {
             VStack(spacing: WakeveTheme.Spacing.md) {
                 VStack(spacing: 6) {
-                Text(formatDate(timeSlot.start ?? ""))
+                Text(formatDate(timeSlot.start ?? "", timezone: timeSlot.timezone))
                     .font(WakeveTheme.Typography.bodySemibold)
                     .foregroundColor(.primary)
 
@@ -524,10 +568,16 @@ struct TimeSlotVoteCard: View {
                         .font(.system(size: 14))
                         .foregroundColor(.secondary)
 
-                    Text("\(formatTime(timeSlot.start ?? "")) - \(formatTime(timeSlot.end ?? ""))")
+                    Text("\(formatTime(timeSlot.start ?? "", timezone: timeSlot.timezone)) - \(formatTime(timeSlot.end ?? "", timezone: timeSlot.timezone))")
                         .font(WakeveTheme.Typography.metadata)
                         .foregroundColor(.secondary)
                 }
+
+                PollTimeZoneBadge(
+                    label: formatTimeZoneLabel(timeSlot.timezone, at: timeSlot.start),
+                    foregroundColor: .secondary,
+                    backgroundColor: Color(.tertiarySystemFill)
+                )
             }
 
                 WakeveSegmentedVoteControl(
@@ -538,24 +588,69 @@ struct TimeSlotVoteCard: View {
         }
     }
 
-    private func formatDate(_ dateString: String) -> String {
+    private func formatDate(_ dateString: String, timezone: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
-            formatter.locale = .current
+            formatter.locale = .autoupdatingCurrent
+            formatter.timeZone = timeZone(for: timezone)
             formatter.dateFormat = "EEEE, MMM d"
             return formatter.string(from: date)
         }
         return dateString
     }
 
-    private func formatTime(_ dateString: String) -> String {
+    private func formatTime(_ dateString: String, timezone: String) -> String {
         if let date = ISO8601DateFormatter().date(from: dateString) {
             let formatter = DateFormatter()
             formatter.locale = .current
+            formatter.timeZone = timeZone(for: timezone)
             formatter.timeStyle = .short
             return formatter.string(from: date)
         }
         return dateString
+    }
+
+    private func timeZone(for identifier: String) -> TimeZone {
+        TimeZone(identifier: identifier.trimmingCharacters(in: .whitespacesAndNewlines)) ?? .current
+    }
+
+    private func formatTimeZoneLabel(_ identifier: String, at dateString: String?) -> String {
+        String(
+            format: String(localized: "poll.timezone.label_format"),
+            formatTimeZoneDisplay(identifier, at: dateString)
+        )
+    }
+
+    private func formatTimeZoneDisplay(_ identifier: String, at dateString: String?) -> String {
+        let trimmed = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return TimeZone.current.identifier }
+        guard let timeZone = TimeZone(identifier: trimmed) else {
+            return trimmed.replacingOccurrences(of: "_", with: " ")
+        }
+
+        let date = dateString.flatMap { ISO8601DateFormatter().date(from: $0) }
+        let abbreviation = date.flatMap { timeZone.abbreviation(for: $0) } ?? timeZone.abbreviation() ?? trimmed
+        let city = trimmed.split(separator: "/").last.map { String($0).replacingOccurrences(of: "_", with: " ") } ?? trimmed
+
+        return city == abbreviation ? abbreviation : "\(abbreviation) · \(city)"
+    }
+}
+
+struct PollTimeZoneBadge: View {
+    let label: String
+    let foregroundColor: Color
+    let backgroundColor: Color
+
+    var body: some View {
+        Label(label, systemImage: "globe")
+            .font(TypographyTokens.caption)
+            .foregroundColor(foregroundColor)
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+            .padding(.horizontal, WakeveTheme.Spacing.sm)
+            .frame(height: 30)
+            .background(backgroundColor)
+            .clipShape(Capsule())
     }
 }
 

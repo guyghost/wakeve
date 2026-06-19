@@ -23,12 +23,12 @@ final class BudgetViewModelTests: XCTestCase {
     }
 
     func testBudgetCategoryUIDisplayNames() {
-        XCTAssertEqual(BudgetCategoryUI.transport.displayName, "Transport")
-        XCTAssertEqual(BudgetCategoryUI.accommodation.displayName, "Hébergement")
-        XCTAssertEqual(BudgetCategoryUI.meals.displayName, "Repas")
-        XCTAssertEqual(BudgetCategoryUI.activities.displayName, "Activités")
-        XCTAssertEqual(BudgetCategoryUI.equipment.displayName, "Équipement")
-        XCTAssertEqual(BudgetCategoryUI.other.displayName, "Autre")
+        XCTAssertEqual(BudgetCategoryUI.transport.displayName, String(localized: "budget.category.transport"))
+        XCTAssertEqual(BudgetCategoryUI.accommodation.displayName, String(localized: "budget.category.accommodation"))
+        XCTAssertEqual(BudgetCategoryUI.meals.displayName, String(localized: "budget.category.meals"))
+        XCTAssertEqual(BudgetCategoryUI.activities.displayName, String(localized: "budget.category.activities"))
+        XCTAssertEqual(BudgetCategoryUI.equipment.displayName, String(localized: "budget.category.equipment"))
+        XCTAssertEqual(BudgetCategoryUI.other.displayName, String(localized: "budget.category.other"))
     }
 
     func testBudgetCategoryUIIconNames() {

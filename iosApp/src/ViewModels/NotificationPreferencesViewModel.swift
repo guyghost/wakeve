@@ -24,19 +24,19 @@ class NotificationPreferencesViewModel: ObservableObject {
     @Published var isLoading = false
 
     let typeToggles: [NotificationTypeToggle] = [
-        NotificationTypeToggle(id: "EVENT_INVITE", rawName: "EVENT_INVITE", displayName: "Invitation événement", iconName: "envelope.fill"),
-        NotificationTypeToggle(id: "VOTE_REMINDER", rawName: "VOTE_REMINDER", displayName: "Rappel de vote", iconName: "chart.bar.fill"),
-        NotificationTypeToggle(id: "DATE_CONFIRMED", rawName: "DATE_CONFIRMED", displayName: "Date confirmée", iconName: "calendar.badge.checkmark"),
-        NotificationTypeToggle(id: "NEW_SCENARIO", rawName: "NEW_SCENARIO", displayName: "Nouvelle option", iconName: "doc.badge.plus"),
-        NotificationTypeToggle(id: "SCENARIO_SELECTED", rawName: "SCENARIO_SELECTED", displayName: "Option retenue", iconName: "star.fill"),
-        NotificationTypeToggle(id: "NEW_COMMENT", rawName: "NEW_COMMENT", displayName: "Nouveau commentaire", iconName: "bubble.left.fill"),
-        NotificationTypeToggle(id: "MENTION", rawName: "MENTION", displayName: "Mention", iconName: "at"),
-        NotificationTypeToggle(id: "MEETING_REMINDER", rawName: "MEETING_REMINDER", displayName: "Rappel réunion", iconName: "bell.badge.fill"),
-        NotificationTypeToggle(id: "PAYMENT_DUE", rawName: "PAYMENT_DUE", displayName: "Paiement dû", iconName: "creditcard.fill"),
-        NotificationTypeToggle(id: "EVENT_UPDATE", rawName: "EVENT_UPDATE", displayName: "Mise à jour événement", iconName: "arrow.triangle.2.circlepath"),
-        NotificationTypeToggle(id: "VOTE_CLOSE_REMINDER", rawName: "VOTE_CLOSE_REMINDER", displayName: "Fin de vote imminente", iconName: "clock.badge"),
-        NotificationTypeToggle(id: "DEADLINE_REMINDER", rawName: "DEADLINE_REMINDER", displayName: "Rappel d'échéance", iconName: "exclamationmark.circle"),
-        NotificationTypeToggle(id: "COMMENT_REPLY", rawName: "COMMENT_REPLY", displayName: "Réponse à un commentaire", iconName: "bubble.left.and.bubble.right.fill")
+        NotificationTypeToggle(id: "EVENT_INVITE", rawName: "EVENT_INVITE", displayName: String(localized: "notifications.type.event_invite"), iconName: "envelope.fill"),
+        NotificationTypeToggle(id: "VOTE_REMINDER", rawName: "VOTE_REMINDER", displayName: String(localized: "notifications.type.vote_reminder"), iconName: "chart.bar.fill"),
+        NotificationTypeToggle(id: "DATE_CONFIRMED", rawName: "DATE_CONFIRMED", displayName: String(localized: "notifications.type.date_confirmed"), iconName: "calendar.badge.checkmark"),
+        NotificationTypeToggle(id: "NEW_SCENARIO", rawName: "NEW_SCENARIO", displayName: String(localized: "notifications.type.new_scenario"), iconName: "doc.badge.plus"),
+        NotificationTypeToggle(id: "SCENARIO_SELECTED", rawName: "SCENARIO_SELECTED", displayName: String(localized: "notifications.type.scenario_selected"), iconName: "star.fill"),
+        NotificationTypeToggle(id: "NEW_COMMENT", rawName: "NEW_COMMENT", displayName: String(localized: "notifications.type.new_comment"), iconName: "bubble.left.fill"),
+        NotificationTypeToggle(id: "MENTION", rawName: "MENTION", displayName: String(localized: "notifications.type.mention"), iconName: "at"),
+        NotificationTypeToggle(id: "MEETING_REMINDER", rawName: "MEETING_REMINDER", displayName: String(localized: "notifications.type.meeting_reminder"), iconName: "bell.badge.fill"),
+        NotificationTypeToggle(id: "PAYMENT_DUE", rawName: "PAYMENT_DUE", displayName: String(localized: "notifications.type.payment_due"), iconName: "creditcard.fill"),
+        NotificationTypeToggle(id: "EVENT_UPDATE", rawName: "EVENT_UPDATE", displayName: String(localized: "notifications.type.event_update"), iconName: "arrow.triangle.2.circlepath"),
+        NotificationTypeToggle(id: "VOTE_CLOSE_REMINDER", rawName: "VOTE_CLOSE_REMINDER", displayName: String(localized: "notifications.type.vote_close_reminder"), iconName: "clock.badge"),
+        NotificationTypeToggle(id: "DEADLINE_REMINDER", rawName: "DEADLINE_REMINDER", displayName: String(localized: "notifications.type.deadline_reminder"), iconName: "exclamationmark.circle"),
+        NotificationTypeToggle(id: "COMMENT_REPLY", rawName: "COMMENT_REPLY", displayName: String(localized: "notifications.type.comment_reply"), iconName: "bubble.left.and.bubble.right.fill")
     ]
 
     private let userId: String

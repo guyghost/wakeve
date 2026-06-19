@@ -6,39 +6,44 @@ import SwiftUI
 /// Shows top participants ranked by points with avatar, name, points, and badge count.
 struct LeaderboardView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var selectedFilter: LeaderboardFilter = .global
-    @State private var isRefreshing = false
+    @State private var entries: [LeaderboardEntryData]
 
-    // Mock data - in production, this comes from GamificationService / server API
-    @State private var entries: [LeaderboardEntryData] = LeaderboardEntryData.mockData
+    init(entries: [LeaderboardEntryData] = []) {
+        _entries = State(initialValue: entries)
+    }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Filter tabs
-                filterTabs
+            ZStack {
+                WakeveScreenBackground(style: .grouped)
 
-                // Content
-                ScrollView {
-                    LazyVStack(spacing: 8) {
-                        // Podium for top 3
-                        if entries.count >= 3 {
-                            podiumView
-                                .padding(.vertical, 16)
-                        }
+                VStack(spacing: 0) {
+                    filterTabs
 
-                        // Remaining entries
-                        let remainingEntries = entries.count > 3 ? Array(entries.dropFirst(3)) : entries
-                        ForEach(remainingEntries) { entry in
-                            leaderboardRow(entry: entry)
+                    ScrollView {
+                        LazyVStack(spacing: WakeveTheme.Spacing.md) {
+                            if entries.isEmpty {
+                                leaderboardEmptyState
+                            } else {
+                                if entries.count >= 3 {
+                                    podiumView
+                                        .padding(.vertical, WakeveTheme.Spacing.md)
+                                }
+
+                                let remainingEntries = entries.count > 3 ? Array(entries.dropFirst(3)) : entries
+                                ForEach(remainingEntries) { entry in
+                                    leaderboardRow(entry: entry)
+                                }
+                            }
                         }
+                        .padding(WakeveTheme.Spacing.page)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 16)
-                }
-                .refreshable {
-                    await refreshData()
+                    .refreshable {
+                        await refreshData()
+                    }
                 }
             }
             .navigationTitle(String(localized: "leaderboard.title"))
@@ -51,6 +56,53 @@ struct LeaderboardView: View {
                 }
             }
         }
+    }
+
+    private var leaderboardEmptyState: some View {
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
+                HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
+                        .frame(width: 48, height: 48)
+                        .background(WakeveTheme.ColorToken.permissionBlue.opacity(0.12), in: Circle())
+
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+                        Text(String(localized: "leaderboard.empty.title"))
+                            .font(WakeveTheme.Typography.title2)
+                            .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+
+                        Text(String(localized: "leaderboard.empty.subtitle"))
+                            .font(WakeveTheme.Typography.body)
+                            .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                VStack(spacing: WakeveTheme.Spacing.sm) {
+                    LeaderboardEmptyMetric(
+                        icon: "person.2.badge.gearshape.fill",
+                        title: String(localized: "leaderboard.empty.activity_title"),
+                        detail: String(localized: "leaderboard.empty.activity_detail")
+                    )
+
+                    LeaderboardEmptyMetric(
+                        icon: "lock.shield.fill",
+                        title: String(localized: "leaderboard.empty.privacy_title"),
+                        detail: String(localized: "leaderboard.empty.privacy_detail")
+                    )
+
+                    LeaderboardEmptyMetric(
+                        icon: "calendar.badge.plus",
+                        title: String(localized: "leaderboard.empty.first_event_title"),
+                        detail: String(localized: "leaderboard.empty.first_event_detail")
+                    )
+                }
+            }
+        }
+        .accessibilityIdentifier("leaderboardEmptyState")
     }
 
     // MARK: - Filter Tabs
@@ -67,20 +119,20 @@ struct LeaderboardView: View {
                         Text(filter.displayName)
                             .font(.subheadline)
                             .fontWeight(selectedFilter == filter ? .semibold : .regular)
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, WakeveTheme.Spacing.md)
                             .padding(.vertical, 8)
                             .background(
                                 selectedFilter == filter
-                                    ? Color.blue.opacity(0.15)
-                                    : Color.gray.opacity(0.1)
+                                    ? WakeveTheme.ColorToken.permissionBlue.opacity(0.15)
+                                    : WakeveTheme.ColorToken.controlFill(for: colorScheme)
                             )
-                            .foregroundColor(selectedFilter == filter ? .blue : .secondary)
+                            .foregroundColor(selectedFilter == filter ? WakeveTheme.ColorToken.permissionBlue : .secondary)
                             .clipShape(Capsule())
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.horizontal, WakeveTheme.Spacing.page)
+            .padding(.vertical, WakeveTheme.Spacing.sm)
         }
     }
 
@@ -138,7 +190,7 @@ struct LeaderboardView: View {
             Text(formatPoints(entry.totalPoints))
                 .font(.caption)
                 .fontWeight(.bold)
-                .foregroundColor(.blue)
+                .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
 
             Text(String(format: String(localized: "leaderboard.badges_count"), entry.badgesCount))
                 .font(.caption2)
@@ -191,7 +243,7 @@ struct LeaderboardView: View {
                     if entry.isFriend {
                         Image(systemName: "person.2.fill")
                             .font(.caption2)
-                            .foregroundColor(.blue)
+                            .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
                     }
                 }
 
@@ -207,7 +259,7 @@ struct LeaderboardView: View {
                 Text(formatPoints(entry.totalPoints))
                     .font(.headline)
                     .fontWeight(.bold)
-                    .foregroundColor(.blue)
+                    .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
 
                 Text(String(localized: "leaderboard.points"))
                     .font(.caption2)
@@ -217,7 +269,7 @@ struct LeaderboardView: View {
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(entry.isCurrentUser ? Color.blue.opacity(0.08) : Color.clear)
+                .fill(entry.isCurrentUser ? WakeveTheme.ColorToken.permissionBlue.opacity(0.08) : Color.clear)
         )
     }
 
@@ -239,9 +291,36 @@ struct LeaderboardView: View {
     }
 
     private func refreshData() async {
-        // Simulate network refresh
-        try? await Task.sleep(nanoseconds: 500_000_000)
-        // In production, re-fetch from GamificationService
+        await Task.yield()
+    }
+}
+
+private struct LeaderboardEmptyMetric: View {
+    let icon: String
+    let title: String
+    let detail: String
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
+                .frame(width: 30, height: 30)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+
+                Text(detail)
+                    .font(WakeveTheme.Typography.metadata)
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
@@ -275,19 +354,6 @@ struct LeaderboardEntryData: Identifiable {
     let rank: Int
     let isCurrentUser: Bool
     let isFriend: Bool
-
-    static let mockData: [LeaderboardEntryData] = [
-        LeaderboardEntryData(id: "user-1", username: "Alice Martin", totalPoints: 2450, badgesCount: 12, rank: 1, isCurrentUser: false, isFriend: false),
-        LeaderboardEntryData(id: "user-2", username: "Bob Dupont", totalPoints: 2100, badgesCount: 10, rank: 2, isCurrentUser: false, isFriend: true),
-        LeaderboardEntryData(id: "user-3", username: "Claire Bernard", totalPoints: 1950, badgesCount: 9, rank: 3, isCurrentUser: false, isFriend: false),
-        LeaderboardEntryData(id: "user-current", username: "Vous", totalPoints: 1250, badgesCount: 8, rank: 4, isCurrentUser: true, isFriend: false),
-        LeaderboardEntryData(id: "user-5", username: "David Leroy", totalPoints: 1100, badgesCount: 7, rank: 5, isCurrentUser: false, isFriend: true),
-        LeaderboardEntryData(id: "user-6", username: "Emma Moreau", totalPoints: 980, badgesCount: 6, rank: 6, isCurrentUser: false, isFriend: false),
-        LeaderboardEntryData(id: "user-7", username: "Frank Rousseau", totalPoints: 850, badgesCount: 5, rank: 7, isCurrentUser: false, isFriend: false),
-        LeaderboardEntryData(id: "user-8", username: "Grace Wang", totalPoints: 720, badgesCount: 4, rank: 8, isCurrentUser: false, isFriend: true),
-        LeaderboardEntryData(id: "user-9", username: "Henry Chen", totalPoints: 650, badgesCount: 4, rank: 9, isCurrentUser: false, isFriend: false),
-        LeaderboardEntryData(id: "user-10", username: "Isabelle Dubois", totalPoints: 580, badgesCount: 3, rank: 10, isCurrentUser: false, isFriend: false)
-    ]
 }
 
 // MARK: - Previews

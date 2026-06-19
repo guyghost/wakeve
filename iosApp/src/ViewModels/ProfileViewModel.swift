@@ -12,11 +12,11 @@ enum BadgeCategory: String, CaseIterable, Codable {
     
     var displayName: String {
         switch self {
-        case .creation: return "Création"
-        case .voting: return "Votes"
-        case .participation: return "Participation"
-        case .engagement: return "Engagement"
-        case .special: return "Spéciaux"
+        case .creation: return String(localized: "gamification.event_creation")
+        case .voting: return String(localized: "gamification.voting")
+        case .participation: return String(localized: "gamification.participation")
+        case .engagement: return String(localized: "gamification.badge_category.engagement")
+        case .special: return String(localized: "gamification.badge_category.special")
         }
     }
 }
@@ -28,7 +28,12 @@ enum BadgeRarity: String, CaseIterable, Codable {
     case legendary = "LEGENDARY"
     
     var displayName: String {
-        rawValue.lowercased().prefix(1).uppercased() + rawValue.lowercased().dropFirst()
+        switch self {
+        case .common: return String(localized: "gamification.rarity.common")
+        case .rare: return String(localized: "gamification.rarity.rare")
+        case .epic: return String(localized: "gamification.rarity.epic")
+        case .legendary: return String(localized: "gamification.rarity.legendary")
+        }
     }
     
     var color: String {
@@ -84,10 +89,10 @@ enum LeaderboardType: String, CaseIterable {
     
     var displayName: String {
         switch self {
-        case .allTime: return "Tout temps"
-        case .thisMonth: return "Ce mois"
-        case .thisWeek: return "Cette semaine"
-        case .friends: return "Amis"
+        case .allTime: return String(localized: "leaderboard.filter.global")
+        case .thisMonth: return String(localized: "leaderboard.filter.this_month")
+        case .thisWeek: return String(localized: "leaderboard.filter.this_week")
+        case .friends: return String(localized: "leaderboard.filter.friends")
         }
     }
 }
@@ -121,7 +126,9 @@ class ProfileViewModel: ObservableObject {
     // MARK: - Computed Properties
     
     var currentUserId: String {
-        "user-current"
+        UserDefaults.standard.string(forKey: "wakeve_current_user_id")
+            ?? UserDefaults.standard.string(forKey: "wakeve_guest_user_id")
+            ?? "local-profile"
     }
     
     var totalPoints: Int {
@@ -174,236 +181,41 @@ class ProfileViewModel: ObservableObject {
     }
     
     private func loadUserPoints() async throws {
-        // Mock data for demonstration
-        // In production, this would call the GamificationService
+        let lastUpdated = ISO8601DateFormatter().string(from: Date())
         userPoints = UserPoints(
             userId: currentUserId,
-            totalPoints: 1250,
-            eventCreationPoints: 500,
-            votingPoints: 300,
-            commentPoints: 250,
-            participationPoints: 200,
+            totalPoints: 0,
+            eventCreationPoints: 0,
+            votingPoints: 0,
+            commentPoints: 0,
+            participationPoints: 0,
             decayPoints: 0,
-            lastUpdated: "2026-01-02T10:30:00Z"
+            lastUpdated: lastUpdated
         )
     }
     
     private func loadUserBadges() async throws {
-        // Mock data for demonstration
-        badges = [
-            ProfileBadge(
-                id: "badge-first-event",
-                name: "Premier Événement",
-                description: "A créé son premier événement",
-                icon: "🎉",
-                requirement: 1,
-                pointsReward: 50,
-                category: .creation,
-                rarity: .common,
-                unlockedAt: "2025-12-01T10:00:00Z"
-            ),
-            ProfileBadge(
-                id: "badge-super-organizer",
-                name: "Super Organisateur",
-                description: "A créé 10 événements",
-                icon: "🏆",
-                requirement: 10,
-                pointsReward: 100,
-                category: .creation,
-                rarity: .epic,
-                unlockedAt: "2025-12-15T14:30:00Z"
-            ),
-            ProfileBadge(
-                id: "badge-early-bird",
-                name: "早起鸟 (Early Bird)",
-                description: "A voté dans les 24h",
-                icon: "🐦",
-                requirement: 1,
-                pointsReward: 25,
-                category: .voting,
-                rarity: .common,
-                unlockedAt: "2025-12-20T08:00:00Z"
-            ),
-            ProfileBadge(
-                id: "badge-voting-master",
-                name: "Maître du Vote",
-                description: "A voté 50 fois",
-                icon: "🗳️",
-                requirement: 50,
-                pointsReward: 75,
-                category: .voting,
-                rarity: .rare,
-                unlockedAt: "2025-12-28T16:00:00Z"
-            ),
-            ProfileBadge(
-                id: "badge-active-participant",
-                name: "Participant Actif",
-                description: "A participé à 5 événements",
-                icon: "🙋",
-                requirement: 5,
-                pointsReward: 50,
-                category: .participation,
-                rarity: .common,
-                unlockedAt: "2025-12-10T12:00:00Z"
-            ),
-            ProfileBadge(
-                id: "badge-event-master",
-                name: "Maître des Événements",
-                description: "A organisé 5 événements ce mois",
-                icon: "🎭",
-                requirement: 5,
-                pointsReward: 150,
-                category: .engagement,
-                rarity: .legendary,
-                unlockedAt: "2025-12-25T20:00:00Z"
-            ),
-            ProfileBadge(
-                id: "badge-commentator",
-                name: "Commentateur",
-                description: "A commenté 10 scénarios",
-                icon: "💬",
-                requirement: 10,
-                pointsReward: 30,
-                category: .participation,
-                rarity: .common,
-                unlockedAt: "2025-12-18T11:00:00Z"
-            ),
-            ProfileBadge(
-                id: "badge-dedicated",
-                name: "Dévoué",
-                description: "7 jours consécutifs de participation",
-                icon: "⭐",
-                requirement: 7,
-                pointsReward: 100,
-                category: .engagement,
-                rarity: .rare,
-                unlockedAt: "2025-12-30T09:00:00Z"
-            )
-        ]
+        badges = []
     }
     
     private func loadLeaderboard() async throws {
-        // Mock data for demonstration
+        guard totalPoints > 0 || !badges.isEmpty else {
+            leaderboard = []
+            return
+        }
+
         leaderboard = [
-            LeaderboardEntry(
-                id: "user-1",
-                userId: "user-1",
-                username: "Alice Martin",
-                totalPoints: 2450,
-                badgesCount: 12,
-                rank: 1,
-                isCurrentUser: false,
-                isFriend: false,
-                legendaryCount: 2,
-                epicCount: 4
-            ),
-            LeaderboardEntry(
-                id: "user-2",
-                userId: "user-2",
-                username: "Bob Dupont",
-                totalPoints: 2100,
-                badgesCount: 10,
-                rank: 2,
-                isCurrentUser: false,
-                isFriend: true,
-                legendaryCount: 1,
-                epicCount: 3
-            ),
-            LeaderboardEntry(
-                id: "user-3",
-                userId: "user-3",
-                username: "Claire Bernard",
-                totalPoints: 1950,
-                badgesCount: 9,
-                rank: 3,
-                isCurrentUser: false,
-                isFriend: false,
-                legendaryCount: 1,
-                epicCount: 2
-            ),
             LeaderboardEntry(
                 id: currentUserId,
                 userId: currentUserId,
-                username: "Vous",
-                totalPoints: 1250,
-                badgesCount: 8,
-                rank: 4,
+                username: String(localized: "leaderboard.you"),
+                totalPoints: totalPoints,
+                badgesCount: badges.count,
+                rank: 1,
                 isCurrentUser: true,
                 isFriend: false,
-                legendaryCount: 1,
-                epicCount: 1
-            ),
-            LeaderboardEntry(
-                id: "user-5",
-                userId: "user-5",
-                username: "David Leroy",
-                totalPoints: 1100,
-                badgesCount: 7,
-                rank: 5,
-                isCurrentUser: false,
-                isFriend: true,
-                legendaryCount: 0,
-                epicCount: 2
-            ),
-            LeaderboardEntry(
-                id: "user-6",
-                userId: "user-6",
-                username: "Emma Moreau",
-                totalPoints: 980,
-                badgesCount: 6,
-                rank: 6,
-                isCurrentUser: false,
-                isFriend: false,
-                legendaryCount: 0,
-                epicCount: 1
-            ),
-            LeaderboardEntry(
-                id: "user-7",
-                userId: "user-7",
-                username: "Frank Rousseau",
-                totalPoints: 850,
-                badgesCount: 5,
-                rank: 7,
-                isCurrentUser: false,
-                isFriend: false,
-                legendaryCount: 0,
-                epicCount: 1
-            ),
-            LeaderboardEntry(
-                id: "user-8",
-                userId: "user-8",
-                username: "Grace Wang",
-                totalPoints: 720,
-                badgesCount: 4,
-                rank: 8,
-                isCurrentUser: false,
-                isFriend: true,
-                legendaryCount: 0,
-                epicCount: 0
-            ),
-            LeaderboardEntry(
-                id: "user-9",
-                userId: "user-9",
-                username: "Henry Chen",
-                totalPoints: 650,
-                badgesCount: 4,
-                rank: 9,
-                isCurrentUser: false,
-                isFriend: false,
-                legendaryCount: 0,
-                epicCount: 0
-            ),
-            LeaderboardEntry(
-                id: "user-10",
-                userId: "user-10",
-                username: "Isabelle Dubois",
-                totalPoints: 580,
-                badgesCount: 3,
-                rank: 10,
-                isCurrentUser: false,
-                isFriend: false,
-                legendaryCount: 0,
-                epicCount: 0
+                legendaryCount: badges.filter { $0.rarity == .legendary }.count,
+                epicCount: badges.filter { $0.rarity == .epic }.count
             )
         ]
     }

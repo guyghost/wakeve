@@ -316,6 +316,62 @@ final class OrganizationPhase5ContractTests: XCTestCase {
         )
     }
 
+    func testPaymentPotRequiresPositiveGoalBeforeCreateAndDoesNotFakeTricountProvider() throws {
+        let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let paymentRoute = slice(content, from: "case .paymentPot:", to: "case .tricount:")
+        let paymentPotView = slice(content, from: "private struct PaymentPotView: View", to: "private struct TricountHandoffView: View")
+
+        XCTAssertTrue(
+            containsAny(paymentPotView, ["goalAmountText", "parsedGoalAmount", "Montant à collecter"]),
+            "iOS PaymentPotView must ask for an explicit goal amount before creating a payment pot."
+        )
+        XCTAssertTrue(
+            containsAny(paymentPotView, ["canCreateConfiguredPot", "(parsedGoalAmount ?? 0) > 0", "goalAmount > 0"]),
+            "iOS PaymentPotView must guard creation behind a positive configured amount."
+        )
+        XCTAssertFalse(
+            paymentPotView.contains("goalAmount: 0"),
+            "iOS PaymentPotView must not create a zero-euro pot that looks like a usable shared payment product."
+        )
+        XCTAssertFalse(
+            paymentPotView.contains(#"paymentProvider: "TRICOUNT""#),
+            "iOS PaymentPotView must not label a local-only pot as a Tricount-backed provider without a verified Tricount handoff."
+        )
+        XCTAssertTrue(
+            paymentRoute.contains("eventTitle: event.title"),
+            "PaymentPotView must receive the event title so money surfaces do not expose raw event IDs."
+        )
+        XCTAssertTrue(paymentPotView.contains("let eventTitle: String"))
+        XCTAssertTrue(
+            paymentPotView.contains("title: String(format: String(localized: \"payment.default_title_format\"), eventTitle)"),
+            "New payment pots should be named after the event, not the internal eventId."
+        )
+        XCTAssertFalse(
+            paymentPotView.contains("title: String(format: String(localized: \"payment.default_title_format\"), eventId)"),
+            "Payment pot titles must not use raw internal event IDs."
+        )
+    }
+
+    func testPaymentPotUsesLocalizedWakeveTrustSurface() throws {
+        let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let paymentPotView = slice(content, from: "private struct PaymentPotView: View", to: "private struct TricountHandoffView: View")
+
+        XCTAssertTrue(paymentPotView.contains("WakeveContentCard(prominence: .prominent"))
+        XCTAssertTrue(paymentPotView.contains("WakeveActionButton("))
+        XCTAssertTrue(paymentPotView.contains("payment.no_active_body"))
+        XCTAssertTrue(paymentPotView.contains("payment.goal_placeholder"))
+        XCTAssertTrue(paymentPotView.contains("payment.status.local_only"))
+        XCTAssertTrue(paymentPotView.contains("PaymentTrustChecklistCard("))
+        XCTAssertTrue(paymentPotView.contains("payment.trust.title"))
+        XCTAssertTrue(paymentPotView.contains("payment.trust.goal_title"))
+        XCTAssertTrue(paymentPotView.contains("payment.trust.sync_title"))
+        XCTAssertTrue(paymentPotView.contains("payment.trust.link_title"))
+        XCTAssertTrue(paymentPotView.contains("paymentProvider: \"WAKEVE_LOCAL\""))
+        XCTAssertFalse(paymentPotView.contains(".textFieldStyle(.roundedBorder)"), "Payment goal input should not fall back to plain rounded-border form styling.")
+        XCTAssertFalse(paymentPotView.contains("Button(\"Créer une cagnotte\")"), "Payment actions should use localized WakeveActionButton controls.")
+        XCTAssertFalse(paymentPotView.contains("navigationTitle(\"Cagnotte\")"), "Payment title should be localized.")
+    }
+
     func testTricountViewExposesLinkUnlinkAndUsesSafeUrlOpener() throws {
         let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
         let tricountView = slice(content, from: "private struct TricountHandoffView: View", to: "private struct SafeExternalLink")
@@ -323,7 +379,7 @@ final class OrganizationPhase5ContractTests: XCTestCase {
         XCTAssertTrue(
             containsAny(
                 tricountView,
-                ["onLinkTricount", "linkTricount", "LinkTricount", "Associer Tricount", "Link Tricount"]
+                ["onLinkTricount", "linkTricount", "LinkTricount", "tricountURLText", "Link Tricount"]
             ),
             "iOS TricountHandoffView must expose a link/create handoff action."
         )
@@ -345,6 +401,82 @@ final class OrganizationPhase5ContractTests: XCTestCase {
             containsAny(tricountView, ["UIApplication.shared.open", "UIApplication.shared.canOpenURL"]),
             "iOS TricountHandoffView must not call UIApplication.shared.open/canOpenURL directly from SwiftUI."
         )
+    }
+
+    func testTricountViewUsesLocalizedWakeveTrustSurface() throws {
+        let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let tricountView = slice(content, from: "private struct TricountHandoffView: View", to: "private enum SafeURLOpener")
+
+        XCTAssertTrue(tricountView.contains("WakeveContentCard(prominence: .prominent"))
+        XCTAssertTrue(tricountView.contains("WakeveActionButton("))
+        XCTAssertTrue(tricountView.contains("tricount.status.missing"))
+        XCTAssertTrue(tricountView.contains("tricount.no_verified_link"))
+        XCTAssertTrue(tricountView.contains("tricount.safe_link_explanation"))
+        XCTAssertTrue(tricountView.contains("tricount.link"))
+        XCTAssertTrue(tricountView.contains("tricount.url_placeholder"))
+        XCTAssertTrue(tricountView.contains("tricount.status.invalid_url"))
+        XCTAssertTrue(tricountView.contains("isTrustedProviderUrl(provider: \"TRICOUNT\""))
+        XCTAssertTrue(tricountView.contains("tricount.unlink"))
+        XCTAssertTrue(tricountView.contains("tricount.not_needed"))
+        XCTAssertTrue(tricountView.contains("PaymentTrustChecklistCard("))
+        XCTAssertTrue(tricountView.contains("tricount.trust.title"))
+        XCTAssertTrue(tricountView.contains("tricount.trust.url_title"))
+        XCTAssertTrue(tricountView.contains("tricount.trust.decision_title"))
+        XCTAssertTrue(tricountView.contains("tricount.trust.readonly_title"))
+        XCTAssertTrue(tricountView.contains("SafeURLOpener.openSafeURL"))
+        XCTAssertFalse(tricountView.contains(#"providerUrl: "https://tricount.com/group/\(eventId)""#), "Tricount handoff must use a user-provided verified URL, not a generated placeholder link.")
+        XCTAssertFalse(tricountView.contains("Label(\"Aucun lien Tricount vérifié\""), "Tricount empty state should be localized.")
+        XCTAssertFalse(tricountView.contains("Button(\"Associer Tricount\")"), "Tricount actions should use localized WakeveActionButton controls.")
+        XCTAssertFalse(tricountView.contains("navigationTitle(\"Tricount\")"), "Tricount title should be localized.")
+    }
+
+    func testPaymentTrustChecklistIsLocalizedInSupportedLocales() throws {
+        let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let trustCard = slice(content, from: "private struct PaymentTrustChecklistCard", to: "private func formatCurrencyAmount")
+
+        XCTAssertTrue(trustCard.contains("checkmark.shield.fill"))
+        XCTAssertTrue(trustCard.contains("PaymentTrustChecklistItem: Identifiable"))
+
+        let requiredKeys = [
+            "payment.trust.title",
+            "payment.trust.goal_title",
+            "payment.trust.goal_detail",
+            "payment.trust.sync_title",
+            "payment.trust.sync_detail",
+            "payment.trust.link_title",
+            "payment.trust.link_detail",
+            "tricount.trust.title",
+            "tricount.trust.url_title",
+            "tricount.trust.url_detail",
+            "tricount.trust.decision_title",
+            "tricount.trust.decision_detail",
+            "tricount.trust.readonly_title",
+            "tricount.trust.readonly_detail"
+        ]
+
+        for locale in ["en", "fr", "es", "it", "pt"] {
+            let strings = try readProjectFile("iosApp/src/Resources/\(locale).lproj/Localizable.strings")
+            for key in requiredKeys {
+                XCTAssertTrue(strings.contains("\"\(key)\""), "Missing localized trust key \(key) for \(locale).")
+            }
+        }
+    }
+
+    func testSharedPhase5AccessAndSyncSurfacesUseWakeveLocalization() throws {
+        let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let accessDenied = slice(content, from: "private struct AccessDenied", to: "private struct Phase5SyncBanner")
+        let syncBanner = slice(content, from: "private struct Phase5SyncBanner", to: "private func formatCurrencyAmount")
+
+        XCTAssertTrue(accessDenied.contains("WakeveContentCard(prominence: .prominent"))
+        XCTAssertTrue(accessDenied.contains("WakeveActionButton("))
+        XCTAssertTrue(accessDenied.contains("access_denied.title"))
+        XCTAssertTrue(syncBanner.contains("WakeveContentCard(prominence: .subtle"))
+        XCTAssertTrue(syncBanner.contains("sync.pending_changes"))
+        XCTAssertTrue(syncBanner.contains("sync.offline_available"))
+        XCTAssertFalse(accessDenied.contains("Text(\"Accès restreint\")"), "Access denied title should be localized.")
+        XCTAssertFalse(accessDenied.contains("Button(\"Retour\""), "Access denied back action should use localized WakeveActionButton.")
+        XCTAssertFalse(syncBanner.contains("Modifications locales en attente d'envoi"), "Sync banner should use localized keys.")
+        XCTAssertFalse(syncBanner.contains(".background(.yellow.opacity"), "Sync banner should use WakeveContentCard styling.")
     }
 
     private func readProjectFile(_ relativePath: String) throws -> String {

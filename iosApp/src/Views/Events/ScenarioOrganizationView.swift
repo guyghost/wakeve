@@ -1,5 +1,8 @@
 import SwiftUI
 import Shared
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct ScenarioOrganizationView: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -15,6 +18,7 @@ struct ScenarioOrganizationView: View {
     @State private var canAccessOrganizationDetails = false
     @State private var selectedComparisonIds: Set<String> = []
     @State private var didLoad = false
+    @State private var showCreateScenarioSheet = false
 
     init(
         event: Event,
@@ -76,6 +80,26 @@ struct ScenarioOrganizationView: View {
             }
         } message: {
             Text(viewModel.toastMessage ?? "")
+        }
+        .sheet(isPresented: $showCreateScenarioSheet) {
+            CreateScenarioOptionSheet(
+                defaultName: defaultScenarioName,
+                defaultDateOrPeriod: defaultScenarioDateOrPeriod,
+                defaultLocation: defaultScenarioLocation,
+                defaultParticipants: defaultScenarioParticipants,
+                onCreate: { draft in
+                    viewModel.createScenario(
+                        name: draft.name,
+                        eventId: event.id,
+                        dateOrPeriod: draft.dateOrPeriod,
+                        location: draft.location,
+                        duration: Int32(draft.duration),
+                        estimatedParticipants: Int32(draft.estimatedParticipants),
+                        estimatedBudgetPerPerson: draft.estimatedBudgetPerPerson,
+                        description: draft.description
+                    )
+                }
+            )
         }
     }
 
@@ -217,8 +241,18 @@ struct ScenarioOrganizationView: View {
         } else if viewModel.scenarios.isEmpty {
             emptyState
         } else {
+            budgetDecisionSection
+
+            if let selectedScenario = selectedScenarioWithVotes {
+                selectedScenarioDecisionSection(selectedScenario)
+            }
+
             if let comparison = viewModel.comparison, comparison.scenarios.count >= 2 {
                 comparisonSection(scenarios: comparison.scenarios)
+            }
+
+            if canPublishMatrixScenarios {
+                matrixPublishSection
             }
 
             VStack(alignment: .leading, spacing: 12) {
@@ -245,8 +279,73 @@ struct ScenarioOrganizationView: View {
                                 scenarioId: scenarioWithVotes.scenario.id,
                                 userId: participantId
                             )
+                            WakeveHaptics.success()
                         }
                     )
+                }
+            }
+        }
+    }
+
+    private func selectedScenarioDecisionSection(_ scenarioWithVotes: ScenarioWithVotes) -> some View {
+        ScenarioDecisionResolutionCard(
+            scenario: scenarioWithVotes.scenario,
+            announcementMessage: selectedScenarioAnnouncementMessage(for: scenarioWithVotes.scenario),
+            canOpenTransport: canOpenTransport,
+            onOpenTransport: {
+                WakeveHaptics.selection()
+                onOpenTransport()
+            },
+            onOpenMeetings: {
+                WakeveHaptics.selection()
+                onOpenMeetings()
+            }
+        )
+    }
+
+    private var budgetDecisionSection: some View {
+        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
+                    Image(systemName: "eurosign.circle.fill")
+                        .font(.title3.weight(.bold))
+                        .foregroundColor(.white)
+                        .frame(width: 46, height: 46)
+                        .background(hasScenarioBudgetEstimates ? WakeveTheme.ColorToken.accent(for: colorScheme) : WakeveTheme.ColorToken.destructive(for: colorScheme))
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text(String(localized: "scenario.budget_decision.title"))
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(primaryText)
+
+                        Text(budgetDecisionSubtitle)
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(secondaryText)
+                            .lineSpacing(3)
+                    }
+                }
+
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    ScenarioBudgetInsightTile(
+                        title: String(localized: "scenario.budget_decision.per_person"),
+                        value: hasScenarioBudgetEstimates ? "\(formatBudget(minScenarioBudget)) - \(formatBudget(maxScenarioBudget))" : String(localized: "scenario.budget_decision.to_complete"),
+                        systemImage: "person.fill",
+                        colorScheme: colorScheme
+                    )
+
+                    ScenarioBudgetInsightTile(
+                        title: String(localized: "scenario.budget_decision.group"),
+                        value: hasScenarioBudgetEstimates ? formatBudget(averageScenarioBudget * Double(defaultScenarioParticipants)) : String(localized: "scenario.budget_decision.not_estimated"),
+                        systemImage: "person.3.fill",
+                        colorScheme: colorScheme
+                    )
+                }
+
+                if missingScenarioBudgetCount > 0 {
+                    Label(missingScenarioBudgetText, systemImage: "exclamationmark.triangle.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(WakeveTheme.ColorToken.destructive(for: colorScheme))
                 }
             }
         }
@@ -315,7 +414,7 @@ struct ScenarioOrganizationView: View {
 
     private var emptyState: some View {
         WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
-            VStack(spacing: 14) {
+            VStack(spacing: 16) {
                 Image(systemName: "map")
                     .font(.system(size: 40, weight: .semibold))
                     .foregroundColor(secondaryText)
@@ -328,8 +427,77 @@ struct ScenarioOrganizationView: View {
                     .font(.system(size: 15, weight: .medium))
                     .foregroundColor(secondaryText)
                     .multilineTextAlignment(.center)
+
+                if isOrganizer {
+                    if event.planningMode == .scenarioMatrix {
+                        matrixGenerationActions
+                    } else {
+                        WakeveActionButton(
+                            String(localized: "scenario.create_option"),
+                            systemImage: "plus.circle.fill",
+                            variant: .primary,
+                            action: { showCreateScenarioSheet = true }
+                        )
+                    }
+                }
             }
             .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var matrixGenerationActions: some View {
+        VStack(spacing: WakeveTheme.Spacing.sm) {
+            Text(matrixReadinessText)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(canGenerateMatrixScenarios ? secondaryText : WakeveTheme.ColorToken.destructive(for: colorScheme))
+                .multilineTextAlignment(.center)
+
+            WakeveActionButton(
+                String(localized: "scenario.generate_options"),
+                systemImage: "square.grid.2x2.fill",
+                variant: .primary,
+                isLoading: viewModel.isLoading
+            ) {
+                viewModel.generateScenarioMatrix(eventId: event.id, userId: participantId)
+            }
+            .disabled(!canGenerateMatrixScenarios || viewModel.isLoading)
+            .opacity(canGenerateMatrixScenarios ? 1 : 0.58)
+        }
+    }
+
+    private var matrixPublishSection: some View {
+        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
+                    Image(systemName: "paperplane.fill")
+                        .font(.headline.weight(.bold))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(WakeveTheme.ColorToken.accent(for: colorScheme))
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text(String(localized: "scenario.matrix_publish.ready_title"))
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(primaryText)
+
+                        Text(String(localized: "scenario.matrix_publish.ready_subtitle"))
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(secondaryText)
+                            .lineLimit(3)
+                    }
+                }
+
+                WakeveActionButton(
+                    String(localized: "scenario.matrix_publish.action"),
+                    systemImage: "checkmark.seal.fill",
+                    variant: .primary,
+                    isLoading: viewModel.isLoading
+                ) {
+                    WakeveHaptics.selection()
+                    viewModel.publishScenarioMatrix(eventId: event.id, userId: participantId)
+                }
+            }
         }
     }
 
@@ -346,11 +514,12 @@ struct ScenarioOrganizationView: View {
                 .allowsHitTesting(false)
 
                 WakeveActionButton(
-                    "Comparer \(selectedComparisonIds.count) scenarios",
+                    String(format: String(localized: "scenario.compare_selected_format"), selectedComparisonIds.count),
                     systemImage: "rectangle.split.3x1.fill",
                     variant: .primary,
                     isLoading: viewModel.isLoading
                 ) {
+                    WakeveHaptics.selection()
                     viewModel.compareScenarios(scenarioIds: Array(selectedComparisonIds))
                 }
                 .padding(.horizontal, WakeveTheme.Spacing.page)
@@ -420,6 +589,7 @@ struct ScenarioOrganizationView: View {
     }
 
     private func toggleComparison(_ scenarioId: String) {
+        WakeveHaptics.selection()
         if selectedComparisonIds.contains(scenarioId) {
             selectedComparisonIds.remove(scenarioId)
         } else {
@@ -472,6 +642,60 @@ struct ScenarioOrganizationView: View {
         viewModel.scenariosRanked.first?.scenario.location ?? String(localized: "scenario.destination_tbd")
     }
 
+    private var scenarioBudgetValues: [Double] {
+        viewModel.scenarios.map(\.scenario.estimatedBudgetPerPerson)
+    }
+
+    private var estimatedScenarioBudgetValues: [Double] {
+        scenarioBudgetValues.filter { $0 > 0 }
+    }
+
+    private var hasScenarioBudgetEstimates: Bool {
+        !estimatedScenarioBudgetValues.isEmpty
+    }
+
+    private var minScenarioBudget: Double {
+        estimatedScenarioBudgetValues.min() ?? 0
+    }
+
+    private var maxScenarioBudget: Double {
+        estimatedScenarioBudgetValues.max() ?? 0
+    }
+
+    private var averageScenarioBudget: Double {
+        guard !estimatedScenarioBudgetValues.isEmpty else { return 0 }
+        return estimatedScenarioBudgetValues.reduce(0, +) / Double(estimatedScenarioBudgetValues.count)
+    }
+
+    private var missingScenarioBudgetCount: Int {
+        scenarioBudgetValues.filter { $0 <= 0 }.count
+    }
+
+    private var budgetDecisionSubtitle: String {
+        guard hasScenarioBudgetEstimates else {
+            return String(localized: "scenario.budget_decision.missing_subtitle")
+        }
+
+        let bestName = viewModel.scenariosRanked.first?.scenario.name ?? String(localized: "scenario.budget_decision.best_option_fallback")
+        return String(format: String(localized: "scenario.budget_decision.leading_subtitle_format"), bestName)
+    }
+
+    private var selectedScenarioWithVotes: ScenarioWithVotes? {
+        viewModel.scenariosRanked.first { $0.scenario.status == .selected } ??
+            viewModel.scenarios.first { $0.scenario.status == .selected }
+    }
+
+    private func selectedScenarioAnnouncementMessage(for scenario: Scenario_) -> String {
+        String(
+            format: String(localized: "scenario.decision.message_format"),
+            event.title,
+            scenario.name,
+            scenario.location,
+            scenario.dateOrPeriod,
+            formatBudget(scenario.estimatedBudgetPerPerson)
+        )
+    }
+
     private var participantText: String {
         if let expected = event.expectedParticipants?.intValue {
             return String(format: String(localized: "scenario.invited_count_format"), expected)
@@ -503,6 +727,88 @@ struct ScenarioOrganizationView: View {
         }
     }
 
+    private var canGenerateMatrixScenarios: Bool {
+        event.status == .draft &&
+        event.planningMode == .scenarioMatrix &&
+        matrixTimeSlotCount > 0 &&
+        matrixLocationCount > 0
+    }
+
+    private var canPublishMatrixScenarios: Bool {
+        isOrganizer &&
+        event.planningMode == .scenarioMatrix &&
+        (viewModel.eventStatus ?? event.status) == .draft &&
+        viewModel.scenarios.contains { $0.scenario.status == .draft }
+    }
+
+    private var matrixTimeSlotCount: Int {
+        max(
+            event.proposedSlots.count,
+            RepositoryProvider.shared.database.timeSlotQueries
+                .selectByEventId(eventId: event.id)
+                .executeAsList()
+                .count
+        )
+    }
+
+    private var matrixLocationCount: Int {
+        RepositoryProvider.shared.database.potentialLocationQueries
+            .selectByEventId(eventId: event.id)
+            .executeAsList()
+            .count
+    }
+
+    private var matrixReadinessText: String {
+        if matrixTimeSlotCount == 0 && matrixLocationCount == 0 {
+            return String(localized: "scenario.matrix_readiness.missing_slots_and_destinations")
+        }
+        if matrixTimeSlotCount == 0 {
+            return String(localized: "scenario.matrix_readiness.missing_slots")
+        }
+        if matrixLocationCount == 0 {
+            return String(localized: "scenario.matrix_readiness.missing_destinations")
+        }
+        let optionCount = matrixTimeSlotCount * matrixLocationCount
+        return optionCount == 1
+            ? String(format: String(localized: "scenario.matrix_readiness.ready_singular_format"), optionCount)
+            : String(format: String(localized: "scenario.matrix_readiness.ready_plural_format"), optionCount)
+    }
+
+    private var defaultScenarioLocation: String {
+        RepositoryProvider.shared.database.potentialLocationQueries
+            .selectFirstLocationByEventId(eventId: event.id)
+            .executeAsOneOrNull()?
+            .name ?? String(localized: "scenario.destination_to_define")
+    }
+
+    private var defaultScenarioName: String {
+        defaultScenarioLocation == String(localized: "scenario.destination_to_define")
+            ? String(localized: "scenario.default_name")
+            : String(format: String(localized: "scenario.default_name_with_location_format"), defaultScenarioLocation)
+    }
+
+    private var defaultScenarioDateOrPeriod: String {
+        event.finalDate ?? event.proposedSlots.first.map(formatSlotLabel) ?? String(localized: "scenario.period_to_define")
+    }
+
+    private var defaultScenarioParticipants: Int {
+        max(event.expectedParticipants?.intValue ?? event.participants.count, 1)
+    }
+
+    private func formatSlotLabel(_ slot: TimeSlot_) -> String {
+        let start = slot.start ?? String(localized: "scenario.flexible_date")
+        guard let end = slot.end, end != start else {
+            return start
+        }
+        return "\(start) / \(end)"
+    }
+
+    private var missingScenarioBudgetText: String {
+        missingScenarioBudgetCount == 1
+            ? String(format: String(localized: "scenario.budget_decision.missing_budget_singular_format"), missingScenarioBudgetCount)
+            : String(format: String(localized: "scenario.budget_decision.missing_budget_plural_format"), missingScenarioBudgetCount)
+    }
+
     private var heroColors: [Color] {
         [
             Color(hex: "0F766E"),
@@ -521,6 +827,428 @@ struct ScenarioOrganizationView: View {
 
     private var secondaryText: Color {
         WakeveTheme.ColorToken.secondaryText(for: colorScheme)
+    }
+}
+
+private struct ScenarioOptionDraft {
+    let name: String
+    let dateOrPeriod: String
+    let location: String
+    let duration: Int
+    let estimatedParticipants: Int
+    let estimatedBudgetPerPerson: Double
+    let description: String
+}
+
+private struct CreateScenarioOptionSheet: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var name: String
+    @State private var dateOrPeriod: String
+    @State private var location: String
+    @State private var duration = 1
+    @State private var estimatedParticipants: Int
+    @State private var budgetText = ""
+    @State private var description: String
+
+    let onCreate: (ScenarioOptionDraft) -> Void
+
+    init(
+        defaultName: String,
+        defaultDateOrPeriod: String,
+        defaultLocation: String,
+        defaultParticipants: Int,
+        onCreate: @escaping (ScenarioOptionDraft) -> Void
+    ) {
+        _name = State(initialValue: defaultName)
+        _dateOrPeriod = State(initialValue: defaultDateOrPeriod)
+        _location = State(initialValue: defaultLocation)
+        _estimatedParticipants = State(initialValue: defaultParticipants)
+        _description = State(initialValue: String(localized: "scenario.manual.default_description"))
+        self.onCreate = onCreate
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.lg) {
+                    WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+                        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                            Text(String(localized: "scenario.manual.title"))
+                                .font(WakeveTheme.Typography.title2)
+                                .foregroundColor(primaryText)
+
+                            scenarioField(String(localized: "scenario.manual.name"), text: $name, systemImage: "textformat")
+                            scenarioField(String(localized: "scenario.manual.period"), text: $dateOrPeriod, systemImage: "calendar")
+                            scenarioField(String(localized: "scenario.destination"), text: $location, systemImage: "mappin.and.ellipse")
+
+                            Stepper(value: $duration, in: 1...30) {
+                                ScenarioSheetValueRow(title: String(localized: "scenario.duration"), value: durationText, systemImage: "clock")
+                            }
+
+                            Stepper(value: $estimatedParticipants, in: 1...200) {
+                                ScenarioSheetValueRow(title: String(localized: "scenario.participants"), value: "\(estimatedParticipants)", systemImage: "person.2.fill")
+                            }
+
+                            scenarioField(String(localized: "scenario.manual.budget_per_person"), text: $budgetText, systemImage: "eurosign.circle", keyboardType: .decimalPad)
+                            scenarioField(String(localized: "scenario.manual.description"), text: $description, systemImage: "text.alignleft", axis: .vertical)
+                        }
+                    }
+                }
+                .padding(WakeveTheme.Spacing.page)
+            }
+            .background(WakeveTheme.ColorToken.pageBackground(for: colorScheme))
+            .navigationTitle(String(localized: "scenario.create_option"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(String(localized: "common.cancel")) {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(String(localized: "common.create")) {
+                        onCreate(
+                            ScenarioOptionDraft(
+                                name: normalizedName,
+                                dateOrPeriod: normalizedDateOrPeriod,
+                                location: normalizedLocation,
+                                duration: duration,
+                                estimatedParticipants: estimatedParticipants,
+                                estimatedBudgetPerPerson: parsedBudget,
+                                description: normalizedDescription
+                            )
+                        )
+                        dismiss()
+                    }
+                    .disabled(!canCreate)
+                }
+            }
+        }
+    }
+
+    private func scenarioField(
+        _ title: String,
+        text: Binding<String>,
+        systemImage: String,
+        keyboardType: UIKeyboardType = .default,
+        axis: Axis = .horizontal
+    ) -> some View {
+        HStack(alignment: axis == .vertical ? .top : .center, spacing: WakeveTheme.Spacing.sm) {
+            Image(systemName: systemImage)
+                .font(.headline.weight(.bold))
+                .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                .frame(width: 34, height: 34)
+                .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                .clipShape(Circle())
+
+            TextField(title, text: text, axis: axis)
+                .font(WakeveTheme.Typography.body)
+                .foregroundColor(primaryText)
+                .keyboardType(keyboardType)
+                .lineLimit(axis == .vertical ? 3...5 : 1...1)
+                .textFieldStyle(.plain)
+        }
+        .padding(WakeveTheme.Spacing.md)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+
+    private var canCreate: Bool {
+        !normalizedName.isEmpty && !normalizedDateOrPeriod.isEmpty && !normalizedLocation.isEmpty
+    }
+
+    private var normalizedName: String {
+        name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var normalizedDateOrPeriod: String {
+        dateOrPeriod.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var normalizedLocation: String {
+        location.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var normalizedDescription: String {
+        let trimmed = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? String(localized: "scenario.manual.default_description") : trimmed
+    }
+
+    private var parsedBudget: Double {
+        let normalized = budgetText
+            .replacingOccurrences(of: ",", with: ".")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return Double(normalized) ?? 0
+    }
+
+    private var primaryText: Color {
+        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+    }
+
+    private var durationText: String {
+        duration == 1
+            ? String(format: String(localized: "scenario.manual.duration_day_singular_format"), duration)
+            : String(format: String(localized: "scenario.manual.duration_day_plural_format"), duration)
+    }
+}
+
+private struct ScenarioSheetValueRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    let value: String
+    let systemImage: String
+
+    var body: some View {
+        HStack(spacing: WakeveTheme.Spacing.sm) {
+            Image(systemName: systemImage)
+                .font(.headline.weight(.bold))
+                .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                .frame(width: 34, height: 34)
+                .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                .clipShape(Circle())
+
+            Text(title)
+                .font(WakeveTheme.Typography.body)
+
+            Spacer()
+
+            Text(value)
+                .font(WakeveTheme.Typography.bodySemibold)
+                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+        }
+    }
+}
+
+private struct ScenarioBudgetInsightTile: View {
+    let title: String
+    let value: String
+    let systemImage: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+            Image(systemName: systemImage)
+                .font(.headline.weight(.bold))
+                .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
+                .frame(width: 34, height: 34)
+                .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                .clipShape(Circle())
+
+            Text(title)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                .textCase(.uppercase)
+
+            Text(value)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(WakeveTheme.Spacing.md)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+}
+
+private struct ScenarioDecisionResolutionCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let scenario: Scenario_
+    let announcementMessage: String
+    let canOpenTransport: Bool
+    let onOpenTransport: () -> Void
+    let onOpenMeetings: () -> Void
+
+    @State private var showCopiedDecisionMessage = false
+
+    var body: some View {
+        WakeveGlassCard(cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                HStack(alignment: .top, spacing: WakeveTheme.Spacing.md) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.title3.weight(.bold))
+                        .foregroundColor(.white)
+                        .frame(width: 46, height: 46)
+                        .background(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+                        .clipShape(Circle())
+
+                    VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                        Text(String(localized: "scenario.decision.title"))
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(primaryText)
+
+                        Text(String(format: String(localized: "scenario.decision.subtitle_format"), scenario.name))
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                    ScenarioDecisionMetricRow(
+                        icon: "mappin.and.ellipse",
+                        title: String(localized: "scenario.destination"),
+                        value: scenario.location,
+                        colorScheme: colorScheme
+                    )
+                    ScenarioDecisionMetricRow(
+                        icon: "calendar",
+                        title: String(localized: "scenario.dates"),
+                        value: scenario.dateOrPeriod,
+                        colorScheme: colorScheme
+                    )
+                    ScenarioDecisionMetricRow(
+                        icon: "eurosign.circle.fill",
+                        title: String(localized: "scenario.budget"),
+                        value: String(format: String(localized: "scenario.decision.budget_value_format"), formatBudget(scenario.estimatedBudgetPerPerson)),
+                        colorScheme: colorScheme
+                    )
+                }
+
+                Text(announcementMessage)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(primaryText)
+                    .padding(WakeveTheme.Spacing.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+                    .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+                    .accessibilityIdentifier("scenarioDecisionAnnouncementPreview")
+
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    ShareLink(item: announcementMessage) {
+                        Label(String(localized: "scenario.decision.share_action"), systemImage: "square.and.arrow.up")
+                            .font(.system(size: 15, weight: .semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.76)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .simultaneousGesture(TapGesture().onEnded {
+                        WakeveHaptics.selection()
+                    })
+                    .accessibilityIdentifier("scenarioDecisionShareLink")
+
+                    Button {
+                        copyDecisionMessage()
+                    } label: {
+                        Label(String(localized: "scenario.decision.copy_action"), systemImage: showCopiedDecisionMessage ? "checkmark" : "doc.on.doc.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .labelStyle(.iconOnly)
+                            .frame(width: 48, height: 48)
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityLabel(showCopiedDecisionMessage ? String(localized: "scenario.decision.copied") : String(localized: "scenario.decision.copy_action"))
+                    .accessibilityIdentifier("scenarioDecisionCopyButton")
+                }
+
+                if showCopiedDecisionMessage {
+                    Label(String(localized: "scenario.decision.copied"), systemImage: "checkmark.circle.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(WakeveTheme.ColorToken.confirmation(for: colorScheme))
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        .accessibilityIdentifier("scenarioDecisionCopiedFeedback")
+                }
+
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    WakeveActionButton(
+                        String(localized: "scenario.decision.open_transport"),
+                        systemImage: "point.topleft.down.curvedto.point.bottomright.up.fill",
+                        variant: .secondary,
+                        isDisabled: !canOpenTransport,
+                        action: onOpenTransport
+                    )
+
+                    WakeveActionButton(
+                        String(localized: "scenario.decision.open_meetings"),
+                        systemImage: "video.fill",
+                        variant: .eventNext,
+                        action: onOpenMeetings
+                    )
+                }
+
+                if !canOpenTransport {
+                    Label(String(localized: "scenario.decision.transport_locked"), systemImage: "lock.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(secondaryText)
+                }
+            }
+        }
+        .accessibilityIdentifier("scenarioDecisionResolutionCard")
+    }
+
+    private func copyDecisionMessage() {
+        #if canImport(UIKit)
+        UIPasteboard.general.string = announcementMessage
+        #endif
+        WakeveHaptics.success()
+        withAnimation(.easeInOut(duration: 0.18)) {
+            showCopiedDecisionMessage = true
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            withAnimation(.easeInOut(duration: 0.18)) {
+                showCopiedDecisionMessage = false
+            }
+        }
+    }
+
+    private func formatBudget(_ value: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "EUR"
+        formatter.maximumFractionDigits = value.rounded() == value ? 0 : 2
+        return formatter.string(from: NSNumber(value: value)) ?? "\(Int(value)) EUR"
+    }
+
+    private var primaryText: Color {
+        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+    }
+
+    private var secondaryText: Color {
+        WakeveTheme.ColorToken.secondaryText(for: colorScheme)
+    }
+}
+
+private struct ScenarioDecisionMetricRow: View {
+    let icon: String
+    let title: String
+    let value: String
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        HStack(spacing: WakeveTheme.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(.blue)
+                .frame(width: 30, height: 30)
+                .background(Color.blue.opacity(0.12))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xxs) {
+                Text(title)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                    .textCase(.uppercase)
+
+                Text(value)
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.78)
+            }
+
+            Spacer(minLength: WakeveTheme.Spacing.xs)
+        }
+        .padding(WakeveTheme.Spacing.sm)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
     }
 }
 
@@ -705,6 +1433,7 @@ private struct ScenarioOrganizationCard: View {
         let isActive = currentParticipantVote == vote
 
         return Button {
+            WakeveHaptics.selection()
             onVote(vote)
         } label: {
             VStack(spacing: 6) {

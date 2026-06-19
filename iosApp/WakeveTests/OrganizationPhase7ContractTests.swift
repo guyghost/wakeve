@@ -143,6 +143,104 @@ final class OrganizationPhase7ContractTests: XCTestCase {
         )
     }
 
+    func testScenarioEmptyStateIsActionableForManualAndMatrixPlanning() throws {
+        let scenarioView = try readProjectFile("iosApp/src/Views/Events/ScenarioOrganizationView.swift")
+        let contentView = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let emptyState = slice(scenarioView, from: "private var emptyState", to: "@ViewBuilder\n    private var bottomComparisonBar")
+        let createFlow = slice(contentView, from: ".fullScreenCover(isPresented: $showEventCreationSheet)", to: ".sheet(isPresented: $showNotificationPreferencesSheet)")
+
+        XCTAssertTrue(emptyState.contains("showCreateScenarioSheet = true"))
+        XCTAssertTrue(scenarioView.contains("CreateScenarioOptionSheet("))
+        XCTAssertTrue(scenarioView.contains("viewModel.createScenario("))
+        XCTAssertTrue(scenarioView.contains("viewModel.generateScenarioMatrix(eventId: event.id, userId: participantId)"))
+        XCTAssertTrue(scenarioView.contains("viewModel.publishScenarioMatrix(eventId: event.id, userId: participantId)"))
+        XCTAssertTrue(scenarioView.contains("canGenerateMatrixScenarios"))
+        XCTAssertTrue(scenarioView.contains("canPublishMatrixScenarios"))
+        XCTAssertTrue(emptyState.contains("scenario.create_option"))
+        XCTAssertTrue(scenarioView.contains("scenario.generate_options"))
+        XCTAssertTrue(scenarioView.contains("scenario.matrix_publish.ready_title"))
+        XCTAssertTrue(createFlow.contains("event.planningMode == .scenarioMatrix ? .scenarioList : .participantManagement"))
+    }
+
+    func testScenarioDecisionSurfacesBudgetBeforeFinalSelection() throws {
+        let scenarioView = try readProjectFile("iosApp/src/Views/Events/ScenarioOrganizationView.swift")
+        let scenarioContent = slice(scenarioView, from: "private var scenarioContent", to: "private func comparisonSection")
+        let budgetSection = slice(scenarioView, from: "private var budgetDecisionSection", to: "private func comparisonSection")
+        let finalSelectionCard = slice(scenarioView, from: "private struct ScenarioOrganizationCard", to: "private func formatBudget")
+
+        XCTAssertTrue(scenarioContent.contains("budgetDecisionSection"))
+        XCTAssertLessThan(
+            scenarioContent.range(of: "budgetDecisionSection")?.lowerBound ?? scenarioContent.endIndex,
+            scenarioContent.range(of: "String(localized: \"scenario.ranking\")")?.lowerBound ?? scenarioContent.endIndex,
+            "The scenario budget decision summary must appear before ranking/final-choice controls."
+        )
+        XCTAssertTrue(budgetSection.contains("scenario.budget_decision.title"))
+        XCTAssertTrue(budgetSection.contains("scenario.budget_decision.per_person"))
+        XCTAssertTrue(budgetSection.contains("estimatedBudgetPerPerson"))
+        XCTAssertTrue(budgetSection.contains("missingScenarioBudgetCount"))
+        XCTAssertTrue(budgetSection.contains("ScenarioBudgetInsightTile"))
+        XCTAssertFalse(budgetSection.contains("Budget avant décision"))
+        XCTAssertTrue(finalSelectionCard.contains("scenario.estimatedBudgetPerPerson"))
+    }
+
+    func testSelectedScenarioDecisionCreatesAnnouncementAndNextActions() throws {
+        let scenarioView = try readProjectFile("iosApp/src/Views/Events/ScenarioOrganizationView.swift")
+        let scenarioContent = slice(scenarioView, from: "private var scenarioContent", to: "private func comparisonSection")
+        let resolutionCard = slice(scenarioView, from: "private struct ScenarioDecisionResolutionCard", to: "private struct ScenarioOrganizationCard")
+
+        XCTAssertTrue(scenarioContent.contains("selectedScenarioDecisionSection(selectedScenario)"))
+        XCTAssertTrue(scenarioView.contains("selectedScenarioWithVotes"))
+        XCTAssertTrue(scenarioView.contains("$0.scenario.status == .selected"))
+        XCTAssertTrue(scenarioView.contains("selectedScenarioAnnouncementMessage(for:"))
+        XCTAssertTrue(scenarioView.contains("scenario.decision.message_format"))
+        XCTAssertTrue(resolutionCard.contains("ShareLink(item: announcementMessage)"))
+        XCTAssertTrue(resolutionCard.contains("UIPasteboard.general.string = announcementMessage"))
+        XCTAssertTrue(resolutionCard.contains("WakeveHaptics.success()"))
+        XCTAssertTrue(resolutionCard.contains("scenarioDecisionResolutionCard"))
+        XCTAssertTrue(resolutionCard.contains("scenarioDecisionShareLink"))
+        XCTAssertTrue(resolutionCard.contains("scenarioDecisionCopyButton"))
+        XCTAssertTrue(resolutionCard.contains("scenarioDecisionCopiedFeedback"))
+        XCTAssertTrue(resolutionCard.contains("scenario.decision.open_transport"))
+        XCTAssertTrue(resolutionCard.contains("scenario.decision.open_meetings"))
+        XCTAssertTrue(resolutionCard.contains("isDisabled: !canOpenTransport"))
+
+        for locale in ["en", "fr", "es", "it", "pt"] {
+            let strings = try readProjectFile("iosApp/src/Resources/\(locale).lproj/Localizable.strings")
+            for key in [
+                "scenario.decision.title",
+                "scenario.decision.subtitle_format",
+                "scenario.decision.message_format",
+                "scenario.decision.budget_value_format",
+                "scenario.decision.share_action",
+                "scenario.decision.copy_action",
+                "scenario.decision.copied",
+                "scenario.decision.open_transport",
+                "scenario.decision.open_meetings",
+                "scenario.decision.transport_locked"
+            ] {
+                XCTAssertTrue(strings.contains("\"\(key)\""), "Missing localized selected-scenario decision key \(key) for \(locale).")
+            }
+        }
+    }
+
+    func testScenarioManualCreationAndMatrixCopyUseLocalizationKeys() throws {
+        let scenarioView = try readProjectFile("iosApp/src/Views/Events/ScenarioOrganizationView.swift")
+        let helpers = slice(scenarioView, from: "private var budgetDecisionSubtitle", to: "private func formatBudget")
+        let createSheet = slice(scenarioView, from: "private struct CreateScenarioOptionSheet", to: "private struct ScenarioSheetValueRow")
+
+        XCTAssertTrue(helpers.contains("scenario.matrix_readiness.missing_slots_and_destinations"))
+        XCTAssertTrue(helpers.contains("scenario.destination_to_define"))
+        XCTAssertTrue(helpers.contains("scenario.manual.default_description"))
+        XCTAssertTrue(createSheet.contains("scenario.manual.title"))
+        XCTAssertTrue(createSheet.contains("scenario.manual.budget_per_person"))
+        XCTAssertTrue(createSheet.contains("scenario.manual.duration_day_plural_format"))
+        XCTAssertTrue(scenarioView.contains("scenario.compare_selected_format"))
+        XCTAssertFalse(helpers.contains("Destination à préciser"))
+        XCTAssertFalse(createSheet.contains("Nouvelle option"))
+        XCTAssertFalse(createSheet.contains("Option à comparer avec le groupe."))
+        XCTAssertFalse(scenarioView.contains("\"Comparer \\(selectedComparisonIds.count) scenarios\""))
+    }
+
     func testOfflinePendingAndFailedSyncStatesDoNotReadAsServerConfirmed() throws {
         let sources = try organizationSources()
 
@@ -175,6 +273,7 @@ final class OrganizationPhase7ContractTests: XCTestCase {
 
     func testVisiblePendingSyncBannersUseLocalizedUserCopy() throws {
         let visibleCopy = try visibleOrganizationCopy()
+        let sources = try organizationSources()
         let pendingCopy = visibleCopy.filter { copy in
             containsAny(
                 copy,
@@ -200,9 +299,10 @@ final class OrganizationPhase7ContractTests: XCTestCase {
                     copy,
                     [
                         "Synchronisation en attente",
-                        "Modifications locales en attente d'envoi"
+                        "Modifications locales en attente d'envoi",
+                        "sync.pending_changes"
                     ]
-                )
+                ) || sources.contains("sync.pending_changes")
             },
             "Pending-sync banners must use localized user copy such as Synchronisation en attente / Modifications locales en attente d'envoi. Found: \(pendingCopy)"
         )
@@ -502,6 +602,32 @@ final class OrganizationPhase7ContractTests: XCTestCase {
         )
     }
 
+    func testMeetingDeepLinksResolveParentEventBeforeOpeningDetail() throws {
+        let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let deepLinkSwitch = slice(content, from: "private func handleDeepLinkNavigation", to: "private func navigateToEvent")
+        let meetingNavigation = slice(content, from: "private func navigateToMeeting", to: "private func isParticipantConfirmed")
+
+        XCTAssertTrue(
+            deepLinkSwitch.contains(#"case ("meeting", let meetingId?, _):"#),
+            "ContentView must consume DeepLinkService meeting routes instead of dropping them."
+        )
+        XCTAssertTrue(
+            deepLinkSwitch.contains("navigateToMeeting(meetingId: meetingId)"),
+            "Meeting deep links must route through a dedicated resolver."
+        )
+        XCTAssertTrue(
+            meetingNavigation.contains("meetingQueries") &&
+                meetingNavigation.contains(".selectById(id: meetingId)") &&
+                meetingNavigation.contains("meeting.eventId"),
+            "Meeting deep links must resolve the parent event before constructing MeetingDetailView."
+        )
+        XCTAssertTrue(
+            meetingNavigation.contains("selectedMeetingId = meetingId") &&
+                meetingNavigation.contains("currentView = .meetingDetail"),
+            "Meeting deep links must select the meeting and open the real meeting detail route."
+        )
+    }
+
     func testFinalizedPaymentAndTricountRoutesPassReadOnlyStateToMutationViews() throws {
         let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
         let paymentRoute = slice(content, from: "case .paymentPot:", to: "case .tricount:")
@@ -662,6 +788,28 @@ final class OrganizationPhase7ContractTests: XCTestCase {
         XCTAssertTrue(
             finalizedOnlyMutationGuards.isEmpty,
             "iOS payment/Tricount views must not compute mutations from isOrganizer && !isReadOnly only; pre-ORGANIZING states must also be non-mutable. Offenders: \(finalizedOnlyMutationGuards)"
+        )
+    }
+
+    func testEventDetailPaymentAndTricountRowsExposeRealReadinessState() throws {
+        let content = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let eventDetail = slice(content, from: "private struct EventDetailView", to: "private struct EventDetailHero")
+
+        XCTAssertTrue(
+            containsAny(eventDetail, ["paymentPotSummaryValue()", "getActivePotForEvent(eventId:", "event.detail.payment_pot.define_before_share"]),
+            "Event detail payment row must summarize the actual payment-pot readiness instead of a generic shared-pot label."
+        )
+        XCTAssertTrue(
+            containsAny(eventDetail, ["tricountSummaryValue()", "getPaymentReadiness(eventId:", "event.detail.tricount.decide_before_expenses"]),
+            "Event detail Tricount row must summarize verified/not-needed/missing handoff state instead of generic secure-handoff copy."
+        )
+        XCTAssertFalse(
+            eventDetail.contains(#"organizationDashboardValue("Cagnotte commune")"#),
+            "Event detail must not advertise a common pot when no configured goal exists."
+        )
+        XCTAssertFalse(
+            eventDetail.contains(#"organizationDashboardValue("Handoff sécurisé")"#),
+            "Event detail must not advertise a secure handoff before the Tricount readiness state is known."
         )
     }
 

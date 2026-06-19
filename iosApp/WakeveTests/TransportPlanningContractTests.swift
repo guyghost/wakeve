@@ -352,6 +352,47 @@ final class TransportPlanningContractTests: XCTestCase {
         )
     }
 
+    func testTransportMissingDestinationPrimaryActionOpensScenarioSelection() throws {
+        let view = try readProjectFile("iosApp/src/Views/Events/TransportPlanningView.swift")
+        let contentView = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let primaryActionDisabled = slice(
+            view,
+            from: "private var primaryActionDisabled",
+            to: "private func primaryAction"
+        )
+        let primaryAction = slice(
+            view,
+            from: "private func primaryAction",
+            to: "private func saveDeparture"
+        )
+        let transportCase = slice(
+            contentView,
+            from: "case .transportPlanning:",
+            to: "case .inbox:"
+        )
+
+        XCTAssertTrue(
+            primaryActionDisabled.contains("if selectedDestination == nil") &&
+                primaryActionDisabled.contains("return mutationDisabled"),
+            "When destination is missing, the primary action must remain tappable for organizers who can mutate so it can open scenario/destination selection."
+        )
+        XCTAssertFalse(
+            primaryActionDisabled.contains("selectedDestination == nil ||") ||
+                primaryActionDisabled.contains("|| selectedDestination == nil"),
+            "Missing destination must not be folded into the generic disabled policy, because the CTA is the recovery path."
+        )
+        XCTAssertTrue(
+            primaryAction.contains("if selectedDestination == nil") &&
+                primaryAction.contains("onChooseDestination()"),
+            "The missing-destination CTA must route to destination/scenario selection instead of doing nothing."
+        )
+        XCTAssertTrue(
+            transportCase.contains("onChooseDestination:") &&
+                transportCase.contains("currentView = .scenarioList"),
+            "ContentView must wire the missing-destination transport action back to scenario selection."
+        )
+    }
+
     private func readProjectFile(_ relativePath: String) throws -> String {
         var directory = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
