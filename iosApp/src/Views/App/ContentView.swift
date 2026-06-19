@@ -1850,7 +1850,7 @@ struct EventDetailView: View {
                         .padding(.top, WakeveTheme.Spacing.xs)
                 }
                 .padding(.horizontal, WakeveTheme.Spacing.page)
-                .padding(.top, 92)
+                .padding(.top, WakeveTheme.Spacing.md)
                 .padding(.bottom, 118)
             }
         }
@@ -2245,7 +2245,7 @@ struct EventDetailView: View {
             WakeveCircleButton(
                 systemImage: "chevron.left",
                 accessibilityLabel: String(localized: "common.back"),
-                variant: .glass,
+                variant: .light,
                 size: 40,
                 action: onBack
             )

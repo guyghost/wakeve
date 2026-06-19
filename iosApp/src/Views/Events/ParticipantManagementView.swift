@@ -83,7 +83,7 @@ struct ParticipantManagementView: View {
                         participantsContent
                     }
                     .padding(.horizontal, WakeveTheme.Spacing.page)
-                    .padding(.top, 92)
+                    .padding(.top, WakeveTheme.Spacing.md)
                     .padding(.bottom, event.status == .draft ? 124 : 44)
                 }
             }
