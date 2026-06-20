@@ -97,17 +97,48 @@ assert_wakeve_ai_device_profile_helper() {
     echo "PASS: WakeveAI device profile helper generates the required 6.6 evidence template"
 }
 
+assert_weatherkit_device_validation_helper() {
+    local output_dir
+    local report
+    output_dir="$(mktemp -d)"
+
+    bash -n "$PROJECT_DIR/scripts/prepare-weatherkit-device-validation.sh"
+    report="$(OUTPUT_DIR="$output_dir" "$PROJECT_DIR/scripts/prepare-weatherkit-device-validation.sh")"
+
+    if [ ! -f "$report" ]; then
+        echo "FAIL: WeatherKit device validation helper did not create a report at $report" >&2
+        exit 1
+    fi
+
+    local required_patterns=(
+        'Status: `'
+        'Source WeatherKit entitlement | `true`'
+        'Provisioning profile contains WeatherKit entitlement | TODO'
+        'Signed app entitlement inspection path | TODO'
+        'WeatherKit request result | TODO'
+        'Do not mark `1.2` or `6.2` complete'
+    )
+
+    for pattern in "${required_patterns[@]}"; do
+        if ! grep -Fq "$pattern" "$report"; then
+            echo "FAIL: WeatherKit validation report is missing required field: $pattern" >&2
+            exit 1
+        fi
+    done
+
+    echo "PASS: WeatherKit device validation helper generates the required 1.2/6.2 evidence template"
+}
+
 cd "$PROJECT_DIR"
 
-run openspec validate add-in-app-account-deletion --strict
-run openspec validate add-ugc-moderation-controls --strict
-run openspec validate add-on-device-wakeve-ai --strict
+run openspec validate --all --strict
 
 run ./scripts/test-app-store-ugc-gates.sh
 
 assert_no_sensitive_server_logs
 assert_ios_profile_legal_notice_links
 assert_wakeve_ai_device_profile_helper
+assert_weatherkit_device_validation_helper
 run ./scripts/audit-ios-localization-parity.sh --fail-on-findings
 
 run ./gradlew :server:test \

@@ -38,3 +38,13 @@ Wakeve displays event weather only when an event has a confirmed or organizing d
 - The iOS card currently fetches directly through WeatherKit and does not yet route through the shared SQLDelight weather cache.
 - Scenario/date comparison weather context is intentionally compact and silent on provider failures because it is advisory.
 - Physical-device WeatherKit validation still depends on a configured Apple Developer capability, the `TEAM_ID` release environment, and a regenerated provisioning profile for `com.guyghost.wakeve`.
+
+## Device Validation Evidence
+
+Run the preparation helper before closing OpenSpec tasks `add-event-weather-forecast` / `1.2` or `6.2`:
+
+```bash
+./scripts/prepare-weatherkit-device-validation.sh
+```
+
+The helper writes a report under `docs/weatherkit/` with source entitlement state, connected device visibility, signing identities, matching provisioning profiles, and required real-device closure fields. The generated report is preparation evidence only until a signed physical-device or TestFlight-equivalent WeatherKit run proves the Apple Developer capability and provisioning profile are active for `com.guyghost.wakeve`.
