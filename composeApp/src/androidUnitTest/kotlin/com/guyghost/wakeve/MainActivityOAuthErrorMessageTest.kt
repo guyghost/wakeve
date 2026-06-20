@@ -2,9 +2,11 @@ package com.guyghost.wakeve
 
 import com.guyghost.wakeve.auth.core.models.AuthError
 import com.guyghost.wakeve.auth.core.models.AuthMethod
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class MainActivityOAuthErrorMessageTest {
 
@@ -83,6 +85,51 @@ class MainActivityOAuthErrorMessageTest {
     }
 
     @Test
+    fun appleOAuthCallbackDeepLinkDecision_classifiesCallbackUris() {
+        assertEquals(
+            AppleOAuthCallbackDeepLinkDecision.ValidCallback,
+            appleOAuthCallbackDeepLinkDecision(
+                scheme = "wakeve",
+                host = "apple-auth-callback",
+                encodedUserInfo = null,
+                encodedFragment = null,
+                port = -1
+            )
+        )
+        assertEquals(
+            AppleOAuthCallbackDeepLinkDecision.InvalidCallback,
+            appleOAuthCallbackDeepLinkDecision(
+                scheme = "wakeve",
+                host = "apple-auth-callback",
+                encodedUserInfo = "attacker",
+                encodedFragment = null,
+                port = -1
+            )
+        )
+        assertEquals(
+            AppleOAuthCallbackDeepLinkDecision.NotAppleCallback,
+            appleOAuthCallbackDeepLinkDecision(
+                scheme = "wakeve",
+                host = "event",
+                encodedUserInfo = null,
+                encodedFragment = null,
+                port = -1
+            )
+        )
+    }
+
+    @Test
+    fun mainActivityReportsInvalidAppleOAuthCallbackToAuthUi() {
+        val source = projectFile("composeApp/src/androidMain/kotlin/com/guyghost/wakeve/MainActivity.kt").readText()
+
+        assertTrue(
+            source.contains("AppleOAuthCallbackDeepLinkDecision.InvalidCallback ->") &&
+                source.contains("authViewModel.handleOAuthError(appleOAuthCallbackFailureMessage(null))"),
+            "Invalid Apple callback links must report a controlled auth error instead of silently falling through as generic unsupported deep links."
+        )
+    }
+
+    @Test
     fun authenticationFailureMessage_doesNotExposeOAuthProviderMessage() {
         val providerError = AuthError.OAuthError(
             provider = AuthMethod.GOOGLE,
@@ -126,5 +173,16 @@ class MainActivityOAuthErrorMessageTest {
                 "Message should not expose `$sensitiveValue`: $message"
             )
         }
+    }
+
+    private fun projectFile(relativePath: String): File {
+        val userDir = requireNotNull(System.getProperty("user.dir")) { "user.dir is not set" }
+        var current: File? = File(userDir).absoluteFile
+        while (current != null) {
+            val candidate = File(current, relativePath)
+            if (candidate.exists()) return candidate
+            current = current.parentFile
+        }
+        error("Could not find project file: $relativePath")
     }
 }

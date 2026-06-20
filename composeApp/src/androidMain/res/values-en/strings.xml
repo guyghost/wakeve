@@ -31,6 +31,8 @@
 
     <string name="share_event_short_label">Share event</string>
     <string name="share_event_long_label">Send invitations to attendees</string>
+    <string name="unread_notifications_short_label">To handle</string>
+    <string name="unread_notifications_long_label">View unread invitations, votes, and reminders</string>
 
     <!-- App Actions Entity Sets -->
     <string name="event_name_entity">Event name</string>

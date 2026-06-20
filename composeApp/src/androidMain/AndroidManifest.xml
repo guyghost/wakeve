@@ -86,6 +86,26 @@
                     android:host="calendar" />
             </intent-filter>
 
+            <!-- Deep Link: Home - wakeve://home -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="wakeve"
+                    android:host="home" />
+            </intent-filter>
+
+            <!-- Deep Link: Notifications - wakeve://notifications?filter=unread -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="wakeve"
+                    android:host="notifications" />
+            </intent-filter>
+
             <!-- Deep Link: Reminder - wakeve://reminder/check-votes -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />

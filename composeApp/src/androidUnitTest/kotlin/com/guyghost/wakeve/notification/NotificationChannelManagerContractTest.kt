@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import com.guyghost.wakeve.notification.NotificationChannelManager.Companion.ChannelId
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 class NotificationChannelManagerContractTest {
 
@@ -47,5 +48,51 @@ class NotificationChannelManagerContractTest {
             NotificationManager.IMPORTANCE_HIGH,
             NotificationChannelManager.getChannelImportance(channelId)
         )
+    }
+
+    @Test
+    fun notificationChannelCopyUsesLocalizedActionableNames() {
+        assertEquals("Notifications Wakeve", NotificationChannelManager.getChannelName(ChannelId.DEFAULT))
+        assertEquals("Invitations et decisions", NotificationChannelManager.getChannelName(ChannelId.HIGH_PRIORITY))
+        assertEquals("Activite des evenements", NotificationChannelManager.getChannelName(ChannelId.EVENTS))
+        assertEquals("Rappels", NotificationChannelManager.getChannelName(ChannelId.REMINDERS))
+        assertEquals("Synchronisation", NotificationChannelManager.getChannelName(ChannelId.PROGRESS))
+
+        ChannelId.entries.forEach { channelId ->
+            val name = NotificationChannelManager.getChannelName(channelId)
+            val description = NotificationChannelManager.getChannelDescription(channelId)
+
+            assertFalse(name.isBlank())
+            assertFalse(description.isBlank())
+        }
+    }
+
+    @Test
+    fun notificationChannelCopyDoesNotUseEnglishDefaults() {
+        val copy = ChannelId.entries.flatMap { channelId ->
+            listOf(
+                NotificationChannelManager.getChannelName(channelId),
+                NotificationChannelManager.getChannelDescription(channelId)
+            )
+        }
+
+        copy.forEach { label ->
+            listOf(
+                "Wakeve Notifications",
+                "Default notifications",
+                "Important Notifications",
+                "require your attention",
+                "Event Updates",
+                "Updates and activity",
+                "Reminders for upcoming",
+                "Progress Updates",
+                "Ongoing operations"
+            ).forEach { englishCopy ->
+                assertFalse(
+                    label.contains(englishCopy, ignoreCase = true),
+                    "Channel copy should not contain `$englishCopy`: $label"
+                )
+            }
+        }
     }
 }

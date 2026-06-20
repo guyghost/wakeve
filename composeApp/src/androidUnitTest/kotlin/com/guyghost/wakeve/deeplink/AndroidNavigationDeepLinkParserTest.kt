@@ -1,5 +1,7 @@
 package com.guyghost.wakeve.deeplink
 
+import java.io.File
+import java.net.URI
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -88,6 +90,31 @@ class AndroidNavigationDeepLinkParserTest {
                 pathSegments = listOf("create")
             )
         )
+    }
+
+    @Test
+    fun androidShortcutsUseSupportedDeepLinksInsteadOfDeadExtras() {
+        val shortcuts = projectFile("composeApp/src/androidMain/res/xml/shortcuts.xml").readText()
+        val manifest = projectFile("composeApp/src/androidMain/AndroidManifest.xml").readText()
+        val shortcutUris = Regex("""android:data="([^"]+)"""")
+            .findAll(shortcuts)
+            .map { it.groupValues[1] }
+            .toList()
+
+        assertEquals(
+            listOf(
+                "wakeve://event/create",
+                "wakeve://calendar",
+                "wakeve://notifications?filter=unread"
+            ),
+            shortcutUris
+        )
+        assertFalse(shortcuts.contains("shortcut_action"))
+        assertTrue(manifest.contains("""android:host="home""""))
+        assertTrue(manifest.contains("""android:host="notifications""""))
+        shortcutUris.forEach { uri ->
+            assertTrue(parseShortcutUri(uri) != null, "$uri must resolve to a supported Android deep link")
+        }
     }
 
     @Test
@@ -511,5 +538,42 @@ class AndroidNavigationDeepLinkParserTest {
     fun requiresAuthenticatedDeepLinkSession_keepsInviteAndHomePublic() {
         assertEquals(false, requiresAuthenticatedDeepLinkSession(AndroidNavigationDeepLink.Invite("INVITE123")))
         assertEquals(false, requiresAuthenticatedDeepLinkSession(AndroidNavigationDeepLink.Home))
+    }
+
+    private fun parseShortcutUri(value: String): AndroidNavigationDeepLink? {
+        val uri = URI(value)
+        val pathSegments = uri.rawPath
+            ?.trim('/')
+            ?.takeIf(String::isNotBlank)
+            ?.split('/')
+            ?: emptyList()
+        val queryParameters = uri.rawQuery
+            ?.split('&')
+            ?.mapNotNull { parameter ->
+                val parts = parameter.split('=', limit = 2)
+                parts.firstOrNull()?.takeIf(String::isNotBlank)?.let { name ->
+                    name to parts.getOrElse(1) { "" }
+                }
+            }
+            ?.toMap()
+            ?: emptyMap()
+
+        return parseDeepLinkParts(
+            scheme = uri.scheme,
+            host = uri.host,
+            pathSegments = pathSegments,
+            queryParameters = queryParameters
+        )
+    }
+
+    private fun projectFile(relativePath: String): File {
+        val userDir = requireNotNull(System.getProperty("user.dir")) { "user.dir is not set" }
+        var current: File? = File(userDir).absoluteFile
+        while (current != null) {
+            val candidate = File(current, relativePath)
+            if (candidate.exists()) return candidate
+            current = current.parentFile
+        }
+        error("Could not find project file: $relativePath")
     }
 }
