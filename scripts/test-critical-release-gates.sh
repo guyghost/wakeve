@@ -310,6 +310,12 @@ assert_release_performance_harness() {
         exit 1
     fi
 
+    if ! grep -Fq 'docs/product/android-event-workspace-device-audit-2026-06-20T22-46-22Z.md' "$runbook" \
+        || ! grep -Fq 'PENDING_ANDROID_DEVICE_OR_EMULATOR' "$runbook"; then
+        echo "FAIL: release profiling runbook must keep the latest Android device-audit preparation status explicit" >&2
+        exit 1
+    fi
+
     echo "PASS: release performance harness records local Release artifacts safely"
 }
 

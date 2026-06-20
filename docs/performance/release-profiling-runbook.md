@@ -87,6 +87,12 @@ evidence table for the remaining roadmap P2.1 flow: creation -> invitation -> vo
 `PENDING_ANDROID_DEVICE_OR_EMULATOR` or `TODO` values is preparation only; it
 does not close the Android audit item.
 
+Latest preparation refresh: `docs/product/android-event-workspace-device-audit-2026-06-20T22-46-22Z.md`.
+Current status is `PENDING_ANDROID_DEVICE_OR_EMULATOR`: `adb` is available, but
+no Android device or emulator is attached in `device` state. Before closure,
+boot or connect a target, install Wakeve, rerun the helper with the selected
+`ANDROID_SERIAL` when needed, then execute and record the full audited flow.
+
 Each generated report also includes a runtime profiling matrix for the flows
 that still require device traces: cold start, home/list, create event, scenario
 matrix, and WakeveAI generation/cancellation/memory. Rows remain
