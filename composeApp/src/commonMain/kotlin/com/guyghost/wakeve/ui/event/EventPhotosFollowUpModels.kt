@@ -1,0 +1,133 @@
+package com.guyghost.wakeve.ui.event
+
+import com.guyghost.wakeve.postevent.PostEventControlSummary
+import com.guyghost.wakeve.postevent.PostEventItemStatus
+
+data class EventPhotosFollowUpUiState(
+    val eventId: String,
+    val title: String,
+    val subtitle: String,
+    val statusLabel: String,
+    val body: String,
+    val recommendedActionLabel: String,
+    val backActionLabel: String,
+    val canShareNow: Boolean,
+    val checklist: List<EventPhotosFollowUpChecklistItem>
+)
+
+data class EventPhotosFollowUpChecklistItem(
+    val title: String,
+    val body: String,
+    val statusLabel: String,
+    val isComplete: Boolean
+)
+
+fun fallbackEventPhotosFollowUpUiState(eventId: String): EventPhotosFollowUpUiState =
+    EventPhotosFollowUpUiState(
+        eventId = eventId,
+        title = "Photos a preparer",
+        subtitle = "Evenement $eventId",
+        statusLabel = "Selection manquante",
+        body = "Choisissez les photos utiles, evitez les doublons, puis partagez-les au groupe.",
+        recommendedActionLabel = "Ajouter des photos",
+        backActionLabel = "Retour au recap",
+        canShareNow = false,
+        checklist = missingPhotoChecklist()
+    )
+
+fun PostEventControlSummary.toEventPhotosFollowUpUiState(): EventPhotosFollowUpUiState {
+    val hasShareablePhotos = photoStatus == PostEventItemStatus.COMPLETE && sharedPhotoCount > 0
+
+    return EventPhotosFollowUpUiState(
+        eventId = eventId,
+        title = when (photoStatus) {
+            PostEventItemStatus.COMPLETE -> "Photos a partager"
+            PostEventItemStatus.NEEDS_ACTION -> "Photos a verifier"
+            PostEventItemStatus.MISSING -> "Photos a preparer"
+        },
+        subtitle = if (hasShareablePhotos) {
+            "$sharedPhotoCount ${photoWord(sharedPhotoCount)} prete${if (sharedPhotoCount > 1) "s" else ""} pour le groupe"
+        } else {
+            title
+        },
+        statusLabel = when (photoStatus) {
+            PostEventItemStatus.COMPLETE -> "Selection prete"
+            PostEventItemStatus.NEEDS_ACTION -> "Selection a verifier"
+            PostEventItemStatus.MISSING -> "Selection manquante"
+        },
+        body = when (photoStatus) {
+            PostEventItemStatus.COMPLETE ->
+                "La selection photo est prete. Verifiez les derniers details avant de la partager au groupe."
+            PostEventItemStatus.NEEDS_ACTION ->
+                "La selection existe, mais elle doit etre verifiee avant envoi."
+            PostEventItemStatus.MISSING ->
+                "Ajoutez une selection courte et utile pour que le groupe retrouve les meilleurs moments."
+        },
+        recommendedActionLabel = when (photoStatus) {
+            PostEventItemStatus.COMPLETE -> "Partager les photos"
+            PostEventItemStatus.NEEDS_ACTION -> "Verifier les photos"
+            PostEventItemStatus.MISSING -> "Ajouter des photos"
+        },
+        backActionLabel = "Retour au recap",
+        canShareNow = hasShareablePhotos,
+        checklist = when (photoStatus) {
+            PostEventItemStatus.MISSING -> missingPhotoChecklist()
+            else -> listOf(
+                EventPhotosFollowUpChecklistItem(
+                    title = "Selection partageable",
+                    body = if (hasShareablePhotos) {
+                        "$sharedPhotoCount ${photoWord(sharedPhotoCount)} prete${if (sharedPhotoCount > 1) "s" else ""}."
+                    } else {
+                        "La selection doit encore etre verifiee."
+                    },
+                    statusLabel = if (hasShareablePhotos) "OK" else "A verifier",
+                    isComplete = hasShareablePhotos
+                ),
+                EventPhotosFollowUpChecklistItem(
+                    title = "Remboursements",
+                    body = settlementLabel,
+                    statusLabel = settlementStatus.followUpStatusLabel(),
+                    isComplete = settlementStatus == PostEventItemStatus.COMPLETE
+                ),
+                EventPhotosFollowUpChecklistItem(
+                    title = "Relance rapide",
+                    body = reorganizationLabel,
+                    statusLabel = reorganizationStatus.followUpStatusLabel(),
+                    isComplete = reorganizationStatus == PostEventItemStatus.COMPLETE
+                )
+            )
+        }
+    )
+}
+
+private fun missingPhotoChecklist(): List<EventPhotosFollowUpChecklistItem> =
+    listOf(
+        EventPhotosFollowUpChecklistItem(
+            title = "Importer les photos",
+            body = "Ajoutez les meilleurs moments de l'evenement.",
+            statusLabel = "A faire",
+            isComplete = false
+        ),
+        EventPhotosFollowUpChecklistItem(
+            title = "Verifier la selection",
+            body = "Gardez les photos nettes et utiles pour le groupe.",
+            statusLabel = "A faire",
+            isComplete = false
+        ),
+        EventPhotosFollowUpChecklistItem(
+            title = "Partager au groupe",
+            body = "Envoyez la selection quand elle est prete.",
+            statusLabel = "A faire",
+            isComplete = false
+        )
+    )
+
+private fun PostEventItemStatus.followUpStatusLabel(): String =
+    when (this) {
+        PostEventItemStatus.COMPLETE -> "OK"
+        PostEventItemStatus.NEEDS_ACTION -> "A suivre"
+        PostEventItemStatus.MISSING -> "Manquant"
+    }
+
+private fun photoWord(count: Int): String =
+    if (count > 1) "photos" else "photo"
