@@ -52,6 +52,10 @@ TMP_DIR="${TMPDIR:-/tmp}/wakeve-a11y-audit-$$"
 mkdir -p "$TMP_DIR"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
+sanitize_report() {
+    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$REPORT"
+}
+
 SOURCE_ROOT="$PROJECT_DIR/iosApp/src"
 HARDCODED="$TMP_DIR/hardcoded.txt"
 LINE_LIMIT="$TMP_DIR/line-limit.txt"
@@ -255,6 +259,8 @@ total_count=$((hardcoded_count + line_limit_count + progress_view_count + icon_b
     echo "- Review single-line text in release screens under Dynamic Type accessibility sizes before claiming Larger Text support."
     echo "- Keep the App Store evidence marker false until signed-build device checks cover Dynamic Type, VoiceOver, high contrast, reduced motion, and color-only states."
 } > "$REPORT"
+
+sanitize_report
 
 echo "$REPORT"
 

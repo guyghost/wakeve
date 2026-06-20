@@ -509,7 +509,8 @@ assert_weatherkit_device_validation_helper() {
 assert_ios_accessibility_source_audit() {
     local output_dir
     local report
-    output_dir="$(mktemp -d)"
+    mkdir -p "$PROJECT_DIR/build/tmp"
+    output_dir="$(mktemp -d "$PROJECT_DIR/build/tmp/ios-accessibility-source.XXXXXX")"
 
     bash -n "$PROJECT_DIR/scripts/audit-ios-accessibility-source.sh"
     report="$("$PROJECT_DIR/scripts/audit-ios-accessibility-source.sh" --fail-on-findings --output "$output_dir")"
@@ -518,6 +519,7 @@ assert_ios_accessibility_source_audit() {
         echo "FAIL: iOS accessibility source audit did not create a report at $report" >&2
         exit 1
     fi
+    assert_generated_report_is_commit_safe "$report" "iOS accessibility source audit"
 
     if ! grep -Fq '| Total | 0 |' "$report"; then
         echo "FAIL: iOS accessibility source audit report must have zero findings" >&2
@@ -530,7 +532,8 @@ assert_ios_accessibility_source_audit() {
 assert_ios_release_screen_evidence_integrity() {
     local output_dir
     local report
-    output_dir="$(mktemp -d)"
+    mkdir -p "$PROJECT_DIR/build/tmp"
+    output_dir="$(mktemp -d "$PROJECT_DIR/build/tmp/ios-release-screen-evidence.XXXXXX")"
 
     bash -n "$PROJECT_DIR/scripts/audit-ios-release-screen-evidence.sh"
     report="$("$PROJECT_DIR/scripts/audit-ios-release-screen-evidence.sh" --output-dir "$output_dir")"
@@ -539,6 +542,7 @@ assert_ios_release_screen_evidence_integrity() {
         echo "FAIL: iOS release screen evidence audit did not create a report at $report" >&2
         exit 1
     fi
+    assert_generated_report_is_commit_safe "$report" "iOS release screen evidence"
 
     local required_patterns=(
         'Local coverage: 3 / 5 required screens'
