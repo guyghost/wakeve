@@ -158,6 +158,74 @@ class EventDetailModelsTest {
     }
 
     @Test
+    fun attendanceSummaryAnswersWhoComesWhenRsvpAreSynced() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(
+                status = EventStatus.POLLING,
+                participants = listOf("organizer", "participant-1", "participant-2", "participant-3")
+            ),
+            participantAccessStates = listOf(
+                ParticipantAccessState.organizer("organizer"),
+                ParticipantAccessState.member(
+                    userId = "participant-1",
+                    rsvp = ParticipantRsvp.ACCEPTED,
+                    dateValidation = DateValidationState.NOT_VALIDATED
+                ),
+                ParticipantAccessState.invitedPending("participant-2"),
+                ParticipantAccessState.declined("participant-3")
+            )
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Presence", uiState.attendanceSummary?.title)
+        assertEquals("Reponses a relancer", uiState.attendanceSummary?.statusLabel)
+        assertEquals("Confirmes : 2", uiState.attendanceSummary?.confirmedLabel)
+        assertEquals("En attente : 1", uiState.attendanceSummary?.pendingLabel)
+        assertEquals("Ne viennent pas : 1", uiState.attendanceSummary?.declinedLabel)
+        assertEquals(
+            "Relancez les invites en attente avant de figer le budget et le programme.",
+            uiState.attendanceSummary?.nextActionLabel
+        )
+        assertTrue(uiState.attendanceSummary?.hasSyncedRsvp == true)
+    }
+
+    @Test
+    fun attendanceSummaryFallsBackToInvitedCountWhenRsvpAreNotSynced() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(
+                status = EventStatus.POLLING,
+                participants = listOf("organizer", "participant-1", "participant-1", "participant-2")
+            )
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("RSVP non synchronises", uiState.attendanceSummary?.statusLabel)
+        assertEquals("Confirmes : non disponible", uiState.attendanceSummary?.confirmedLabel)
+        assertEquals("Invites : 3", uiState.attendanceSummary?.pendingLabel)
+        assertEquals("Refus : non disponible", uiState.attendanceSummary?.declinedLabel)
+        assertEquals(
+            "Synchronisez les RSVP pour savoir qui vient vraiment.",
+            uiState.attendanceSummary?.nextActionLabel
+        )
+        assertFalse(uiState.attendanceSummary?.hasSyncedRsvp ?: true)
+    }
+
+    @Test
+    fun attendanceSummaryGuidesOrganizerWhenNobodyConfirmed() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.CONFIRMED),
+            participantAccessStates = listOf(
+                ParticipantAccessState.invitedPending("participant-1"),
+                ParticipantAccessState.declined("participant-2")
+            )
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Aucun confirme", uiState.attendanceSummary?.statusLabel)
+        assertEquals(
+            "Obtenez au moins une confirmation avant de poursuivre l'organisation.",
+            uiState.attendanceSummary?.nextActionLabel
+        )
+    }
+
+    @Test
     fun budgetSummaryAnswersBudgetBasisForConfirmedOrganizer() {
         val uiState = EventManagementContract.State(
             selectedEvent = event(

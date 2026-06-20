@@ -28,6 +28,7 @@ data class EventDetailUiState(
     val canAccessOrganizationDetails: Boolean,
     val showTransportPlanning: Boolean,
     val showOrganizationTools: Boolean,
+    val attendanceSummary: EventAttendanceSummary?,
     val budgetSummary: EventBudgetPlanningSummary?,
     val dayOfSummary: EventDayOfSummary?,
     val postEventSummary: PostEventControlSummary?,
@@ -63,6 +64,16 @@ data class EventBudgetPlanningSummary(
     val scopeLabel: String,
     val nextActionLabel: String,
     val canOpenBudget: Boolean
+)
+
+data class EventAttendanceSummary(
+    val title: String,
+    val statusLabel: String,
+    val confirmedLabel: String,
+    val pendingLabel: String,
+    val declinedLabel: String,
+    val nextActionLabel: String,
+    val hasSyncedRsvp: Boolean
 )
 
 enum class EventDayOfStatus {
@@ -110,6 +121,7 @@ fun EventManagementContract.State.toEventDetailUiState(
             status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED),
         showOrganizationTools = canAccessOrganizationDetails &&
             status in listOf(EventStatus.ORGANIZING, EventStatus.FINALIZED),
+        attendanceSummary = event?.toAttendanceSummary(participantAccessStates),
         budgetSummary = event?.toBudgetPlanningSummary(
             accessStates = participantAccessStates,
             canOpenBudget = canAccessOrganizationDetails &&
@@ -127,6 +139,93 @@ fun EventManagementContract.State.toEventDetailUiState(
                 ?.toRsvpUiState(isOrganizer = isOrganizer)
         }
     )
+}
+
+internal fun Event.toAttendanceSummary(
+    accessStates: List<ParticipantAccessState>
+): EventAttendanceSummary {
+    val relevantAccessStates = accessStates
+        .filter { accessState -> accessState.userId == organizerId || accessState.userId in participants }
+        .distinctBy { it.userId }
+
+    if (relevantAccessStates.isEmpty()) {
+        val invitedCount = participants.map { it.trim() }.filter { it.isNotEmpty() }.distinct().size
+        return EventAttendanceSummary(
+            title = "Presence",
+            statusLabel = "RSVP non synchronises",
+            confirmedLabel = "Confirmes : non disponible",
+            pendingLabel = "Invites : $invitedCount",
+            declinedLabel = "Refus : non disponible",
+            nextActionLabel = eventAttendanceUnsyncedActionLabel(status),
+            hasSyncedRsvp = false
+        )
+    }
+
+    val acceptedCount = relevantAccessStates.count { it.rsvp == ParticipantRsvp.ACCEPTED }
+    val pendingCount = relevantAccessStates.count { it.rsvp == ParticipantRsvp.PENDING }
+    val declinedCount = relevantAccessStates.count { it.rsvp == ParticipantRsvp.DECLINED }
+
+    return EventAttendanceSummary(
+        title = "Presence",
+        statusLabel = eventAttendanceStatusLabel(
+            status = status,
+            acceptedCount = acceptedCount,
+            pendingCount = pendingCount,
+            declinedCount = declinedCount
+        ),
+        confirmedLabel = "Confirmes : $acceptedCount",
+        pendingLabel = "En attente : $pendingCount",
+        declinedLabel = "Ne viennent pas : $declinedCount",
+        nextActionLabel = eventAttendanceNextActionLabel(
+            status = status,
+            acceptedCount = acceptedCount,
+            pendingCount = pendingCount,
+            declinedCount = declinedCount
+        ),
+        hasSyncedRsvp = true
+    )
+}
+
+internal fun eventAttendanceStatusLabel(
+    status: EventStatus,
+    acceptedCount: Int,
+    pendingCount: Int,
+    declinedCount: Int
+): String = when {
+    status == EventStatus.FINALIZED -> "Groupe final"
+    acceptedCount == 0 -> "Aucun confirme"
+    pendingCount > 0 -> "Reponses a relancer"
+    declinedCount > 0 -> "Presences a verifier"
+    else -> "Groupe confirme"
+}
+
+internal fun eventAttendanceNextActionLabel(
+    status: EventStatus,
+    acceptedCount: Int,
+    pendingCount: Int,
+    declinedCount: Int
+): String = when {
+    acceptedCount == 0 && status != EventStatus.DRAFT ->
+        "Obtenez au moins une confirmation avant de poursuivre l'organisation."
+    pendingCount > 0 ->
+        "Relancez les invites en attente avant de figer le budget et le programme."
+    declinedCount > 0 ->
+        "Retirez les absents des decisions de budget, transport et programme."
+    status == EventStatus.DRAFT ->
+        "Ajoutez les invites pour savoir qui vient avant de lancer le sondage."
+    status == EventStatus.FINALIZED ->
+        "Utilisez cette base pour le recap, les photos et les remboursements."
+    else ->
+        "Le groupe attendu est clair; continuez l'organisation."
+}
+
+internal fun eventAttendanceUnsyncedActionLabel(status: EventStatus): String = when (status) {
+    EventStatus.DRAFT -> "Ajoutez les invites pour savoir qui vient avant de lancer le sondage."
+    EventStatus.POLLING,
+    EventStatus.COMPARING -> "Synchronisez les RSVP pour savoir qui vient vraiment."
+    EventStatus.CONFIRMED,
+    EventStatus.ORGANIZING -> "Synchronisez les RSVP avant de figer budget, transport et programme."
+    EventStatus.FINALIZED -> "Synchronisez les RSVP pour fiabiliser le recap."
 }
 
 internal fun Event.toBudgetPlanningSummary(
