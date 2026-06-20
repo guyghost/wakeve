@@ -6,7 +6,7 @@
 ## 2. Tests First
 - [x] 2.1 @tests Add shared unit tests for date range mapping, provider forecast-window states, stale cache handling, and missing-location errors.
 - [x] 2.2 @tests Add repository tests for weather snapshot persistence keyed by event, location, date range, and provider.
-- [ ] 2.3 @tests Add iOS provider tests or fakes that map WeatherKit success, entitlement failure, provider outage, and unsupported date states.
+- [x] 2.3 @tests Add iOS provider tests or fakes that map WeatherKit success, entitlement failure, provider outage, and unsupported date states.
 - [ ] 2.4 @tests Add iOS UI preview/snapshot tests for loading, available, stale, pending, and unavailable weather states.
 
 ## 3. Shared Domain and Storage
@@ -34,6 +34,7 @@
 
 ## Notes
 - 3.3 is implemented for confirmed dates, selected/proposed scenario dates, and candidate time slots.
+- 2.3 is covered by `EventWeatherProviderTests`, which exercises fakeable WeatherKit success, entitlement, outage, and unsupported-date mapping.
 - 4.1 is partially implemented for event potential locations; scenario text resolution remains pending.
-- 4.4 remains pending because the iOS card calls WeatherKit directly instead of the shared cache layer.
+- 4.4 remains pending because the iOS WeatherKit provider still fetches directly instead of using shared cache/debounce orchestration.
 - 6.2 is partially covered by shared JVM tests, Android compilation, iOS simulator build, and targeted iOS XCTest; physical-device WeatherKit validation remains pending.

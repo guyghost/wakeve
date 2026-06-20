@@ -1,6 +1,5 @@
 import SwiftUI
 import MapKit
-import WeatherKit
 import CoreLocation
 import Shared
 
@@ -8,7 +7,11 @@ import Shared
 final class EventWeatherViewModel: ObservableObject {
     @Published private(set) var state: EventWeatherCardState = .idle
 
-    private let weatherService = WeatherService.shared
+    private let weatherProvider: EventWeatherProviding
+
+    init(weatherProvider: EventWeatherProviding = WeatherKitEventForecastProvider()) {
+        self.weatherProvider = weatherProvider
+    }
 
     func load(event: Event) async {
         guard event.status == .confirmed || event.status == .organizing || event.status == .finalized else {
@@ -46,30 +49,22 @@ final class EventWeatherViewModel: ObservableObject {
                 return
             }
 
-            let location = CLLocation(latitude: place.coordinate.latitude, longitude: place.coordinate.longitude)
-            let weather = try await weatherService.weather(for: location)
-            let day = weather.dailyForecast.forecast.first {
-                Calendar.current.isDate($0.date, inSameDayAs: eventDate)
-            } ?? weather.dailyForecast.forecast.first
-
-            guard let day else {
-                state = .pending(refreshDate: Date())
-                return
-            }
-
-            state = .available(
-                EventWeatherSummary(
-                    placeName: place.name,
-                    coordinate: place.coordinate,
-                    condition: day.condition.description,
-                    symbolName: day.symbolName,
-                    lowTemperature: day.lowTemperature.converted(to: .celsius).value,
-                    highTemperature: day.highTemperature.converted(to: .celsius).value,
-                    precipitationChance: day.precipitationChance,
-                    windSpeedKph: day.wind.speed.converted(to: .kilometersPerHour).value,
-                    fetchedAt: Date()
-                )
+            let forecast = await weatherProvider.forecast(
+                for: place,
+                targetDate: eventDate,
+                fetchedAt: Date()
             )
+
+            switch forecast {
+            case .available(let summary):
+                state = .available(summary)
+            case .pending(let refreshDate):
+                state = .pending(refreshDate: refreshDate)
+            case .permissionOrEntitlementRequired:
+                state = .unavailable(message: String(localized: "weather.unavailable_message"))
+            case .providerUnavailable:
+                state = .unavailable(message: String(localized: "weather.unavailable_message"))
+            }
         } catch {
             state = .unavailable(message: String(localized: "weather.unavailable_message"))
         }
@@ -140,7 +135,7 @@ struct EventWeatherSummary {
     let fetchedAt: Date
 }
 
-private struct EventWeatherPlace {
+struct EventWeatherPlace {
     let name: String
     let coordinate: CLLocationCoordinate2D
 }

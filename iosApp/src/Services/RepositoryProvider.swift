@@ -65,7 +65,8 @@ class RepositoryProvider {
             baseRetryDelayMs: 1000,
             metrics: metrics,
             alertManager: alertManager,
-            conflictResolutionEnabled: true
+            conflictResolutionEnabled: true,
+            pendingSideEffectReplayers: []
         )
 
         // Create the repository with the SyncManager enabled
