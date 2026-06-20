@@ -100,6 +100,28 @@ assert_android_home_workspace_user_copy() {
     echo "PASS: Android Home workspace uses user-facing coordination copy"
 }
 
+assert_android_event_workspace_harness() {
+    local harness="$PROJECT_DIR/scripts/test-android-event-workspace.sh"
+
+    bash -n "$harness"
+
+    local required_patterns=(
+        '--no-configuration-cache :composeApp:testDebugUnitTest'
+        'com.guyghost.wakeve.ui.event.EventWorkspaceModelsTest'
+        '--no-configuration-cache :composeApp:compileDebugAndroidTestKotlinAndroid'
+        'PASS: Android Event workspace focused checks completed'
+    )
+
+    for pattern in "${required_patterns[@]}"; do
+        if ! grep -Fq -- "$pattern" "$harness"; then
+            echo "FAIL: Android Event workspace harness is missing expected no-configuration-cache check: $pattern" >&2
+            exit 1
+        fi
+    done
+
+    echo "PASS: Android Event workspace harness keeps focused Gradle checks configuration-cache safe"
+}
+
 assert_android_build_hygiene() {
     local obsolete_agp_flags_pattern='^android\.(defaults\.buildfeatures\.resvalues|sdk\.defaultTargetSdkToCompileSdkIfUnset|enableAppCompileTimeRClass|usesSdkInManifest\.disallowed|r8\.optimizedResourceShrinking)='
     if grep -nE "$obsolete_agp_flags_pattern" "$PROJECT_DIR/gradle.properties"; then
@@ -429,6 +451,7 @@ assert_no_sensitive_server_logs
 assert_no_android_release_local_backend_defaults
 assert_android_compose_hygiene
 assert_android_home_workspace_user_copy
+assert_android_event_workspace_harness
 assert_android_build_hygiene
 assert_android_resource_defaults
 assert_release_performance_harness
