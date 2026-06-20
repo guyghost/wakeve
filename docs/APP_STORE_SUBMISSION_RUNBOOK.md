@@ -1,6 +1,6 @@
 # App Store Submission Runbook - Wakeve
 
-Date: 2026-06-01
+Date: 2026-06-20
 
 This runbook is the operational checklist for moving Wakeve from local App Store readiness to a real App Store Connect submission. Keep `docs/APP_STORE_READINESS.md` as the audit report and `docs/APP_STORE_BLOCKER_REGISTER.md` as the active blocker ledger; use this file as the sequence to execute, then use `docs/APP_STORE_LAUNCH_CHECKLIST.md` for TestFlight smoke testing, monitoring, and rollback.
 
@@ -30,9 +30,9 @@ Apple-source review date: 2026-05-28.
 
 Do not submit to App Review yet.
 
-The repository passes local iOS preflight, Release build without signing, metadata validation, Svelte checks, web production build, and low-severity web audit gates. `docs/APP_STORE_BLOCKER_REGISTER.md` tracks the active blocker list and evidence source for each row. The remaining blockers are external, product-gated, or require manual release evidence: Apple account and release environment values, App Store Connect team ID, App Store Connect role/agreement evidence, Apple Developer signing team, App Review contact phone, Apple Developer capabilities/profiles, live `wakeve.app` and `api.wakeve.app` deployment, production Apple Team ID in both AASA endpoints, privacy label/legal approval, accessibility evidence, App Store availability evidence, EU DSA trader status evidence, pricing and availability evidence, third-party SDK privacy evidence, App Store release control evidence, App Store media/localization evidence, license notices evidence, App Store EULA evidence, review access evidence, export compliance evidence, content rights/IP evidence, App Store versioning evidence, signed release artifact evidence, App Store observability evidence, account deletion readiness, user-generated content moderation readiness, payment/external purchase compliance, TestFlight smoke testing, signed final submission-ready gate output, and final signoff.
+The repository passes local iOS preflight, Release build without signing, metadata validation, Svelte checks, web production build, and low-severity web audit gates. `docs/APP_STORE_BLOCKER_REGISTER.md` tracks the active blocker list and evidence source for each row. The remaining blockers are external, product-gated, or require manual release evidence: Apple account and release environment values, App Store Connect team ID, App Store Connect role/agreement evidence, Apple Developer signing team, App Review contact phone, Apple Developer capabilities/profiles, live `wakeve.app` legal/support/dashboard/AASA deployment, production Apple Team ID in both AASA endpoints, privacy label/legal approval, accessibility evidence, App Store availability evidence, EU DSA trader status evidence, pricing and availability evidence, third-party SDK privacy evidence, App Store release control evidence, App Store media/localization evidence, license notices evidence, App Store EULA evidence, review access evidence, export compliance evidence, content rights/IP evidence, App Store versioning evidence, signed release artifact evidence, App Store observability evidence, account deletion readiness, user-generated content moderation readiness, payment/external purchase compliance, TestFlight smoke testing, signed final submission-ready gate output, and final signoff. `api.wakeve.app/health` is currently reachable and must stay review-accessible, but it no longer appears to be the live URL blocker in the 2026-06-20 local evidence.
 
-Product blockers AS-09 and AS-10 must be approved through `docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md` before implementation starts. Do not set `APP_STORE_ACCOUNT_DELETION_CONFIRMED=true` or `APP_STORE_UGC_MODERATION_CONFIRMED=true` until the relevant OpenSpec proposal is approved, implemented, tested, and the matching evidence document is complete.
+Product blockers AS-09 and AS-10 were approved through `docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md` and locally implemented. Do not set `APP_STORE_ACCOUNT_DELETION_CONFIRMED=true` or `APP_STORE_UGC_MODERATION_CONFIRMED=true` until the uploaded review build is tested and the matching evidence document is complete.
 
 ## Required External Values
 
@@ -98,7 +98,7 @@ Fastlane verifies these entitlements from the signed IPA after `bundle exec fast
 2. Configure production `APPLE_TEAM_ID` or `TEAM_ID` on the web deployment with the real Apple Developer Team ID.
 3. Point `wakeve.app` DNS to the deployed web app.
 4. The Ktor backend is deployed to Cloudflare Containers using `docs/deployment/CLOUDFLARE_BACKEND.md`; redeploy with the same runbook after backend or Worker changes.
-5. `api.wakeve.app` is configured as the Cloudflare Worker custom domain for `infra/cloudflare/backend`; keep it attached to Worker `wakeve-backend`.
+5. `api.wakeve.app` is configured as the Cloudflare Worker custom domain for `infra/cloudflare/backend`; keep it attached to Worker `wakeve-backend`. The 2026-06-20 live evidence shows `api.wakeve.app/health` is reachable through Cloudflare, while `wakeve.app` web/AASA DNS remains the live URL blocker.
 6. Verify:
 
 ```bash
@@ -274,7 +274,7 @@ bundle exec fastlane ios upload_appstore
 - `https://wakeve.app/support` is live.
 - `https://wakeve.app/third-party-notices` is live.
 - `https://wakeve.app/.well-known/apple-app-site-association` and `https://wakeve.app/apple-app-site-association` are live, valid JSON, served as `application/json`, contain `com.guyghost.wakeve`, and contain the real `<APPLE_TEAM_ID>.com.guyghost.wakeve` app ID.
-- `https://api.wakeve.app/health` is live.
+- `https://api.wakeve.app/health` remains live and review-accessible.
 - `docs/APP_STORE_LIVE_URL_AASA_EVIDENCE.md` contains `APP_STORE_LIVE_URL_AASA_EVIDENCE_COMPLETE=true` for the same production deployment.
 - Xcode signing can create an App Store archive with the real team/profile.
 - The App ID and Release provisioning profile include Push Notifications, Siri, Sign in with Apple, and Associated Domains.
