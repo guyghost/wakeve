@@ -26,7 +26,7 @@ Bienvenue dans la documentation technique du projet Wakeve, une application mobi
 - [Koin Setup](guides/developer/koin-setup.md) - Configuration de l'injection de dépendances
 - [KMP Normalization Notes](guides/KMP_NORMALIZATION_NOTES.md) - Mapping des modules et chemins normalisés
 - [Workflow complet d'organisation d'événement](guides/complete-event-organization-flow.md) - Cycle DRAFT -> FINALIZED, accès, offline-first et commandes de vérification
-- [iOS Development](guides/ios/README.md) - Guides spécifiques iOS (voir aussi `wakeveApp/wakeveApp/`)
+- [iOS Development](guides/ios/README.md) - Guides spécifiques iOS (voir aussi `iosApp/`)
 - [iOS Design System](guides/ios/design-system.md) - Tokens et composants SwiftUI unifiés
 
 ### Migration & Refactoring
@@ -66,7 +66,8 @@ wakeve/
 │  ├─ implementation/      # Statut d'implémentation
 │  ├─ meetings/            # Résumés de sessions
 │  └─ archive/             # Documents historiques
-├─ wakeveApp/wakeveApp/    # Implémentation iOS SwiftUI
+├─ composeApp/             # Implémentation Android Jetpack Compose
+├─ iosApp/                 # Implémentation iOS SwiftUI et projet Xcode
 ├─ openspec/               # Spécifications OpenSpec
 ├─ AGENTS.md               # Workflow OpenSpec et agents IA
 ├─ QUICK_START.md          # Guide de démarrage rapide
@@ -76,7 +77,7 @@ wakeve/
 
 ## Documentation iOS
 
-La documentation spécifique à iOS (Liquid Glass design system, guides SwiftUI, tests iOS) se trouve dans le dossier `wakeveApp/wakeveApp/`. Consultez [guides/ios/README.md](guides/ios/README.md) pour l'index complet.
+La documentation spécifique à iOS (Liquid Glass design system, guides SwiftUI, tests iOS) se trouve dans le dossier `iosApp/`. Consultez [guides/ios/README.md](guides/ios/README.md) pour l'index complet.
 
 ## OpenSpec
 
