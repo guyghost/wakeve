@@ -186,6 +186,115 @@ class EventWorkspaceModelsTest {
     }
 
     @Test
+    fun `viral loop summary answers why invite install and return during poll`() {
+        val state = EventManagementContract.State(
+            events = listOf(
+                event(
+                    id = "poll",
+                    title = "Vote dinner",
+                    status = EventStatus.POLLING,
+                    participants = listOf("me", "alice", "sam")
+                )
+            ),
+            pollVotes = mapOf("poll" to mapOf("me" to Vote.YES))
+        )
+
+        val summary = state.toEventWorkspaceUiState(
+            currentUserId = "me",
+            selectedFilter = EventListFilter.Upcoming,
+            searchQuery = "",
+            selectedEventId = null
+        ).viralLoopSummary
+
+        assertEquals("poll", summary.eventId)
+        assertEquals("Boucle de croissance", summary.title)
+        assertEquals("2 votes à obtenir", summary.headline)
+        assertEquals("Pourquoi inviter : chaque invité débloque la décision collective.", summary.inviteReasonLabel)
+        assertEquals(
+            "Pourquoi installer : voter, suivre la date limite et éviter les relances privées.",
+            summary.installReasonLabel
+        )
+        assertEquals("Pourquoi revenir : voir la date retenue et la suite du plan.", summary.returnReasonLabel)
+        assertEquals("Partager le vote", summary.actionLabel)
+        assertEquals(EventWorkspaceSummaryAction.OpenPoll, summary.action)
+    }
+
+    @Test
+    fun `viral loop summary prioritizes active control center over draft`() {
+        val summary = listOf(
+            event(
+                id = "draft",
+                title = "Draft dinner",
+                status = EventStatus.DRAFT,
+                organizerId = "me"
+            ),
+            event(
+                id = "organizing",
+                title = "Team offsite",
+                status = EventStatus.ORGANIZING,
+                participants = listOf("me", "alice", "sam")
+            )
+        ).toViralLoopSummary(currentUserId = "me", pollVotes = emptyMap())
+
+        assertEquals("organizing", summary.eventId)
+        assertEquals("Centre de contrôle actif", summary.headline)
+        assertEquals(
+            "Pourquoi installer : savoir où aller, qui vient, quoi payer et quoi faire ensuite.",
+            summary.installReasonLabel
+        )
+        assertEquals("Pourquoi revenir : suivre le jour J et les prochaines étapes.", summary.returnReasonLabel)
+        assertEquals("Piloter", summary.actionLabel)
+        assertEquals(EventWorkspaceSummaryAction.OpenEvent, summary.action)
+    }
+
+    @Test
+    fun `viral loop summary turns finalized event into retention loop`() {
+        val summary = listOf(
+            event(
+                id = "final",
+                title = "Summer retreat",
+                description = "A weekend by the sea",
+                status = EventStatus.FINALIZED,
+                eventType = EventType.OUTDOOR_ACTIVITY
+            )
+        ).toViralLoopSummary(currentUserId = "me", pollVotes = emptyMap())
+
+        assertEquals("final", summary.eventId)
+        assertEquals("Réutilisation après événement", summary.headline)
+        assertEquals(
+            "Pourquoi inviter : partager le récap, les photos et les remboursements.",
+            summary.inviteReasonLabel
+        )
+        assertEquals(
+            "Pourquoi revenir : recréer une nouvelle édition en un geste.",
+            summary.returnReasonLabel
+        )
+        assertEquals("Réutiliser", summary.actionLabel)
+        assertEquals(EventWorkspaceSummaryAction.RecreateFromTemplate, summary.action)
+        assertEquals(
+            EventWorkspaceCreationTemplate(
+                title = "Summer retreat",
+                description = "A weekend by the sea",
+                eventType = EventType.OUTDOOR_ACTIVITY
+            ),
+            summary.template
+        )
+    }
+
+    @Test
+    fun `viral loop summary explains missing growth loop when workspace is empty`() {
+        val summary = emptyList<Event>().toViralLoopSummary(currentUserId = "me", pollVotes = emptyMap())
+
+        assertEquals(null, summary.eventId)
+        assertEquals("Aucun événement à partager", summary.headline)
+        assertEquals("Pourquoi inviter : il manque un événement concret à proposer.", summary.inviteReasonLabel)
+        assertEquals("Pourquoi installer : Wakeve doit d'abord montrer un groupe actif.", summary.installReasonLabel)
+        assertEquals("Pourquoi revenir : créez un premier événement réutilisable.", summary.returnReasonLabel)
+        assertEquals("Créer", summary.actionLabel)
+        assertEquals(null, summary.action)
+    }
+
+    @Test
     fun `finalized event builds quick reorganization summary`() {
         val event = event(
             id = "finalized",

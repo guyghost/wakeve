@@ -48,6 +48,18 @@ data class EventWorkspaceActionSummary(
     val template: EventWorkspaceCreationTemplate? = null
 )
 
+data class EventViralLoopSummary(
+    val eventId: String?,
+    val title: String,
+    val headline: String,
+    val inviteReasonLabel: String,
+    val installReasonLabel: String,
+    val returnReasonLabel: String,
+    val actionLabel: String,
+    val action: EventWorkspaceSummaryAction?,
+    val template: EventWorkspaceCreationTemplate? = null
+)
+
 enum class EventWorkspaceSummaryAction {
     OpenEvent,
     OpenPoll,
@@ -92,6 +104,7 @@ data class EventWorkspaceUiState(
     val selectedFilter: EventListFilter,
     val searchQuery: String,
     val actionSummary: EventWorkspaceActionSummary?,
+    val viralLoopSummary: EventViralLoopSummary,
     val widgetSummary: EventWidgetSummary,
     val events: List<EventListItemUiState>,
     val selectedEvent: Event?,
@@ -124,6 +137,7 @@ fun EventManagementContract.State.toEventWorkspaceUiState(
         selectedFilter = selectedFilter,
         searchQuery = searchQuery,
         actionSummary = filtered.toWorkspaceActionSummary(currentUserId, pollVotes),
+        viralLoopSummary = events.toViralLoopSummary(currentUserId, pollVotes),
         widgetSummary = events.toEventWidgetSummary(
             now = now,
             timeZone = timeZone,
@@ -194,6 +208,106 @@ internal fun List<Event>.toWorkspaceActionSummary(
         template = nextEvent.workspaceCreationTemplate()
     )
 }
+
+internal fun List<Event>.toViralLoopSummary(
+    currentUserId: String,
+    pollVotes: Map<String, Map<String, com.guyghost.wakeve.models.Vote>>
+): EventViralLoopSummary {
+    val event = maxWithOrNull(
+        compareBy<Event> { it.viralLoopPriority(currentUserId, pollVotes[it.id]?.size ?: 0) }
+            .thenBy { it.updatedAt }
+    ) ?: return EventViralLoopSummary(
+        eventId = null,
+        title = "Boucle de croissance",
+        headline = "Aucun événement à partager",
+        inviteReasonLabel = "Pourquoi inviter : il manque un événement concret à proposer.",
+        installReasonLabel = "Pourquoi installer : Wakeve doit d'abord montrer un groupe actif.",
+        returnReasonLabel = "Pourquoi revenir : créez un premier événement réutilisable.",
+        actionLabel = "Créer",
+        action = null
+    )
+
+    val voteCount = pollVotes[event.id]?.size ?: 0
+    val missingVotes = (event.participants.size - voteCount).coerceAtLeast(0)
+
+    return when (event.status) {
+        EventStatus.DRAFT -> EventViralLoopSummary(
+            eventId = event.id,
+            title = "Boucle de croissance",
+            headline = "Invitation pas encore prête",
+            inviteReasonLabel = "Pourquoi inviter : le groupe ne doit recevoir le lien qu'une fois le sondage clair.",
+            installReasonLabel = "Pourquoi installer : voir les créneaux et répondre sans fouiller WhatsApp.",
+            returnReasonLabel = "Pourquoi revenir : reprendre le brouillon pour lancer le vote.",
+            actionLabel = if (event.organizerId == currentUserId) "Finaliser" else "Voir",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.POLLING -> EventViralLoopSummary(
+            eventId = event.id,
+            title = "Boucle de croissance",
+            headline = if (missingVotes > 0) {
+                "$missingVotes vote${if (missingVotes == 1) "" else "s"} à obtenir"
+            } else {
+                "Votes prêts à convertir"
+            },
+            inviteReasonLabel = "Pourquoi inviter : chaque invité débloque la décision collective.",
+            installReasonLabel = "Pourquoi installer : voter, suivre la date limite et éviter les relances privées.",
+            returnReasonLabel = "Pourquoi revenir : voir la date retenue et la suite du plan.",
+            actionLabel = "Partager le vote",
+            action = EventWorkspaceSummaryAction.OpenPoll
+        )
+        EventStatus.COMPARING -> EventViralLoopSummary(
+            eventId = event.id,
+            title = "Boucle de croissance",
+            headline = "Décision à transformer en plan",
+            inviteReasonLabel = "Pourquoi inviter : les retardataires voient les options avant la décision finale.",
+            installReasonLabel = "Pourquoi installer : comparer destination, budget et contraintes au même endroit.",
+            returnReasonLabel = "Pourquoi revenir : suivre le scénario choisi après la comparaison.",
+            actionLabel = "Comparer",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.CONFIRMED -> EventViralLoopSummary(
+            eventId = event.id,
+            title = "Boucle de croissance",
+            headline = "Date confirmée à diffuser",
+            inviteReasonLabel = "Pourquoi inviter : l'événement a maintenant une date crédible à partager.",
+            installReasonLabel = "Pourquoi installer : calendrier, budget, transport et programme restent centralisés.",
+            returnReasonLabel = "Pourquoi revenir : préparer le départ et suivre les changements utiles.",
+            actionLabel = "Préparer",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.ORGANIZING -> EventViralLoopSummary(
+            eventId = event.id,
+            title = "Boucle de croissance",
+            headline = "Centre de contrôle actif",
+            inviteReasonLabel = "Pourquoi inviter : les participants manquants ont besoin du plan à jour.",
+            installReasonLabel = "Pourquoi installer : savoir où aller, qui vient, quoi payer et quoi faire ensuite.",
+            returnReasonLabel = "Pourquoi revenir : suivre le jour J et les prochaines étapes.",
+            actionLabel = "Piloter",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.FINALIZED -> EventViralLoopSummary(
+            eventId = event.id,
+            title = "Boucle de croissance",
+            headline = "Réutilisation après événement",
+            inviteReasonLabel = "Pourquoi inviter : partager le récap, les photos et les remboursements.",
+            installReasonLabel = "Pourquoi installer : récupérer ce qui reste à solder sans refaire un groupe.",
+            returnReasonLabel = "Pourquoi revenir : recréer une nouvelle édition en un geste.",
+            actionLabel = "Réutiliser",
+            action = EventWorkspaceSummaryAction.RecreateFromTemplate,
+            template = event.workspaceCreationTemplate()
+        )
+    }
+}
+
+private fun Event.viralLoopPriority(currentUserId: String, voteCount: Int): Int =
+    when (status) {
+        EventStatus.ORGANIZING -> 60
+        EventStatus.CONFIRMED -> 55
+        EventStatus.POLLING -> 50 + (participants.size - voteCount).coerceAtLeast(0)
+        EventStatus.COMPARING -> 45
+        EventStatus.FINALIZED -> 35
+        EventStatus.DRAFT -> if (organizerId == currentUserId) 25 else 10
+    }
 
 private fun Event.workspaceActionPriority(currentUserId: String): Int =
     when (status) {
