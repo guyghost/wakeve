@@ -1,6 +1,6 @@
 # Wakeve Release Performance Capture
 
-Generated: 2026-06-20T20:58:11Z
+Generated: 2026-06-20T21:05:13Z
 
 Status: LOCAL EVIDENCE
 
@@ -37,23 +37,35 @@ List of devices attached
 
 ```
 
+## iOS Release Build
+
+Status: BUILT_LOCAL_RELEASE_ARTIFACT
+
+| Field | Value |
+| --- | --- |
+| Artifact | `/var/folders/1t/456kc0651bl7mgrc62_m43g80000gn/T//wakeve-performance-profile-32762/ios-derived/Build/Products/Release-iphonesimulator/Wakeve.app` |
+| Artifact size | directory |
+| Build log | `/var/folders/1t/456kc0651bl7mgrc62_m43g80000gn/T//wakeve-performance-profile-32762/logs/xcodebuild-ios-release.log` |
+
+This proves the local Release artifact can be produced. It does not prove signed App Store/TestFlight readiness or runtime performance on a representative device.
+
 ## iOS Cold Start
 
 Measurement: elapsed host time for `xcrun simctl launch --terminate-running-process com.guyghost.wakeve`.
 
 | Run | Elapsed ms | Result |
 | --- | ---: | --- |
-| 1 | 286.3 | ok |
-| 2 | 290.2 | ok |
-| 3 | 264.2 | ok |
-| 4 | 263.1 | ok |
-| 5 | 254.0 | ok |
+| 1 | 255.1 | ok |
+| 2 | 239.8 | ok |
+| 3 | 272.1 | ok |
+| 4 | 249.7 | ok |
+| 5 | 246.5 | ok |
 
 ### iOS Cold Start Summary
 
 | Metric | Samples | Min ms | Median ms | P95 ms | Max ms | Average ms |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| simctl launch elapsed | 5 | 254.0 | 264.2 | 290.2 | 290.2 | 271.6 |
+| simctl launch elapsed | 5 | 239.8 | 249.7 | 272.1 | 272.1 | 252.6 |
 
 ## Runtime Profiling Matrix
 
@@ -82,5 +94,5 @@ For every captured flow, record:
 
 Raw command logs for this run were written to:
 
-- `/var/folders/1t/456kc0651bl7mgrc62_m43g80000gn/T//wakeve-performance-profile-27304/logs`
+- `/var/folders/1t/456kc0651bl7mgrc62_m43g80000gn/T//wakeve-performance-profile-32762/logs`
 
