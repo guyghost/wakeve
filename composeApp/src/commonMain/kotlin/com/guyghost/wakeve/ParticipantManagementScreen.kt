@@ -260,6 +260,13 @@ fun ParticipantManagementScreen(
 
         // Participants List
         if (state.participants.isNotEmpty()) {
+            ParticipantAttendanceSummaryCard(
+                summary = participantAttendanceSummary(state.participants),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
+
             Text(
                 "Participants (${state.participants.size})",
                 style = MaterialTheme.typography.titleMedium,
@@ -544,3 +551,122 @@ internal fun participantAddFailureMessage(): String =
 
 internal fun contactAccessFailureMessage(): String =
     "Impossible d'acceder aux contacts. Reessayez."
+
+@Composable
+private fun ParticipantAttendanceSummaryCard(
+    summary: ParticipantAttendanceSummary,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = summary.confirmedLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = summary.pendingLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = summary.nextActionLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
+    }
+}
+
+internal data class ParticipantAttendanceSummary(
+    val title: String,
+    val confirmedLabel: String,
+    val pendingLabel: String,
+    val nextActionLabel: String
+)
+
+internal fun participantAttendanceSummary(
+    participants: List<ParticipantManagementRow>
+): ParticipantAttendanceSummary {
+    val confirmedParticipants = participants.filter { it.statusLabel == participantConfirmedStatusLabel() }
+    val pendingParticipants = participants.filter { it.statusLabel == participantPendingStatusLabel() }
+    val declinedParticipants = participants.filter { it.statusLabel == participantDeclinedStatusLabel() }
+
+    return ParticipantAttendanceSummary(
+        title = participantAttendanceTitle(),
+        confirmedLabel = participantAttendanceConfirmedLabel(confirmedParticipants.size, participants.size),
+        pendingLabel = participantAttendancePendingLabel(pendingParticipants.size, declinedParticipants.size),
+        nextActionLabel = participantAttendanceNextActionLabel(
+            confirmedParticipants = confirmedParticipants,
+            pendingParticipants = pendingParticipants,
+            declinedParticipants = declinedParticipants
+        )
+    )
+}
+
+internal fun participantAttendanceTitle(): String = "Qui vient ?"
+
+internal fun participantConfirmedStatusLabel(): String = "Confirmé"
+
+internal fun participantPendingStatusLabel(): String = "En attente"
+
+internal fun participantDeclinedStatusLabel(): String = "Refusé"
+
+internal fun participantAttendanceConfirmedLabel(confirmedCount: Int, totalCount: Int): String =
+    "$confirmedCount sur $totalCount ${if (totalCount > 1) "participants confirment" else "participant confirme"}."
+
+internal fun participantAttendancePendingLabel(pendingCount: Int, declinedCount: Int): String {
+    val parts = buildList {
+        if (pendingCount > 0) add("$pendingCount à relancer")
+        if (declinedCount > 0) add("$declinedCount refus")
+    }
+    return if (parts.isEmpty()) {
+        "Aucune réponse manquante."
+    } else {
+        parts.joinToString(" · ")
+    }
+}
+
+internal fun participantAttendanceNextActionLabel(
+    confirmedParticipants: List<ParticipantManagementRow>,
+    pendingParticipants: List<ParticipantManagementRow>,
+    declinedParticipants: List<ParticipantManagementRow>
+): String {
+    return when {
+        pendingParticipants.isNotEmpty() ->
+            "Priorité : relancer ${compactParticipantNames(pendingParticipants.map { it.userIdOrEmail })}."
+        confirmedParticipants.isEmpty() ->
+            "Aucun participant confirmé : gardez l'événement en préparation."
+        declinedParticipants.isNotEmpty() ->
+            "Tous les participants actifs ont répondu; ajustez le plan avec les refus."
+        else ->
+            "Tous les participants actifs sont confirmés."
+    }
+}
+
+internal fun compactParticipantNames(names: List<String>): String {
+    val normalizedNames = names
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .distinct()
+    if (normalizedNames.isEmpty()) return "les participants en attente"
+
+    val shownNames = normalizedNames.take(3).joinToString(", ")
+    val remainingCount = normalizedNames.size - 3
+    return if (remainingCount > 0) {
+        "$shownNames + $remainingCount autre${if (remainingCount > 1) "s" else ""}"
+    } else {
+        shownNames
+    }
+}
