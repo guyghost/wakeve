@@ -33,6 +33,8 @@ The sharpest product issue in the inspected Android source is that the Home even
 
 Local follow-up on 2026-06-20: the Android Home workspace copy was updated in `EventWorkspaceModels.kt`, previews, and tests so those visible cards now use organizer-facing labels such as "Invitations et retours", "Ambiance du groupe", "Prochaine decision", and "Plan d'action". This closes the source-level copy issue, but it does not replace a device/emulator UX pass.
 
+Local follow-up on 2026-06-20: `./scripts/prepare-android-event-workspace-device-audit.sh` now generates the required device/emulator audit template for the creation -> invitation -> vote -> date confirmed -> day J loop. The generated template is preparation evidence only; the launch verdict stays unchanged until that flow is captured on a connected Android device or emulator with screenshots or recording, TalkBack, font scaling, and back navigation notes.
+
 Launch verdict today: do not scale Android publicly yet. Use Android for internal testing and cohort feedback, but do not make it the main acquisition platform until the first event creation, invite, vote, and day-of coordination loop is measured on device.
 
 ## Scorecard

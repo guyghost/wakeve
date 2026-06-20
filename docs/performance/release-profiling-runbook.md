@@ -73,6 +73,18 @@ needed for OpenSpec task `add-on-device-wakeve-ai` / `6.6`. A generated report
 with status `PENDING_PHYSICAL_IOS_DEVICE` or missing `TODO` values is preparation
 only; it does not close the task.
 
+For the Android event-workspace product audit, prepare a dedicated capture note:
+
+```bash
+./scripts/prepare-android-event-workspace-device-audit.sh
+```
+
+The helper writes `docs/product/android-event-workspace-device-audit-<timestamp>.md`.
+It records `adb` readiness and creates the evidence table for the remaining
+roadmap P2.1 flow: creation -> invitation -> vote -> date confirmed -> day J.
+A generated report with `PENDING_ANDROID_DEVICE_OR_EMULATOR` or `TODO` values is
+preparation only; it does not close the Android audit item.
+
 Each generated report also includes a runtime profiling matrix for the flows
 that still require device traces: cold start, home/list, create event, scenario
 matrix, and WakeveAI generation/cancellation/memory. Rows remain
@@ -86,6 +98,8 @@ Before checking off the roadmap performance items, attach or reference:
 - Android physical device or emulator model/API, build variant, and run count.
 - Cold-start samples from the script report.
 - iOS Instruments SwiftUI + Time Profiler traces for home/list, event creation, scenario matrix, and WakeveAI.
+- Android screenshots or screen recording for creation, invitation/share, vote, date confirmed, and day J coordination.
+- Android TalkBack, 200 percent font scaling, and back-stack spot-checks for the audited event-workspace flow.
 - WakeveAI generation latency, cancellation latency, and memory peak from a supported device where Foundation Models is available.
 - Notes for every skipped flow, including whether it is blocked by device support, Apple Intelligence availability, signing, or missing test data.
 
