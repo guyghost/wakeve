@@ -9,6 +9,8 @@ import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.repository.PhotoRepository
 import com.guyghost.wakeve.services.SharingSuggestion
 import com.guyghost.wakeve.services.SmartSharingService
+import com.guyghost.wakeve.ui.event.EventPhotosFollowUpUiState
+import com.guyghost.wakeve.ui.event.eventAlbumsPhotosFollowUpUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -65,6 +67,7 @@ class AlbumsViewModel(
 
     private val _uiState = MutableStateFlow(AlbumsUiState())
     val uiState: StateFlow<AlbumsUiState> = _uiState.asStateFlow()
+    private var currentEventId: String? = null
 
     init {
         loadAlbums()
@@ -74,20 +77,41 @@ class AlbumsViewModel(
      * Loads all albums (both auto-generated and custom).
      */
     fun loadAlbums() {
+        loadAlbums(eventId = null)
+    }
+
+    /**
+     * Loads albums scoped to one event.
+     *
+     * @param eventId Event identifier used to filter albums
+     */
+    fun loadAlbumsForEvent(eventId: String) {
+        loadAlbums(eventId = eventId)
+    }
+
+    private fun loadAlbums(eventId: String?) {
+        currentEventId = eventId
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
             try {
-                val albums = albumRepository.getAlbums(eventId = null)
+                val albums = albumRepository.getAlbums(eventId = eventId)
                 val autoSuggestions = generateAutoAlbumSuggestions(albums)
 
                 _uiState.update {
                     it.copy(
+                        eventId = eventId,
                         isLoading = false,
                         albums = albums.sortedByDescending { album ->
                             album.createdAt
                         },
-                        autoAlbumSuggestions = autoSuggestions
+                        autoAlbumSuggestions = autoSuggestions,
+                        postEventPhotoFollowUp = eventId?.let {
+                            eventAlbumsPhotosFollowUpUiState(
+                                eventId = it,
+                                albums = albums
+                            )
+                        }
                     )
                 }
             } catch (e: Exception) {
@@ -212,7 +236,7 @@ class AlbumsViewModel(
             try {
                 val newAlbum = Album(
                     id = generateAlbumId(),
-                    eventId = null,
+                    eventId = currentEventId,
                     name = name,
                     coverPhotoId = photoIds.firstOrNull(),
                     photoIds = photoIds,
@@ -221,7 +245,7 @@ class AlbumsViewModel(
                 )
 
                 albumRepository.createAlbum(newAlbum)
-                loadAlbums()
+                loadAlbums(eventId = currentEventId)
 
                 _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
@@ -247,7 +271,7 @@ class AlbumsViewModel(
             try {
                 val newAlbum = Album(
                     id = generateAlbumId(),
-                    eventId = null,
+                    eventId = currentEventId,
                     name = suggestionTitle,
                     coverPhotoId = null,
                     photoIds = emptyList(),
@@ -256,7 +280,7 @@ class AlbumsViewModel(
                 )
 
                 albumRepository.createAlbum(newAlbum)
-                loadAlbums()
+                loadAlbums(eventId = currentEventId)
 
                 _uiState.update { it.copy(isLoading = false) }
             } catch (e: Exception) {
@@ -281,7 +305,7 @@ class AlbumsViewModel(
 
             try {
                 albumRepository.deleteAlbum(albumId)
-                loadAlbums()
+                loadAlbums(eventId = currentEventId)
 
                 if (_uiState.value.selectedAlbum?.id == albumId) {
                     clearSelectedAlbum()
@@ -309,7 +333,7 @@ class AlbumsViewModel(
         viewModelScope.launch {
             try {
                 albumRepository.updateAlbumCover(albumId, coverPhotoId)
-                loadAlbums()
+                loadAlbums(eventId = currentEventId)
 
                 // Update selected album if needed
                 _uiState.value.selectedAlbum?.let { selected ->
@@ -416,6 +440,7 @@ class AlbumsViewModel(
  * UI state for the Albums screen.
  *
  * @property albums List of all albums
+ * @property eventId Event scope when albums are filtered for one event
  * @property selectedAlbum Currently selected album (for detail view)
  * @property selectedAlbumPhotos Photos in the selected album
  * @property searchQuery Current search query
@@ -428,7 +453,9 @@ class AlbumsViewModel(
  * @property error Error message if any
  */
 data class AlbumsUiState(
+    val eventId: String? = null,
     val albums: List<Album> = emptyList(),
+    val postEventPhotoFollowUp: EventPhotosFollowUpUiState? = null,
     val selectedAlbum: Album? = null,
     val selectedAlbumPhotos: List<Photo> = emptyList(),
     val searchQuery: String = "",
