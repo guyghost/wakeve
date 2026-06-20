@@ -45,7 +45,7 @@ Apple-source review date: 2026-05-27.
 | Guideline 4.8 Login Services | iOS exposes Sign in with Apple and the entitlement is declared because the app also has Google login. | Ready locally, pending Apple Developer capability/profile verification. |
 | Guideline 5.1.1 Privacy | Privacy policy, App Store privacy-label draft, privacy manifest, no IDFA/ATT usage, purpose strings, and required-reason APIs are checked locally. | Pending product/legal approval and production-backend confirmation. |
 | Guideline 5.1.1(v) Account deletion | Wakeve supports account creation through email, OAuth, guest sessions, and Sign in with Apple. Local implementation evidence now covers the iOS Profile -> Data Management deletion path, authenticated `DELETE /api/user/delete`, local cleanup wiring, backend deletion/anonymization, session/token/push-token cleanup, and Apple revocation attempt/failure handling. Uploaded-build App Review evidence remains incomplete. | Do not submit until `APP_STORE_ACCOUNT_DELETION_CONFIRMED=true` is backed by uploaded-build device/API evidence. |
-| App Store SDK minimum | Local toolchain is Xcode 26.5 with iOS SDK 26.5; the linter checks the SDK upload minimum. | Ready locally. |
+| App Store SDK minimum | Local toolchain is Xcode 27.0 with iOS SDK 27.0; the linter checks the SDK upload minimum. | Ready locally. |
 | Accessibility Nutrition Labels | Conservative draft exists and linter prevents unsupported claims before TestFlight/device evidence. | Do not publish labels until iPhone/iPad evidence exists, or leave labels unpublished where allowed. |
 | Digital Services Act | DSA trader status decision is documented separately. | Pending App Store Connect confirmation or EU storefront decision. |
 
