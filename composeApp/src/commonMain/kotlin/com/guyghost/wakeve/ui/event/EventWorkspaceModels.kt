@@ -11,6 +11,10 @@ import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.presentation.state.EventManagementContract
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
+import kotlinx.datetime.toLocalDateTime
 
 enum class EventListFilter(
     val label: String,
@@ -60,6 +64,22 @@ data class EventReorganizationSummary(
     val body: String,
     val actionLabel: String,
     val template: EventWorkspaceCreationTemplate
+)
+
+enum class EventWidgetKind {
+    EventToday,
+    Countdown,
+    NextTask,
+    Empty
+}
+
+data class EventWidgetSummary(
+    val kind: EventWidgetKind,
+    val eventId: String?,
+    val title: String,
+    val headline: String,
+    val body: String,
+    val actionLabel: String
 )
 
 data class EventWorkspaceUiState(
@@ -245,4 +265,88 @@ internal fun Event.toReorganizationSummary(): EventReorganizationSummary? {
         actionLabel = "Créer une nouvelle édition",
         template = template
     )
+}
+
+internal fun List<Event>.toEventWidgetSummary(
+    now: Instant,
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    currentUserId: String
+): EventWidgetSummary {
+    val today = now.toLocalDateTime(timeZone).date
+
+    val eventsWithDate = mapNotNull { event ->
+        event.widgetStartInstant()?.let { start -> event to start }
+    }
+
+    val todayEvent = eventsWithDate
+        .filter { (event, start) ->
+            event.status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING) &&
+                start.toLocalDateTime(timeZone).date == today
+        }
+        .minByOrNull { (_, start) -> start.toEpochMilliseconds() }
+        ?.first
+
+    if (todayEvent != null) {
+        return EventWidgetSummary(
+            kind = EventWidgetKind.EventToday,
+            eventId = todayEvent.id,
+            title = "Aujourd'hui",
+            headline = todayEvent.title,
+            body = "${todayEvent.participants.size} participant${if (todayEvent.participants.size > 1) "s" else ""} attendus",
+            actionLabel = "Ouvrir"
+        )
+    }
+
+    val nextDatedEvent = eventsWithDate
+        .filter { (event, start) ->
+            event.status != EventStatus.FINALIZED &&
+                start.toLocalDateTime(timeZone).date >= today
+        }
+        .minByOrNull { (_, start) -> start.toEpochMilliseconds() }
+
+    if (nextDatedEvent != null) {
+        val (event, start) = nextDatedEvent
+        val eventDate = start.toLocalDateTime(timeZone).date
+        val daysUntil = today.daysUntil(eventDate)
+        return EventWidgetSummary(
+            kind = EventWidgetKind.Countdown,
+            eventId = event.id,
+            title = event.title,
+            headline = if (daysUntil == 1) "Demain" else "J-$daysUntil",
+            body = event.workspaceNextActionLabel(isOrganizer = event.organizerId == currentUserId),
+            actionLabel = "Préparer"
+        )
+    }
+
+    val nextTask = filterNot { it.status == EventStatus.FINALIZED }
+        .minWithOrNull(compareBy<Event> { it.workspaceActionPriority(currentUserId) }.thenBy { it.updatedAt })
+
+    if (nextTask != null) {
+        return EventWidgetSummary(
+            kind = EventWidgetKind.NextTask,
+            eventId = nextTask.id,
+            title = "Prochaine tâche",
+            headline = nextTask.workspaceActionTitle(currentUserId),
+            body = nextTask.workspaceActionButtonLabel(currentUserId),
+            actionLabel = "Continuer"
+        )
+    }
+
+    return EventWidgetSummary(
+        kind = EventWidgetKind.Empty,
+        eventId = null,
+        title = "Wakeve",
+        headline = "Aucun événement actif",
+        body = "Créez un événement pour afficher le prochain rendez-vous ici.",
+        actionLabel = "Créer"
+    )
+}
+
+private fun Event.widgetStartInstant(): Instant? {
+    val final = finalDate?.let { raw -> runCatching { Instant.parse(raw) }.getOrNull() }
+    if (final != null) return final
+
+    return proposedSlots
+        .mapNotNull { slot -> slot.start?.let { raw -> runCatching { Instant.parse(raw) }.getOrNull() } }
+        .minByOrNull { it.toEpochMilliseconds() }
 }
