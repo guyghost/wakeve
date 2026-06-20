@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -316,9 +317,13 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
      */
     private fun openCustomTab(url: String) {
         try {
+            val toolbarColor = android.graphics.Color.parseColor("#FFFFFF")
+            val colorSchemeParams = CustomTabColorSchemeParams.Builder()
+                .setToolbarColor(toolbarColor)
+                .build()
             val builder = CustomTabsIntent.Builder()
-            builder.setShowTitle(true)
-            builder.setToolbarColor(android.graphics.Color.parseColor("#FFFFFF"))
+                .setShowTitle(true)
+                .setDefaultColorSchemeParams(colorSchemeParams)
 
             val customTabsIntent = builder.build()
             customTabsIntent.launchUrl(this, Uri.parse(url))
