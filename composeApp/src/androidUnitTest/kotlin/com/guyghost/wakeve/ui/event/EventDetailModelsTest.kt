@@ -334,6 +334,111 @@ class EventDetailModelsTest {
     }
 
     @Test
+    fun notificationSummaryRecommendsVoteRemindersDuringPolling() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.POLLING),
+            participantAccessStates = listOf(
+                ParticipantAccessState.organizer("organizer"),
+                ParticipantAccessState.invitedPending("participant-1")
+            )
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Notifications", uiState.notificationSummary?.title)
+        assertEquals("Votes a relancer", uiState.notificationSummary?.statusLabel)
+        assertEquals("Priorite moyenne", uiState.notificationSummary?.priorityLabel)
+        assertEquals("Risque spam modere", uiState.notificationSummary?.spamRiskLabel)
+        assertEquals(
+            "Relancez les votes manquants et gardez les autres mises a jour dans l'app.",
+            uiState.notificationSummary?.nextActionLabel
+        )
+        assertEquals("Relance de vote", uiState.notificationSummary?.reminders?.first()?.title)
+        assertEquals(
+            "1 invite a relancer avant la date limite.",
+            uiState.notificationSummary?.reminders?.first()?.body
+        )
+        assertTrue(uiState.notificationSummary?.reminders?.all { it.isRecommended } == true)
+    }
+
+    @Test
+    fun notificationSummaryHighlightsDateAndDepartureAfterConfirmation() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(
+                status = EventStatus.CONFIRMED,
+                finalDate = "2026-07-14T18:30:00Z"
+            )
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Date a diffuser", uiState.notificationSummary?.statusLabel)
+        assertEquals("Priorite urgente", uiState.notificationSummary?.priorityLabel)
+        assertEquals("Risque spam faible", uiState.notificationSummary?.spamRiskLabel)
+        assertEquals(
+            "Envoyez la date validee, puis programmez le rappel de depart.",
+            uiState.notificationSummary?.nextActionLabel
+        )
+        assertEquals(
+            listOf("Date validee", "Rappel de depart"),
+            uiState.notificationSummary?.reminders?.map { it.title }
+        )
+        assertTrue(uiState.notificationSummary?.reminders?.last()?.isRecommended == true)
+    }
+
+    @Test
+    fun notificationSummaryDoesNotRecommendDepartureReminderWithoutFinalDate() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.CONFIRMED)
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        val departureReminder = uiState.notificationSummary?.reminders?.last()
+
+        assertEquals("Rappel de depart", departureReminder?.title)
+        assertEquals(
+            "Confirmez l'horaire avant de programmer le rappel de depart.",
+            departureReminder?.body
+        )
+        assertFalse(departureReminder?.isRecommended ?: true)
+    }
+
+    @Test
+    fun notificationSummaryCallsOutProgramUpdateSpamRiskDuringOrganizing() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.ORGANIZING)
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Rappels actifs", uiState.notificationSummary?.statusLabel)
+        assertEquals("Priorite urgente", uiState.notificationSummary?.priorityLabel)
+        assertEquals("Risque spam eleve", uiState.notificationSummary?.spamRiskLabel)
+        assertTrue(
+            uiState.notificationSummary?.reminders
+                ?.first { it.title == "Changement de programme" }
+                ?.body
+                .orEmpty()
+                .contains("grouper")
+        )
+        assertEquals(
+            "Gardez les rappels critiques; regroupez les changements de programme.",
+            uiState.notificationSummary?.nextActionLabel
+        )
+    }
+
+    @Test
+    fun notificationSummaryLimitsFinalizedEventToTargetedFollowUps() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.FINALIZED)
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Suivi final", uiState.notificationSummary?.statusLabel)
+        assertEquals("Risque spam eleve", uiState.notificationSummary?.spamRiskLabel)
+        assertEquals(
+            listOf("Remboursements restants", "Photos et recap"),
+            uiState.notificationSummary?.reminders?.map { it.title }
+        )
+        assertEquals(
+            "Limitez l'apres-evenement aux remboursements, photos et recap groupe.",
+            uiState.notificationSummary?.nextActionLabel
+        )
+    }
+
+    @Test
     fun attendanceSummaryGuidesOrganizerWhenNobodyConfirmed() {
         val uiState = EventManagementContract.State(
             selectedEvent = event(status = EventStatus.CONFIRMED),
