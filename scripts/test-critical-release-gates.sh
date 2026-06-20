@@ -79,7 +79,10 @@ assert_wakeve_ai_device_profile_helper() {
 
     local required_patterns=(
         'Status: `'
+        'TEAM_ID / APPLE_TEAM_ID environment value'
+        'Apple Intelligence enabled | TODO'
         'Foundation Models availability | TODO: must be `.available`'
+        'Foundation Models model assets ready | TODO'
         'Generation latency | TODO'
         'Cancellation latency | TODO'
         'Peak memory during generation | TODO'

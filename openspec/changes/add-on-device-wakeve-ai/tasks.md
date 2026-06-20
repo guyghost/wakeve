@@ -50,3 +50,6 @@
 - [x] 6.5 Manually verify fallback on an unavailable/incompatible simulator or device.
 - [ ] 6.6 Profile generation latency, cancellation, and memory on a real supported device and record results in implementation notes.
 - [x] 6.7 Verify no production logs contain prompt text, participant names beyond existing UI scope, votes, addresses, prices, or generated personal content.
+
+## Notes
+- `scripts/prepare-wakeve-ai-device-profile.sh` generates the required real-device profiling evidence template for 6.6 and is guarded by `scripts/test-critical-release-gates.sh`; it does not close 6.6 until a physical supported device with Apple Intelligence and Foundation Models available records latency, cancellation, memory, trace, and production-log privacy evidence.

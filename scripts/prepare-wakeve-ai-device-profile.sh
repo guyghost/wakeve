@@ -6,7 +6,7 @@ OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_DIR/docs/performance}"
 TIMESTAMP="$(date -u +"%Y-%m-%dT%H-%M-%SZ")"
 REPORT="$OUTPUT_DIR/wakeve-ai-device-profile-$TIMESTAMP.md"
 BUNDLE_ID="${BUNDLE_ID:-com.guyghost.wakeve}"
-TEAM_ID_VALUE="${TEAM_ID:-}"
+TEAM_ID_VALUE="${TEAM_ID:-${APPLE_TEAM_ID:-}}"
 
 mkdir -p "$OUTPUT_DIR"
 
@@ -104,7 +104,7 @@ Instruments, unlock the device, trust this Mac, and enable Developer Mode in
 | Field | Value |
 | --- | --- |
 | Bundle ID | \`$BUNDLE_ID\` |
-| TEAM_ID environment value | \`${TEAM_ID_VALUE:-missing}\` |
+| TEAM_ID / APPLE_TEAM_ID environment value | \`${TEAM_ID_VALUE:-missing}\` |
 | Valid code signing identities | \`$valid_signing_identity_count\` |
 | Matching provisioning profiles | \`$(if [ -n "$matching_profiles" ]; then printf '%s' "present"; else printf '%s' "missing"; fi)\` |
 
@@ -134,7 +134,9 @@ Record all fields below before checking off OpenSpec task \`6.6\`:
 | Device OS build | TODO |
 | Wakeve build configuration | TODO |
 | Wakeve build number / commit | TODO |
+| Apple Intelligence enabled | TODO |
 | Foundation Models availability | TODO: must be \`.available\` |
+| Foundation Models model assets ready | TODO |
 | Smart Event Draft prompt | TODO: describe fixture without personal data |
 | Generation latency | TODO |
 | Cancellation latency | TODO |
@@ -150,7 +152,7 @@ Record all fields below before checking off OpenSpec task \`6.6\`:
 
 1. Install a signed Debug, Release, or TestFlight build on a supported physical iPhone with Apple Intelligence and Foundation Models available.
 2. Open Wakeve and navigate to event creation.
-3. Confirm the model availability state is \`.available\` through the WakeveAI availability path or debug instrumentation.
+3. Confirm Apple Intelligence is enabled and the model availability state is \`.available\` through the WakeveAI availability path or debug instrumentation.
 4. Start an Instruments run using Allocations or Leaks plus Time Profiler.
 5. Generate a Smart Event Draft from a non-personal fixture, for example: \`Week-end à Lisbonne avec 8 amis en septembre\`.
 6. Record generation duration from \`WakeveAIMetricsRecorder\` or the debug metrics UI/log snapshot.
@@ -166,6 +168,7 @@ Do not mark \`6.6\` complete if any of these are true:
 - Only simulator evidence is available.
 - The physical device is connected but not trace-ready in Instruments.
 - Xcode signing is missing a development team, valid Apple Development identity, or provisioning profile for the Wakeve bundle ID.
+- Apple Intelligence is disabled for the device or account.
 - The physical device reports Foundation Models as disabled, not ready, unsupported, or unknown.
 - The run uses personal prompt content that cannot be committed or summarized safely.
 - Latency is measured without cancellation and memory evidence.
