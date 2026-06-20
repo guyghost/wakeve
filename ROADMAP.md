@@ -1,9 +1,9 @@
 # Roadmap Wakeve
 
-Derniere mise a jour: 2026-06-20
+Derniere mise a jour: 2026-06-21
 Version: 2.1
 
-## Etat verifie au 2026-06-20
+## Etat verifie au 2026-06-21
 
 Sources consultees:
 
@@ -11,6 +11,7 @@ Sources consultees:
 - `openspec list --specs`
 - `openspec/changes/*/tasks.md`
 - `docs/APP_STORE_BLOCKER_REGISTER.md`
+- `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-02-42Z.md`
 - `docs/product/android-product-ux-audit-2026-06-20.md`
 - XcodeBuildMCP iOS Simulator focused WeatherKit/WakeveAI artifacts du 2026-06-20
 - `openspec validate --all --strict`
@@ -159,6 +160,12 @@ Preuves locales du 2026-06-20:
 - `./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 12` genere `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-55-13Z.md`; le rapport conclut `FAIL. 16 required live URL/AASA checks failed or could not be validated`.
 - `wakeve.app` ne retourne toujours aucune entree DNS publique et tous les endpoints legal/support/terms/third-party-notices, dashboard `/app`, redirects legacy et AASA echouent avec `Could not resolve host: wakeve.app`.
 - `api.wakeve.app` resout vers Cloudflare (`104.21.48.204`, `172.67.156.46`), `curl -I https://api.wakeve.app/health` repond HTTP `405` et `curl https://api.wakeve.app/health` repond HTTP `200 OK`, ce qui confirme que le blocker restant porte surtout sur le domaine web/AASA public et le vrai Apple Team ID.
+
+Preuves locales du 2026-06-21:
+
+- `./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 12` genere `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-02-42Z.md`; le rapport conclut encore `FAIL. 16 required live URL/AASA checks failed or could not be validated`.
+- `wakeve.app` ne retourne toujours aucune entree DNS publique; legal/support/terms/third-party-notices, dashboard `/app`, redirects legacy et AASA restent injoignables avec `Could not resolve host: wakeve.app`.
+- `api.wakeve.app` resout toujours vers Cloudflare (`172.67.156.46`, `104.21.48.204`), `HEAD /health` repond HTTP `405` et `GET /health` repond HTTP `200 OK`; AS-14 reste bloque par le domaine web/AASA public et le vrai Apple Team ID.
 
 #### 0.4 Signed archive, TestFlight et release evidence
 

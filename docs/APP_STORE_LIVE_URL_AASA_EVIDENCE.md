@@ -63,7 +63,7 @@ This file records the App Store review evidence for AS-14: public legal/support 
 | `https://wakeve.app/apple-app-site-association` | Public HTTPS fallback response, no extension, valid JSON, `application/json`, no placeholder Team ID. | Pending |
 | AASA app ID | Both AASA responses contain `<APPLE_TEAM_ID>.com.guyghost.wakeve`. | Pending |
 | AASA Universal Link paths | Both AASA responses contain `/event/*`, `/poll/*`, `/meeting/*`, and `/invite/*`. | Pending |
-| `https://api.wakeve.app/health` | Public HTTPS response showing production backend health is OK. | Passed on 2026-06-14 with GET: `200 OK`, body `OK`. On 2026-06-20 DNS resolves and Cloudflare responds; HEAD returns `405`, while the App Store audit still reports API health reachable. |
+| `https://api.wakeve.app/health` | Public HTTPS response showing production backend health is OK. | Passed on 2026-06-14 with GET: `200 OK`, body `OK`. On 2026-06-21 local time DNS resolves and Cloudflare responds; HEAD returns `405`, GET returns `200 OK`; the App Store audit reports API health reachable. |
 | `https://wakeve.app/app` | Public dashboard shell route resolves through the dashboard microfrontend. | Pending |
 | `https://wakeve.app/app/login` | Public dashboard login route resolves through the dashboard microfrontend. | Pending |
 | `https://wakeve.app/app/dashboard` | Public dashboard home route resolves through the dashboard microfrontend. | Pending |
@@ -78,13 +78,14 @@ This file records the App Store review evidence for AS-14: public legal/support 
 Latest capture command:
 
 ```bash
-./scripts/capture-app-store-live-url-aasa.sh --timeout 12
+./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 12
 ```
 
-Result on 2026-06-20: `FAIL. 16 required live URL/AASA checks failed or could not be validated.`
+Result on 2026-06-21 local time, capture timestamp 2026-06-20T22:02:42Z: `FAIL. 16 required live URL/AASA checks failed or could not be validated.`
 
 Generated capture report:
 
+- `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-02-42Z.md`
 - `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-55-13Z.md`
 - `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md`
 - `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T19-28-38Z.md`
@@ -92,6 +93,7 @@ Generated capture report:
 - `dig +short wakeve.app` returned no answer.
 - `dig +short api.wakeve.app` returned `172.67.156.46` and `104.21.48.204`.
 - `curl -I --max-time 12 https://api.wakeve.app/health` reached Cloudflare and returned HTTP `405` for HEAD.
+- `curl --max-time 12 -i https://api.wakeve.app/health` reached Cloudflare and returned HTTP `200 OK`.
 - All required `wakeve.app` legal pages, dashboard shell routes, legacy redirects, and AASA URLs failed with `curl: (6) Could not resolve host: wakeve.app`.
 
 Latest full submission audit command: `./scripts/app-store-submission-audit.sh --check-live-urls --run-submission-ready`.
