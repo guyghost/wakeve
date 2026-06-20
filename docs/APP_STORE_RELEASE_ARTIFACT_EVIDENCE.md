@@ -75,12 +75,12 @@ Result:
 - dSYM path: `build/xcode-deriveddata-release/Build/Products/Release-iphoneos/Wakeve.app.dSYM`
 - App bundle size: `47M`
 - dSYM bundle size: `19M`
-- App executable SHA-256: `7e6d2f07bf6a8ebc75a71642082a145202f5532336aed9d429120b45e232e4b5`
-- Shared framework executable SHA-256: `f63e54f354b7f746b09e495d92fa6a2633c84c21ea782fce4bd643080f6998bf`
+- App executable SHA-256: `9da2385687933099629bf2a670169e27c43b707029474564bf1a190341c162d7`
+- Shared framework executable SHA-256: `697add85df583c0e3b69fdc4150f8b5417e50f37e6f6fe55b39d5f81afef85ef`
 - Built `Info.plist` SHA-256: `5d129e2a7756d2ff2346bf48ad53ab3003c4a85c0c1e7fe1ffb1187e57a90178`
 - Built `PrivacyInfo.xcprivacy` SHA-256: `38dbda46a737beed9c54a65cf089159fbb2712de1c21b8c9cd5de6877acfbfc3`
-- App executable UUID: `26C76672-7816-33B0-93D3-22B6DF9B5E20 (arm64)`
-- dSYM UUID: `26C76672-7816-33B0-93D3-22B6DF9B5E20 (arm64)`
+- App executable UUID: `79F15544-136E-34E9-914F-19DE00FD8B9A (arm64)`
+- dSYM UUID: `79F15544-136E-34E9-914F-19DE00FD8B9A (arm64)`
 - Built Bundle ID: `com.guyghost.wakeve`
 - Built display name: `Wakeve`
 - Built marketing version: `1.0`
