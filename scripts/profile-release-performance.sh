@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT_DIR="$PROJECT_DIR/docs/performance"
+OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_DIR/docs/performance}"
 RUN_DIR="${TMPDIR:-/tmp}/wakeve-performance-profile-$$"
 RUNS="${RUNS:-5}"
 IOS_SIMULATOR="${IOS_SIMULATOR:-iPhone 17 Pro Max}"
@@ -244,6 +244,34 @@ record_skip() {
     } >> "$REPORT"
 }
 
+append_release_build_result() {
+    local platform="$1"
+    local artifact="$2"
+    local log="$3"
+
+    local artifact_size="n/a"
+    if [ -n "$artifact" ] && [ -f "$artifact" ]; then
+        artifact_size="$(wc -c < "$artifact" | tr -d ' ') bytes"
+    elif [ -n "$artifact" ] && [ -d "$artifact" ]; then
+        artifact_size="directory"
+    fi
+
+    {
+        echo "## $platform Release Build"
+        echo ""
+        echo "Status: BUILT_LOCAL_RELEASE_ARTIFACT"
+        echo ""
+        echo "| Field | Value |"
+        echo "| --- | --- |"
+        echo "| Artifact | \`${artifact:-not found}\` |"
+        echo "| Artifact size | $artifact_size |"
+        echo "| Build log | \`$log\` |"
+        echo ""
+        echo "This proves the local Release artifact can be produced. It does not prove signed App Store/TestFlight readiness or runtime performance on a representative device."
+        echo ""
+    } >> "$REPORT"
+}
+
 build_ios_app() {
     local derived="$RUN_DIR/ios-derived"
     local log="$LOG_DIR/xcodebuild-ios-release.log"
@@ -322,11 +350,24 @@ profile_ios() {
 
 build_android_app() {
     local log="$LOG_DIR/gradle-android-release.log"
-    run_with_timeout "$ANDROID_BUILD_TIMEOUT_SECONDS" "$PROJECT_DIR/gradlew" -p "$PROJECT_DIR" :composeApp:assembleRelease > "$log" 2>&1 || return 1
+    run_with_timeout "$ANDROID_BUILD_TIMEOUT_SECONDS" "$PROJECT_DIR/gradlew" -p "$PROJECT_DIR" --no-configuration-cache :composeApp:assembleRelease > "$log" 2>&1 || return 1
     find "$PROJECT_DIR/composeApp/build/outputs/apk/release" -maxdepth 1 -name "*.apk" -type f | head -n 1
 }
 
 profile_android() {
+    local apk_path=""
+    if [ "$BUILD_ANDROID" = true ]; then
+        if ! apk_path="$(build_android_app)"; then
+            record_skip "Android Release Build" "The Android Release build failed or exceeded ${ANDROID_BUILD_TIMEOUT_SECONDS}s. Inspect \`$LOG_DIR/gradle-android-release.log\`."
+            return 0
+        fi
+        if [ -z "$apk_path" ] || [ ! -f "$apk_path" ]; then
+            record_skip "Android Release Build" "The Android Release build completed without a discoverable APK."
+            return 0
+        fi
+        append_release_build_result "Android" "$apk_path" "$LOG_DIR/gradle-android-release.log"
+    fi
+
     if ! command -v adb >/dev/null 2>&1; then
         record_skip "Android Cold Start" "\`adb\` is unavailable on this machine."
         return 0
@@ -340,15 +381,6 @@ profile_android() {
     fi
 
     if [ "$BUILD_ANDROID" = true ]; then
-        local apk_path
-        if ! apk_path="$(build_android_app)"; then
-            record_skip "Android Cold Start" "The Android Release build failed or exceeded ${ANDROID_BUILD_TIMEOUT_SECONDS}s. Inspect \`$LOG_DIR/gradle-android-release.log\`."
-            return 0
-        fi
-        if [ -z "$apk_path" ] || [ ! -f "$apk_path" ]; then
-            record_skip "Android Cold Start" "The Android Release build completed without a discoverable APK."
-            return 0
-        fi
         adb install -r "$apk_path" > "$LOG_DIR/adb-install-android.log" 2>&1
     fi
 
