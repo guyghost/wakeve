@@ -236,6 +236,14 @@ Preuves du 2026-06-13:
   - apres reset app: `/var/folders/1t/456kc0651bl7mgrc62_m43g80000gn/T/screenshot_optimized_4b84c20b-1411-4e5c-97c6-c2bedec4cb0b.jpg`
 - `./scripts/audit-ios-release-screen-evidence.sh` genere `docs/ios-release-screen-evidence/release-screen-evidence-2026-06-13T13-32-47Z.md` et rend la couverture screenshot actuelle explicite: 3/5 ecrans requis couverts localement (onboarding, login/guest, creation event), event detail et organisation toujours manquants, avec cibles de capture TestFlight/App Review explicites.
 
+Preuves du 2026-06-20:
+
+- `build_run_sim` passe sur `WakeveApp` / `iPhone 17`, mais `snapshot_ui` echoue toujours avec `Failed to load essential private frameworks` pour `SimulatorKit.framework`; la navigation semantique locale vers event detail/organization reste donc indisponible dans cet environnement Xcode beta.
+- `xcrun simctl openurl ... wakeve://event/sample-event-birthday-01` affiche la confirmation systeme `Ouvrir dans Wakeve ?`, mais l'environnement sans snapshot/tap ne permet pas d'accepter cette boite de dialogue de facon fiable.
+- `docs/ios-release-screen-evidence/release-screen-evidence-2026-06-20T21-10-30Z.md` confirme la couverture locale actuelle: 3/5 ecrans requis, event detail et organization toujours manquants.
+- Le meme rapport verifie maintenant l'integrite des 13 captures indexees dans `docs/app-store-evidence/README.md`: 13 fichiers presents, dimensions conformes, SHA-256 conformes, 0 failure.
+- `./scripts/test-critical-release-gates.sh` execute l'audit screenshot en sortie temporaire et bloque les regressions d'integrite ou la disparition du statut explicite des ecrans manquants.
+
 Definition of done:
 
 - [x] Les tests E2E critiques passent.

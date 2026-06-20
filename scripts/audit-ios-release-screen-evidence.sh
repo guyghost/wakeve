@@ -55,19 +55,112 @@ mkdir -p "$tmp_dir"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 inventory="$tmp_dir/inventory.txt"
+indexed_images="$tmp_dir/indexed-images.tsv"
 if [ -f "$index_file" ]; then
     rg '^\| `[^`]+\.(png|jpg|jpeg)` \|' "$index_file" | sed 's/`//g' > "$inventory"
+    ruby - "$index_file" "$indexed_images" <<'RUBY'
+index_path = ARGV.fetch(0)
+out_path = ARGV.fetch(1)
+rows = []
+
+File.readlines(index_path, chomp: true).each do |line|
+  match = line.match(/^\| `([^`]+\.(?:png|jpg|jpeg))` \| [^|]+ \| [^|]+ \| ([^|]+) \| `([a-fA-F0-9]{64})` \|/)
+  next unless match
+
+  rows << [match[1], match[2].strip, match[3].downcase].join("\t")
+end
+
+File.write(out_path, rows.empty? ? "" : "#{rows.join("\n")}\n")
+RUBY
 else
     find "$PROJECT_DIR/docs/app-store-evidence" \
         -maxdepth 1 \
         -type f \
         \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) \
         -print 2>/dev/null | sed "s|$PROJECT_DIR/docs/app-store-evidence/||" > "$inventory"
+    : > "$indexed_images"
 fi
 
 missing=0
 required_count=0
 passed_count=0
+integrity_failures=0
+integrity_checked=0
+
+append_integrity_audit() {
+    local details_file="$tmp_dir/integrity-details.md"
+    : > "$details_file"
+
+    if [ ! -s "$indexed_images" ]; then
+        {
+            echo "## Evidence Integrity"
+            echo ""
+            echo "No indexed screenshot rows with SHA-256 hashes were found to verify."
+            echo ""
+        } >> "$report"
+        return 0
+    fi
+
+    {
+        echo "## Evidence Integrity"
+        echo ""
+        echo "| File | Result | Expected dimensions | Actual dimensions | Expected SHA-256 | Actual SHA-256 |"
+        echo "| --- | --- | --- | --- | --- | --- |"
+    } >> "$report"
+
+    while IFS=$'\t' read -r file expected_dimensions expected_hash; do
+        [ -n "$file" ] || continue
+        integrity_checked=$((integrity_checked + 1))
+
+        local path="$PROJECT_DIR/docs/app-store-evidence/$file"
+        local result="PASS"
+        local actual_dimensions="missing"
+        local actual_hash="missing"
+
+        if [ ! -f "$path" ]; then
+            result="MISSING_FILE"
+        else
+            actual_hash="$(shasum -a 256 "$path" | awk '{print $1}')"
+            if command -v sips >/dev/null 2>&1; then
+                local dimensions
+                dimensions="$(sips -g pixelWidth -g pixelHeight "$path" 2>/dev/null || true)"
+                local width
+                local height
+                width="$(printf '%s\n' "$dimensions" | awk '/pixelWidth/ {print $2; exit}')"
+                height="$(printf '%s\n' "$dimensions" | awk '/pixelHeight/ {print $2; exit}')"
+                if [ -n "$width" ] && [ -n "$height" ]; then
+                    actual_dimensions="${width}x${height}"
+                else
+                    actual_dimensions="unreadable"
+                fi
+            else
+                actual_dimensions="sips unavailable"
+            fi
+
+            if [ "$actual_hash" != "$expected_hash" ]; then
+                result="HASH_MISMATCH"
+            elif [ "$actual_dimensions" != "$expected_dimensions" ]; then
+                result="DIMENSION_MISMATCH"
+            fi
+        fi
+
+        if [ "$result" != "PASS" ]; then
+            integrity_failures=$((integrity_failures + 1))
+        fi
+
+        {
+            echo "| \`$file\` | $result | $expected_dimensions | $actual_dimensions | \`$expected_hash\` | \`$actual_hash\` |"
+        } >> "$report"
+    done < "$indexed_images"
+
+    {
+        echo ""
+        echo "Integrity checked: $integrity_checked indexed screenshots"
+        echo ""
+        echo "Integrity failures: $integrity_failures"
+        echo ""
+    } >> "$report"
+}
 
 screen_match() {
     local pattern="$1"
@@ -156,6 +249,7 @@ append_screen "organization" "organization|organisation|organizing|scenario orga
     echo "## Matched Evidence"
     echo ""
     cat "$details_file"
+    append_integrity_audit
     echo "## Closure Notes"
     echo ""
     echo "- Treat MISSING rows as the next screenshot-capture targets."
@@ -165,6 +259,10 @@ append_screen "organization" "organization|organisation|organizing|scenario orga
 } >> "$report"
 
 echo "$report"
+
+if [ "$integrity_failures" -gt 0 ]; then
+    exit 1
+fi
 
 if [ "$FAIL_ON_MISSING" = true ] && [ "$missing" -gt 0 ]; then
     exit 1
