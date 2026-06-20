@@ -334,6 +334,11 @@ Preuves du 2026-06-13:
 - Le meme document inventorie les categories/actions existantes (`event_invite`, `poll_reminder`, `meeting_starting`, `scenario_vote`, `general`) et interdit l'ajout de nouveaux contrats notification/deep link sans proposition OpenSpec.
 - Les liens meeting restent supportes par les parseurs existants, mais ne sont pas promus comme surface App Review critique pour la premiere soumission.
 
+Preuves du 2026-06-20:
+
+- `docs/deep-linking.md` est aligne avec `RichNotificationActionPolicy`: `event_invite`, `poll_reminder`, `scenario_vote` et `general` n'exposent aucune action directe, tandis que `meeting_starting` conserve uniquement `join`.
+- `./scripts/test-critical-release-gates.sh` inclut maintenant `assert_notification_review_contract` et echoue si les identifiants de categories, la politique d'actions directes ou la table de documentation divergent.
+
 #### 2.4 Sync avancée et CRDT
 
 - [x] Garder last-write-wins pour la release si les conflits sont comprehensibles.
