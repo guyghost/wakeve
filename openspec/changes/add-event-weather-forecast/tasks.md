@@ -28,7 +28,7 @@
 - [x] 5.4 @designer Validate Liquid Glass, accessibility, dynamic type, reduce transparency, and dark/light mode states.
 
 ## 6. Review and Verification
-- [ ] 6.1 @review Review privacy, access control, App Store entitlement risk, and fallback behavior.
+- [x] 6.1 @review Review privacy, access control, App Store entitlement risk, and fallback behavior.
 - [ ] 6.2 @tests Run shared tests, iOS unit tests, and iOS UI validation on simulator where possible and physical device where WeatherKit requires entitlement validation.
 - [x] 6.3 @docs Document WeatherKit entitlement setup, MapKit location resolution behavior, cache policy, and provider limitations.
 
@@ -41,4 +41,5 @@
 - 4.4 is covered by `CachedEventWeatherProvider`, which reuses fresh same-place/same-date results and coalesces concurrent duplicate requests before hitting WeatherKit.
 - 5.2 is implemented in iOS scenario comparison rows. The weather context appears only when a scenario has non-empty location text and an ISO-like date in `dateOrPeriod`; provider errors stay silent because this context is advisory.
 - 5.4 is covered by `docs/design/event-weather-ios-validation.md` and `EventWeatherMapCardContractTests.testWeatherDesignValidationCoversA11yAndAppearanceModes`, with previews for dark mode, Dynamic Type, and the shared Reduce Transparency fallback path.
+- 6.1 is covered by `docs/reviews/event-weather-privacy-review.md`, `EventWeatherMapCardContractTests.testWeatherPrivacyReviewGuardsProviderDataAndAccessControl`, and `PremiumEventDetailContractTests.testEventDetailWeatherFollowsOrganizationAccessControl`. Event-detail weather is now hidden unless `canShowWeatherContext`/`canAccessOrganizationDetails` is true.
 - 6.2 is partially covered by shared JVM tests, Android compilation, iOS simulator build, and targeted iOS XCTest; physical-device WeatherKit validation remains pending.

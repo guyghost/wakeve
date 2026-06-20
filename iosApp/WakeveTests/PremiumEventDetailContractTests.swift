@@ -39,6 +39,7 @@ final class PremiumEventDetailContractTests: XCTestCase {
         XCTAssertTrue(content.contains("canAccessScenarioPlanning"))
         XCTAssertTrue(content.contains("canAccessTransportPlanning"))
         XCTAssertTrue(content.contains("canShowOrganizationDashboard"))
+        XCTAssertTrue(content.contains("canShowWeatherContext"))
         XCTAssertTrue(content.contains("ParticipantAccessMapper.shared.fromRepositoryRecord"))
         XCTAssertFalse(
             content.contains("StateMachine("),
@@ -66,6 +67,18 @@ final class PremiumEventDetailContractTests: XCTestCase {
         XCTAssertTrue(source.contains("weather.map_accessibility_format"))
         XCTAssertFalse(source.contains("Chargement météo"))
         XCTAssertFalse(source.contains("Météo bientôt disponible"))
+    }
+
+    func testEventDetailWeatherFollowsOrganizationAccessControl() throws {
+        let source = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let detail = slice(source, from: "struct EventDetailView", to: "private struct EventDetailHeroMetric")
+
+        XCTAssertTrue(detail.contains("if canShowWeatherContext"))
+        XCTAssertTrue(detail.contains("EventWeatherMapCard(state: eventWeatherViewModel.state)"))
+        XCTAssertTrue(detail.contains("guard canShowWeatherContext else"))
+        XCTAssertTrue(detail.contains("eventWeatherViewModel.hide()"))
+        XCTAssertTrue(detail.contains("private var canShowWeatherContext"))
+        XCTAssertTrue(detail.contains("canAccessOrganizationDetails"))
     }
 
     func testEventInfoSheetUsesLocalizationKeys() throws {
