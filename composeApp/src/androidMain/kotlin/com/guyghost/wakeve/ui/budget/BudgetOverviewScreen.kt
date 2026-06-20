@@ -12,7 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.Link
@@ -22,7 +23,6 @@ import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.Sync
-import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -50,10 +50,12 @@ import com.guyghost.wakeve.payment.PaymentPotRepository
 import com.guyghost.wakeve.payment.TricountHandoffRecord
 import com.guyghost.wakeve.payment.TricountHandoffRepository
 import com.guyghost.wakeve.repository.EventRepositoryInterface
+import com.guyghost.wakeve.budget.BudgetCalculator
 import com.guyghost.wakeve.budget.BudgetRepository
 import com.guyghost.wakeve.models.Budget
 import com.guyghost.wakeve.models.BudgetCategory
 import com.guyghost.wakeve.models.BudgetCategoryDetails
+import com.guyghost.wakeve.models.BudgetItem
 import com.guyghost.wakeve.models.BudgetWithItems
 
 /**
@@ -102,15 +104,15 @@ fun BudgetOverviewScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Budget") },
+                title = { Text(budgetOverviewTitle()) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, budgetBackContentDescription())
                     }
                 },
                 actions = {
                     IconButton(onClick = { budgetState?.let { onNavigateToDetail(it.budget.id) } }) {
-                        Icon(Icons.Default.ViewList, "Voir détails")
+                        Icon(Icons.AutoMirrored.Filled.ViewList, budgetDetailsContentDescription())
                     }
                 }
             )
@@ -135,7 +137,7 @@ fun BudgetOverviewScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("Aucun budget pour cet événement")
+                        Text(budgetEmptyTitle())
                         Spacer(modifier = Modifier.height(16.dp))
                         if (canCreateBudget && !isReadOnly) {
                             Button(
@@ -145,11 +147,11 @@ fun BudgetOverviewScreen(
                                     budgetState = budgetRepository.getBudgetWithItems(newBudget.id)
                                 }
                             ) {
-                                Text("Créer un budget")
+                                Text(budgetCreateActionLabel())
                             }
                         } else {
                             Text(
-                                text = "Le budget est consultable une fois créé par l'organisateur.",
+                                text = budgetReadOnlyEmptyMessage(),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -190,6 +192,7 @@ private fun BudgetOverviewContent(
 ) {
     val budget = budgetWithItems.budget
     val categoryBreakdown = budgetWithItems.categoryBreakdown
+    val settlementSummary = budgetSettlementSummary(budgetWithItems.items)
     
     LazyColumn(
         modifier = modifier
@@ -217,6 +220,10 @@ private fun BudgetOverviewContent(
         }
 
         item {
+            SettlementSummaryCard(summary = settlementSummary)
+        }
+
+        item {
             PaymentPotEntryCard(
                 onOpenPaymentPot = onOpenPaymentPot,
                 isReadOnly = isReadOnly,
@@ -235,7 +242,7 @@ private fun BudgetOverviewContent(
         // Category Breakdown
         item {
             Text(
-                text = "Répartition par catégorie",
+                text = budgetCategoryBreakdownTitle(),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -243,6 +250,44 @@ private fun BudgetOverviewContent(
         
         items(categoryBreakdown) { category ->
             CategoryBreakdownCard(category)
+        }
+    }
+}
+
+@Composable
+private fun SettlementSummaryCard(summary: BudgetSettlementSummary) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Payments,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = summary.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Text(
+                text = summary.body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            summary.lines.forEach { line ->
+                Text(
+                    text = line.sentence,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }
@@ -271,7 +316,7 @@ fun PaymentPotScreen(
             eventId = eventId,
             organizerId = organizerId,
             goalAmount = 0.0,
-            title = "Cagnotte $eventId"
+            title = paymentPotDefaultTitle()
         )
     }
     fun activatePaymentPot() {
@@ -287,10 +332,10 @@ fun PaymentPotScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Cagnotte") },
+                title = { Text(paymentPotScreenTitle()) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, budgetBackContentDescription())
                     }
                 }
             )
@@ -311,10 +356,10 @@ fun PaymentPotScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Icon(Icons.Default.Payments, contentDescription = null)
-                        Text("Cagnotte", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(paymentPotScreenTitle(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text(
-                            pot?.let { "Cagnotte active - ${it.goalAmount} ${it.currency}. Les changements sont enregistrés sur cet appareil." }
-                                ?: "Aucune cagnotte active pour l'événement $eventId.",
+                            pot?.let { paymentPotActiveMessage(it.goalAmount, it.currency) }
+                                ?: paymentPotInactiveMessage(),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -323,28 +368,28 @@ fun PaymentPotScreen(
                             enabled = mutationsEnabled && pot == null,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Créer une cagnotte")
+                            Text(paymentPotCreateActionLabel())
                         }
                         Button(
                             onClick = ::activatePaymentPot,
                             enabled = mutationsEnabled && pot == null,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Activer la cagnotte")
+                            Text(paymentPotActivateActionLabel())
                         }
                         Button(
                             onClick = { pot?.let(onOpenPaymentPot) },
                             enabled = pot != null,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Ouvrir la cagnotte")
+                            Text(paymentPotOpenActionLabel())
                         }
                         Button(
                             onClick = ::closePaymentPot,
                             enabled = mutationsEnabled && pot?.status == "ACTIVE",
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Clôturer la cagnotte")
+                            Text(paymentPotCloseActionLabel())
                         }
                     }
                 }
@@ -373,7 +418,7 @@ fun TricountHandoffScreen(
     val safeExternalLink = remember(handoff) {
         handoff?.providerUrl?.let { url ->
             SafeExternalLink.sanitize(
-                label = "Ouvrir Tricount",
+                label = tricountOpenActionLabel(),
                 provider = "TRICOUNT",
                 rawUrl = url,
                 verifier = tricountHandoffRepository::isTrustedProviderUrl
@@ -411,10 +456,10 @@ fun TricountHandoffScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tricount") },
+                title = { Text(tricountScreenTitle()) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, budgetBackContentDescription())
                     }
                 }
             )
@@ -435,12 +480,15 @@ fun TricountHandoffScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Icon(Icons.Default.Link, contentDescription = null)
-                        Text("Lien Tricount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text(tricountLinkTitle(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text(
                             if (handoff == null) {
-                                "Aucun lien Tricount n'est encore associé. Ajoutez un lien vérifié avant de rediriger les participants."
+                                tricountMissingLinkMessage()
                             } else {
-                                "Lien ${safeExternalLink?.verificationStatus ?: "non vérifié"} pour ${handoff?.provider ?: "Tricount"}."
+                                tricountLinkStatusMessage(
+                                    safeExternalLink?.verificationStatus,
+                                    handoff?.provider
+                                )
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -455,21 +503,21 @@ fun TricountHandoffScreen(
                             enabled = mutationsEnabled,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Associer Tricount")
+                            Text(tricountLinkActionLabel())
                         }
                         Button(
                             onClick = ::unlinkTricount,
                             enabled = mutationsEnabled && handoff?.providerUrl != null,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Dissocier Tricount")
+                            Text(tricountUnlinkActionLabel())
                         }
                         Button(
                             onClick = ::markTricountNotNeeded,
                             enabled = mutationsEnabled,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Tricount non requis")
+                            Text(tricountNotNeededActionLabel())
                         }
                     }
                 }
@@ -534,9 +582,9 @@ fun OfflinePendingSyncBanner(
             Icon(Icons.Default.Sync, contentDescription = null)
             Text(
                 text = when {
-                    pendingSync && !isOnline -> "Synchronisation en attente. Modifications locales en attente d'envoi."
-                    pendingSync -> "Modifications locales en attente d'envoi."
-                    else -> "Données locales disponibles hors ligne."
+                    pendingSync && !isOnline -> budgetPendingOfflineSyncMessage()
+                    pendingSync -> budgetPendingSyncMessage()
+                    else -> budgetOfflineAvailableMessage()
                 },
                 style = MaterialTheme.typography.bodyMedium
             )
@@ -555,14 +603,14 @@ private fun PaymentPotEntryCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Cagnotte", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text("Suivre la cagnotte et les contributions participants.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(paymentPotScreenTitle(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(paymentPotEntryMessage(), color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(
                 onClick = onOpenPaymentPot,
                 enabled = canManagePayment || isReadOnly,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Ouvrir la cagnotte")
+                Text(paymentPotOpenActionLabel())
             }
         }
     }
@@ -579,14 +627,14 @@ private fun TricountEntryCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Tricount", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text("Préparer le règlement partagé via un lien vérifié.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(tricountScreenTitle(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(tricountEntryMessage(), color = MaterialTheme.colorScheme.onSurfaceVariant)
             Button(
                 onClick = onOpenTricount,
                 enabled = canManageTricount || isReadOnly,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Ouvrir Tricount")
+                Text(tricountOpenActionLabel())
             }
         }
     }
@@ -605,7 +653,7 @@ private fun BudgetSummaryCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Budget Total",
+                text = budgetTotalTitle(),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -616,7 +664,7 @@ private fun BudgetSummaryCard(
             ) {
                 Column {
                     Text(
-                        text = "Estimé",
+                        text = budgetEstimatedLabel(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -629,7 +677,7 @@ private fun BudgetSummaryCard(
                 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "Dépensé",
+                        text = budgetSpentLabel(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -648,7 +696,7 @@ private fun BudgetSummaryCard(
             // Progress Bar
             if (budget.totalEstimated > 0) {
                 LinearProgressIndicator(
-                    progress = (budget.totalActual / budget.totalEstimated).toFloat().coerceIn(0f, 1f),
+                    progress = { (budget.totalActual / budget.totalEstimated).toFloat().coerceIn(0f, 1f) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(8.dp),
@@ -659,7 +707,7 @@ private fun BudgetSummaryCard(
                 )
                 
                 Text(
-                    text = "%.1f%% utilisé".format(budget.budgetUsagePercentage),
+                    text = budgetUsageLabel(budget.budgetUsagePercentage),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -681,7 +729,7 @@ private fun PerPersonCard(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "Par personne ($participantCount participants)",
+                text = budgetPerPersonTitle(participantCount),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -692,7 +740,7 @@ private fun PerPersonCard(
             ) {
                 Column {
                     Text(
-                        text = "Estimé",
+                        text = budgetEstimatedLabel(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -707,7 +755,7 @@ private fun PerPersonCard(
                 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "Dépensé",
+                        text = budgetSpentLabel(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -733,12 +781,12 @@ private fun BudgetStatusCard(budget: Budget) {
         else -> MaterialTheme.colorScheme.primary
     }
     
-    val statusText = when {
-        budget.isOverBudget -> "⚠️ Dépassement de budget"
-        remaining < budget.totalEstimated * 0.1 -> "⚡ Budget presque épuisé"
-        budget.totalActual == 0.0 -> "💡 Aucune dépense enregistrée"
-        else -> "✓ Dans le budget"
-    }
+    val statusText = budgetStatusText(
+        isOverBudget = budget.isOverBudget,
+        remaining = remaining,
+        totalEstimated = budget.totalEstimated,
+        totalActual = budget.totalActual
+    )
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -759,13 +807,13 @@ private fun BudgetStatusCard(budget: Budget) {
             
             if (!budget.isOverBudget && budget.totalActual > 0) {
                 Text(
-                    text = "Reste disponible : %.2f €".format(remaining),
+                    text = budgetRemainingLabel(remaining),
                     style = MaterialTheme.typography.bodyMedium,
                     color = statusColor
                 )
             } else if (budget.isOverBudget) {
                 Text(
-                    text = "Dépassement : %.2f €".format(-remaining),
+                    text = budgetOverspendLabel(-remaining),
                     style = MaterialTheme.typography.bodyMedium,
                     color = statusColor
                 )
@@ -841,7 +889,7 @@ private fun CategoryBreakdownCard(category: BudgetCategoryDetails) {
             // Progress bar
             if (category.estimated > 0) {
                 LinearProgressIndicator(
-                    progress = (category.actual / category.estimated).toFloat().coerceIn(0f, 1f),
+                    progress = { (category.actual / category.estimated).toFloat().coerceIn(0f, 1f) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(4.dp),
@@ -862,3 +910,196 @@ private fun CategoryBreakdownCard(category: BudgetCategoryDetails) {
         }
     }
 }
+
+internal data class BudgetSettlementSummary(
+    val title: String,
+    val body: String,
+    val lines: List<BudgetSettlementLine>
+)
+
+internal data class BudgetSettlementLine(
+    val fromLabel: String,
+    val toLabel: String,
+    val amountLabel: String,
+    val sentence: String
+)
+
+internal fun budgetSettlementSummary(
+    items: List<BudgetItem>,
+    maxLines: Int = 3
+): BudgetSettlementSummary {
+    val paidItems = items.filter { item ->
+        item.isPaid && item.actualCost > 0.0 && item.paidBy != null && item.sharedBy.isNotEmpty()
+    }
+    if (paidItems.isEmpty()) {
+        return BudgetSettlementSummary(
+            title = budgetSettlementTitle(0, hasPaidItems = false),
+            body = "Aucune dépense payée à répartir pour l'instant.",
+            lines = emptyList()
+        )
+    }
+
+    val settlements = BudgetCalculator.calculateSettlements(paidItems)
+        .sortedWith(compareByDescending<Triple<String, String, Double>> { it.third }.thenBy { it.first }.thenBy { it.second })
+
+    if (settlements.isEmpty()) {
+        return BudgetSettlementSummary(
+            title = budgetSettlementTitle(0, hasPaidItems = true),
+            body = "Les dépenses payées sont équilibrées entre les participants.",
+            lines = emptyList()
+        )
+    }
+
+    val lines = settlements.take(maxLines).map { (from, to, amount) ->
+        val fromLabel = budgetParticipantDisplayName(from)
+        val toLabel = budgetParticipantDisplayName(to)
+        val amountLabel = budgetMoneyLabel(amount)
+        BudgetSettlementLine(
+            fromLabel = fromLabel,
+            toLabel = toLabel,
+            amountLabel = amountLabel,
+            sentence = budgetSettlementLineLabel(fromLabel, toLabel, amountLabel)
+        )
+    }
+
+    return BudgetSettlementSummary(
+        title = budgetSettlementTitle(settlements.size, hasPaidItems = true),
+        body = budgetSettlementBody(settlements.size, lines.size),
+        lines = lines
+    )
+}
+
+internal fun budgetSettlementTitle(count: Int, hasPaidItems: Boolean): String = when {
+    !hasPaidItems -> "Remboursements"
+    count == 0 -> "Remboursements à jour"
+    count == 1 -> "1 remboursement à régler"
+    else -> "$count remboursements à régler"
+}
+
+internal fun budgetSettlementBody(totalCount: Int, displayedCount: Int): String =
+    if (totalCount > displayedCount) {
+        "$displayedCount remboursements prioritaires affichés sur $totalCount pour équilibrer les dépenses payées."
+    } else {
+        "$totalCount remboursement${if (totalCount > 1) "s" else ""} à solder pour que chacun paie sa part réelle."
+    }
+
+internal fun budgetSettlementLineLabel(
+    fromParticipant: String,
+    toParticipant: String,
+    amount: String
+): String = "$fromParticipant doit $amount à $toParticipant"
+
+internal fun budgetParticipantDisplayName(participantId: String): String {
+    val trimmed = participantId.trim()
+    if (trimmed.isBlank()) return "Participant"
+
+    val localPart = trimmed.substringBefore("@")
+    val userPrefixMatch = Regex("^user[-_ ]?(.+)$", RegexOption.IGNORE_CASE).matchEntire(localPart)
+    val rawLabel = userPrefixMatch?.groupValues?.get(1) ?: localPart
+    val display = rawLabel
+        .replace(Regex("[-_]+"), " ")
+        .trim()
+        .replaceFirstChar { char -> if (char.isLowerCase()) char.titlecase() else char.toString() }
+
+    return if (userPrefixMatch != null) "Participant $display" else display.ifBlank { "Participant" }
+}
+
+internal fun budgetMoneyLabel(amount: Double): String = "%.2f €".format(amount)
+
+internal fun budgetOverviewTitle(): String = "Budget"
+
+internal fun budgetBackContentDescription(): String = "Retour"
+
+internal fun budgetDetailsContentDescription(): String = "Voir les détails"
+
+internal fun budgetEmptyTitle(): String = "Aucun budget pour cet événement"
+
+internal fun budgetCreateActionLabel(): String = "Créer un budget"
+
+internal fun budgetReadOnlyEmptyMessage(): String =
+    "Le budget est consultable une fois créé par l'organisateur."
+
+internal fun paymentPotDefaultTitle(): String = "Cagnotte de l'événement"
+
+internal fun paymentPotScreenTitle(): String = "Cagnotte"
+
+internal fun paymentPotActiveMessage(goalAmount: Double, currency: String): String =
+    "Cagnotte active - $goalAmount $currency. Les changements sont enregistrés sur cet appareil."
+
+internal fun paymentPotInactiveMessage(): String =
+    "Aucune cagnotte active pour cet événement."
+
+internal fun paymentPotCreateActionLabel(): String = "Créer une cagnotte"
+
+internal fun paymentPotActivateActionLabel(): String = "Activer la cagnotte"
+
+internal fun paymentPotOpenActionLabel(): String = "Ouvrir la cagnotte"
+
+internal fun paymentPotCloseActionLabel(): String = "Clôturer la cagnotte"
+
+internal fun paymentPotEntryMessage(): String =
+    "Suivre la cagnotte et les contributions participants."
+
+internal fun tricountScreenTitle(): String = "Tricount"
+
+internal fun tricountOpenActionLabel(): String = "Ouvrir Tricount"
+
+internal fun tricountLinkTitle(): String = "Lien Tricount"
+
+internal fun tricountMissingLinkMessage(): String =
+    "Aucun lien Tricount n'est encore associé. Ajoutez un lien vérifié avant de rediriger les participants."
+
+internal fun tricountLinkStatusMessage(verificationStatus: String?, provider: String?): String =
+    "Lien ${verificationStatus ?: "non vérifié"} pour ${provider ?: "Tricount"}."
+
+internal fun tricountLinkActionLabel(): String = "Associer Tricount"
+
+internal fun tricountUnlinkActionLabel(): String = "Dissocier Tricount"
+
+internal fun tricountNotNeededActionLabel(): String = "Tricount non requis"
+
+internal fun tricountEntryMessage(): String =
+    "Préparer le règlement partagé via un lien vérifié."
+
+internal fun budgetPendingOfflineSyncMessage(): String =
+    "Synchronisation en attente. Modifications locales en attente d'envoi."
+
+internal fun budgetPendingSyncMessage(): String =
+    "Modifications locales en attente d'envoi."
+
+internal fun budgetOfflineAvailableMessage(): String =
+    "Données locales disponibles hors ligne."
+
+internal fun budgetCategoryBreakdownTitle(): String = "Répartition par catégorie"
+
+internal fun budgetTotalTitle(): String = "Budget total"
+
+internal fun budgetEstimatedLabel(): String = "Estimé"
+
+internal fun budgetSpentLabel(): String = "Dépensé"
+
+internal fun budgetUsageLabel(usagePercentage: Double): String =
+    "%.1f%% utilisé".format(usagePercentage)
+
+internal fun budgetPerPersonTitle(participantCount: Int): String =
+    "Par personne ($participantCount participants)"
+
+internal fun budgetStatusText(
+    isOverBudget: Boolean,
+    remaining: Double,
+    totalEstimated: Double,
+    totalActual: Double
+): String {
+    return when {
+        isOverBudget -> "Dépassement de budget"
+        remaining < totalEstimated * 0.1 -> "Budget presque épuisé"
+        totalActual == 0.0 -> "Aucune dépense enregistrée"
+        else -> "Dans le budget"
+    }
+}
+
+internal fun budgetRemainingLabel(remaining: Double): String =
+    "Reste disponible : %.2f €".format(remaining)
+
+internal fun budgetOverspendLabel(overspend: Double): String =
+    "Dépassement : %.2f €".format(overspend)
