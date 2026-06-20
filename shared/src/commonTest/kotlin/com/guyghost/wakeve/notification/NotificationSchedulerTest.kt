@@ -224,6 +224,16 @@ class NotificationSchedulerTest {
     }
 
     @Test
+    fun `notification reminder schedule failure message does not expose platform details`() {
+        val message = notificationReminderScheduleFailureMessage()
+
+        assertFalse(message.contains("SECRET", ignoreCase = true))
+        assertFalse(message.contains("token=", ignoreCase = true))
+        assertFalse(message.contains("internal.local", ignoreCase = true))
+        assertFalse(message.contains("not available on JVM", ignoreCase = true))
+    }
+
+    @Test
     fun `scheduleSmartReminder checks user preferences enabled types`() = runTest {
         val scheduler = AdvancedNotificationScheduler()
         val futureDate = Clock.System.now().plus(2.days)
@@ -388,6 +398,31 @@ class NotificationSchedulerTest {
     }
 
     @Test
+    fun `NotificationPreferences shouldSend evaluates quiet hours in supplied timezone`() {
+        val preferences = createTestPreferences(
+            enabledTypes = NotificationType.entries.toSet(),
+            quietHoursStart = QuietTime(22, 0),
+            quietHoursEnd = QuietTime(8, 0)
+        )
+        val eveningInParis = Instant.parse("2026-01-15T21:30:00Z")
+
+        assertTrue(
+            preferences.shouldSend(
+                type = NotificationType.DATE_CONFIRMED,
+                currentTime = eveningInParis,
+                timeZone = TimeZone.UTC
+            )
+        )
+        assertFalse(
+            preferences.shouldSend(
+                type = NotificationType.DATE_CONFIRMED,
+                currentTime = eveningInParis,
+                timeZone = TimeZone.of("Europe/Paris")
+            )
+        )
+    }
+
+    @Test
     fun `QuietTime toDisplayString formats correctly`() {
         val morning = QuietTime(9, 30)
         assertEquals("09:30", morning.toDisplayString())
@@ -433,9 +468,14 @@ class NotificationSchedulerTest {
         val prefs = defaultNotificationPreferences("user-123")
 
         assertEquals("user-123", prefs.userId)
-        assertTrue(prefs.enabledTypes.contains(NotificationType.EVENT_INVITE))
-        assertTrue(prefs.enabledTypes.contains(NotificationType.VOTE_REMINDER))
-        assertTrue(prefs.enabledTypes.contains(NotificationType.MEETING_REMINDER))
+        assertEquals(NotificationType.entries.toSet(), prefs.enabledTypes)
+        assertTrue(prefs.enabledTypes.contains(NotificationType.EVENT_UPDATE))
+        assertTrue(prefs.enabledTypes.contains(NotificationType.VOTE_CLOSE_REMINDER))
+        assertTrue(prefs.enabledTypes.contains(NotificationType.DEADLINE_REMINDER))
+        assertTrue(prefs.enabledTypes.contains(NotificationType.NEW_COMMENT))
+        assertTrue(prefs.enabledTypes.contains(NotificationType.COMMENT_REPLY))
+        assertTrue(prefs.enabledTypes.contains(NotificationType.PAYMENT_DUE))
+        assertTrue(prefs.enabledTypes.contains(NotificationType.SCENARIO_SELECTED))
         assertTrue(prefs.soundEnabled)
         assertTrue(prefs.vibrationEnabled)
         assertEquals(QuietTime(22, 0), prefs.quietHoursStart)

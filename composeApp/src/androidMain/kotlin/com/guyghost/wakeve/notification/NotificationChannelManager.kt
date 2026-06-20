@@ -70,6 +70,16 @@ class NotificationChannelManager(
                 com.guyghost.wakeve.notification.NotificationType.EVENT_UPDATE -> ChannelId.DEFAULT
             }
         }
+
+        fun getChannelImportance(channelId: ChannelId): Int {
+            return when (channelId) {
+                ChannelId.HIGH_PRIORITY -> NotificationManager.IMPORTANCE_HIGH
+                ChannelId.DEFAULT,
+                ChannelId.EVENTS,
+                ChannelId.REMINDERS -> NotificationManager.IMPORTANCE_DEFAULT
+                ChannelId.PROGRESS -> NotificationManager.IMPORTANCE_LOW
+            }
+        }
     }
 
     /**
@@ -130,7 +140,7 @@ class NotificationChannelManager(
         val channel = NotificationChannel(
             ChannelId.DEFAULT.id,
             "Wakeve Notifications",
-            NotificationManager.IMPORTANCE_DEFAULT
+            getChannelImportance(ChannelId.DEFAULT)
         ).apply {
             description = "Default notifications from Wakeve"
             enableVibration(true)
@@ -155,7 +165,7 @@ class NotificationChannelManager(
         val channel = NotificationChannel(
             ChannelId.HIGH_PRIORITY.id,
             "Important Notifications",
-            NotificationManager.IMPORTANCE_HIGH
+            getChannelImportance(ChannelId.HIGH_PRIORITY)
         ).apply {
             description = "Important notifications that require your attention"
             enableVibration(true)
@@ -181,7 +191,7 @@ class NotificationChannelManager(
         val channel = NotificationChannel(
             ChannelId.EVENTS.id,
             "Event Updates",
-            NotificationManager.IMPORTANCE_HIGH
+            getChannelImportance(ChannelId.EVENTS)
         ).apply {
             description = "Updates and activity in your events"
             enableVibration(true)
@@ -206,7 +216,7 @@ class NotificationChannelManager(
         val channel = NotificationChannel(
             ChannelId.REMINDERS.id,
             "Reminders",
-            NotificationManager.IMPORTANCE_DEFAULT
+            getChannelImportance(ChannelId.REMINDERS)
         ).apply {
             description = "Reminders for upcoming events and deadlines"
             enableVibration(true)
@@ -233,7 +243,7 @@ class NotificationChannelManager(
         val channel = NotificationChannel(
             ChannelId.PROGRESS.id,
             "Progress Updates",
-            NotificationManager.IMPORTANCE_LOW
+            getChannelImportance(ChannelId.PROGRESS)
         ).apply {
             description = "Ongoing operations and progress updates"
             enableVibration(false)

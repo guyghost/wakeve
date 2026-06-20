@@ -6,6 +6,10 @@ import com.guyghost.wakeve.auth.EmailOtpSender
 import com.guyghost.wakeve.auth.OtpManager
 import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.models.EmailOTPRequest
+import com.guyghost.wakeve.models.EmailOTPVerifyRequest
+import com.guyghost.wakeve.models.GoogleAuthRequest
+import com.guyghost.wakeve.models.GuestSessionRequest
+import com.guyghost.wakeve.models.TokenRefreshRequest
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -21,6 +25,8 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -76,6 +82,7 @@ class AuthRoutesTest {
     fun `email OTP request stores the same OTP that was delivered`() = testApplication {
         val otpManager = OtpManager()
         val sender = CapturingEmailOtpSender()
+        val authService = createAuthService()
         val client = createJsonClient()
 
         application {
@@ -85,7 +92,7 @@ class AuthRoutesTest {
             routing {
                 route("/api") {
                     authRoutes(
-                        authService = createAuthService(),
+                        authService = authService,
                         otpManager = otpManager,
                         emailOtpSender = sender
                     )
@@ -95,13 +102,98 @@ class AuthRoutesTest {
 
         val response = client.post("/api/auth/email/request") {
             contentType(ContentType.Application.Json)
-            setBody(EmailOTPRequest("User@Example.com"))
+            setBody(EmailOTPRequest(" User@Example.com "))
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals("User@Example.com", sender.lastEmail)
+        assertEquals("user@example.com", sender.lastEmail)
         assertNotNull(sender.lastOtp)
         assertTrue(otpManager.verifyOtp("user@example.com", sender.lastOtp ?: ""))
+    }
+
+    @Test
+    fun `email OTP verification accepts trimmed canonical email and OTP`() = testApplication {
+        val otpManager = OtpManager()
+        val sender = CapturingEmailOtpSender()
+        val authService = createAuthService()
+        val client = createJsonClient()
+
+        application {
+            install(ServerContentNegotiation) {
+                json(json)
+            }
+            routing {
+                route("/api") {
+                    authRoutes(
+                        authService = authService,
+                        otpManager = otpManager,
+                        emailOtpSender = sender
+                    )
+                }
+            }
+        }
+
+        val requestResponse = client.post("/api/auth/email/request") {
+            contentType(ContentType.Application.Json)
+            setBody(EmailOTPRequest(" USER@Example.COM "))
+        }
+        assertEquals(HttpStatusCode.OK, requestResponse.status, requestResponse.bodyAsText())
+        val deliveredOtp = sender.lastOtp ?: error("Expected OTP delivery")
+
+        val verifyResponse = client.post("/api/auth/email/verify") {
+            contentType(ContentType.Application.Json)
+            setBody(EmailOTPVerifyRequest(" user@example.com ", " $deliveredOtp "))
+        }
+        val verifyBody = verifyResponse.bodyAsText()
+        val verifiedEmail = json.parseToJsonElement(verifyBody)
+            .jsonObject
+            .getValue("user")
+            .jsonObject
+            .getValue("email")
+            .jsonPrimitive
+            .content
+
+        assertEquals(HttpStatusCode.OK, verifyResponse.status, verifyBody)
+        assertEquals("user@example.com", verifiedEmail)
+    }
+
+    @Test
+    fun `public auth routes reject blank or oversized inputs before service calls`() = testApplication {
+        val otpManager = OtpManager()
+        val client = createJsonClient()
+
+        application {
+            install(ServerContentNegotiation) {
+                json(json)
+            }
+            routing {
+                route("/api") {
+                    authRoutes(createAuthService(), otpManager)
+                }
+            }
+        }
+
+        val blankGuest = client.post("/api/auth/guest") {
+            contentType(ContentType.Application.Json)
+            setBody(GuestSessionRequest("   "))
+        }
+        val longGuest = client.post("/api/auth/guest") {
+            contentType(ContentType.Application.Json)
+            setBody(GuestSessionRequest("d".repeat(201)))
+        }
+        val blankRefresh = client.post("/api/auth/refresh") {
+            contentType(ContentType.Application.Json)
+            setBody(TokenRefreshRequest("   "))
+        }
+        val oversizedGoogleToken = client.post("/api/auth/google") {
+            contentType(ContentType.Application.Json)
+            setBody(GoogleAuthRequest("x".repeat(8_193), "user@example.com"))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, blankGuest.status, blankGuest.bodyAsText())
+        assertEquals(HttpStatusCode.BadRequest, longGuest.status, longGuest.bodyAsText())
+        assertEquals(HttpStatusCode.BadRequest, blankRefresh.status, blankRefresh.bodyAsText())
+        assertEquals(HttpStatusCode.BadRequest, oversizedGoogleToken.status, oversizedGoogleToken.bodyAsText())
     }
 
     private fun ApplicationTestBuilder.createJsonClient() = createClient {

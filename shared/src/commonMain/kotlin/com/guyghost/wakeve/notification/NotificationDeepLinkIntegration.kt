@@ -44,7 +44,7 @@ suspend fun NotificationService.sendNotificationWithDeepLink(
 ): Result<String> {
     val deepLink = createDeepLinkForRoute(deepLinkRoute, request)
     val enhancedRequest = request.copy(
-        data = request.data + createDeepLinkData(deepLink, deepLinkRoute)
+        data = request.data + createDeepLinkData(deepLink, deepLink.toDeepLinkRoute() ?: deepLinkRoute)
     )
     return sendNotification(enhancedRequest, currentTime)
 }
@@ -82,29 +82,30 @@ fun createNotificationDataWithDeepLink(
     deepLinkRoute: DeepLinkRoute,
     additionalParams: Map<String, String> = emptyMap()
 ): Map<String, String> {
-    val deepLink = when (deepLinkRoute) {
+    val deepLink = runCatching {
+        when (deepLinkRoute) {
         DeepLinkRoute.EVENT_DETAILS -> {
             DeepLinkFactory.createEventDetailsLink(
-                eventId = eventId ?: "",
+                eventId = eventId.orEmpty(),
                 tab = additionalParams["tab"]
             )
         }
         DeepLinkRoute.EVENT_POLL -> {
             DeepLinkFactory.createPollVoteLink(
-                eventId = eventId ?: "",
+                eventId = eventId.orEmpty(),
                 slotId = additionalParams["slotId"]
             )
         }
         DeepLinkRoute.EVENT_SCENARIOS -> {
             DeepLinkFactory.createScenarioComparisonLink(
-                eventId = eventId ?: "",
+                eventId = eventId.orEmpty(),
                 scenarioId = additionalParams["scenarioId"]
             )
         }
         DeepLinkRoute.EVENT_MEETINGS -> {
             DeepLinkFactory.createMeetingJoinLink(
-                eventId = eventId ?: "",
-                meetingId = additionalParams["meetingId"] ?: "",
+                eventId = eventId.orEmpty(),
+                meetingId = additionalParams["meetingId"].orEmpty(),
                 autoJoin = additionalParams["autoJoin"] == "true"
             )
         }
@@ -119,9 +120,12 @@ fun createNotificationDataWithDeepLink(
             filter = additionalParams["filter"]
         )
         DeepLinkRoute.HOME -> DeepLinkFactory.createHomeLink(tab = additionalParams["tab"])
+        }
+    }.getOrElse {
+        DeepLinkFactory.createNotificationsListLink(filter = "unread")
     }
 
-    return createDeepLinkData(deepLink, deepLinkRoute) + additionalParams
+    return createDeepLinkData(deepLink, deepLink.toDeepLinkRoute() ?: deepLinkRoute) + additionalParams
 }
 
 /**
@@ -165,7 +169,7 @@ fun NotificationRequest.withDeepLink(): NotificationRequest {
 fun NotificationRequest.withDeepLink(deepLinkRoute: DeepLinkRoute): NotificationRequest {
     val deepLink = createDeepLinkForRoute(deepLinkRoute, this)
     return this.copy(
-        data = this.data + createDeepLinkData(deepLink, deepLinkRoute)
+        data = this.data + createDeepLinkData(deepLink, deepLink.toDeepLinkRoute() ?: deepLinkRoute)
     )
 }
 
@@ -210,39 +214,43 @@ private fun createDeepLinkForRoute(
         request.sectionItemId?.let { put("sectionItemId", it) }
     } + request.data.filterKeys { it != "deepLink" && !it.startsWith("param_") }
 
-    return when (route) {
-        DeepLinkRoute.EVENT_DETAILS -> DeepLinkFactory.createEventDetailsLink(
-            eventId = request.eventId ?: "",
-            tab = additionalParams["tab"] ?: "details"
-        )
-        DeepLinkRoute.EVENT_POLL -> DeepLinkFactory.createPollVoteLink(
-            eventId = request.eventId ?: "",
-            slotId = additionalParams["slotId"]
-        )
-        DeepLinkRoute.EVENT_SCENARIOS -> DeepLinkFactory.createScenarioComparisonLink(
-            eventId = request.eventId ?: "",
-            scenarioId = additionalParams["scenarioId"]
-        )
-        DeepLinkRoute.EVENT_MEETINGS -> DeepLinkFactory.createMeetingJoinLink(
-            eventId = request.eventId ?: "",
-            meetingId = additionalParams["meetingId"] ?: "",
-            autoJoin = additionalParams["autoJoin"] == "true"
-        )
-        DeepLinkRoute.INVITE -> DeepLinkFactory.createInvitationLink(
-            code = additionalParams["code"] ?: additionalParams["invitationCode"] ?: ""
-        )
-        DeepLinkRoute.PROFILE -> DeepLinkFactory.createProfileLink(
-            userId = additionalParams["userId"]
-        )
-        DeepLinkRoute.SETTINGS -> DeepLinkFactory.createNotificationPreferencesLink(
-            section = additionalParams["section"]
-        )
-        DeepLinkRoute.NOTIFICATIONS -> DeepLinkFactory.createNotificationsListLink(
-            filter = additionalParams["filter"]
-        )
-        DeepLinkRoute.HOME -> DeepLinkFactory.createHomeLink(
-            tab = additionalParams["tab"]
-        )
+    return runCatching {
+        when (route) {
+            DeepLinkRoute.EVENT_DETAILS -> DeepLinkFactory.createEventDetailsLink(
+                eventId = request.eventId.orEmpty(),
+                tab = additionalParams["tab"] ?: "details"
+            )
+            DeepLinkRoute.EVENT_POLL -> DeepLinkFactory.createPollVoteLink(
+                eventId = request.eventId.orEmpty(),
+                slotId = additionalParams["slotId"]
+            )
+            DeepLinkRoute.EVENT_SCENARIOS -> DeepLinkFactory.createScenarioComparisonLink(
+                eventId = request.eventId.orEmpty(),
+                scenarioId = additionalParams["scenarioId"]
+            )
+            DeepLinkRoute.EVENT_MEETINGS -> DeepLinkFactory.createMeetingJoinLink(
+                eventId = request.eventId.orEmpty(),
+                meetingId = additionalParams["meetingId"].orEmpty(),
+                autoJoin = additionalParams["autoJoin"] == "true"
+            )
+            DeepLinkRoute.INVITE -> DeepLinkFactory.createInvitationLink(
+                code = additionalParams["code"] ?: additionalParams["invitationCode"] ?: ""
+            )
+            DeepLinkRoute.PROFILE -> DeepLinkFactory.createProfileLink(
+                userId = additionalParams["userId"]
+            )
+            DeepLinkRoute.SETTINGS -> DeepLinkFactory.createNotificationPreferencesLink(
+                section = additionalParams["section"]
+            )
+            DeepLinkRoute.NOTIFICATIONS -> DeepLinkFactory.createNotificationsListLink(
+                filter = additionalParams["filter"]
+            )
+            DeepLinkRoute.HOME -> DeepLinkFactory.createHomeLink(
+                tab = additionalParams["tab"]
+            )
+        }
+    }.getOrElse {
+        DeepLinkFactory.createNotificationsListLink(filter = "unread")
     }
 }
 

@@ -45,8 +45,18 @@ class ExpenseRepository(private val db: WakeveDb) {
         receiptMetadata: Map<String, String> = emptyMap(),
         syncState: String = "PENDING"
     ): ExpenseRecord {
-        require(amount > 0.0) { "Expense amount must be positive" }
-        require(splitParticipantIds.isNotEmpty()) { "Expense must have at least one split participant" }
+        val normalizedPayerId = payerId.trim()
+        val normalizedSplitParticipantIds = splitParticipantIds.map { it.trim() }
+        val normalizedSyncState = syncState.trim().uppercase()
+
+        require(amount.isFinite() && amount > 0.0) { "Expense amount must be finite and positive" }
+        require(normalizedPayerId.isNotBlank()) { "Expense payer must not be blank" }
+        require(normalizedSplitParticipantIds.isNotEmpty()) { "Expense must have at least one split participant" }
+        require(normalizedSplitParticipantIds.none { it.isBlank() }) { "Split participant IDs cannot be blank" }
+        require(normalizedSplitParticipantIds.size == normalizedSplitParticipantIds.distinct().size) {
+            "Split participant IDs cannot contain duplicates"
+        }
+        require(normalizedSyncState in setOf("PENDING", "SYNCED")) { "Invalid expense sync state" }
 
         val budget = db.budgetQueries.selectByEventId(eventId).executeAsOneOrNull()
             ?: throw IllegalArgumentException("Budget not found for event: $eventId")
@@ -57,10 +67,10 @@ class ExpenseRepository(private val db: WakeveDb) {
             budgetId = budget.id,
             amount = amount,
             category = category,
-            payerId = payerId,
-            splitParticipantIds = splitParticipantIds.distinct(),
+            payerId = normalizedPayerId,
+            splitParticipantIds = normalizedSplitParticipantIds,
             receiptMetadata = receiptMetadata,
-            syncState = syncState,
+            syncState = normalizedSyncState,
             createdAt = now,
             updatedAt = now
         )

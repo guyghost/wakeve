@@ -142,6 +142,38 @@ class EventOrganizationPhase6FinalizationReadinessTest {
     }
 
     @Test
+    fun `Phase6 final scenario alone does not satisfy lodging readiness`() {
+        val eventId = "phase6-lodging-scenario-alone"
+        seedOtherwiseReadyFinalizationEvent(eventId, seedLodgingDecision = false)
+
+        val readiness = EventOrganizationReadinessRepository(database).getReadiness(eventId)
+
+        assertFalse(readiness.lodging.complete)
+        assertTrue(readiness.lodging.blockers.contains("LODGING_REQUIRED"))
+        assertTrue(readiness.blockers.contains("LODGING_REQUIRED"))
+    }
+
+    @Test
+    fun `Phase6 lodging readiness accepts confirmed accommodation or explicit not needed decision`() {
+        val confirmedLodgingEventId = "phase6-lodging-confirmed"
+        seedOtherwiseReadyFinalizationEvent(confirmedLodgingEventId, seedLodgingDecision = false)
+        seedConfirmedAccommodation(confirmedLodgingEventId)
+
+        val confirmedReadiness = EventOrganizationReadinessRepository(database).getReadiness(confirmedLodgingEventId)
+        assertTrue(confirmedReadiness.lodging.complete)
+        assertEquals(1, confirmedReadiness.lodging.count)
+
+        val notNeededEventId = "phase6-lodging-not-needed"
+        seedOtherwiseReadyFinalizationEvent(notNeededEventId, seedLodgingDecision = false)
+        EventOrganizationReadinessRepository(database).markLodgingNotNeeded(notNeededEventId, "organizer-1")
+
+        val notNeededReadiness = EventOrganizationReadinessRepository(database).getReadiness(notNeededEventId)
+        assertTrue(notNeededReadiness.lodging.complete)
+        assertTrue(notNeededReadiness.lodging.explicitNotNeeded)
+        assertEquals(0, notNeededReadiness.lodging.count)
+    }
+
+    @Test
     fun `Phase6 state machine finalizes organizing event when readiness is complete`() = runTest {
         val eventId = "phase6-state-machine-success"
         val organizerId = "organizer-1"
@@ -251,7 +283,10 @@ class EventOrganizationPhase6FinalizationReadinessTest {
         )
     }
 
-    private fun seedOtherwiseReadyFinalizationEvent(eventId: String) {
+    private fun seedOtherwiseReadyFinalizationEvent(
+        eventId: String,
+        seedLodgingDecision: Boolean = true
+    ) {
         val now = "2026-05-22T10:00:00Z"
         val slotId = "slot-$eventId"
         val planId = "plan-$eventId"
@@ -308,6 +343,9 @@ class EventOrganizationPhase6FinalizationReadinessTest {
             selected_by_user_id = "organizer-1"
         )
         seedReadinessDecision(eventId, "MEETINGS", now)
+        if (seedLodgingDecision) {
+            seedReadinessDecision(eventId, "LODGING", now)
+        }
         seedReadinessDecision(eventId, "BUDGET_BASELINE", now)
         database.tricountHandoffQueries.upsertHandoff(
             eventId = eventId,
@@ -320,6 +358,28 @@ class EventOrganizationPhase6FinalizationReadinessTest {
             lastSyncAt = now,
             createdAt = now,
             updatedAt = now
+        )
+    }
+
+    private fun seedConfirmedAccommodation(eventId: String) {
+        val now = "2026-05-22T10:00:00Z"
+        database.accommodationQueries.insertAccommodation(
+            id = "accommodation-$eventId",
+            event_id = eventId,
+            name = "Confirmed lodging",
+            type = "HOTEL",
+            address = "1 rue Readiness",
+            capacity = 2,
+            price_per_night = 12000,
+            total_nights = 1,
+            total_cost = 12000,
+            booking_status = "CONFIRMED",
+            booking_url = "https://example.test/lodging/$eventId",
+            check_in_date = "2026-07-18",
+            check_out_date = "2026-07-19",
+            notes = "Confirmed lodging readiness fixture",
+            created_at = now,
+            updated_at = now
         )
     }
 

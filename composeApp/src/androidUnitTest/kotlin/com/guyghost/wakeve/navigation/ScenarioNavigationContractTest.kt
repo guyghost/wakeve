@@ -17,24 +17,24 @@ class ScenarioNavigationContractTest {
             "Scenario list route must be registered as event-scoped."
         )
         assertTrue(
-            source.contains("fun createRoute(eventId: String) = \"event/\$eventId/scenarios\""),
-            "Scenario list helper must create event-scoped routes."
+            source.contains("fun createRoute(eventId: String) = \"event/\${routePathSegment(eventId)}/scenarios\""),
+            "Scenario list helper must create encoded event-scoped routes."
         )
         assertTrue(
             source.contains("""data object ScenarioComparison : Screen("event/{eventId}/scenarios/compare")"""),
             "Scenario comparison route must be registered as event-scoped."
         )
         assertTrue(
-            source.contains("fun createRoute(eventId: String) = \"event/\$eventId/scenarios/compare\""),
-            "Scenario comparison helper must create event-scoped routes."
+            source.contains("fun createRoute(eventId: String) = \"event/\${routePathSegment(eventId)}/scenarios/compare\""),
+            "Scenario comparison helper must create encoded event-scoped routes."
         )
         assertTrue(
             source.contains("""data object ScenarioDetail : Screen("event/{eventId}/scenario/{scenarioId}")"""),
             "Scenario detail route must be registered as event-scoped."
         )
         assertTrue(
-            source.contains("\"event/\$eventId/scenario/\$scenarioId\""),
-            "Scenario detail helper must create event-scoped routes."
+            source.contains("\"event/\${routePathSegment(eventId)}/scenario/\${routePathSegment(scenarioId)}\""),
+            "Scenario detail helper must create encoded event-scoped routes."
         )
     }
 

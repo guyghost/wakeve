@@ -316,7 +316,7 @@ class SyncManager(
                 syncId = change.id,
                 synced = false,
                 retryCount = newRetryCount,
-                error = error.message ?: "Sync failed"
+                error = syncFailureMessage()
             )
         }
     }
@@ -456,7 +456,7 @@ class SyncManager(
             alertManager.alertHighConflictRate(response.conflicts.size)
         }
 
-        _syncStatus.value = if (response.success) SyncStatus.Idle else SyncStatus.Error(response.message ?: "Sync failed")
+        _syncStatus.value = if (response.success) SyncStatus.Idle else SyncStatus.Error(syncFailureMessage())
 
         val duration = getCurrentTimeMillis() - startTime
         if (response.success) {
@@ -464,7 +464,7 @@ class SyncManager(
             lastSuccessfulSyncTimestamp = response.serverTimestamp
             metrics.recordSyncSuccess(duration, response.appliedChanges)
         } else {
-            metrics.recordSyncFailure(duration, response.message ?: "Unknown error")
+            metrics.recordSyncFailure(duration, syncFailureMessage())
         }
 
         checkPerformance(duration)
@@ -493,7 +493,7 @@ class SyncManager(
                 return Result.success(performSyncWithTokenRefresh())
             } catch (e: Exception) {
                 lastException = e
-                _syncStatus.value = SyncStatus.Error("Sync failed (attempt ${attempt + 1}/${maxRetries + 1}): ${e.message}")
+                _syncStatus.value = SyncStatus.Error(syncRetryFailureMessage(attempt + 1, maxRetries + 1))
 
                 if (attempt < maxRetries) {
                     // Calculate exponential backoff delay: baseDelay * 2^attempt
@@ -502,7 +502,7 @@ class SyncManager(
                 } else {
                     // All retries failed, update sync status for failed changes
                     updateSyncStatusForFailure(e)
-                    alertManager.alertSyncFailure(e.message ?: "Unknown error", maxRetries)
+                    alertManager.alertSyncFailure(syncFailureMessage(), maxRetries)
                 }
             }
         }
@@ -539,3 +539,9 @@ class SyncManager(
         scope.cancel()
     }
 }
+
+internal fun syncFailureMessage(): String =
+    "Sync failed. Please retry when your connection is stable."
+
+internal fun syncRetryFailureMessage(attempt: Int, totalAttempts: Int): String =
+    "Sync failed (attempt $attempt/$totalAttempts). Please retry when your connection is stable."

@@ -32,6 +32,20 @@ fun Route.voteRoutes(
                     mapOf("error" to "Event ID required")
                 )
 
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+                val event = repository.getEvent(eventId) ?: return@get call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Event not found")
+                )
+                val callerId = principal.userId
+                if (event.organizerId != callerId && !event.participants.contains(callerId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You do not have access to this poll")
+                    )
+                }
+
                 val poll = repository.getPoll(eventId) ?: return@get call.respond(
                     HttpStatusCode.NotFound,
                     mapOf("error" to "Poll not found for event")
@@ -47,7 +61,7 @@ fun Route.voteRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to pollReadFailureMessage())
                 )
             }
         }
@@ -129,15 +143,21 @@ fun Route.voteRoutes(
                 } else {
                     call.respond(
                         HttpStatusCode.BadRequest,
-                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Failed to add vote"))
+                        mapOf("error" to voteAddFailureMessage())
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to voteAddFailureMessage())
                 )
             }
         }
     }
 }
+
+internal fun pollReadFailureMessage(): String =
+    "Failed to fetch poll. Please try again."
+
+internal fun voteAddFailureMessage(): String =
+    "Failed to save your vote. Please try again."

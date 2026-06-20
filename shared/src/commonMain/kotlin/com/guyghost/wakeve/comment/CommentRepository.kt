@@ -976,7 +976,7 @@ class CommentRepository(
                 eventId = eventId,
                 notificationType = notificationType,
                 recipientId = recipientId,
-                error = e.message.orEmpty()
+                error = commentNotificationRetryFailureMessage()
             )
         }
     }
@@ -1057,3 +1057,6 @@ class CommentRepository(
         )
     }
 }
+
+internal fun commentNotificationRetryFailureMessage(): String =
+    "Comment notification delivery failed. It will be retried."

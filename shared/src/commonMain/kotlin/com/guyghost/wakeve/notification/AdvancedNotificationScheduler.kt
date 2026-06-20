@@ -232,7 +232,7 @@ class AdvancedNotificationScheduler(
 
             result.fold(
                 onSuccess = { scheduledId -> notificationIds.add(scheduledId) },
-                onFailure = { errors.add(it.message ?: "Unknown error") }
+                onFailure = { errors.add(notificationReminderScheduleFailureMessage()) }
             )
         }
 
@@ -530,6 +530,9 @@ class AdvancedNotificationScheduler(
         const val DEFAULT_POLL_REMINDER_HOURS = 24
     }
 }
+
+internal fun notificationReminderScheduleFailureMessage(): String =
+    "Reminder scheduling failed. Please try again."
 
 /**
  * Pattern for recurring reminders.

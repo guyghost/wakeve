@@ -3,9 +3,39 @@ package com.guyghost.wakeve.auth
 import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
 class AuthStateManagerFallbackContractTest {
+    @Test
+    fun authStateErrorMessagesDoNotExposeThrowableDetails() {
+        val messages = listOf(
+            authProfileRestoreFailureMessage(),
+            authLoginFailureMessage(),
+            authTokenRefreshFailureMessage(),
+            authLogoutFailureMessage()
+        )
+
+        assertEquals(4, messages.distinct().size)
+        messages.forEach { message ->
+            assertFalse(message.contains("SECRET"))
+            assertFalse(message.contains("token="))
+            assertFalse(message.contains("internal.local"))
+            assertFalse(message.contains("SQL"))
+        }
+    }
+
+    @Test
+    fun authStateManagerDoesNotUseThrowableMessagesForUiErrors() {
+        val source = projectFile("shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/AuthStateManager.kt").readText()
+
+        val exceptionMessageAssignment = listOf("message = ", "e", ".message").joinToString("")
+        val errorMessageAssignment = listOf("message = ", "error", ".message").joinToString("")
+
+        assertFalse(source.contains(exceptionMessageAssignment))
+        assertFalse(source.contains(errorMessageAssignment))
+    }
+
     @Test
     fun dummySecureStorageDoesNotReportSuccessfulWrites() {
         val source = projectFile("shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/AuthStateManager.kt").readText()

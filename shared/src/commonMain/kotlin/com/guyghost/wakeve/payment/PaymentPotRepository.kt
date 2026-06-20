@@ -33,24 +33,38 @@ class PaymentPotRepository(private val db: WakeveDb) {
         tricountGroupId: String? = null,
         tricountGroupUrl: String? = null
     ): PaymentPotRecord {
-        require(goalAmount >= 0.0) { "Goal amount cannot be negative" }
-        require(tricountGroupUrl == null || isTrustedPaymentLink(paymentProvider, tricountGroupUrl)) {
-            "Suspicious $paymentProvider URL rejected"
+        val normalizedEventId = eventId.trim()
+        val normalizedOrganizerId = organizerId.trim()
+        val normalizedTitle = title.trim()
+        val normalizedCurrency = currency.trim().uppercase()
+        val normalizedPaymentProvider = paymentProvider.trim().uppercase()
+        val normalizedTricountGroupId = tricountGroupId?.trim()?.takeIf { it.isNotEmpty() }
+        val normalizedTricountGroupUrl = tricountGroupUrl?.trim()?.takeIf { it.isNotEmpty() }
+
+        require(normalizedEventId.isNotEmpty()) { "eventId is required" }
+        require(normalizedOrganizerId.isNotEmpty()) { "organizerId is required" }
+        require(goalAmount.isFinite() && goalAmount > 0.0) { "Goal amount must be a positive finite amount" }
+        require(normalizedTitle.isNotEmpty()) { "Title is required" }
+        require(normalizedTitle.length <= 120) { "Title must not exceed 120 characters" }
+        require(Regex("^[A-Z]{3}$").matches(normalizedCurrency)) { "Currency must be a 3-letter ISO currency code" }
+        require(normalizedPaymentProvider == "TRICOUNT") { "Unsupported payment provider: $normalizedPaymentProvider" }
+        require(normalizedTricountGroupUrl == null || isTrustedPaymentLink(normalizedPaymentProvider, normalizedTricountGroupUrl)) {
+            "Suspicious $normalizedPaymentProvider URL rejected"
         }
         val now = Clock.System.now().toString()
         val id = "pot-${Clock.System.now().toEpochMilliseconds()}-${(0..9999).random()}"
         db.potQueries.insertPot(
             id = id,
-            eventId = eventId,
-            organizerId = organizerId,
+            eventId = normalizedEventId,
+            organizerId = normalizedOrganizerId,
             goalAmount = goalAmount,
             currentAmount = 0.0,
-            currency = currency,
-            title = title,
+            currency = normalizedCurrency,
+            title = normalizedTitle,
             status = "ACTIVE",
-            paymentProvider = paymentProvider,
-            tricountGroupId = tricountGroupId,
-            tricountGroupUrl = tricountGroupUrl,
+            paymentProvider = normalizedPaymentProvider,
+            tricountGroupId = normalizedTricountGroupId,
+            tricountGroupUrl = normalizedTricountGroupUrl,
             createdAt = now,
             closedAt = null
         )

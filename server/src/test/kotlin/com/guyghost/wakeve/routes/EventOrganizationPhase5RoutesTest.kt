@@ -101,6 +101,164 @@ class EventOrganizationPhase5RoutesTest {
     }
 
     @Test
+    fun `Phase5 budget item creation rejects invalid share fields before persistence`() = testApplication {
+        val fixture = createFixture()
+        val client = createJsonClient()
+        val budget = fixture.budgetRepository.getBudgetByEventId(fixture.eventId)!!
+        val beforeItems = fixture.budgetRepository.getBudgetItems(budget.id).size
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val invalidBodies = listOf(
+            """
+            {
+              "name": "Blank share",
+              "description": "Should not persist",
+              "category": "MEALS",
+              "estimatedCost": 12.0,
+              "sharedBy": ["${fixture.confirmedParticipantId}", "  "]
+            }
+            """.trimIndent(),
+            """
+            {
+              "name": "Duplicate share",
+              "description": "Should not persist",
+              "category": "MEALS",
+              "estimatedCost": 12.0,
+              "sharedBy": ["${fixture.confirmedParticipantId}", "${fixture.confirmedParticipantId}"]
+            }
+            """.trimIndent(),
+            """
+            {
+              "name": "Outside share",
+              "description": "Should not persist",
+              "category": "MEALS",
+              "estimatedCost": 12.0,
+              "sharedBy": ["${fixture.confirmedParticipantId}", "outside-user"]
+            }
+            """.trimIndent(),
+            """
+            {
+              "name": "Zero cost",
+              "description": "Should not persist",
+              "category": "MEALS",
+              "estimatedCost": 0.0,
+              "sharedBy": ["${fixture.confirmedParticipantId}"]
+            }
+            """.trimIndent()
+        )
+
+        invalidBodies.forEach { body ->
+            val response = client.post("/api/events/${fixture.eventId}/budget/items") {
+                header(HttpHeaders.Authorization, "Bearer ${createTestJwt(fixture.organizerId)}")
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+
+            assertTrue(
+                response.status == HttpStatusCode.BadRequest || response.status == HttpStatusCode.Forbidden,
+                "Invalid budget item payload must be rejected, got ${response.status} with ${response.bodyAsText()}."
+            )
+        }
+
+        assertEquals(
+            beforeItems,
+            fixture.budgetRepository.getBudgetItems(budget.id).size,
+            "Invalid budget item payloads must not create budget lines."
+        )
+    }
+
+    @Test
+    fun `Phase5 expense creation rejects invalid split fields before persistence`() = testApplication {
+        val fixture = createFixture()
+        val client = createJsonClient()
+        val beforeExpenses = fixture.database.expenseQueries.selectByEventId(fixture.eventId).executeAsList().size
+        val beforeSync = fixture.pendingSyncMentions(fixture.eventId).size
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val invalidBodies = listOf(
+            """
+            {
+              "amount": 0.0,
+              "category": "MEALS",
+              "payerId": "${fixture.confirmedParticipantId}",
+              "splitParticipantIds": ["${fixture.confirmedParticipantId}"]
+            }
+            """.trimIndent(),
+            """
+            {
+              "amount": 42.0,
+              "category": "MEALS",
+              "payerId": "${fixture.confirmedParticipantId}",
+              "splitParticipantIds": []
+            }
+            """.trimIndent(),
+            """
+            {
+              "amount": 42.0,
+              "category": "MEALS",
+              "payerId": "${fixture.confirmedParticipantId}",
+              "splitParticipantIds": ["${fixture.confirmedParticipantId}", "  "]
+            }
+            """.trimIndent(),
+            """
+            {
+              "amount": 42.0,
+              "category": "MEALS",
+              "payerId": "${fixture.confirmedParticipantId}",
+              "splitParticipantIds": ["${fixture.confirmedParticipantId}", "${fixture.confirmedParticipantId}"]
+            }
+            """.trimIndent(),
+            """
+            {
+              "amount": 42.0,
+              "category": "MEALS",
+              "payerId": "${fixture.confirmedParticipantId}",
+              "splitParticipantIds": ["${fixture.confirmedParticipantId}", "outside-user"]
+            }
+            """.trimIndent(),
+            """
+            {
+              "amount": 42.0,
+              "category": "MEALS",
+              "payerId": "${fixture.confirmedParticipantId}",
+              "splitParticipantIds": ["${fixture.confirmedParticipantId}"],
+              "clientSyncState": "DONE"
+            }
+            """.trimIndent()
+        )
+
+        invalidBodies.forEach { body ->
+            val response = client.post("/api/events/${fixture.eventId}/budget/expenses") {
+                header(HttpHeaders.Authorization, "Bearer ${createTestJwt(fixture.confirmedParticipantId)}")
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+
+            assertTrue(
+                response.status == HttpStatusCode.BadRequest || response.status == HttpStatusCode.Forbidden,
+                "Invalid expense payload must be rejected, got ${response.status} with ${response.bodyAsText()}."
+            )
+        }
+
+        assertEquals(
+            beforeExpenses,
+            fixture.database.expenseQueries.selectByEventId(fixture.eventId).executeAsList().size,
+            "Invalid expense payloads must not create expense records."
+        )
+        assertEquals(
+            beforeSync,
+            fixture.pendingSyncMentions(fixture.eventId).size,
+            "Invalid expense payloads must not queue sync metadata."
+        )
+    }
+
+    @Test
     fun `Phase5 unconfirmed participant budget mutation is forbidden with audit reference`() = testApplication {
         val fixture = createFixture()
         val client = createJsonClient()
@@ -149,6 +307,36 @@ class EventOrganizationPhase5RoutesTest {
             response.bodyAsText().contains("audit", ignoreCase = true),
             "Budget detail denials must include an audit reference for non-participants."
         )
+    }
+
+    @Test
+    fun `Phase5 participant budget info is limited to self unless organizer reads it`() = testApplication {
+        val fixture = createFixture()
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val participantReadsSelf = client.get(
+            "/api/events/${fixture.eventId}/budget/participants/${fixture.confirmedParticipantId}"
+        ) {
+            header(HttpHeaders.Authorization, "Bearer ${createTestJwt(fixture.confirmedParticipantId)}")
+        }
+        val participantReadsOther = client.get(
+            "/api/events/${fixture.eventId}/budget/participants/${fixture.otherConfirmedParticipantId}"
+        ) {
+            header(HttpHeaders.Authorization, "Bearer ${createTestJwt(fixture.confirmedParticipantId)}")
+        }
+        val organizerReadsParticipant = client.get(
+            "/api/events/${fixture.eventId}/budget/participants/${fixture.otherConfirmedParticipantId}"
+        ) {
+            header(HttpHeaders.Authorization, "Bearer ${createTestJwt(fixture.organizerId)}")
+        }
+
+        assertEquals(HttpStatusCode.OK, participantReadsSelf.status, participantReadsSelf.bodyAsText())
+        assertEquals(HttpStatusCode.Forbidden, participantReadsOther.status, participantReadsOther.bodyAsText())
+        assertEquals(HttpStatusCode.OK, organizerReadsParticipant.status, organizerReadsParticipant.bodyAsText())
     }
 
     @Test
@@ -311,6 +499,46 @@ class EventOrganizationPhase5RoutesTest {
         assertEquals("TRICOUNT", body["paymentProvider"]?.jsonPrimitive?.content)
         assertEquals("ACTIVE", body["status"]?.jsonPrimitive?.content)
         assertEquals("https://tricount.com/group/phase5-pot", body["tricountLink"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `Phase5 payment pot creation rejects invalid financial fields before persistence`() = testApplication {
+        val fixture = createFixture()
+        val client = createJsonClient()
+        val beforeSync = fixture.pendingSyncMentions(fixture.eventId).size
+        val longTitle = "A".repeat(121)
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val invalidBodies = listOf(
+            paymentPotBodyWithFields(fixture.eventId, goalAmount = "-10.0"),
+            paymentPotBodyWithFields(fixture.eventId, goalAmount = "0.0"),
+            paymentPotBodyWithFields(fixture.eventId, currency = "EURO"),
+            paymentPotBodyWithFields(fixture.eventId, paymentProvider = "PAYPAL"),
+            paymentPotBodyWithFields(fixture.eventId, title = longTitle)
+        )
+
+        invalidBodies.forEach { body ->
+            val response = client.post("/api/events/${fixture.eventId}/payment/pot") {
+                header(HttpHeaders.Authorization, "Bearer ${createTestJwt(fixture.organizerId)}")
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+
+            assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        }
+
+        assertNull(
+            fixture.database.potQueries.selectActiveByEvent(fixture.eventId).executeAsOneOrNull(),
+            "Invalid payment pot payloads must not create an active pot."
+        )
+        assertEquals(
+            beforeSync,
+            fixture.pendingSyncMentions(fixture.eventId).size,
+            "Invalid payment pot payloads must not queue sync metadata."
+        )
     }
 
     @Test
@@ -543,6 +771,45 @@ class EventOrganizationPhase5RoutesTest {
             "Tricount link mutations must be ORGANIZING-guarded even when the caller is the event organizer."
         )
         assertTrue(response.bodyAsText().contains("ORGANIZING"))
+    }
+
+    @Test
+    fun `Phase5 tricount link rejects invalid provider fields before persistence`() = testApplication {
+        val fixture = createFixture()
+        val client = createJsonClient()
+        val beforeSync = fixture.pendingSyncMentions(fixture.eventId).size
+        val longProviderId = "x".repeat(201)
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val invalidBodies = listOf(
+            tricountLinkBody("   ", "https://tricount.com/group/blank-provider-id"),
+            tricountLinkBody(longProviderId, "https://tricount.com/group/long-provider-id"),
+            tricountLinkBody("tri-paypal", "https://tricount.com/group/tri-paypal", provider = "PAYPAL"),
+            tricountLinkBody("tri-bad-status", "https://tricount.com/group/tri-bad-status", syncStatus = "DONE")
+        )
+
+        invalidBodies.forEach { body ->
+            val response = client.post("/api/events/${fixture.eventId}/payment/tricount/link") {
+                header(HttpHeaders.Authorization, "Bearer ${createTestJwt(fixture.organizerId)}")
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+
+            assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        }
+
+        assertNull(
+            fixture.database.tricountHandoffQueries.selectByEventId(fixture.eventId).executeAsOneOrNull(),
+            "Invalid Tricount payloads must not create a handoff."
+        )
+        assertEquals(
+            beforeSync,
+            fixture.pendingSyncMentions(fixture.eventId).size,
+            "Invalid Tricount payloads must not queue sync metadata."
+        )
     }
 
     @Test
@@ -1413,14 +1680,37 @@ class EventOrganizationPhase5RoutesTest {
         """.trimIndent()
     }
 
+    private fun paymentPotBodyWithFields(
+        eventId: String,
+        goalAmount: String = "1250.75",
+        currency: String = "EUR",
+        paymentProvider: String = "TRICOUNT",
+        status: String = "ACTIVE",
+        title: String? = null,
+        tricountLink: String = "https://tricount.com/group/phase5-pot"
+    ): String {
+        val titleLine = title?.let { ""","title":"$it"""" } ?: ""
+        return """
+            {
+              "eventId": "$eventId",
+              "goalAmount": $goalAmount,
+              "currency": "$currency",
+              "paymentProvider": "$paymentProvider",
+              "status": "$status",
+              "tricountLink": "$tricountLink"$titleLine
+            }
+        """.trimIndent()
+    }
+
     private fun tricountLinkBody(
         providerId: String,
         providerUrl: String,
-        syncStatus: String = "LINKED"
+        syncStatus: String = "LINKED",
+        provider: String = "TRICOUNT"
     ): String =
         """
         {
-          "provider": "TRICOUNT",
+          "provider": "$provider",
           "providerId": "$providerId",
           "providerUrl": "$providerUrl",
           "syncStatus": "$syncStatus"

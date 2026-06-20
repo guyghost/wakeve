@@ -57,7 +57,7 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to scenarioDetailFailureMessage())
                 )
             }
         }
@@ -92,6 +92,22 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                     )
                 }
 
+                val requestedStatus = request.status?.let { value ->
+                    parseScenarioRouteEnum<ScenarioStatus>(value, "status").getOrElse { error ->
+                        return@put call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to invalidScenarioStatusMessage())
+                        )
+                    }
+                }
+                val requestedGenerationType = request.generationType?.let { value ->
+                    parseScenarioRouteEnum<ScenarioGenerationType>(value, "generationType").getOrElse { error ->
+                        return@put call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to invalidScenarioGenerationTypeMessage())
+                        )
+                    }
+                }
                 val now = java.time.Instant.now().toString()
                 val updated = existing.copy(
                     name = request.name ?: existing.name,
@@ -101,28 +117,27 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                     estimatedParticipants = request.estimatedParticipants ?: existing.estimatedParticipants,
                     estimatedBudgetPerPerson = request.estimatedBudgetPerPerson ?: existing.estimatedBudgetPerPerson,
                     description = request.description ?: existing.description,
-                    status = request.status?.let { ScenarioStatus.valueOf(it) } ?: existing.status,
+                    status = requestedStatus ?: existing.status,
                     updatedAt = now,
                     sourceTimeSlotId = request.sourceTimeSlotId ?: existing.sourceTimeSlotId,
                     sourcePotentialLocationId = request.sourcePotentialLocationId ?: existing.sourcePotentialLocationId,
-                    generationType = request.generationType?.let { ScenarioGenerationType.valueOf(it) }
-                        ?: existing.generationType
+                    generationType = requestedGenerationType ?: existing.generationType
                 )
 
                 val result = repository.updateScenario(updated)
                 if (result.isSuccess) {
-                    val response = updated.toResponse()
+                    val response = result.getOrThrow().toResponse()
                     call.respond(HttpStatusCode.OK, response)
                 } else {
                     call.respond(
                         HttpStatusCode.BadRequest,
-                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Failed to update scenario"))
+                        mapOf("error" to scenarioUpdateFailureMessage())
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to scenarioUpdateFailureMessage())
                 )
             }
         }
@@ -161,13 +176,13 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                 } else {
                     call.respond(
                         HttpStatusCode.BadRequest,
-                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Failed to delete scenario"))
+                        mapOf("error" to scenarioDeleteFailureMessage())
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to scenarioDeleteFailureMessage())
                 )
             }
         }
@@ -225,13 +240,13 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                 } else {
                     call.respond(
                         HttpStatusCode.BadRequest,
-                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Failed to add vote"))
+                        mapOf("error" to scenarioVoteCreateFailureMessage())
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to scenarioVoteCreateFailureMessage())
                 )
             }
         }
@@ -280,7 +295,7 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to scenarioVotesFailureMessage())
                 )
             }
         }
@@ -312,7 +327,7 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to scenarioListFailureMessage())
                 )
             }
         }
@@ -344,14 +359,14 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                     onFailure = { error ->
                         call.respond(
                             HttpStatusCode.BadRequest,
-                            mapOf("error" to (error.message ?: "Failed to generate scenario matrix"))
+                            mapOf("error" to scenarioMatrixGenerateFailureMessage())
                         )
                     }
                 )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to scenarioMatrixGenerateFailureMessage())
                 )
             }
         }
@@ -380,14 +395,14 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                     onFailure = { error ->
                         call.respond(
                             HttpStatusCode.BadRequest,
-                            mapOf("error" to (error.message ?: "Failed to publish scenario matrix"))
+                            mapOf("error" to scenarioMatrixPublishFailureMessage())
                         )
                     }
                 )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to scenarioMatrixPublishFailureMessage())
                 )
             }
         }
@@ -420,14 +435,14 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                     onFailure = { error ->
                         call.respond(
                             HttpStatusCode.BadRequest,
-                            mapOf("error" to (error.message ?: "Failed to select final scenario"))
+                            mapOf("error" to scenarioFinalSelectionFailureMessage())
                         )
                     }
                 )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to scenarioFinalSelectionFailureMessage())
                 )
             }
         }
@@ -457,7 +472,21 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                 }
 
                 val request = call.receive<CreateScenarioRequest>()
+                if (request.eventId.trim() != eventId) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Request eventId must match path event ID")
+                    )
+                }
                 val now = java.time.Instant.now().toString()
+                val generationType = request.generationType?.let { value ->
+                    parseScenarioRouteEnum<ScenarioGenerationType>(value, "generationType").getOrElse { error ->
+                        return@post call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to invalidScenarioGenerationTypeMessage())
+                        )
+                    }
+                } ?: ScenarioGenerationType.MANUAL
 
                 val scenario = Scenario(
                     id = "scenario_${System.currentTimeMillis()}_${Math.random()}",
@@ -474,24 +503,23 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
                     updatedAt = now,
                     sourceTimeSlotId = request.sourceTimeSlotId,
                     sourcePotentialLocationId = request.sourcePotentialLocationId,
-                    generationType = request.generationType?.let { ScenarioGenerationType.valueOf(it) }
-                        ?: ScenarioGenerationType.MANUAL
+                    generationType = generationType
                 )
 
                 val result = repository.createScenario(scenario)
                 if (result.isSuccess) {
-                    val response = scenario.toResponse()
+                    val response = result.getOrThrow().toResponse()
                     call.respond(HttpStatusCode.Created, response)
                 } else {
                     call.respond(
                         HttpStatusCode.BadRequest,
-                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Failed to create scenario"))
+                        mapOf("error" to scenarioCreateFailureMessage())
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to scenarioCreateFailureMessage())
                 )
             }
         }
@@ -543,7 +571,7 @@ fun io.ktor.server.routing.Route.scenarioRoutes(repository: ScenarioRepository, 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to scenariosWithVotesFailureMessage())
                 )
             }
         }
@@ -594,6 +622,51 @@ private fun isScenarioCreationAllowed(database: WakeveDb, eventId: String): Bool
 
     return status == EventStatus.CONFIRMED.name || status == EventStatus.COMPARING.name
 }
+
+private inline fun <reified T : Enum<T>> parseScenarioRouteEnum(value: String, fieldName: String): Result<T> = runCatching {
+    val normalized = value.trim().uppercase().replace('-', '_')
+    enumValues<T>().firstOrNull { it.name == normalized }
+        ?: throw IllegalArgumentException("Invalid scenario $fieldName: $value")
+}
+
+internal fun scenarioDetailFailureMessage(): String =
+    "Failed to fetch scenario details. Please try again."
+
+internal fun invalidScenarioStatusMessage(): String =
+    "Invalid scenario status."
+
+internal fun invalidScenarioGenerationTypeMessage(): String =
+    "Invalid scenario generation type."
+
+internal fun scenarioUpdateFailureMessage(): String =
+    "Failed to update the scenario. Please try again."
+
+internal fun scenarioDeleteFailureMessage(): String =
+    "Failed to delete the scenario. Please try again."
+
+internal fun scenarioVoteCreateFailureMessage(): String =
+    "Failed to save your scenario vote. Please try again."
+
+internal fun scenarioVotesFailureMessage(): String =
+    "Failed to fetch scenario votes. Please try again."
+
+internal fun scenarioListFailureMessage(): String =
+    "Failed to fetch scenarios. Please try again."
+
+internal fun scenarioMatrixGenerateFailureMessage(): String =
+    "Failed to generate scenario matrix. Please try again."
+
+internal fun scenarioMatrixPublishFailureMessage(): String =
+    "Failed to publish scenario matrix. Please try again."
+
+internal fun scenarioFinalSelectionFailureMessage(): String =
+    "Failed to select the final scenario. Please try again."
+
+internal fun scenarioCreateFailureMessage(): String =
+    "Failed to create the scenario. Please try again."
+
+internal fun scenariosWithVotesFailureMessage(): String =
+    "Failed to fetch scenarios with votes. Please try again."
 
 private fun Scenario.toResponse(): ScenarioResponse {
     return ScenarioResponse(

@@ -704,7 +704,7 @@ fun BudgetItemDialog(
                         }
                         onDismiss()
                     } catch (e: Exception) {
-                        errorMessage = e.message ?: "Erreur lors de la sauvegarde"
+                        errorMessage = budgetItemSaveFailureMessage()
                     }
                 }
             ) {
@@ -717,4 +717,8 @@ fun BudgetItemDialog(
             }
         }
     )
+}
+
+internal fun budgetItemSaveFailureMessage(): String {
+    return "Impossible d'enregistrer cet item de budget. Reessayez."
 }

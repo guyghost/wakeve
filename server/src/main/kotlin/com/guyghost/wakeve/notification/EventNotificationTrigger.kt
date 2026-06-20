@@ -100,7 +100,7 @@ class EventNotificationTrigger(
         if (!canSendNotification(request.userId)) {
             return Result.failure(Exception("Rate limit atteint pour ${request.userId}"))
         }
-        return notificationService.sendNotification(request)
+        return notificationService.sendNotification(request.withDeepLink())
     }
 
     /**
@@ -302,7 +302,7 @@ class EventNotificationTrigger(
                 for (participantId in participants) {
                     // Ne pas notifier l'auteur du commentaire
                     if (participantId == authorId) continue
-                    if (moderationRepository?.isBlocked(participantId, authorId) == true) continue
+                    if (moderationRepository?.isBlockedForEvent(participantId, authorId, eventId) == true) continue
 
                     val request = NotificationRequest(
                         userId = participantId,

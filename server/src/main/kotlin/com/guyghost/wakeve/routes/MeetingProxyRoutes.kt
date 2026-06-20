@@ -161,7 +161,7 @@ fun Route.meetingProxyRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to (e.message ?: "Unknown error creating Zoom meeting"))
+                    mapOf("error" to zoomMeetingCreateFailureMessage())
                 )
             }
         }
@@ -183,6 +183,8 @@ fun Route.meetingProxyRoutes(
          * ```
          */
         post("/zoom/{meetingId}/cancel") {
+            val principal = call.principal<JWTPrincipal>()
+                ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
             val meetingId = call.parameters["meetingId"]
 
             if (meetingId.isNullOrBlank()) {
@@ -193,6 +195,15 @@ fun Route.meetingProxyRoutes(
             }
 
             try {
+                val meeting = database.meetingQueries.selectByHostMeetingId(meetingId).executeAsOneOrNull()
+                    ?: return@post call.respond(HttpStatusCode.NotFound, mapOf("error" to "Meeting not found"))
+                if (meeting.organizerId != principal.userId) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        meetingAuditDenial(meeting.eventId, principal.userId, "cancel_meeting_proxy_non_organizer")
+                    )
+                }
+
                 call.respond(
                     HttpStatusCode.ServiceUnavailable,
                     meetingProviderUnavailable("zoom_provider_not_implemented", "Zoom server provider is not implemented")
@@ -200,7 +211,7 @@ fun Route.meetingProxyRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to (e.message ?: "Unknown error cancelling Zoom meeting"))
+                    mapOf("error" to zoomMeetingCancelFailureMessage())
                 )
             }
         }
@@ -225,6 +236,8 @@ fun Route.meetingProxyRoutes(
          * ```
          */
         get("/zoom/{meetingId}/status") {
+            val principal = call.principal<JWTPrincipal>()
+                ?: return@get call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
             val meetingId = call.parameters["meetingId"]
 
             if (meetingId.isNullOrBlank()) {
@@ -235,6 +248,15 @@ fun Route.meetingProxyRoutes(
             }
 
             try {
+                val meeting = database.meetingQueries.selectByHostMeetingId(meetingId).executeAsOneOrNull()
+                    ?: return@get call.respond(HttpStatusCode.NotFound, mapOf("error" to "Meeting not found"))
+                if (!hasMeetingDetailsAccess(database, eventRepository, meeting.eventId, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        meetingAuditDenial(meeting.eventId, principal.userId, "read_meeting_proxy_status")
+                    )
+                }
+
                 call.respond(
                     HttpStatusCode.ServiceUnavailable,
                     meetingProviderUnavailable("zoom_provider_not_implemented", "Zoom server provider is not implemented")
@@ -242,7 +264,7 @@ fun Route.meetingProxyRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to (e.message ?: "Unknown error getting Zoom meeting status"))
+                    mapOf("error" to zoomMeetingStatusFailureMessage())
                 )
             }
         }
@@ -330,7 +352,7 @@ fun Route.meetingProxyRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to (e.message ?: "Unknown error creating Google Meet meeting"))
+                    mapOf("error" to googleMeetCreateFailureMessage())
                 )
             }
         }
@@ -413,6 +435,18 @@ private fun meetingProviderUnavailable(error: String, message: String): Map<Stri
         "error" to error,
         "message" to message
     )
+
+internal fun zoomMeetingCreateFailureMessage(): String =
+    "Failed to create the Zoom meeting. Please try again."
+
+internal fun zoomMeetingCancelFailureMessage(): String =
+    "Failed to cancel the Zoom meeting. Please try again."
+
+internal fun zoomMeetingStatusFailureMessage(): String =
+    "Failed to fetch the Zoom meeting status. Please try again."
+
+internal fun googleMeetCreateFailureMessage(): String =
+    "Failed to create the Google Meet meeting. Please try again."
 
 /**
  * Response from creating a Zoom meeting

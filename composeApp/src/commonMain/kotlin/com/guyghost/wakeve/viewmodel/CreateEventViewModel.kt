@@ -1,7 +1,6 @@
 package com.guyghost.wakeve.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.analytics.AnalyticsEvent
 import com.guyghost.wakeve.analytics.AnalyticsProvider
 import com.guyghost.wakeve.models.Event
@@ -10,6 +9,7 @@ import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -63,7 +63,7 @@ import kotlinx.coroutines.launch
  * @property analyticsProvider Analytics provider for tracking user actions
  */
 class CreateEventViewModel(
-    private val eventRepository: EventRepository,
+    private val eventRepository: EventRepositoryInterface,
     analyticsProvider: AnalyticsProvider
 ) : AnalyticsViewModel(analyticsProvider) {
 
@@ -271,14 +271,12 @@ class CreateEventViewModel(
                     // Reset form
                     resetForm()
                 } else {
-                    val error = result.exceptionOrNull()?.message ?: "Unknown error"
-                    _creationError.value = error
-                    trackError("create_event_failed", error, isFatal = false)
+                    _creationError.value = eventCreationFailureMessage()
+                    trackError("create_event_failed", eventCreationFailureAnalyticsContext(), isFatal = false)
                 }
             } catch (e: Exception) {
-                val error = e.message ?: "Unknown error"
-                _creationError.value = error
-                trackError("create_event_exception", error, isFatal = false)
+                _creationError.value = eventCreationFailureMessage()
+                trackError("create_event_exception", eventCreationFailureAnalyticsContext(), isFatal = false)
             } finally {
                 _isCreating.value = false
             }
@@ -322,4 +320,12 @@ class CreateEventViewModel(
     private fun getCurrentIsoTimestamp(): String {
         return java.time.Instant.now().toString()
     }
+}
+
+internal fun eventCreationFailureMessage(): String {
+    return "Impossible de creer l'evenement. Reessayez."
+}
+
+internal fun eventCreationFailureAnalyticsContext(): String {
+    return "event_creation_failed"
 }

@@ -71,7 +71,9 @@ fun Route.transportRoutes(repository: TransportRepository, database: WakeveDb) {
                 updatedByUserId = principal.userId
             ).fold(
                 onSuccess = { record -> call.respond(HttpStatusCode.OK, record) },
-                onFailure = { error -> call.respond(HttpStatusCode.BadRequest, mapOf("error" to error.message.orEmpty())) }
+                onFailure = {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to transportDepartureSaveFailureMessage()))
+                }
             )
         }
 
@@ -146,7 +148,9 @@ fun Route.transportRoutes(repository: TransportRepository, database: WakeveDb) {
                 generatedByUserId = principal.userId
             ).fold(
                 onSuccess = { plan -> call.respond(HttpStatusCode.Created, plan) },
-                onFailure = { error -> call.respond(HttpStatusCode.Conflict, mapOf("error" to error.message.orEmpty())) }
+                onFailure = {
+                    call.respond(HttpStatusCode.Conflict, mapOf("error" to transportPlanGenerateFailureMessage()))
+                }
             )
         }
 
@@ -172,7 +176,9 @@ fun Route.transportRoutes(repository: TransportRepository, database: WakeveDb) {
                     val selected = repository.getSelectedPlanSummary(eventId)
                     call.respond(HttpStatusCode.OK, selected ?: mapOf("planId" to planId))
                 },
-                onFailure = { error -> call.respond(HttpStatusCode.BadRequest, mapOf("error" to error.message.orEmpty())) }
+                onFailure = {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to transportPlanSelectFailureMessage()))
+                }
             )
         }
 
@@ -195,7 +201,9 @@ fun Route.transportRoutes(repository: TransportRepository, database: WakeveDb) {
 
             repository.deletePlan(eventId, planId, principal.userId).fold(
                 onSuccess = { call.respond(HttpStatusCode.NoContent) },
-                onFailure = { error -> call.respond(HttpStatusCode.BadRequest, mapOf("error" to error.message.orEmpty())) }
+                onFailure = {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to transportPlanDeleteFailureMessage()))
+                }
             )
         }
 
@@ -211,7 +219,9 @@ fun Route.transportRoutes(repository: TransportRepository, database: WakeveDb) {
 
             repository.markTransportNotNeeded(eventId, principal.userId).fold(
                 onSuccess = { call.respond(HttpStatusCode.OK, mapOf("transportNotNeeded" to true)) },
-                onFailure = { error -> call.respond(HttpStatusCode.BadRequest, mapOf("error" to error.message.orEmpty())) }
+                onFailure = {
+                    call.respond(HttpStatusCode.BadRequest, mapOf("error" to transportNotNeededFailureMessage()))
+                }
             )
         }
     }
@@ -314,3 +324,18 @@ private fun com.guyghost.wakeve.Transport_plan.toTransportPlan(
         createdAt = created_at
     )
 }
+
+internal fun transportDepartureSaveFailureMessage(): String =
+    "Failed to save the departure location. Please review the details and try again."
+
+internal fun transportPlanGenerateFailureMessage(): String =
+    "Transport option provider is not configured. Please try again later."
+
+internal fun transportPlanSelectFailureMessage(): String =
+    "Failed to select the transport plan. Please try again."
+
+internal fun transportPlanDeleteFailureMessage(): String =
+    "Failed to delete the transport plan. Please try again."
+
+internal fun transportNotNeededFailureMessage(): String =
+    "Failed to update the transport planning status. Please try again."

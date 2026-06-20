@@ -135,7 +135,7 @@ class PollViewModel(
                     )
                 )
             } catch (e: Exception) {
-                trackError("vote_failed", e.message)
+                trackError("vote_failed", pollVoteFailureAnalyticsContext())
             } finally {
                 _isVoting.value = false
             }
@@ -191,9 +191,8 @@ class PollViewModel(
                 _hasSubmitted.value = true
                 onSuccess()
             } catch (e: Exception) {
-                val message = e.message ?: "Failed to submit vote"
-                _errorMessage.value = message
-                trackError("vote_failed", message)
+                _errorMessage.value = pollVoteSubmissionFailureMessage()
+                trackError("vote_failed", pollVoteFailureAnalyticsContext())
             } finally {
                 _isVoting.value = false
             }
@@ -231,7 +230,7 @@ class PollViewModel(
                     )
                 )
             } catch (e: Exception) {
-                trackError("close_poll_failed", e.message)
+                trackError("close_poll_failed", pollCloseFailureAnalyticsContext())
             } finally {
                 _isClosing.value = false
             }
@@ -255,7 +254,9 @@ class PollViewModel(
             _confirmationError.value = null
             try {
                 if (!eventRepository.isOrganizer(event.id, userId)) {
-                    throw IllegalStateException("Only the organizer can confirm the final date")
+                    _confirmationError.value = finalDateOrganizerRequiredMessage()
+                    trackError("confirm_final_date_failed", finalDateOrganizerRequiredAnalyticsContext())
+                    return@launch
                 }
 
                 val result = eventRepository.updateEventStatus(
@@ -277,9 +278,8 @@ class PollViewModel(
                 )
                 onSuccess()
             } catch (e: Exception) {
-                val message = e.message ?: "Failed to confirm final date"
-                _confirmationError.value = message
-                trackError("confirm_final_date_failed", message)
+                _confirmationError.value = finalDateConfirmationFailureMessage()
+                trackError("confirm_final_date_failed", finalDateConfirmationFailureAnalyticsContext())
             } finally {
                 _isConfirmingFinalDate.value = false
             }
@@ -294,4 +294,32 @@ class PollViewModel(
     fun refreshPoll() {
         _poll.value = eventRepository.getPoll(eventId)
     }
+}
+
+internal fun pollVoteSubmissionFailureMessage(): String {
+    return "Impossible d'enregistrer vos votes. Réessayez."
+}
+
+internal fun finalDateConfirmationFailureMessage(): String {
+    return "Impossible de confirmer la date finale. Réessayez."
+}
+
+internal fun finalDateOrganizerRequiredMessage(): String {
+    return "Seul l'organisateur peut confirmer la date finale."
+}
+
+internal fun pollVoteFailureAnalyticsContext(): String {
+    return "vote_submission_failed"
+}
+
+internal fun pollCloseFailureAnalyticsContext(): String {
+    return "poll_close_failed"
+}
+
+internal fun finalDateConfirmationFailureAnalyticsContext(): String {
+    return "final_date_confirmation_failed"
+}
+
+internal fun finalDateOrganizerRequiredAnalyticsContext(): String {
+    return "organizer_required"
 }

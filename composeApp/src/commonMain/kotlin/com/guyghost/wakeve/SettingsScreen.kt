@@ -124,7 +124,7 @@ fun SettingsScreen(
             },
             onFailure = { error ->
                 sessions = emptyList()
-                errorMessage = error.message ?: "Impossible de charger les sessions actives"
+                errorMessage = activeSessionsLoadFailureMessage()
             }
         )
         isLoading = false
@@ -154,7 +154,7 @@ fun SettingsScreen(
                                 repository.revokeAllOtherSessions(userId, currentSessionId).fold(
                                     onSuccess = { loadSessions() },
                                     onFailure = { error ->
-                                        errorMessage = error.message ?: "Impossible de révoquer les autres sessions"
+                                        errorMessage = otherSessionsRevokeFailureMessage()
                                     }
                                 )
                             }
@@ -192,7 +192,7 @@ fun SettingsScreen(
                                 repository.revokeSession(session.id, reason = "device_revoked").fold(
                                     onSuccess = { loadSessions() },
                                     onFailure = { error ->
-                                        errorMessage = error.message ?: "Impossible de révoquer la session"
+                                        errorMessage = sessionRevokeFailureMessage()
                                     }
                                 )
                             }
@@ -347,6 +347,15 @@ private fun SessionData.toDisplayData(currentSessionId: String): SessionDisplayD
         lastAccessed = lastAccessed,
         isCurrent = id == currentSessionId
     )
+
+internal fun activeSessionsLoadFailureMessage(): String =
+    "Impossible de charger les sessions actives. Reessayez."
+
+internal fun otherSessionsRevokeFailureMessage(): String =
+    "Impossible de revoquer les autres sessions. Reessayez."
+
+internal fun sessionRevokeFailureMessage(): String =
+    "Impossible de revoquer cette session. Reessayez."
 
 @Composable
 fun SessionCard(

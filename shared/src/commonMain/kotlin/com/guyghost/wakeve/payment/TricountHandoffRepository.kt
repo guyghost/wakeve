@@ -35,32 +35,49 @@ class TricountHandoffRepository(private val db: WakeveDb) {
         providerUrl: String,
         syncStatus: String
     ): TricountHandoffRecord {
-        require(isTrustedProviderUrl(provider, providerUrl)) {
-            "Suspicious $provider URL rejected"
+        val normalizedEventId = eventId.trim()
+        val normalizedProvider = provider.trim().uppercase()
+        val normalizedProviderId = providerId.trim()
+        val normalizedProviderUrl = providerUrl.trim()
+        val normalizedSyncStatus = syncStatus.trim().uppercase()
+
+        require(normalizedEventId.isNotEmpty()) { "eventId is required" }
+        require(normalizedProvider == "TRICOUNT") { "Unsupported provider: $normalizedProvider" }
+        require(normalizedProviderId.isNotEmpty()) { "providerId is required" }
+        require(normalizedProviderId.length <= 200) { "providerId must not exceed 200 characters" }
+        require(normalizedSyncStatus in setOf("LINKED", "SYNCED")) {
+            "syncStatus must be LINKED or SYNCED"
+        }
+        require(isTrustedProviderUrl(normalizedProvider, normalizedProviderUrl)) {
+            "Suspicious $normalizedProvider URL rejected"
         }
 
         val now = Clock.System.now().toString()
         db.tricountHandoffQueries.upsertHandoff(
-            eventId = eventId,
-            provider = provider,
-            providerId = providerId,
-            providerUrl = providerUrl,
-            syncStatus = syncStatus,
+            eventId = normalizedEventId,
+            provider = normalizedProvider,
+            providerId = normalizedProviderId,
+            providerUrl = normalizedProviderUrl,
+            syncStatus = normalizedSyncStatus,
             trusted = 1L,
             explicitNotNeeded = 0L,
-            lastSyncAt = if (syncStatus == "SYNCED") now else null,
+            lastSyncAt = if (normalizedSyncStatus == "SYNCED") now else null,
             createdAt = now,
             updatedAt = now
         )
-        val handoff = getHandoff(eventId)!!
+        val handoff = getHandoff(normalizedEventId)!!
         queueHandoffSync(handoff, "CREATE")
         return handoff
     }
 
     fun markNotNeeded(eventId: String, decidedBy: String): TricountHandoffRecord {
+        val normalizedEventId = eventId.trim()
+        val normalizedDecidedBy = decidedBy.trim()
+        require(normalizedEventId.isNotEmpty()) { "eventId is required" }
+        require(normalizedDecidedBy.isNotEmpty()) { "decidedBy is required" }
         val now = Clock.System.now().toString()
         db.tricountHandoffQueries.upsertHandoff(
-            eventId = eventId,
+            eventId = normalizedEventId,
             provider = "TRICOUNT",
             providerId = null,
             providerUrl = null,
@@ -71,17 +88,19 @@ class TricountHandoffRepository(private val db: WakeveDb) {
             createdAt = now,
             updatedAt = now
         )
-        val handoff = getHandoff(eventId)!!
+        val handoff = getHandoff(normalizedEventId)!!
         queueHandoffSync(handoff, "UPDATE")
         return handoff
     }
 
     fun getHandoff(eventId: String): TricountHandoffRecord? =
-        db.tricountHandoffQueries.selectByEventId(eventId).executeAsOneOrNull()?.toModel()
+        db.tricountHandoffQueries.selectByEventId(eventId.trim()).executeAsOneOrNull()?.toModel()
 
     fun unlinkHandoff(eventId: String) {
-        val existing = getHandoff(eventId)
-        db.tricountHandoffQueries.deleteByEventId(eventId)
+        val normalizedEventId = eventId.trim()
+        require(normalizedEventId.isNotEmpty()) { "eventId is required" }
+        val existing = getHandoff(normalizedEventId)
+        db.tricountHandoffQueries.deleteByEventId(normalizedEventId)
         if (existing != null) {
             queueHandoffSync(
                 existing.copy(syncStatus = "UNLINKED", providerUrl = null, providerId = null),
@@ -91,13 +110,14 @@ class TricountHandoffRepository(private val db: WakeveDb) {
     }
 
     fun getPaymentReadiness(eventId: String): PaymentReadiness {
-        val handoff = getHandoff(eventId)
+        val normalizedEventId = eventId.trim()
+        val handoff = getHandoff(normalizedEventId)
         val complete = handoff?.explicitNotNeeded == true ||
             (handoff?.trusted == true && handoff.providerId != null && handoff.providerUrl != null &&
                 handoff.syncStatus in setOf("LINKED", "SYNCED"))
 
         return PaymentReadiness(
-            eventId = eventId,
+            eventId = normalizedEventId,
             complete = complete,
             blockers = if (complete) emptyList() else listOf("TRICOUNT_HANDOFF_REQUIRED"),
             handoff = handoff

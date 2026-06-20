@@ -83,7 +83,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to budgetReadFailureMessage())
                 )
             }
         }
@@ -148,7 +148,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to budgetBaselineSaveFailureMessage())
                 )
             }
         }
@@ -221,7 +221,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to budgetItemListFailureMessage())
                 )
             }
         }
@@ -272,11 +272,13 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                 )
 
                 val request = call.receive<CreateItemRequest>()
+                val normalizedName = request.name.trim()
+                val normalizedDescription = request.description.trim()
                 if (call.rejectRejectedModeratedText(
                         moderationPolicy,
                         listOf(
-                            ModeratedTextField("name", request.name),
-                            ModeratedTextField("description", request.description)
+                            ModeratedTextField("name", normalizedName),
+                            ModeratedTextField("description", normalizedDescription)
                         )
                     )
                 ) {
@@ -285,7 +287,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(
 
                 // Parse category
                 val category = try {
-                    BudgetCategory.valueOf(request.category.uppercase())
+                    BudgetCategory.valueOf(request.category.trim().uppercase())
                 } catch (e: IllegalArgumentException) {
                     return@post call.respond(
                         HttpStatusCode.BadRequest,
@@ -294,27 +296,50 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                 }
 
                 // Validate estimated cost
-                if (request.estimatedCost <= 0) {
+                if (!request.estimatedCost.isFinite() || request.estimatedCost <= 0) {
                     return@post call.respond(
                         HttpStatusCode.BadRequest,
-                        mapOf("error" to "Estimated cost must be greater than 0")
+                        mapOf("error" to "Estimated cost must be a finite value greater than 0")
+                    )
+                }
+
+                val sharedBy = request.sharedBy
+                    .map { it.trim() }
+                    .ifEmpty { listOf(userId) }
+                val confirmedParticipantIds = confirmedBudgetParticipantIds(database, eventId, event.organizerId)
+                if (sharedBy.any { it.isBlank() }) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Shared participant IDs cannot be blank")
+                    )
+                }
+                if (sharedBy.size != sharedBy.distinct().size) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Shared participant IDs cannot contain duplicates")
+                    )
+                }
+                if (sharedBy.any { it !in confirmedParticipantIds }) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        budgetAuditDenial(eventId, userId, "create_budget_item_with_unconfirmed_share")
                     )
                 }
 
                 val item = repository.createBudgetItem(
                     budgetId = budget.id,
-                    name = request.name,
-                    description = request.description,
+                    name = normalizedName,
+                    description = normalizedDescription,
                     category = category,
                     estimatedCost = request.estimatedCost,
-                    sharedBy = request.sharedBy.ifEmpty { listOf(userId) }
+                    sharedBy = sharedBy
                 )
 
                 call.respond(HttpStatusCode.Created, item)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to budgetItemCreateFailureMessage())
                 )
             }
         }
@@ -360,15 +385,48 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                 )
 
                 val request = call.receive<CreateExpenseRequest>()
-                if (request.payerId != userId) {
+                val normalizedPayerId = request.payerId.trim()
+                val normalizedSplitParticipantIds = request.splitParticipantIds.map { it.trim() }
+                if (normalizedPayerId != userId) {
                     return@post call.respond(
                         HttpStatusCode.Forbidden,
                         budgetAuditDenial(eventId, userId, "create_expense_for_other_payer")
                     )
                 }
+                if (!request.amount.isFinite() || request.amount <= 0.0) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Expense amount must be a finite value greater than 0")
+                    )
+                }
+                if (normalizedSplitParticipantIds.isEmpty()) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Expense must have at least one split participant")
+                    )
+                }
+                if (normalizedSplitParticipantIds.any { it.isBlank() }) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Split participant IDs cannot be blank")
+                    )
+                }
+                if (normalizedSplitParticipantIds.size != normalizedSplitParticipantIds.distinct().size) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Split participant IDs cannot contain duplicates")
+                    )
+                }
+                val normalizedClientSyncState = request.clientSyncState?.trim()?.uppercase()
+                if (normalizedClientSyncState != null && normalizedClientSyncState !in setOf("ONLINE", "OFFLINE")) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Invalid client sync state")
+                    )
+                }
 
                 val category = try {
-                    BudgetCategory.valueOf(request.category.uppercase())
+                    BudgetCategory.valueOf(request.category.trim().uppercase())
                 } catch (e: IllegalArgumentException) {
                     return@post call.respond(
                         HttpStatusCode.BadRequest,
@@ -376,12 +434,8 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                     )
                 }
 
-                val confirmedParticipantIds = database.participantQueries
-                    .selectValidated(eventId)
-                    .executeAsList()
-                    .map { it.userId }
-                    .toSet() + event.organizerId
-                if (request.splitParticipantIds.any { it !in confirmedParticipantIds }) {
+                val confirmedParticipantIds = confirmedBudgetParticipantIds(database, eventId, event.organizerId)
+                if (normalizedSplitParticipantIds.any { it !in confirmedParticipantIds }) {
                     return@post call.respond(
                         HttpStatusCode.Forbidden,
                         budgetAuditDenial(eventId, userId, "create_expense_with_unconfirmed_split")
@@ -396,19 +450,19 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                     eventId = eventId,
                     amount = request.amount,
                     category = category,
-                    payerId = request.payerId,
-                    splitParticipantIds = request.splitParticipantIds,
+                    payerId = normalizedPayerId,
+                    splitParticipantIds = normalizedSplitParticipantIds,
                     receiptMetadata = request.receiptMetadata,
-                    syncState = if (request.clientSyncState == "OFFLINE") "PENDING" else "SYNCED"
+                    syncState = if (normalizedClientSyncState == "OFFLINE") "PENDING" else "SYNCED"
                 )
 
                 call.respond(HttpStatusCode.Created, expense)
             } catch (e: IllegalArgumentException) {
-                call.respond(HttpStatusCode.BadRequest, mapOf("error" to e.message.orEmpty()))
+                call.respond(HttpStatusCode.BadRequest, mapOf("error" to budgetExpenseInvalidFailureMessage()))
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to budgetExpenseCreateFailureMessage())
                 )
             }
         }
@@ -457,7 +511,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to budgetItemDetailFailureMessage())
                 )
             }
         }
@@ -539,7 +593,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to budgetItemUpdateFailureMessage())
                 )
             }
         }
@@ -606,7 +660,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to budgetItemDeleteFailureMessage())
                 )
             }
         }
@@ -664,7 +718,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to budgetSummaryFailureMessage())
                 )
             }
         }
@@ -717,7 +771,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to budgetSettlementsFailureMessage())
                 )
             }
         }
@@ -747,6 +801,26 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Participant ID required")
                 )
+                val event = eventRepository.getEvent(eventId) ?: return@get call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Event not found")
+                )
+                val targetIsEventOrganizer = event.organizerId == participantId
+                val targetIsEventParticipant = database.participantQueries
+                    .selectByEventIdAndUserId(eventId, participantId)
+                    .executeAsOneOrNull() != null
+                if (!targetIsEventOrganizer && !targetIsEventParticipant) {
+                    return@get call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Participant not found for event")
+                    )
+                }
+                if (event.organizerId != userId && participantId != userId) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        budgetAuditDenial(eventId, userId, "read_participant_budget_info")
+                    )
+                }
 
                 val budget = repository.getBudgetByEventId(eventId) ?: return@get call.respond(
                     HttpStatusCode.NotFound,
@@ -756,21 +830,32 @@ fun io.ktor.server.routing.Route.budgetRoutes(
                 val share = repository.getParticipantBudgetShare(budget.id, participantId)
                 val balances = repository.getParticipantBalances(budget.id)
                 val participantBalance = balances[participantId] ?: 0.0
+                val shareResponse = ParticipantBudgetShareResponse(
+                    participantId = share.participantId,
+                    totalOwed = share.totalOwed,
+                    totalPaid = share.totalPaid,
+                    balance = share.balance,
+                    itemsShared = share.itemsShared,
+                    itemsPaid = share.itemsPaid
+                )
 
-                call.respond(HttpStatusCode.OK, mapOf(
-                    "participantId" to participantId,
-                    "share" to share,
-                    "balance" to participantBalance,
-                    "balanceDescription" to when {
+                call.respond(
+                    HttpStatusCode.OK,
+                    ParticipantBudgetInfoResponse(
+                        participantId = participantId,
+                        share = shareResponse,
+                        balance = participantBalance,
+                        balanceDescription = when {
                         participantBalance > 0 -> "Owed by others"
                         participantBalance < 0 -> "Owes to others"
                         else -> "Settled up"
-                    }
-                ))
+                        }
+                    )
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to participantBudgetInfoFailureMessage())
                 )
             }
         }
@@ -824,7 +909,7 @@ fun io.ktor.server.routing.Route.budgetRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to budgetStatisticsFailureMessage())
                 )
             }
         }
@@ -845,6 +930,24 @@ private data class BudgetSettlementsResponse(
     val count: Int
 )
 
+@Serializable
+private data class ParticipantBudgetInfoResponse(
+    val participantId: String,
+    val share: ParticipantBudgetShareResponse,
+    val balance: Double,
+    val balanceDescription: String
+)
+
+@Serializable
+private data class ParticipantBudgetShareResponse(
+    val participantId: String,
+    val totalOwed: Double,
+    val totalPaid: Double,
+    val balance: Double,
+    val itemsShared: List<BudgetItem>,
+    val itemsPaid: List<BudgetItem>
+)
+
 private fun budgetAuditDenial(eventId: String, userId: String, action: String): Map<String, String> {
     val auditRef = "audit-${eventId.take(12)}-${userId.take(12)}-${System.currentTimeMillis()}"
     return mapOf(
@@ -853,6 +956,45 @@ private fun budgetAuditDenial(eventId: String, userId: String, action: String): 
         "auditAction" to action
     )
 }
+
+internal fun budgetReadFailureMessage(): String =
+    "Failed to fetch the budget. Please try again."
+
+internal fun budgetBaselineSaveFailureMessage(): String =
+    "Failed to save the budget baseline. Please try again."
+
+internal fun budgetItemListFailureMessage(): String =
+    "Failed to fetch budget items. Please try again."
+
+internal fun budgetItemCreateFailureMessage(): String =
+    "Failed to create the budget item. Please try again."
+
+internal fun budgetExpenseInvalidFailureMessage(): String =
+    "Invalid expense request. Please check the fields and try again."
+
+internal fun budgetExpenseCreateFailureMessage(): String =
+    "Failed to record the expense. Please try again."
+
+internal fun budgetItemDetailFailureMessage(): String =
+    "Failed to fetch budget item details. Please try again."
+
+internal fun budgetItemUpdateFailureMessage(): String =
+    "Failed to update the budget item. Please try again."
+
+internal fun budgetItemDeleteFailureMessage(): String =
+    "Failed to delete the budget item. Please try again."
+
+internal fun budgetSummaryFailureMessage(): String =
+    "Failed to fetch the budget summary. Please try again."
+
+internal fun budgetSettlementsFailureMessage(): String =
+    "Failed to fetch budget settlements. Please try again."
+
+internal fun participantBudgetInfoFailureMessage(): String =
+    "Failed to fetch participant budget information. Please try again."
+
+internal fun budgetStatisticsFailureMessage(): String =
+    "Failed to fetch budget statistics. Please try again."
 
 /**
  * Check if the authenticated user can view protected organization budget details.
@@ -876,3 +1018,14 @@ private fun hasConfirmedAttendeeBudgetAccess(
 
     return participant.hasValidatedDate == 1L
 }
+
+private fun confirmedBudgetParticipantIds(
+    database: WakeveDb,
+    eventId: String,
+    organizerId: String
+): Set<String> =
+    database.participantQueries
+        .selectValidated(eventId)
+        .executeAsList()
+        .map { it.userId }
+        .toSet() + organizerId

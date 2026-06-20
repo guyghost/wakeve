@@ -229,16 +229,16 @@ class SmartAlbumsViewModel(
                             _uiState.value = SmartAlbumsUiState.Content(sortedList, params)
                         }
                     },
-                    onFailure = { error ->
+                    onFailure = { _ ->
                         _uiState.value = SmartAlbumsUiState.Error(
-                            message = error.message ?: "Unknown error loading albums",
+                            message = albumListFailureMessage(),
                             filterParams = params
                         )
                     }
                 )
             } catch (e: Exception) {
                 _uiState.value = SmartAlbumsUiState.Error(
-                    message = e.message ?: "Unknown error loading albums",
+                    message = albumListFailureMessage(),
                     filterParams = params
                 )
             } finally {
@@ -283,9 +283,9 @@ class SmartAlbumsViewModel(
                         _uiState.value = SmartAlbumsUiState.Content(sortedList, _filterParams.value)
                     }
                 },
-                onFailure = { error ->
+                onFailure = { _ ->
                     _uiState.value = SmartAlbumsUiState.Error(
-                        message = error.message ?: "Search failed"
+                        message = albumSearchFailureMessage()
                     )
                 }
             )
@@ -382,15 +382,15 @@ class SmartAlbumsViewModel(
                         _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage("Album created: $name"))
                         refreshAlbums()
                     },
-                    onFailure = { error ->
+                    onFailure = { _ ->
                         _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage(
-                            error.message ?: "Failed to create album"
+                            albumCreateFailureMessage()
                         ))
                     }
                 )
             } catch (e: Exception) {
                 _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage(
-                    e.message ?: "Failed to create album"
+                    albumCreateFailureMessage()
                 ))
             } finally {
                 _isLoading.value = false
@@ -415,15 +415,15 @@ class SmartAlbumsViewModel(
                         _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage("Album updated"))
                         refreshAlbums()
                     },
-                    onFailure = { error ->
+                    onFailure = { _ ->
                         _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage(
-                            error.message ?: "Failed to update album"
+                            albumUpdateFailureMessage()
                         ))
                     }
                 )
             } catch (e: Exception) {
                 _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage(
-                    e.message ?: "Failed to update album"
+                    albumUpdateFailureMessage()
                 ))
             } finally {
                 _isLoading.value = false
@@ -468,15 +468,15 @@ class SmartAlbumsViewModel(
                         _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage("Album deleted"))
                         refreshAlbums()
                     },
-                    onFailure = { error ->
+                    onFailure = { _ ->
                         _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage(
-                            error.message ?: "Failed to delete album"
+                            albumDeleteFailureMessage()
                         ))
                     }
                 )
             } catch (e: Exception) {
                 _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage(
-                    e.message ?: "Failed to delete album"
+                    albumDeleteFailureMessage()
                 ))
             } finally {
                 _isLoading.value = false
@@ -499,15 +499,15 @@ class SmartAlbumsViewModel(
                         _sideEffect.emit(SmartAlbumsSideEffect.FavoriteToggled(albumId, newStatus))
                         refreshAlbums()
                     },
-                    onFailure = { error ->
+                    onFailure = { _ ->
                         _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage(
-                            error.message ?: "Failed to update favorite status"
+                            albumFavoriteUpdateFailureMessage()
                         ))
                     }
                 )
             } catch (e: Exception) {
                 _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage(
-                    e.message ?: "Failed to update favorite status"
+                    albumFavoriteUpdateFailureMessage()
                 ))
             }
         }
@@ -530,15 +530,15 @@ class SmartAlbumsViewModel(
                         _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage("Photos added to album"))
                         refreshAlbums()
                     },
-                    onFailure = { error ->
+                    onFailure = { _ ->
                         _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage(
-                            error.message ?: "Failed to add photos"
+                            albumAddPhotosFailureMessage()
                         ))
                     }
                 )
             } catch (e: Exception) {
                 _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage(
-                    e.message ?: "Failed to add photos"
+                    albumAddPhotosFailureMessage()
                 ))
             } finally {
                 _isLoading.value = false
@@ -563,15 +563,15 @@ class SmartAlbumsViewModel(
                         _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage("Photos removed from album"))
                         refreshAlbums()
                     },
-                    onFailure = { error ->
+                    onFailure = { _ ->
                         _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage(
-                            error.message ?: "Failed to remove photos"
+                            albumRemovePhotosFailureMessage()
                         ))
                     }
                 )
             } catch (e: Exception) {
                 _sideEffect.emit(SmartAlbumsSideEffect.ShowMessage(
-                    e.message ?: "Failed to remove photos"
+                    albumRemovePhotosFailureMessage()
                 ))
             } finally {
                 _isLoading.value = false

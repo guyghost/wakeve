@@ -86,6 +86,7 @@ import com.guyghost.wakeve.models.InboxItemType
 import com.guyghost.wakeve.models.NotificationMessage
 import com.guyghost.wakeve.models.NotificationType
 import com.guyghost.wakeve.notification.NotificationService
+import com.guyghost.wakeve.notification.resolveNotificationClickTarget
 import com.guyghost.wakeve.ui.components.StatusIndicator
 import kotlinx.datetime.Clock
 import kotlinx.coroutines.launch
@@ -218,7 +219,7 @@ fun InboxScreen(
         val idsToMark = selectedIds.toList()
         scope.launch {
             if (notificationService != null) {
-                idsToMark.forEach { notificationService.markAsRead(it) }
+                idsToMark.forEach { notificationService.markAsReadForUser(it, userId) }
                 loadInboxItems()
             } else {
                 val updated = items.map { item ->
@@ -236,7 +237,7 @@ fun InboxScreen(
         val idsToDelete = selectedIds.toList()
         scope.launch {
             if (notificationService != null) {
-                idsToDelete.forEach { notificationService.deleteNotification(it) }
+                idsToDelete.forEach { notificationService.deleteNotificationForUser(it, userId) }
                 loadInboxItems()
             } else {
                 items.removeAll { idsToDelete.contains(it.id) }
@@ -257,7 +258,7 @@ fun InboxScreen(
         } else {
             scope.launch {
                 if (notificationService != null && !item.isRead) {
-                    notificationService.markAsRead(item.id)
+                    notificationService.markAsReadForUser(item.id, userId)
                     loadInboxItems()
                 } else {
                     val index = items.indexOfFirst { it.id == item.id }
@@ -266,7 +267,7 @@ fun InboxScreen(
                     }
                 }
             }
-            item.eventId?.let(onNotificationClick)
+            (resolveNotificationClickTarget(item.metadata) ?: item.eventId)?.let(onNotificationClick)
         }
     }
 

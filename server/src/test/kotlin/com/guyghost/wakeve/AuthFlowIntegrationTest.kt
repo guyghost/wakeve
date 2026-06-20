@@ -130,6 +130,28 @@ class AuthFlowIntegrationTest {
     }
 
     @Test
+    fun `current session endpoint does not expose session owned by another user`() = testApplication {
+        application { module(database) }
+
+        val (_, otherUserSessionId) = runBlocking {
+            createSession(userId = "session-owner-user", deviceId = "owner-device", deviceName = "Owner Device")
+        }
+        val mismatchedToken = createTestJwt(
+            userId = "claim-user",
+            sessionId = otherUserSessionId
+        )
+
+        val response = client.get("/api/sessions/current") {
+            header(HttpHeaders.Authorization, "Bearer $mismatchedToken")
+        }
+        val body = response.bodyAsText()
+
+        assertEquals(HttpStatusCode.NotFound, response.status, body)
+        assertFalse(body.contains("Owner Device"), body)
+        assertFalse(body.contains(otherUserSessionId), body)
+    }
+
+    @Test
     fun `account deletion requires authentication`() = testApplication {
         application { module(database) }
 

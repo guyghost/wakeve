@@ -110,7 +110,7 @@ class ReconnectionManager(
                 }
             } catch (e: Exception) {
                 connectionState = ConnectionState.DISCONNECTED
-                logError("Connection failed for event $eventId", e)
+                logError("Connection failed for event $eventId")
 
                 retryCount++
                 currentDelay = (currentDelay * 2).coerceAtMost(maxDelayMs)
@@ -200,10 +200,9 @@ class ReconnectionManager(
      * Logs an error message for debugging purposes.
      * In production, this would integrate with a proper logging framework.
      */
-    private fun logError(message: String, throwable: Throwable? = null) {
+    private fun logError(message: String) {
         // Using println for now - in production, use proper logging
         println("[ReconnectionManager] ERROR: $message")
-        throwable?.let { println("[ReconnectionManager] Exception: ${it.message}") }
     }
 
     /**

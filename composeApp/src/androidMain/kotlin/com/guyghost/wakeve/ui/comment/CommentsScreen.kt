@@ -94,6 +94,7 @@ fun CommentsScreen(
     var replyingTo by remember { mutableStateOf<Comment?>(null) }
     var editingComment by remember { mutableStateOf<Comment?>(null) }
     var commentToDelete by remember { mutableStateOf<Comment?>(null) }
+    var deleteErrorMessage by remember { mutableStateOf<String?>(null) }
     var showSectionFilter by remember { mutableStateOf(false) }
 
     // Load comments
@@ -122,7 +123,7 @@ fun CommentsScreen(
             }
             commentsState = CommentsState.Success(commentsWithThreads)
         } catch (e: Exception) {
-            commentsState = CommentsState.Error(e.message ?: "Erreur lors du chargement")
+            commentsState = CommentsState.Error(commentLoadFailureMessage())
         }
     }
 
@@ -185,7 +186,10 @@ fun CommentsScreen(
                         currentUserId = currentUserId,
                         onReply = { comment -> replyingTo = comment },
                         onEdit = { comment -> editingComment = comment },
-                        onDelete = { comment -> commentToDelete = comment },
+                        onDelete = { comment ->
+                            deleteErrorMessage = null
+                            commentToDelete = comment
+                        },
                         onRefresh = { loadComments() },
                         modifier = Modifier.fillMaxSize()
                     )
@@ -231,12 +235,21 @@ fun CommentsScreen(
             commentToDelete?.let { comment ->
                 DeleteCommentDialog(
                     comment = comment,
+                    errorMessage = deleteErrorMessage,
                     onConfirm = {
-                        commentRepository.deleteComment(comment.id)
-                        loadComments()
-                        commentToDelete = null
+                        try {
+                            commentRepository.deleteComment(comment.id)
+                            loadComments()
+                            commentToDelete = null
+                            deleteErrorMessage = null
+                        } catch (e: Exception) {
+                            deleteErrorMessage = commentDeleteFailureMessage()
+                        }
                     },
-                    onDismiss = { commentToDelete = null }
+                    onDismiss = {
+                        commentToDelete = null
+                        deleteErrorMessage = null
+                    }
                 )
             }
         }
@@ -617,6 +630,7 @@ private fun CommentDialog(
 ) {
     var content by remember { mutableStateOf(editingComment?.content ?: "") }
     var isSubmitting by remember { mutableStateOf(false) }
+    var submitErrorMessage by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
 
     val isReply = parentComment != null
@@ -648,7 +662,12 @@ private fun CommentDialog(
 
                 OutlinedTextField(
                     value = content,
-                    onValueChange = { if (it.length <= 2000) content = it },
+                    onValueChange = {
+                        if (it.length <= 2000) {
+                            content = it
+                            submitErrorMessage = null
+                        }
+                    },
                     label = { Text("Commentaire") },
                     placeholder = { Text("Écrivez votre commentaire...") },
                     modifier = Modifier.fillMaxWidth(),
@@ -666,6 +685,14 @@ private fun CommentDialog(
                     }
                 )
 
+                submitErrorMessage?.let { message ->
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -681,6 +708,7 @@ private fun CommentDialog(
                         onClick = {
                             if (content.isNotBlank()) {
                                 isSubmitting = true
+                                submitErrorMessage = null
                                 val request = CommentRequest(
                                     section = section,
                                     sectionItemId = sectionItemId,
@@ -704,6 +732,7 @@ private fun CommentDialog(
                                         }
                                         onCommentPosted()
                                     } catch (e: Exception) {
+                                        submitErrorMessage = commentSubmitFailureMessage()
                                         isSubmitting = false
                                     }
                                 }
@@ -729,13 +758,25 @@ private fun CommentDialog(
 @Composable
 private fun DeleteCommentDialog(
     comment: Comment,
+    errorMessage: String?,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Supprimer le commentaire") },
-        text = { Text("Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible.") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Êtes-vous sûr de vouloir supprimer ce commentaire ? Cette action est irréversible.")
+                errorMessage?.let { message ->
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        },
         confirmButton = {
             Button(
                 onClick = onConfirm,
@@ -776,4 +817,16 @@ sealed class CommentsState {
     object Loading : CommentsState()
     data class Error(val message: String) : CommentsState()
     data class Success(val data: CommentsBySection) : CommentsState()
+}
+
+internal fun commentLoadFailureMessage(): String {
+    return "Impossible de charger les commentaires. Reessayez."
+}
+
+internal fun commentSubmitFailureMessage(): String {
+    return "Impossible d'enregistrer le commentaire. Reessayez."
+}
+
+internal fun commentDeleteFailureMessage(): String {
+    return "Impossible de supprimer le commentaire. Reessayez."
 }

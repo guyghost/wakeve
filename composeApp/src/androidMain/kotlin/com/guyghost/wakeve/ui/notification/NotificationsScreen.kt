@@ -72,6 +72,7 @@ import com.guyghost.wakeve.R
 import com.guyghost.wakeve.models.NotificationMessage
 import com.guyghost.wakeve.models.NotificationType
 import com.guyghost.wakeve.notification.NotificationService
+import com.guyghost.wakeve.notification.resolveNotificationClickTarget
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Instant
 
@@ -103,6 +104,7 @@ data class NotificationItem(
     val title: String,
     val body: String,
     val eventId: String? = null,
+    val clickTarget: String? = eventId,
     val isRead: Boolean = false,
     val createdAt: Date = Date()
 ) {
@@ -134,7 +136,33 @@ data class NotificationItem(
                     SimpleDateFormat("dd/MM", Locale.FRANCE).format(createdAt)
                 }
             }
-        }
+    }
+}
+
+enum class NotificationInboxFilter {
+    ALL,
+    UNREAD
+}
+
+internal fun parseNotificationInboxFilter(value: String?): NotificationInboxFilter {
+    return when (value?.trim()?.lowercase()) {
+        "unread" -> NotificationInboxFilter.UNREAD
+        else -> NotificationInboxFilter.ALL
+    }
+}
+
+internal fun filterNotificationItems(
+    notifications: List<NotificationItem>,
+    filter: NotificationInboxFilter
+): List<NotificationItem> {
+    return when (filter) {
+        NotificationInboxFilter.ALL -> notifications
+        NotificationInboxFilter.UNREAD -> notifications.filter { !it.isRead }
+    }
+}
+
+internal fun notificationInboxErrorMessage(error: Throwable? = null): String {
+    return "Impossible de charger les notifications."
 }
 
 // MARK: - Screen
@@ -147,20 +175,28 @@ fun NotificationsScreen(
     onNotificationClick: (String) -> Unit = {},
     userId: String? = null,
     notificationService: NotificationService? = null,
+    initialFilter: NotificationInboxFilter = NotificationInboxFilter.ALL,
     modifier: Modifier = Modifier
 ) {
     val scope = rememberCoroutineScope()
     var notifications by remember { mutableStateOf<List<NotificationItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
+    var loadErrorMessage by remember { mutableStateOf<String?>(null) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
     fun loadNotifications() {
         if (notificationService == null || userId.isNullOrBlank()) return
         scope.launch {
             isLoading = true
-            notifications = notificationService.getNotifications(userId)
-                .map(NotificationMessage::toNotificationItem)
-            isLoading = false
+            loadErrorMessage = null
+            try {
+                notifications = notificationService.getNotifications(userId)
+                    .map(NotificationMessage::toNotificationItem)
+            } catch (e: Exception) {
+                loadErrorMessage = notificationInboxErrorMessage(e)
+            } finally {
+                isLoading = false
+            }
         }
     }
 
@@ -172,8 +208,12 @@ fun NotificationsScreen(
         notifications.count { !it.isRead }
     }
 
-    val groupedNotifications = remember(notifications) {
-        notifications
+    val visibleNotifications = remember(notifications, initialFilter) {
+        filterNotificationItems(notifications, initialFilter)
+    }
+
+    val groupedNotifications = remember(visibleNotifications) {
+        visibleNotifications
             .sortedByDescending { it.createdAt }
             .groupBy { it.dateGroup }
             .toSortedMap(compareBy { it.ordinal })
@@ -202,8 +242,12 @@ fun NotificationsScreen(
                         TextButton(onClick = {
                             if (notificationService != null && !userId.isNullOrBlank()) {
                                 scope.launch {
-                                    notificationService.markAllAsRead(userId)
-                                    loadNotifications()
+                                    val result = notificationService.markAllAsRead(userId)
+                                    if (result.isSuccess) {
+                                        loadNotifications()
+                                    } else {
+                                        loadErrorMessage = notificationInboxErrorMessage(result.exceptionOrNull())
+                                    }
                                 }
                             } else {
                                 notifications = notifications.map { it.copy(isRead = true) }
@@ -244,7 +288,14 @@ fun NotificationsScreen(
                     )
                 }
 
-                notifications.isEmpty() -> {
+                loadErrorMessage != null && notifications.isEmpty() -> {
+                    NotificationErrorState(
+                        message = loadErrorMessage.orEmpty(),
+                        onRetry = { loadNotifications() }
+                    )
+                }
+
+                visibleNotifications.isEmpty() -> {
                     EmptyNotificationsState()
                 }
 
@@ -273,10 +324,14 @@ fun NotificationsScreen(
                                 SwipeToDismissNotificationRow(
                                     notification = notification,
                                     onMarkAsRead = {
-                                        if (notificationService != null) {
+                                        if (notificationService != null && !userId.isNullOrBlank()) {
                                             scope.launch {
-                                                notificationService.markAsRead(notification.id)
-                                                loadNotifications()
+                                                val result = notificationService.markAsReadForUser(notification.id, userId)
+                                                if (result.isSuccess) {
+                                                    loadNotifications()
+                                                } else {
+                                                    loadErrorMessage = notificationInboxErrorMessage(result.exceptionOrNull())
+                                                }
                                             }
                                         } else {
                                             notifications = notifications.map {
@@ -285,23 +340,31 @@ fun NotificationsScreen(
                                         }
                                     },
                                     onDelete = {
-                                        if (notificationService != null) {
+                                        if (notificationService != null && !userId.isNullOrBlank()) {
                                             scope.launch {
-                                                notificationService.deleteNotification(notification.id)
-                                                loadNotifications()
+                                                val result = notificationService.deleteNotificationForUser(notification.id, userId)
+                                                if (result.isSuccess) {
+                                                    loadNotifications()
+                                                } else {
+                                                    loadErrorMessage = notificationInboxErrorMessage(result.exceptionOrNull())
+                                                }
                                             }
                                         } else {
                                             notifications = notifications.filter { it.id != notification.id }
                                         }
                                     },
                                     onClick = {
-                                        if (!notification.isRead && notificationService != null) {
+                                        if (!notification.isRead && notificationService != null && !userId.isNullOrBlank()) {
                                             scope.launch {
-                                                notificationService.markAsRead(notification.id)
-                                                loadNotifications()
+                                                val result = notificationService.markAsReadForUser(notification.id, userId)
+                                                if (result.isSuccess) {
+                                                    loadNotifications()
+                                                } else {
+                                                    loadErrorMessage = notificationInboxErrorMessage(result.exceptionOrNull())
+                                                }
                                             }
                                         }
-                                        notification.eventId?.let { onNotificationClick(it) }
+                                        notification.clickTarget?.let(onNotificationClick)
                                     }
                                 )
                                 HorizontalDivider(
@@ -517,6 +580,43 @@ private fun EmptyNotificationsState() {
     }
 }
 
+@Composable
+private fun NotificationErrorState(
+    message: String,
+    onRetry: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Filled.NotificationsOff,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.error
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = message,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        TextButton(onClick = onRetry) {
+            Text(text = "Réessayer")
+        }
+    }
+}
+
 private fun NotificationMessage.toNotificationItem(): NotificationItem =
     NotificationItem(
         id = id,
@@ -524,6 +624,7 @@ private fun NotificationMessage.toNotificationItem(): NotificationItem =
         title = title,
         body = body,
         eventId = data["eventId"] ?: data["event_id"],
+        clickTarget = resolveNotificationClickTarget(data),
         isRead = readAt != null,
         createdAt = sentAt.toDateOrNow()
     )

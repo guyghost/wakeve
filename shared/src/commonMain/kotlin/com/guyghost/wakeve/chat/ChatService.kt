@@ -99,14 +99,14 @@ class ChatService(
                 true
             } else {
                 _connectionState.value = WebSocketConnectionState.ERROR
-                _connectionEvents.emit(ConnectionEvent.Error("Connection failed"))
-                handleDisconnect(eventId, "Connection failed")
+                _connectionEvents.emit(ConnectionEvent.Error(chatConnectionFailureMessage()))
+                handleDisconnect(eventId, chatConnectionFailureMessage())
                 false
             }
         } catch (e: Exception) {
             _connectionState.value = WebSocketConnectionState.ERROR
-            _connectionEvents.emit(ConnectionEvent.Error("Connection failed: ${e.message}"))
-            handleDisconnect(eventId, e.message ?: "Unknown error")
+            _connectionEvents.emit(ConnectionEvent.Error(chatConnectionFailureMessage()))
+            handleDisconnect(eventId, chatConnectionFailureMessage())
             false
         }
     }
@@ -122,7 +122,7 @@ class ChatService(
                     val wsMessage = json.decodeFromString(WebSocketMessage.serializer(), messageJson)
                     handleIncomingMessage(wsMessage)
                 } catch (e: Exception) {
-                    println("[ChatService] Error parsing WebSocket message: ${e.message}")
+                    println("[ChatService] Error parsing WebSocket message")
                 }
             }
         }
@@ -328,7 +328,7 @@ class ChatService(
                 println("[ChatService] No database available, using empty message list")
             }
         } catch (e: Exception) {
-            println("[ChatService] Error loading cached messages: ${e.message}")
+            println("[ChatService] Error loading cached messages")
             _messages.value = emptyList()
         }
     }
@@ -412,7 +412,7 @@ class ChatService(
                 _messages.update { messages -> messages.map { if (it.id == message.id) it.copy(status = MessageStatus.DELIVERED) else it } }
                 println("[ChatService] Message sent: ${message.id}")
             } catch (e: Exception) {
-                println("[ChatService] Error sending message: ${e.message}")
+                println("[ChatService] Error sending message")
                 _messages.update { messages -> messages.map { if (it.id == message.id) it.copy(status = MessageStatus.FAILED) else it } }
                 queueOfflineMessage(message.copy(status = MessageStatus.FAILED))
             }
@@ -457,7 +457,7 @@ class ChatService(
                 updated_at = now
             )
         } catch (e: Exception) {
-            println("[ChatService] Error saving message: ${e.message}")
+            println("[ChatService] Error saving message")
         }
     }
     
@@ -471,7 +471,7 @@ class ChatService(
                 val messageJson = json.encodeToString(wsMessage)
                 webSocketClient?.send(messageJson)
             } catch (e: Exception) {
-                println("[ChatService] Error sending WebSocket message: ${e.message}")
+                println("[ChatService] Error sending WebSocket message")
             }
         }
     }
@@ -632,3 +632,5 @@ sealed class ConnectionEvent {
     data class QueueFlushed(val count: Int) : ConnectionEvent()
     data class Error(val message: String) : ConnectionEvent()
 }
+
+internal fun chatConnectionFailureMessage(): String = "Chat connection failed. Please try again."

@@ -171,8 +171,8 @@ class EventManagementStateMachine(
             onSuccess = { events ->
                 updateState { it.copy(isLoading = false, events = events) }
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to load events"
+            onFailure = { _ ->
+                val errorMessage = eventLoadFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -231,8 +231,8 @@ class EventManagementStateMachine(
                 loadEvents()
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event created successfully"))
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to create event"
+            onFailure = { _ ->
+                val errorMessage = eventCreateFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -269,8 +269,8 @@ class EventManagementStateMachine(
                 updateState { it.copy(isLoading = false, events = updatedEvents, selectedEvent = event) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event updated successfully"))
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to update event"
+            onFailure = { _ ->
+                val errorMessage = eventUpdateFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -341,8 +341,8 @@ class EventManagementStateMachine(
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event deleted successfully"))
                 emitSideEffect(EventManagementContract.SideEffect.NavigateBack)
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to delete event"
+            onFailure = { _ ->
+                val errorMessage = eventDeleteFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -399,8 +399,8 @@ class EventManagementStateMachine(
                 loadParticipants(eventId)
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Participant added successfully"))
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to add participant"
+            onFailure = { _ ->
+                val errorMessage = eventAddParticipantFailureMessage()
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
         )
@@ -531,8 +531,8 @@ class EventManagementStateMachine(
                 updateState { it.copy(isLoading = false, events = updatedEvents, selectedEvent = updatedEvent) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event updated successfully"))
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to update event"
+            onFailure = { _ ->
+                val errorMessage = eventUpdateFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -745,8 +745,8 @@ class EventManagementStateMachine(
                 loadEvents()
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Poll started successfully"))
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to start poll"
+            onFailure = { _ ->
+                val errorMessage = eventStartPollFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -847,7 +847,7 @@ class EventManagementStateMachine(
         )
 
         if (result.isFailure) {
-            val errorMessage = result.exceptionOrNull()?.message ?: "Failed to confirm date"
+            val errorMessage = eventDateConfirmationFailureMessage()
             updateState { it.copy(isLoading = false, error = errorMessage) }
             emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             return
@@ -869,7 +869,7 @@ class EventManagementStateMachine(
         )
         val outboxError = notificationResult.exceptionOrNull() ?: calendarResult.exceptionOrNull()
         if (outboxError != null) {
-            val errorMessage = outboxError.message ?: "Failed to queue confirmation workflow"
+            val errorMessage = eventConfirmationWorkflowQueueFailureMessage()
             updateState { it.copy(isLoading = false, error = errorMessage) }
             emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             return
@@ -948,8 +948,8 @@ class EventManagementStateMachine(
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Transitioned to organizing phase"))
                 emitSideEffect(EventManagementContract.SideEffect.NavigateTo("event/$eventId/meetings"))
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to transition to organizing"
+            onFailure = { _ ->
+                val errorMessage = eventTransitionToOrganizingFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -1021,7 +1021,7 @@ class EventManagementStateMachine(
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast("Event finalized successfully!"))
             },
             onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to finalize event"
+                val errorMessage = eventFinalizeFailureMessage(error)
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
@@ -1073,11 +1073,62 @@ class EventManagementStateMachine(
                     )
                 )
             },
-            onFailure = { error ->
-                val errorMessage = error.message ?: "Failed to seed sample event"
+            onFailure = { _ ->
+                val errorMessage = eventSeedSampleFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMessage) }
                 emitSideEffect(EventManagementContract.SideEffect.ShowToast(errorMessage))
             }
         )
     }
 }
+
+internal fun eventLoadFailureMessage(): String =
+    "Failed to load events"
+
+internal fun eventCreateFailureMessage(): String =
+    "Failed to create event"
+
+internal fun eventUpdateFailureMessage(): String =
+    "Failed to update event"
+
+internal fun eventDeleteFailureMessage(): String =
+    "Failed to delete event"
+
+internal fun eventAddParticipantFailureMessage(): String =
+    "Failed to add participant"
+
+internal fun eventStartPollFailureMessage(): String =
+    "Failed to start poll"
+
+internal fun eventDateConfirmationFailureMessage(): String =
+    "Failed to confirm date"
+
+internal fun eventConfirmationWorkflowQueueFailureMessage(): String =
+    "Failed to queue confirmation workflow"
+
+internal fun eventTransitionToOrganizingFailureMessage(): String =
+    "Failed to transition to organizing"
+
+internal fun eventFinalizeFailureMessage(error: Throwable? = null): String {
+    val messageText = error?.safeMessage().orEmpty()
+    val prefix = "Finalization blocked by "
+    if (messageText.startsWith(prefix)) {
+        val blockerText = messageText.removePrefix(prefix)
+        val blockersAreStructured = blockerText.isNotBlank() &&
+            blockerText.split(",").all { blocker ->
+                blocker.isNotBlank() &&
+                    blocker.all { it.isUpperCase() || it.isDigit() || it == '_' }
+            }
+        if (blockersAreStructured) {
+            return "$prefix$blockerText"
+        }
+    }
+
+    return "Failed to finalize event"
+}
+
+internal fun eventSeedSampleFailureMessage(): String =
+    "Failed to seed sample event"
+
+private fun Throwable.safeMessage(): String =
+    message.orEmpty()

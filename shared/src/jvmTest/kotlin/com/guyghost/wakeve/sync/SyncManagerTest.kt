@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -220,6 +221,22 @@ class SyncManagerTest {
     }
 
     @Test
+    fun testSyncFailureMessagesDoNotExposeSensitiveDetails() {
+        val secret = "SECRET-SYNC-TOKEN"
+        val messages = listOf(
+            syncFailureMessage(),
+            syncRetryFailureMessage(attempt = 1, totalAttempts = 3)
+        )
+
+        messages.forEach { message ->
+            assertFalse(message.contains(secret))
+            assertFalse(message.contains("SQL constraint", ignoreCase = true))
+            assertFalse(message.contains("token=", ignoreCase = true))
+            assertFalse(message.contains("internal.local", ignoreCase = true))
+        }
+    }
+
+    @Test
     fun testTriggerSyncReplaysPendingSideEffectsWithoutServerChanges() = runBlocking {
         val replayer = RecordingPendingSideEffectReplayer()
         val sideEffectNetworkDetector = TestNetworkStatusDetector().apply {
@@ -270,6 +287,9 @@ class SyncManagerTest {
 
         assertTrue(result.isFailure)
         assertEquals("comment notification replay failed", result.exceptionOrNull()?.message)
+        val status = sideEffectSyncManager.syncStatus.value as SyncStatus.Error
+        assertEquals(syncRetryFailureMessage(attempt = 1, totalAttempts = 1), status.message)
+        assertFalse(status.message.contains("comment notification replay failed"))
         assertTrue(replayer.replayCount >= 1)
     }
 

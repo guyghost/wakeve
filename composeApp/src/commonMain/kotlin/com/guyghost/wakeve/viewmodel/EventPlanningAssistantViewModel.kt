@@ -72,7 +72,7 @@ class EventPlanningAssistantViewModel(
                             it.copy(
                                 isExtracting = false,
                                 draft = update.fallbackDraft ?: it.draft,
-                                errorMessage = update.message
+                                errorMessage = eventPlanExtractionFailureMessage()
                             )
                         }
                     }
@@ -86,3 +86,6 @@ class EventPlanningAssistantViewModel(
         _state.update { it.copy(draft = null, errorMessage = null) }
     }
 }
+
+internal fun eventPlanExtractionFailureMessage(): String =
+    "Impossible d'analyser cet evenement. Precisez les infos et reessayez."

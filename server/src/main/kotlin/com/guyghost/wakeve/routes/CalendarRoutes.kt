@@ -69,7 +69,7 @@ fun io.ktor.server.routing.Route.calendarRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to (e.message ?: "Unknown error"))
+                    mapOf("error" to calendarIcsGenerateFailureMessage())
                 )
             }
         }
@@ -111,7 +111,7 @@ fun io.ktor.server.routing.Route.calendarRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to (e.message ?: "Unknown error"))
+                    mapOf("error" to calendarIcsDownloadFailureMessage())
                 )
             }
         }
@@ -125,30 +125,45 @@ fun io.ktor.server.routing.Route.calendarRoutes(
                 status = HttpStatusCode.BadRequest
             )
 
+            val principal = call.principal<JWTPrincipal>()
+                ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
             val request = call.receive<NativeCalendarRequest>()
+            val participantId = request.participantId.trim()
+            if (participantId.isEmpty()) {
+                return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Participant ID required")
+                )
+            }
+            if (!canManageNativeCalendarFor(database, eventId, principal.userId, participantId)) {
+                return@post call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to "You cannot manage this participant calendar")
+                )
+            }
 
             try {
                 val result = calendarService.addToNativeCalendar(
                     eventId = eventId,
-                    participantId = request.participantId
+                    participantId = participantId
                 )
 
                 if (result.isSuccess) {
                     val response = NativeCalendarResponse(
                         success = true,
-                        calendarEventId = "${eventId}_${request.participantId}"
+                        calendarEventId = "${eventId}_${participantId}"
                     )
                     call.respond(response)
                 } else {
                     call.respond(
                         HttpStatusCode.InternalServerError,
-                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Unknown error"))
+                        mapOf("error" to nativeCalendarAddFailureMessage())
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to (e.message ?: "Unknown error"))
+                    mapOf("error" to nativeCalendarAddFailureMessage())
                 )
             }
         }
@@ -167,12 +182,28 @@ fun io.ktor.server.routing.Route.calendarRoutes(
                 status = HttpStatusCode.BadRequest
             )
 
-            val request = call.receive<UpdateNativeCalendarRequest>()
+            val principal = call.principal<JWTPrincipal>()
+                ?: return@put call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+            val normalizedParticipantId = participantId.trim()
+            if (normalizedParticipantId.isEmpty()) {
+                return@put call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Participant ID required")
+                )
+            }
+            if (!canManageNativeCalendarFor(database, eventId, principal.userId, normalizedParticipantId)) {
+                return@put call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to "You cannot manage this participant calendar")
+                )
+            }
+
+            call.receive<UpdateNativeCalendarRequest>()
 
             try {
                 val result = calendarService.updateNativeCalendarEvent(
                     eventId = eventId,
-                    participantId = participantId
+                    participantId = normalizedParticipantId
                 )
 
                 if (result.isSuccess) {
@@ -180,13 +211,13 @@ fun io.ktor.server.routing.Route.calendarRoutes(
                 } else {
                     call.respond(
                         HttpStatusCode.InternalServerError,
-                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Unknown error"))
+                        mapOf("error" to nativeCalendarUpdateFailureMessage())
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to (e.message ?: "Unknown error"))
+                    mapOf("error" to nativeCalendarUpdateFailureMessage())
                 )
             }
         }
@@ -205,10 +236,26 @@ fun io.ktor.server.routing.Route.calendarRoutes(
                 status = HttpStatusCode.BadRequest
             )
 
+            val principal = call.principal<JWTPrincipal>()
+                ?: return@delete call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+            val normalizedParticipantId = participantId.trim()
+            if (normalizedParticipantId.isEmpty()) {
+                return@delete call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Participant ID required")
+                )
+            }
+            if (!canManageNativeCalendarFor(database, eventId, principal.userId, normalizedParticipantId)) {
+                return@delete call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to "You cannot manage this participant calendar")
+                )
+            }
+
             try {
                 val result = calendarService.removeFromNativeCalendar(
                     eventId = eventId,
-                    participantId = participantId
+                    participantId = normalizedParticipantId
                 )
 
                 if (result.isSuccess) {
@@ -216,13 +263,13 @@ fun io.ktor.server.routing.Route.calendarRoutes(
                 } else {
                     call.respond(
                         HttpStatusCode.InternalServerError,
-                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Unknown error"))
+                        mapOf("error" to nativeCalendarDeleteFailureMessage())
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to (e.message ?: "Unknown error"))
+                    mapOf("error" to nativeCalendarDeleteFailureMessage())
                 )
             }
         }
@@ -283,3 +330,46 @@ private fun hasCalendarAccess(database: WakeveDb, eventId: String, userId: Strin
 
     return participant?.hasValidatedDate == 1L
 }
+
+private fun canManageNativeCalendarFor(
+    database: WakeveDb,
+    eventId: String,
+    requesterId: String,
+    participantId: String
+): Boolean {
+    val event = database.eventQueries.selectById(eventId).executeAsOneOrNull() ?: return false
+    val requesterIsOrganizer = event.organizerId == requesterId
+    val targetIsOrganizer = event.organizerId == participantId
+    val targetParticipant = database.participantQueries
+        .selectByEventIdAndUserId(eventId, participantId)
+        .executeAsOneOrNull()
+
+    if (!targetIsOrganizer && targetParticipant == null) {
+        return false
+    }
+
+    if (requesterIsOrganizer) {
+        return true
+    }
+
+    val requesterParticipant = database.participantQueries
+        .selectByEventIdAndUserId(eventId, requesterId)
+        .executeAsOneOrNull()
+
+    return requesterId == participantId && requesterParticipant?.hasValidatedDate == 1L
+}
+
+internal fun calendarIcsGenerateFailureMessage(): String =
+    "Failed to generate calendar invitation. Please try again."
+
+internal fun calendarIcsDownloadFailureMessage(): String =
+    "Failed to download calendar invitation. Please try again."
+
+internal fun nativeCalendarAddFailureMessage(): String =
+    "Failed to add the event to the calendar. Please try again."
+
+internal fun nativeCalendarUpdateFailureMessage(): String =
+    "Failed to update the calendar event. Please try again."
+
+internal fun nativeCalendarDeleteFailureMessage(): String =
+    "Failed to remove the calendar event. Please try again."

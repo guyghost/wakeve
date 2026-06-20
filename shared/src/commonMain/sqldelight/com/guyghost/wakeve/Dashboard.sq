@@ -51,7 +51,24 @@ SELECT
     (SELECT COUNT(DISTINCT ts.id) FROM timeSlot ts WHERE ts.eventId = e.id) AS timeSlotCount
 FROM event e
 WHERE e.organizerId = ?
-ORDER BY e.createdAt DESC;
+ORDER BY e.createdAt DESC, e.id DESC;
+
+selectEventAnalyticsPaged:
+SELECT
+    e.id AS eventId,
+    e.title,
+    e.status,
+    e.eventType,
+    e.createdAt,
+    e.deadline,
+    (SELECT COUNT(*) FROM participant p WHERE p.eventId = e.id) AS participantCount,
+    (SELECT COUNT(*) FROM vote v WHERE v.eventId = e.id) AS voteCount,
+    (SELECT COUNT(*) FROM comment c WHERE c.event_id = e.id AND c.is_deleted = 0) AS commentCount,
+    (SELECT COUNT(DISTINCT ts.id) FROM timeSlot ts WHERE ts.eventId = e.id) AS timeSlotCount
+FROM event e
+WHERE e.organizerId = :organizerId
+ORDER BY e.createdAt DESC, e.id DESC
+LIMIT :limit OFFSET :offset;
 
 -- Vote timeline: votes grouped by date for a specific event
 selectVoteTimeline:

@@ -248,10 +248,7 @@ fun main() {
     val analyticsDashboard = AnalyticsDashboard(database)
 
     // Initialize Gamification Service
-    val userPointsRepository = InMemoryUserPointsRepository()
-    val userBadgesRepository = InMemoryUserBadgesRepository()
-    val badgeEligibilityChecker = BadgeEligibilityChecker(userPointsRepository, userBadgesRepository)
-    val gamificationService = GamificationService(userPointsRepository, userBadgesRepository, badgeEligibilityChecker)
+    val gamificationService = createGamificationService()
 
     // Initialize Invitation Repository
     val invitationRepository = InvitationRepository(database)
@@ -318,11 +315,7 @@ fun Application.module(
         apnsSender = ServerAPNsSender()
     ),
     eventNotificationTrigger: EventNotificationTrigger = EventNotificationTrigger(notificationService, eventRepository, moderationRepository),
-    gamificationService: GamificationService = GamificationService(
-        InMemoryUserPointsRepository(),
-        InMemoryUserBadgesRepository(),
-        BadgeEligibilityChecker(InMemoryUserPointsRepository(), InMemoryUserBadgesRepository())
-    ),
+    gamificationService: GamificationService = createGamificationService(),
     transportRepository: TransportRepository = TransportRepository(database)
 ) {
     // Initialize metrics
@@ -494,7 +487,7 @@ fun Application.module(
                 authenticate("auth-jwt") {
                     // WebSocket endpoint for real-time chat. Authentication is required so
                     // moderation block filters can be applied per recipient.
-                    chatWebSocketRoute(moderationRepository)
+                    chatWebSocketRoute(database, moderationRepository)
 
                     rateLimit(RateLimitName("api")) {
                         route("/api") {
@@ -512,10 +505,10 @@ fun Application.module(
                             transportRoutes(transportRepository, database)
                             budgetRoutes(budgetRepository, eventRepository, database, moderationPolicy)
                             paymentRoutes(tricountHandoffRepository, eventRepository, database)
-                            mealRoutes(mealRepository, moderationPolicy)
+                            mealRoutes(mealRepository, eventRepository, database, moderationPolicy)
                             commentRoutes(commentRepository, eventNotificationTrigger, eventRepository, moderationRepository)
-                            moderationRoutes(moderationRepository)
-                            potentialLocationRoutes(locationRepository, moderationPolicy)
+                            moderationRoutes(moderationRepository, database)
+                            potentialLocationRoutes(locationRepository, eventRepository, database, moderationPolicy)
                             syncRoutes(syncService)
                             accommodationRoutes(accommodationRepository, database)
                             sessionRoutes(sessionManager)
@@ -537,4 +530,11 @@ fun Application.module(
             call.respondText("Wakev API v1.0")
         }
     }
+}
+
+private fun createGamificationService(): GamificationService {
+    val userPointsRepository = InMemoryUserPointsRepository()
+    val userBadgesRepository = InMemoryUserBadgesRepository()
+    val badgeEligibilityChecker = BadgeEligibilityChecker(userPointsRepository, userBadgesRepository)
+    return GamificationService(userPointsRepository, userBadgesRepository, badgeEligibilityChecker)
 }

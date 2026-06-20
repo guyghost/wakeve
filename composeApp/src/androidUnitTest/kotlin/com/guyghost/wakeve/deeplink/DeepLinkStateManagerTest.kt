@@ -11,15 +11,83 @@ import kotlin.test.assertTrue
 class DeepLinkStateManagerTest {
     @AfterTest
     fun tearDown() {
+        DeepLinkStateManager.clearPendingDeepLink()
         DeepLinkStateManager.clearPendingInviteCode()
     }
 
     @Test
-    fun updatePendingInviteCode_exposesCodeForAppLevelProcessing() {
-        DeepLinkStateManager.updatePendingInviteCode("invite-code-123")
+    fun isSupportedPendingDeepLink_acceptsSupportedDeepLink() {
+        val supported = isSupportedPendingDeepLink(
+            scheme = "wakeve",
+            host = "event",
+            pathSegments = listOf("event-123", "details"),
+            queryParameters = mapOf("tab" to "comments")
+        )
 
+        assertTrue(supported)
+    }
+
+    @Test
+    fun isSupportedPendingDeepLink_rejectsUnsupportedDeepLinks() {
+        assertFalse(
+            isSupportedPendingDeepLink(
+                scheme = "https",
+                host = "evil.example",
+                pathSegments = listOf("invite", "INVITE123")
+            )
+        )
+        assertFalse(
+            isSupportedPendingDeepLink(
+                scheme = "wakeve",
+                host = "event",
+                pathSegments = listOf("event-123", "cancel")
+            )
+        )
+        assertFalse(
+            isSupportedPendingDeepLink(
+                scheme = "http",
+                host = "wakeve.app",
+                pathSegments = listOf("invite", "INVITE123")
+            )
+        )
+    }
+
+    @Test
+    fun updatePendingDeepLinkRejectsUnsupportedLinksWithoutClearingExistingPendingDestination() {
+        val source = projectFile(
+            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/deeplink/DeepLinkStateManager.kt"
+        ).readText()
+        val updateMethod = source.substringAfter("fun updatePendingDeepLink(uri: Uri): Boolean")
+            .substringBefore("fun clearPendingDeepLink()")
+
+        assertTrue(
+            updateMethod.contains("_pendingDeepLink.value = uri"),
+            "Supported deep links must still replace the pending destination."
+        )
+        assertFalse(
+            updateMethod.contains("_pendingDeepLink.value = null"),
+            "Rejected deep links must not clear an existing pending destination that may be waiting for auth replay."
+        )
+    }
+
+    @Test
+    fun updatePendingInviteCode_exposesNormalizedCodeForAppLevelProcessing() {
+        val stored = DeepLinkStateManager.updatePendingInviteCode(" invite-code-123 ")
+
+        assertTrue(stored)
         assertEquals("invite-code-123", DeepLinkStateManager.pendingInviteCode.value)
         assertTrue(DeepLinkStateManager.hasPendingInviteCode())
+    }
+
+    @Test
+    fun updatePendingInviteCode_rejectsUnsafeCodeAndClearsStaleInvite() {
+        DeepLinkStateManager.updatePendingInviteCode("invite-code-123")
+
+        val stored = DeepLinkStateManager.updatePendingInviteCode("INV/ITE")
+
+        assertFalse(stored)
+        assertNull(DeepLinkStateManager.pendingInviteCode.value)
+        assertFalse(DeepLinkStateManager.hasPendingInviteCode())
     }
 
     @Test
@@ -56,4 +124,5 @@ class DeepLinkStateManagerTest {
         }
         error("Could not find project file: $relativePath")
     }
+
 }

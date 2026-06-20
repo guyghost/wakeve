@@ -159,6 +159,74 @@ class ScenarioRepositoryTest {
     }
 
     @Test
+    fun testCreateScenarioNormalizesBeforePersistence() = runBlocking {
+        setup()
+
+        val scenario = Scenario(
+            id = "scenario-normalized-1",
+            eventId = " event-create-1 ",
+            name = "  Paris Weekend  ",
+            dateOrPeriod = "  2025-12-15/2025-12-17  ",
+            location = "  Paris, France  ",
+            duration = 2,
+            estimatedParticipants = 5,
+            estimatedBudgetPerPerson = 450.0,
+            description = "  Weekend trip to Paris  ",
+            status = ScenarioStatus.PROPOSED,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z",
+            sourceTimeSlotId = "   ",
+            sourcePotentialLocationId = "  loc-1  "
+        )
+
+        val result = repository.createScenario(scenario)
+        assertTrue(result.isSuccess, "Scenario creation should succeed")
+        val created = result.getOrThrow()
+        assertEquals("event-create-1", created.eventId)
+        assertEquals("Paris Weekend", created.name)
+        assertEquals("2025-12-15/2025-12-17", created.dateOrPeriod)
+        assertEquals("Paris, France", created.location)
+        assertEquals("Weekend trip to Paris", created.description)
+        assertNull(created.sourceTimeSlotId)
+        assertEquals("loc-1", created.sourcePotentialLocationId)
+
+        val retrieved = repository.getScenarioById("scenario-normalized-1")
+        assertEquals(created.name, retrieved?.name)
+        assertEquals(created.location, retrieved?.location)
+        assertNull(retrieved?.sourceTimeSlotId)
+    }
+
+    @Test
+    fun testCreateScenarioRejectsOutOfRangeValuesWithoutPersistence() = runBlocking {
+        setup()
+        val beforeCount = repository.countScenarios("event-create-1")
+
+        val scenario = Scenario(
+            id = "scenario-invalid-range",
+            eventId = "event-create-1",
+            name = "Impossible year-long plan",
+            dateOrPeriod = "2025-12-15/2027-01-01",
+            location = "Paris, France",
+            duration = 366,
+            estimatedParticipants = 5,
+            estimatedBudgetPerPerson = 450.0,
+            description = "Duration is outside supported range",
+            status = ScenarioStatus.PROPOSED,
+            createdAt = "2025-11-20T10:00:00Z",
+            updatedAt = "2025-11-20T10:00:00Z"
+        )
+
+        val result = repository.createScenario(scenario)
+        assertTrue(result.isFailure, "Scenario creation should reject out-of-range duration")
+        assertEquals(beforeCount, repository.countScenarios("event-create-1"))
+        assertNull(repository.getScenarioById("scenario-invalid-range"))
+        assertTrue(
+            db.syncMetadataQueries.selectByEntity("scenario", "scenario-invalid-range").executeAsList().isEmpty(),
+            "Invalid scenario must not queue sync metadata"
+        )
+    }
+
+    @Test
     fun testGenerateScenarioMatrixCreatesDraftCartesianProductAndSkipsDuplicates() = runBlocking {
         setup()
         createMatrixEvent("event-matrix-1")

@@ -42,6 +42,11 @@ class MeetingService(
     private val syncMetadataQueries = database.syncMetadataQueries
     private val meetingRepository: MeetingRepository = MeetingRepository(database)
 
+    private data class ConfirmedParticipant(
+        val participantId: String,
+        val userId: String
+    )
+
     /**
      * Crée une nouvelle réunion virtuelle
      */
@@ -59,29 +64,36 @@ class MeetingService(
         waitingRoom: Boolean = true
     ): Result<com.guyghost.wakeve.models.VirtualMeeting> {
         return try {
-            val event = eventQueries.selectById(eventId).executeAsOne()
-                ?: return Result.failure(MeetingException.EventNotFound(eventId))
+            val normalizedEventId = eventId.trim()
+            val normalizedOrganizerId = organizerId.trim()
+            val normalizedTitle = title.trim()
+            val normalizedDescription = description?.trim()?.takeIf { it.isNotEmpty() }
+            val normalizedTimezone = timezone.trim().ifEmpty { "UTC" }
+
+            val event = eventQueries.selectById(normalizedEventId).executeAsOneOrNull()
+                ?: return Result.failure(MeetingException.EventNotFound(normalizedEventId))
 
             val eventStatus = EventStatus.valueOf(event.status)
             if (eventStatus != EventStatus.ORGANIZING) {
                 return Result.failure(MeetingException.InvalidEventStatus(eventStatus))
             }
-            if (event.organizerId != organizerId) {
+            if (event.organizerId != normalizedOrganizerId) {
                 return Result.failure(MeetingException.UnauthorizedAccess())
             }
 
-            val invitedParticipants = getConfirmedParticipantIds(eventId)
+            val confirmedParticipants = getConfirmedParticipants(normalizedEventId)
+            val invitedParticipantIds = confirmedParticipants.map { it.participantId }
 
             val meetingDetails = when (platform) {
                 MeetingPlatform.ZOOM,
                 MeetingPlatform.GOOGLE_MEET,
                 MeetingPlatform.FACETIME -> meetingLinkProvider.createMeeting(
                     platform = platform,
-                    title = title,
-                    description = description,
+                    title = normalizedTitle,
+                    description = normalizedDescription,
                     scheduledFor = scheduledFor,
                     duration = duration,
-                    timezone = timezone,
+                    timezone = normalizedTimezone,
                     participantLimit = participantLimit,
                     requirePassword = requirePassword,
                     waitingRoom = waitingRoom
@@ -95,43 +107,45 @@ class MeetingService(
 
             val meeting = com.guyghost.wakeve.meeting.Meeting(
                 id = generateId(),
-                eventId = eventId,
-                organizerId = organizerId,
-                title = title,
-                description = description,
+                eventId = normalizedEventId,
+                organizerId = normalizedOrganizerId,
+                title = normalizedTitle,
+                description = normalizedDescription,
                 startTime = scheduledFor,
                 duration = duration,
                 platform = platform,
                 meetingLink = meetingDetails.url,
                 hostMeetingId = meetingDetails.hostMeetingId,
                 password = meetingDetails.password ?: "",
-                invitedParticipants = invitedParticipants,
+                invitedParticipants = invitedParticipantIds,
                 status = com.guyghost.wakeve.meeting.MeetingStatus.SCHEDULED,
                 createdAt = Clock.System.now().toString()
             )
 
             meetingRepository.createMeeting(meeting).getOrThrow()
-            queueMeetingCreateSync(meeting, meetingDetails)
+            val persistedMeeting = meetingRepository.getMeetingById(meeting.id)
+                ?: return Result.failure(MeetingException.MeetingNotFound(meeting.id))
+            queueMeetingCreateSync(persistedMeeting, meetingDetails)
 
             scheduleMeetingReminders(
-                meetingId = meeting.id,
-                eventId = eventId,
-                scheduledFor = scheduledFor,
-                timezone = timezone,
-                participantIds = invitedParticipants
+                meetingId = persistedMeeting.id,
+                eventId = persistedMeeting.eventId,
+                scheduledFor = persistedMeeting.startTime,
+                timezone = normalizedTimezone,
+                participantIds = persistedMeeting.invitedParticipants
             )
 
             prepareCalendarEntries(
-                eventId = eventId,
-                participantIds = invitedParticipants
+                eventId = persistedMeeting.eventId,
+                participantIds = persistedMeeting.invitedParticipants
             )
 
             notifyMeetingCreated(
-                meeting = meeting,
-                participantIds = invitedParticipants
+                meeting = persistedMeeting,
+                userIds = confirmedParticipants.map { it.userId }
             )
 
-            val virtualMeeting = toVirtualMeeting(meeting, meetingDetails, timezone)
+            val virtualMeeting = toVirtualMeeting(persistedMeeting, meetingDetails, normalizedTimezone)
             Result.success(virtualMeeting)
         } catch (e: Exception) {
             Result.failure(e)
@@ -233,37 +247,55 @@ class MeetingService(
 
     suspend fun sendInvitations(meetingId: String): Result<Unit> {
         return try {
-            val meeting = meetingRepository.getMeetingById(meetingId)
-                ?: return Result.failure(Exception("Meeting $meetingId not found"))
+            val normalizedMeetingId = meetingId.trim()
+            val meeting = meetingRepository.getMeetingById(normalizedMeetingId)
+                ?: return Result.failure(Exception("Meeting $normalizedMeetingId not found"))
 
             val participants = participantQueries
                 .selectByEventId(meeting.eventId)
                 .executeAsList()
                 .filter { it.hasValidatedDate == 1L }
+                .mapNotNull {
+                    val participantId = it.id.trim()
+                    val userId = it.userId.trim()
+                    if (participantId.isEmpty() || userId.isEmpty()) {
+                        null
+                    } else {
+                        ConfirmedParticipant(participantId = participantId, userId = userId)
+                    }
+                }
+                .distinctBy { it.participantId }
+            val alreadyInvited = database.meetingInvitationQueries
+                .selectByMeetingId(meeting.id)
+                .executeAsList()
+                .map { it.participant_id }
+                .toSet()
 
-            participants.forEach { participant ->
-                database.meetingInvitationQueries.insertMeetingInvitation(
-                    id = generateId(),
-                    meeting_id = meetingId,
-                    participant_id = participant.userId,
-                    status = InvitationStatus.PENDING.name,
-                    sent_at = Clock.System.now().toString(),
-                    responded_at = null,
-                    accepted_at = null
-                )
+            participants
+                .filterNot { it.participantId in alreadyInvited }
+                .forEach { participant ->
+                    database.meetingInvitationQueries.insertMeetingInvitation(
+                        id = generateId(),
+                        meeting_id = meeting.id,
+                        participant_id = participant.participantId,
+                        status = InvitationStatus.PENDING.name,
+                        sent_at = Clock.System.now().toString(),
+                        responded_at = null,
+                        accepted_at = null
+                    )
 
-                val notification = NotificationMessage(
-                    id = generateId(),
-                    userId = participant.userId,
-                    type = NotificationType.EVENT_UPDATE,
-                    title = "Invitation: ${meeting.title}",
-                    body = "Vous êtes invité à une réunion virtuelle le ${formatDate(meeting.startTime)}",
-                    data = mapOf("meetingId" to meetingId),
-                    sentAt = Clock.System.now().toString(),
-                    readAt = null
-                )
-                notificationService.sendNotification(notification).getOrThrow()
-            }
+                    val notification = NotificationMessage(
+                        id = generateId(),
+                        userId = participant.userId,
+                        type = NotificationType.EVENT_UPDATE,
+                        title = "Invitation: ${meeting.title}",
+                        body = "Vous êtes invité à une réunion virtuelle le ${formatDate(meeting.startTime)}",
+                        data = mapOf("meetingId" to meeting.id),
+                        sentAt = Clock.System.now().toString(),
+                        readAt = null
+                    )
+                    notificationService.sendNotification(notification).getOrThrow()
+                }
 
             calendarService.addToNativeCalendar(
                 eventId = meeting.eventId,
@@ -278,13 +310,33 @@ class MeetingService(
 
     suspend fun respondToInvitation(
         invitationId: String,
+        currentUserId: String,
         status: InvitationStatus
     ): Result<Unit> {
         return try {
+            val normalizedInvitationId = invitationId.trim()
+            val normalizedUserId = currentUserId.trim()
+            if (normalizedInvitationId.isEmpty()) {
+                return Result.failure(IllegalArgumentException("invitationId is required"))
+            }
+            if (normalizedUserId.isEmpty()) {
+                return Result.failure(IllegalArgumentException("currentUserId is required"))
+            }
+            if (status == InvitationStatus.PENDING) {
+                return Result.failure(IllegalArgumentException("Invitation response must be ACCEPTED, DECLINED, or TENTATIVE"))
+            }
+
             val invitation = database.meetingInvitationQueries
-                .selectById(invitationId)
+                .selectById(normalizedInvitationId)
                 .executeAsOneOrNull()
-                ?: return Result.failure(Exception("Invitation $invitationId not found"))
+                ?: return Result.failure(Exception("Invitation $normalizedInvitationId not found"))
+            val participant = participantQueries
+                .selectById(invitation.participant_id)
+                .executeAsOneOrNull()
+                ?: return Result.failure(Exception("Participant ${invitation.participant_id} not found"))
+            if (participant.userId.trim() != normalizedUserId) {
+                return Result.failure(MeetingException.UnauthorizedAccess())
+            }
 
             val now = Clock.System.now().toString()
             val acceptedAt = if (status == InvitationStatus.ACCEPTED) now else null
@@ -293,7 +345,7 @@ class MeetingService(
                 status = status.name,
                 responded_at = now,
                 accepted_at = acceptedAt,
-                id = invitationId
+                id = normalizedInvitationId
             )
 
             Result.success(Unit)
@@ -333,7 +385,7 @@ class MeetingService(
         eventId: String,
         scheduledFor: Instant,
         timezone: String,
-        participantIds: List<String> = getConfirmedParticipantIds(eventId)
+        participantIds: List<String> = getConfirmedParticipants(eventId).map { it.participantId }
     ) {
         val timings = listOf(
             MeetingReminderTiming.ONE_DAY_BEFORE,
@@ -347,7 +399,7 @@ class MeetingService(
 
             participantIds.forEach { participantId ->
                 database.meetingReminderQueries.insertMeetingReminder(
-                    id = generateId(),
+                    id = meetingReminderId(meetingId, participantId, timing),
                     meeting_id = meetingId,
                     participant_id = participantId,
                     timing = timing.name,
@@ -359,17 +411,31 @@ class MeetingService(
         }
     }
 
+    private fun meetingReminderId(
+        meetingId: String,
+        participantId: String,
+        timing: MeetingReminderTiming
+    ): String = "reminder-$meetingId-$participantId-${timing.name}"
+
     private suspend fun cancelMeetingReminders(meetingId: String) {
         database.meetingReminderQueries.deleteByMeetingId(meetingId)
     }
 
-    private fun getConfirmedParticipantIds(eventId: String): List<String> =
+    private fun getConfirmedParticipants(eventId: String): List<ConfirmedParticipant> =
         participantQueries
             .selectByEventId(eventId)
             .executeAsList()
             .filter { it.hasValidatedDate == 1L }
-            .map { it.userId }
-            .distinct()
+            .mapNotNull {
+                val participantId = it.id.trim()
+                val userId = it.userId.trim()
+                if (participantId.isEmpty() || userId.isEmpty()) {
+                    null
+                } else {
+                    ConfirmedParticipant(participantId = participantId, userId = userId)
+                }
+            }
+            .distinctBy { it.participantId }
 
     private suspend fun prepareCalendarEntries(
         eventId: String,
@@ -385,12 +451,12 @@ class MeetingService(
 
     private suspend fun notifyMeetingCreated(
         meeting: com.guyghost.wakeve.meeting.Meeting,
-        participantIds: List<String>
+        userIds: List<String>
     ) {
-        participantIds.forEach { participantId ->
+        userIds.distinct().forEach { userId ->
             val notification = NotificationMessage(
                 id = generateId(),
-                userId = participantId,
+                userId = userId,
                 type = NotificationType.EVENT_UPDATE,
                 title = "Réunion créée: ${meeting.title}",
                 body = "Une réunion virtuelle est prévue le ${formatDate(meeting.startTime)}",
@@ -451,9 +517,16 @@ class MeetingService(
 
     private suspend fun notifyParticipantsMeetingCancelled(meeting: com.guyghost.wakeve.meeting.Meeting) {
         meeting.invitedParticipants.distinct().forEach { participantId ->
+            val userId = participantQueries
+                .selectById(participantId)
+                .executeAsOneOrNull()
+                ?.userId
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?: participantId
             val notification = NotificationMessage(
                 id = generateId(),
-                userId = participantId,
+                userId = userId,
                 type = NotificationType.EVENT_UPDATE,
                 title = "Réunion annulée: ${meeting.title}",
                 body = "La réunion virtuelle prévue le ${formatDate(meeting.startTime)} a été annulée",

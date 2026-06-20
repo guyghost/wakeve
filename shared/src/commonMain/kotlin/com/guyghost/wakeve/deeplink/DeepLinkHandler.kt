@@ -166,7 +166,7 @@ sealed class DeepLinkResult {
  */
 fun processDeepLinkUri(uri: String, handler: DeepLinkHandlerInterface): DeepLinkResult {
     val deepLink = DeepLink.parse(uri).getOrElse {
-        return DeepLinkResult.Failure("Failed to parse URI: ${it.message}")
+        return DeepLinkResult.Failure(deepLinkParseFailureMessage())
     }
 
     val route = deepLink.toDeepLinkRoute()
@@ -182,3 +182,5 @@ fun processDeepLinkUri(uri: String, handler: DeepLinkHandlerInterface): DeepLink
         DeepLinkResult.NoHandler(deepLink)
     }
 }
+
+internal fun deepLinkParseFailureMessage(): String = "Failed to parse URI"

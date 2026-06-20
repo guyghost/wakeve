@@ -62,7 +62,7 @@ object MLMetricsHelper {
             success = true
         } catch (e: Exception) {
             success = false
-            errorMessage = e.message
+            errorMessage = mlOperationFailureMessage()
         }
         
         val durationMs = calculateDurationMillis(startTime, getCurrentTimeNanos())
@@ -116,7 +116,7 @@ object MLMetricsHelper {
             success = true
         } catch (e: Exception) {
             success = false
-            errorMessage = e.message
+            errorMessage = mlOperationFailureMessage()
         }
         
         val durationMs = calculateDurationMillis(startTime, getCurrentTimeNanos())
@@ -160,7 +160,7 @@ object MLMetricsHelper {
             success = true
         } catch (e: Exception) {
             success = false
-            errorMessage = e.message
+            errorMessage = mlOperationFailureMessage()
         }
         
         val memoryAfter = measureMemoryUsageMB()
@@ -207,7 +207,7 @@ object MLMetricsHelper {
             success = true
         } catch (e: Exception) {
             success = false
-            errorMessage = e.message
+            errorMessage = mlOperationFailureMessage()
         }
         
         val durationMs = calculateDurationMillis(startTime, getCurrentTimeNanos())
@@ -290,6 +290,9 @@ object MLMetricsHelper {
         }
     }
 }
+
+internal fun mlOperationFailureMessage(): String =
+    "ML operation failed. Please try again."
 
 /**
  * Simple Quadruple data class for holding 4 values.

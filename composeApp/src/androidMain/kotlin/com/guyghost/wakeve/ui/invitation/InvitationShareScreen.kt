@@ -63,6 +63,7 @@ import com.google.zxing.EncodeHintType
 import com.google.zxing.qrcode.QRCodeWriter
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.guyghost.wakeve.R
+import com.guyghost.wakeve.deeplink.normalizeDeepLinkPathSegment
 
 /**
  * Invitation Share Screen for Android.
@@ -83,7 +84,7 @@ fun InvitationShareScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val inviteUrl = invitationCode?.let { "https://wakeve.app/invite/$it" }
+    val inviteUrl = createInviteUrl(invitationCode)
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     // Generate QR code on first composition
@@ -302,6 +303,11 @@ fun InvitationShareScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
+
+internal fun createInviteUrl(invitationCode: String?): String? {
+    return normalizeDeepLinkPathSegment(invitationCode)
+        ?.let { "https://wakeve.app/invite/$it" }
 }
 
 /**

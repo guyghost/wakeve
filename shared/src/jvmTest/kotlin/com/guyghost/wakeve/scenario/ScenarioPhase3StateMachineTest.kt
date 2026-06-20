@@ -11,6 +11,16 @@ import com.guyghost.wakeve.models.ScenarioVote
 import com.guyghost.wakeve.models.ScenarioVoteType
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract
 import com.guyghost.wakeve.presentation.statemachine.ScenarioManagementStateMachine
+import com.guyghost.wakeve.presentation.statemachine.scenarioCreateFailureMessage
+import com.guyghost.wakeve.presentation.statemachine.scenarioDeleteFailureMessage
+import com.guyghost.wakeve.presentation.statemachine.scenarioEventStatusUpdateFailureMessage
+import com.guyghost.wakeve.presentation.statemachine.scenarioLoadFailureMessage
+import com.guyghost.wakeve.presentation.statemachine.scenarioMatrixGenerationFailureMessage
+import com.guyghost.wakeve.presentation.statemachine.scenarioMatrixPublishFailureMessage
+import com.guyghost.wakeve.presentation.statemachine.scenarioReloadFailureMessage
+import com.guyghost.wakeve.presentation.statemachine.scenarioSelectionFailureMessage
+import com.guyghost.wakeve.presentation.statemachine.scenarioUpdateFailureMessage
+import com.guyghost.wakeve.presentation.statemachine.scenarioVoteFailureMessage
 import com.guyghost.wakeve.presentation.usecase.CreateScenarioUseCase
 import com.guyghost.wakeve.presentation.usecase.DeleteScenarioUseCase
 import com.guyghost.wakeve.presentation.usecase.LoadScenariosUseCase
@@ -23,9 +33,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
+import java.io.File
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -179,6 +191,39 @@ class ScenarioPhase3StateMachineTest {
         )
     }
 
+    @Test
+    fun `failure messages do not expose throwable details`() {
+        val messages = listOf(
+            scenarioLoadFailureMessage(),
+            scenarioCreateFailureMessage(),
+            scenarioUpdateFailureMessage(),
+            scenarioDeleteFailureMessage(),
+            scenarioEventStatusUpdateFailureMessage(),
+            scenarioSelectionFailureMessage(),
+            scenarioMatrixGenerationFailureMessage(),
+            scenarioMatrixPublishFailureMessage(),
+            scenarioVoteFailureMessage(),
+            scenarioReloadFailureMessage()
+        )
+
+        messages.forEach { message ->
+            assertFalse(message.contains("SECRET"))
+            assertFalse(message.contains("token="))
+            assertFalse(message.contains("internal.local"))
+            assertFalse(message.contains("SQL"))
+        }
+    }
+
+    @Test
+    fun `state machine does not use throwable messages for UI errors`() {
+        val source = projectFile("shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/statemachine/ScenarioManagementStateMachine.kt").readText()
+        val throwableMessage = listOf("error", ".message").joinToString("")
+        val nullableMessage = listOf("message", " ?:").joinToString("")
+
+        assertFalse(source.contains(throwableMessage))
+        assertFalse(source.contains(nullableMessage))
+    }
+
     private fun createStateMachine(
         scope: kotlinx.coroutines.CoroutineScope,
         includeEventRepository: Boolean = true
@@ -256,4 +301,10 @@ class ScenarioPhase3StateMachineTest {
         vote = voteType,
         createdAt = "2026-05-22T11:00:00Z"
     )
+
+    private fun projectFile(relativePath: String): File {
+        val root = generateSequence(File(System.getProperty("user.dir")).absoluteFile) { it.parentFile }
+            .first { File(it, relativePath).exists() }
+        return File(root, relativePath)
+    }
 }

@@ -69,6 +69,12 @@ SELECT * FROM notification
 WHERE user_id = ? AND is_read = 0
 ORDER BY created_at DESC;
 
+getUnreadNotificationsLimited:
+SELECT * FROM notification
+WHERE user_id = ? AND is_read = 0
+ORDER BY created_at DESC
+LIMIT ?;
+
 -- Get notification by ID
 getNotificationById:
 SELECT * FROM notification WHERE id = ?;
