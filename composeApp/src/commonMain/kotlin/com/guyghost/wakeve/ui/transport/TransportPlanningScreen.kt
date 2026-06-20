@@ -85,13 +85,21 @@ fun TransportPlanningScreen(
     val canSelectFinal = isOrganizer && !isReadOnly && selectedDestination != null && plans.isNotEmpty() && (eventStatus == EventStatus.CONFIRMED || eventStatus == EventStatus.COMPARING || eventStatus == EventStatus.ORGANIZING)
     val canMarkTransportNotNeeded = isOrganizer && !isReadOnly && selectedDestination != null && !transportNotNeeded && (eventStatus == EventStatus.CONFIRMED || eventStatus == EventStatus.COMPARING || eventStatus == EventStatus.ORGANIZING)
     val canSaveDeparture = canAccessTransportDetails && !isReadOnly && selectedDestination != null && (eventStatus == EventStatus.CONFIRMED || eventStatus == EventStatus.COMPARING || eventStatus == EventStatus.ORGANIZING)
+    val highlightedPlan = selectedPlanId
+        ?.let { selectedId -> plans.firstOrNull { it.id == selectedId } }
+        ?: plans.firstOrNull()
+    val meetingPointSummary = transportMeetingPointSummary(
+        selectedDestination = selectedDestination,
+        highlightedPlan = highlightedPlan,
+        readiness = readiness
+    )
     val generationUnavailableReason = when {
-        !isTransportProviderConfigured -> "Aucun fournisseur de transport réel n'est configuré. Wakeve peut collecter les départs, mais ne génère pas encore de prix, horaires ou réservations."
-        !isOrganizer -> "Seul l'organisateur peut générer le plan de transport partagé."
-        selectedDestination == null -> "Sélectionnez une destination de scénario avant de générer un plan de transport."
-        transportNotNeeded -> "Le transport est indiqué comme non requis pour cet événement."
-        isReadOnly || !isMutableTransportStatus -> "Le transport est en lecture seule pour cet événement."
-        readiness?.canGeneratePlan != true -> "Ajoutez tous les points de départ manquants avant de générer les options de transport."
+        !isTransportProviderConfigured -> transportProviderMissingMessage()
+        !isOrganizer -> transportOrganizerOnlyGenerationMessage()
+        selectedDestination == null -> transportDestinationRequiredForGenerationMessage()
+        transportNotNeeded -> transportNotNeededMessage()
+        isReadOnly || !isMutableTransportStatus -> transportReadOnlyMessage()
+        readiness?.canGeneratePlan != true -> transportMissingDeparturesForGenerationMessage()
         else -> null
     }
 
@@ -141,6 +149,10 @@ fun TransportPlanningScreen(
             }
 
             item {
+                TransportMeetingPointCard(summary = meetingPointSummary)
+            }
+
+            item {
                 DepartureInputCard(
                     value = departureInput,
                     onValueChange = { departureInput = it },
@@ -177,7 +189,7 @@ fun TransportPlanningScreen(
                     enabled = canGenerate,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Générer le plan")
+                    Text(transportGeneratePlanLabel())
                 }
 
                 if (!canGenerate) {
@@ -196,11 +208,11 @@ fun TransportPlanningScreen(
                             .fillMaxWidth()
                             .padding(top = 8.dp)
                     ) {
-                        Text("Transport non requis")
+                        Text(transportNotNeededActionLabel())
                     }
                 } else if (transportNotNeeded) {
                     Text(
-                        text = "Le transport est indiqué comme non requis pour cet événement.",
+                        text = transportNotNeededMessage(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 8.dp)
@@ -227,6 +239,47 @@ fun TransportPlanningScreen(
 }
 
 @Composable
+private fun TransportMeetingPointCard(summary: TransportMeetingPointSummary) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.Place,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = summary.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+            Text(
+                text = summary.body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            summary.detail?.let { detail ->
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun DepartureInputCard(
     value: String,
     onValueChange: (String) -> Unit,
@@ -243,14 +296,14 @@ private fun DepartureInputCard(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "Point de départ",
+                text = transportDepartureTitle(),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             OutlinedTextField(
                 value = value,
                 onValueChange = onValueChange,
-                label = { Text("Ville, gare ou aéroport") },
+                label = { Text(transportDepartureInputLabel()) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -259,7 +312,7 @@ private fun DepartureInputCard(
                 enabled = canSaveDeparture && value.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (pendingSync) "Mettre à jour le départ" else "Enregistrer le départ")
+                Text(transportSaveDepartureLabel(pendingSync))
             }
         }
     }
@@ -279,12 +332,12 @@ private fun TransportAccessDenied(modifier: Modifier = Modifier) {
         ) {
             Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.error)
             Text(
-                text = "Transport verrouillé",
+                text = transportAccessDeniedTitle(),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Confirmez votre présence pour accéder aux départs, aux trajets et aux plans retenus.",
+                text = transportAccessDeniedMessage(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
@@ -310,15 +363,15 @@ private fun TransportAnchorCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Place, contentDescription = null)
                 Text(
-                    text = "Date confirmée et destination",
+                    text = transportAnchorTitle(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }
-            Text("Event $eventId", style = MaterialTheme.typography.labelMedium)
-            Text("Date confirmée : ${confirmedDate ?: "Date bientôt confirmée"}")
-            Text("Destination : ${selectedDestination?.name ?: "Aucune destination sélectionnée"}")
+            Text(transportEventLabel(eventId), style = MaterialTheme.typography.labelMedium)
+            Text(transportConfirmedDateLabel(confirmedDate))
+            Text(transportDestinationLabel(selectedDestination?.name))
             if (pendingSync) {
                 PendingSyncLabel()
             }
@@ -339,13 +392,13 @@ private fun MissingDestinationCard() {
         ) {
             Icon(Icons.Default.Place, contentDescription = null, tint = MaterialTheme.colorScheme.error)
             Text(
-                text = "Destination requise",
+                text = transportMissingDestinationTitle(),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
             Text(
-                text = "Sélectionnez une destination de scénario avant d'enregistrer les départs, de générer les plans ou de finaliser le transport.",
+                text = transportMissingDestinationMessage(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
@@ -369,7 +422,7 @@ private fun PendingSyncLabel() {
                 tint = MaterialTheme.colorScheme.onSecondaryContainer
             )
             Text(
-                text = "Synchronisation en attente. Modifications locales en attente d'envoi.",
+                text = transportPendingSyncMessage(),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                 modifier = Modifier.padding(start = 6.dp)
@@ -398,21 +451,21 @@ private fun TransportReadinessCard(
                     contentDescription = null
                 )
                 Text(
-                    text = if (isReadinessComplete) "Préparation complète" else "Préparation incomplète",
+                    text = transportReadinessTitle(isReadinessComplete),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(start = 8.dp)
                 )
             }
             if (readiness?.transportNotNeeded == true) {
-                Text("Transport non requis pour cet événement.")
+                Text(transportNotNeededMessage())
             } else if (missingDepartureParticipants.isEmpty()) {
-                Text("Tous les participants confirmés ont un point de départ.")
+                Text(transportReadinessCompleteMessage())
             } else {
-                Text("Départ manquant")
+                Text(transportMissingDepartureTitle())
                 missingDepartureParticipants.forEach { participant ->
                     Text(
-                        text = "- $participant",
+                        text = transportMissingDepartureParticipantLabel(participant),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -436,7 +489,7 @@ private fun OptimizationModeCard(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "Optimisation",
+                text = transportOptimizationTitle(),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -474,12 +527,12 @@ private fun EmptyPlansCard(isTransportProviderConfigured: Boolean) {
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Icon(Icons.Default.Route, contentDescription = null)
-            Text("Aucun plan généré", style = MaterialTheme.typography.titleMedium)
+            Text(transportEmptyPlansTitle(), style = MaterialTheme.typography.titleMedium)
             Text(
                 text = if (isTransportProviderConfigured) {
-                    "Choisissez un mode d'optimisation et générez un plan lorsque tous les départs sont prêts."
+                    transportEmptyPlansConfiguredMessage()
                 } else {
-                    "Les départs peuvent être collectés maintenant. La génération de trajets nécessite un fournisseur réel de transport."
+                    transportEmptyPlansProviderMissingMessage()
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -518,21 +571,21 @@ private fun TransportPlanCard(
                     modifier = Modifier.weight(1f)
                 )
                 if (isSelected) {
-                    Text("Plan sélectionné", color = MaterialTheme.colorScheme.primary)
+                    Text(transportSelectedPlanLabel(), color = MaterialTheme.colorScheme.primary)
                 }
             }
-            Text("Plan généré : ${plan.id}")
-            Text("Coût total du groupe : ${plan.totalGroupCost}")
-            Text("Trajets : ${plan.participantRoutes.size}")
+            Text(transportGeneratedPlanLabel(plan.id))
+            Text(transportTotalGroupCostLabel(plan.totalGroupCost))
+            Text(transportRoutesCountLabel(plan.participantRoutes.size))
             HorizontalDivider()
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (canSelectFinal) {
                     Button(onClick = onSelectFinal) {
-                        Text("Sélectionner le plan final")
+                        Text(transportSelectFinalPlanLabel())
                     }
                 } else {
                     OutlinedButton(onClick = {}, enabled = false) {
-                        Text(if (isSelected) "Plan final sélectionné" else "Sélection indisponible")
+                        Text(transportFinalSelectionUnavailableLabel(isSelected))
                     }
                 }
             }
@@ -545,5 +598,193 @@ private fun OptimizationType.label(): String {
         OptimizationType.COST_MINIMIZE -> "Coût"
         OptimizationType.TIME_MINIMIZE -> "Temps"
         OptimizationType.BALANCED -> "Équilibré"
+    }
+}
+
+internal fun transportProviderMissingMessage(): String =
+    "Aucun fournisseur de transport réel n'est configuré. Wakeve peut collecter les départs, mais ne génère pas encore de prix, horaires ou réservations."
+
+internal fun transportOrganizerOnlyGenerationMessage(): String =
+    "Seul l'organisateur peut générer le plan de transport partagé."
+
+internal fun transportDestinationRequiredForGenerationMessage(): String =
+    "Sélectionnez une destination de scénario avant de générer un plan de transport."
+
+internal fun transportNotNeededMessage(): String =
+    "Le transport est indiqué comme non requis pour cet événement."
+
+internal fun transportReadOnlyMessage(): String =
+    "Le transport est en lecture seule pour cet événement."
+
+internal fun transportMissingDeparturesForGenerationMessage(): String =
+    "Ajoutez tous les points de départ manquants avant de générer les options de transport."
+
+internal fun transportGeneratePlanLabel(): String = "Générer le plan"
+
+internal fun transportNotNeededActionLabel(): String = "Transport non requis"
+
+internal fun transportDepartureTitle(): String = "Point de départ"
+
+internal fun transportDepartureInputLabel(): String = "Ville, gare ou aéroport"
+
+internal fun transportSaveDepartureLabel(pendingSync: Boolean): String =
+    if (pendingSync) "Mettre à jour le départ" else "Enregistrer le départ"
+
+internal fun transportAccessDeniedTitle(): String = "Transport verrouillé"
+
+internal fun transportAccessDeniedMessage(): String =
+    "Confirmez votre présence pour accéder aux départs, aux trajets et aux plans retenus."
+
+internal fun transportAnchorTitle(): String = "Date confirmée et destination"
+
+internal fun transportEventLabel(eventId: String): String = "Événement $eventId"
+
+internal fun transportConfirmedDateLabel(confirmedDate: String?): String =
+    "Date confirmée : ${confirmedDate ?: "date bientôt confirmée"}"
+
+internal fun transportDestinationLabel(destinationName: String?): String =
+    "Destination : ${destinationName ?: "aucune destination sélectionnée"}"
+
+internal fun transportMissingDestinationTitle(): String = "Destination requise"
+
+internal fun transportMissingDestinationMessage(): String =
+    "Sélectionnez une destination de scénario avant d'enregistrer les départs, de générer les plans ou de finaliser le transport."
+
+internal fun transportPendingSyncMessage(): String =
+    "Synchronisation en attente. Modifications locales en attente d'envoi."
+
+internal fun transportReadinessTitle(isComplete: Boolean): String =
+    if (isComplete) "Préparation complète" else "Préparation incomplète"
+
+internal fun transportReadinessCompleteMessage(): String =
+    "Tous les participants confirmés ont un point de départ."
+
+internal fun transportMissingDepartureTitle(): String = "Départ manquant"
+
+internal fun transportMissingDepartureParticipantLabel(participant: String): String =
+    "- $participant"
+
+internal fun transportOptimizationTitle(): String = "Optimisation"
+
+internal fun transportEmptyPlansTitle(): String = "Aucun plan généré"
+
+internal fun transportEmptyPlansConfiguredMessage(): String =
+    "Choisissez un mode d'optimisation et générez un plan lorsque tous les départs sont prêts."
+
+internal fun transportEmptyPlansProviderMissingMessage(): String =
+    "Les départs peuvent être collectés maintenant. La génération de trajets nécessite un fournisseur réel de transport."
+
+internal fun transportSelectedPlanLabel(): String = "Plan sélectionné"
+
+internal fun transportGeneratedPlanLabel(planId: String): String = "Plan généré : $planId"
+
+internal fun transportTotalGroupCostLabel(totalGroupCost: Double): String =
+    "Coût total du groupe : $totalGroupCost EUR"
+
+internal fun transportRoutesCountLabel(routeCount: Int): String = "Trajets : $routeCount"
+
+internal fun transportSelectFinalPlanLabel(): String = "Sélectionner le plan final"
+
+internal fun transportFinalSelectionUnavailableLabel(isSelected: Boolean): String =
+    if (isSelected) "Plan final sélectionné" else "Sélection indisponible"
+
+internal data class TransportMeetingPointSummary(
+    val title: String,
+    val body: String,
+    val detail: String? = null
+)
+
+internal fun transportMeetingPointSummary(
+    selectedDestination: TransportLocation?,
+    highlightedPlan: TransportPlan?,
+    readiness: TransportReadiness?
+): TransportMeetingPointSummary {
+    val destinationName = selectedDestination?.name?.trim().orEmpty()
+    val missingParticipants = readiness?.missingDepartureParticipantNames.orEmpty()
+        .ifEmpty { readiness?.missingDepartureParticipantIds.orEmpty() }
+
+    if (readiness?.transportNotNeeded == true) {
+        return TransportMeetingPointSummary(
+            title = transportMeetingPointTitle(destinationName),
+            body = transportMeetingPointTransportNotNeededBody(destinationName)
+        )
+    }
+
+    if (destinationName.isBlank()) {
+        return TransportMeetingPointSummary(
+            title = transportMeetingPointMissingDestinationTitle(),
+            body = transportMeetingPointMissingDestinationBody()
+        )
+    }
+
+    val arrivals = highlightedPlan?.groupArrivals.orEmpty().filter { it.isNotBlank() }
+    if (arrivals.isNotEmpty()) {
+        return TransportMeetingPointSummary(
+            title = transportMeetingPointTitle(destinationName),
+            body = transportMeetingPointPlannedArrivalBody(destinationName, arrivals),
+            detail = transportMeetingPointMissingDeparturesDetail(missingParticipants)
+        )
+    }
+
+    return TransportMeetingPointSummary(
+        title = transportMeetingPointTitle(destinationName),
+        body = if (readiness?.isComplete == true) {
+            transportMeetingPointReadyBody(destinationName)
+        } else {
+            transportMeetingPointProvisionalBody(destinationName)
+        },
+        detail = transportMeetingPointMissingDeparturesDetail(missingParticipants)
+    )
+}
+
+internal fun transportMeetingPointTitle(destinationName: String): String =
+    if (destinationName.isBlank()) "Point de rendez-vous" else "Rendez-vous à $destinationName"
+
+internal fun transportMeetingPointMissingDestinationTitle(): String = "Point de rendez-vous à définir"
+
+internal fun transportMeetingPointMissingDestinationBody(): String =
+    "Choisissez d'abord la destination finale pour afficher clairement où le groupe se retrouve."
+
+internal fun transportMeetingPointTransportNotNeededBody(destinationName: String): String =
+    if (destinationName.isBlank()) {
+        "Transport non requis : le groupe se retrouve directement sur place."
+    } else {
+        "Transport non requis : le groupe se retrouve directement à $destinationName."
+    }
+
+internal fun transportMeetingPointReadyBody(destinationName: String): String =
+    "Tous les départs sont prêts. Générez un plan pour confirmer l'heure de rendez-vous à $destinationName."
+
+internal fun transportMeetingPointProvisionalBody(destinationName: String): String =
+    "$destinationName est le point de rendez-vous provisoire tant que tous les départs ne sont pas renseignés."
+
+internal fun transportMeetingPointPlannedArrivalBody(
+    destinationName: String,
+    arrivals: List<String>
+): String {
+    return if (arrivals.size == 1) {
+        "Arrivée groupée prévue à $destinationName : ${transportMeetingArrivalLabel(arrivals.first())}."
+    } else {
+        "${arrivals.size} arrivées groupées prévues à $destinationName. Ouvrez le plan retenu pour suivre chaque trajet."
+    }
+}
+
+internal fun transportMeetingPointMissingDeparturesDetail(missingParticipants: List<String>): String? {
+    if (missingParticipants.isEmpty()) return null
+    val shownNames = missingParticipants.take(3).joinToString(", ")
+    val remainingCount = missingParticipants.size - 3
+    val suffix = if (remainingCount > 0) " + $remainingCount autre${if (remainingCount > 1) "s" else ""}" else ""
+    return "Départs encore manquants : $shownNames$suffix."
+}
+
+internal fun transportMeetingArrivalLabel(rawArrival: String): String {
+    val trimmed = rawArrival.trim()
+    val date = trimmed.substringBefore('T', missingDelimiterValue = "")
+    val timePart = trimmed.substringAfter('T', missingDelimiterValue = "")
+        .take(5)
+    return if (date.isNotBlank() && timePart.length == 5) {
+        "$date à $timePart"
+    } else {
+        trimmed
     }
 }
