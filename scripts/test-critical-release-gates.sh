@@ -335,6 +335,43 @@ assert_ios_release_screen_evidence_integrity() {
     echo "PASS: iOS release screen evidence audit verifies indexed screenshots and keeps missing release screens explicit"
 }
 
+assert_live_url_aasa_blocker_evidence() {
+    local evidence="$PROJECT_DIR/docs/APP_STORE_LIVE_URL_AASA_EVIDENCE.md"
+    local capture="$PROJECT_DIR/docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md"
+
+    if ! grep -Fxq 'APP_STORE_LIVE_URL_AASA_EVIDENCE_COMPLETE=false' "$evidence"; then
+        echo "FAIL: live URL/AASA evidence marker must stay false until public wakeve.app and AASA checks pass" >&2
+        exit 1
+    fi
+
+    if ! grep -Fq 'docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md' "$evidence"; then
+        echo "FAIL: live URL/AASA evidence must reference the latest AS-14 capture report" >&2
+        exit 1
+    fi
+
+    if [ ! -f "$capture" ]; then
+        echo "FAIL: latest live URL/AASA capture report is missing: $capture" >&2
+        exit 1
+    fi
+
+    local required_patterns=(
+        'Result: FAIL. 16 required live URL/AASA checks failed or could not be validated.'
+        'curl: (6) Could not resolve host: wakeve.app'
+        'HTTP/2 405'
+        '104.21.48.204'
+        '172.67.156.46'
+    )
+
+    for pattern in "${required_patterns[@]}"; do
+        if ! grep -Fq "$pattern" "$capture"; then
+            echo "FAIL: latest live URL/AASA capture report no longer documents expected AS-14 blocker evidence: $pattern" >&2
+            exit 1
+        fi
+    done
+
+    echo "PASS: live URL/AASA blocker evidence remains explicit and incomplete"
+}
+
 cd "$PROJECT_DIR"
 
 run openspec validate --all --strict
@@ -353,6 +390,7 @@ assert_wakeve_ai_device_profile_helper
 assert_weatherkit_device_validation_helper
 assert_ios_accessibility_source_audit
 assert_ios_release_screen_evidence_integrity
+assert_live_url_aasa_blocker_evidence
 run ./scripts/audit-ios-localization-parity.sh --fail-on-findings
 
 run ./gradlew :server:test \
