@@ -368,8 +368,8 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
             Log.d("MainActivity", "Deep link received: ${redactDeepLinkForLog(uri.toString())}")
 
             // Handle Apple Sign-In callback specifically
-            if (
-                isAppleOAuthCallbackDeepLink(
+            when (
+                appleOAuthCallbackDeepLinkDecision(
                     scheme = uri.scheme,
                     host = uri.host,
                     encodedUserInfo = uri.encodedUserInfo,
@@ -377,14 +377,21 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
                     port = uri.port
                 )
             ) {
-                Log.d("MainActivity", "Apple Sign-In callback received: ${redactDeepLinkForLog(uri.toString())}")
-                handleAppleAuthCallback(uri)
-            } else {
-                // Store deep link for Compose UI to handle
-                if (DeepLinkStateManager.updatePendingDeepLink(uri)) {
-                    Log.d("MainActivity", "Deep link stored in state manager")
-                } else {
-                    Log.w("MainActivity", "Unsupported deep link rejected: ${redactDeepLinkForLog(uri.toString())}")
+                AppleOAuthCallbackDeepLinkDecision.ValidCallback -> {
+                    Log.d("MainActivity", "Apple Sign-In callback received: ${redactDeepLinkForLog(uri.toString())}")
+                    handleAppleAuthCallback(uri)
+                }
+                AppleOAuthCallbackDeepLinkDecision.InvalidCallback -> {
+                    Log.e("MainActivity", "Invalid Apple Sign-In callback rejected")
+                    authViewModel.handleOAuthError(appleOAuthCallbackFailureMessage(null))
+                }
+                AppleOAuthCallbackDeepLinkDecision.NotAppleCallback -> {
+                    // Store deep link for Compose UI to handle
+                    if (DeepLinkStateManager.updatePendingDeepLink(uri)) {
+                        Log.d("MainActivity", "Deep link stored in state manager")
+                    } else {
+                        Log.w("MainActivity", "Unsupported deep link rejected: ${redactDeepLinkForLog(uri.toString())}")
+                    }
                 }
             }
         } ?: run {
@@ -585,6 +592,38 @@ internal fun oauthUnavailableMessage(provider: OAuthProviderName): String {
 
 internal fun appleOAuthCallbackFailureMessage(providerError: String?): String {
     return "Connexion Apple annulée ou impossible."
+}
+
+internal enum class AppleOAuthCallbackDeepLinkDecision {
+    ValidCallback,
+    InvalidCallback,
+    NotAppleCallback
+}
+
+internal fun appleOAuthCallbackDeepLinkDecision(
+    scheme: String?,
+    host: String?,
+    encodedUserInfo: String?,
+    encodedFragment: String?,
+    port: Int
+): AppleOAuthCallbackDeepLinkDecision {
+    if (scheme != "wakeve" || host != "apple-auth-callback") {
+        return AppleOAuthCallbackDeepLinkDecision.NotAppleCallback
+    }
+
+    return if (
+        isAppleOAuthCallbackDeepLink(
+            scheme = scheme,
+            host = host,
+            encodedUserInfo = encodedUserInfo,
+            encodedFragment = encodedFragment,
+            port = port
+        )
+    ) {
+        AppleOAuthCallbackDeepLinkDecision.ValidCallback
+    } else {
+        AppleOAuthCallbackDeepLinkDecision.InvalidCallback
+    }
 }
 
 internal fun isAppleOAuthCallbackDeepLink(

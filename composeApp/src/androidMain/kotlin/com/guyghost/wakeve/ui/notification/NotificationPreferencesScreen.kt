@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.AccessTime
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChatBubble
@@ -22,7 +23,6 @@ import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -45,7 +45,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -70,6 +69,63 @@ data class PreferenceToggleItem(
     val isEnabled: Boolean
 )
 
+internal data class NotificationPreferenceContract(
+    val id: String,
+    val notificationTypes: Set<NotificationType>,
+    val enabledByDefault: Boolean
+)
+
+internal fun notificationPreferenceContracts(): List<NotificationPreferenceContract> =
+    listOf(
+        NotificationPreferenceContract(
+            id = "votes",
+            notificationTypes = setOf(NotificationType.VOTE_REMINDER, NotificationType.VOTE_CLOSE_REMINDER),
+            enabledByDefault = true
+        ),
+        NotificationPreferenceContract(
+            id = "comments",
+            notificationTypes = setOf(NotificationType.NEW_COMMENT, NotificationType.COMMENT_REPLY, NotificationType.MENTION),
+            enabledByDefault = true
+        ),
+        NotificationPreferenceContract(
+            id = "status_changes",
+            notificationTypes = setOf(NotificationType.DATE_CONFIRMED, NotificationType.NEW_SCENARIO, NotificationType.SCENARIO_SELECTED),
+            enabledByDefault = true
+        ),
+        NotificationPreferenceContract(
+            id = "reminders",
+            notificationTypes = setOf(NotificationType.EVENT_INVITE, NotificationType.MEETING_REMINDER, NotificationType.PAYMENT_DUE),
+            enabledByDefault = true
+        ),
+        NotificationPreferenceContract(
+            id = "deadlines",
+            notificationTypes = setOf(NotificationType.DEADLINE_REMINDER),
+            enabledByDefault = true
+        ),
+        NotificationPreferenceContract(
+            id = "weekly_digest",
+            notificationTypes = setOf(NotificationType.EVENT_UPDATE),
+            enabledByDefault = false
+        )
+    )
+
+internal fun defaultEnabledNotificationTypes(): Set<NotificationType> =
+    notificationPreferenceContracts()
+        .filter(NotificationPreferenceContract::enabledByDefault)
+        .flatMap { it.notificationTypes }
+        .toSet()
+
+internal fun notificationDefaultQuietHoursStart(): QuietTime =
+    defaultNotificationPreferences("").quietHoursStart ?: QuietTime(22, 0)
+
+internal fun notificationDefaultQuietHoursEnd(): QuietTime =
+    defaultNotificationPreferences("").quietHoursEnd ?: QuietTime(8, 0)
+
+internal fun notificationQuietHoursWindowLabel(
+    start: QuietTime = notificationDefaultQuietHoursStart(),
+    end: QuietTime = notificationDefaultQuietHoursEnd()
+): String = "${start.toDisplayString()} - ${end.toDisplayString()}"
+
 // MARK: - Screen
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -93,59 +149,43 @@ fun NotificationPreferencesScreen(
     val deadlinesDesc = stringResource(R.string.prefs_deadlines_desc)
     val weeklyLabel = stringResource(R.string.prefs_weekly_digest)
     val weeklyDesc = stringResource(R.string.prefs_weekly_digest_desc)
-    val preferenceDefinitions = listOf(
-        PreferenceToggleItem(
-            id = "votes",
-            label = votesLabel,
-            description = votesDesc,
-            icon = Icons.Filled.HowToVote,
-            notificationTypes = setOf(NotificationType.VOTE_REMINDER, NotificationType.VOTE_CLOSE_REMINDER),
-            isEnabled = true
-        ),
-        PreferenceToggleItem(
-            id = "comments",
-            label = commentsLabel,
-            description = commentsDesc,
-            icon = Icons.Filled.ChatBubble,
-            notificationTypes = setOf(NotificationType.NEW_COMMENT, NotificationType.COMMENT_REPLY, NotificationType.MENTION),
-            isEnabled = true
-        ),
-        PreferenceToggleItem(
-            id = "status_changes",
-            label = statusLabel,
-            description = statusDesc,
-            icon = Icons.Filled.SwapHoriz,
-            notificationTypes = setOf(NotificationType.DATE_CONFIRMED, NotificationType.NEW_SCENARIO, NotificationType.SCENARIO_SELECTED),
-            isEnabled = true
-        ),
-        PreferenceToggleItem(
-            id = "reminders",
-            label = remindersLabel,
-            description = remindersDesc,
-            icon = Icons.Filled.Notifications,
-            notificationTypes = setOf(NotificationType.EVENT_INVITE, NotificationType.MEETING_REMINDER, NotificationType.PAYMENT_DUE),
-            isEnabled = true
-        ),
-        PreferenceToggleItem(
-            id = "deadlines",
-            label = deadlinesLabel,
-            description = deadlinesDesc,
-            icon = Icons.Filled.AccessTime,
-            notificationTypes = setOf(NotificationType.DEADLINE_REMINDER),
-            isEnabled = true
-        ),
-        PreferenceToggleItem(
-            id = "weekly_digest",
-            label = weeklyLabel,
-            description = weeklyDesc,
-            icon = Icons.Filled.Newspaper,
-            notificationTypes = setOf(NotificationType.EVENT_UPDATE),
-            isEnabled = false
-        )
+    val labelsById = mapOf(
+        "votes" to votesLabel,
+        "comments" to commentsLabel,
+        "status_changes" to statusLabel,
+        "reminders" to remindersLabel,
+        "deadlines" to deadlinesLabel,
+        "weekly_digest" to weeklyLabel
     )
+    val descriptionsById = mapOf(
+        "votes" to votesDesc,
+        "comments" to commentsDesc,
+        "status_changes" to statusDesc,
+        "reminders" to remindersDesc,
+        "deadlines" to deadlinesDesc,
+        "weekly_digest" to weeklyDesc
+    )
+    val iconsById = mapOf(
+        "votes" to Icons.Filled.HowToVote,
+        "comments" to Icons.Filled.ChatBubble,
+        "status_changes" to Icons.Filled.SwapHoriz,
+        "reminders" to Icons.Filled.Notifications,
+        "deadlines" to Icons.Filled.AccessTime,
+        "weekly_digest" to Icons.Filled.Newspaper
+    )
+    val preferenceDefinitions = notificationPreferenceContracts().map { contract ->
+        PreferenceToggleItem(
+            id = contract.id,
+            label = labelsById.getValue(contract.id),
+            description = descriptionsById.getValue(contract.id),
+            icon = iconsById.getValue(contract.id),
+            notificationTypes = contract.notificationTypes,
+            isEnabled = contract.enabledByDefault
+        )
+    }
 
     var enabledTypes by remember(userId) {
-        mutableStateOf(defaultNotificationPreferences(userId.orEmpty()).enabledTypes)
+        mutableStateOf(defaultEnabledNotificationTypes())
     }
     var soundEnabled by remember { mutableStateOf(true) }
     var vibrationEnabled by remember { mutableStateOf(true) }
@@ -154,11 +194,15 @@ fun NotificationPreferencesScreen(
     LaunchedEffect(notificationService, userId) {
         if (notificationService == null || userId.isNullOrBlank()) return@LaunchedEffect
         val storedPreferences = notificationService.getPreferences(userId)
-            ?: defaultNotificationPreferences(userId)
-        enabledTypes = storedPreferences.enabledTypes
-        soundEnabled = storedPreferences.soundEnabled
-        vibrationEnabled = storedPreferences.vibrationEnabled
-        quietHoursEnabled = storedPreferences.quietHoursStart != null && storedPreferences.quietHoursEnd != null
+        if (storedPreferences == null) {
+            enabledTypes = defaultEnabledNotificationTypes()
+            quietHoursEnabled = false
+        } else {
+            enabledTypes = storedPreferences.enabledTypes
+            soundEnabled = storedPreferences.soundEnabled
+            vibrationEnabled = storedPreferences.vibrationEnabled
+            quietHoursEnabled = storedPreferences.quietHoursStart != null && storedPreferences.quietHoursEnd != null
+        }
     }
 
     val preferences = preferenceDefinitions.map { item ->
@@ -172,8 +216,8 @@ fun NotificationPreferencesScreen(
                 NotificationPreferences(
                     userId = userId,
                     enabledTypes = enabledTypes,
-                    quietHoursStart = if (quietHoursEnabled) QuietTime(22, 0) else null,
-                    quietHoursEnd = if (quietHoursEnabled) QuietTime(7, 0) else null,
+                    quietHoursStart = if (quietHoursEnabled) notificationDefaultQuietHoursStart() else null,
+                    quietHoursEnd = if (quietHoursEnabled) notificationDefaultQuietHoursEnd() else null,
                     soundEnabled = soundEnabled,
                     vibrationEnabled = vibrationEnabled,
                     updatedAt = Clock.System.now()
@@ -284,7 +328,7 @@ fun NotificationPreferencesScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Filled.VolumeUp,
+                        imageVector = Icons.AutoMirrored.Filled.VolumeUp,
                         contentDescription = null,
                         tint = if (soundEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(24.dp)
@@ -363,7 +407,7 @@ fun NotificationPreferencesScreen(
                         Icon(
                             imageVector = Icons.Filled.NightsStay,
                             contentDescription = null,
-                            tint = if (quietHoursEnabled) Color(0xFF9333EA) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = if (quietHoursEnabled) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(24.dp)
                         )
 
@@ -376,7 +420,7 @@ fun NotificationPreferencesScreen(
                             )
                             if (quietHoursEnabled) {
                                 Text(
-                                    text = "22:00 - 07:00",
+                                    text = notificationQuietHoursWindowLabel(),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
