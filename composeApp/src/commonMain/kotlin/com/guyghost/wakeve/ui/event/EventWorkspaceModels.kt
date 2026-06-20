@@ -69,6 +69,7 @@ data class EventReorganizationSummary(
 
 enum class EventWidgetKind {
     EventToday,
+    Travel,
     Countdown,
     NextTask,
     Empty
@@ -317,6 +318,16 @@ internal fun List<Event>.toEventWidgetSummary(
         val (event, start) = nextDatedEvent
         val eventDate = start.toLocalDateTime(timeZone).date
         val daysUntil = today.daysUntil(eventDate)
+        if (event.isTravelWidgetCandidate()) {
+            return EventWidgetSummary(
+                kind = EventWidgetKind.Travel,
+                eventId = event.id,
+                title = "Voyage à préparer",
+                headline = event.title,
+                body = "${event.participants.size} participant${if (event.participants.size > 1) "s" else ""} - transport, budget et programme à vérifier",
+                actionLabel = if (event.organizerId == currentUserId) "Piloter" else "Préparer"
+            )
+        }
         return EventWidgetSummary(
             kind = EventWidgetKind.Countdown,
             eventId = event.id,
@@ -358,4 +369,21 @@ private fun Event.widgetStartInstant(): Instant? {
     return proposedSlots
         .mapNotNull { slot -> slot.start?.let { raw -> runCatching { Instant.parse(raw) }.getOrNull() } }
         .minByOrNull { it.toEpochMilliseconds() }
+}
+
+private fun Event.isTravelWidgetCandidate(): Boolean {
+    if (eventType == EventType.OUTDOOR_ACTIVITY) return true
+
+    val searchableText = "$title $description ${eventType.name}".lowercase()
+    return listOf(
+        "trip",
+        "travel",
+        "voyage",
+        "weekend",
+        "week-end",
+        "road trip",
+        "retreat",
+        "séjour",
+        "sejour"
+    ).any { keyword -> keyword in searchableText }
 }
