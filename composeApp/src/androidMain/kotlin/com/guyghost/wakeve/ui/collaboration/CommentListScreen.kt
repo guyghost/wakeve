@@ -44,6 +44,7 @@ import kotlinx.datetime.Clock
  * @param onDelete Callback to delete a comment
  * @param onPin Callback to pin/unpin a comment
  * @param onUserClick Callback when user avatar/name is clicked
+ * @param onLoadMoreReplies Callback to load additional replies for a parent comment
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,7 +60,8 @@ fun CommentListScreen(
     onEdit: (String, String) -> Unit = { _, _ -> },
     onDelete: (String) -> Unit = {},
     onPin: (String, Boolean) -> Unit = { _, _ -> },
-    onUserClick: (String) -> Unit = {}
+    onUserClick: (String) -> Unit = {},
+    onLoadMoreReplies: ((String) -> Unit)? = null
 ) {
     var commentText by remember { mutableStateOf("") }
     var mentionedUsers by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -106,7 +108,8 @@ fun CommentListScreen(
                         onEdit = onEdit,
                         onDelete = onDelete,
                         onPin = onPin,
-                        onUserClick = onUserClick
+                        onUserClick = onUserClick,
+                        onLoadMoreReplies = onLoadMoreReplies
                     )
                 }
 
@@ -149,7 +152,8 @@ fun CommentThreadItem(
     onEdit: (String, String) -> Unit,
     onDelete: (String) -> Unit,
     onPin: (String, Boolean) -> Unit,
-    onUserClick: (String) -> Unit
+    onUserClick: (String) -> Unit,
+    onLoadMoreReplies: ((String) -> Unit)?
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         // Parent comment
@@ -192,13 +196,20 @@ fun CommentThreadItem(
 
         // Load more replies indicator
         if (thread.hasMoreReplies) {
+            val canLoadMoreReplies = onLoadMoreReplies != null
             Text(
                 text = loadMoreRepliesLabel(thread.comment.replyCount),
-                color = WakeveColors.primary,
+                color = if (canLoadMoreReplies) WakeveColors.primary else WakeveColors.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
                     .padding(start = 56.dp, top = 4.dp)
-                    .clickable { /* TODO: Load more */ }
+                    .then(
+                        if (canLoadMoreReplies) {
+                            Modifier.clickable { onLoadMoreReplies?.invoke(thread.comment.id) }
+                        } else {
+                            Modifier
+                        }
+                    )
             )
         }
     }
