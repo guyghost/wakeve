@@ -142,6 +142,8 @@ The refreshed helper now accepts either `TEAM_ID` or `APPLE_TEAM_ID` and records
 
 This refresh is preparation evidence only. It does not close OpenSpec task `6.6`, because no supported physical device has been profiled with Apple Intelligence enabled, Foundation Models `.available`, latency, cancellation, memory, trace, and production-log privacy evidence.
 
+Every generated device-profile report explicitly records `Generated report can close OpenSpec task = no - preparation evidence only`. Closing `6.6` requires reviewed profiling evidence from a supported physical device, not just a fresh helper output.
+
 ### 2026-06-20 Simulator Regression Refresh
 
 Command:

@@ -250,10 +250,22 @@ require_source_match() {
     fi
 }
 
+latest_archived_openspec_change_dir() {
+    local change_id="$1"
+    local archive_root="$PROJECT_DIR/openspec/changes/archive"
+
+    if [ ! -d "$archive_root" ]; then
+        return 0
+    fi
+
+    find "$archive_root" -maxdepth 1 -type d -name "????-??-??-${change_id}" | sort | tail -n 1
+}
+
 require_openspec_tasks_complete() {
     local change_id="$1"
     local label="$2"
     local active_tasks="$PROJECT_DIR/openspec/changes/$change_id/tasks.md"
+    local archived_dir=""
     local archived_tasks=""
 
     if [ -f "$active_tasks" ]; then
@@ -265,11 +277,12 @@ require_openspec_tasks_complete() {
         return 0
     fi
 
-    if [ -d "$PROJECT_DIR/openspec/archive" ]; then
-        archived_tasks=$(find "$PROJECT_DIR/openspec/archive" -type f -path "*/tasks.md" | grep -E "/[0-9]{4}-[0-9]{2}-[0-9]{2}-${change_id}/tasks\.md$" | sort | tail -n 1 || true)
+    archived_dir="$(latest_archived_openspec_change_dir "$change_id")"
+    if [ -n "$archived_dir" ]; then
+        archived_tasks="$archived_dir/tasks.md"
     fi
 
-    if [ -z "$archived_tasks" ]; then
+    if [ -z "$archived_tasks" ] || [ ! -f "$archived_tasks" ]; then
         blocker "$label OpenSpec tasks are missing; expected active or archived change $change_id"
         return 0
     fi
@@ -277,23 +290,35 @@ require_openspec_tasks_complete() {
     if grep -Eq '^- \[ \]' "$archived_tasks"; then
         blocker "$label archived OpenSpec tasks still contain unchecked items (${archived_tasks#$PROJECT_DIR/})"
     else
-        pass "$label archived OpenSpec tasks have no unchecked items"
+        pass "$label OpenSpec tasks have no unchecked items (archived ${archived_tasks#$PROJECT_DIR/})"
     fi
 }
 
 require_openspec_change_valid() {
     local change_id="$1"
     local label="$2"
+    local active_change="$PROJECT_DIR/openspec/changes/$change_id"
+    local archived_change=""
 
     if ! command -v openspec >/dev/null 2>&1; then
         blocker "$label OpenSpec proposal cannot be validated because openspec is unavailable"
         return 0
     fi
 
-    if (cd "$PROJECT_DIR" && openspec validate "$change_id" --strict >/dev/null 2>&1); then
-        pass "$label OpenSpec proposal validates strictly"
+    if [ -d "$active_change" ]; then
+        if (cd "$PROJECT_DIR" && openspec validate "$change_id" --strict >/dev/null 2>&1); then
+            pass "$label OpenSpec proposal validates strictly"
+        else
+            blocker "$label OpenSpec proposal does not validate strictly ($change_id)"
+        fi
+        return 0
+    fi
+
+    archived_change="$(latest_archived_openspec_change_dir "$change_id")"
+    if [ -n "$archived_change" ]; then
+        pass "$label OpenSpec change is archived (${archived_change#$PROJECT_DIR/})"
     else
-        blocker "$label OpenSpec proposal does not validate strictly ($change_id)"
+        blocker "$label OpenSpec change is missing; expected active or archived change $change_id"
     fi
 }
 
@@ -870,7 +895,7 @@ require_file "docs/APP_STORE_EXPORT_COMPLIANCE_EVIDENCE.md" "App Store export co
 require_file "docs/APP_STORE_REVIEW_ACCESS_EVIDENCE.md" "App Store review access evidence record"
 
 echo ""
-note "Checking active App Store OpenSpec proposals"
+note "Checking App Store OpenSpec changes"
 require_openspec_change_valid "add-in-app-account-deletion" "Account deletion"
 require_openspec_change_valid "add-ugc-moderation-controls" "UGC moderation"
 
