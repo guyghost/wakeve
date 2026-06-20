@@ -1614,8 +1614,9 @@ validate_app_store_readiness_report() {
         "## Latest 2026-06-21 Refresh"
         'api.wakeve.app` now resolves publicly and the live health URL is reachable'
         '`wakeve.app` itself still has no public DNS answer'
-        "Result: 3108 checks passed, 0 errors, 1 warning"
+        "Result: 3110 checks passed, 0 errors, 1 warning"
         "Result: 3107 checks passed, 17 errors, 1 warning"
+        "Current quick baseline on 2026-06-21 with \`APP_REVIEW_PHONE_NUMBER='+33123456789'\`: exits non-zero with 21 blockers and 1 warning"
         'https://api.wakeve.app/health` is now publicly reachable'
         "live URL/AASA evidence"
         "final signoff record"
@@ -3263,7 +3264,8 @@ validate_app_store_blocker_register() {
 	        "rejected items must be edited and resubmitted or removed"
 	        "Developer Rejected and the review process starts over"
 	        "submissions may not be reviewed in the order submitted"
-	        "Current result on 2026-06-20: 21 blockers, 1 warning"
+	        "Current result on 2026-06-21: 21 blockers, 1 warning"
+	        'The warning is expected for this quick baseline because `--skip-preflight` intentionally omits the local Fastlane preflight'
 	        "APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/app-store-submission-audit.sh --skip-preflight"
 	        'the documented placeholder `+15551234567` is now rejected by the final audit'
 	        "Full local preflight baseline"

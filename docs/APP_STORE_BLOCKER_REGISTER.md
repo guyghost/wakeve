@@ -46,7 +46,7 @@ Current audit baseline:
 APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/app-store-submission-audit.sh --skip-preflight
 ```
 
-Current result on 2026-06-20: 21 blockers, 1 warning. The phone number above is a non-placeholder test value used only to verify blocker accounting without committing personal information; the documented placeholder `+15551234567` is now rejected by the final audit.
+Current result on 2026-06-21: 21 blockers, 1 warning. The phone number above is a non-placeholder test value used only to verify blocker accounting without committing personal information; the documented placeholder `+15551234567` is now rejected by the final audit. The warning is expected for this quick baseline because `--skip-preflight` intentionally omits the local Fastlane preflight.
 
 Full local preflight baseline:
 
