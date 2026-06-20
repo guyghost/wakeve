@@ -194,21 +194,21 @@ For comprehensive documentation, visit **[docs/](./docs/)**:
 - Kotlin 2.2.20
 - Gradle 8.14+
 - Android SDK (for Android development)
-- Xcode 15+ (for iOS development)
+- Xcode with an available iOS simulator (for iOS development)
 
 ### Build Commands
 ```bash
-# Run all tests
-./gradlew shared:test
+# Run shared JVM tests
+./gradlew :shared:jvmTest
 
 # Run specific test
-./gradlew shared:test --tests "EventRepositoryTest"
+./gradlew :shared:jvmTest --tests "EventRepositoryTest"
 
 # Build Android app
 ./gradlew :composeApp:assembleDebug
 
 # Start server
-./gradlew server:run
+./gradlew :server:run
 
 # Format code
 ./gradlew spotlessApply
@@ -355,14 +355,14 @@ java -version          # Verify Java 11+
 
 **Tests Failing**
 ```bash
-./gradlew shared:test --info  # Verbose output
-./gradlew shared:test --tests "TestName" -d  # Debug mode
+./gradlew :shared:jvmTest --info  # Verbose output
+./gradlew :shared:jvmTest --tests "TestName" -d  # Debug mode
 ```
 
 **Server Won't Start**
 ```bash
 lsof -i :8080          # Check port 8080
-./gradlew server:run --info  # Debug mode
+./gradlew :server:run --info  # Debug mode
 ```
 
 See [QUICK_START.md](./QUICK_START.md) for more solutions.
