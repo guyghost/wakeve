@@ -598,6 +598,7 @@ private struct HomeDraftResumeCard: View {
                             .font(WakeveTheme.Typography.rowTitle)
                             .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.8)
 
                         Text(draftSubtitle)
                             .font(WakeveTheme.Typography.callout)

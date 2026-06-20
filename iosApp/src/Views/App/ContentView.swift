@@ -3731,6 +3731,7 @@ private struct EventDetailNextActionCard: View {
                         }
                     }
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)
 
                     Text(title)
                         .font(WakeveTheme.Typography.rowTitle)

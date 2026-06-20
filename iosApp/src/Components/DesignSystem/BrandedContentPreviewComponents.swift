@@ -55,6 +55,7 @@ struct WakeveInvitationPreviewCard: View {
                             .font(.system(.caption, design: .monospaced))
                             .foregroundColor(SemanticColor.tertiaryText(for: colorScheme))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.75)
                             .truncationMode(.middle)
                     }
                 }
@@ -195,7 +196,7 @@ struct WakeveWidgetPreviewCard: View {
             if let progress {
                 ProgressView(value: min(max(progress, 0), 1))
                     .tint(SemanticColor.progress(for: colorScheme))
-                    .accessibilityLabel("Progression")
+                    .accessibilityLabel(String(localized: "common.progress"))
             }
         }
         .padding(WakeveTheme.Spacing.md)
