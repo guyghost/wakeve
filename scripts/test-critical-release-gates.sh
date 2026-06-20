@@ -145,7 +145,8 @@ assert_android_event_workspace_harness() {
 assert_android_event_workspace_device_audit_helper() {
     local output_dir
     local report
-    output_dir="$(mktemp -d)"
+    mkdir -p "$PROJECT_DIR/build/tmp"
+    output_dir="$(mktemp -d "$PROJECT_DIR/build/tmp/android-event-workspace-audit.XXXXXX")"
 
     bash -n "$PROJECT_DIR/scripts/prepare-android-event-workspace-device-audit.sh"
     report="$(OUTPUT_DIR="$output_dir" "$PROJECT_DIR/scripts/prepare-android-event-workspace-device-audit.sh")"
@@ -154,6 +155,7 @@ assert_android_event_workspace_device_audit_helper() {
         echo "FAIL: Android Event workspace device audit helper did not create a report at $report" >&2
         exit 1
     fi
+    assert_generated_report_is_commit_safe "$report" "Android Event workspace device audit"
 
     local required_patterns=(
         'Status: `'
