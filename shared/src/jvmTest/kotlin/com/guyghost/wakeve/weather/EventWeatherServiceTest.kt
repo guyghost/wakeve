@@ -5,8 +5,11 @@ import com.guyghost.wakeve.models.Coordinates
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.LocationType
+import com.guyghost.wakeve.models.Scenario
+import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.repository.ScenarioRepository
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -85,6 +88,109 @@ class EventWeatherServiceTest {
             assertEquals(WeatherAvailability.PENDING_FORECAST_WINDOW, context.availability)
             assertEquals("2026-07-11", context.earliestRefreshDate)
             assertEquals(null, provider.lastRequest)
+        }
+    }
+
+    @Test
+    fun selectedScenarioDateRangeFeedsForecastRequestWhenEventDateIsNotConfirmed() {
+        runBlocking {
+            val db = createFreshTestDatabase()
+            val eventRepository = DatabaseEventRepository(db)
+            val scenarioRepository = ScenarioRepository(db)
+            val provider = FakeWeatherProvider(
+                result = WeatherProviderResult.Available(
+                    dailyForecasts = listOf(
+                        WeatherDailyForecast(
+                            date = "2026-06-22",
+                            condition = WeatherCondition.PARTLY_CLOUDY,
+                            temperatureLowCelsius = 17.0,
+                            temperatureHighCelsius = 25.0,
+                            precipitationProbability = 0.2,
+                            windSpeedKph = 11.0,
+                            summary = "Good for a weekend plan"
+                        )
+                    ),
+                    fetchedAt = "2026-06-18T08:00:00Z",
+                    expiresAt = "2026-06-18T14:00:00Z",
+                    providerName = "FakeWeather"
+                )
+            )
+            val service = EventWeatherService(
+                eventRepository = eventRepository,
+                locationRepository = DatabaseEventWeatherLocationRepository(db),
+                weatherCache = SqlDelightEventWeatherCache(db),
+                weatherProvider = provider,
+                nowProvider = { "2026-06-18T09:00:00Z" },
+                scenarioRepository = ScenarioEventWeatherRepository(scenarioRepository)
+            )
+
+            createUnconfirmedScenarioEvent(eventRepository)
+            scenarioRepository.createScenario(
+                testScenario(
+                    dateOrPeriod = "2026-06-22/2026-06-24",
+                    duration = 3,
+                    status = ScenarioStatus.SELECTED
+                )
+            ).getOrThrow()
+            insertLocation(db, coordinates = Coordinates(43.2965, 5.3698))
+
+            val context = service.loadWeatherContext("event-weather-1")
+
+            assertEquals(WeatherAvailability.AVAILABLE, context.availability)
+            assertEquals("2026-06-22", provider.lastRequest?.startDate)
+            assertEquals("2026-06-24", provider.lastRequest?.endDate)
+            assertEquals("UTC", provider.lastRequest?.timezone)
+        }
+    }
+
+    @Test
+    fun confirmedDateTakesPriorityOverSelectedScenarioDate() {
+        runBlocking {
+            val db = createFreshTestDatabase()
+            val eventRepository = DatabaseEventRepository(db)
+            val scenarioRepository = ScenarioRepository(db)
+            val provider = FakeWeatherProvider(
+                result = WeatherProviderResult.Available(
+                    dailyForecasts = listOf(
+                        WeatherDailyForecast(
+                            date = "2026-06-22",
+                            condition = WeatherCondition.SUNNY,
+                            temperatureLowCelsius = 18.0,
+                            temperatureHighCelsius = 27.0,
+                            precipitationProbability = 0.12,
+                            windSpeedKph = 14.0,
+                            summary = "Confirmed date wins"
+                        )
+                    ),
+                    fetchedAt = "2026-06-18T08:00:00Z",
+                    expiresAt = "2026-06-18T14:00:00Z",
+                    providerName = "FakeWeather"
+                )
+            )
+            val service = EventWeatherService(
+                eventRepository = eventRepository,
+                locationRepository = DatabaseEventWeatherLocationRepository(db),
+                weatherCache = SqlDelightEventWeatherCache(db),
+                weatherProvider = provider,
+                nowProvider = { "2026-06-18T09:00:00Z" },
+                scenarioRepository = ScenarioEventWeatherRepository(scenarioRepository)
+            )
+
+            createConfirmedEvent(eventRepository)
+            scenarioRepository.createScenario(
+                testScenario(
+                    dateOrPeriod = "2026-06-25/2026-06-26",
+                    duration = 2,
+                    status = ScenarioStatus.SELECTED
+                )
+            ).getOrThrow()
+            insertLocation(db, coordinates = Coordinates(43.2965, 5.3698))
+
+            service.loadWeatherContext("event-weather-1")
+
+            assertEquals("2026-06-22", provider.lastRequest?.startDate)
+            assertEquals("2026-06-22", provider.lastRequest?.endDate)
+            assertEquals("Europe/Paris", provider.lastRequest?.timezone)
         }
     }
 
@@ -209,6 +315,46 @@ class EventWeatherServiceTest {
             )
         ).getOrThrow()
         eventRepository.confirmEventDate("event-weather-1", "slot-weather-1", "organizer").getOrThrow()
+    }
+
+    private suspend fun createUnconfirmedScenarioEvent(
+        eventRepository: DatabaseEventRepository
+    ) {
+        eventRepository.createEvent(
+            Event(
+                id = "event-weather-1",
+                title = "Scenario event",
+                description = "Weather-aware scenario planning",
+                organizerId = "organizer",
+                participants = listOf("organizer", "alice"),
+                proposedSlots = emptyList(),
+                deadline = "2026-06-20T12:00:00Z",
+                status = EventStatus.COMPARING,
+                createdAt = "2026-06-01T08:00:00Z",
+                updatedAt = "2026-06-01T08:00:00Z"
+            )
+        ).getOrThrow()
+    }
+
+    private fun testScenario(
+        dateOrPeriod: String,
+        duration: Int,
+        status: ScenarioStatus
+    ): Scenario {
+        return Scenario(
+            id = "scenario-weather-1",
+            eventId = "event-weather-1",
+            name = "Marseille weekend",
+            dateOrPeriod = dateOrPeriod,
+            location = "Marseille, France",
+            duration = duration,
+            estimatedParticipants = 4,
+            estimatedBudgetPerPerson = 180.0,
+            description = "Scenario with an explicit weather date range",
+            status = status,
+            createdAt = "2026-06-01T08:00:00Z",
+            updatedAt = "2026-06-01T08:00:00Z"
+        )
     }
 
     private fun insertLocation(
