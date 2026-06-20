@@ -47,10 +47,10 @@ The shared notification model currently defines these categories and default act
 
 | Category | Identifier | Default Actions | Release Contract Notes |
 |----------|------------|-----------------|------------------------|
-| Event invite | `event_invite` | `accept`, `maybe`, `decline` | Existing contract. Any server-side direct accept/decline behavior must stay authenticated and idempotent. |
-| Poll reminder | `poll_reminder` | `vote` | Existing contract. Review-flow routing should prefer opening the poll screen rather than writing a vote from the notification. |
+| Event invite | `event_invite` | none | Existing contract. Invite decisions open the app and stay authenticated/idempotent in-app. |
+| Poll reminder | `poll_reminder` | none | Existing contract. Review-flow routing opens the poll screen rather than writing a vote from the notification. |
 | Meeting starting | `meeting_starting` | `join` | Existing contract, but not App Review-critical for the first submission. |
-| Scenario vote | `scenario_vote` | `yes`, `no` | Existing contract, but not promoted for first-release App Review evidence. |
+| Scenario vote | `scenario_vote` | none | Existing contract, but not promoted for first-release App Review evidence; scenario votes stay in-app. |
 | General | `general` | none | Safe default for informational notifications. |
 
 Do not add new notification categories, actions, background execution behavior, or direct-write notification actions without an OpenSpec proposal. For the first review build, prefer a general notification or an existing category that opens one of the priority review links above.
