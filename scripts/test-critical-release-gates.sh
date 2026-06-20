@@ -47,6 +47,27 @@ assert_no_android_release_local_backend_defaults() {
     echo "PASS: Android release source has no localhost, loopback, or emulator backend defaults"
 }
 
+assert_android_compose_hygiene() {
+    local source_dirs=(
+        "$PROJECT_DIR/composeApp/src/androidMain"
+        "$PROJECT_DIR/composeApp/src/commonMain"
+    )
+
+    local deprecated_compose_pattern='(^|[^A-Za-z0-9_])Divider\(|\.menuAnchor\(\)'
+    if grep -RInE "$deprecated_compose_pattern" "${source_dirs[@]}"; then
+        echo "FAIL: Android Compose source reintroduced deprecated Divider or parameterless menuAnchor usage" >&2
+        exit 1
+    fi
+
+    local non_mirrored_directional_icon_pattern='Icons\.(Default|Filled|Outlined)\.(ArrowBack|ArrowForward|ExitToApp|Send|TrendingUp|VolumeUp|Comment)'
+    if grep -RInE "$non_mirrored_directional_icon_pattern" "${source_dirs[@]}"; then
+        echo "FAIL: Android Compose source uses directional icons without AutoMirrored variants" >&2
+        exit 1
+    fi
+
+    echo "PASS: Android Compose source avoids deprecated dividers, parameterless menu anchors, and non-mirrored directional icons"
+}
+
 assert_ios_profile_legal_notice_links() {
     local profile="$PROJECT_DIR/iosApp/src/Views/Profile/ProfileTabView.swift"
     local english="$PROJECT_DIR/iosApp/src/Resources/en.lproj/Localizable.strings"
@@ -157,6 +178,7 @@ run ./scripts/test-app-store-ugc-gates.sh
 
 assert_no_sensitive_server_logs
 assert_no_android_release_local_backend_defaults
+assert_android_compose_hygiene
 assert_ios_profile_legal_notice_links
 assert_wakeve_ai_device_profile_helper
 assert_weatherkit_device_validation_helper
