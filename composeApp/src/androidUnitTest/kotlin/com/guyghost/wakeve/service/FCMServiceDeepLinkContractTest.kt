@@ -74,7 +74,7 @@ class FCMServiceDeepLinkContractTest {
     fun resolveFcmBackendApiBaseUrl_usesLocalDefaultWhenBlank() {
         val result = resolveFcmBackendApiBaseUrl("  ")
 
-        assertEquals("http://10.0.2.2:8080/api", result)
+        assertEquals("https://api.wakeve.app/api", result)
     }
 
     @Test
