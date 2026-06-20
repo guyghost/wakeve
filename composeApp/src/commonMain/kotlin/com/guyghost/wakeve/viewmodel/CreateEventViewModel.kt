@@ -179,28 +179,28 @@ class CreateEventViewModel(
     private fun validateForm(): String? {
         // Required fields
         if (_title.value.isBlank()) {
-            return "Title is required"
+            return eventCreationTitleRequiredMessage()
         }
         if (_description.value.isBlank()) {
-            return "Description is required"
+            return eventCreationDescriptionRequiredMessage()
         }
         if (_timeSlots.value.isEmpty()) {
-            return "At least one time slot is required"
+            return eventCreationTimeSlotRequiredMessage()
         }
         if (_planningMode.value == EventPlanningMode.SCENARIO_MATRIX && _potentialLocations.value.isEmpty()) {
-            return "At least one destination is required for scenario matrix mode"
+            return eventCreationScenarioDestinationRequiredMessage()
         }
 
         // Conditional validation for custom event type
         if (_eventType.value == EventType.CUSTOM && (_eventTypeCustom.value.isNullOrBlank())) {
-            return "Custom event type requires a description"
+            return eventCreationCustomTypeRequiredMessage()
         }
 
         // Participant count validation
         val min = _minParticipants.value
         val max = _maxParticipants.value
         if (min != null && max != null && max < min) {
-            return "Maximum participants must be greater than or equal to minimum"
+            return eventCreationParticipantRangeMessage()
         }
 
         return null
@@ -329,3 +329,21 @@ internal fun eventCreationFailureMessage(): String {
 internal fun eventCreationFailureAnalyticsContext(): String {
     return "event_creation_failed"
 }
+
+internal fun eventCreationTitleRequiredMessage(): String =
+    "Le titre est requis."
+
+internal fun eventCreationDescriptionRequiredMessage(): String =
+    "La description est requise."
+
+internal fun eventCreationTimeSlotRequiredMessage(): String =
+    "Ajoutez au moins un creneau."
+
+internal fun eventCreationScenarioDestinationRequiredMessage(): String =
+    "Ajoutez au moins une destination pour comparer les scenarios."
+
+internal fun eventCreationCustomTypeRequiredMessage(): String =
+    "Decrivez le type d'evenement personnalise."
+
+internal fun eventCreationParticipantRangeMessage(): String =
+    "Le maximum de participants doit etre superieur ou egal au minimum."

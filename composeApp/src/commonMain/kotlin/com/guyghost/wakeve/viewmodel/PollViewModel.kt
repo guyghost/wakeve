@@ -159,7 +159,7 @@ class PollViewModel(
     ) {
         val votes = _selectedVotes.value
         if (votes.size != event.proposedSlots.size) {
-            _errorMessage.value = "Please vote on all time slots"
+            _errorMessage.value = pollVoteAllSlotsRequiredMessage()
             return
         }
 
@@ -245,7 +245,7 @@ class PollViewModel(
         val slotId = _selectedFinalSlotId.value
         val selectedSlot = event.proposedSlots.firstOrNull { it.id == slotId }
         if (selectedSlot == null) {
-            _confirmationError.value = "Select a time slot before confirming"
+            _confirmationError.value = finalDateSlotRequiredMessage()
             return
         }
 
@@ -300,8 +300,16 @@ internal fun pollVoteSubmissionFailureMessage(): String {
     return "Impossible d'enregistrer vos votes. Réessayez."
 }
 
+internal fun pollVoteAllSlotsRequiredMessage(): String {
+    return "Votez sur tous les créneaux avant d'envoyer vos réponses."
+}
+
 internal fun finalDateConfirmationFailureMessage(): String {
     return "Impossible de confirmer la date finale. Réessayez."
+}
+
+internal fun finalDateSlotRequiredMessage(): String {
+    return "Sélectionnez un créneau avant de confirmer."
 }
 
 internal fun finalDateOrganizerRequiredMessage(): String {
