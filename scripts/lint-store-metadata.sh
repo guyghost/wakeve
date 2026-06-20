@@ -1614,7 +1614,7 @@ validate_app_store_readiness_report() {
         "## Latest 2026-06-21 Refresh"
         'api.wakeve.app` now resolves publicly and the live health URL is reachable'
         '`wakeve.app` itself still has no public DNS answer'
-        "Result: 3106 checks passed, 0 errors, 1 warning"
+        "Result: 3108 checks passed, 0 errors, 1 warning"
         "Result: 3107 checks passed, 17 errors, 1 warning"
         'https://api.wakeve.app/health` is now publicly reachable'
         "live URL/AASA evidence"
