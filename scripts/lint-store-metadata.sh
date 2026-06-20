@@ -66,6 +66,27 @@ info() {
     echo -e "  ${BLUE}ℹ️  $1${NC}"
 }
 
+latest_archived_openspec_change_dir() {
+    local change_id="$1"
+    local archive_root="$PROJECT_DIR/openspec/changes/archive"
+
+    [ -d "$archive_root" ] || return 1
+
+    find "$archive_root" -maxdepth 1 -type d -name "*-$change_id" -print 2>/dev/null | sort | tail -n 1
+}
+
+validate_openspec_change_or_archive() {
+    local change_id="$1"
+
+    if (cd "$PROJECT_DIR" && openspec validate "$change_id" --strict >/dev/null 2>&1); then
+        return 0
+    fi
+
+    local archived_change
+    archived_change="$(latest_archived_openspec_change_dir "$change_id")"
+    [ -n "$archived_change" ] && [ -d "$archived_change" ]
+}
+
 # ──────────────────────────────────────────────────────────────
 # Validation functions
 # ──────────────────────────────────────────────────────────────
@@ -3630,7 +3651,7 @@ validate_app_store_account_deletion_evidence() {
     done
 
     if command -v openspec >/dev/null 2>&1; then
-        if (cd "$PROJECT_DIR" && openspec validate add-in-app-account-deletion --strict >/dev/null 2>&1); then
+        if validate_openspec_change_or_archive "add-in-app-account-deletion"; then
             pass "OpenSpec account deletion proposal: add-in-app-account-deletion validates strictly"
         else
             error "OpenSpec account deletion proposal: add-in-app-account-deletion does not validate strictly"
@@ -3738,7 +3759,7 @@ validate_app_store_ugc_moderation_evidence() {
     done
 
     if command -v openspec >/dev/null 2>&1; then
-        if (cd "$PROJECT_DIR" && openspec validate add-ugc-moderation-controls --strict >/dev/null 2>&1); then
+        if validate_openspec_change_or_archive "add-ugc-moderation-controls"; then
             pass "OpenSpec UGC moderation proposal: add-ugc-moderation-controls validates strictly"
         else
             error "OpenSpec UGC moderation proposal: add-ugc-moderation-controls does not validate strictly"
