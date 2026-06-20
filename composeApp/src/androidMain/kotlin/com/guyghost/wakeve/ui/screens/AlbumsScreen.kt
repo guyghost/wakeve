@@ -28,8 +28,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Image
@@ -44,9 +44,9 @@ import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -171,7 +171,7 @@ fun AlbumsScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            text = "Albums",
+                            text = albumsScreenTitle(),
                             style = MaterialTheme.typography.titleLarge
                         )
                     },
@@ -179,13 +179,13 @@ fun AlbumsScreen(
                         IconButton(onClick = { searchActive = true }) {
                             Icon(
                                 imageVector = Icons.Default.Search,
-                                contentDescription = "Rechercher"
+                                contentDescription = albumSearchContentDescription()
                             )
                         }
                         IconButton(onClick = { showCreateAlbumDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.Add,
-                                contentDescription = "Créer un album"
+                                contentDescription = albumCreateContentDescription()
                             )
                         }
                     },
@@ -203,7 +203,7 @@ fun AlbumsScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.PhotoCamera,
-                        contentDescription = "Ajouter des photos"
+                        contentDescription = albumAddPhotosContentDescription()
                     )
                 }
             }
@@ -247,7 +247,8 @@ fun AlbumsScreen(
                         autoAlbumSuggestions = uiState.autoAlbumSuggestions,
                         isLoading = uiState.isLoading,
                         onAlbumClick = onAlbumClick,
-                        onCreateAutoAlbum = onCreateAlbum
+                        onCreateAutoAlbum = onCreateAlbum,
+                        onSharePhotos = onSharePhotos
                     )
                 }
             }
@@ -305,8 +306,8 @@ private fun AlbumDetailTopBar(
         navigationIcon = {
             IconButton(onClick = onBack) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Retour"
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = albumBackContentDescription()
                 )
             }
         },
@@ -314,13 +315,13 @@ private fun AlbumDetailTopBar(
             IconButton(onClick = onShare) {
                 Icon(
                     imageVector = Icons.Default.Share,
-                    contentDescription = "Partager"
+                    contentDescription = albumShareContentDescription()
                 )
             }
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Supprimer"
+                    contentDescription = albumDeleteContentDescription()
                 )
             }
         },
@@ -358,7 +359,7 @@ private fun SearchOverlay(
                     onSearch = { onQueryChange(searchQuery) },
                     expanded = true,
                     onExpandedChange = {},
-                    placeholder = { Text("Rechercher des photos...") },
+                    placeholder = { Text(albumSearchPlaceholder()) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
@@ -369,7 +370,7 @@ private fun SearchOverlay(
                         IconButton(onClick = { onClose() }) {
                             Icon(
                                 imageVector = Icons.Default.Clear,
-                                contentDescription = "Fermer"
+                                contentDescription = albumCloseContentDescription()
                             )
                         }
                     }
@@ -395,7 +396,8 @@ private fun AlbumsListContent(
     autoAlbumSuggestions: List<String>,
     isLoading: Boolean,
     onAlbumClick: (Album) -> Unit,
-    onCreateAutoAlbum: (String) -> Unit
+    onCreateAutoAlbum: (String) -> Unit,
+    onSharePhotos: (List<String>) -> Unit
 ) {
     if (isLoading) {
         Box(
@@ -410,6 +412,15 @@ private fun AlbumsListContent(
             contentPadding = PaddingValues(bottom = 88.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            albumShareSummary(albums)?.let { summary ->
+                item {
+                    AlbumShareSummaryCard(
+                        summary = summary,
+                        onShare = { onSharePhotos(summary.photoIds) }
+                    )
+                }
+            }
+
             // Auto-album suggestions section
             if (autoAlbumSuggestions.isNotEmpty()) {
                 item {
@@ -424,7 +435,7 @@ private fun AlbumsListContent(
             if (albums.isNotEmpty()) {
                 item {
                     Text(
-                        text = "Mes Albums",
+                        text = albumListTitle(),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.padding(horizontal = 16.dp)
@@ -467,6 +478,51 @@ private fun AlbumsListContent(
     }
 }
 
+@Composable
+private fun AlbumShareSummaryCard(
+    summary: AlbumShareSummary,
+    onShare: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Share,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = summary.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+                Text(
+                    text = summary.body,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.75f)
+                )
+            }
+            TextButton(onClick = onShare) {
+                Text(albumShareNowActionLabel())
+            }
+        }
+    }
+}
+
 /**
  * Section displaying auto-album suggestions.
  */
@@ -479,7 +535,7 @@ private fun AutoAlbumSuggestionsSection(
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = "Suggestions d'albums",
+            text = albumSuggestionsTitle(),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 16.dp)
@@ -512,7 +568,7 @@ private fun AutoAlbumSuggestionsSection(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Divider(
+        HorizontalDivider(
             color = MaterialTheme.colorScheme.outlineVariant,
             modifier = Modifier.padding(horizontal = 16.dp)
         )
@@ -534,7 +590,7 @@ fun AlbumCard(
             .height(200.dp)
             .clickable(onClick = onClick)
             .semantics {
-                contentDescription = "Album: ${album.name}, ${album.photoCount()} photos"
+                contentDescription = albumCardContentDescription(album.name, album.photoCount())
             },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -561,7 +617,7 @@ fun AlbumCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Image,
-                            contentDescription = "Photo de couverture: ${album.name}",
+                            contentDescription = albumCoverContentDescription(album.name),
                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.size(48.dp)
                         )
@@ -611,7 +667,7 @@ fun AlbumCard(
                             .padding(8.dp)
                     ) {
                         Text(
-                            text = "Auto",
+                            text = albumAutoBadgeLabel(),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onTertiary,
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -647,7 +703,7 @@ fun AlbumCard(
                         modifier = Modifier.size(14.dp)
                     )
                     Text(
-                        text = "${album.photoCount()} photos",
+                        text = albumPhotoCountLabel(album.photoCount()),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -700,7 +756,7 @@ private fun AlbumDetailContent(
             // Photos grid
             item {
                 Text(
-                    text = "Photos (${photos.size})",
+                    text = albumPhotosSectionTitle(photos.size),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -776,7 +832,7 @@ private fun AlbumInfoHeader(
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
                 Text(
-                    text = "$photoCount photos",
+                    text = albumPhotoCountLabel(photoCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                 )
@@ -807,7 +863,7 @@ private fun SmartSharingSection(
             )
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Partage intelligent",
+                text = albumSmartSharingTitle(),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -872,7 +928,7 @@ private fun SharingSuggestionItem(
 
             Icon(
                 imageVector = Icons.Default.Share,
-                contentDescription = "Partager",
+                contentDescription = albumShareContentDescription(),
                 tint = MaterialTheme.colorScheme.primary
             )
         }
@@ -892,7 +948,7 @@ private fun PhotoThumbnailItem(
             .aspectRatio(1f)
             .clickable(onClick = onClick)
             .semantics {
-                contentDescription = "Photo: ${photo.caption ?: "sans légende"}"
+                contentDescription = albumPhotoContentDescription(photo.caption)
             },
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
@@ -919,8 +975,8 @@ private fun PhotoThumbnailItem(
             if (photo.isFavorite) {
                 Icon(
                     imageVector = Icons.Default.Star,
-                    contentDescription = "Favori",
-                    tint = Color(0xFFFFD700),
+                    contentDescription = albumFavoriteContentDescription(),
+                    tint = MaterialTheme.colorScheme.tertiary,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(4.dp)
@@ -975,7 +1031,7 @@ private fun SearchResultsContent(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Aucune photo trouvée",
+                            text = albumSearchEmptyMessage(),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1085,14 +1141,14 @@ private fun CreateAlbumDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Nouvel Album",
+                text = albumCreateDialogTitle(),
                 style = MaterialTheme.typography.titleLarge
             )
         },
         text = {
             Column {
                 Text(
-                    text = "Donnez un nom à votre album",
+                    text = albumCreateDialogDescription(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1100,8 +1156,8 @@ private fun CreateAlbumDialog(
                 androidx.compose.material3.OutlinedTextField(
                     value = albumName,
                     onValueChange = { albumName = it },
-                    label = { Text("Nom de l'album") },
-                    placeholder = { Text("Ex: Mariage de Sophie") },
+                    label = { Text(albumNameFieldLabel()) },
+                    placeholder = { Text(albumNamePlaceholder()) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1112,12 +1168,12 @@ private fun CreateAlbumDialog(
                 onClick = { onCreate(albumName) },
                 enabled = albumName.isNotBlank()
             ) {
-                Text("Créer")
+                Text(albumCreateActionLabel())
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler")
+                Text(albumCancelActionLabel())
             }
         }
     )
@@ -1140,12 +1196,12 @@ private fun EmptyAlbumsState(modifier: Modifier = Modifier) {
             modifier = Modifier.size(64.dp)
         )
         Text(
-            text = "Aucun album",
+            text = albumEmptyTitle(),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "Créez votre premier album pour organiser vos photos",
+            text = albumEmptyDescription(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
@@ -1170,12 +1226,12 @@ private fun EmptyPhotosState(modifier: Modifier = Modifier) {
             modifier = Modifier.size(64.dp)
         )
         Text(
-            text = "Aucune photo",
+            text = albumEmptyPhotosTitle(),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "Ajoutez des photos à cet album",
+            text = albumEmptyPhotosDescription(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
@@ -1209,3 +1265,114 @@ fun AlbumsScreen(
         modifier = modifier
     )
 }
+
+internal fun albumsScreenTitle(): String = "Albums"
+
+internal fun albumSearchContentDescription(): String = "Rechercher des photos"
+
+internal fun albumCreateContentDescription(): String = "Créer un album"
+
+internal fun albumAddPhotosContentDescription(): String = "Ajouter des photos"
+
+internal fun albumBackContentDescription(): String = "Retour"
+
+internal fun albumShareContentDescription(): String = "Partager"
+
+internal fun albumDeleteContentDescription(): String = "Supprimer"
+
+internal fun albumCloseContentDescription(): String = "Fermer"
+
+internal fun albumSearchPlaceholder(): String = "Rechercher des photos..."
+
+internal fun albumListTitle(): String = "Mes albums"
+
+internal fun albumSuggestionsTitle(): String = "Suggestions d'albums"
+
+internal fun albumCardContentDescription(albumName: String, photoCount: Int): String =
+    "Album $albumName, ${albumPhotoCountLabel(photoCount)}"
+
+internal fun albumCoverContentDescription(albumName: String): String =
+    "Photo de couverture de l'album $albumName"
+
+internal fun albumAutoBadgeLabel(): String = "Auto"
+
+internal fun albumPhotoCountLabel(photoCount: Int): String =
+    "$photoCount photo${if (photoCount > 1) "s" else ""}"
+
+internal fun albumPhotosSectionTitle(photoCount: Int): String =
+    "Photos (${albumPhotoCountLabel(photoCount)})"
+
+internal fun albumSmartSharingTitle(): String = "Partage intelligent"
+
+internal data class AlbumShareSummary(
+    val albumId: String,
+    val title: String,
+    val body: String,
+    val photoIds: List<String>
+)
+
+internal fun albumShareSummary(albums: List<Album>): AlbumShareSummary? {
+    val recommended = albums
+        .filter { it.photoIds.isNotEmpty() }
+        .maxWithOrNull(
+            compareBy<Album> { it.shareScore() }
+                .thenBy { it.updatedAt ?: it.createdAt }
+                .thenBy { it.name }
+        )
+        ?: return null
+
+    return AlbumShareSummary(
+        albumId = recommended.id,
+        title = albumShareSummaryTitle(recommended.name),
+        body = albumShareSummaryBody(recommended.photoCount(), recommended.isAutoGenerated),
+        photoIds = recommended.photoIds
+    )
+}
+
+private fun Album.shareScore(): Int =
+    photoCount() +
+        if (isAutoGenerated) 25 else 0 +
+        if (coverPhotoId != null) 10 else 0
+
+internal fun albumShareSummaryTitle(albumName: String): String =
+    "À partager maintenant : $albumName"
+
+internal fun albumShareSummaryBody(photoCount: Int, isAutoGenerated: Boolean): String {
+    val sourceLabel = if (isAutoGenerated) {
+        "cette sélection automatique"
+    } else {
+        "cet album prêt"
+    }
+    return "${albumPhotoCountLabel(photoCount)} dans $sourceLabel pour relancer le groupe après l'événement."
+}
+
+internal fun albumShareNowActionLabel(): String = "Partager"
+
+internal fun albumPhotoContentDescription(caption: String?): String =
+    "Photo : ${caption?.takeIf { it.isNotBlank() } ?: "sans légende"}"
+
+internal fun albumFavoriteContentDescription(): String = "Photo favorite"
+
+internal fun albumSearchEmptyMessage(): String = "Aucune photo trouvée"
+
+internal fun albumCreateDialogTitle(): String = "Nouvel album"
+
+internal fun albumCreateDialogDescription(): String = "Donnez un nom à votre album."
+
+internal fun albumNameFieldLabel(): String = "Nom de l'album"
+
+internal fun albumNamePlaceholder(): String = "Ex. Mariage de Sophie"
+
+internal fun albumCreateActionLabel(): String = "Créer"
+
+internal fun albumCancelActionLabel(): String = "Annuler"
+
+internal fun albumEmptyTitle(): String = "Aucun album"
+
+internal fun albumEmptyDescription(): String =
+    "Créez un album pour retrouver les photos après l'événement."
+
+internal fun albumEmptyPhotosTitle(): String = "Aucune photo"
+
+internal fun albumEmptyPhotosDescription(): String =
+    "Ajoutez des photos pour partager les souvenirs avec le groupe."
