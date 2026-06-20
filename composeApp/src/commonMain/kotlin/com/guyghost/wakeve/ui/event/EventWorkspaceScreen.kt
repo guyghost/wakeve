@@ -143,6 +143,14 @@ fun EventWorkspaceScreen(
                                 null -> onCreateEvent()
                             }
                         },
+                        onRoadmapAction = { summary ->
+                            when (summary.action) {
+                                EventWorkspaceSummaryAction.OpenEvent -> summary.eventId?.let { onSelectEvent(it, false) }
+                                EventWorkspaceSummaryAction.OpenPoll -> summary.eventId?.let(onOpenPoll)
+                                EventWorkspaceSummaryAction.RecreateFromTemplate -> summary.template?.let(onCreateFromTemplate)
+                                null -> onCreateEvent()
+                            }
+                        },
                         onWidgetAction = { summary ->
                             val eventId = summary.eventId
                             if (eventId == null) {
@@ -211,6 +219,14 @@ fun EventWorkspaceScreen(
                             null -> onCreateEvent()
                         }
                     },
+                    onRoadmapAction = { summary ->
+                        when (summary.action) {
+                            EventWorkspaceSummaryAction.OpenEvent -> summary.eventId?.let { onSelectEvent(it, true) }
+                            EventWorkspaceSummaryAction.OpenPoll -> summary.eventId?.let(onOpenPoll)
+                            EventWorkspaceSummaryAction.RecreateFromTemplate -> summary.template?.let(onCreateFromTemplate)
+                            null -> onCreateEvent()
+                        }
+                    },
                     onWidgetAction = { summary ->
                         val eventId = summary.eventId
                         if (eventId == null) {
@@ -241,6 +257,7 @@ private fun EventListPane(
     onViralLoopAction: (EventViralLoopSummary) -> Unit,
     onEmotionalAction: (EventEmotionalSummary) -> Unit,
     onStrategicAction: (EventStrategicSummary) -> Unit,
+    onRoadmapAction: (EventRoadmapSummary) -> Unit,
     onWidgetAction: (EventWidgetSummary) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
@@ -279,6 +296,10 @@ private fun EventListPane(
         EventStrategicSummaryCard(
             summary = state.strategicSummary,
             onAction = { onStrategicAction(state.strategicSummary) }
+        )
+        EventRoadmapSummaryCard(
+            summary = state.roadmapSummary,
+            onAction = { onRoadmapAction(state.roadmapSummary) }
         )
         state.actionSummary?.let { summary ->
             WorkspaceActionSummaryCard(
@@ -645,6 +666,66 @@ private fun EventStrategicSummaryCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventRoadmapSummaryCard(
+    summary: EventRoadmapSummary,
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    WakeveCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("event_roadmap_summary")
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)
+                ) {
+                    Text(
+                        text = summary.title,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = summary.headline,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                TextButton(onClick = onAction) {
+                    Text(summary.actionLabel)
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)) {
+                listOf(
+                    summary.firstMonthLabel,
+                    summary.secondQuarterLabel,
+                    summary.sixthMonthLabel,
+                    summary.teamFocusLabel
+                ).forEachIndexed { index, label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (index == 0) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        maxLines = 2
+                    )
+                }
             }
         }
     }

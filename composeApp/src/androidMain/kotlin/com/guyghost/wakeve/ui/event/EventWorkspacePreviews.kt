@@ -157,6 +157,17 @@ private fun previewWorkspaceState(selected: Boolean = true): EventWorkspaceUiSta
             actionLabel = "Ouvrir le vote",
             action = EventWorkspaceSummaryAction.OpenPoll
         ),
+        roadmapSummary = EventRoadmapSummary(
+            eventId = events.first().id,
+            title = "Roadmap 6 mois",
+            headline = "Sortir du débat de date",
+            firstMonthLabel = "0-30 jours : relances utiles, vote lisible et décision sans ambiguïté.",
+            secondQuarterLabel = "31-90 jours : convertir la date retenue en budget, transport et programme.",
+            sixthMonthLabel = "3-6 mois : recommandations qui anticipent les blocages du groupe.",
+            teamFocusLabel = "Équipe : PM sur complétion du vote, designer sur relances, devs sur sondage, partage et suite.",
+            actionLabel = "Ouvrir le vote",
+            action = EventWorkspaceSummaryAction.OpenPoll
+        ),
         widgetSummary = EventWidgetSummary(
             kind = EventWidgetKind.Countdown,
             eventId = events.first().id,

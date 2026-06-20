@@ -95,6 +95,19 @@ data class EventStrategicSummary(
     val template: EventWorkspaceCreationTemplate? = null
 )
 
+data class EventRoadmapSummary(
+    val eventId: String?,
+    val title: String,
+    val headline: String,
+    val firstMonthLabel: String,
+    val secondQuarterLabel: String,
+    val sixthMonthLabel: String,
+    val teamFocusLabel: String,
+    val actionLabel: String,
+    val action: EventWorkspaceSummaryAction?,
+    val template: EventWorkspaceCreationTemplate? = null
+)
+
 enum class EventWorkspaceSummaryAction {
     OpenEvent,
     OpenPoll,
@@ -142,6 +155,7 @@ data class EventWorkspaceUiState(
     val viralLoopSummary: EventViralLoopSummary,
     val emotionalSummary: EventEmotionalSummary,
     val strategicSummary: EventStrategicSummary,
+    val roadmapSummary: EventRoadmapSummary,
     val widgetSummary: EventWidgetSummary,
     val events: List<EventListItemUiState>,
     val selectedEvent: Event?,
@@ -177,6 +191,7 @@ fun EventManagementContract.State.toEventWorkspaceUiState(
         viralLoopSummary = events.toViralLoopSummary(currentUserId, pollVotes),
         emotionalSummary = events.toEmotionalSummary(currentUserId, pollVotes),
         strategicSummary = events.toStrategicSummary(currentUserId, pollVotes),
+        roadmapSummary = events.toRoadmapSummary(currentUserId, pollVotes),
         widgetSummary = events.toEventWidgetSummary(
             now = now,
             timeZone = timeZone,
@@ -466,6 +481,109 @@ internal fun List<Event>.toEmotionalSummary(
         )
     }
 }
+
+internal fun List<Event>.toRoadmapSummary(
+    currentUserId: String,
+    pollVotes: Map<String, Map<String, com.guyghost.wakeve.models.Vote>>
+): EventRoadmapSummary {
+    val event = maxWithOrNull(
+        compareBy<Event> { it.roadmapPriority(currentUserId, pollVotes[it.id]?.size ?: 0) }
+            .thenBy { it.updatedAt }
+    ) ?: return EventRoadmapSummary(
+        eventId = null,
+        title = "Roadmap 6 mois",
+        headline = "D'abord prouver un groupe actif",
+        firstMonthLabel = "0-30 jours : rendre la création et l'invitation évidentes.",
+        secondQuarterLabel = "31-90 jours : mesurer activation, abandon et première réutilisation.",
+        sixthMonthLabel = "3-6 mois : connecter budget, transport, photos et recap.",
+        teamFocusLabel = "Équipe : PM sur activation, designer sur premier wow, 3 devs sur création, partage et analytics.",
+        actionLabel = "Créer",
+        action = null
+    )
+
+    val voteCount = pollVotes[event.id]?.size ?: 0
+    val missingVotes = (event.participants.size - voteCount).coerceAtLeast(0)
+
+    return when (event.status) {
+        EventStatus.DRAFT -> EventRoadmapSummary(
+            eventId = event.id,
+            title = "Roadmap 6 mois",
+            headline = "Réduire la friction de départ",
+            firstMonthLabel = "0-30 jours : transformer le brouillon en invitation partageable.",
+            secondQuarterLabel = "31-90 jours : guider les formats simples, intermédiaires et voyages.",
+            sixthMonthLabel = "3-6 mois : templates intelligents par type d'événement.",
+            teamFocusLabel = "Équipe : PM sur taux de publication, designer sur clarté, devs sur templates et validation.",
+            actionLabel = if (event.organizerId == currentUserId) "Finaliser" else "Voir",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.POLLING -> EventRoadmapSummary(
+            eventId = event.id,
+            title = "Roadmap 6 mois",
+            headline = if (missingVotes > 0) "Sortir du débat de date" else "Convertir le vote en plan",
+            firstMonthLabel = "0-30 jours : relances utiles, vote lisible et décision sans ambiguïté.",
+            secondQuarterLabel = "31-90 jours : convertir la date retenue en budget, transport et programme.",
+            sixthMonthLabel = "3-6 mois : recommandations qui anticipent les blocages du groupe.",
+            teamFocusLabel = "Équipe : PM sur complétion du vote, designer sur relances, devs sur sondage, partage et suite.",
+            actionLabel = "Ouvrir le vote",
+            action = EventWorkspaceSummaryAction.OpenPoll
+        )
+        EventStatus.COMPARING -> EventRoadmapSummary(
+            eventId = event.id,
+            title = "Roadmap 6 mois",
+            headline = "Rendre les choix comparables",
+            firstMonthLabel = "0-30 jours : score clair pour destination, coût et contraintes.",
+            secondQuarterLabel = "31-90 jours : votes de scénario, arbitrage et justification partagée.",
+            sixthMonthLabel = "3-6 mois : moteur de recommandations multi-destinations.",
+            teamFocusLabel = "Équipe : PM sur critères, designer sur matrice, devs sur scoring et décision finale.",
+            actionLabel = "Comparer",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.CONFIRMED -> EventRoadmapSummary(
+            eventId = event.id,
+            title = "Roadmap 6 mois",
+            headline = "Éviter la rechute dans WhatsApp",
+            firstMonthLabel = "0-30 jours : checklist budget, transport, programme et rôles.",
+            secondQuarterLabel = "31-90 jours : assignations, rappels et changements de programme.",
+            sixthMonthLabel = "3-6 mois : coordination complète pour voyages et groupes nombreux.",
+            teamFocusLabel = "Équipe : PM sur préparation, designer sur cockpit, devs sur tâches, calendrier et notifications.",
+            actionLabel = "Préparer",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.ORGANIZING -> EventRoadmapSummary(
+            eventId = event.id,
+            title = "Roadmap 6 mois",
+            headline = "Industrialiser le centre de contrôle",
+            firstMonthLabel = "0-30 jours : fiabiliser jour J, présence, étapes et points de rendez-vous.",
+            secondQuarterLabel = "31-90 jours : rôles, alertes, offline et budget partagé.",
+            sixthMonthLabel = "3-6 mois : OS social pour 4 à 50 personnes avec transport et multi-destinations.",
+            teamFocusLabel = "Équipe : PM sur sérénité, designer sur densité, devs sur offline, alertes et budget.",
+            actionLabel = "Piloter",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.FINALIZED -> EventRoadmapSummary(
+            eventId = event.id,
+            title = "Roadmap 6 mois",
+            headline = "Transformer la fin en rétention",
+            firstMonthLabel = "0-30 jours : recap, photos et remboursements visibles.",
+            secondQuarterLabel = "31-90 jours : partage post-event et recréation en un geste.",
+            sixthMonthLabel = "3-6 mois : mémoire de groupe et recommandations pour la prochaine édition.",
+            teamFocusLabel = "Équipe : PM sur retour, designer sur recap, devs sur photos, soldes et templates.",
+            actionLabel = "Réutiliser",
+            action = EventWorkspaceSummaryAction.RecreateFromTemplate,
+            template = event.workspaceCreationTemplate()
+        )
+    }
+}
+
+private fun Event.roadmapPriority(currentUserId: String, voteCount: Int): Int =
+    when (status) {
+        EventStatus.ORGANIZING -> 80
+        EventStatus.CONFIRMED -> 70
+        EventStatus.POLLING -> 65 + (participants.size - voteCount).coerceAtLeast(0)
+        EventStatus.COMPARING -> 62
+        EventStatus.FINALIZED -> 55
+        EventStatus.DRAFT -> if (organizerId == currentUserId) 45 else 20
+    }
 
 internal fun List<Event>.toStrategicSummary(
     currentUserId: String,
