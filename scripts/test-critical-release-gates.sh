@@ -122,6 +122,39 @@ assert_android_event_workspace_harness() {
     echo "PASS: Android Event workspace harness keeps focused Gradle checks configuration-cache safe"
 }
 
+assert_android_event_workspace_device_audit_helper() {
+    local output_dir
+    local report
+    output_dir="$(mktemp -d)"
+
+    bash -n "$PROJECT_DIR/scripts/prepare-android-event-workspace-device-audit.sh"
+    report="$(OUTPUT_DIR="$output_dir" "$PROJECT_DIR/scripts/prepare-android-event-workspace-device-audit.sh")"
+
+    if [ ! -f "$report" ]; then
+        echo "FAIL: Android Event workspace device audit helper did not create a report at $report" >&2
+        exit 1
+    fi
+
+    local required_patterns=(
+        'Status: `'
+        'creation -> invitation -> vote -> date confirmed -> day J path'
+        'Generated report can close roadmap item | `no - preparation evidence only`'
+        'Android device/emulator model | TODO'
+        'Focused source harness result | TODO: run ./scripts/test-android-event-workspace.sh'
+        'Day J coordination step result | TODO'
+        'Do not mark roadmap P2.1 complete'
+    )
+
+    for pattern in "${required_patterns[@]}"; do
+        if ! grep -Fq "$pattern" "$report"; then
+            echo "FAIL: Android Event workspace device audit report is missing required field: $pattern" >&2
+            exit 1
+        fi
+    done
+
+    echo "PASS: Android Event workspace device audit helper generates the required P2.1 evidence template"
+}
+
 assert_android_build_hygiene() {
     local obsolete_agp_flags_pattern='^android\.(defaults\.buildfeatures\.resvalues|sdk\.defaultTargetSdkToCompileSdkIfUnset|enableAppCompileTimeRClass|usesSdkInManifest\.disallowed|r8\.optimizedResourceShrinking)='
     if grep -nE "$obsolete_agp_flags_pattern" "$PROJECT_DIR/gradle.properties"; then
@@ -452,6 +485,7 @@ assert_no_android_release_local_backend_defaults
 assert_android_compose_hygiene
 assert_android_home_workspace_user_copy
 assert_android_event_workspace_harness
+assert_android_event_workspace_device_audit_helper
 assert_android_build_hygiene
 assert_android_resource_defaults
 assert_release_performance_harness
