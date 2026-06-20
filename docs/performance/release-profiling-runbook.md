@@ -80,14 +80,15 @@ For the Android event-workspace product audit, prepare a dedicated capture note:
 ```
 
 The helper writes `docs/product/android-event-workspace-device-audit-<timestamp>.md`.
-It records `adb` readiness, the selected `ANDROID_SERIAL`, Android model/API,
-the expected Wakeve package id, installed package metadata when available, and
-copy/paste capture commands for screenshots and screen recording. It creates the
+It records `adb` path/version, Android SDK environment, Gradle wrapper version,
+the selected `ANDROID_SERIAL`, Android model/API, the expected Wakeve package
+id, installed package metadata when available, and copy/paste capture commands
+for screenshots and screen recording. It creates the
 evidence table for the remaining roadmap P2.1 flow: creation -> invitation -> vote -> date confirmed -> day J. A generated report with
 `PENDING_ANDROID_DEVICE_OR_EMULATOR` or `TODO` values is preparation only; it
 does not close the Android audit item.
 
-Latest preparation refresh: `docs/product/android-event-workspace-device-audit-2026-06-20T22-46-22Z.md`.
+Latest preparation refresh: `docs/product/android-event-workspace-device-audit-2026-06-20T23-11-32Z.md`.
 Current status is `PENDING_ANDROID_DEVICE_OR_EMULATOR`: `adb` is available, but
 no Android device or emulator is attached in `device` state. Before closure,
 boot or connect a target, install Wakeve, rerun the helper with the selected

@@ -17,11 +17,14 @@ sanitize_report() {
 
 if command -v adb >/dev/null 2>&1; then
     adb_path="$(command -v adb)"
+    adb_version="$(adb version 2>&1 || true)"
     adb_devices="$(adb devices -l 2>&1 || true)"
 else
     adb_path="missing"
+    adb_version="adb is not installed or not on PATH."
     adb_devices="adb is not installed or not on PATH."
 fi
+gradle_version="$("$PROJECT_DIR/gradlew" --version 2>&1 | awk '/^Gradle / { print; exit }' || true)"
 
 connected_android_devices="$(
     printf '%s\n' "$adb_devices" \
@@ -105,6 +108,10 @@ device or emulator and the required observations below are filled.
 | Field | Value |
 | --- | --- |
 | adb path | \`$adb_path\` |
+| adb version | \`$(printf '%s' "${adb_version:-missing}" | head -n 1)\` |
+| ANDROID_HOME | \`${ANDROID_HOME:-missing}\` |
+| ANDROID_SDK_ROOT | \`${ANDROID_SDK_ROOT:-missing}\` |
+| Gradle wrapper | \`${gradle_version:-missing}\` |
 | Connected Android devices/emulators | \`$(if [ -n "$connected_android_devices" ]; then printf '%s' "present"; else printf '%s' "missing"; fi)\` |
 | Selected adb serial | \`$(if [ -n "$selected_serial" ]; then printf '%s' "$selected_serial"; else printf '%s' "TODO"; fi)\` |
 | Android device/emulator model | \`$device_model_display\` |

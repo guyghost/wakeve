@@ -191,6 +191,10 @@ assert_android_event_workspace_device_audit_helper() {
         'Status: `'
         'creation -> invitation -> vote -> date confirmed -> day J path'
         'Generated report can close roadmap item | `no - preparation evidence only`'
+        'adb version | `'
+        'ANDROID_HOME | `'
+        'ANDROID_SDK_ROOT | `'
+        'Gradle wrapper | `Gradle '
         'Selected adb serial | `'
         'Wakeve package id | `com.guyghost.wakeve`'
         'Evidence asset directory | `'
@@ -310,7 +314,7 @@ assert_release_performance_harness() {
         exit 1
     fi
 
-    if ! grep -Fq 'docs/product/android-event-workspace-device-audit-2026-06-20T22-46-22Z.md' "$runbook" \
+    if ! grep -Fq 'docs/product/android-event-workspace-device-audit-2026-06-20T23-11-32Z.md' "$runbook" \
         || ! grep -Fq 'PENDING_ANDROID_DEVICE_OR_EMULATOR' "$runbook"; then
         echo "FAIL: release profiling runbook must keep the latest Android device-audit preparation status explicit" >&2
         exit 1

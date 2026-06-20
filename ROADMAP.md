@@ -348,7 +348,7 @@ Preuves du 2026-06-20:
 
 Preuves du 2026-06-21:
 
-- Refresh audit device Android: `docs/product/android-event-workspace-device-audit-2026-06-20T22-46-22Z.md` confirme que `adb` est disponible, mais qu'aucun device/emulateur Android n'est connecte (`PENDING_ANDROID_DEVICE_OR_EMULATOR`). L'item P2.1 reste ouvert tant que le parcours creation -> invitation -> vote -> date confirmee -> jour J n'est pas execute avec screenshots/screenrecord, TalkBack, font scaling et back navigation.
+- Refresh audit device Android: `docs/product/android-event-workspace-device-audit-2026-06-20T23-11-32Z.md` confirme que `adb` est disponible, que la baseline locale est `Android Debug Bridge version 1.0.41`, `ANDROID_HOME`/`ANDROID_SDK_ROOT` pointent vers le SDK local et le wrapper Gradle est en `Gradle 9.1.0`, mais qu'aucun device/emulateur Android n'est connecte (`PENDING_ANDROID_DEVICE_OR_EMULATOR`). L'item P2.1 reste ouvert tant que le parcours creation -> invitation -> vote -> date confirmee -> jour J n'est pas execute avec screenshots/screenrecord, TalkBack, font scaling et back navigation.
 
 #### 2.2 Observabilite et performance
 
