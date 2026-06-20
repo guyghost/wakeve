@@ -156,7 +156,7 @@ Preuves locales du 2026-06-13:
 
 Preuves locales du 2026-06-20:
 
-- `./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 12` genere `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md`; le rapport conclut `FAIL. 16 required live URL/AASA checks failed or could not be validated`.
+- `./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 12` genere `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-55-13Z.md`; le rapport conclut `FAIL. 16 required live URL/AASA checks failed or could not be validated`.
 - `wakeve.app` ne retourne toujours aucune entree DNS publique et tous les endpoints legal/support/terms/third-party-notices, dashboard `/app`, redirects legacy et AASA echouent avec `Could not resolve host: wakeve.app`.
 - `api.wakeve.app` resout vers Cloudflare (`104.21.48.204`, `172.67.156.46`), `curl -I https://api.wakeve.app/health` repond HTTP `405` et `curl https://api.wakeve.app/health` repond HTTP `200 OK`, ce qui confirme que le blocker restant porte surtout sur le domaine web/AASA public et le vrai Apple Team ID.
 
