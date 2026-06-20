@@ -60,6 +60,7 @@ import com.guyghost.wakeve.ui.designsystem.WakeveProgressIndicator
 import com.guyghost.wakeve.ui.designsystem.WakeveSize
 import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
 import com.guyghost.wakeve.ui.designsystem.WakeveStateMessage
+import com.guyghost.wakeve.ui.event.EventAttendanceSummary
 import com.guyghost.wakeve.ui.event.EventBudgetPlanningSummary
 import com.guyghost.wakeve.ui.event.EventDayOfSummary
 import com.guyghost.wakeve.ui.event.EventDetailUiState
@@ -322,6 +323,12 @@ fun EventDetailContent(
                 // Status card
                 item {
                     StatusCard(event = event)
+                }
+
+                state.attendanceSummary?.let { summary ->
+                    item {
+                        EventAttendanceSummaryCard(summary = summary)
+                    }
                 }
 
                 state.postEventSummary?.let { summary ->
@@ -642,6 +649,58 @@ private fun EventDayOfSummaryCard(
                 text = summary.nextActionLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
+private fun EventAttendanceSummaryCard(
+    summary: EventAttendanceSummary,
+    modifier: Modifier = Modifier
+) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.statusLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (summary.hasSyncedRsvp) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.tertiary
+                }
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)
+            ) {
+                Text(
+                    text = summary.confirmedLabel,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = summary.pendingLabel,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = summary.declinedLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = summary.nextActionLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
