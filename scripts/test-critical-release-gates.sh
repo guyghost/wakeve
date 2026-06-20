@@ -518,6 +518,41 @@ assert_live_url_aasa_blocker_evidence() {
     echo "PASS: live URL/AASA blocker evidence remains explicit and incomplete"
 }
 
+assert_store_metadata_lint_evidence_count() {
+    local roadmap="$PROJECT_DIR/ROADMAP.md"
+    local readiness="$PROJECT_DIR/docs/APP_STORE_READINESS.md"
+    local lint="$PROJECT_DIR/scripts/lint-store-metadata.sh"
+
+    if grep -nE '3049 checks|3088 checks' "$roadmap"; then
+        echo "FAIL: ROADMAP.md still references stale App Store metadata lint counts" >&2
+        exit 1
+    fi
+
+    local roadmap_count
+    roadmap_count="$(grep -Fc "3106 checks, 0 erreur, 1 warning" "$roadmap")"
+    if [ "$roadmap_count" -lt 2 ]; then
+        echo "FAIL: ROADMAP.md must document the current 3106-check App Store metadata lint result in both release evidence sections" >&2
+        exit 1
+    fi
+
+    local required_patterns=(
+        "Result: 3106 checks passed, 0 errors, 1 warning"
+        "3106 checks passed, 0 errors, 1 warning"
+    )
+
+    if ! grep -Fq "${required_patterns[0]}" "$lint"; then
+        echo "FAIL: lint-store-metadata.sh no longer publishes the expected 3106-check readiness result" >&2
+        exit 1
+    fi
+
+    if ! grep -Fq "${required_patterns[1]}" "$readiness"; then
+        echo "FAIL: APP_STORE_READINESS.md no longer documents the expected 3106-check lint result" >&2
+        exit 1
+    fi
+
+    echo "PASS: App Store metadata lint evidence count is synchronized across roadmap, readiness, and lint gate"
+}
+
 cd "$PROJECT_DIR"
 
 run openspec validate --all --strict
@@ -540,6 +575,7 @@ assert_wakeve_ai_device_profile_helper
 assert_weatherkit_device_validation_helper
 assert_ios_accessibility_source_audit
 assert_ios_release_screen_evidence_integrity
+assert_store_metadata_lint_evidence_count
 assert_live_url_aasa_blocker_evidence
 run ./scripts/audit-ios-localization-parity.sh --fail-on-findings
 
