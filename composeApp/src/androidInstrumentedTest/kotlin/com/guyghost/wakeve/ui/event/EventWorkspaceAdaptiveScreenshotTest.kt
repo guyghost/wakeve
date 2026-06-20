@@ -127,6 +127,16 @@ class EventWorkspaceAdaptiveScreenshotTest {
                 actionLabel = "Ouvrir le vote",
                 action = EventWorkspaceSummaryAction.OpenPoll
             ),
+            viralLoopSummary = EventViralLoopSummary(
+                eventId = events.first().id,
+                title = "Boucle de croissance",
+                headline = "3 votes à obtenir",
+                inviteReasonLabel = "Pourquoi inviter : chaque invité débloque la décision collective.",
+                installReasonLabel = "Pourquoi installer : voter, suivre la date limite et éviter les relances privées.",
+                returnReasonLabel = "Pourquoi revenir : voir la date retenue et la suite du plan.",
+                actionLabel = "Partager le vote",
+                action = EventWorkspaceSummaryAction.OpenPoll
+            ),
             widgetSummary = EventWidgetSummary(
                 kind = EventWidgetKind.Countdown,
                 eventId = events.first().id,
