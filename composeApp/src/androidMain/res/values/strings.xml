@@ -540,6 +540,17 @@
     <string name="plan_meetings">Planifiez des réunions virtuelles pour votre événement</string>
     <string name="loading_label">Chargement…</string>
     <string name="organizer_will_create">Quand l\'organisateur crée une réunion, elle apparaîtra ici</string>
+    <string name="badges_count_label">%1$d badges</string>
+    <string name="duration_label">Durée</string>
+    <string name="points_value_label">%1$d points</string>
+    <string name="try_again_later">Réessayez plus tard</string>
+    <string name="loading_more">Chargement supplémentaire…</string>
+    <string name="notification_event_created">Événement créé</string>
+    <string name="notification_poll_opened">Sondage ouvert</string>
+    <string name="notification_date_confirmed">Date confirmée</string>
+    <string name="entity_event">Événement</string>
+    <string name="entity_scenario">Option</string>
+    <string name="entity_meeting">Réunion</string>
 
     <!-- Explore Screen -->
     <string name="explore_title">Explorer</string>
