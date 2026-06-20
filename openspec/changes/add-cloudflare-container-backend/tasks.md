@@ -15,9 +15,9 @@
 - [x] 2.7 Verify `/metrics` is not publicly exposed in production without an allowed source.
 
 ## 3. App Store Evidence
-- [ ] 3.1 Run `./scripts/capture-app-store-live-url-aasa.sh --timeout 12`.
-- [ ] 3.2 Run `./scripts/app-store-submission-audit.sh --check-live-urls --run-submission-ready`.
-- [ ] 3.3 Update `docs/APP_STORE_LIVE_URL_AASA_EVIDENCE.md` with DNS, HTTPS, backend health, rollout, rollback, and command-output evidence.
+- [x] 3.1 Run `./scripts/capture-app-store-live-url-aasa.sh --timeout 12`.
+- [x] 3.2 Run `./scripts/app-store-submission-audit.sh --check-live-urls --run-submission-ready`.
+- [x] 3.3 Update `docs/APP_STORE_LIVE_URL_AASA_EVIDENCE.md` with DNS, HTTPS, backend health, rollout, rollback, and command-output evidence.
 - [x] 3.4 Keep `APP_STORE_LIVE_URL_AASA_EVIDENCE_COMPLETE=false` until every public DNS, AASA, legal URL, dashboard, and backend health check passes.
 
 ## Verification Notes
@@ -43,3 +43,5 @@
 - 2026-06-14: `curl --resolve api.wakeve.app:443:104.21.48.204 https://api.wakeve.app/health` returned HTTPS `200 OK` with body `OK`.
 - 2026-06-14: `TIMEOUT_SECONDS=120 ./scripts/smoke-cloudflare-backend.sh` passed: public DNS via `1.1.1.1`, `/health` `200`, unauthenticated `/api/events` `401`, and `/metrics` `403`.
 - 2026-06-14: `pnpm --dir infra/cloudflare/backend exec wrangler containers list` reports application `wakeve-backend-wakevebackendcontainer` active with 1 live instance.
+- 2026-06-20: `./scripts/capture-app-store-live-url-aasa.sh --timeout 12` ran and generated `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T19-28-38Z.md`; result failed because `wakeve.app` has no public DNS answer, AASA cannot be fetched, and `APPLE_TEAM_ID` was unset. `api.wakeve.app` DNS resolves to Cloudflare A records, and HEAD `/health` reached Cloudflare with HTTP `405`.
+- 2026-06-20: `./scripts/app-store-submission-audit.sh --check-live-urls --run-submission-ready` ran to completion. It reported `Passed: 3084`, `Errors: 22`, `Warnings: 2`, then final `Blockers: 23`, `Result: NOT READY for App Store submission`. Blockers are live URL/AASA validation plus missing Fastlane/App Store Connect environment variables: `APPLE_ID`, `ITC_TEAM_ID`, `TEAM_ID`, and `APPLE_TEAM_ID`.

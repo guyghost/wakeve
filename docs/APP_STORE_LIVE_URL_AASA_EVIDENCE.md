@@ -1,6 +1,6 @@
 # App Store Live URL And AASA Evidence - Wakeve
 
-Date: 2026-06-13
+Date: 2026-06-20
 
 Status: PENDING
 
@@ -42,14 +42,14 @@ This file records the App Store review evidence for AS-14: public legal/support 
 | --- | --- |
 | Web deployment commit | TBD |
 | API deployment commit | TBD |
-| Apple Team ID | `<APPLE_TEAM_ID>` |
+| Apple Team ID | Unset in the 2026-06-20 capture environment; real Team ID still required before closure |
 | Bundle ID | `com.guyghost.wakeve` |
-| DNS provider | TBD |
-| Web hosting provider | TBD |
+| DNS provider | Cloudflare for `api.wakeve.app`; `wakeve.app` apex currently has no public DNS answer |
+| Web hosting provider | TBD for `wakeve.app`; production web/AASA host is not live |
 | Backend provider | Cloudflare Workers Containers via `infra/cloudflare/backend`; `api.wakeve.app` deployed on 2026-06-14 |
-| Rollout owner | TBD |
-| Rollback owner | TBD |
-| Reviewer/date | TBD |
+| Rollout owner | TBD; unresolved external ownership blocker before App Review signoff |
+| Rollback owner | TBD; unresolved external ownership blocker before App Review signoff |
+| Reviewer/date | Codex local audit refresh on 2026-06-20 |
 
 ## Required Live URL And AASA Review
 
@@ -63,7 +63,7 @@ This file records the App Store review evidence for AS-14: public legal/support 
 | `https://wakeve.app/apple-app-site-association` | Public HTTPS fallback response, no extension, valid JSON, `application/json`, no placeholder Team ID. | Pending |
 | AASA app ID | Both AASA responses contain `<APPLE_TEAM_ID>.com.guyghost.wakeve`. | Pending |
 | AASA Universal Link paths | Both AASA responses contain `/event/*`, `/poll/*`, `/meeting/*`, and `/invite/*`. | Pending |
-| `https://api.wakeve.app/health` | Public HTTPS response showing production backend health is OK. | Passed on 2026-06-14: `200 OK`, body `OK`. |
+| `https://api.wakeve.app/health` | Public HTTPS response showing production backend health is OK. | Passed on 2026-06-14 with GET: `200 OK`, body `OK`. On 2026-06-20 DNS resolves and Cloudflare responds; HEAD returns `405`, while the App Store audit still reports API health reachable. |
 | `https://wakeve.app/app` | Public dashboard shell route resolves through the dashboard microfrontend. | Pending |
 | `https://wakeve.app/app/login` | Public dashboard login route resolves through the dashboard microfrontend. | Pending |
 | `https://wakeve.app/app/dashboard` | Public dashboard home route resolves through the dashboard microfrontend. | Pending |
@@ -75,7 +75,49 @@ This file records the App Store review evidence for AS-14: public legal/support 
 
 ## Current Live Check Snapshot
 
-Last command:
+Latest capture command:
+
+```bash
+./scripts/capture-app-store-live-url-aasa.sh --timeout 12
+```
+
+Result on 2026-06-20: `FAIL. 16 required live URL/AASA checks failed or could not be validated.`
+
+Generated capture report:
+
+- `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T19-28-38Z.md`
+- Apple Team ID was unset, so AASA app ID validation cannot pass even after the web host is live.
+- `dig +short wakeve.app` returned no answer.
+- `dig +short api.wakeve.app` returned `172.67.156.46` and `104.21.48.204`.
+- `curl -I --max-time 12 https://api.wakeve.app/health` reached Cloudflare and returned HTTP `405` for HEAD.
+- All required `wakeve.app` legal pages, dashboard shell routes, legacy redirects, and AASA URLs failed with `curl: (6) Could not resolve host: wakeve.app`.
+
+Latest full submission audit command:
+
+```bash
+./scripts/app-store-submission-audit.sh --check-live-urls --run-submission-ready
+```
+
+Result on 2026-06-20: `NOT READY for App Store submission`.
+
+Summary:
+
+```text
+Passed: 3084
+Errors: 22
+Warnings: 2
+METADATA VALIDATION FAILED - fix errors before submission
+BLOCKER: live URL and AASA validation failed
+Fastlane submission_ready failed
+App Store submission readiness requires environment variable(s): APPLE_ID, ITC_TEAM_ID, TEAM_ID, APPLE_TEAM_ID
+Warnings: 0
+Blockers: 23
+Result: NOT READY for App Store submission
+```
+
+The audit confirmed that source metadata, privacy manifest, iOS release settings, entitlements, AASA source declarations, and the release binary checks mostly pass. The App Store blocker remains external production readiness: `wakeve.app` DNS/web/AASA is unavailable and App Store Connect/Fastlane environment variables are missing locally.
+
+Previous command:
 
 ```bash
 ./scripts/lint-store-metadata.sh --ios-only --check-live-urls
