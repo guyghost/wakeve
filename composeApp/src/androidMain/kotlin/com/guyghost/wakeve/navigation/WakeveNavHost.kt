@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Button
@@ -47,7 +48,9 @@ import com.guyghost.wakeve.ui.auth.EmailAuthScreen
 import com.guyghost.wakeve.ui.event.DraftEventCreationRouteUiState
 import com.guyghost.wakeve.ui.event.DraftEventWizardEventFactory
 import com.guyghost.wakeve.ui.event.DraftEventWizard
+import com.guyghost.wakeve.ui.event.EventPhotosFollowUpUiState
 import com.guyghost.wakeve.ui.event.EventWorkspaceRoute
+import com.guyghost.wakeve.ui.event.fallbackEventPhotosFollowUpUiState
 import com.guyghost.wakeve.ui.meeting.MeetingDetailScreen
 import com.guyghost.wakeve.ui.meeting.MeetingListScreen
 import com.guyghost.wakeve.ui.scenario.ScenarioComparisonScreen
@@ -1568,6 +1571,7 @@ fun WakeveNavHost(
 @Composable
 private fun EventPhotosFollowUpScreen(
     eventId: String,
+    state: EventPhotosFollowUpUiState = fallbackEventPhotosFollowUpUiState(eventId),
     onBack: () -> Unit
 ) {
     Column(
@@ -1577,22 +1581,55 @@ private fun EventPhotosFollowUpScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Photos a partager",
+            text = state.title,
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface
         )
         Text(
-            text = "Evenement $eventId",
+            text = state.subtitle,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
-            text = "Retrouvez les albums, photos favorites et selections a envoyer au groupe apres l'evenement.",
+            text = state.statusLabel,
+            style = MaterialTheme.typography.titleMedium,
+            color = if (state.canShareNow) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            }
+        )
+        Text(
+            text = state.body,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        Text(
+            text = "Prochaine action : ${state.recommendedActionLabel}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            state.checklist.forEach { item ->
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "${item.statusLabel} - ${item.title}",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = item.body,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
         Button(onClick = onBack) {
-            Text("Retour")
+            Text(state.backActionLabel)
         }
     }
 }
