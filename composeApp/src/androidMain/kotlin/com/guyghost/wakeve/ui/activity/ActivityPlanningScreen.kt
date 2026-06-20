@@ -180,6 +180,13 @@ fun ActivityPlanningScreen(
                 modifier = Modifier.padding(16.dp)
             )
 
+            ActivityProgramCard(
+                summary = activityProgramSummary(displayedActivities),
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Date Filter
             if (activitiesByDate.isNotEmpty()) {
                 DateFilterRow(
@@ -290,6 +297,53 @@ fun ActivityPlanningScreen(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun ActivityProgramCard(
+    summary: ActivityProgramSummary,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = summary.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Text(
+                text = summary.nextStepLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = summary.coverageLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = summary.readinessLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
     }
 }
 
@@ -691,3 +745,72 @@ internal fun activityFullLabel(): String = "Complet"
 internal fun activityEditActionLabel(): String = "Modifier"
 
 internal fun activityParticipantsActionLabel(): String = "Participants"
+
+internal data class ActivityProgramSummary(
+    val title: String,
+    val nextStepLabel: String,
+    val coverageLabel: String,
+    val readinessLabel: String
+)
+
+internal fun activityProgramSummary(activitiesByDate: List<ActivitiesByDate>): ActivityProgramSummary {
+    val scheduledActivities = activitiesByDate
+        .flatMap { group -> group.activities.map { activity -> group.date to activity } }
+        .sortedWith(
+            compareBy<Pair<String, Activity>> { it.first }
+                .thenBy { it.second.time ?: "99:99" }
+                .thenBy { it.second.name.lowercase() }
+        )
+
+    if (scheduledActivities.isEmpty()) {
+        return ActivityProgramSummary(
+            title = activityProgramTitle(),
+            nextStepLabel = activityProgramEmptyNextStepLabel(),
+            coverageLabel = activityProgramEmptyCoverageLabel(),
+            readinessLabel = activityProgramEmptyReadinessLabel()
+        )
+    }
+
+    val totalActivities = scheduledActivities.size
+    val dayCount = scheduledActivities.map { it.first }.distinct().size
+    val missingTimeCount = scheduledActivities.count { it.second.time.isNullOrBlank() }
+    val nextActivity = scheduledActivities.first()
+
+    return ActivityProgramSummary(
+        title = activityProgramTitle(),
+        nextStepLabel = activityProgramNextStepLabel(nextActivity.first, nextActivity.second),
+        coverageLabel = activityProgramCoverageLabel(totalActivities, dayCount),
+        readinessLabel = activityProgramReadinessLabel(missingTimeCount)
+    )
+}
+
+internal fun activityProgramTitle(): String = "Programme à suivre"
+
+internal fun activityProgramEmptyNextStepLabel(): String =
+    "Aucune prochaine étape : ajoutez une activité pour guider le groupe."
+
+internal fun activityProgramEmptyCoverageLabel(): String =
+    "Le programme n'a pas encore de journée planifiée."
+
+internal fun activityProgramEmptyReadinessLabel(): String =
+    "Priorité : définir au moins une activité datée."
+
+internal fun activityProgramNextStepLabel(date: String, activity: Activity): String {
+    val dateLabel = formatDateString(date)
+    val timeLabel = activity.time?.takeIf { it.isNotBlank() }
+    return if (timeLabel == null) {
+        "Prochaine étape : $dateLabel - ${activity.name} (heure à définir)"
+    } else {
+        "Prochaine étape : $dateLabel à $timeLabel - ${activity.name}"
+    }
+}
+
+internal fun activityProgramCoverageLabel(totalActivities: Int, dayCount: Int): String =
+    "$totalActivities ${if (totalActivities > 1) "activités" else "activité"} sur $dayCount ${if (dayCount > 1) "jours" else "jour"}."
+
+internal fun activityProgramReadinessLabel(missingTimeCount: Int): String =
+    if (missingTimeCount == 0) {
+        "Programme horaire prêt à partager."
+    } else {
+        "$missingTimeCount ${if (missingTimeCount > 1) "activités restent" else "activité reste"} sans heure."
+    }
