@@ -53,6 +53,10 @@ tmp_dir="${TMPDIR:-/tmp}/wakeve-privacy-alignment-$$"
 mkdir -p "$tmp_dir"
 trap 'rm -rf "$tmp_dir"' EXIT
 
+sanitize_report() {
+    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$report"
+}
+
 manifest="$PROJECT_DIR/iosApp/src/PrivacyInfo.xcprivacy"
 info_plist="$PROJECT_DIR/iosApp/src/Info.plist"
 labels_doc="$PROJECT_DIR/docs/APP_STORE_PRIVACY_LABELS.md"
@@ -234,6 +238,8 @@ record_warning "Open product/legal question: photos/media upload, calendar data,
         echo "Result: FAIL. Local privacy alignment findings must be resolved before App Store privacy signoff."
     fi
 } >> "$report"
+
+sanitize_report
 
 echo "$report"
 
