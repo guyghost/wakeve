@@ -9,6 +9,10 @@ import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.notification.NotificationPriority
+import com.guyghost.wakeve.notification.NotificationSpamRisk
+import com.guyghost.wakeve.notification.NotificationType
+import com.guyghost.wakeve.notification.deliveryProfile
 import com.guyghost.wakeve.payment.SettlementRecord
 import com.guyghost.wakeve.postevent.PostEventControlSummary
 import com.guyghost.wakeve.postevent.toPostEventControlSummary
@@ -30,6 +34,7 @@ data class EventDetailUiState(
     val showOrganizationTools: Boolean,
     val scheduleSummary: EventScheduleSummary?,
     val attendanceSummary: EventAttendanceSummary?,
+    val notificationSummary: EventNotificationSummary?,
     val programSummary: EventProgramPlanningSummary?,
     val budgetSummary: EventBudgetPlanningSummary?,
     val dayOfSummary: EventDayOfSummary?,
@@ -87,6 +92,23 @@ data class EventScheduleSummary(
     val hasConfirmedDate: Boolean
 )
 
+data class EventNotificationSummary(
+    val title: String,
+    val statusLabel: String,
+    val priorityLabel: String,
+    val spamRiskLabel: String,
+    val nextActionLabel: String,
+    val reminders: List<EventNotificationReminder>
+)
+
+data class EventNotificationReminder(
+    val title: String,
+    val body: String,
+    val priorityLabel: String,
+    val spamRiskLabel: String,
+    val isRecommended: Boolean
+)
+
 data class EventProgramPlanningSummary(
     val title: String,
     val statusLabel: String,
@@ -142,6 +164,7 @@ fun EventManagementContract.State.toEventDetailUiState(
             status in listOf(EventStatus.ORGANIZING, EventStatus.FINALIZED),
         scheduleSummary = event?.toScheduleSummary(),
         attendanceSummary = event?.toAttendanceSummary(participantAccessStates),
+        notificationSummary = event?.toNotificationSummary(participantAccessStates),
         programSummary = event?.toProgramPlanningSummary(
             canOpenProgram = canAccessOrganizationDetails &&
                 status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED)
@@ -369,6 +392,215 @@ internal fun eventAttendanceUnsyncedActionLabel(status: EventStatus): String = w
     EventStatus.ORGANIZING -> "Synchronisez les RSVP avant de figer budget, transport et programme."
     EventStatus.FINALIZED -> "Synchronisez les RSVP pour fiabiliser le recap."
 }
+
+internal fun Event.toNotificationSummary(
+    accessStates: List<ParticipantAccessState>
+): EventNotificationSummary {
+    val relevantAccessStates = accessStates
+        .filter { accessState -> accessState.userId == organizerId || accessState.userId in participants }
+        .distinctBy { it.userId }
+    val pendingCount = relevantAccessStates.count { it.rsvp == ParticipantRsvp.PENDING }
+    val hasSyncedRsvp = relevantAccessStates.isNotEmpty()
+    val reminders = eventNotificationReminders(
+        status = status,
+        hasFinalDate = !finalDate.isNullOrBlank(),
+        hasSyncedRsvp = hasSyncedRsvp,
+        pendingCount = pendingCount,
+        invitedCount = participants.map { it.trim() }.filter { it.isNotEmpty() }.distinct().size
+    )
+
+    return EventNotificationSummary(
+        title = "Notifications",
+        statusLabel = eventNotificationStatusLabel(status, reminders),
+        priorityLabel = eventNotificationHighestPriorityLabel(reminders),
+        spamRiskLabel = eventNotificationHighestSpamRiskLabel(reminders),
+        nextActionLabel = eventNotificationNextActionLabel(status, reminders),
+        reminders = reminders
+    )
+}
+
+internal fun eventNotificationReminders(
+    status: EventStatus,
+    hasFinalDate: Boolean,
+    hasSyncedRsvp: Boolean,
+    pendingCount: Int,
+    invitedCount: Int
+): List<EventNotificationReminder> =
+    when (status) {
+        EventStatus.DRAFT -> listOf(
+            NotificationType.EVENT_INVITE.toEventNotificationReminder(
+                title = "Invitation recue",
+                body = if (invitedCount > 0) {
+                    "$invitedCount invite${if (invitedCount == 1) "" else "s"} a prevenir quand le sondage est pret."
+                } else {
+                    "Ajoutez des invites avant d'envoyer une notification."
+                },
+                isRecommended = invitedCount > 0
+            )
+        )
+        EventStatus.POLLING -> listOf(
+            NotificationType.VOTE_REMINDER.toEventNotificationReminder(
+                title = "Relance de vote",
+                body = if (hasSyncedRsvp && pendingCount > 0) {
+                    "$pendingCount invite${if (pendingCount == 1) "" else "s"} a relancer avant la date limite."
+                } else {
+                    "Relancez seulement si les votes manquent vraiment."
+                },
+                isRecommended = !hasSyncedRsvp || pendingCount > 0
+            ),
+            NotificationType.DEADLINE_REMINDER.toEventNotificationReminder(
+                title = "Vote bientot termine",
+                body = "A envoyer une fois pres de l'echeance, pas a chaque changement.",
+                isRecommended = true
+            )
+        )
+        EventStatus.COMPARING -> listOf(
+            NotificationType.VOTE_CLOSE_REMINDER.toEventNotificationReminder(
+                title = "Vote termine",
+                body = "Prevenez que les options sont closes et qu'une decision arrive.",
+                isRecommended = true
+            )
+        )
+        EventStatus.CONFIRMED -> listOf(
+            NotificationType.DATE_CONFIRMED.toEventNotificationReminder(
+                title = "Date validee",
+                body = "Notification utile: elle transforme le sondage en vrai plan.",
+                isRecommended = true
+            ),
+            NotificationType.MEETING_REMINDER.toEventNotificationReminder(
+                title = "Rappel de depart",
+                body = if (hasFinalDate) {
+                    "A programmer avant le depart pour eviter les retards."
+                } else {
+                    "Confirmez l'horaire avant de programmer le rappel de depart."
+                },
+                isRecommended = hasFinalDate
+            )
+        )
+        EventStatus.ORGANIZING -> listOf(
+            NotificationType.MEETING_REMINDER.toEventNotificationReminder(
+                title = "Rappel de depart",
+                body = "A garder prioritaire: quelqu'un peut manquer le rendez-vous.",
+                isRecommended = true
+            ),
+            NotificationType.EVENT_UPDATE.toEventNotificationReminder(
+                title = "Changement de programme",
+                body = "A grouper pour eviter de transformer Wakeve en chat bruyant.",
+                isRecommended = true
+            ),
+            NotificationType.PAYMENT_DUE.toEventNotificationReminder(
+                title = "Budget depasse",
+                body = "Utile si une action est attendue; inutile pour chaque petite depense.",
+                isRecommended = true
+            )
+        )
+        EventStatus.FINALIZED -> listOf(
+            NotificationType.PAYMENT_DUE.toEventNotificationReminder(
+                title = "Remboursements restants",
+                body = "A envoyer seulement aux personnes concernees par un solde.",
+                isRecommended = true
+            ),
+            NotificationType.EVENT_UPDATE.toEventNotificationReminder(
+                title = "Photos et recap",
+                body = "A regrouper dans un seul recap pour limiter le spam apres evenement.",
+                isRecommended = true
+            )
+        )
+    }
+
+internal fun NotificationType.toEventNotificationReminder(
+    title: String,
+    body: String,
+    isRecommended: Boolean
+): EventNotificationReminder {
+    val profile = deliveryProfile()
+    return EventNotificationReminder(
+        title = title,
+        body = body,
+        priorityLabel = profile.priority.eventNotificationPriorityLabel(),
+        spamRiskLabel = profile.spamRisk.eventNotificationSpamRiskLabel(),
+        isRecommended = isRecommended
+    )
+}
+
+internal fun eventNotificationStatusLabel(
+    status: EventStatus,
+    reminders: List<EventNotificationReminder>
+): String = when {
+    reminders.none { it.isRecommended } -> "Aucun push recommande"
+    status == EventStatus.DRAFT -> "A preparer"
+    status == EventStatus.POLLING -> "Votes a relancer"
+    status == EventStatus.COMPARING -> "Decision a annoncer"
+    status == EventStatus.CONFIRMED -> "Date a diffuser"
+    status == EventStatus.ORGANIZING -> "Rappels actifs"
+    else -> "Suivi final"
+}
+
+internal fun eventNotificationNextActionLabel(
+    status: EventStatus,
+    reminders: List<EventNotificationReminder>
+): String = when {
+    reminders.none { it.isRecommended } ->
+        "Ne poussez rien tant que le groupe n'a pas d'action claire."
+    status == EventStatus.DRAFT ->
+        "Preparez l'invitation, puis envoyez-la une seule fois quand le sondage est pret."
+    status == EventStatus.POLLING ->
+        "Relancez les votes manquants et gardez les autres mises a jour dans l'app."
+    status == EventStatus.COMPARING ->
+        "Annoncez la fin du vote avant de confirmer la date finale."
+    status == EventStatus.CONFIRMED ->
+        "Envoyez la date validee, puis programmez le rappel de depart."
+    status == EventStatus.ORGANIZING ->
+        "Gardez les rappels critiques; regroupez les changements de programme."
+    else ->
+        "Limitez l'apres-evenement aux remboursements, photos et recap groupe."
+}
+
+internal fun eventNotificationHighestPriorityLabel(reminders: List<EventNotificationReminder>): String {
+    val priority = reminders
+        .map { it.priorityLabel }
+        .maxByOrNull(::eventNotificationPriorityRank)
+        ?: return "Priorite basse"
+    return priority
+}
+
+private fun eventNotificationPriorityRank(priorityLabel: String): Int =
+    when (priorityLabel) {
+        "Priorite urgente" -> 4
+        "Priorite haute" -> 3
+        "Priorite moyenne" -> 2
+        else -> 1
+    }
+
+internal fun eventNotificationHighestSpamRiskLabel(reminders: List<EventNotificationReminder>): String {
+    val risk = reminders
+        .map { it.spamRiskLabel }
+        .maxByOrNull(::eventNotificationSpamRiskRank)
+        ?: return "Risque spam faible"
+    return risk
+}
+
+private fun eventNotificationSpamRiskRank(spamRiskLabel: String): Int =
+    when (spamRiskLabel) {
+        "Risque spam eleve" -> 3
+        "Risque spam modere" -> 2
+        else -> 1
+    }
+
+internal fun NotificationPriority.eventNotificationPriorityLabel(): String =
+    when (this) {
+        NotificationPriority.LOW -> "Priorite basse"
+        NotificationPriority.MEDIUM -> "Priorite moyenne"
+        NotificationPriority.HIGH -> "Priorite haute"
+        NotificationPriority.URGENT -> "Priorite urgente"
+    }
+
+internal fun NotificationSpamRisk.eventNotificationSpamRiskLabel(): String =
+    when (this) {
+        NotificationSpamRisk.LOW -> "Risque spam faible"
+        NotificationSpamRisk.MEDIUM -> "Risque spam modere"
+        NotificationSpamRisk.HIGH -> "Risque spam eleve"
+    }
 
 internal fun Event.toBudgetPlanningSummary(
     accessStates: List<ParticipantAccessState>,
