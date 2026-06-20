@@ -108,6 +108,20 @@ class AiAssistantErrorMessageTest {
     }
 
     @Test
+    fun eventPlanningRequiresFrenchPromptBeforeExtraction() = runTest {
+        val viewModel = EventPlanningAssistantViewModel()
+
+        viewModel.updatePrompt("   ")
+        viewModel.extract(referenceYear = 2026)
+        advanceUntilIdle()
+
+        val message = viewModel.state.value.errorMessage.orEmpty()
+        assertEquals(eventPlanMissingPromptMessage(), message)
+        assertFalse(message.contains("describe", ignoreCase = true))
+        assertFalse(message.contains("first", ignoreCase = true))
+    }
+
+    @Test
     fun aiFailureHelpersUseStableSafeCopy() {
         listOf(
             aiSummaryUnavailableMessage(),
@@ -115,7 +129,8 @@ class AiAssistantErrorMessageTest {
             aiOrganizerMessageUnavailableMessage(),
             aiOrganizerMessageFailureMessage(),
             planningAgentFailureDisplayMessage(),
-            eventPlanExtractionFailureMessage()
+            eventPlanExtractionFailureMessage(),
+            eventPlanMissingPromptMessage()
         ).forEach { message ->
             assertFalse(message.isBlank())
             assertDoesNotExposeSensitiveDetails(message)

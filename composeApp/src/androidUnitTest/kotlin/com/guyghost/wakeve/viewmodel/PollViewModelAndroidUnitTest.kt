@@ -61,7 +61,7 @@ class PollViewModelAndroidUnitTest {
         viewModel.submitVotes(event, participantId = "participant-1", onSuccess = {})
         advanceUntilIdle()
 
-        assertEquals("Please vote on all time slots", viewModel.errorMessage.value)
+        assertEquals(pollVoteAllSlotsRequiredMessage(), viewModel.errorMessage.value)
         assertTrue(repository.addedVotes.isEmpty())
     }
 
@@ -114,7 +114,7 @@ class PollViewModelAndroidUnitTest {
         viewModel.confirmFinalDate(event, userId = "organizer", onSuccess = {})
         advanceUntilIdle()
 
-        assertEquals("Select a time slot before confirming", viewModel.confirmationError.value)
+        assertEquals(finalDateSlotRequiredMessage(), viewModel.confirmationError.value)
         assertTrue(repository.statusUpdates.isEmpty())
     }
 
@@ -177,12 +177,38 @@ class PollViewModelAndroidUnitTest {
     @Test
     fun pollErrorHelpersUseStableCopyAndContexts() {
         assertEquals("Impossible d'enregistrer vos votes. Réessayez.", pollVoteSubmissionFailureMessage())
+        assertEquals("Votez sur tous les créneaux avant d'envoyer vos réponses.", pollVoteAllSlotsRequiredMessage())
         assertEquals("Impossible de confirmer la date finale. Réessayez.", finalDateConfirmationFailureMessage())
+        assertEquals("Sélectionnez un créneau avant de confirmer.", finalDateSlotRequiredMessage())
         assertEquals("Seul l'organisateur peut confirmer la date finale.", finalDateOrganizerRequiredMessage())
         assertEquals("vote_submission_failed", pollVoteFailureAnalyticsContext())
         assertEquals("poll_close_failed", pollCloseFailureAnalyticsContext())
         assertEquals("final_date_confirmation_failed", finalDateConfirmationFailureAnalyticsContext())
         assertEquals("organizer_required", finalDateOrganizerRequiredAnalyticsContext())
+    }
+
+    @Test
+    fun pollUserFacingErrorsDoNotUseEnglishDefaults() {
+        listOf(
+            pollVoteSubmissionFailureMessage(),
+            pollVoteAllSlotsRequiredMessage(),
+            finalDateConfirmationFailureMessage(),
+            finalDateSlotRequiredMessage(),
+            finalDateOrganizerRequiredMessage()
+        ).forEach { message ->
+            listOf(
+                "Please vote",
+                "time slots",
+                "Select a time slot",
+                "before confirming",
+                "Failed to"
+            ).forEach { englishCopy ->
+                assertFalse(
+                    message.contains(englishCopy, ignoreCase = true),
+                    "Message should not contain `$englishCopy`: $message"
+                )
+            }
+        }
     }
 
     private fun testEvent(slotIds: List<String>): Event =

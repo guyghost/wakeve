@@ -44,7 +44,7 @@ class EventPlanningAssistantViewModel(
     fun extract(referenceYear: Int? = null) {
         val prompt = _state.value.prompt.trim()
         if (prompt.isBlank()) {
-            _state.update { it.copy(errorMessage = "Describe the event first.") }
+            _state.update { it.copy(errorMessage = eventPlanMissingPromptMessage()) }
             return
         }
 
@@ -89,3 +89,6 @@ class EventPlanningAssistantViewModel(
 
 internal fun eventPlanExtractionFailureMessage(): String =
     "Impossible d'analyser cet evenement. Precisez les infos et reessayez."
+
+internal fun eventPlanMissingPromptMessage(): String =
+    "Decrivez d'abord l'evenement."

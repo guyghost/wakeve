@@ -4,8 +4,12 @@ import com.guyghost.wakeve.access.ParticipantRepositoryRecord
 import com.guyghost.wakeve.analytics.AnalyticsEvent
 import com.guyghost.wakeve.analytics.AnalyticsProvider
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventPlanningMode
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.EventType
+import com.guyghost.wakeve.models.LocationType
 import com.guyghost.wakeve.models.Poll
+import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.repository.EventRepositoryInterface
@@ -84,10 +88,92 @@ class CreateEventViewModelAndroidUnitTest {
         assertEquals("event_creation_failed", eventCreationFailureAnalyticsContext())
     }
 
+    @Test
+    fun validationErrorsUseLocalizedActionableCopy() = runTest {
+        assertValidationError(eventCreationTitleRequiredMessage()) {
+            createEvent()
+        }
+
+        assertValidationError(eventCreationDescriptionRequiredMessage()) {
+            updateTitle("Road trip")
+            createEvent()
+        }
+
+        assertValidationError(eventCreationTimeSlotRequiredMessage()) {
+            updateTitle("Road trip")
+            updateDescription("Weekend with friends")
+            createEvent()
+        }
+
+        assertValidationError(eventCreationScenarioDestinationRequiredMessage()) {
+            updateTitle("Road trip")
+            updateDescription("Weekend with friends")
+            addRequiredSlot()
+            updatePlanningMode(EventPlanningMode.SCENARIO_MATRIX)
+            createEvent()
+        }
+
+        assertValidationError(eventCreationCustomTypeRequiredMessage()) {
+            updateTitle("Road trip")
+            updateDescription("Weekend with friends")
+            addRequiredSlot()
+            addPotentialLocation(
+                PotentialLocation(
+                    id = "loc-1",
+                    eventId = "event-1",
+                    name = "Biarritz",
+                    locationType = LocationType.CITY,
+                    createdAt = "2026-06-20T00:00:00Z"
+                )
+            )
+            updateEventType(EventType.CUSTOM)
+            createEvent()
+        }
+
+        assertValidationError(eventCreationParticipantRangeMessage()) {
+            updateTitle("Road trip")
+            updateDescription("Weekend with friends")
+            addRequiredSlot()
+            updateEventType(EventType.BIRTHDAY)
+            updateMinParticipants(10)
+            updateMaxParticipants(4)
+            createEvent()
+        }
+    }
+
+    @Test
+    fun validationHelpersDoNotUseEnglishFormDefaults() {
+        listOf(
+            eventCreationTitleRequiredMessage(),
+            eventCreationDescriptionRequiredMessage(),
+            eventCreationTimeSlotRequiredMessage(),
+            eventCreationScenarioDestinationRequiredMessage(),
+            eventCreationCustomTypeRequiredMessage(),
+            eventCreationParticipantRangeMessage()
+        ).forEach { message ->
+            listOf(
+                "Title is required",
+                "Description is required",
+                "At least one",
+                "Custom event type",
+                "Maximum participants"
+            ).forEach { englishCopy ->
+                assertFalse(
+                    message.contains(englishCopy, ignoreCase = true),
+                    "Message should not contain `$englishCopy`: $message"
+                )
+            }
+        }
+    }
+
     private fun fillRequiredFields() {
         viewModel.updateTitle("Road trip")
         viewModel.updateDescription("Weekend with friends")
-        viewModel.addTimeSlot(
+        viewModel.addRequiredSlot()
+    }
+
+    private fun CreateEventViewModel.addRequiredSlot() {
+        addTimeSlot(
             TimeSlot(
                 id = "slot-1",
                 start = "2026-07-14T09:00:00Z",
@@ -95,6 +181,17 @@ class CreateEventViewModelAndroidUnitTest {
                 timezone = "Europe/Paris"
             )
         )
+    }
+
+    private fun assertValidationError(
+        expectedMessage: String,
+        action: CreateEventViewModel.() -> Unit
+    ) {
+        viewModel = CreateEventViewModel(repository, analyticsProvider)
+        viewModel.action()
+
+        assertEquals(expectedMessage, viewModel.creationError.value)
+        assertDoesNotExposeSensitiveDetails(viewModel.creationError.value.orEmpty())
     }
 
     private fun assertLastErrorContextEquals(expected: String) {
