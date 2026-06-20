@@ -36,7 +36,16 @@ data class EventDayOfSummary(
     val missingLabel: String,
     val arrivalTrackingLabel: String,
     val missingPeopleLabel: String,
-    val nextActionLabel: String
+    val nextActionLabel: String,
+    val checklist: List<EventDayOfChecklistItem>
+)
+
+data class EventDayOfChecklistItem(
+    val title: String,
+    val body: String,
+    val statusLabel: String,
+    val isComplete: Boolean,
+    val isBlocking: Boolean
 )
 
 enum class EventDayOfStatus {
@@ -117,7 +126,14 @@ internal fun Event.toDayOfSummary(
             missingLabel = "RSVP detailles non synchronises",
             arrivalTrackingLabel = eventDayOfArrivalTrackingUnavailableLabel(),
             missingPeopleLabel = eventDayOfMissingPeopleUnavailableLabel(),
-            nextActionLabel = eventDayOfNextActionLabel(status)
+            nextActionLabel = eventDayOfNextActionLabel(status),
+            checklist = eventDayOfChecklist(
+                status = status,
+                acceptedParticipantIds = emptyList(),
+                pendingParticipantIds = participants,
+                declinedParticipantIds = emptyList(),
+                hasSyncedRsvp = false
+            )
         )
     }
 
@@ -150,7 +166,14 @@ internal fun Event.toDayOfSummary(
             pendingParticipantIds = pendingParticipants.map { it.userId },
             declinedParticipantIds = declinedParticipants.map { it.userId }
         ),
-        nextActionLabel = eventDayOfNextActionLabel(status)
+        nextActionLabel = eventDayOfNextActionLabel(status),
+        checklist = eventDayOfChecklist(
+            status = status,
+            acceptedParticipantIds = acceptedParticipants.map { it.userId },
+            pendingParticipantIds = pendingParticipants.map { it.userId },
+            declinedParticipantIds = declinedParticipants.map { it.userId },
+            hasSyncedRsvp = true
+        )
     )
 }
 
@@ -259,6 +282,84 @@ internal fun eventDayOfNextActionLabel(status: EventStatus): String = when (stat
     EventStatus.DRAFT,
     EventStatus.POLLING,
     EventStatus.COMPARING -> "Continuer la preparation avant le jour J."
+}
+
+internal fun eventDayOfChecklist(
+    status: EventStatus,
+    acceptedParticipantIds: List<String>,
+    pendingParticipantIds: List<String>,
+    declinedParticipantIds: List<String>,
+    hasSyncedRsvp: Boolean
+): List<EventDayOfChecklistItem> {
+    val acceptedCount = acceptedParticipantIds.distinct().size
+    val pendingCount = pendingParticipantIds.distinct().size
+    val declinedCount = declinedParticipantIds.distinct().size
+
+    return listOf(
+        EventDayOfChecklistItem(
+            title = "Point de rendez-vous",
+            body = when (status) {
+                EventStatus.CONFIRMED -> "Confirmez l'adresse et envoyez le rappel de depart."
+                EventStatus.ORGANIZING -> "Gardez le lieu de rendez-vous visible pour le groupe."
+                EventStatus.FINALIZED -> "Le rendez-vous est termine; basculez sur le recap."
+                EventStatus.DRAFT,
+                EventStatus.POLLING,
+                EventStatus.COMPARING -> "Attendez la date confirmee avant de fixer le rendez-vous final."
+            },
+            statusLabel = if (status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED)) {
+                "A verifier"
+            } else {
+                "Non pret"
+            },
+            isComplete = status == EventStatus.FINALIZED,
+            isBlocking = status !in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED)
+        ),
+        EventDayOfChecklistItem(
+            title = "Presents a pointer",
+            body = if (!hasSyncedRsvp) {
+                eventDayOfArrivalTrackingUnavailableLabel()
+            } else {
+                eventDayOfArrivalTrackingLabel(acceptedParticipantIds)
+            },
+            statusLabel = when {
+                !hasSyncedRsvp -> "A synchroniser"
+                acceptedCount == 0 -> "Bloque"
+                else -> "Pret"
+            },
+            isComplete = hasSyncedRsvp && acceptedCount > 0,
+            isBlocking = hasSyncedRsvp && acceptedCount == 0
+        ),
+        EventDayOfChecklistItem(
+            title = "Reponses a relancer",
+            body = when {
+                !hasSyncedRsvp -> "Synchronisez les RSVP avant de relancer."
+                pendingCount == 0 -> "Aucune reponse manquante."
+                else -> "A verifier : ${eventDayOfCompactParticipantList(pendingParticipantIds)}."
+            },
+            statusLabel = when {
+                !hasSyncedRsvp -> "A synchroniser"
+                pendingCount == 0 -> "OK"
+                else -> "A relancer"
+            },
+            isComplete = hasSyncedRsvp && pendingCount == 0,
+            isBlocking = pendingCount > 0
+        ),
+        EventDayOfChecklistItem(
+            title = "Absents a traiter",
+            body = when {
+                !hasSyncedRsvp -> "La liste des absents depend des RSVP synchronises."
+                declinedCount == 0 -> "Aucun absent signale."
+                else -> "Ne viennent pas : ${eventDayOfCompactParticipantList(declinedParticipantIds)}."
+            },
+            statusLabel = when {
+                !hasSyncedRsvp -> "A synchroniser"
+                declinedCount == 0 -> "OK"
+                else -> "A traiter"
+            },
+            isComplete = hasSyncedRsvp && declinedCount == 0,
+            isBlocking = false
+        )
+    )
 }
 
 private fun ParticipantAccessState.toRsvpUiState(isOrganizer: Boolean): EventRsvpUiState =

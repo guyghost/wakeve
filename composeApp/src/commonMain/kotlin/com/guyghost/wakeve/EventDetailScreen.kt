@@ -588,6 +588,36 @@ private fun EventDayOfSummaryCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
+                text = summary.arrivalTrackingLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.missingPeopleLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)) {
+                summary.checklist.forEach { item ->
+                    Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)) {
+                        Text(
+                            text = "${item.statusLabel} - ${item.title}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (item.isBlocking) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+                        )
+                        Text(
+                            text = item.body,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            Text(
                 text = summary.nextActionLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary
