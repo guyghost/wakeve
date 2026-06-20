@@ -579,6 +579,16 @@ private fun EventDayOfSummaryCard(
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
+                text = "Rendez-vous : ${summary.meetingPointLabel}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "Depart : ${summary.meetingTimeLabel}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
                 text = summary.attendanceLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface

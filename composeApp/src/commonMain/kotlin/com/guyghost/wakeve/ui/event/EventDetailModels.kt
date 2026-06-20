@@ -6,11 +6,15 @@ import com.guyghost.wakeve.access.ParticipantRsvp
 import com.guyghost.wakeve.models.Album
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.payment.SettlementRecord
 import com.guyghost.wakeve.postevent.PostEventControlSummary
 import com.guyghost.wakeve.postevent.toPostEventControlSummary
 import com.guyghost.wakeve.presentation.state.EventManagementContract
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 data class EventDetailUiState(
     val eventId: String,
@@ -32,6 +36,8 @@ data class EventDayOfSummary(
     val title: String,
     val status: EventDayOfStatus,
     val controlLabel: String,
+    val meetingPointLabel: String,
+    val meetingTimeLabel: String,
     val attendanceLabel: String,
     val missingLabel: String,
     val arrivalTrackingLabel: String,
@@ -76,6 +82,9 @@ fun EventManagementContract.State.toEventDetailUiState(
         ?.dateValidation == DateValidationState.VALIDATED_RETAINED_DATE
     val canAccessOrganizationDetails = isOrganizer || isParticipantConfirmed
     val status = event?.status
+    val eventPotentialLocations = event
+        ?.let { selected -> potentialLocations.filter { it.eventId == selected.id } }
+        .orEmpty()
 
     return EventDetailUiState(
         eventId = eventId,
@@ -90,7 +99,10 @@ fun EventManagementContract.State.toEventDetailUiState(
             status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED),
         showOrganizationTools = canAccessOrganizationDetails &&
             status in listOf(EventStatus.ORGANIZING, EventStatus.FINALIZED),
-        dayOfSummary = event?.toDayOfSummary(participantAccessStates),
+        dayOfSummary = event?.toDayOfSummary(
+            accessStates = participantAccessStates,
+            potentialLocations = eventPotentialLocations
+        ),
         postEventSummary = event
             ?.takeIf { it.status == EventStatus.FINALIZED }
             ?.toPostEventControlSummary(settlements = settlements, albums = albums),
@@ -102,7 +114,8 @@ fun EventManagementContract.State.toEventDetailUiState(
 }
 
 internal fun Event.toDayOfSummary(
-    accessStates: List<ParticipantAccessState>
+    accessStates: List<ParticipantAccessState>,
+    potentialLocations: List<PotentialLocation> = emptyList()
 ): EventDayOfSummary? {
     if (status !in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED)) {
         return null
@@ -122,6 +135,8 @@ internal fun Event.toDayOfSummary(
                 declinedCount = 0,
                 hasSyncedRsvp = false
             ),
+            meetingPointLabel = eventDayOfMeetingPointLabel(potentialLocations),
+            meetingTimeLabel = eventDayOfMeetingTimeLabel(finalDate),
             attendanceLabel = "Participants invites : ${participants.size}",
             missingLabel = "RSVP detailles non synchronises",
             arrivalTrackingLabel = eventDayOfArrivalTrackingUnavailableLabel(),
@@ -132,7 +147,9 @@ internal fun Event.toDayOfSummary(
                 acceptedParticipantIds = emptyList(),
                 pendingParticipantIds = participants,
                 declinedParticipantIds = emptyList(),
-                hasSyncedRsvp = false
+                hasSyncedRsvp = false,
+                meetingPointLabel = eventDayOfMeetingPointLabel(potentialLocations),
+                meetingTimeLabel = eventDayOfMeetingTimeLabel(finalDate)
             )
         )
     }
@@ -159,6 +176,8 @@ internal fun Event.toDayOfSummary(
             declinedCount = declinedCount,
             hasSyncedRsvp = true
         ),
+        meetingPointLabel = eventDayOfMeetingPointLabel(potentialLocations),
+        meetingTimeLabel = eventDayOfMeetingTimeLabel(finalDate),
         attendanceLabel = "$acceptedCount participant${if (acceptedCount == 1) "" else "s"} attendus",
         missingLabel = eventDayOfMissingLabel(pendingCount, declinedCount),
         arrivalTrackingLabel = eventDayOfArrivalTrackingLabel(acceptedParticipants.map { it.userId }),
@@ -172,7 +191,9 @@ internal fun Event.toDayOfSummary(
             acceptedParticipantIds = acceptedParticipants.map { it.userId },
             pendingParticipantIds = pendingParticipants.map { it.userId },
             declinedParticipantIds = declinedParticipants.map { it.userId },
-            hasSyncedRsvp = true
+            hasSyncedRsvp = true,
+            meetingPointLabel = eventDayOfMeetingPointLabel(potentialLocations),
+            meetingTimeLabel = eventDayOfMeetingTimeLabel(finalDate)
         )
     )
 }
@@ -284,12 +305,74 @@ internal fun eventDayOfNextActionLabel(status: EventStatus): String = when (stat
     EventStatus.COMPARING -> "Continuer la preparation avant le jour J."
 }
 
+internal fun eventDayOfMeetingPointLabel(potentialLocations: List<PotentialLocation>): String {
+    val location = potentialLocations
+        .firstOrNull { it.name.isNotBlank() }
+        ?: return "Lieu de rendez-vous a confirmer"
+    val name = location.name.trim()
+    val address = location.address
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() && it != name }
+
+    return if (address == null) name else "$name ($address)"
+}
+
+internal fun eventDayOfMeetingTimeLabel(finalDate: String?): String =
+    finalDate
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?.let(::eventDayOfFormatFinalDate)
+        ?: "Horaire a confirmer"
+
+internal fun eventDayOfMeetingPointBody(
+    status: EventStatus,
+    meetingPointLabel: String,
+    meetingTimeLabel: String
+): String = when (status) {
+    EventStatus.CONFIRMED ->
+        "Rendez-vous : $meetingPointLabel. Depart : $meetingTimeLabel. Envoyez le rappel de depart."
+    EventStatus.ORGANIZING ->
+        "Rendez-vous : $meetingPointLabel. Depart : $meetingTimeLabel. Gardez ce point visible pour le groupe."
+    EventStatus.FINALIZED ->
+        "Rendez-vous traite : $meetingPointLabel. Depart : $meetingTimeLabel. Basculez sur le recap."
+    EventStatus.DRAFT,
+    EventStatus.POLLING,
+    EventStatus.COMPARING ->
+        "Attendez la date confirmee avant de fixer le rendez-vous final."
+}
+
+internal fun eventDayOfFormatFinalDate(value: String): String =
+    runCatching {
+        val localDateTime = Instant.parse(value).toLocalDateTime(TimeZone.currentSystemDefault())
+        val month = eventDayOfFrenchMonths.getOrElse(localDateTime.monthNumber - 1) { "" }
+        val hour = localDateTime.hour.toString().padStart(2, '0')
+        val minute = localDateTime.minute.toString().padStart(2, '0')
+        "${localDateTime.dayOfMonth} $month ${localDateTime.year} a $hour:$minute"
+    }.getOrElse { value }
+
+private val eventDayOfFrenchMonths = listOf(
+    "janvier",
+    "fevrier",
+    "mars",
+    "avril",
+    "mai",
+    "juin",
+    "juillet",
+    "aout",
+    "septembre",
+    "octobre",
+    "novembre",
+    "decembre"
+)
+
 internal fun eventDayOfChecklist(
     status: EventStatus,
     acceptedParticipantIds: List<String>,
     pendingParticipantIds: List<String>,
     declinedParticipantIds: List<String>,
-    hasSyncedRsvp: Boolean
+    hasSyncedRsvp: Boolean,
+    meetingPointLabel: String = "Lieu de rendez-vous a confirmer",
+    meetingTimeLabel: String = "Horaire a confirmer"
 ): List<EventDayOfChecklistItem> {
     val acceptedCount = acceptedParticipantIds.distinct().size
     val pendingCount = pendingParticipantIds.distinct().size
@@ -298,14 +381,7 @@ internal fun eventDayOfChecklist(
     return listOf(
         EventDayOfChecklistItem(
             title = "Point de rendez-vous",
-            body = when (status) {
-                EventStatus.CONFIRMED -> "Confirmez l'adresse et envoyez le rappel de depart."
-                EventStatus.ORGANIZING -> "Gardez le lieu de rendez-vous visible pour le groupe."
-                EventStatus.FINALIZED -> "Le rendez-vous est termine; basculez sur le recap."
-                EventStatus.DRAFT,
-                EventStatus.POLLING,
-                EventStatus.COMPARING -> "Attendez la date confirmee avant de fixer le rendez-vous final."
-            },
+            body = eventDayOfMeetingPointBody(status, meetingPointLabel, meetingTimeLabel),
             statusLabel = if (status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED)) {
                 "A verifier"
             } else {

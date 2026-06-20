@@ -6,6 +6,8 @@ import com.guyghost.wakeve.access.ParticipantRsvp
 import com.guyghost.wakeve.models.Album
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.LocationType
+import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.payment.SettlementRecord
 import com.guyghost.wakeve.postevent.PostEventItemStatus
@@ -205,6 +207,57 @@ class EventDetailModelsTest {
     }
 
     @Test
+    fun dayOfSummarySurfacesConcreteMeetingPointAndDepartureTime() {
+        val finalDate = "2026-07-14T18:30:00Z"
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(
+                status = EventStatus.ORGANIZING,
+                finalDate = finalDate
+            ),
+            participantAccessStates = listOf(
+                ParticipantAccessState.organizer("organizer"),
+                ParticipantAccessState.member(
+                    userId = "participant-1",
+                    rsvp = ParticipantRsvp.ACCEPTED,
+                    dateValidation = DateValidationState.VALIDATED_RETAINED_DATE
+                )
+            ),
+            potentialLocations = listOf(
+                potentialLocation(
+                    eventId = eventId,
+                    name = "Gare de Lyon",
+                    address = "Place Louis-Armand"
+                ),
+                potentialLocation(
+                    eventId = "other-event",
+                    name = "Mauvais lieu",
+                    address = "Ne doit pas apparaitre"
+                )
+            )
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Gare de Lyon (Place Louis-Armand)", uiState.dayOfSummary?.meetingPointLabel)
+        assertEquals(eventDayOfFormatFinalDate(finalDate), uiState.dayOfSummary?.meetingTimeLabel)
+        assertTrue(uiState.dayOfSummary?.checklist?.first()?.body.orEmpty().contains("Gare de Lyon"))
+        assertTrue(uiState.dayOfSummary?.checklist?.first()?.body.orEmpty().contains("juillet 2026"))
+    }
+
+    @Test
+    fun dayOfSummaryKeepsMeetingPointFallbacksWhenLogisticsAreMissing() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.CONFIRMED),
+            participantAccessStates = listOf(ParticipantAccessState.organizer("organizer"))
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Lieu de rendez-vous a confirmer", uiState.dayOfSummary?.meetingPointLabel)
+        assertEquals("Horaire a confirmer", uiState.dayOfSummary?.meetingTimeLabel)
+        assertTrue(
+            uiState.dayOfSummary?.checklist?.first()?.body.orEmpty()
+                .contains("Lieu de rendez-vous a confirmer")
+        )
+    }
+
+    @Test
     fun dayOfSummaryUsesFallbackWhenRsvpDetailsAreNotLoaded() {
         val uiState = EventManagementContract.State(
             selectedEvent = event(status = EventStatus.CONFIRMED)
@@ -329,7 +382,8 @@ class EventDetailModelsTest {
     private fun event(
         id: String = eventId,
         status: EventStatus,
-        participants: List<String> = listOf("organizer", "participant-1")
+        participants: List<String> = listOf("organizer", "participant-1"),
+        finalDate: String? = null
     ): Event =
         Event(
             id = id,
@@ -340,8 +394,23 @@ class EventDetailModelsTest {
             proposedSlots = emptyList(),
             deadline = "2026-07-01T12:00:00Z",
             status = status,
+            finalDate = finalDate,
             createdAt = "2026-06-01T08:00:00Z",
             updatedAt = "2026-06-01T08:00:00Z"
+        )
+
+    private fun potentialLocation(
+        eventId: String,
+        name: String,
+        address: String? = null
+    ): PotentialLocation =
+        PotentialLocation(
+            id = "location-$name",
+            eventId = eventId,
+            name = name,
+            locationType = LocationType.SPECIFIC_VENUE,
+            address = address,
+            createdAt = "2026-06-01T08:00:00Z"
         )
 
     private fun settlement(
