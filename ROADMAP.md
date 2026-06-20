@@ -333,6 +333,7 @@ Preuves du 2026-06-20:
 - Gate critique Android renforce: `./scripts/test-critical-release-gates.sh` bloque maintenant la reintroduction de vocabulaire produit interne dans la Home Android (`Boucle de croissance`, `Position strategique`, `Scores`, etc.) et exige les libelles de coordination utilisateur dans `EventWorkspaceModels.kt`.
 - Harnais Android Home dedie: `./scripts/test-android-event-workspace.sh` execute le test unitaire cible `EventWorkspaceModelsTest` et la compilation androidTest avec `--no-configuration-cache`, afin d'eviter que `processDebugGoogleServices` masque une regression produit par un echec de stockage du configuration cache. Le gate critique valide la presence de ce harnais sans relancer ces builds lourds.
 - Preparation audit device Android: `./scripts/prepare-android-event-workspace-device-audit.sh` genere un template d'evidence pour le parcours creation -> invitation -> vote -> date confirmee -> jour J et marque explicitement que ce template ne ferme pas P2.1 sans execution sur device/emulateur avec screenshots, TalkBack, font scaling et back navigation.
+- Preparation audit device Android renforcee: le meme helper pre-remplit maintenant `ANDROID_SERIAL`, modele/API Android, package `com.guyghost.wakeve`, metadata du package installe si disponible, repertoire d'assets et commandes `adb` de capture screenshot/screenrecord. Le gate critique bloque la regression de ces champs, mais l'item P2.1 reste ouvert tant que le parcours n'est pas execute sur device/emulateur.
 
 #### 2.2 Observabilite et performance
 

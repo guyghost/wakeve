@@ -139,9 +139,16 @@ assert_android_event_workspace_device_audit_helper() {
         'Status: `'
         'creation -> invitation -> vote -> date confirmed -> day J path'
         'Generated report can close roadmap item | `no - preparation evidence only`'
+        'Selected adb serial | `'
+        'Wakeve package id | `com.guyghost.wakeve`'
+        'Evidence asset directory | `'
         'Android device/emulator model | TODO'
+        'Wakeve installed package summary reviewed | TODO'
         'Focused source harness result | TODO: run ./scripts/test-android-event-workspace.sh'
         'Day J coordination step result | TODO'
+        'shell screencap -p "/sdcard/wakeve-<step>.png"'
+        'ANDROID_SERIAL="'
+        'ANDROID_APP_ID="com.guyghost.wakeve"'
         'Do not mark roadmap P2.1 complete'
     )
 

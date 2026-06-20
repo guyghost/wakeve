@@ -80,10 +80,12 @@ For the Android event-workspace product audit, prepare a dedicated capture note:
 ```
 
 The helper writes `docs/product/android-event-workspace-device-audit-<timestamp>.md`.
-It records `adb` readiness and creates the evidence table for the remaining
-roadmap P2.1 flow: creation -> invitation -> vote -> date confirmed -> day J.
-A generated report with `PENDING_ANDROID_DEVICE_OR_EMULATOR` or `TODO` values is
-preparation only; it does not close the Android audit item.
+It records `adb` readiness, the selected `ANDROID_SERIAL`, Android model/API,
+the expected Wakeve package id, installed package metadata when available, and
+copy/paste capture commands for screenshots and screen recording. It creates the
+evidence table for the remaining roadmap P2.1 flow: creation -> invitation -> vote -> date confirmed -> day J. A generated report with
+`PENDING_ANDROID_DEVICE_OR_EMULATOR` or `TODO` values is preparation only; it
+does not close the Android audit item.
 
 Each generated report also includes a runtime profiling matrix for the flows
 that still require device traces: cold start, home/list, create event, scenario
