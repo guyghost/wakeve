@@ -126,6 +126,22 @@ Signing diagnostics from the profile helper:
 
 Before the WakeveAI real-device trace can be captured, configure a concrete Apple Developer `TEAM_ID`, install a valid Apple Development certificate in the login keychain, and ensure a development provisioning profile exists for `com.guyghost.wakeve`. The iPhone must also move from `Devices Offline` to `Devices` in `xcrun xctrace list devices`.
 
+### 2026-06-20 Device Profile Refresh
+
+Device-profile preparation report: `docs/performance/wakeve-ai-device-profile-2026-06-20T19-52-26Z.md`.
+
+Current status remains `PHYSICAL_IOS_DEVICE_NOT_TRACE_READY`.
+
+The refreshed helper now accepts either `TEAM_ID` or `APPLE_TEAM_ID` and records explicit Apple Intelligence and Foundation Models model-asset closure fields. Current local state:
+
+- CoreDevice sees `iPhone de GuyGhost`, model `iPhone 15 Pro (iPhone16,1)`, as a physical paired device.
+- Instruments still lists the iPhone under `Devices Offline`.
+- `TEAM_ID` / `APPLE_TEAM_ID` is missing from the shell environment.
+- `security find-identity -v -p codesigning` reports `0 valid identities found`.
+- No local provisioning profile matches bundle ID `com.guyghost.wakeve`.
+
+This refresh is preparation evidence only. It does not close OpenSpec task `6.6`, because no supported physical device has been profiled with Apple Intelligence enabled, Foundation Models `.available`, latency, cancellation, memory, trace, and production-log privacy evidence.
+
 ## Production Privacy Constraints
 
 - Production builds do not read the Debug availability override.
@@ -139,7 +155,9 @@ OpenSpec task `6.6` remains open until a real supported device with Foundation M
 Required evidence:
 
 - Device model and OS build.
+- Apple Intelligence enabled state.
 - Foundation Models availability state is `.available`.
+- Foundation Models model assets ready state.
 - Smart Event Draft latency for a normal prompt.
 - Cancellation latency after tapping cancel during generation.
 - Memory delta before, during, and after generation.
