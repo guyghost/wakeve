@@ -555,6 +555,114 @@ class EventWorkspaceModelsTest {
     }
 
     @Test
+    fun `roadmap summary starts with activation when workspace is empty`() {
+        val summary = emptyList<Event>().toRoadmapSummary(currentUserId = "me", pollVotes = emptyMap())
+
+        assertEquals(null, summary.eventId)
+        assertEquals("Roadmap 6 mois", summary.title)
+        assertEquals("D'abord prouver un groupe actif", summary.headline)
+        assertEquals("0-30 jours : rendre la création et l'invitation évidentes.", summary.firstMonthLabel)
+        assertEquals("31-90 jours : mesurer activation, abandon et première réutilisation.", summary.secondQuarterLabel)
+        assertEquals("3-6 mois : connecter budget, transport, photos et recap.", summary.sixthMonthLabel)
+        assertEquals(
+            "Équipe : PM sur activation, designer sur premier wow, 3 devs sur création, partage et analytics.",
+            summary.teamFocusLabel
+        )
+        assertEquals("Créer", summary.actionLabel)
+        assertEquals(null, summary.action)
+    }
+
+    @Test
+    fun `roadmap summary turns polling into vote conversion plan`() {
+        val summary = listOf(
+            event(
+                id = "poll",
+                title = "Vote dinner",
+                status = EventStatus.POLLING,
+                participants = listOf("me", "alice", "sam")
+            )
+        ).toRoadmapSummary(
+            currentUserId = "me",
+            pollVotes = mapOf("poll" to mapOf("me" to Vote.YES))
+        )
+
+        assertEquals("poll", summary.eventId)
+        assertEquals("Sortir du débat de date", summary.headline)
+        assertEquals("0-30 jours : relances utiles, vote lisible et décision sans ambiguïté.", summary.firstMonthLabel)
+        assertEquals(
+            "31-90 jours : convertir la date retenue en budget, transport et programme.",
+            summary.secondQuarterLabel
+        )
+        assertEquals("3-6 mois : recommandations qui anticipent les blocages du groupe.", summary.sixthMonthLabel)
+        assertEquals("Ouvrir le vote", summary.actionLabel)
+        assertEquals(EventWorkspaceSummaryAction.OpenPoll, summary.action)
+    }
+
+    @Test
+    fun `roadmap summary prioritizes organizing control center work`() {
+        val summary = listOf(
+            event(
+                id = "poll",
+                title = "Vote dinner",
+                status = EventStatus.POLLING,
+                participants = listOf("me", "alice", "sam")
+            ),
+            event(
+                id = "organizing",
+                title = "Team offsite",
+                status = EventStatus.ORGANIZING,
+                participants = listOf("me", "alice", "sam", "lee")
+            )
+        ).toRoadmapSummary(currentUserId = "me", pollVotes = emptyMap())
+
+        assertEquals("organizing", summary.eventId)
+        assertEquals("Industrialiser le centre de contrôle", summary.headline)
+        assertEquals(
+            "0-30 jours : fiabiliser jour J, présence, étapes et points de rendez-vous.",
+            summary.firstMonthLabel
+        )
+        assertEquals("31-90 jours : rôles, alertes, offline et budget partagé.", summary.secondQuarterLabel)
+        assertEquals(
+            "3-6 mois : OS social pour 4 à 50 personnes avec transport et multi-destinations.",
+            summary.sixthMonthLabel
+        )
+        assertEquals("Piloter", summary.actionLabel)
+        assertEquals(EventWorkspaceSummaryAction.OpenEvent, summary.action)
+    }
+
+    @Test
+    fun `roadmap summary turns finalized event into retention roadmap`() {
+        val summary = listOf(
+            event(
+                id = "final",
+                title = "Summer retreat",
+                description = "A weekend by the sea",
+                status = EventStatus.FINALIZED,
+                eventType = EventType.OUTDOOR_ACTIVITY
+            )
+        ).toRoadmapSummary(currentUserId = "me", pollVotes = emptyMap())
+
+        assertEquals("final", summary.eventId)
+        assertEquals("Transformer la fin en rétention", summary.headline)
+        assertEquals("0-30 jours : recap, photos et remboursements visibles.", summary.firstMonthLabel)
+        assertEquals("31-90 jours : partage post-event et recréation en un geste.", summary.secondQuarterLabel)
+        assertEquals(
+            "3-6 mois : mémoire de groupe et recommandations pour la prochaine édition.",
+            summary.sixthMonthLabel
+        )
+        assertEquals("Réutiliser", summary.actionLabel)
+        assertEquals(EventWorkspaceSummaryAction.RecreateFromTemplate, summary.action)
+        assertEquals(
+            EventWorkspaceCreationTemplate(
+                title = "Summer retreat",
+                description = "A weekend by the sea",
+                eventType = EventType.OUTDOOR_ACTIVITY
+            ),
+            summary.template
+        )
+    }
+
+    @Test
     fun `finalized event builds quick reorganization summary`() {
         val event = event(
             id = "finalized",
