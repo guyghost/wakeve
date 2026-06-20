@@ -352,6 +352,7 @@ Preuves du 2026-06-20:
 - Le harnais Android utilise `--no-configuration-cache` pour `:composeApp:assembleRelease`, ce qui evite que `processReleaseGoogleServices` transforme une assemblee APK reussie en echec de stockage du configuration cache.
 - `IOS_SIMULATOR='iPhone 17' ./scripts/profile-release-performance.sh --ios-only --build-ios --runs 5` genere `docs/performance/release-performance-2026-06-20T21-05-13Z.md`: build iOS Release simulateur non signee enregistree comme `BUILT_LOCAL_RELEASE_ARTIFACT`, 5 lancements `simctl launch` OK, min 239.8 ms, mediane 249.7 ms, p95/max 272.1 ms, moyenne 252.6 ms.
 - Ce rapport garde cold start device signe, Android runtime, home/list, creation event, scenario matrix et WakeveAI en `PENDING_DEVICE_TRACE`; il ne ferme donc pas les items performance device.
+- AS-11 payment compliance local: `./scripts/audit-app-store-payment-compliance.sh` genere un rapport local StoreKit/IAP, surfaces Payment/Tricount et notes/policy, garde `Generated report can close AS-11 = no - local scan only`, et le gate critique bloque la disparition de ce template. La preuve uploaded-build reste requise.
 
 #### 2.3 Notifications et deep links
 
