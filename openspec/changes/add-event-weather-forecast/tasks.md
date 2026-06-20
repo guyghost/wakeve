@@ -16,7 +16,7 @@
 - [x] 3.4 @codegen Ensure offline reads serve cached weather with explicit freshness metadata and queue no destructive sync operation.
 
 ## 4. iOS MapKit and WeatherKit Integration
-- [ ] 4.1 @codegen Add MapKit-based location search/resolution for event, scenario, and potential-location text.
+- [x] 4.1 @codegen Add MapKit-based location search/resolution for event, scenario, and potential-location text.
 - [x] 4.2 @codegen Add WeatherKit provider integration using resolved coordinates and date ranges.
 - [x] 4.3 @codegen Add WeatherKit entitlement/configuration checks and map provider errors into shared availability states.
 - [x] 4.4 @codegen Add request debouncing and cache reuse to avoid repeated provider calls on screen reload.
@@ -36,6 +36,6 @@
 - 3.3 is implemented for confirmed dates, selected/proposed scenario dates, and candidate time slots.
 - 2.3 is covered by `EventWeatherProviderTests`, which exercises fakeable WeatherKit success, entitlement, outage, and unsupported-date mapping.
 - 2.4 is covered by named SwiftUI previews plus `EventWeatherMapCardContractTests` for loading, available, stale, pending, and unavailable states.
-- 4.1 is partially implemented for event potential locations; scenario text resolution remains pending.
+- 4.1 is implemented for potential event locations and scenario location text. Event-level location text currently resolves through potential-location records because `Event` has no standalone location field.
 - 4.4 is covered by `CachedEventWeatherProvider`, which reuses fresh same-place/same-date results and coalesces concurrent duplicate requests before hitting WeatherKit.
 - 6.2 is partially covered by shared JVM tests, Android compilation, iOS simulator build, and targeted iOS XCTest; physical-device WeatherKit validation remains pending.
