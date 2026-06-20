@@ -109,6 +109,27 @@ assert_android_resource_defaults() {
     echo "PASS: Android release string resources have required default values"
 }
 
+assert_release_performance_harness() {
+    local harness="$PROJECT_DIR/scripts/profile-release-performance.sh"
+
+    if ! grep -Fq 'OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_DIR/docs/performance}"' "$harness"; then
+        echo "FAIL: release performance harness must respect OUTPUT_DIR overrides for temporary captures" >&2
+        exit 1
+    fi
+
+    if ! grep -Fq -- '--no-configuration-cache :composeApp:assembleRelease' "$harness"; then
+        echo "FAIL: release performance harness must build Android release without configuration cache" >&2
+        exit 1
+    fi
+
+    if ! grep -Fq 'Status: BUILT_LOCAL_RELEASE_ARTIFACT' "$harness"; then
+        echo "FAIL: release performance harness must record local release build artifacts" >&2
+        exit 1
+    fi
+
+    echo "PASS: release performance harness records Android build-only evidence safely"
+}
+
 assert_ios_profile_legal_notice_links() {
     local profile="$PROJECT_DIR/iosApp/src/Views/Profile/ProfileTabView.swift"
     local english="$PROJECT_DIR/iosApp/src/Resources/en.lproj/Localizable.strings"
@@ -222,6 +243,7 @@ assert_no_android_release_local_backend_defaults
 assert_android_compose_hygiene
 assert_android_build_hygiene
 assert_android_resource_defaults
+assert_release_performance_harness
 assert_ios_profile_legal_notice_links
 assert_wakeve_ai_device_profile_helper
 assert_weatherkit_device_validation_helper
