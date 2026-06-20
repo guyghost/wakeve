@@ -81,11 +81,11 @@ Latest capture command:
 ./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 12
 ```
 
-Result on 2026-06-21 local time, capture timestamp 2026-06-20T22:15:31Z: `FAIL. 16 required live URL/AASA checks failed or could not be validated.`
+Result on 2026-06-21 local time, capture timestamp 2026-06-20T22:48:00Z: `FAIL. 16 required live URL/AASA checks failed or could not be validated.`
 
 Generated capture report:
 
-- `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-15-31Z.md`
+- `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-48-00Z.md`
 - `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-02-42Z.md`
 - `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-55-13Z.md`
 - Apple Team ID was unset, so AASA app ID validation cannot pass even after the web host is live.
