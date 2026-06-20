@@ -11,6 +11,7 @@ import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.presentation.state.EventManagementContract
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
@@ -88,6 +89,7 @@ data class EventWorkspaceUiState(
     val selectedFilter: EventListFilter,
     val searchQuery: String,
     val actionSummary: EventWorkspaceActionSummary?,
+    val widgetSummary: EventWidgetSummary,
     val events: List<EventListItemUiState>,
     val selectedEvent: Event?,
     val participantCount: Int,
@@ -98,7 +100,9 @@ fun EventManagementContract.State.toEventWorkspaceUiState(
     currentUserId: String,
     selectedFilter: EventListFilter,
     searchQuery: String,
-    selectedEventId: String?
+    selectedEventId: String?,
+    now: Instant = Clock.System.now(),
+    timeZone: TimeZone = TimeZone.currentSystemDefault()
 ): EventWorkspaceUiState {
     val filtered = events
         .filter { event -> event.matchesFilter(selectedFilter, currentUserId) }
@@ -117,6 +121,11 @@ fun EventManagementContract.State.toEventWorkspaceUiState(
         selectedFilter = selectedFilter,
         searchQuery = searchQuery,
         actionSummary = filtered.toWorkspaceActionSummary(currentUserId, pollVotes),
+        widgetSummary = events.toEventWidgetSummary(
+            now = now,
+            timeZone = timeZone,
+            currentUserId = currentUserId
+        ),
         events = filtered.map { it.toListItem(currentUserId) },
         selectedEvent = selected,
         participantCount = if (selected?.id == selectedEvent?.id) participantIds.size else selected?.participants?.size ?: 0,

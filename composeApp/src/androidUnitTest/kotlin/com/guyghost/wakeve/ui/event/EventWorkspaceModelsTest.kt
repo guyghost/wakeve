@@ -59,6 +59,40 @@ class EventWorkspaceModelsTest {
     }
 
     @Test
+    fun `workspace state exposes widget summary across filters`() {
+        val state = EventManagementContract.State(
+            events = listOf(
+                event(
+                    id = "draft",
+                    title = "Draft dinner",
+                    status = EventStatus.DRAFT,
+                    proposedSlots = emptyList()
+                ),
+                event(
+                    id = "today",
+                    title = "Today launch",
+                    status = EventStatus.CONFIRMED,
+                    finalDate = "2026-06-20T18:00:00Z"
+                )
+            )
+        )
+
+        val uiState = state.toEventWorkspaceUiState(
+            currentUserId = "me",
+            selectedFilter = EventListFilter.Drafts,
+            searchQuery = "dinner",
+            selectedEventId = null,
+            now = Instant.parse("2026-06-20T08:00:00Z"),
+            timeZone = TimeZone.UTC
+        )
+
+        assertEquals(listOf("draft"), uiState.events.map { it.id })
+        assertEquals(EventWidgetKind.EventToday, uiState.widgetSummary.kind)
+        assertEquals("today", uiState.widgetSummary.eventId)
+        assertEquals("Today launch", uiState.widgetSummary.headline)
+    }
+
+    @Test
     fun `workspace summary prioritizes organizer draft recovery`() {
         val state = EventManagementContract.State(
             events = listOf(
