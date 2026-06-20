@@ -166,6 +166,7 @@ Preuves locales du 2026-06-21:
 - `./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 12` genere `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-02-42Z.md`; le rapport conclut encore `FAIL. 16 required live URL/AASA checks failed or could not be validated`.
 - `wakeve.app` ne retourne toujours aucune entree DNS publique; legal/support/terms/third-party-notices, dashboard `/app`, redirects legacy et AASA restent injoignables avec `Could not resolve host: wakeve.app`.
 - `api.wakeve.app` resout toujours vers Cloudflare (`172.67.156.46`, `104.21.48.204`), `HEAD /health` repond HTTP `405` et `GET /health` repond HTTP `200 OK`; AS-14 reste bloque par le domaine web/AASA public et le vrai Apple Team ID.
+- Preparation AS-08 DSA: `./scripts/prepare-app-store-dsa-trader-status-evidence.sh` genere un template d'evidence App Store Connect pour les chemins trader, non-trader ou EU storefronts disabled. Le rapport garde `Generated report can close AS-08 = no - preparation evidence only`; la decision owner/App Store Connect reste requise.
 
 #### 0.4 Signed archive, TestFlight et release evidence
 

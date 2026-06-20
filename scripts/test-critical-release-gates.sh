@@ -266,6 +266,43 @@ assert_payment_compliance_audit_helper() {
     echo "PASS: payment compliance audit helper generates the required AS-11 local evidence template"
 }
 
+assert_dsa_trader_status_evidence_helper() {
+    local output_dir
+    local report
+    output_dir="$(mktemp -d)"
+
+    bash -n "$PROJECT_DIR/scripts/prepare-app-store-dsa-trader-status-evidence.sh"
+    report="$(OUTPUT_DIR="$output_dir" "$PROJECT_DIR/scripts/prepare-app-store-dsa-trader-status-evidence.sh")"
+
+    if [ ! -f "$report" ]; then
+        echo "FAIL: DSA trader status evidence helper did not create a report at $report" >&2
+        exit 1
+    fi
+
+    local required_patterns=(
+        'Status: `PENDING_APP_STORE_CONNECT_DSA_DECISION`'
+        'Generated report can close AS-08 | `no - preparation evidence only`'
+        'Trader for EU distribution.'
+        'Non-trader for EU distribution.'
+        'EU storefronts disabled for the first release.'
+        'Selected DSA path | TODO: trader / non-trader / EU storefronts disabled'
+        'App-specific DSA status reviewed | TODO'
+        'Pricing and availability evidence cross-check | TODO'
+        'App availability evidence cross-check | TODO'
+        'Product/legal owner approval | TODO'
+        'Do not mark AS-08 complete'
+    )
+
+    for pattern in "${required_patterns[@]}"; do
+        if ! grep -Fq "$pattern" "$report"; then
+            echo "FAIL: DSA trader status evidence report is missing required field: $pattern" >&2
+            exit 1
+        fi
+    done
+
+    echo "PASS: DSA trader status helper generates the required AS-08 preparation template"
+}
+
 assert_notification_review_contract() {
     local model="$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationCategory.kt"
     local service="$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/RichNotificationService.kt"
@@ -569,6 +606,7 @@ assert_android_build_hygiene
 assert_android_resource_defaults
 assert_release_performance_harness
 assert_payment_compliance_audit_helper
+assert_dsa_trader_status_evidence_helper
 assert_notification_review_contract
 assert_ios_profile_legal_notice_links
 assert_wakeve_ai_device_profile_helper

@@ -54,6 +54,16 @@ Before upload or manual submission, complete one of these App Store Connect path
 
 Do not set `APP_STORE_DSA_TRADER_STATUS_CONFIRMED=true` until the App Store Connect record reflects the chosen path and this file contains `APP_STORE_DSA_TRADER_STATUS_EVIDENCE_COMPLETE=true`.
 
+## Repeatable Preparation Report
+
+Run this helper to generate a timestamped AS-08 evidence template:
+
+```bash
+./scripts/prepare-app-store-dsa-trader-status-evidence.sh
+```
+
+Generated reports are written under `docs/app-store-dsa/` and explicitly record `Generated report can close AS-08 = no - preparation evidence only`. The helper lists the three acceptable App Store Connect decision paths, required owner approval, pricing/availability cross-checks, app availability cross-checks, and the screenshot/export fields that must be completed before AS-08 can close.
+
 ## App Store Connect Actions
 
 Before App Review:
