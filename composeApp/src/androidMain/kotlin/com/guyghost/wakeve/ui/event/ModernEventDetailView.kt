@@ -64,6 +64,7 @@ fun ModernEventDetailView(
     onAddToCalendar: () -> Unit = {},
     onShareInvite: () -> Unit = {},
     dayOfSummary: EventDayOfSummary? = null,
+    destinationSummary: EventDestinationSummary? = null,
     settlementSummary: EventSettlementSummary? = null,
     modifier: Modifier = Modifier
 ) {
@@ -105,6 +106,10 @@ fun ModernEventDetailView(
 
             dayOfSummary?.let {
                 EventDayOfSummaryCard(summary = it)
+            }
+
+            destinationSummary?.let {
+                EventDestinationSummaryCard(summary = it, onOpenScenarios = onNavigateToScenarioList)
             }
 
             settlementSummary?.let {
@@ -151,6 +156,65 @@ fun ModernEventDetailView(
                 }
                 EventStatus.POLLING -> {
                     PollingModeActions()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventDestinationSummaryCard(
+    summary: EventDestinationSummary,
+    onOpenScenarios: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = summary.statusLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = summary.primaryLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.detailsLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            summary.options.forEach { option ->
+                Text(
+                    text = "${option.typeLabel} - ${option.title}: ${option.body}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = summary.nextActionLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            if (summary.canOpenScenarios) {
+                Button(
+                    onClick = onOpenScenarios,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.view_scenarios))
                 }
             }
         }
