@@ -121,6 +121,9 @@ sealed class Screen(val route: String) {
     data object Comments : Screen("event/{eventId}/comments") {
         fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/comments"
     }
+    data object EventPhotos : Screen("event/{eventId}/photos") {
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/photos"
+    }
     data object Inbox : Screen("inbox")
     
     // Meetings (Phase 4)

@@ -1439,6 +1439,18 @@ fun WakeveNavHost(
                 }
             )
         }
+
+        composable(
+            route = Screen.EventPhotos.route,
+            arguments = listOf(navArgument("eventId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
+
+            EventPhotosFollowUpScreen(
+                eventId = eventId,
+                onBack = { navController.navigateUp() }
+            )
+        }
         
         // ========================================
         // NOTIFICATIONS
@@ -1549,6 +1561,38 @@ fun WakeveNavHost(
                 isOrganizer = isOrganizer,
                 isParticipantConfirmed = isParticipantConfirmed
             )
+        }
+    }
+}
+
+@Composable
+private fun EventPhotosFollowUpScreen(
+    eventId: String,
+    onBack: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            text = "Photos a partager",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Text(
+            text = "Evenement $eventId",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            text = "Retrouvez les albums, photos favorites et selections a envoyer au groupe apres l'evenement.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Button(onClick = onBack) {
+            Text("Retour")
         }
     }
 }

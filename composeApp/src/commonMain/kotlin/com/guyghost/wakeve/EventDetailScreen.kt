@@ -500,7 +500,7 @@ private fun EventPostEventSummaryCard(
                     when (summary.primaryAction) {
                         PostEventPrimaryAction.OPEN_EVENT -> onNavigateTo("event/${event.id}")
                         PostEventPrimaryAction.OPEN_SETTLEMENTS -> onNavigateTo("event/${event.id}/budget")
-                        PostEventPrimaryAction.OPEN_PHOTOS -> Unit
+                        PostEventPrimaryAction.OPEN_PHOTOS -> onNavigateTo("event/${event.id}/photos")
                         PostEventPrimaryAction.RECREATE_EVENT -> {
                             event.toReorganizationSummary()?.template?.let { template ->
                                 onCreateFromTemplate?.invoke(template)
@@ -508,11 +508,8 @@ private fun EventPostEventSummaryCard(
                         }
                     }
                 },
-                enabled = when (summary.primaryAction) {
-                    PostEventPrimaryAction.OPEN_PHOTOS -> false
-                    PostEventPrimaryAction.RECREATE_EVENT -> onCreateFromTemplate != null
-                    else -> true
-                },
+                enabled = summary.primaryAction != PostEventPrimaryAction.RECREATE_EVENT ||
+                    onCreateFromTemplate != null,
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = WakeveSize.minTouchTarget)
@@ -527,7 +524,7 @@ private fun PostEventPrimaryAction.postEventActionLabel(): String =
     when (this) {
         PostEventPrimaryAction.OPEN_EVENT -> "Ouvrir l'événement"
         PostEventPrimaryAction.OPEN_SETTLEMENTS -> "Voir les remboursements"
-        PostEventPrimaryAction.OPEN_PHOTOS -> "Photos a connecter"
+        PostEventPrimaryAction.OPEN_PHOTOS -> "Voir les photos"
         PostEventPrimaryAction.RECREATE_EVENT -> "Réorganiser"
     }
 
