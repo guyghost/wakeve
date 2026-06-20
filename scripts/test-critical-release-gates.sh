@@ -68,6 +68,38 @@ assert_android_compose_hygiene() {
     echo "PASS: Android Compose source avoids deprecated dividers, parameterless menu anchors, and non-mirrored directional icons"
 }
 
+assert_android_home_workspace_user_copy() {
+    local source_dirs=(
+        "$PROJECT_DIR/composeApp/src/androidMain"
+        "$PROJECT_DIR/composeApp/src/commonMain"
+        "$PROJECT_DIR/composeApp/src/androidUnitTest"
+        "$PROJECT_DIR/composeApp/src/androidInstrumentedTest"
+    )
+    local model="$PROJECT_DIR/composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/event/EventWorkspaceModels.kt"
+    local internal_product_pattern='Boucle de croissance|Signal (emotionnel|émotionnel)|Position (strategique|stratégique)|Roadmap 6 mois|Pourquoi inviter|Pourquoi installer|Pourquoi revenir|Score émotionnel|Scores :|Honnête|Face aux concurrents|OS social|Problème critique|Fonction à créer|Capacité manquante|Interet utilisateur|Widget prioritaire|Widget voyage|Widget compte|Widget tache'
+
+    if grep -RInE "$internal_product_pattern" "${source_dirs[@]}"; then
+        echo "FAIL: Android Home workspace reintroduced internal product-audit copy; keep user-facing coordination labels" >&2
+        exit 1
+    fi
+
+    local required_labels=(
+        'title = "Invitations et retours"'
+        'title = "Ambiance du groupe"'
+        'title = "Prochaine décision"'
+        'title = "Plan d'\''action"'
+    )
+
+    for label in "${required_labels[@]}"; do
+        if ! grep -Fq "$label" "$model"; then
+            echo "FAIL: Android Home workspace is missing expected user-facing coordination label: $label" >&2
+            exit 1
+        fi
+    done
+
+    echo "PASS: Android Home workspace uses user-facing coordination copy"
+}
+
 assert_android_build_hygiene() {
     local obsolete_agp_flags_pattern='^android\.(defaults\.buildfeatures\.resvalues|sdk\.defaultTargetSdkToCompileSdkIfUnset|enableAppCompileTimeRClass|usesSdkInManifest\.disallowed|r8\.optimizedResourceShrinking)='
     if grep -nE "$obsolete_agp_flags_pattern" "$PROJECT_DIR/gradle.properties"; then
@@ -396,6 +428,7 @@ run ./scripts/test-app-store-ugc-gates.sh
 assert_no_sensitive_server_logs
 assert_no_android_release_local_backend_defaults
 assert_android_compose_hygiene
+assert_android_home_workspace_user_copy
 assert_android_build_hygiene
 assert_android_resource_defaults
 assert_release_performance_harness
