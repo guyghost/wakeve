@@ -759,24 +759,24 @@ assert_store_metadata_lint_evidence_count() {
     fi
 
     local roadmap_count
-    roadmap_count="$(grep -Fc "3106 checks, 0 erreur, 1 warning" "$roadmap")"
+    roadmap_count="$(grep -Fc "3108 checks, 0 erreur, 1 warning" "$roadmap")"
     if [ "$roadmap_count" -lt 2 ]; then
-        echo "FAIL: ROADMAP.md must document the current 3106-check App Store metadata lint result in both release evidence sections" >&2
+        echo "FAIL: ROADMAP.md must document the current 3108-check App Store metadata lint result in both release evidence sections" >&2
         exit 1
     fi
 
     local required_patterns=(
-        "Result: 3106 checks passed, 0 errors, 1 warning"
-        "3106 checks passed, 0 errors, 1 warning"
+        "Result: 3108 checks passed, 0 errors, 1 warning"
+        "3108 checks passed, 0 errors, 1 warning"
     )
 
     if ! grep -Fq "${required_patterns[0]}" "$lint"; then
-        echo "FAIL: lint-store-metadata.sh no longer publishes the expected 3106-check readiness result" >&2
+        echo "FAIL: lint-store-metadata.sh no longer publishes the expected 3108-check readiness result" >&2
         exit 1
     fi
 
     if ! grep -Fq "${required_patterns[1]}" "$readiness"; then
-        echo "FAIL: APP_STORE_READINESS.md no longer documents the expected 3106-check lint result" >&2
+        echo "FAIL: APP_STORE_READINESS.md no longer documents the expected 3108-check lint result" >&2
         exit 1
     fi
 
