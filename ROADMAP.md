@@ -279,7 +279,7 @@ Preuves du 2026-06-13:
 
 Preuves du 2026-06-20:
 
-- `docs/a11y/ios-accessibility-source-audit-2026-06-20T20-55-42Z.md` passe avec 0 finding apres correction des derniers risques locaux: label VoiceOver de progression localise, loaders meteo nommes et fallbacks `minimumScaleFactor` sur textes/URLs monolignes variables.
+- `docs/a11y/ios-accessibility-source-audit-2026-06-20T21-37-54Z.md` passe avec 0 finding apres correction des derniers risques locaux: label VoiceOver de progression localise, loaders meteo nommes et fallbacks `minimumScaleFactor` sur textes/URLs monolignes variables.
 - `docs/a11y/ios-localization-parity-2026-06-20T20-55-45Z.md` passe avec 0 finding: EN, FR, ES, IT et PT ont chacun 1831 cles, 0 doublon et aucune cle manquante/supplementaire versus EN.
 - `./scripts/test-critical-release-gates.sh` execute maintenant `audit-ios-accessibility-source.sh --fail-on-findings` en sortie temporaire et echoue si le rapport n'indique pas `| Total | 0 |`.
 - Ces preuves restent locales et ne ferment pas les validations Dynamic Type, high contrast et VoiceOver sur build signe/TestFlight.

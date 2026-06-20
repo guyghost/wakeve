@@ -48,10 +48,10 @@ The repository decision for the first release is iPhone/iPad only. Mac with Appl
 | Feature | Draft answer | Evidence / caveat |
 |---|---:|---|
 | Dark Interface | Yes | iOS views use SwiftUI color system and Liquid Glass components with dark-mode support. Must verify in TestFlight. |
-| Larger Text / Adjustable Text Size | Do not claim yet | Existing audits still flag Dynamic Type risks in several views. Claim only after large accessibility sizes are smoke tested. |
-| VoiceOver | Do not claim yet | Existing audits show partial coverage and remaining unlabeled controls. Claim only after VoiceOver smoke test covers login, event creation, polling, calendar, and settings. |
+| Larger Text / Adjustable Text Size | Do not claim yet | The 2026-06-20 source audit reports 0 single-line text fallback findings, but this is not device evidence. Claim only after large accessibility sizes are smoke tested on the signed review build. |
+| VoiceOver | Do not claim yet | The 2026-06-20 source audit reports 0 hardcoded accessibility string and icon-only button findings, but VoiceOver traversal is still unproven. Claim only after VoiceOver smoke test covers login, event creation, polling, calendar, settings, account deletion, UGC, and payment surfaces. |
 | Voice Control | Do not claim yet | No current evidence of device-level Voice Control testing. |
-| Sufficient Contrast | Do not claim yet | Existing audits identify historical contrast issues in gradient/secondary text areas. Claim only after current screens are checked. |
+| Sufficient Contrast | Do not claim yet | Local source and screenshot evidence is partial only. Claim only after current signed-build screens are checked in dark/light mode and high contrast. |
 | Reduced Motion | Do not claim yet | No current evidence of Reduced Motion testing across primary flows. |
 | Differentiate without Color Alone | Do not claim yet | Poll/vote/status flows need manual verification. |
 | Captions | Not applicable | No required video/audio media content in the App Store experience currently documented. |
@@ -77,6 +77,7 @@ Do not claim accessibility support for Apple Vision Pro in the first release bec
 ## Before Publishing Labels
 
 - Re-run or update `docs/ACCESSIBILITY_AUDIT.md` and `docs/a11y/ACCESSIBILITY_AUDIT_iOS.md` against the current SwiftUI files.
+- Keep the latest 2026-06-20 source audit result (`docs/a11y/ios-accessibility-source-audit-2026-06-20T21-37-54Z.md`, `0` total findings) as local regression evidence only.
 - Complete the accessibility section of `docs/APP_STORE_LAUNCH_CHECKLIST.md`.
 - Keep screenshots or notes from VoiceOver, Dynamic Type, dark mode, and contrast checks.
 - Publish only labels that are directly supported by current device evidence.
