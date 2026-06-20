@@ -3,9 +3,13 @@ package com.guyghost.wakeve.ui.event
 import com.guyghost.wakeve.access.DateValidationState
 import com.guyghost.wakeve.access.ParticipantAccessState
 import com.guyghost.wakeve.access.ParticipantRsvp
+import com.guyghost.wakeve.models.Album
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.payment.SettlementRecord
+import com.guyghost.wakeve.postevent.PostEventControlSummary
+import com.guyghost.wakeve.postevent.toPostEventControlSummary
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 
 data class EventDetailUiState(
@@ -20,6 +24,7 @@ data class EventDetailUiState(
     val showTransportPlanning: Boolean,
     val showOrganizationTools: Boolean,
     val dayOfSummary: EventDayOfSummary?,
+    val postEventSummary: PostEventControlSummary?,
     val rsvp: EventRsvpUiState?
 )
 
@@ -50,7 +55,9 @@ data class EventRsvpUiState(
 
 fun EventManagementContract.State.toEventDetailUiState(
     eventId: String,
-    currentUserId: String
+    currentUserId: String,
+    settlements: List<SettlementRecord> = emptyList(),
+    albums: List<Album> = emptyList()
 ): EventDetailUiState {
     val event = selectedEvent?.takeIf { it.id == eventId }
         ?: events.firstOrNull { it.id == eventId }
@@ -75,6 +82,9 @@ fun EventManagementContract.State.toEventDetailUiState(
         showOrganizationTools = canAccessOrganizationDetails &&
             status in listOf(EventStatus.ORGANIZING, EventStatus.FINALIZED),
         dayOfSummary = event?.toDayOfSummary(participantAccessStates),
+        postEventSummary = event
+            ?.takeIf { it.status == EventStatus.FINALIZED }
+            ?.toPostEventControlSummary(settlements = settlements, albums = albums),
         rsvp = event?.let {
             participantAccessStates.firstOrNull { accessState -> accessState.userId == currentUserId }
                 ?.toRsvpUiState(isOrganizer = isOrganizer)
