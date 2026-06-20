@@ -17,6 +17,7 @@
 "common.error_generic" = "Algo correu mal.";
 "common.success" = "Sucesso";
 "common.loading" = "A carregar...";
+"common.progress" = "Progresso";
 "common.try_again" = "Tentar novamente";
 "common.continue" = "Continuar";
 "common.yes" = "Sim";

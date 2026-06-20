@@ -363,6 +363,7 @@ struct ParticipantManagementView: View {
                         .font(.system(.caption, design: .monospaced))
                         .foregroundColor(secondaryText)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.75)
                         .truncationMode(.middle)
                         .padding(.horizontal, WakeveTheme.Spacing.md)
                         .frame(maxWidth: .infinity, alignment: .leading)

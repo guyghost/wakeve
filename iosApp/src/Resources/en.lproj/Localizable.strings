@@ -17,6 +17,7 @@
 "common.error_generic" = "Something went wrong.";
 "common.success" = "Success";
 "common.loading" = "Loading...";
+"common.progress" = "Progress";
 "common.try_again" = "Try again";
 "common.continue" = "Continue";
 "common.yes" = "Yes";

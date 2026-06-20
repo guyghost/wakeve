@@ -245,6 +245,7 @@ struct EventWeatherMapCard: View {
             shell {
                 HStack(spacing: WakeveTheme.Spacing.sm) {
                     ProgressView()
+                        .accessibilityLabel(String(localized: "weather.loading"))
                     Text(String(localized: "weather.loading"))
                         .font(WakeveTheme.Typography.callout)
                         .foregroundColor(secondaryText)

@@ -17,6 +17,7 @@
 "common.error_generic" = "Une erreur est survenue.";
 "common.success" = "Succès";
 "common.loading" = "Chargement...";
+"common.progress" = "Progression";
 "common.try_again" = "Réessayer";
 "common.continue" = "Continuer";
 "common.yes" = "Oui";

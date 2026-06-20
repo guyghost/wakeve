@@ -17,6 +17,7 @@
 "common.error_generic" = "Qualcosa è andato storto.";
 "common.success" = "Successo";
 "common.loading" = "Caricamento...";
+"common.progress" = "Avanzamento";
 "common.try_again" = "Riprova";
 "common.continue" = "Continua";
 "common.yes" = "Sì";
