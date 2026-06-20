@@ -563,6 +563,95 @@ assert_ios_release_screen_evidence_integrity() {
     echo "PASS: iOS release screen evidence audit verifies indexed screenshots and keeps missing release screens explicit"
 }
 
+assert_app_store_media_localization_audit() {
+    local output_dir
+    local report
+    mkdir -p "$PROJECT_DIR/build/tmp"
+    output_dir="$(mktemp -d "$PROJECT_DIR/build/tmp/app-store-media-localization.XXXXXX")"
+
+    bash -n "$PROJECT_DIR/scripts/audit-app-store-media-localization.sh"
+    report="$("$PROJECT_DIR/scripts/audit-app-store-media-localization.sh" --fail-on-findings --output-dir "$output_dir")"
+
+    if [ ! -f "$report" ]; then
+        echo "FAIL: App Store media/localization audit did not create a report at $report" >&2
+        exit 1
+    fi
+    assert_generated_report_is_commit_safe "$report" "App Store media/localization audit"
+
+    local required_patterns=(
+        'Status: LOCAL EVIDENCE'
+        '| App preview videos | 0 |'
+        '| Findings | 0 |'
+        'APP_STORE_MEDIA_LOCALIZATION_EVIDENCE_COMPLETE=false'
+    )
+
+    for pattern in "${required_patterns[@]}"; do
+        if ! grep -Fq "$pattern" "$report"; then
+            echo "FAIL: App Store media/localization audit report is missing required field: $pattern" >&2
+            exit 1
+        fi
+    done
+
+    echo "PASS: App Store media/localization audit remains clean and local-only"
+}
+
+assert_app_store_privacy_alignment_audit() {
+    local output_dir
+    local report
+    mkdir -p "$PROJECT_DIR/build/tmp"
+    output_dir="$(mktemp -d "$PROJECT_DIR/build/tmp/app-store-privacy.XXXXXX")"
+
+    bash -n "$PROJECT_DIR/scripts/audit-app-store-privacy-alignment.sh"
+    report="$("$PROJECT_DIR/scripts/audit-app-store-privacy-alignment.sh" --fail-on-findings --output-dir "$output_dir")"
+
+    if [ ! -f "$report" ]; then
+        echo "FAIL: App Store privacy alignment audit did not create a report at $report" >&2
+        exit 1
+    fi
+    assert_generated_report_is_commit_safe "$report" "App Store privacy alignment audit"
+
+    local required_patterns=(
+        'Status: LOCAL EVIDENCE'
+        '| Local findings | 0 |'
+        'Result: PASS for local privacy alignment.'
+        'AS-05 remains open'
+    )
+
+    for pattern in "${required_patterns[@]}"; do
+        if ! grep -Fq "$pattern" "$report"; then
+            echo "FAIL: App Store privacy alignment audit report is missing required field: $pattern" >&2
+            exit 1
+        fi
+    done
+
+    echo "PASS: App Store privacy alignment audit remains clean and local-only"
+}
+
+assert_ios_localization_parity_report() {
+    local output_dir
+    local output
+    local report
+    mkdir -p "$PROJECT_DIR/build/tmp"
+    output_dir="$(mktemp -d "$PROJECT_DIR/build/tmp/ios-localization-parity.XXXXXX")"
+
+    bash -n "$PROJECT_DIR/scripts/audit-ios-localization-parity.sh"
+    output="$("$PROJECT_DIR/scripts/audit-ios-localization-parity.sh" --write-report --fail-on-findings --output "$output_dir")"
+    report="$(printf '%s\n' "$output" | tail -n 1)"
+
+    if [ ! -f "$report" ]; then
+        echo "FAIL: iOS localization parity audit did not create a report at $report" >&2
+        exit 1
+    fi
+    assert_generated_report_is_commit_safe "$report" "iOS localization parity audit"
+
+    if ! grep -Fq '| Total findings |  |  |  |  | 0 |' "$report"; then
+        echo "FAIL: iOS localization parity report must have zero findings" >&2
+        exit 1
+    fi
+
+    echo "PASS: iOS localization parity report has zero findings and commit-safe evidence"
+}
+
 assert_live_url_aasa_blocker_evidence() {
     local evidence="$PROJECT_DIR/docs/APP_STORE_LIVE_URL_AASA_EVIDENCE.md"
     local capture="$PROJECT_DIR/docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-15-31Z.md"
@@ -679,9 +768,11 @@ assert_wakeve_ai_device_profile_helper
 assert_weatherkit_device_validation_helper
 assert_ios_accessibility_source_audit
 assert_ios_release_screen_evidence_integrity
+assert_app_store_media_localization_audit
+assert_app_store_privacy_alignment_audit
+assert_ios_localization_parity_report
 assert_store_metadata_lint_evidence_count
 assert_live_url_aasa_blocker_evidence
-run ./scripts/audit-ios-localization-parity.sh --fail-on-findings
 
 run ./gradlew :server:test \
     --tests com.guyghost.wakeve.auth.AccountDeletionServiceTest \

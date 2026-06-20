@@ -61,6 +61,12 @@ else
     REPORT=""
 fi
 
+sanitize_report() {
+    local report="$1"
+    [ -n "$report" ] && [ -f "$report" ] || return 0
+    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$report"
+}
+
 set +e
 ruby - "$PROJECT_DIR" "$BASE_LOCALE" "$REPORT" <<'RUBY'
 project_dir = ARGV.fetch(0)
@@ -189,6 +195,7 @@ exit(total_findings.zero? ? 0 : 1)
 RUBY
 status=$?
 set -e
+sanitize_report "$REPORT"
 if [ "$FAIL_ON_FINDINGS" = true ]; then
     exit "$status"
 fi

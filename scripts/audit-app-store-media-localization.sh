@@ -51,6 +51,10 @@ tmp_dir="${TMPDIR:-/tmp}/wakeve-media-localization-$$"
 mkdir -p "$tmp_dir"
 trap 'rm -rf "$tmp_dir"' EXIT
 
+sanitize_report() {
+    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$report"
+}
+
 metadata_dir="$PROJECT_DIR/composeApp/metadata/ios"
 upload_screenshot_dir="$PROJECT_DIR/composeApp/screenshots/ios"
 locales=("en-US" "fr-FR")
@@ -236,6 +240,8 @@ fi
     echo "- Attach the generated report to \`docs/APP_STORE_MEDIA_LOCALIZATION_EVIDENCE.md\` after meaningful media or metadata changes."
     echo "- If app previews are added, validate duration, format, poster frame, locale fallback, rights, and source-device capture."
 } >> "$report"
+
+sanitize_report
 
 echo "$report"
 
