@@ -180,6 +180,16 @@ private fun EventDayOfSummaryCard(summary: EventDayOfSummary) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
+                text = summary.arrivalTrackingLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.missingPeopleLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
                 text = summary.nextActionLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary

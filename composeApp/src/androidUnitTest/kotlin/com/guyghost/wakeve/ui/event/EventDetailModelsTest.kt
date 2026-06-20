@@ -130,6 +130,14 @@ class EventDetailModelsTest {
         assertEquals("2 participants attendus", uiState.dayOfSummary?.attendanceLabel)
         assertEquals("1 sans reponse · 1 ne vient pas", uiState.dayOfSummary?.missingLabel)
         assertEquals(
+            "Presence a pointer : organizer, participant-1.",
+            uiState.dayOfSummary?.arrivalTrackingLabel
+        )
+        assertEquals(
+            "A verifier : participant-2 · Ne viennent pas : participant-3",
+            uiState.dayOfSummary?.missingPeopleLabel
+        )
+        assertEquals(
             "Suivre les arrivees et traiter les absents avant la prochaine etape.",
             uiState.dayOfSummary?.nextActionLabel
         )
@@ -144,9 +152,74 @@ class EventDetailModelsTest {
         assertEquals("Participants invites : 2", uiState.dayOfSummary?.attendanceLabel)
         assertEquals("RSVP detailles non synchronises", uiState.dayOfSummary?.missingLabel)
         assertEquals(
+            "Presence a pointer des que les participants se presentent.",
+            uiState.dayOfSummary?.arrivalTrackingLabel
+        )
+        assertEquals(
+            "Liste des presents non disponible tant que les RSVP ne sont pas synchronises.",
+            uiState.dayOfSummary?.missingPeopleLabel
+        )
+        assertEquals(
             "Verifier le lieu de rendez-vous et envoyer le rappel de depart.",
             uiState.dayOfSummary?.nextActionLabel
         )
+    }
+
+    @Test
+    fun dayOfSummaryCompactsLongArrivalAndMissingLists() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(
+                status = EventStatus.ORGANIZING,
+                participants = listOf(
+                    "organizer",
+                    "participant-1",
+                    "participant-2",
+                    "participant-3",
+                    "participant-4",
+                    "participant-5",
+                    "participant-6"
+                )
+            ),
+            participantAccessStates = listOf(
+                ParticipantAccessState.organizer("organizer"),
+                ParticipantAccessState.member(
+                    userId = "participant-1",
+                    rsvp = ParticipantRsvp.ACCEPTED,
+                    dateValidation = DateValidationState.VALIDATED_RETAINED_DATE
+                ),
+                ParticipantAccessState.member(
+                    userId = "participant-2",
+                    rsvp = ParticipantRsvp.ACCEPTED,
+                    dateValidation = DateValidationState.VALIDATED_RETAINED_DATE
+                ),
+                ParticipantAccessState.member(
+                    userId = "participant-3",
+                    rsvp = ParticipantRsvp.ACCEPTED,
+                    dateValidation = DateValidationState.VALIDATED_RETAINED_DATE
+                ),
+                ParticipantAccessState.invitedPending("participant-4"),
+                ParticipantAccessState.invitedPending("participant-5"),
+                ParticipantAccessState.invitedPending("participant-6")
+            )
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals(
+            "Presence a pointer : organizer, participant-1, participant-2 + 1 autre.",
+            uiState.dayOfSummary?.arrivalTrackingLabel
+        )
+        assertEquals(
+            "A verifier : participant-4, participant-5, participant-6",
+            uiState.dayOfSummary?.missingPeopleLabel
+        )
+    }
+
+    @Test
+    fun dayOfSummaryDoesNotClaimRealArrivalWithoutCheckInState() {
+        val summary = event(status = EventStatus.ORGANIZING)
+            .toDayOfSummary(listOf(ParticipantAccessState.organizer("organizer")))
+
+        assertFalse(summary?.arrivalTrackingLabel.orEmpty().contains("arrive", ignoreCase = true))
+        assertTrue(summary?.arrivalTrackingLabel.orEmpty().contains("pointer"))
     }
 
     @Test

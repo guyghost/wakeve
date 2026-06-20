@@ -27,6 +27,8 @@ data class EventDayOfSummary(
     val title: String,
     val attendanceLabel: String,
     val missingLabel: String,
+    val arrivalTrackingLabel: String,
+    val missingPeopleLabel: String,
     val nextActionLabel: String
 )
 
@@ -87,18 +89,28 @@ internal fun Event.toDayOfSummary(
             title = eventDayOfTitle(),
             attendanceLabel = "Participants invites : ${participants.size}",
             missingLabel = "RSVP detailles non synchronises",
+            arrivalTrackingLabel = eventDayOfArrivalTrackingUnavailableLabel(),
+            missingPeopleLabel = eventDayOfMissingPeopleUnavailableLabel(),
             nextActionLabel = eventDayOfNextActionLabel(status)
         )
     }
 
-    val acceptedCount = relevantAccessStates.count { it.rsvp == ParticipantRsvp.ACCEPTED }
-    val pendingCount = relevantAccessStates.count { it.rsvp == ParticipantRsvp.PENDING }
-    val declinedCount = relevantAccessStates.count { it.rsvp == ParticipantRsvp.DECLINED }
+    val acceptedParticipants = relevantAccessStates.filter { it.rsvp == ParticipantRsvp.ACCEPTED }
+    val pendingParticipants = relevantAccessStates.filter { it.rsvp == ParticipantRsvp.PENDING }
+    val declinedParticipants = relevantAccessStates.filter { it.rsvp == ParticipantRsvp.DECLINED }
+    val acceptedCount = acceptedParticipants.size
+    val pendingCount = pendingParticipants.size
+    val declinedCount = declinedParticipants.size
 
     return EventDayOfSummary(
         title = eventDayOfTitle(),
         attendanceLabel = "$acceptedCount participant${if (acceptedCount > 1) "s" else ""} attendus",
         missingLabel = eventDayOfMissingLabel(pendingCount, declinedCount),
+        arrivalTrackingLabel = eventDayOfArrivalTrackingLabel(acceptedParticipants.map { it.userId }),
+        missingPeopleLabel = eventDayOfMissingPeopleLabel(
+            pendingParticipantIds = pendingParticipants.map { it.userId },
+            declinedParticipantIds = declinedParticipants.map { it.userId }
+        ),
         nextActionLabel = eventDayOfNextActionLabel(status)
     )
 }
@@ -111,6 +123,56 @@ internal fun eventDayOfMissingLabel(pendingCount: Int, declinedCount: Int): Stri
         if (declinedCount > 0) add("$declinedCount ne ${if (declinedCount > 1) "viennent" else "vient"} pas")
     }
     return if (parts.isEmpty()) "Aucune reponse manquante" else parts.joinToString(" · ")
+}
+
+internal fun eventDayOfArrivalTrackingUnavailableLabel(): String =
+    "Presence a pointer des que les participants se presentent."
+
+internal fun eventDayOfMissingPeopleUnavailableLabel(): String =
+    "Liste des presents non disponible tant que les RSVP ne sont pas synchronises."
+
+internal fun eventDayOfArrivalTrackingLabel(acceptedParticipantIds: List<String>): String {
+    if (acceptedParticipantIds.isEmpty()) {
+        return "Aucun participant attendu a pointer pour l'instant."
+    }
+
+    return "Presence a pointer : ${eventDayOfCompactParticipantList(acceptedParticipantIds)}."
+}
+
+internal fun eventDayOfMissingPeopleLabel(
+    pendingParticipantIds: List<String>,
+    declinedParticipantIds: List<String>
+): String {
+    val parts = buildList {
+        if (pendingParticipantIds.isNotEmpty()) {
+            add("A verifier : ${eventDayOfCompactParticipantList(pendingParticipantIds)}")
+        }
+        if (declinedParticipantIds.isNotEmpty()) {
+            add("Ne viennent pas : ${eventDayOfCompactParticipantList(declinedParticipantIds)}")
+        }
+    }
+
+    return if (parts.isEmpty()) {
+        "Personne ne manque d'apres les confirmations actuelles."
+    } else {
+        parts.joinToString(" · ")
+    }
+}
+
+internal fun eventDayOfCompactParticipantList(participantIds: List<String>): String {
+    val normalizedIds = participantIds
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .distinct()
+    if (normalizedIds.isEmpty()) return "aucun participant"
+
+    val shown = normalizedIds.take(3).joinToString(", ")
+    val remainingCount = normalizedIds.size - 3
+    return if (remainingCount > 0) {
+        "$shown + $remainingCount autre${if (remainingCount > 1) "s" else ""}"
+    } else {
+        shown
+    }
 }
 
 internal fun eventDayOfNextActionLabel(status: EventStatus): String = when (status) {
