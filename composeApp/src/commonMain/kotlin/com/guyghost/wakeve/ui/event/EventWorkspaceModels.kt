@@ -77,6 +77,20 @@ data class EventEmotionalSummary(
     val template: EventWorkspaceCreationTemplate? = null
 )
 
+data class EventStrategicSummary(
+    val eventId: String?,
+    val title: String,
+    val headline: String,
+    val verdictLabel: String,
+    val competitorLabel: String,
+    val operatingSystemLabel: String,
+    val missingCapabilityLabel: String,
+    val nextActionLabel: String,
+    val actionLabel: String,
+    val action: EventWorkspaceSummaryAction?,
+    val template: EventWorkspaceCreationTemplate? = null
+)
+
 enum class EventWorkspaceSummaryAction {
     OpenEvent,
     OpenPoll,
@@ -123,6 +137,7 @@ data class EventWorkspaceUiState(
     val actionSummary: EventWorkspaceActionSummary?,
     val viralLoopSummary: EventViralLoopSummary,
     val emotionalSummary: EventEmotionalSummary,
+    val strategicSummary: EventStrategicSummary,
     val widgetSummary: EventWidgetSummary,
     val events: List<EventListItemUiState>,
     val selectedEvent: Event?,
@@ -157,6 +172,7 @@ fun EventManagementContract.State.toEventWorkspaceUiState(
         actionSummary = filtered.toWorkspaceActionSummary(currentUserId, pollVotes),
         viralLoopSummary = events.toViralLoopSummary(currentUserId, pollVotes),
         emotionalSummary = events.toEmotionalSummary(currentUserId, pollVotes),
+        strategicSummary = events.toStrategicSummary(currentUserId, pollVotes),
         widgetSummary = events.toEventWidgetSummary(
             now = now,
             timeZone = timeZone,
@@ -446,6 +462,120 @@ internal fun List<Event>.toEmotionalSummary(
         )
     }
 }
+
+internal fun List<Event>.toStrategicSummary(
+    currentUserId: String,
+    pollVotes: Map<String, Map<String, com.guyghost.wakeve.models.Vote>>
+): EventStrategicSummary {
+    val event = maxWithOrNull(
+        compareBy<Event> { it.strategicPriority(currentUserId, pollVotes[it.id]?.size ?: 0) }
+            .thenBy { it.updatedAt }
+    ) ?: return EventStrategicSummary(
+        eventId = null,
+        title = "Position stratégique",
+        headline = "Pas encore défendable",
+        verdictLabel = "Verdict : agenda vide, aucun moat visible.",
+        competitorLabel = "Face aux concurrents : WhatsApp suffit encore.",
+        operatingSystemLabel = "OS social : aucun espace collectif actif.",
+        missingCapabilityLabel = "Capacité manquante : créer un premier groupe coordonné.",
+        nextActionLabel = "Créez un événement pour prouver la valeur de coordination.",
+        actionLabel = "Créer",
+        action = null
+    )
+
+    val voteCount = pollVotes[event.id]?.size ?: 0
+    val missingVotes = (event.participants.size - voteCount).coerceAtLeast(0)
+
+    return when (event.status) {
+        EventStatus.DRAFT -> EventStrategicSummary(
+            eventId = event.id,
+            title = "Position stratégique",
+            headline = "Encore plus faible qu'un chat",
+            verdictLabel = "Verdict : proposition non lançable tant que le groupe ne voit rien.",
+            competitorLabel = "Face aux concurrents : Partiful gagne si l'invitation reste plus simple.",
+            operatingSystemLabel = "OS social : embryon de décision, pas encore un espace collectif.",
+            missingCapabilityLabel = "Capacité manquante : invitation claire et vote prêt.",
+            nextActionLabel = "Finalisez le brouillon avant de partager.",
+            actionLabel = if (event.organizerId == currentUserId) "Finaliser" else "Voir",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.POLLING -> EventStrategicSummary(
+            eventId = event.id,
+            title = "Position stratégique",
+            headline = if (missingVotes > 0) "Meilleur que WhatsApp, pas encore un OS" else "Décision collective défendable",
+            verdictLabel = "Verdict : utile pour choisir une date, pas encore pour organiser tout le séjour.",
+            competitorLabel = "Face aux concurrents : WhatsApp perd la trace des votes et des relances.",
+            operatingSystemLabel = "OS social : la première décision commune existe.",
+            missingCapabilityLabel = "Capacité manquante : transformer le vote en plan budget, transport et programme.",
+            nextActionLabel = if (missingVotes > 0) {
+                "Obtenez les votes manquants pour sortir du débat."
+            } else {
+                "Confirmez la date et ouvrez la préparation."
+            },
+            actionLabel = "Ouvrir le vote",
+            action = EventWorkspaceSummaryAction.OpenPoll
+        )
+        EventStatus.COMPARING -> EventStrategicSummary(
+            eventId = event.id,
+            title = "Position stratégique",
+            headline = "Différenciation à portée",
+            verdictLabel = "Verdict : Wakeve peut dépasser le simple agenda si la comparaison tranche vraiment.",
+            competitorLabel = "Face aux concurrents : TripIt suit un plan, Wakeve peut décider le plan.",
+            operatingSystemLabel = "OS social : le groupe arbitre destination, contraintes et scénario.",
+            missingCapabilityLabel = "Capacité manquante : score lisible sur budget, logement et transport.",
+            nextActionLabel = "Choisissez le scénario qui réduit le plus le chaos collectif.",
+            actionLabel = "Comparer",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.CONFIRMED -> EventStrategicSummary(
+            eventId = event.id,
+            title = "Position stratégique",
+            headline = "Raison d'exister visible",
+            verdictLabel = "Verdict : l'événement devient crédible, mais la promesse OS social reste à prouver.",
+            competitorLabel = "Face aux concurrents : Apple Invites couvre l'annonce, Wakeve doit couvrir l'organisation.",
+            operatingSystemLabel = "OS social : date commune, préparation encore incomplète.",
+            missingCapabilityLabel = "Capacité manquante : budget, transport, rôles et programme actionnables.",
+            nextActionLabel = "Centralisez les décisions qui retomberaient dans le chat.",
+            actionLabel = "Préparer",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.ORGANIZING -> EventStrategicSummary(
+            eventId = event.id,
+            title = "Position stratégique",
+            headline = "OS social crédible",
+            verdictLabel = "Verdict : Wakeve garde une raison d'exister même si WhatsApp, Splitwise et TripIt fusionnent.",
+            competitorLabel = "Face aux concurrents : plan, présences, budget et jour J vivent dans un seul espace.",
+            operatingSystemLabel = "OS social : décisions, participants et prochaines actions convergent.",
+            missingCapabilityLabel = "Capacité manquante : automatiser rôles et alertes sans créer de bruit.",
+            nextActionLabel = "Gardez le centre de contrôle comme écran principal jusqu'au jour J.",
+            actionLabel = "Piloter",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.FINALIZED -> EventStrategicSummary(
+            eventId = event.id,
+            title = "Position stratégique",
+            headline = "Rétention à prouver",
+            verdictLabel = "Verdict : utile après l'événement seulement si recap, photos et dettes ressortent vite.",
+            competitorLabel = "Face aux concurrents : Splitwise gagne si les remboursements restent séparés.",
+            operatingSystemLabel = "OS social : mémoire du groupe réutilisable.",
+            missingCapabilityLabel = "Capacité manquante : boucle photos, remboursements et nouvelle édition.",
+            nextActionLabel = "Transformez le recap en invitation pour la prochaine édition.",
+            actionLabel = "Réutiliser",
+            action = EventWorkspaceSummaryAction.RecreateFromTemplate,
+            template = event.workspaceCreationTemplate()
+        )
+    }
+}
+
+private fun Event.strategicPriority(currentUserId: String, voteCount: Int): Int =
+    when (status) {
+        EventStatus.ORGANIZING -> 90
+        EventStatus.CONFIRMED -> 75
+        EventStatus.COMPARING -> 70
+        EventStatus.POLLING -> 65 + (participants.size - voteCount).coerceAtLeast(0)
+        EventStatus.FINALIZED -> 60
+        EventStatus.DRAFT -> if (organizerId == currentUserId) 40 else 20
+    }
 
 private fun Event.emotionalPriority(currentUserId: String, voteCount: Int): Int =
     when (status) {
