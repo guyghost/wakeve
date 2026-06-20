@@ -31,6 +31,8 @@ Wakeve has more event-planning surface than a typical early consumer app, but th
 
 The sharpest product issue in the inspected Android source is that the Home event workspace renders cards named around internal audit concepts: "Boucle de croissance", "Signal emotionnel", "Position strategique", and "Roadmap 6 mois". Those labels are useful to the product team, not to a normal organizer. In a consumer app, this risks making Wakeve look like a dashboard about Wakeve rather than a control center for my event.
 
+Local follow-up on 2026-06-20: the Android Home workspace copy was updated in `EventWorkspaceModels.kt`, previews, and tests so those visible cards now use organizer-facing labels such as "Invitations et retours", "Ambiance du groupe", "Prochaine decision", and "Plan d'action". This closes the source-level copy issue, but it does not replace a device/emulator UX pass.
+
 Launch verdict today: do not scale Android publicly yet. Use Android for internal testing and cohort feedback, but do not make it the main acquisition platform until the first event creation, invite, vote, and day-of coordination loop is measured on device.
 
 ## Scorecard
@@ -259,7 +261,7 @@ Missing elements for that vision:
 
 ## Ten Critical Problems
 
-1. Home shows internal product strategy concepts to users instead of pure event coordination.
+1. Home still needs device validation after the source-level replacement of internal product strategy copy.
 2. First 30 seconds do not yet prove enough value for a cold user.
 3. Complex event breadth risks overwhelming simple events.
 4. Android performance and TalkBack readiness are not device-proven.

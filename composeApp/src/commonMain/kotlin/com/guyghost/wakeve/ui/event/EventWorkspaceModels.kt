@@ -272,11 +272,11 @@ internal fun List<Event>.toViralLoopSummary(
             .thenBy { it.updatedAt }
     ) ?: return EventViralLoopSummary(
         eventId = null,
-        title = "Boucle de croissance",
+        title = "Invitations et retours",
         headline = "Aucun événement à partager",
-        inviteReasonLabel = "Pourquoi inviter : il manque un événement concret à proposer.",
-        installReasonLabel = "Pourquoi installer : Wakeve doit d'abord montrer un groupe actif.",
-        returnReasonLabel = "Pourquoi revenir : créez un premier événement réutilisable.",
+        inviteReasonLabel = "Invitation : il manque un événement concret à proposer.",
+        installReasonLabel = "Pourquoi ouvrir Wakeve : Wakeve doit d'abord montrer un groupe actif.",
+        returnReasonLabel = "À suivre : créez un premier événement réutilisable.",
         actionLabel = "Créer",
         action = null
     )
@@ -287,65 +287,65 @@ internal fun List<Event>.toViralLoopSummary(
     return when (event.status) {
         EventStatus.DRAFT -> EventViralLoopSummary(
             eventId = event.id,
-            title = "Boucle de croissance",
+            title = "Invitations et retours",
             headline = "Invitation pas encore prête",
-            inviteReasonLabel = "Pourquoi inviter : le groupe ne doit recevoir le lien qu'une fois le sondage clair.",
-            installReasonLabel = "Pourquoi installer : voir les créneaux et répondre sans fouiller WhatsApp.",
-            returnReasonLabel = "Pourquoi revenir : reprendre le brouillon pour lancer le vote.",
+            inviteReasonLabel = "Invitation : le groupe ne doit recevoir le lien qu'une fois le sondage clair.",
+            installReasonLabel = "Pourquoi ouvrir Wakeve : voir les créneaux et répondre sans fouiller WhatsApp.",
+            returnReasonLabel = "À suivre : reprendre le brouillon pour lancer le vote.",
             actionLabel = if (event.organizerId == currentUserId) "Finaliser" else "Voir",
             action = EventWorkspaceSummaryAction.OpenEvent
         )
         EventStatus.POLLING -> EventViralLoopSummary(
             eventId = event.id,
-            title = "Boucle de croissance",
+            title = "Invitations et retours",
             headline = if (missingVotes > 0) {
                 "$missingVotes vote${if (missingVotes == 1) "" else "s"} à obtenir"
             } else {
                 "Votes prêts à convertir"
             },
-            inviteReasonLabel = "Pourquoi inviter : chaque invité débloque la décision collective.",
-            installReasonLabel = "Pourquoi installer : voter, suivre la date limite et éviter les relances privées.",
-            returnReasonLabel = "Pourquoi revenir : voir la date retenue et la suite du plan.",
+            inviteReasonLabel = "Invitation : chaque invité débloque la décision collective.",
+            installReasonLabel = "Pourquoi ouvrir Wakeve : voter, suivre la date limite et éviter les relances privées.",
+            returnReasonLabel = "À suivre : voir la date retenue et la suite du plan.",
             actionLabel = "Partager le vote",
             action = EventWorkspaceSummaryAction.OpenPoll
         )
         EventStatus.COMPARING -> EventViralLoopSummary(
             eventId = event.id,
-            title = "Boucle de croissance",
+            title = "Invitations et retours",
             headline = "Décision à transformer en plan",
-            inviteReasonLabel = "Pourquoi inviter : les retardataires voient les options avant la décision finale.",
-            installReasonLabel = "Pourquoi installer : comparer destination, budget et contraintes au même endroit.",
-            returnReasonLabel = "Pourquoi revenir : suivre le scénario choisi après la comparaison.",
+            inviteReasonLabel = "Invitation : les retardataires voient les options avant la décision finale.",
+            installReasonLabel = "Pourquoi ouvrir Wakeve : comparer destination, budget et contraintes au même endroit.",
+            returnReasonLabel = "À suivre : suivre le scénario choisi après la comparaison.",
             actionLabel = "Comparer",
             action = EventWorkspaceSummaryAction.OpenEvent
         )
         EventStatus.CONFIRMED -> EventViralLoopSummary(
             eventId = event.id,
-            title = "Boucle de croissance",
+            title = "Invitations et retours",
             headline = "Date confirmée à diffuser",
-            inviteReasonLabel = "Pourquoi inviter : l'événement a maintenant une date crédible à partager.",
-            installReasonLabel = "Pourquoi installer : calendrier, budget, transport et programme restent centralisés.",
-            returnReasonLabel = "Pourquoi revenir : préparer le départ et suivre les changements utiles.",
+            inviteReasonLabel = "Invitation : l'événement a maintenant une date crédible à partager.",
+            installReasonLabel = "Pourquoi ouvrir Wakeve : calendrier, budget, transport et programme restent centralisés.",
+            returnReasonLabel = "À suivre : préparer le départ et suivre les changements utiles.",
             actionLabel = "Préparer",
             action = EventWorkspaceSummaryAction.OpenEvent
         )
         EventStatus.ORGANIZING -> EventViralLoopSummary(
             eventId = event.id,
-            title = "Boucle de croissance",
+            title = "Invitations et retours",
             headline = "Centre de contrôle actif",
-            inviteReasonLabel = "Pourquoi inviter : les participants manquants ont besoin du plan à jour.",
-            installReasonLabel = "Pourquoi installer : savoir où aller, qui vient, quoi payer et quoi faire ensuite.",
-            returnReasonLabel = "Pourquoi revenir : suivre le jour J et les prochaines étapes.",
+            inviteReasonLabel = "Invitation : les participants manquants ont besoin du plan à jour.",
+            installReasonLabel = "Pourquoi ouvrir Wakeve : savoir où aller, qui vient, quoi payer et quoi faire ensuite.",
+            returnReasonLabel = "À suivre : suivre le jour J et les prochaines étapes.",
             actionLabel = "Piloter",
             action = EventWorkspaceSummaryAction.OpenEvent
         )
         EventStatus.FINALIZED -> EventViralLoopSummary(
             eventId = event.id,
-            title = "Boucle de croissance",
+            title = "Invitations et retours",
             headline = "Réutilisation après événement",
-            inviteReasonLabel = "Pourquoi inviter : partager le récap, les photos et les remboursements.",
-            installReasonLabel = "Pourquoi installer : récupérer ce qui reste à solder sans refaire un groupe.",
-            returnReasonLabel = "Pourquoi revenir : recréer une nouvelle édition en un geste.",
+            inviteReasonLabel = "Invitation : partager le récap, les photos et les remboursements.",
+            installReasonLabel = "Pourquoi ouvrir Wakeve : récupérer ce qui reste à solder sans refaire un groupe.",
+            returnReasonLabel = "À suivre : recréer une nouvelle édition en un geste.",
             actionLabel = "Réutiliser",
             action = EventWorkspaceSummaryAction.RecreateFromTemplate,
             template = event.workspaceCreationTemplate()
@@ -362,9 +362,9 @@ internal fun List<Event>.toEmotionalSummary(
             .thenBy { it.updatedAt }
     ) ?: return EventEmotionalSummary(
         eventId = null,
-        title = "Signal émotionnel",
+        title = "Ambiance du groupe",
         headline = "Valeur encore abstraite",
-        scoreLabel = "Score émotionnel : 20/100",
+        scoreLabel = "Confiance du groupe : 20/100",
         excitementLabel = "Excitation : faible tant qu'aucun événement n'existe.",
         anticipationLabel = "Anticipation : aucune date à attendre.",
         engagementLabel = "Engagement : aucun groupe actif.",
@@ -382,9 +382,9 @@ internal fun List<Event>.toEmotionalSummary(
     return when (event.status) {
         EventStatus.DRAFT -> EventEmotionalSummary(
             eventId = event.id,
-            title = "Signal émotionnel",
+            title = "Ambiance du groupe",
             headline = "Promesse encore fragile",
-            scoreLabel = "Score émotionnel : 35/100",
+            scoreLabel = "Confiance du groupe : 35/100",
             excitementLabel = "Excitation : basse, le groupe ne voit pas encore l'invitation.",
             anticipationLabel = "Anticipation : faible tant que la date reste brouillon.",
             engagementLabel = "Engagement : dépend de l'organisateur.",
@@ -397,9 +397,9 @@ internal fun List<Event>.toEmotionalSummary(
         )
         EventStatus.POLLING -> EventEmotionalSummary(
             eventId = event.id,
-            title = "Signal émotionnel",
+            title = "Ambiance du groupe",
             headline = if (missingVotes > 0) "Engagement à débloquer" else "Décision proche",
-            scoreLabel = if (missingVotes > 0) "Score émotionnel : 58/100" else "Score émotionnel : 68/100",
+            scoreLabel = if (missingVotes > 0) "Confiance du groupe : 58/100" else "Confiance du groupe : 68/100",
             excitementLabel = "Excitation : moyenne, le groupe commence à se projeter.",
             anticipationLabel = "Anticipation : liée à la date qui va sortir du vote.",
             engagementLabel = if (missingVotes > 0) {
@@ -420,9 +420,9 @@ internal fun List<Event>.toEmotionalSummary(
         )
         EventStatus.COMPARING -> EventEmotionalSummary(
             eventId = event.id,
-            title = "Signal émotionnel",
+            title = "Ambiance du groupe",
             headline = "Choix collectif en cours",
-            scoreLabel = "Score émotionnel : 64/100",
+            scoreLabel = "Confiance du groupe : 64/100",
             excitementLabel = "Excitation : bonne, les options rendent l'événement tangible.",
             anticipationLabel = "Anticipation : bloquée tant que destination et scénario ne sont pas retenus.",
             engagementLabel = "Engagement : les participants peuvent comparer au lieu de débattre partout.",
@@ -435,9 +435,9 @@ internal fun List<Event>.toEmotionalSummary(
         )
         EventStatus.CONFIRMED -> EventEmotionalSummary(
             eventId = event.id,
-            title = "Signal émotionnel",
+            title = "Ambiance du groupe",
             headline = "Moment wow à consolider",
-            scoreLabel = "Score émotionnel : 76/100",
+            scoreLabel = "Confiance du groupe : 76/100",
             excitementLabel = "Excitation : forte, l'événement a enfin une date crédible.",
             anticipationLabel = "Anticipation : forte grâce au compte à rebours et au calendrier.",
             engagementLabel = "Engagement : à convertir en préparation concrète.",
@@ -450,9 +450,9 @@ internal fun List<Event>.toEmotionalSummary(
         )
         EventStatus.ORGANIZING -> EventEmotionalSummary(
             eventId = event.id,
-            title = "Signal émotionnel",
+            title = "Ambiance du groupe",
             headline = "Centre de contrôle crédible",
-            scoreLabel = "Score émotionnel : 86/100",
+            scoreLabel = "Confiance du groupe : 86/100",
             excitementLabel = "Excitation : utile, portée par un plan concret.",
             anticipationLabel = "Anticipation : forte, chacun sait quoi vérifier avant le départ.",
             engagementLabel = "Engagement : élevé si les tâches critiques restent visibles.",
@@ -465,9 +465,9 @@ internal fun List<Event>.toEmotionalSummary(
         )
         EventStatus.FINALIZED -> EventEmotionalSummary(
             eventId = event.id,
-            title = "Signal émotionnel",
+            title = "Ambiance du groupe",
             headline = "Mémoire et rétention",
-            scoreLabel = "Score émotionnel : 72/100",
+            scoreLabel = "Confiance du groupe : 72/100",
             excitementLabel = "Excitation : transformée en souvenir partageable.",
             anticipationLabel = "Anticipation : à recréer via une nouvelle édition.",
             engagementLabel = "Engagement : dépend des photos, remboursements et recap.",
@@ -491,12 +491,12 @@ internal fun List<Event>.toRoadmapSummary(
             .thenBy { it.updatedAt }
     ) ?: return EventRoadmapSummary(
         eventId = null,
-        title = "Roadmap 6 mois",
-        headline = "D'abord prouver un groupe actif",
-        firstMonthLabel = "0-30 jours : rendre la création et l'invitation évidentes.",
-        secondQuarterLabel = "31-90 jours : mesurer activation, abandon et première réutilisation.",
-        sixthMonthLabel = "3-6 mois : connecter budget, transport, photos et recap.",
-        teamFocusLabel = "Équipe : PM sur activation, designer sur premier wow, 3 devs sur création, partage et analytics.",
+        title = "Plan d'action",
+        headline = "Créer un premier groupe actif",
+        firstMonthLabel = "Maintenant : rendre la création et l'invitation évidentes.",
+        secondQuarterLabel = "Ensuite : mesurer activation, abandon et première réutilisation.",
+        sixthMonthLabel = "Plus tard : connecter budget, transport, photos et recap.",
+        teamFocusLabel = "Focus : créez un premier événement, publiez-le, puis partagez une invitation claire.",
         actionLabel = "Créer",
         action = null
     )
@@ -507,67 +507,67 @@ internal fun List<Event>.toRoadmapSummary(
     return when (event.status) {
         EventStatus.DRAFT -> EventRoadmapSummary(
             eventId = event.id,
-            title = "Roadmap 6 mois",
+            title = "Plan d'action",
             headline = "Réduire la friction de départ",
-            firstMonthLabel = "0-30 jours : transformer le brouillon en invitation partageable.",
-            secondQuarterLabel = "31-90 jours : guider les formats simples, intermédiaires et voyages.",
-            sixthMonthLabel = "3-6 mois : templates intelligents par type d'événement.",
-            teamFocusLabel = "Équipe : PM sur taux de publication, designer sur clarté, devs sur templates et validation.",
+            firstMonthLabel = "Maintenant : transformer le brouillon en invitation partageable.",
+            secondQuarterLabel = "Ensuite : guider les formats simples, intermédiaires et voyages.",
+            sixthMonthLabel = "Plus tard : templates intelligents par type d'événement.",
+            teamFocusLabel = "Focus : finalisez les champs utiles puis envoyez une invitation prête à voter.",
             actionLabel = if (event.organizerId == currentUserId) "Finaliser" else "Voir",
             action = EventWorkspaceSummaryAction.OpenEvent
         )
         EventStatus.POLLING -> EventRoadmapSummary(
             eventId = event.id,
-            title = "Roadmap 6 mois",
+            title = "Plan d'action",
             headline = if (missingVotes > 0) "Sortir du débat de date" else "Convertir le vote en plan",
-            firstMonthLabel = "0-30 jours : relances utiles, vote lisible et décision sans ambiguïté.",
-            secondQuarterLabel = "31-90 jours : convertir la date retenue en budget, transport et programme.",
-            sixthMonthLabel = "3-6 mois : recommandations qui anticipent les blocages du groupe.",
-            teamFocusLabel = "Équipe : PM sur complétion du vote, designer sur relances, devs sur sondage, partage et suite.",
+            firstMonthLabel = "Maintenant : relances utiles, vote lisible et décision sans ambiguïté.",
+            secondQuarterLabel = "Ensuite : convertir la date retenue en budget, transport et programme.",
+            sixthMonthLabel = "Plus tard : recommandations qui anticipent les blocages du groupe.",
+            teamFocusLabel = "Focus : obtenez les votes manquants, confirmez la date, puis ouvrez la préparation.",
             actionLabel = "Ouvrir le vote",
             action = EventWorkspaceSummaryAction.OpenPoll
         )
         EventStatus.COMPARING -> EventRoadmapSummary(
             eventId = event.id,
-            title = "Roadmap 6 mois",
+            title = "Plan d'action",
             headline = "Rendre les choix comparables",
-            firstMonthLabel = "0-30 jours : score clair pour destination, coût et contraintes.",
-            secondQuarterLabel = "31-90 jours : votes de scénario, arbitrage et justification partagée.",
-            sixthMonthLabel = "3-6 mois : moteur de recommandations multi-destinations.",
-            teamFocusLabel = "Équipe : PM sur critères, designer sur matrice, devs sur scoring et décision finale.",
+            firstMonthLabel = "Maintenant : score clair pour destination, coût et contraintes.",
+            secondQuarterLabel = "Ensuite : votes de scénario, arbitrage et justification partagée.",
+            sixthMonthLabel = "Plus tard : moteur de recommandations multi-destinations.",
+            teamFocusLabel = "Focus : gardez peu de critères et choisissez le scénario le plus simple à expliquer.",
             actionLabel = "Comparer",
             action = EventWorkspaceSummaryAction.OpenEvent
         )
         EventStatus.CONFIRMED -> EventRoadmapSummary(
             eventId = event.id,
-            title = "Roadmap 6 mois",
+            title = "Plan d'action",
             headline = "Éviter la rechute dans WhatsApp",
-            firstMonthLabel = "0-30 jours : checklist budget, transport, programme et rôles.",
-            secondQuarterLabel = "31-90 jours : assignations, rappels et changements de programme.",
-            sixthMonthLabel = "3-6 mois : coordination complète pour voyages et groupes nombreux.",
-            teamFocusLabel = "Équipe : PM sur préparation, designer sur cockpit, devs sur tâches, calendrier et notifications.",
+            firstMonthLabel = "Maintenant : checklist budget, transport, programme et rôles.",
+            secondQuarterLabel = "Ensuite : assignations, rappels et changements de programme.",
+            sixthMonthLabel = "Plus tard : coordination complète pour voyages et groupes nombreux.",
+            teamFocusLabel = "Focus : regroupez budget, transport, programme et rôles dans un seul plan.",
             actionLabel = "Préparer",
             action = EventWorkspaceSummaryAction.OpenEvent
         )
         EventStatus.ORGANIZING -> EventRoadmapSummary(
             eventId = event.id,
-            title = "Roadmap 6 mois",
-            headline = "Industrialiser le centre de contrôle",
-            firstMonthLabel = "0-30 jours : fiabiliser jour J, présence, étapes et points de rendez-vous.",
-            secondQuarterLabel = "31-90 jours : rôles, alertes, offline et budget partagé.",
-            sixthMonthLabel = "3-6 mois : OS social pour 4 à 50 personnes avec transport et multi-destinations.",
-            teamFocusLabel = "Équipe : PM sur sérénité, designer sur densité, devs sur offline, alertes et budget.",
+            title = "Plan d'action",
+            headline = "Jour J à piloter",
+            firstMonthLabel = "Maintenant : fiabiliser jour J, présence, étapes et points de rendez-vous.",
+            secondQuarterLabel = "Ensuite : rôles, alertes, offline et budget partagé.",
+            sixthMonthLabel = "Plus tard : coordination pour 4 à 50 personnes avec transport et multi-destinations.",
+            teamFocusLabel = "Focus : gardez le jour J lisible avec point de rendez-vous, rôles et alertes utiles.",
             actionLabel = "Piloter",
             action = EventWorkspaceSummaryAction.OpenEvent
         )
         EventStatus.FINALIZED -> EventRoadmapSummary(
             eventId = event.id,
-            title = "Roadmap 6 mois",
-            headline = "Transformer la fin en rétention",
-            firstMonthLabel = "0-30 jours : recap, photos et remboursements visibles.",
-            secondQuarterLabel = "31-90 jours : partage post-event et recréation en un geste.",
-            sixthMonthLabel = "3-6 mois : mémoire de groupe et recommandations pour la prochaine édition.",
-            teamFocusLabel = "Équipe : PM sur retour, designer sur recap, devs sur photos, soldes et templates.",
+            title = "Plan d'action",
+            headline = "Recap et prochaine édition",
+            firstMonthLabel = "Maintenant : recap, photos et remboursements visibles.",
+            secondQuarterLabel = "Ensuite : partage post-event et recréation en un geste.",
+            sixthMonthLabel = "Plus tard : mémoire de groupe et recommandations pour la prochaine édition.",
+            teamFocusLabel = "Focus : partagez le recap, soldez les dépenses et proposez une nouvelle édition.",
             actionLabel = "Réutiliser",
             action = EventWorkspaceSummaryAction.RecreateFromTemplate,
             template = event.workspaceCreationTemplate()
@@ -594,16 +594,16 @@ internal fun List<Event>.toStrategicSummary(
             .thenBy { it.updatedAt }
     ) ?: return EventStrategicSummary(
         eventId = null,
-        title = "Position stratégique",
-        headline = "Pas encore défendable",
-        verdictLabel = "Verdict : agenda vide, aucun moat visible.",
-        scorecardLabel = "Scores : produit 20/100 · UX 35/100 · rétention 10/100.",
-        honestAnswerLabel = "Honnête : je ne lancerais pas, ne paierais pas et ne recommanderais pas encore.",
-        competitorLabel = "Face aux concurrents : WhatsApp suffit encore.",
-        operatingSystemLabel = "OS social : aucun espace collectif actif.",
-        criticalProblemLabel = "Problème critique : aucune valeur démontrée en 30 secondes.",
-        valueFeatureLabel = "Fonction à créer : premier événement guidé avec invitation partageable.",
-        missingCapabilityLabel = "Capacité manquante : créer un premier groupe coordonné.",
+        title = "Prochaine décision",
+        headline = "Aucune action claire",
+        verdictLabel = "État : agenda vide, aucune action de groupe visible.",
+        scorecardLabel = "Priorité : concentrez le groupe sur la prochaine action utile.",
+        honestAnswerLabel = "Confiance : trop faible tant qu'aucun événement n'est partagé.",
+        competitorLabel = "À éviter : garder la décision dans un chat séparé.",
+        operatingSystemLabel = "Coordination : aucun espace collectif actif.",
+        criticalProblemLabel = "Blocage : aucune valeur démontrée en 30 secondes.",
+        valueFeatureLabel = "Action utile : premier événement guidé avec invitation partageable.",
+        missingCapabilityLabel = "Manque : créer un premier groupe coordonné.",
         nextActionLabel = "Créez un événement pour prouver la valeur de coordination.",
         actionLabel = "Créer",
         action = null
@@ -615,32 +615,32 @@ internal fun List<Event>.toStrategicSummary(
     return when (event.status) {
         EventStatus.DRAFT -> EventStrategicSummary(
             eventId = event.id,
-            title = "Position stratégique",
-            headline = "Encore plus faible qu'un chat",
-            verdictLabel = "Verdict : proposition non lançable tant que le groupe ne voit rien.",
-            scorecardLabel = "Scores : produit 35/100 · UX 55/100 · rétention 20/100.",
-            honestAnswerLabel = "Honnête : je ne lancerais pas ce brouillon à un groupe.",
-            competitorLabel = "Face aux concurrents : Partiful gagne si l'invitation reste plus simple.",
-            operatingSystemLabel = "OS social : embryon de décision, pas encore un espace collectif.",
-            criticalProblemLabel = "Problème critique : la promesse reste invisible avant partage.",
-            valueFeatureLabel = "Fonction à créer : checklist de publication avant invitation.",
-            missingCapabilityLabel = "Capacité manquante : invitation claire et vote prêt.",
+            title = "Prochaine décision",
+            headline = "Invitation à finaliser",
+            verdictLabel = "État : l'invitation n'est pas encore prête pour le groupe.",
+            scorecardLabel = "Priorité : concentrez le groupe sur la prochaine action utile.",
+            honestAnswerLabel = "Confiance : attendez que l'invitation soit claire avant de partager.",
+            competitorLabel = "À éviter : envoyer une invitation moins claire qu'un simple message.",
+            operatingSystemLabel = "Coordination : embryon de décision, pas encore un espace collectif.",
+            criticalProblemLabel = "Blocage : la promesse reste invisible avant partage.",
+            valueFeatureLabel = "Action utile : checklist de publication avant invitation.",
+            missingCapabilityLabel = "Manque : invitation claire et vote prêt.",
             nextActionLabel = "Finalisez le brouillon avant de partager.",
             actionLabel = if (event.organizerId == currentUserId) "Finaliser" else "Voir",
             action = EventWorkspaceSummaryAction.OpenEvent
         )
         EventStatus.POLLING -> EventStrategicSummary(
             eventId = event.id,
-            title = "Position stratégique",
-            headline = if (missingVotes > 0) "Meilleur que WhatsApp, pas encore un OS" else "Décision collective défendable",
-            verdictLabel = "Verdict : utile pour choisir une date, pas encore pour organiser tout le séjour.",
-            scorecardLabel = "Scores : produit 52/100 · UX 66/100 · rétention 35/100.",
-            honestAnswerLabel = "Honnête : je l'utiliserais pour un dîner, pas encore pour 15 voyageurs.",
-            competitorLabel = "Face aux concurrents : WhatsApp perd la trace des votes et des relances.",
-            operatingSystemLabel = "OS social : la première décision commune existe.",
-            criticalProblemLabel = "Problème critique : la valeur s'arrête si le vote ne débouche pas sur un plan.",
-            valueFeatureLabel = "Fonction à créer : conversion automatique du vote en plan de préparation.",
-            missingCapabilityLabel = "Capacité manquante : transformer le vote en plan budget, transport et programme.",
+            title = "Prochaine décision",
+            headline = if (missingVotes > 0) "Date à décider" else "Décision collective défendable",
+            verdictLabel = "État : le vote avance, mais la préparation n'est pas encore ouverte.",
+            scorecardLabel = "Priorité : concentrez le groupe sur la prochaine action utile.",
+            honestAnswerLabel = "Confiance : adapté à un événement simple, encore fragile pour un grand groupe.",
+            competitorLabel = "À éviter : laisser les votes et les relances se perdre dans le chat.",
+            operatingSystemLabel = "Coordination : la première décision commune existe.",
+            criticalProblemLabel = "Blocage : la valeur s'arrête si le vote ne débouche pas sur un plan.",
+            valueFeatureLabel = "Action utile : conversion automatique du vote en plan de préparation.",
+            missingCapabilityLabel = "Manque : transformer le vote en plan budget, transport et programme.",
             nextActionLabel = if (missingVotes > 0) {
                 "Obtenez les votes manquants pour sortir du débat."
             } else {
@@ -651,64 +651,64 @@ internal fun List<Event>.toStrategicSummary(
         )
         EventStatus.COMPARING -> EventStrategicSummary(
             eventId = event.id,
-            title = "Position stratégique",
-            headline = "Différenciation à portée",
-            verdictLabel = "Verdict : Wakeve peut dépasser le simple agenda si la comparaison tranche vraiment.",
-            scorecardLabel = "Scores : produit 60/100 · UX 68/100 · rétention 42/100.",
-            honestAnswerLabel = "Honnête : je recommanderais seulement si les choix sont vraiment comparables.",
-            competitorLabel = "Face aux concurrents : TripIt suit un plan, Wakeve peut décider le plan.",
-            operatingSystemLabel = "OS social : le groupe arbitre destination, contraintes et scénario.",
-            criticalProblemLabel = "Problème critique : trop d'options recréent le chaos du chat.",
-            valueFeatureLabel = "Fonction à créer : scoring multicritère lisible par tout le groupe.",
-            missingCapabilityLabel = "Capacité manquante : score lisible sur budget, logement et transport.",
+            title = "Prochaine décision",
+            headline = "Scénario à choisir",
+            verdictLabel = "État : le groupe peut choisir si les options restent comparables.",
+            scorecardLabel = "Priorité : concentrez le groupe sur la prochaine action utile.",
+            honestAnswerLabel = "Confiance : bonne si les critères restent lisibles par tout le groupe.",
+            competitorLabel = "À éviter : empiler des options sans aider le groupe à choisir.",
+            operatingSystemLabel = "Coordination : le groupe arbitre destination, contraintes et scénario.",
+            criticalProblemLabel = "Blocage : trop d'options recréent le chaos du chat.",
+            valueFeatureLabel = "Action utile : scoring multicritère lisible par tout le groupe.",
+            missingCapabilityLabel = "Manque : score lisible sur budget, logement et transport.",
             nextActionLabel = "Choisissez le scénario qui réduit le plus le chaos collectif.",
             actionLabel = "Comparer",
             action = EventWorkspaceSummaryAction.OpenEvent
         )
         EventStatus.CONFIRMED -> EventStrategicSummary(
             eventId = event.id,
-            title = "Position stratégique",
-            headline = "Raison d'exister visible",
-            verdictLabel = "Verdict : l'événement devient crédible, mais la promesse OS social reste à prouver.",
-            scorecardLabel = "Scores : produit 66/100 · UX 72/100 · rétention 50/100.",
-            honestAnswerLabel = "Honnête : je lancerais en bêta, mais je ne paierais pas sans budget et transport.",
-            competitorLabel = "Face aux concurrents : Apple Invites couvre l'annonce, Wakeve doit couvrir l'organisation.",
-            operatingSystemLabel = "OS social : date commune, préparation encore incomplète.",
-            criticalProblemLabel = "Problème critique : l'utilisateur peut repartir dans WhatsApp après la date.",
-            valueFeatureLabel = "Fonction à créer : tâches de préparation assignables.",
-            missingCapabilityLabel = "Capacité manquante : budget, transport, rôles et programme actionnables.",
+            title = "Prochaine décision",
+            headline = "Préparation à centraliser",
+            verdictLabel = "État : la date est crédible, la préparation doit maintenant être centralisée.",
+            scorecardLabel = "Priorité : concentrez le groupe sur la prochaine action utile.",
+            honestAnswerLabel = "Confiance : bonne pour annoncer, à renforcer avec budget et transport.",
+            competitorLabel = "À éviter : se limiter à annoncer la date sans préparer la suite.",
+            operatingSystemLabel = "Coordination : date commune, préparation encore incomplète.",
+            criticalProblemLabel = "Blocage : l'utilisateur peut repartir dans WhatsApp après la date.",
+            valueFeatureLabel = "Action utile : tâches de préparation assignables.",
+            missingCapabilityLabel = "Manque : budget, transport, rôles et programme actionnables.",
             nextActionLabel = "Centralisez les décisions qui retomberaient dans le chat.",
             actionLabel = "Préparer",
             action = EventWorkspaceSummaryAction.OpenEvent
         )
         EventStatus.ORGANIZING -> EventStrategicSummary(
             eventId = event.id,
-            title = "Position stratégique",
-            headline = "OS social crédible",
-            verdictLabel = "Verdict : Wakeve garde une raison d'exister même si WhatsApp, Splitwise et TripIt fusionnent.",
-            scorecardLabel = "Scores : produit 78/100 · UX 78/100 · rétention 66/100.",
-            honestAnswerLabel = "Honnête : je l'utiliserais pour un voyage à 15 si ce cockpit reste fiable.",
-            competitorLabel = "Face aux concurrents : plan, présences, budget et jour J vivent dans un seul espace.",
-            operatingSystemLabel = "OS social : décisions, participants et prochaines actions convergent.",
-            criticalProblemLabel = "Problème critique : trop d'alertes ou de sections casserait la confiance.",
-            valueFeatureLabel = "Fonction à créer : cockpit jour J avec rôles, alertes et responsabilités.",
-            missingCapabilityLabel = "Capacité manquante : automatiser rôles et alertes sans créer de bruit.",
+            title = "Prochaine décision",
+            headline = "Centre de contrôle actif",
+            verdictLabel = "État : le groupe a besoin d'un seul endroit fiable pour le plan, le budget et le jour J.",
+            scorecardLabel = "Priorité : concentrez le groupe sur la prochaine action utile.",
+            honestAnswerLabel = "Confiance : forte si le cockpit reste fiable jusqu'au jour J.",
+            competitorLabel = "À éviter : disperser plan, présences, budget et infos du jour J.",
+            operatingSystemLabel = "Coordination : décisions, participants et prochaines actions convergent.",
+            criticalProblemLabel = "Blocage : trop d'alertes ou de sections casserait la confiance.",
+            valueFeatureLabel = "Action utile : cockpit jour J avec rôles, alertes et responsabilités.",
+            missingCapabilityLabel = "Manque : automatiser rôles et alertes sans créer de bruit.",
             nextActionLabel = "Gardez le centre de contrôle comme écran principal jusqu'au jour J.",
             actionLabel = "Piloter",
             action = EventWorkspaceSummaryAction.OpenEvent
         )
         EventStatus.FINALIZED -> EventStrategicSummary(
             eventId = event.id,
-            title = "Position stratégique",
-            headline = "Rétention à prouver",
-            verdictLabel = "Verdict : utile après l'événement seulement si recap, photos et dettes ressortent vite.",
-            scorecardLabel = "Scores : produit 64/100 · UX 70/100 · rétention 72/100.",
-            honestAnswerLabel = "Honnête : je reviendrais si le recap relance une nouvelle édition.",
-            competitorLabel = "Face aux concurrents : Splitwise gagne si les remboursements restent séparés.",
-            operatingSystemLabel = "OS social : mémoire du groupe réutilisable.",
-            criticalProblemLabel = "Problème critique : sans boucle post-event, Wakeve redevient jetable.",
-            valueFeatureLabel = "Fonction à créer : recap partageable avec photos, soldes et recréation.",
-            missingCapabilityLabel = "Capacité manquante : boucle photos, remboursements et nouvelle édition.",
+            title = "Prochaine décision",
+            headline = "Recap à partager",
+            verdictLabel = "État : le recap, les photos et les remboursements doivent rester faciles à retrouver.",
+            scorecardLabel = "Priorité : concentrez le groupe sur la prochaine action utile.",
+            honestAnswerLabel = "Confiance : le retour dépend du recap, des photos et des soldes.",
+            competitorLabel = "À éviter : laisser les remboursements hors du recap.",
+            operatingSystemLabel = "Coordination : mémoire du groupe réutilisable.",
+            criticalProblemLabel = "Blocage : sans boucle post-event, Wakeve redevient jetable.",
+            valueFeatureLabel = "Action utile : recap partageable avec photos, soldes et recréation.",
+            missingCapabilityLabel = "Manque : boucle photos, remboursements et nouvelle édition.",
             nextActionLabel = "Transformez le recap en invitation pour la prochaine édition.",
             actionLabel = "Réutiliser",
             action = EventWorkspaceSummaryAction.RecreateFromTemplate,
@@ -857,8 +857,8 @@ internal fun List<Event>.toEventWidgetSummary(
             title = "Aujourd'hui",
             headline = todayEvent.title,
             body = "${todayEvent.participants.size} participant${if (todayEvent.participants.size > 1) "s" else ""} attendus",
-            userInterestLabel = "Interet utilisateur : 10/10",
-            rationaleLabel = "Widget prioritaire : il evite d'ouvrir l'app pour retrouver le rendez-vous du jour.",
+            userInterestLabel = "Utilité : 10/10",
+            rationaleLabel = "Priorité : il evite d'ouvrir l'app pour retrouver le rendez-vous du jour.",
             actionLabel = "Ouvrir"
         )
     }
@@ -881,8 +881,8 @@ internal fun List<Event>.toEventWidgetSummary(
                 title = "Voyage à préparer",
                 headline = event.title,
                 body = "${event.participants.size} participant${if (event.participants.size > 1) "s" else ""} - transport, budget et programme à vérifier",
-                userInterestLabel = "Interet utilisateur : 9/10",
-                rationaleLabel = "Widget voyage pertinent : il regroupe les points qui cassent les groupes longs.",
+                userInterestLabel = "Utilité : 9/10",
+                rationaleLabel = "Voyage : il regroupe les points qui cassent les groupes longs.",
                 actionLabel = if (event.organizerId == currentUserId) "Piloter" else "Préparer"
             )
         }
@@ -892,8 +892,8 @@ internal fun List<Event>.toEventWidgetSummary(
             title = event.title,
             headline = if (daysUntil == 1) "Demain" else "J-$daysUntil",
             body = event.workspaceNextActionLabel(isOrganizer = event.organizerId == currentUserId),
-            userInterestLabel = "Interet utilisateur : 8/10",
-            rationaleLabel = "Widget compte a rebours utile : il cree de l'anticipation sans spammer le groupe.",
+            userInterestLabel = "Utilité : 8/10",
+            rationaleLabel = "Compte à rebours : il cree de l'anticipation sans spammer le groupe.",
             actionLabel = "Préparer"
         )
     }
@@ -908,8 +908,8 @@ internal fun List<Event>.toEventWidgetSummary(
             title = "Prochaine tâche",
             headline = nextTask.workspaceActionTitle(currentUserId),
             body = nextTask.workspaceActionButtonLabel(currentUserId),
-            userInterestLabel = "Interet utilisateur : 7/10",
-            rationaleLabel = "Widget tache utile : il ramene l'organisateur vers le prochain blocage.",
+            userInterestLabel = "Utilité : 7/10",
+            rationaleLabel = "Prochaine tâche : il ramene l'organisateur vers le prochain blocage.",
             actionLabel = "Continuer"
         )
     }
@@ -920,8 +920,8 @@ internal fun List<Event>.toEventWidgetSummary(
         title = "Wakeve",
         headline = "Aucun événement actif",
         body = "Créez un événement pour afficher le prochain rendez-vous ici.",
-        userInterestLabel = "Interet utilisateur : a activer",
-        rationaleLabel = "Aucun widget utile sans evenement actif.",
+        userInterestLabel = "Utilité : a activer",
+        rationaleLabel = "Aucune action rapide sans événement actif.",
         actionLabel = "Créer"
     )
 }
