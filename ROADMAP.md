@@ -1,9 +1,9 @@
 # Roadmap Wakeve
 
-Derniere mise a jour: 2026-06-13
-Version: 2.0
+Derniere mise a jour: 2026-06-20
+Version: 2.1
 
-## Etat verifie au 2026-06-13
+## Etat verifie au 2026-06-20
 
 Sources consultees:
 
@@ -11,25 +11,28 @@ Sources consultees:
 - `openspec list --specs`
 - `openspec/changes/*/tasks.md`
 - `docs/APP_STORE_BLOCKER_REGISTER.md`
-- XcodeBuildMCP iOS Simulator test/run artifacts du 2026-06-13
-- `./gradlew :shared:jvmTest ...` et `./gradlew :shared:iosSimulatorArm64Test`
+- XcodeBuildMCP iOS Simulator focused WeatherKit/WakeveAI artifacts du 2026-06-20
+- `openspec validate --all --strict`
 
 Changements OpenSpec actifs:
 
 | Changement | Etat | Impact roadmap |
 |---|---:|---|
-| `add-in-app-account-deletion` | Complete | P0 App Store AS-09 implemente et verifie localement; `APP_STORE_ACCOUNT_DELETION_EVIDENCE_COMPLETE=false` reste bloque jusqu'aux preuves uploaded-build/TestFlight. |
-| `add-ugc-moderation-controls` | 21/21 taches | P0 App Store, blocker AS-10. Filtering serveur, report/block/unblock, WebSocket block delivery, notifications, iOS states, moderation des champs UGC, notes App Review, docs evidence et gates audit poses; validation locale finale passee. Review-build evidence reste ouverte. |
+| `add-event-weather-forecast` | 20/22 taches | P1 produit iOS, WeatherKit/MapKit/cache/UI verifies localement; reste Apple Developer capability, profil signe et validation WeatherKit sur device physique. |
 | `add-on-device-wakeve-ai` | 40/41 taches | P1 produit iOS, client Foundation Models local finalise et fallback simulateur verifie; reste profiling device reel. |
 
-Changements OpenSpec termines mais non archives:
+Changements OpenSpec archives le 2026-06-20:
 
-| Changement | Etat | Prochaine action |
-|---|---:|---|
-| `add-web-microfrontends-landing` | Complete | Archiver quand la release branch est stabilisee. |
-| `add-contact-participant-selection` | Complete | Archiver quand les preuves iOS release sont collectees. |
-| `add-scenario-matrix-voting` | Complete | Archiver apres regression du parcours release. |
-| `update-create-event-wizard-slots-preview` | Complete | Archiver apres regression du wizard iOS. |
+| Changement | Impact roadmap |
+|---|---|
+| `add-in-app-account-deletion` | Implementation locale AS-09 archivee; evidence uploaded-build/TestFlight reste externe. |
+| `add-ugc-moderation-controls` | Implementation locale AS-10 archivee; review-build, support/live URL et preuves App Review restent externes. |
+| `add-web-microfrontends-landing` | Landing publique et dashboard separes archives. |
+| `add-contact-participant-selection` | Selection multi-contact Android/iOS et logique partagee archivees. |
+| `add-scenario-matrix-voting` | Generation, publication et selection de scenarios matriciels archivees. |
+| `update-create-event-wizard-slots-preview` | Creation iOS multi-creneaux et preview avant creation archivees. |
+| `add-android-event-planning-ai` / `add-android-intelligent-ai-workflows` | Workflows IA Android archives. |
+| `refactor-android-adaptive-compose` / `refine-android-navigation3-adaptive-ui` | Durcissement Android adaptatif et navigation archive. |
 
 ## Position
 
@@ -56,14 +59,11 @@ La roadmap ne doit donc plus partir de "atteindre 60 % de couverture" ou "demarr
 
 ### Travaux recents a prendre en compte
 
-- `add-web-microfrontends-landing` est complet: landing publique et dashboard separes, avec Vercel Microfrontends.
-- `add-contact-participant-selection` est complet: selection multi-contact Android/iOS et logique partagee.
-- `add-scenario-matrix-voting` est complet: generation, publication et selection de scenarios matriciels.
-- `update-create-event-wizard-slots-preview` est complet: creation iOS avec plusieurs creneaux et preview avant creation.
-- `add-on-device-wakeve-ai` est presque complet: le client Foundation Models local et le fallback simulateur sont verifies, et il reste surtout le profiling sur device compatible.
+- `add-event-weather-forecast` est presque complet: source entitlement WeatherKit, provider mapping, cache, UI card et contrats iOS passent; il reste surtout la preuve Apple Developer/profile signe/device.
+- `add-on-device-wakeve-ai` est presque complet: le client Foundation Models local, les validateurs, les contrats UI localises et le fallback simulateur sont verifies; il reste surtout le profiling sur device compatible.
 - Le parcours iOS creation -> poll -> scenarios -> organisation est verifie par tests de contrat iOS et tests KMP iOS/JVM; les preuves screenshots multi-ecran restent a collecter avec une automation UI ou une build TestFlight.
-- `add-in-app-account-deletion` est complet cote implementation locale: backend, iOS, tests, wording public, docs App Store et validations locales sont passes. La readiness App Store reste bloquee par les preuves uploaded-build/TestFlight et le marker d'evidence final.
-- `add-ugc-moderation-controls` est complet cote taches locales; il bloque encore la readiness App Store sur review-build, support/live URL et preuves App Review completes.
+- `add-in-app-account-deletion` est archive cote implementation locale: backend, iOS, tests, wording public, docs App Store et validations locales sont passes. La readiness App Store reste bloquee par les preuves uploaded-build/TestFlight et le marker d'evidence final.
+- `add-ugc-moderation-controls` est archive cote implementation locale; il bloque encore la readiness App Store sur review-build, support/live URL et preuves App Review completes.
 
 ## Roadmap priorisee
 
@@ -75,7 +75,7 @@ La definition globale du P0 est stricte: le projet n'est pret que lorsque `./scr
 
 #### 0.1 Account deletion end-to-end
 
-Source OpenSpec: `openspec/changes/add-in-app-account-deletion/`
+Source OpenSpec archivee: `openspec/changes/archive/2026-06-20-add-in-app-account-deletion/`
 Blocker App Store: AS-09
 
 - [x] Backend: route authentifiee `DELETE /api/user/delete` exposee.
@@ -93,14 +93,14 @@ Blocker App Store: AS-09
 
 Definition of done:
 
-- `openspec validate add-in-app-account-deletion --strict` passe.
+- Le changement archive est couvert par `openspec validate --all --strict`.
 - Les tests backend et iOS pertinents passent.
 - `docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md`, `docs/APP_STORE_READINESS.md` et `docs/APP_STORE_LAUNCH_CHECKLIST.md` pointent vers des preuves reelles.
 - Pour la soumission App Store, `APP_STORE_ACCOUNT_DELETION_EVIDENCE_COMPLETE=true` reste interdit tant que le meme flux n'est pas verifie sur la build uploaded/TestFlight.
 
 #### 0.2 UGC moderation controls
 
-Source OpenSpec: `openspec/changes/add-ugc-moderation-controls/`
+Source OpenSpec archivee: `openspec/changes/archive/2026-06-20-add-ugc-moderation-controls/`
 Blocker App Store: AS-10
 
 - [x] Tests first: rejet des contenus hard-policy comments/chat/event text avant persistence ou broadcast.
@@ -122,7 +122,7 @@ Blocker App Store: AS-10
 
 Definition of done:
 
-- `openspec validate add-ugc-moderation-controls --strict` passe.
+- Le changement archive est couvert par `openspec validate --all --strict`.
 - Les tests serveur couvrent rejet, quarantine, report, block et autorisations moderator/admin.
 - `bundle exec fastlane ios preflight` passe avec build Release unsigned, lint iOS, audit/check/build web et routes locales.
 - `APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/app-store-submission-audit.sh` execute la preflight locale et retourne `NOT READY` uniquement a cause des signoffs/env vars/live URLs/build signee externes manquants.
@@ -341,15 +341,15 @@ Preuves du 2026-06-13:
 1. Live release gate: DNS, AASA, backend, signed archive, TestFlight.
 2. App Store Connect decisions: privacy, accessibility, availability, DSA, payment, pricing, EULA, media/localization, licenses.
 3. Review-build evidence pour `add-in-app-account-deletion` et `add-ugc-moderation-controls`: verifier les flux sur la build signee/TestFlight avant de lever les markers d'evidence.
-4. `add-on-device-wakeve-ai`: fermer le profiling device.
-5. Regression release flow: creation, contacts, matrix scenarios, organisation, accessibility.
+4. `add-event-weather-forecast`: fermer la preuve Apple Developer/profile signe/device WeatherKit.
+5. `add-on-device-wakeve-ai`: fermer le profiling device.
+6. Regression release flow: creation, contacts, matrix scenarios, organisation, accessibility.
 
 ## Gates de sortie
 
 ### Sortie P0
 
-- `openspec validate add-in-app-account-deletion --strict` passe.
-- `openspec validate add-ugc-moderation-controls --strict` passe.
+- `openspec validate --all --strict` passe.
 - Les blockers AS-01 a AS-22 du registre App Store sont fermes ou explicitement exclus par decision documentee.
 - `./scripts/app-store-submission-audit.sh --check-live-urls --run-submission-ready` passe.
 - Une build App Store Connect/TestFlight signee est uploadée, installee sur device reel, smoke testee et selectionnable pour review.
@@ -357,6 +357,8 @@ Preuves du 2026-06-13:
 ### Sortie P1
 
 - `openspec validate add-on-device-wakeve-ai --strict` passe.
+- `openspec validate add-event-weather-forecast --strict` passe.
+- Les validations WeatherKit device et entitlement signe sont documentees.
 - Les validations device WakeveAI sont documentees.
 - Les parcours onboarding/login/guest, creation event, contacts, poll, scenario matrix, organisation et event detail ont des preuves iOS release.
 - Les checks accessibility/localization/copy des ecrans release sont rejoues.
@@ -372,8 +374,8 @@ Preuves du 2026-06-13:
 ```bash
 openspec list
 openspec list --specs
-openspec validate add-in-app-account-deletion --strict
-openspec validate add-ugc-moderation-controls --strict
+openspec validate --all --strict
+openspec validate add-event-weather-forecast --strict
 openspec validate add-on-device-wakeve-ai --strict
 ./scripts/test-critical-release-gates.sh
 ./gradlew :shared:testWithCoverage :shared:jacocoCoverageVerification
@@ -385,13 +387,14 @@ bundle exec fastlane ios preflight
 
 ## References
 
-- `openspec/changes/add-in-app-account-deletion/`
-- `openspec/changes/add-ugc-moderation-controls/`
+- `openspec/changes/archive/2026-06-20-add-in-app-account-deletion/`
+- `openspec/changes/archive/2026-06-20-add-ugc-moderation-controls/`
+- `openspec/changes/add-event-weather-forecast/`
 - `openspec/changes/add-on-device-wakeve-ai/`
-- `openspec/changes/add-web-microfrontends-landing/`
-- `openspec/changes/add-contact-participant-selection/`
-- `openspec/changes/add-scenario-matrix-voting/`
-- `openspec/changes/update-create-event-wizard-slots-preview/`
+- `openspec/changes/archive/2026-06-20-add-web-microfrontends-landing/`
+- `openspec/changes/archive/2026-06-20-add-contact-participant-selection/`
+- `openspec/changes/archive/2026-06-20-add-scenario-matrix-voting/`
+- `openspec/changes/archive/2026-06-20-update-create-event-wizard-slots-preview/`
 - `docs/APP_STORE_READINESS.md`
 - `docs/APP_STORE_LAUNCH_CHECKLIST.md`
 - `docs/APP_STORE_BLOCKER_REGISTER.md`
