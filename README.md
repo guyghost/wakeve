@@ -1,15 +1,29 @@
 # Wakeve - Collaborative Event Planning
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Status](https://img.shields.io/badge/status-Phase%202%20Complete-brightgreen.svg)
-![Tests](https://img.shields.io/badge/tests-36%2F36%20passing-brightgreen.svg)
+![Status](https://img.shields.io/badge/status-Roadmap%20Active-blue.svg)
+![OpenSpec](https://img.shields.io/badge/openspec-26%2F26%20passing-brightgreen.svg)
 ![Platforms](https://img.shields.io/badge/platforms-Android%20|%20iOS%20|%20JVM-blue.svg)
 
-Wakeve is a modern, collaborative event planning application that solves the scheduling problem for distributed teams. With intelligent availability polling, automatic best-time calculation, and offline-first synchronization, Wakeve makes it easy to find a time that works for everyone.
+Wakeve is a collaborative event planning application for groups that need one place to decide when to meet, who is coming, what the plan is, and what still needs organizing. It combines Kotlin Multiplatform shared logic, Android Compose, native SwiftUI iOS, a Ktor backend, offline-first persistence, and OpenSpec-driven release tracking.
 
 ## 🎯 Features
 
-### Current (Phase 2 ✅)
+### Current Roadmap State
+
+The project is beyond the original Phase 2/Phase 3 README plan. Current source-of-truth tracking lives in [ROADMAP.md](./ROADMAP.md), [openspec/specs/](./openspec/specs/), and the active OpenSpec changes.
+
+Active changes:
+
+| Change | Status | Remaining blocker |
+|---|---:|---|
+| `add-event-weather-forecast` | 20/22 tasks | WeatherKit Apple Developer capability, signed entitlement, and physical-device WeatherKit validation. |
+| `add-on-device-wakeve-ai` | 40/41 tasks | Supported physical-device profiling for Foundation Models latency, cancellation, memory, and production-log privacy. |
+
+Recent archived roadmap work includes Android AI workflows, Android adaptive UI, contact participant selection, scenario matrix voting, web microfrontends, account deletion, UGC moderation, iOS brand identity, and create-event slot previews.
+
+### Implemented Capabilities
+
 ✅ **Event Organization**
 - Create events with multiple time slot options
 - Invite participants and manage RSVPs
@@ -17,6 +31,7 @@ Wakeve is a modern, collaborative event planning application that solves the sch
 - Weighted voting system (YES=2, MAYBE=1, NO=-1)
 - Automatic best-time calculation
 - Offline-first database persistence
+- DRAFT → POLLING → CONFIRMED → ORGANIZING → FINALIZED workflow coordination
 
 ✅ **Virtual Meetings**
 - MeetingService with support for Zoom, Google Meet, FaceTime
@@ -27,22 +42,22 @@ Wakeve is a modern, collaborative event planning application that solves the sch
 
 ✅ **Multiplatform Support**
 - Android with Jetpack Compose UI
-- iOS with native database driver (UI in Phase 2)
+- iOS with native SwiftUI app, shared KMP integration, App Store readiness evidence, and WeatherKit/WakeveAI work in progress
 - JVM/Desktop support
 - Single shared codebase via Kotlin Multiplatform
 
 ✅ **Backend Infrastructure**
 - Production-ready Ktor REST API
 - SQLDelight type-safe database
-- 8 comprehensive endpoints + 4 MeetingProxy endpoints
+- Event, meeting, auth, moderation, calendar, and organization APIs
 - Role-based access control
 - Secure API key management for external platforms
 
-### Planned (Phase 3 🚀)
-⏳ **User Authentication** - OAuth2 with Google/Apple
-⏳ **Offline Sync** - Automatic change synchronization
-⏳ **Push Notifications** - Deadline reminders and updates
-✅ **Calendar Integration** - Native calendar app support (Android & iOS), ICS export and share  
+✅ **Release Readiness**
+- App Store blocker register and final signoff workflow
+- Local privacy, accessibility, media, license, export, live URL, and Store metadata evidence docs
+- Account deletion and UGC moderation implementations archived after local validation
+- Critical release gate scripts for OpenSpec, iOS metadata, web, and selected regression tests
 
 ## 🚀 Quick Start
 
@@ -53,13 +68,14 @@ cd wakeve
 
 # Build and test
 ./gradlew build
-./gradlew shared:test  # 36 tests passing ✅
+./gradlew :shared:jvmTest
+openspec validate --all --strict
 
 # Start server
 ./gradlew server:run   # http://localhost:8080
 
 # Build Android app
-./gradlew wakeveApp:assembleDebug
+./gradlew :composeApp:assembleDebug
 ```
 
 See [QUICK_START.md](./QUICK_START.md) for detailed setup instructions.
@@ -72,9 +88,9 @@ wakeve/
 │   ├── src/commonMain/  # Cross-platform models & logic
 │   ├── src/jvmTest/     # JVM-specific tests
 │   └── sqldelight/      # Type-safe database schema
-├── wakeveApp/          # Android app with Jetpack Compose
+├── composeApp/          # Android app with Jetpack Compose
 ├── server/              # Ktor REST backend server
-├── wakeveApp/wakeveApp/ # iOS app entry point (SwiftUI)
+├── iosApp/              # Native iOS app and Xcode project
 ├── openspec/            # Specification documents
 └── docs/                # Documentation
 ```
@@ -134,22 +150,21 @@ See [docs/architecture/meeting-service.md](./docs/architecture/meeting-service.m
 - **UI**: Jetpack Compose (Android), SwiftUI (iOS)
 - **Database**: SQLDelight with type-safe queries
 - **Backend**: Ktor 3.3.1 REST server
-- **Testing**: Kotlin test framework, 36+ tests
+- **Testing**: Kotlin test, XCTest, OpenSpec validation, release gate scripts
 - **Serialization**: kotlinx-serialization for JSON
 
 ## 📊 Project Statistics
 
 | Metric | Value |
 |--------|-------|
-| Phase Status | 2 Complete, 3 Planning |
-| Tests Passing | 71/71 (100%) ✅ |
-| Unit Tests | 36 tests |
-| E2E Tests | 35 tests |
-| Lines of Code | ~4,500 |
-| Files Created | 40+ |
-| API Endpoints | 12 (8 event + 4 meeting proxy) |
-| Database Tables | 8 |
-| Supported Platforms | 3 (Android, iOS, JVM) |
+| Roadmap Status | Active release hardening |
+| Active OpenSpec Changes | 2 |
+| Validated Specs/Changes | 26/26 with `openspec validate --all --strict` |
+| Shared Test Files | 92 common test files |
+| Android Test Files | 85 Compose test files |
+| iOS Test Files | 28 XCTest files |
+| Supported Platforms | Android, iOS, JVM/server |
+| Current External Blockers | App Store/live infrastructure, signed-device WeatherKit, WakeveAI real-device profiling |
 
 ## 📖 Documentation
 
@@ -190,7 +205,7 @@ For comprehensive documentation, visit **[docs/](./docs/)**:
 ./gradlew shared:test --tests "EventRepositoryTest"
 
 # Build Android app
-./gradlew wakeveApp:assembleDebug
+./gradlew :composeApp:assembleDebug
 
 # Start server
 ./gradlew server:run
@@ -281,28 +296,24 @@ curl -X POST http://localhost:8080/api/events \
 
 ## 🔐 Security
 
-### Current (Phase 2)
-- Static user IDs (for development)
-- Role-based access control (organizer vs participant)
-- Input validation on all endpoints
-- Error handling with appropriate HTTP status codes
-
-### Planned (Phase 3)
-- OAuth2 authentication (Google, Apple)
-- Secure token storage and refresh
-- HTTPS enforcement
-- Rate limiting and request validation
+### Current
+- OAuth/email/guest authentication flows in shared and platform code
+- Role-based access control for organizer and participant behavior
+- Account deletion flow implemented and locally validated
+- UGC moderation, reporting, blocking, and review controls implemented and archived
+- Store-readiness checks for privacy manifests, logging hygiene, live URL/AASA evidence, App Review notes, and release signoff markers
 
 ## 📱 Platform Support
 
 ### Android
 - **UI Framework**: Jetpack Compose
 - **Target**: API 24+
-- **Build**: `./gradlew wakeveApp:assembleDebug`
+- **Build**: `./gradlew :composeApp:assembleDebug`
 
 ### iOS
-- **Framework**: Swift/SwiftUI (planned Phase 2)
-- **Target**: iOS 13+
+- **Framework**: SwiftUI with shared KMP framework integration
+- **Project**: `iosApp/iosApp.xcodeproj`
+- **Target**: tracked in Xcode build settings
 - **Database**: Native SQLite driver
 
 ### JVM/Server
@@ -313,23 +324,23 @@ curl -X POST http://localhost:8080/api/events \
 ## 🚦 Development Workflow
 
 ### Creating a Feature
-1. Create feature branch: `change/<feature-name>`
+1. Create feature branch: `codex/<feature-name>` for Codex work
 2. Follow OpenSpec process (see [CONTRIBUTING.md](./CONTRIBUTING.md))
 3. Write tests for all new code
 4. Submit PR with issue reference
 
 ### Git Commit Format
 ```
-[#<issue>] <type>: <description>
+<type>(optional-scope): <description>
 
 <optional body>
 ```
 
 **Examples:**
 ```
-[#2] feat: Implement event creation API
-[#15] fix: Handle timezone conversion
-[#20] test: Add offline sync scenarios
+feat(events): add event creation API
+fix(timezone): handle poll slot conversion
+test(sync): add offline conflict scenarios
 ```
 
 ## 🐛 Troubleshooting
