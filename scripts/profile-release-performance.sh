@@ -310,6 +310,7 @@ profile_ios() {
             record_skip "iOS Cold Start" "The iOS Release simulator build completed without a discoverable \`Wakeve.app\`."
             return 0
         fi
+        append_release_build_result "iOS" "$app_path" "$LOG_DIR/xcodebuild-ios-release.log"
         xcrun simctl install "$udid" "$app_path" > "$LOG_DIR/simctl-install-ios.log" 2>&1
     fi
 

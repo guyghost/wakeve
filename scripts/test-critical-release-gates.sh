@@ -127,7 +127,12 @@ assert_release_performance_harness() {
         exit 1
     fi
 
-    echo "PASS: release performance harness records Android build-only evidence safely"
+    if ! grep -Fq 'append_release_build_result "iOS"' "$harness"; then
+        echo "FAIL: release performance harness must record iOS Release simulator artifacts when --build-ios is used" >&2
+        exit 1
+    fi
+
+    echo "PASS: release performance harness records local Release artifacts safely"
 }
 
 assert_notification_review_contract() {
