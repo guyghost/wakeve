@@ -137,6 +137,21 @@ class EventWorkspaceAdaptiveScreenshotTest {
                 actionLabel = "Partager le vote",
                 action = EventWorkspaceSummaryAction.OpenPoll
             ),
+            emotionalSummary = EventEmotionalSummary(
+                eventId = events.first().id,
+                title = "Signal émotionnel",
+                headline = "Engagement à débloquer",
+                scoreLabel = "Score émotionnel : 58/100",
+                excitementLabel = "Excitation : moyenne, le groupe commence à se projeter.",
+                anticipationLabel = "Anticipation : liée à la date qui va sortir du vote.",
+                engagementLabel = "Engagement : 3 participants à relancer.",
+                groupFeelingLabel = "Sentiment de groupe : visible grâce aux réponses partagées.",
+                serenityLabel = "Sérénité : encore fragile tant que la date n'est pas retenue.",
+                controlLabel = "Contrôle : meilleur que WhatsApp, mais la décision reste ouverte.",
+                nextActionLabel = "Relancez les votes manquants avant de promettre une date.",
+                actionLabel = "Ouvrir le vote",
+                action = EventWorkspaceSummaryAction.OpenPoll
+            ),
             widgetSummary = EventWidgetSummary(
                 kind = EventWidgetKind.Countdown,
                 eventId = events.first().id,

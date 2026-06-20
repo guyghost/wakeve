@@ -60,6 +60,23 @@ data class EventViralLoopSummary(
     val template: EventWorkspaceCreationTemplate? = null
 )
 
+data class EventEmotionalSummary(
+    val eventId: String?,
+    val title: String,
+    val headline: String,
+    val scoreLabel: String,
+    val excitementLabel: String,
+    val anticipationLabel: String,
+    val engagementLabel: String,
+    val groupFeelingLabel: String,
+    val serenityLabel: String,
+    val controlLabel: String,
+    val nextActionLabel: String,
+    val actionLabel: String,
+    val action: EventWorkspaceSummaryAction?,
+    val template: EventWorkspaceCreationTemplate? = null
+)
+
 enum class EventWorkspaceSummaryAction {
     OpenEvent,
     OpenPoll,
@@ -105,6 +122,7 @@ data class EventWorkspaceUiState(
     val searchQuery: String,
     val actionSummary: EventWorkspaceActionSummary?,
     val viralLoopSummary: EventViralLoopSummary,
+    val emotionalSummary: EventEmotionalSummary,
     val widgetSummary: EventWidgetSummary,
     val events: List<EventListItemUiState>,
     val selectedEvent: Event?,
@@ -138,6 +156,7 @@ fun EventManagementContract.State.toEventWorkspaceUiState(
         searchQuery = searchQuery,
         actionSummary = filtered.toWorkspaceActionSummary(currentUserId, pollVotes),
         viralLoopSummary = events.toViralLoopSummary(currentUserId, pollVotes),
+        emotionalSummary = events.toEmotionalSummary(currentUserId, pollVotes),
         widgetSummary = events.toEventWidgetSummary(
             now = now,
             timeZone = timeZone,
@@ -298,6 +317,145 @@ internal fun List<Event>.toViralLoopSummary(
         )
     }
 }
+
+internal fun List<Event>.toEmotionalSummary(
+    currentUserId: String,
+    pollVotes: Map<String, Map<String, com.guyghost.wakeve.models.Vote>>
+): EventEmotionalSummary {
+    val event = maxWithOrNull(
+        compareBy<Event> { it.emotionalPriority(currentUserId, pollVotes[it.id]?.size ?: 0) }
+            .thenBy { it.updatedAt }
+    ) ?: return EventEmotionalSummary(
+        eventId = null,
+        title = "Signal émotionnel",
+        headline = "Valeur encore abstraite",
+        scoreLabel = "Score émotionnel : 20/100",
+        excitementLabel = "Excitation : faible tant qu'aucun événement n'existe.",
+        anticipationLabel = "Anticipation : aucune date à attendre.",
+        engagementLabel = "Engagement : aucun groupe actif.",
+        groupFeelingLabel = "Sentiment de groupe : absent.",
+        serenityLabel = "Sérénité : l'utilisateur ne voit pas encore ce que Wakeve remplace.",
+        controlLabel = "Contrôle : aucune décision centralisée.",
+        nextActionLabel = "Créez un premier événement concret pour rendre la valeur visible.",
+        actionLabel = "Créer",
+        action = null
+    )
+
+    val voteCount = pollVotes[event.id]?.size ?: 0
+    val missingVotes = (event.participants.size - voteCount).coerceAtLeast(0)
+
+    return when (event.status) {
+        EventStatus.DRAFT -> EventEmotionalSummary(
+            eventId = event.id,
+            title = "Signal émotionnel",
+            headline = "Promesse encore fragile",
+            scoreLabel = "Score émotionnel : 35/100",
+            excitementLabel = "Excitation : basse, le groupe ne voit pas encore l'invitation.",
+            anticipationLabel = "Anticipation : faible tant que la date reste brouillon.",
+            engagementLabel = "Engagement : dépend de l'organisateur.",
+            groupFeelingLabel = "Sentiment de groupe : pas encore déclenché.",
+            serenityLabel = "Sérénité : moyenne, les détails restent modifiables.",
+            controlLabel = "Contrôle : le brouillon évite déjà de repartir de zéro.",
+            nextActionLabel = "Terminez le brouillon et lancez un vote clair.",
+            actionLabel = if (event.organizerId == currentUserId) "Finaliser" else "Voir",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.POLLING -> EventEmotionalSummary(
+            eventId = event.id,
+            title = "Signal émotionnel",
+            headline = if (missingVotes > 0) "Engagement à débloquer" else "Décision proche",
+            scoreLabel = if (missingVotes > 0) "Score émotionnel : 58/100" else "Score émotionnel : 68/100",
+            excitementLabel = "Excitation : moyenne, le groupe commence à se projeter.",
+            anticipationLabel = "Anticipation : liée à la date qui va sortir du vote.",
+            engagementLabel = if (missingVotes > 0) {
+                "Engagement : $missingVotes participant${if (missingVotes == 1) "" else "s"} à relancer."
+            } else {
+                "Engagement : votes suffisants pour transformer le sondage en plan."
+            },
+            groupFeelingLabel = "Sentiment de groupe : visible grâce aux réponses partagées.",
+            serenityLabel = "Sérénité : encore fragile tant que la date n'est pas retenue.",
+            controlLabel = "Contrôle : meilleur que WhatsApp, mais la décision reste ouverte.",
+            nextActionLabel = if (missingVotes > 0) {
+                "Relancez les votes manquants avant de promettre une date."
+            } else {
+                "Confirmez la date pour créer le vrai moment wow."
+            },
+            actionLabel = "Ouvrir le vote",
+            action = EventWorkspaceSummaryAction.OpenPoll
+        )
+        EventStatus.COMPARING -> EventEmotionalSummary(
+            eventId = event.id,
+            title = "Signal émotionnel",
+            headline = "Choix collectif en cours",
+            scoreLabel = "Score émotionnel : 64/100",
+            excitementLabel = "Excitation : bonne, les options rendent l'événement tangible.",
+            anticipationLabel = "Anticipation : bloquée tant que destination et scénario ne sont pas retenus.",
+            engagementLabel = "Engagement : les participants peuvent comparer au lieu de débattre partout.",
+            groupFeelingLabel = "Sentiment de groupe : renforcé par une décision commune.",
+            serenityLabel = "Sérénité : moyenne, trop d'options peut recréer du bruit.",
+            controlLabel = "Contrôle : élevé si l'organisateur tranche vite.",
+            nextActionLabel = "Sélectionnez l'option qui réduit le plus les contraintes.",
+            actionLabel = "Comparer",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.CONFIRMED -> EventEmotionalSummary(
+            eventId = event.id,
+            title = "Signal émotionnel",
+            headline = "Moment wow à consolider",
+            scoreLabel = "Score émotionnel : 76/100",
+            excitementLabel = "Excitation : forte, l'événement a enfin une date crédible.",
+            anticipationLabel = "Anticipation : forte grâce au compte à rebours et au calendrier.",
+            engagementLabel = "Engagement : à convertir en préparation concrète.",
+            groupFeelingLabel = "Sentiment de groupe : solide si l'invitation est partagée.",
+            serenityLabel = "Sérénité : moyenne tant que budget, transport et programme restent ouverts.",
+            controlLabel = "Contrôle : bon, la suite est centralisée dans Wakeve.",
+            nextActionLabel = "Ajoutez budget, transport et programme pour éviter la rechute dans le chat.",
+            actionLabel = "Préparer",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.ORGANIZING -> EventEmotionalSummary(
+            eventId = event.id,
+            title = "Signal émotionnel",
+            headline = "Centre de contrôle crédible",
+            scoreLabel = "Score émotionnel : 86/100",
+            excitementLabel = "Excitation : utile, portée par un plan concret.",
+            anticipationLabel = "Anticipation : forte, chacun sait quoi vérifier avant le départ.",
+            engagementLabel = "Engagement : élevé si les tâches critiques restent visibles.",
+            groupFeelingLabel = "Sentiment de groupe : fort, les décisions sont partagées.",
+            serenityLabel = "Sérénité : haute, Wakeve remplace le chaos opérationnel.",
+            controlLabel = "Contrôle : très fort, le jour J devient pilotable.",
+            nextActionLabel = "Gardez uniquement les prochaines actions critiques visibles.",
+            actionLabel = "Piloter",
+            action = EventWorkspaceSummaryAction.OpenEvent
+        )
+        EventStatus.FINALIZED -> EventEmotionalSummary(
+            eventId = event.id,
+            title = "Signal émotionnel",
+            headline = "Mémoire et rétention",
+            scoreLabel = "Score émotionnel : 72/100",
+            excitementLabel = "Excitation : transformée en souvenir partageable.",
+            anticipationLabel = "Anticipation : à recréer via une nouvelle édition.",
+            engagementLabel = "Engagement : dépend des photos, remboursements et recap.",
+            groupFeelingLabel = "Sentiment de groupe : bon si le recap est renvoyé.",
+            serenityLabel = "Sérénité : haute quand tout est soldé.",
+            controlLabel = "Contrôle : utile pour retrouver décisions et relancer vite.",
+            nextActionLabel = "Partagez le recap puis recréez l'événement s'il a fonctionné.",
+            actionLabel = "Réutiliser",
+            action = EventWorkspaceSummaryAction.RecreateFromTemplate,
+            template = event.workspaceCreationTemplate()
+        )
+    }
+}
+
+private fun Event.emotionalPriority(currentUserId: String, voteCount: Int): Int =
+    when (status) {
+        EventStatus.ORGANIZING -> 70
+        EventStatus.CONFIRMED -> 65
+        EventStatus.POLLING -> 55 + (participants.size - voteCount).coerceAtLeast(0)
+        EventStatus.COMPARING -> 52
+        EventStatus.FINALIZED -> 45
+        EventStatus.DRAFT -> if (organizerId == currentUserId) 35 else 15
+    }
 
 private fun Event.viralLoopPriority(currentUserId: String, voteCount: Int): Int =
     when (status) {
