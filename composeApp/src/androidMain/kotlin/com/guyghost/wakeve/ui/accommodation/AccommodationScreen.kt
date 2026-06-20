@@ -18,8 +18,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Comment
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
@@ -32,7 +33,6 @@ import androidx.compose.material.icons.filled.MeetingRoom
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Terrain
-import androidx.compose.material.icons.outlined.Comment
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -42,6 +42,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -62,7 +63,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.accommodation.AccommodationRepository
@@ -110,10 +110,10 @@ fun AccommodationScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Hébergement") },
+                title = { Text(accommodationScreenTitle()) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, accommodationBackContentDescription())
                     }
                 },
                 actions = {
@@ -123,8 +123,8 @@ fun AccommodationScreen(
                     }) {
                         Box {
                             Icon(
-                                Icons.Outlined.Comment,
-                                contentDescription = if (commentCount == 0) "Aucun commentaire" else "$commentCount commentaires"
+                                Icons.AutoMirrored.Outlined.Comment,
+                                contentDescription = accommodationCommentContentDescription(commentCount)
                             )
                             if (commentCount > 0) {
                                 Box(
@@ -154,7 +154,7 @@ fun AccommodationScreen(
             FloatingActionButton(
                 onClick = { showAddDialog = true }
             ) {
-                Icon(Icons.Default.Add, "Ajouter hébergement")
+                Icon(Icons.Default.Add, accommodationAddContentDescription())
             }
         }
     ) { padding ->
@@ -186,18 +186,18 @@ fun AccommodationScreen(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        "Aucun hébergement",
+                        accommodationEmptyTitle(),
                         style = MaterialTheme.typography.titleLarge
                     )
                     Text(
-                        "Ajoutez votre premier hébergement",
+                        accommodationEmptyDescription(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Button(onClick = { showAddDialog = true }) {
                         Icon(Icons.Default.Add, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Ajouter")
+                        Text(accommodationAddActionLabel())
                     }
                 }
             }
@@ -259,8 +259,8 @@ fun AccommodationScreen(
                 selectedAccommodation = null
             },
             icon = { Icon(Icons.Default.Delete, contentDescription = null) },
-            title = { Text("Supprimer l'hébergement ?") },
-            text = { Text("Cette action est irréversible. Toutes les affectations de chambres seront également supprimées.") },
+            title = { Text(accommodationDeleteTitle()) },
+            text = { Text(accommodationDeleteMessage()) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -275,7 +275,7 @@ fun AccommodationScreen(
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Supprimer")
+                    Text(accommodationDeleteActionLabel())
                 }
             },
             dismissButton = {
@@ -285,7 +285,7 @@ fun AccommodationScreen(
                         selectedAccommodation = null
                     }
                 ) {
-                    Text("Annuler")
+                    Text(accommodationCancelActionLabel())
                 }
             }
         )
@@ -381,7 +381,11 @@ fun AccommodationCard(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "${accommodation.checkInDate} → ${accommodation.checkOutDate} (${accommodation.totalNights} nuits)",
+                        text = accommodationDateRangeLabel(
+                            checkInDate = accommodation.checkInDate,
+                            checkOutDate = accommodation.checkOutDate,
+                            totalNights = accommodation.totalNights
+                        ),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -398,7 +402,7 @@ fun AccommodationCard(
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        text = "Capacité: ${accommodation.capacity} personnes",
+                        text = accommodationCapacityLabel(accommodation.capacity),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -420,7 +424,7 @@ fun AccommodationCard(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = "(${formatPrice(accommodation.pricePerNight)}/nuit)",
+                        text = accommodationNightPriceLabel(accommodation.pricePerNight),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -448,12 +452,12 @@ fun AccommodationCard(
                 TextButton(onClick = onEdit) {
                     Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Modifier")
+                    Text(accommodationEditActionLabel())
                 }
                 TextButton(onClick = onDelete) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Supprimer")
+                    Text(accommodationDeleteActionLabel())
                 }
             }
         }
@@ -462,22 +466,28 @@ fun AccommodationCard(
 
 @Composable
 fun BookingStatusBadge(status: BookingStatus) {
-    val (color, label) = when (status) {
-        BookingStatus.SEARCHING -> MaterialTheme.colorScheme.surfaceVariant to "Recherche"
-        BookingStatus.RESERVED -> Color(0xFFF59E0B) to "Réservé"
-        BookingStatus.CONFIRMED -> Color(0xFF059669) to "Confirmé"
-        BookingStatus.CANCELLED -> MaterialTheme.colorScheme.error to "Annulé"
+    val containerColor = when (status) {
+        BookingStatus.SEARCHING -> MaterialTheme.colorScheme.surfaceVariant
+        BookingStatus.RESERVED -> MaterialTheme.colorScheme.tertiaryContainer
+        BookingStatus.CONFIRMED -> MaterialTheme.colorScheme.primaryContainer
+        BookingStatus.CANCELLED -> MaterialTheme.colorScheme.errorContainer
+    }
+    val contentColor = when (status) {
+        BookingStatus.SEARCHING -> MaterialTheme.colorScheme.onSurfaceVariant
+        BookingStatus.RESERVED -> MaterialTheme.colorScheme.onTertiaryContainer
+        BookingStatus.CONFIRMED -> MaterialTheme.colorScheme.onPrimaryContainer
+        BookingStatus.CANCELLED -> MaterialTheme.colorScheme.onErrorContainer
     }
     
     Surface(
         shape = MaterialTheme.shapes.small,
-        color = color.copy(alpha = 0.1f)
+        color = containerColor
     ) {
         Text(
-            text = label,
+            text = getBookingStatusLabel(status),
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelSmall,
-            color = color,
+            color = contentColor,
             fontWeight = FontWeight.Medium
         )
     }
@@ -507,7 +517,7 @@ fun AccommodationDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (accommodation == null) "Ajouter hébergement" else "Modifier hébergement") },
+        title = { Text(accommodationDialogTitle(isNewAccommodation = accommodation == null)) },
         text = {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -516,7 +526,7 @@ fun AccommodationDialog(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Nom") },
+                        label = { Text(accommodationNameLabel()) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -532,11 +542,14 @@ fun AccommodationDialog(
                             value = getAccommodationTypeLabel(selectedType),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Type") },
+                            label = { Text(accommodationTypeFieldLabel()) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showTypeDropdown) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor()
+                                .menuAnchor(
+                                    type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                                    enabled = true
+                                )
                         )
                         ExposedDropdownMenu(
                             expanded = showTypeDropdown,
@@ -559,7 +572,7 @@ fun AccommodationDialog(
                     OutlinedTextField(
                         value = address,
                         onValueChange = { address = it },
-                        label = { Text("Adresse") },
+                        label = { Text(accommodationAddressLabel()) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2
                     )
@@ -572,14 +585,14 @@ fun AccommodationDialog(
                         OutlinedTextField(
                             value = capacity,
                             onValueChange = { capacity = it.filter { c -> c.isDigit() } },
-                            label = { Text("Capacité") },
+                            label = { Text(accommodationCapacityFieldLabel()) },
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
                         OutlinedTextField(
                             value = totalNights,
                             onValueChange = { totalNights = it.filter { c -> c.isDigit() } },
-                            label = { Text("Nuits") },
+                            label = { Text(accommodationNightsFieldLabel()) },
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
@@ -590,7 +603,7 @@ fun AccommodationDialog(
                     OutlinedTextField(
                         value = pricePerNight,
                         onValueChange = { pricePerNight = it.filter { c -> c.isDigit() || c == '.' } },
-                        label = { Text("Prix/nuit (€)") },
+                        label = { Text(accommodationPricePerNightLabel()) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -603,16 +616,16 @@ fun AccommodationDialog(
                         OutlinedTextField(
                             value = checkInDate,
                             onValueChange = { checkInDate = it },
-                            label = { Text("Check-in") },
-                            placeholder = { Text("YYYY-MM-DD") },
+                            label = { Text(accommodationCheckInLabel()) },
+                            placeholder = { Text(accommodationDatePlaceholder()) },
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
                         OutlinedTextField(
                             value = checkOutDate,
                             onValueChange = { checkOutDate = it },
-                            label = { Text("Check-out") },
-                            placeholder = { Text("YYYY-MM-DD") },
+                            label = { Text(accommodationCheckOutLabel()) },
+                            placeholder = { Text(accommodationDatePlaceholder()) },
                             modifier = Modifier.weight(1f),
                             singleLine = true
                         )
@@ -629,11 +642,14 @@ fun AccommodationDialog(
                             value = getBookingStatusLabel(selectedStatus),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Statut") },
+                            label = { Text(accommodationStatusFieldLabel()) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showStatusDropdown) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor()
+                                .menuAnchor(
+                                    type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                                    enabled = true
+                                )
                         )
                         ExposedDropdownMenu(
                             expanded = showStatusDropdown,
@@ -656,7 +672,7 @@ fun AccommodationDialog(
                     OutlinedTextField(
                         value = bookingUrl,
                         onValueChange = { bookingUrl = it },
-                        label = { Text("URL de réservation (optionnel)") },
+                        label = { Text(accommodationBookingUrlLabel()) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -666,7 +682,7 @@ fun AccommodationDialog(
                     OutlinedTextField(
                         value = notes,
                         onValueChange = { notes = it },
-                        label = { Text("Notes (optionnel)") },
+                        label = { Text(accommodationNotesLabel()) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
                     )
@@ -706,18 +722,86 @@ fun AccommodationDialog(
                           totalNights.isNotBlank() && checkInDate.isNotBlank() && 
                           checkOutDate.isNotBlank()
             ) {
-                Text("Enregistrer")
+                Text(accommodationSaveActionLabel())
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler")
+                Text(accommodationCancelActionLabel())
             }
         }
     )
 }
 
 // Helper functions
+internal fun accommodationScreenTitle(): String = "Hébergement"
+
+internal fun accommodationBackContentDescription(): String = "Retour"
+
+internal fun accommodationCommentContentDescription(commentCount: Int): String =
+    if (commentCount <= 0) "Aucun commentaire hébergement" else "$commentCount commentaire${if (commentCount > 1) "s" else ""} hébergement"
+
+internal fun accommodationAddContentDescription(): String = "Ajouter un hébergement"
+
+internal fun accommodationEmptyTitle(): String = "Aucun hébergement"
+
+internal fun accommodationEmptyDescription(): String =
+    "Ajoutez une option pour suivre l'adresse, les dates, la capacité et le statut de réservation."
+
+internal fun accommodationAddActionLabel(): String = "Ajouter"
+
+internal fun accommodationDeleteTitle(): String = "Supprimer l'hébergement ?"
+
+internal fun accommodationDeleteMessage(): String =
+    "Cette action supprimera aussi les affectations de chambres liées à cet hébergement."
+
+internal fun accommodationDeleteActionLabel(): String = "Supprimer"
+
+internal fun accommodationCancelActionLabel(): String = "Annuler"
+
+internal fun accommodationDateRangeLabel(checkInDate: String, checkOutDate: String, totalNights: Int): String =
+    "Du $checkInDate au $checkOutDate (${accommodationNightsLabel(totalNights)})"
+
+internal fun accommodationNightsLabel(totalNights: Int): String =
+    "$totalNights nuit${if (totalNights > 1) "s" else ""}"
+
+internal fun accommodationCapacityLabel(capacity: Int): String =
+    "Capacité : $capacity personne${if (capacity > 1) "s" else ""}"
+
+internal fun accommodationNightPriceLabel(pricePerNightCents: Long): String =
+    "${formatPrice(pricePerNightCents)} / nuit"
+
+internal fun accommodationEditActionLabel(): String = "Modifier"
+
+internal fun accommodationDialogTitle(isNewAccommodation: Boolean): String =
+    if (isNewAccommodation) "Ajouter un hébergement" else "Modifier l'hébergement"
+
+internal fun accommodationNameLabel(): String = "Nom"
+
+internal fun accommodationTypeFieldLabel(): String = "Type"
+
+internal fun accommodationAddressLabel(): String = "Adresse"
+
+internal fun accommodationCapacityFieldLabel(): String = "Capacité"
+
+internal fun accommodationNightsFieldLabel(): String = "Nuits"
+
+internal fun accommodationPricePerNightLabel(): String = "Prix par nuit (€)"
+
+internal fun accommodationCheckInLabel(): String = "Arrivée"
+
+internal fun accommodationCheckOutLabel(): String = "Départ"
+
+internal fun accommodationDatePlaceholder(): String = "AAAA-MM-JJ"
+
+internal fun accommodationStatusFieldLabel(): String = "Statut"
+
+internal fun accommodationBookingUrlLabel(): String = "Lien de réservation (optionnel)"
+
+internal fun accommodationNotesLabel(): String = "Notes (optionnel)"
+
+internal fun accommodationSaveActionLabel(): String = "Enregistrer"
+
 fun getAccommodationTypeIcon(type: AccommodationType) = when (type) {
     AccommodationType.HOTEL -> Icons.Default.Hotel
     AccommodationType.AIRBNB -> Icons.Default.Home

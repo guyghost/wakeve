@@ -116,7 +116,7 @@ fun CommentItem(
                 if (isPinned) {
                     Icon(
                         imageVector = Icons.Default.PushPin,
-                        contentDescription = "Pinned",
+                        contentDescription = commentPinnedContentDescription(),
                         tint = WakeveColors.primary,
                         modifier = Modifier.size(20.dp)
                     )
@@ -127,7 +127,7 @@ fun CommentItem(
                 if (comment.canEdit(currentUserId) || comment.canDelete(currentUserId, isOrganizer)) {
                     Box {
                         IconButton(onClick = { showMenu = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                            Icon(Icons.Default.MoreVert, contentDescription = commentOptionsContentDescription())
                         }
 
                         CommentDropdownMenu(
@@ -186,7 +186,7 @@ fun CommentItem(
                         contentColor = WakeveColors.primary
                     )
                 ) {
-                    Text("Reply")
+                    Text(commentReplyActionLabel())
                 }
             }
         }
@@ -215,7 +215,7 @@ fun CommentDropdownMenu(
         if (!comment.isDeleted) {
             // Reply
             DropdownMenuItem(
-                text = { Text("Reply") },
+                text = { Text(commentReplyActionLabel()) },
                 onClick = {
                     onReply(comment.id, comment.authorName)
                     onDismissRequest()
@@ -225,7 +225,7 @@ fun CommentDropdownMenu(
             // Edit (only own comments)
             if (comment.canEdit(currentUserId)) {
                 DropdownMenuItem(
-                    text = { Text("Edit") },
+                    text = { Text(commentEditActionLabel()) },
                     onClick = {
                         onEdit(comment.id, comment.content)
                         onDismissRequest()
@@ -237,7 +237,7 @@ fun CommentDropdownMenu(
             if (comment.canPin(currentUserId, isOrganizer)) {
                 DropdownMenuItem(
                     text = {
-                        Text(if (comment.isPinned) "Unpin" else "Pin")
+                        Text(commentPinActionLabel(comment.isPinned))
                     },
                     onClick = {
                         onPin(comment.id, !comment.isPinned)
@@ -248,11 +248,11 @@ fun CommentDropdownMenu(
 
             // Delete
             if (comment.canDelete(currentUserId, isOrganizer)) {
-                Divider()
+                HorizontalDivider()
                 DropdownMenuItem(
                     text = {
                         Text(
-                            if (comment.authorId == currentUserId) "Delete" else "Remove",
+                            commentDeleteActionLabel(isOwnComment = comment.authorId == currentUserId),
                             color = MaterialTheme.colorScheme.error
                         )
                     },
@@ -265,6 +265,24 @@ fun CommentDropdownMenu(
         }
     }
 }
+
+internal fun commentPinnedContentDescription(): String =
+    "Commentaire epingle"
+
+internal fun commentOptionsContentDescription(): String =
+    "Options du commentaire"
+
+internal fun commentReplyActionLabel(): String =
+    "Repondre"
+
+internal fun commentEditActionLabel(): String =
+    "Modifier"
+
+internal fun commentPinActionLabel(isPinned: Boolean): String =
+    if (isPinned) "Retirer l'epingle" else "Epingler"
+
+internal fun commentDeleteActionLabel(isOwnComment: Boolean): String =
+    if (isOwnComment) "Supprimer" else "Retirer"
 
 /**
  * Avatar placeholder with initials

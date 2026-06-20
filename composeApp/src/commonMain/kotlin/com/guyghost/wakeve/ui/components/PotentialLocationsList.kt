@@ -206,7 +206,7 @@ private fun LocationListItem(
                         LocationType.SPECIFIC_VENUE -> Icons.Outlined.Place
                         LocationType.ONLINE -> Icons.Outlined.VideoCall
                     },
-                    contentDescription = location.locationType.name,
+                    contentDescription = locationTypeLabel(location.locationType),
                     tint = MaterialTheme.colorScheme.primary
                 )
                 
@@ -223,12 +223,7 @@ private fun LocationListItem(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = when (location.locationType) {
-                                LocationType.CITY -> "City"
-                                LocationType.REGION -> "Region"
-                                LocationType.SPECIFIC_VENUE -> "Venue"
-                                LocationType.ONLINE -> "Online"
-                            },
+                            text = locationTypeLabel(location.locationType),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

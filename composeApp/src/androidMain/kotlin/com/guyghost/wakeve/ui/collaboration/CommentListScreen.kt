@@ -8,8 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -72,7 +71,7 @@ fun CommentListScreen(
                 title = { Text(getSectionTitle(section)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -194,7 +193,7 @@ fun CommentThreadItem(
         // Load more replies indicator
         if (thread.hasMoreReplies) {
             Text(
-                text = "Load more replies (${thread.comment.replyCount})",
+                text = loadMoreRepliesLabel(thread.comment.replyCount),
                 color = WakeveColors.primary,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier
@@ -217,13 +216,13 @@ fun EmptyCommentsSection() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "No comments yet",
+            text = emptyCommentsTitle(),
             style = MaterialTheme.typography.titleLarge,
             color = WakeveColors.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Be the first to share your thoughts!",
+            text = emptyCommentsSubtitle(),
             style = MaterialTheme.typography.bodyMedium,
             color = WakeveColors.onSurfaceVariant
         )
@@ -233,16 +232,25 @@ fun EmptyCommentsSection() {
 /**
  * Get localized section title
  */
-private fun getSectionTitle(section: CommentSection): String {
+internal fun getSectionTitle(section: CommentSection): String {
     return when (section) {
-        CommentSection.GENERAL -> "Comments"
-        CommentSection.SCENARIO -> "Option Comments"
-        CommentSection.POLL -> "Poll Comments"
-        CommentSection.TRANSPORT -> "Transport Comments"
-        CommentSection.ACCOMMODATION -> "Accommodation Comments"
-        CommentSection.MEAL -> "Meal Comments"
-        CommentSection.EQUIPMENT -> "Equipment Comments"
-        CommentSection.ACTIVITY -> "Activity Comments"
-        CommentSection.BUDGET -> "Budget Comments"
+        CommentSection.GENERAL -> "Commentaires"
+        CommentSection.SCENARIO -> "Commentaires des options"
+        CommentSection.POLL -> "Commentaires du sondage"
+        CommentSection.TRANSPORT -> "Commentaires transport"
+        CommentSection.ACCOMMODATION -> "Commentaires logement"
+        CommentSection.MEAL -> "Commentaires repas"
+        CommentSection.EQUIPMENT -> "Commentaires equipement"
+        CommentSection.ACTIVITY -> "Commentaires activites"
+        CommentSection.BUDGET -> "Commentaires budget"
     }
 }
+
+internal fun loadMoreRepliesLabel(replyCount: Int): String =
+    "Afficher plus de reponses ($replyCount)"
+
+internal fun emptyCommentsTitle(): String =
+    "Aucun commentaire"
+
+internal fun emptyCommentsSubtitle(): String =
+    "Lancez la discussion pour aider le groupe a avancer."

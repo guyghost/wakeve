@@ -69,7 +69,7 @@ fun AddEditActivityDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (activity == null) "Ajouter une activité" else "Modifier l'activité") },
+        title = { Text(activityDialogTitle(isNewActivity = activity == null)) },
         text = {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -79,7 +79,7 @@ fun AddEditActivityDialog(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Nom *") },
+                        label = { Text(activityNameLabel()) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -89,7 +89,7 @@ fun AddEditActivityDialog(
                     OutlinedTextField(
                         value = description,
                         onValueChange = { description = it },
-                        label = { Text("Description") },
+                        label = { Text(activityDescriptionLabel()) },
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 3
                     )
@@ -103,19 +103,19 @@ fun AddEditActivityDialog(
                         OutlinedTextField(
                             value = date,
                             onValueChange = { date = it },
-                            label = { Text("Date (YYYY-MM-DD) *") },
+                            label = { Text(activityDateLabel()) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
-                            placeholder = { Text("2025-12-25") }
+                            placeholder = { Text(activityDatePlaceholder()) }
                         )
                         
                         OutlinedTextField(
                             value = time,
                             onValueChange = { time = it },
-                            label = { Text("Heure (HH:MM)") },
+                            label = { Text(activityTimeLabel()) },
                             modifier = Modifier.weight(1f),
                             singleLine = true,
-                            placeholder = { Text("14:30") }
+                            placeholder = { Text(activityTimePlaceholder()) }
                         )
                     }
                 }
@@ -128,7 +128,7 @@ fun AddEditActivityDialog(
                         OutlinedTextField(
                             value = duration,
                             onValueChange = { duration = it },
-                            label = { Text("Durée (min) *") },
+                            label = { Text(activityDurationLabel()) },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
@@ -137,11 +137,11 @@ fun AddEditActivityDialog(
                         OutlinedTextField(
                             value = maxParticipants,
                             onValueChange = { maxParticipants = it },
-                            label = { Text("Places max") },
+                            label = { Text(activityCapacityLabel()) },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true,
-                            placeholder = { Text("Illimité") }
+                            placeholder = { Text(activityUnlimitedCapacityPlaceholder()) }
                         )
                     }
                 }
@@ -150,7 +150,7 @@ fun AddEditActivityDialog(
                     OutlinedTextField(
                         value = location,
                         onValueChange = { location = it },
-                        label = { Text("Lieu") },
+                        label = { Text(activityLocationLabel()) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -160,7 +160,7 @@ fun AddEditActivityDialog(
                     OutlinedTextField(
                         value = cost,
                         onValueChange = { cost = it },
-                        label = { Text("Coût par personne (€)") },
+                        label = { Text(activityCostFieldLabel()) },
                         modifier = Modifier.fillMaxWidth(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
@@ -196,12 +196,12 @@ fun AddEditActivityDialog(
                 },
                 enabled = isValid
             ) {
-                Text(if (activity == null) "Ajouter" else "Modifier")
+                Text(activityDialogConfirmLabel(isNewActivity = activity == null))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler")
+                Text(activityCancelActionLabel())
             }
         }
     )
@@ -261,10 +261,10 @@ fun ManageParticipantsDialog(
         onDismissRequest = onDismiss,
         title = {
             Column {
-                Text("Participants - ${activity.activity.name}")
+                Text(activityParticipantsDialogTitle(activity.activity.name))
                 if (activity.activity.maxParticipants != null) {
                     Text(
-                        text = "${activity.registeredCount} / ${activity.activity.maxParticipants} inscrits",
+                        text = activityRegistrationLabel(activity.registeredCount, activity.activity.maxParticipants),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -321,7 +321,7 @@ fun ManageParticipantsDialog(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Activité complète",
+                                    text = activityFullDialogMessage(),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onErrorContainer
                                 )
@@ -333,8 +333,43 @@ fun ManageParticipantsDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Fermer")
+                Text(activityCloseActionLabel())
             }
         }
     )
 }
+
+internal fun activityDialogTitle(isNewActivity: Boolean): String =
+    if (isNewActivity) "Ajouter une activité" else "Modifier l'activité"
+
+internal fun activityNameLabel(): String = "Nom requis"
+
+internal fun activityDescriptionLabel(): String = "Description requise"
+
+internal fun activityDateLabel(): String = "Date requise"
+
+internal fun activityDatePlaceholder(): String = "AAAA-MM-JJ"
+
+internal fun activityTimeLabel(): String = "Heure"
+
+internal fun activityTimePlaceholder(): String = "HH:MM"
+
+internal fun activityDurationLabel(): String = "Durée requise (min)"
+
+internal fun activityCapacityLabel(): String = "Places maximum"
+
+internal fun activityUnlimitedCapacityPlaceholder(): String = "Illimité"
+
+internal fun activityLocationLabel(): String = "Lieu"
+
+internal fun activityCostFieldLabel(): String = "Coût par personne (€)"
+
+internal fun activityDialogConfirmLabel(isNewActivity: Boolean): String =
+    if (isNewActivity) "Ajouter" else "Modifier"
+
+internal fun activityParticipantsDialogTitle(activityName: String): String =
+    "Participants - $activityName"
+
+internal fun activityCloseActionLabel(): String = "Fermer"
+
+internal fun activityFullDialogMessage(): String = "Activité complète"

@@ -77,13 +77,13 @@ fun LocationInputDialog(
             ) {
                 // Title
                 Text(
-                    text = "Add Location",
+                    text = "Ajouter un lieu",
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 
                 Text(
-                    text = "Add a potential location for your event",
+                    text = "Ajoutez une option de lieu pour cet evenement.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -94,8 +94,8 @@ fun LocationInputDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Location Name") },
-                    placeholder = { Text("e.g., Paris, Hotel Royal, Online") },
+                    label = { Text("Nom du lieu") },
+                    placeholder = { Text("Ex : Paris, Hotel Royal, visio") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     isError = name.isEmpty()
@@ -107,19 +107,14 @@ fun LocationInputDialog(
                     onExpandedChange = { expanded = it }
                 ) {
                     OutlinedTextField(
-                        value = when (selectedType) {
-                            LocationType.CITY -> "City"
-                            LocationType.REGION -> "Region"
-                            LocationType.SPECIFIC_VENUE -> "Specific Venue"
-                            LocationType.ONLINE -> "Online"
-                        },
+                        value = locationTypeLabel(selectedType),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Location Type") },
+                        label = { Text("Type de lieu") },
                         trailingIcon = {
                             Icon(
                                 imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = "Select location type"
+                                contentDescription = "Choisir un type de lieu"
                             )
                         },
                         modifier = Modifier
@@ -135,14 +130,7 @@ fun LocationInputDialog(
                         LocationType.entries.forEach { type ->
                             DropdownMenuItem(
                                 text = {
-                                    Text(
-                                        when (type) {
-                                            LocationType.CITY -> "City"
-                                            LocationType.REGION -> "Region"
-                                            LocationType.SPECIFIC_VENUE -> "Specific Venue"
-                                            LocationType.ONLINE -> "Online"
-                                        }
-                                    )
+                                    Text(locationTypeLabel(type))
                                 },
                                 onClick = {
                                     selectedType = type
@@ -158,8 +146,8 @@ fun LocationInputDialog(
                     OutlinedTextField(
                         value = address,
                         onValueChange = { address = it },
-                        label = { Text("Address (optional)") },
-                        placeholder = { Text("Street, City, Country") },
+                        label = { Text("Adresse (optionnel)") },
+                        placeholder = { Text("Rue, ville, pays") },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
                         maxLines = 3
@@ -173,12 +161,7 @@ fun LocationInputDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = when (selectedType) {
-                            LocationType.CITY -> "💡 Great for flexible events that can happen anywhere in the city"
-                            LocationType.REGION -> "💡 Perfect for regional events (e.g., \"South of France\")"
-                            LocationType.SPECIFIC_VENUE -> "💡 Use this for a specific address or venue"
-                            LocationType.ONLINE -> "💡 For virtual events via Zoom, Meet, etc."
-                        },
+                        text = locationTypeHelpText(selectedType),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSecondaryContainer,
                         modifier = Modifier.padding(12.dp)
@@ -193,7 +176,7 @@ fun LocationInputDialog(
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                 ) {
                     TextButton(onClick = onDismiss) {
-                        Text("Cancel")
+                        Text("Annuler")
                     }
                     
                     FilledTonalButton(
@@ -213,10 +196,26 @@ fun LocationInputDialog(
                         },
                         enabled = isValid
                     ) {
-                        Text("Add Location")
+                        Text("Ajouter le lieu")
                     }
                 }
             }
         }
     }
 }
+
+internal fun locationTypeLabel(type: LocationType): String =
+    when (type) {
+        LocationType.CITY -> "Ville"
+        LocationType.REGION -> "Region"
+        LocationType.SPECIFIC_VENUE -> "Lieu precis"
+        LocationType.ONLINE -> "En ligne"
+    }
+
+internal fun locationTypeHelpText(type: LocationType): String =
+    when (type) {
+        LocationType.CITY -> "Utile si l'evenement peut se tenir n'importe ou dans la ville."
+        LocationType.REGION -> "Utile pour une zone large, par exemple le sud de la France."
+        LocationType.SPECIFIC_VENUE -> "Utile pour une adresse ou un etablissement precis."
+        LocationType.ONLINE -> "Utile pour un evenement a distance via Zoom, Meet, etc."
+    }
