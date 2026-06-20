@@ -149,6 +149,46 @@ class EventWorkspaceModelsTest {
         )
     }
 
+    @Test
+    fun `finalized event builds quick reorganization summary`() {
+        val event = event(
+            id = "finalized",
+            title = "Summer retreat",
+            description = "A weekend by the sea",
+            status = EventStatus.FINALIZED,
+            eventType = EventType.OUTDOOR_ACTIVITY
+        )
+
+        val summary = event.toReorganizationSummary()
+
+        assertEquals("Réorganiser rapidement", summary?.title)
+        assertEquals(
+            "Créez une nouvelle édition de Summer retreat avec le titre, la description et le type déjà repris.",
+            summary?.body
+        )
+        assertEquals("Créer une nouvelle édition", summary?.actionLabel)
+        assertEquals(
+            EventWorkspaceCreationTemplate(
+                title = "Summer retreat",
+                description = "A weekend by the sea",
+                eventType = EventType.OUTDOOR_ACTIVITY
+            ),
+            summary?.template
+        )
+    }
+
+    @Test
+    fun `active event does not build reorganization summary`() {
+        assertEquals(
+            null,
+            event(
+                id = "active",
+                title = "Summer retreat",
+                status = EventStatus.ORGANIZING
+            ).toReorganizationSummary()
+        )
+    }
+
     private fun event(
         id: String,
         title: String,

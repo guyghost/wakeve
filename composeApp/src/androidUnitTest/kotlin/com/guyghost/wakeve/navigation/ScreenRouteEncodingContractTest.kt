@@ -67,6 +67,26 @@ class ScreenRouteEncodingContractTest {
         )
     }
 
+    @Test
+    fun eventDetailTemplateReuseUsesTypedEventCreationRouteBuilder() {
+        val source = projectFile(
+            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/WakeveNavHost.kt"
+        ).readText()
+
+        assertTrue(
+            source.contains("onCreateFromTemplate = { template ->"),
+            "Event detail must expose finalized-event template reuse."
+        )
+        assertTrue(
+            source.contains("Screen.EventCreation.createRoute("),
+            "Event detail template reuse must use the typed event creation route builder."
+        )
+        assertFalse(
+            source.contains("event_creation?templateTitle="),
+            "Event detail template reuse must not hand-build template query strings."
+        )
+    }
+
     private val rawPathInterpolationPattern = Regex(
         """event/${'$'}(eventId|scenarioId|budgetItemId)|meeting/${'$'}meetingId|event/${'$'}\{(eventId|scenarioId|budgetItemId)\}|meeting/${'$'}\{meetingId\}"""
     )
