@@ -54,6 +54,10 @@ tmp_dir="${TMPDIR:-/tmp}/wakeve-release-screen-evidence-$$"
 mkdir -p "$tmp_dir"
 trap 'rm -rf "$tmp_dir"' EXIT
 
+sanitize_report() {
+    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$report"
+}
+
 inventory="$tmp_dir/inventory.txt"
 indexed_images="$tmp_dir/indexed-images.tsv"
 if [ -f "$index_file" ]; then
@@ -257,6 +261,8 @@ append_screen "organization" "organization|organisation|organizing|scenario orga
     echo "- Do not set App Store media, accessibility, or TestFlight evidence markers true from this local audit alone."
     echo "- Re-run after capturing screenshots from the uploaded TestFlight/App Review build."
 } >> "$report"
+
+sanitize_report
 
 echo "$report"
 
