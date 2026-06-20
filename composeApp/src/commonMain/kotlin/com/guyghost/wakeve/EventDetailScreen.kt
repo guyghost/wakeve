@@ -60,6 +60,7 @@ import com.guyghost.wakeve.ui.designsystem.WakeveProgressIndicator
 import com.guyghost.wakeve.ui.designsystem.WakeveSize
 import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
 import com.guyghost.wakeve.ui.designsystem.WakeveStateMessage
+import com.guyghost.wakeve.ui.event.EventBudgetPlanningSummary
 import com.guyghost.wakeve.ui.event.EventDayOfSummary
 import com.guyghost.wakeve.ui.event.EventDetailUiState
 import com.guyghost.wakeve.ui.event.EventReorganizationSummary
@@ -351,6 +352,15 @@ fun EventDetailContent(
                     }
                 }
 
+                state.budgetSummary?.let { summary ->
+                    item {
+                        EventBudgetPlanningCard(
+                            summary = summary,
+                            onOpenBudget = { onNavigateTo("event/${event.id}/budget") }
+                        )
+                    }
+                }
+
                 if (event.status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED)) {
                     item {
                         AndroidWeatherStatusCard(
@@ -633,6 +643,59 @@ private fun EventDayOfSummaryCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary
             )
+        }
+    }
+}
+
+@Composable
+private fun EventBudgetPlanningCard(
+    summary: EventBudgetPlanningSummary,
+    onOpenBudget: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.statusLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = summary.participantBasisLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.scopeLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = summary.nextActionLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (summary.canOpenBudget) {
+                Button(
+                    onClick = onOpenBudget,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = WakeveSize.minTouchTarget)
+                ) {
+                    Text("Ouvrir le budget")
+                }
+            } else {
+                Text(
+                    text = "Confirmez votre participation pour ouvrir le budget.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
