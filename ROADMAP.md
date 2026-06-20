@@ -294,6 +294,7 @@ Preuves du 2026-06-20:
 - Passe API Android locale: la configuration de couleur des Chrome Custom Tabs OAuth utilise `CustomTabColorSchemeParams` au lieu de l'appel `setToolbarColor` deprecie; le warning local restant concerne l'API Google Sign-In legacy et demande une migration auth separee.
 - Gate critique Android renforce: `./scripts/test-critical-release-gates.sh` bloque maintenant les regressions Compose hygiene (`Divider(`, `menuAnchor()` sans parametres et icones directionnelles sans `AutoMirrored`).
 - Passe build Android locale: les flags AGP deprecies non requis sont retires de `gradle.properties`, le theme Android ne modifie plus directement `window.statusBarColor`, `:composeApp:compileDebugKotlinAndroid` ne garde que `android.builtInKotlin=false` / `android.newDsl=false`, et le gate critique bloque la reintroduction de ces regressions.
+- Passe release Android locale: `:composeApp:assembleRelease` passe sans supprimer de ressources localisees faute de valeur par defaut; les cles release manquantes (`badges_count_label`, `duration_label`, notifications, entites, etc.) existent maintenant dans `values/strings.xml` et le gate critique bloque leur suppression.
 
 #### 2.2 Observabilite et performance
 
