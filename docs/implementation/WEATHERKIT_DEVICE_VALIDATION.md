@@ -40,6 +40,7 @@ The helper writes a report under `docs/weatherkit/` and records:
 - local code signing identities.
 - matching provisioning profiles for `com.guyghost.wakeve`.
 - whether matching profiles expose `Entitlements.com.apple.developer.weatherkit = true`.
+- Xcode and iPhoneOS SDK versions used for the local readiness capture.
 - required closure fields and non-closure conditions.
 
 The report is preparation evidence only. It must not be used to mark OpenSpec tasks `1.2` or `6.2` complete unless the required real-device WeatherKit fields are filled in.
@@ -68,7 +69,7 @@ This refresh proves the simulator-testable provider mapping, entitlement source 
 
 ## 2026-06-21 Device Readiness Refresh
 
-Preparation report: `docs/weatherkit/weatherkit-device-validation-2026-06-20T22-44-14Z.md`.
+Preparation report: `docs/weatherkit/weatherkit-device-validation-2026-06-20T23-08-57Z.md`.
 
 Current status remains `PHYSICAL_IOS_DEVICE_NOT_TRACE_READY`.
 
@@ -80,6 +81,7 @@ The refreshed helper output proves only the current local readiness state:
 - `TEAM_ID` / `APPLE_TEAM_ID` is missing from the shell environment.
 - `security find-identity -v -p codesigning` reports `0 valid identities found`.
 - No local provisioning profile matches bundle ID `com.guyghost.wakeve`.
+- The local capture is on Xcode 27.0 with iPhoneOS SDK 27.0.
 
 This report is preparation evidence only. It does not close tasks `1.2` or `6.2`; final closure still requires the Apple Developer WeatherKit capability, a regenerated provisioning profile containing the WeatherKit entitlement, signed app entitlement inspection, and a real-device or TestFlight-equivalent WeatherKit run.
 

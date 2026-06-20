@@ -18,6 +18,8 @@ sanitize_report() {
 
 device_list="$(xcrun devicectl list devices 2>&1 || true)"
 xctrace_devices="$(xcrun xctrace list devices 2>&1 || true)"
+xcode_version="$(xcodebuild -version 2>&1 || true)"
+iphoneos_sdk_version="$(xcodebuild -version -sdk iphoneos SDKVersion 2>&1 || true)"
 codesigning_identities="$(security find-identity -v -p codesigning 2>&1 || true)"
 valid_signing_identity_count="$(
     printf '%s\n' "$codesigning_identities" \
@@ -116,6 +118,13 @@ It is not completion evidence until a signed build on a real iOS device proves W
 | Matching provisioning profiles | \`$(if [ -n "$matching_profiles" ]; then printf '%s' "present"; else printf '%s' "missing"; fi)\` |
 | Matching profiles with WeatherKit entitlement | \`$(if [ -n "$matching_weatherkit_profiles" ]; then printf '%s' "present"; else printf '%s' "missing"; fi)\` |
 | Generated report can close OpenSpec tasks | \`no - preparation evidence only\` |
+
+## Toolchain Readiness
+
+| Field | Value |
+| --- | --- |
+| Xcode version | \`$(printf '%s' "${xcode_version:-missing}" | head -n 1)\` |
+| iPhoneOS SDK version | \`${iphoneos_sdk_version:-missing}\` |
 
 ### Associated Domains Source Entitlement
 
