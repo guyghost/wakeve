@@ -10,6 +10,10 @@ ASSET_DIR="$OUTPUT_DIR/android-event-workspace-device-audit-assets-$TIMESTAMP"
 
 mkdir -p "$OUTPUT_DIR"
 
+sanitize_report() {
+    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$REPORT"
+}
+
 if command -v adb >/dev/null 2>&1; then
     adb_path="$(command -v adb)"
     adb_devices="$(adb devices -l 2>&1 || true)"
@@ -191,5 +195,7 @@ Do not mark roadmap P2.1 complete if any of these are true:
 - TalkBack, font scaling, and back navigation were not spot-checked.
 - The report uses personal participant, address, price, vote, or chat data that cannot be safely committed.
 EOF
+
+sanitize_report
 
 echo "$REPORT"
