@@ -621,8 +621,12 @@ private fun EventStrategicSummaryCard(
             Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)) {
                 listOf(
                     summary.verdictLabel,
+                    summary.scorecardLabel,
+                    summary.honestAnswerLabel,
                     summary.competitorLabel,
                     summary.operatingSystemLabel,
+                    summary.criticalProblemLabel,
+                    summary.valueFeatureLabel,
                     summary.missingCapabilityLabel
                 ).forEachIndexed { index, label ->
                     Text(

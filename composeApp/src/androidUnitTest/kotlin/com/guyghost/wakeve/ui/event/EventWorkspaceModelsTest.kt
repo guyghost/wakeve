@@ -398,8 +398,18 @@ class EventWorkspaceModelsTest {
         assertEquals("Position stratégique", summary.title)
         assertEquals("Pas encore défendable", summary.headline)
         assertEquals("Verdict : agenda vide, aucun moat visible.", summary.verdictLabel)
+        assertEquals("Scores : produit 20/100 · UX 35/100 · rétention 10/100.", summary.scorecardLabel)
+        assertEquals(
+            "Honnête : je ne lancerais pas, ne paierais pas et ne recommanderais pas encore.",
+            summary.honestAnswerLabel
+        )
         assertEquals("Face aux concurrents : WhatsApp suffit encore.", summary.competitorLabel)
         assertEquals("OS social : aucun espace collectif actif.", summary.operatingSystemLabel)
+        assertEquals("Problème critique : aucune valeur démontrée en 30 secondes.", summary.criticalProblemLabel)
+        assertEquals(
+            "Fonction à créer : premier événement guidé avec invitation partageable.",
+            summary.valueFeatureLabel
+        )
         assertEquals("Capacité manquante : créer un premier groupe coordonné.", summary.missingCapabilityLabel)
         assertEquals("Créez un événement pour prouver la valeur de coordination.", summary.nextActionLabel)
         assertEquals("Créer", summary.actionLabel)
@@ -426,11 +436,24 @@ class EventWorkspaceModelsTest {
             "Verdict : utile pour choisir une date, pas encore pour organiser tout le séjour.",
             summary.verdictLabel
         )
+        assertEquals("Scores : produit 52/100 · UX 66/100 · rétention 35/100.", summary.scorecardLabel)
+        assertEquals(
+            "Honnête : je l'utiliserais pour un dîner, pas encore pour 15 voyageurs.",
+            summary.honestAnswerLabel
+        )
         assertEquals(
             "Face aux concurrents : WhatsApp perd la trace des votes et des relances.",
             summary.competitorLabel
         )
         assertEquals("OS social : la première décision commune existe.", summary.operatingSystemLabel)
+        assertEquals(
+            "Problème critique : la valeur s'arrête si le vote ne débouche pas sur un plan.",
+            summary.criticalProblemLabel
+        )
+        assertEquals(
+            "Fonction à créer : conversion automatique du vote en plan de préparation.",
+            summary.valueFeatureLabel
+        )
         assertEquals(
             "Capacité manquante : transformer le vote en plan budget, transport et programme.",
             summary.missingCapabilityLabel
@@ -462,11 +485,24 @@ class EventWorkspaceModelsTest {
             "Verdict : Wakeve garde une raison d'exister même si WhatsApp, Splitwise et TripIt fusionnent.",
             summary.verdictLabel
         )
+        assertEquals("Scores : produit 78/100 · UX 78/100 · rétention 66/100.", summary.scorecardLabel)
+        assertEquals(
+            "Honnête : je l'utiliserais pour un voyage à 15 si ce cockpit reste fiable.",
+            summary.honestAnswerLabel
+        )
         assertEquals(
             "Face aux concurrents : plan, présences, budget et jour J vivent dans un seul espace.",
             summary.competitorLabel
         )
         assertEquals("OS social : décisions, participants et prochaines actions convergent.", summary.operatingSystemLabel)
+        assertEquals(
+            "Problème critique : trop d'alertes ou de sections casserait la confiance.",
+            summary.criticalProblemLabel
+        )
+        assertEquals(
+            "Fonction à créer : cockpit jour J avec rôles, alertes et responsabilités.",
+            summary.valueFeatureLabel
+        )
         assertEquals("Gardez le centre de contrôle comme écran principal jusqu'au jour J.", summary.nextActionLabel)
         assertEquals("Piloter", summary.actionLabel)
         assertEquals(EventWorkspaceSummaryAction.OpenEvent, summary.action)
@@ -490,11 +526,21 @@ class EventWorkspaceModelsTest {
             "Verdict : utile après l'événement seulement si recap, photos et dettes ressortent vite.",
             summary.verdictLabel
         )
+        assertEquals("Scores : produit 64/100 · UX 70/100 · rétention 72/100.", summary.scorecardLabel)
+        assertEquals(
+            "Honnête : je reviendrais si le recap relance une nouvelle édition.",
+            summary.honestAnswerLabel
+        )
         assertEquals(
             "Face aux concurrents : Splitwise gagne si les remboursements restent séparés.",
             summary.competitorLabel
         )
         assertEquals("OS social : mémoire du groupe réutilisable.", summary.operatingSystemLabel)
+        assertEquals("Problème critique : sans boucle post-event, Wakeve redevient jetable.", summary.criticalProblemLabel)
+        assertEquals(
+            "Fonction à créer : recap partageable avec photos, soldes et recréation.",
+            summary.valueFeatureLabel
+        )
         assertEquals("Transformez le recap en invitation pour la prochaine édition.", summary.nextActionLabel)
         assertEquals("Réutiliser", summary.actionLabel)
         assertEquals(EventWorkspaceSummaryAction.RecreateFromTemplate, summary.action)
