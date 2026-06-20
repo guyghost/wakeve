@@ -6,6 +6,7 @@ import com.guyghost.wakeve.access.ParticipantRsvp
 import com.guyghost.wakeve.models.Album
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.payment.SettlementRecord
@@ -27,6 +28,7 @@ data class EventDetailUiState(
     val canAccessOrganizationDetails: Boolean,
     val showTransportPlanning: Boolean,
     val showOrganizationTools: Boolean,
+    val budgetSummary: EventBudgetPlanningSummary?,
     val dayOfSummary: EventDayOfSummary?,
     val postEventSummary: PostEventControlSummary?,
     val rsvp: EventRsvpUiState?
@@ -52,6 +54,15 @@ data class EventDayOfChecklistItem(
     val statusLabel: String,
     val isComplete: Boolean,
     val isBlocking: Boolean
+)
+
+data class EventBudgetPlanningSummary(
+    val title: String,
+    val statusLabel: String,
+    val participantBasisLabel: String,
+    val scopeLabel: String,
+    val nextActionLabel: String,
+    val canOpenBudget: Boolean
 )
 
 enum class EventDayOfStatus {
@@ -99,6 +110,11 @@ fun EventManagementContract.State.toEventDetailUiState(
             status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED),
         showOrganizationTools = canAccessOrganizationDetails &&
             status in listOf(EventStatus.ORGANIZING, EventStatus.FINALIZED),
+        budgetSummary = event?.toBudgetPlanningSummary(
+            accessStates = participantAccessStates,
+            canOpenBudget = canAccessOrganizationDetails &&
+                status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED)
+        ),
         dayOfSummary = event?.toDayOfSummary(
             accessStates = participantAccessStates,
             potentialLocations = eventPotentialLocations
@@ -111,6 +127,87 @@ fun EventManagementContract.State.toEventDetailUiState(
                 ?.toRsvpUiState(isOrganizer = isOrganizer)
         }
     )
+}
+
+internal fun Event.toBudgetPlanningSummary(
+    accessStates: List<ParticipantAccessState>,
+    canOpenBudget: Boolean
+): EventBudgetPlanningSummary? {
+    if (status !in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED)) {
+        return null
+    }
+
+    val acceptedCount = accessStates
+        .filter { accessState -> accessState.userId == organizerId || accessState.userId in participants }
+        .distinctBy { it.userId }
+        .count { it.rsvp == ParticipantRsvp.ACCEPTED }
+
+    return EventBudgetPlanningSummary(
+        title = "Budget",
+        statusLabel = eventBudgetStatusLabel(status),
+        participantBasisLabel = eventBudgetParticipantBasisLabel(
+            acceptedCount = acceptedCount,
+            expectedParticipants = expectedParticipants,
+            invitedCount = participants.size
+        ),
+        scopeLabel = eventBudgetScopeLabel(eventType),
+        nextActionLabel = eventBudgetNextActionLabel(status),
+        canOpenBudget = canOpenBudget
+    )
+}
+
+internal fun eventBudgetStatusLabel(status: EventStatus): String = when (status) {
+    EventStatus.CONFIRMED -> "A cadrer"
+    EventStatus.ORGANIZING -> "A suivre"
+    EventStatus.FINALIZED -> "A solder"
+    EventStatus.DRAFT,
+    EventStatus.POLLING,
+    EventStatus.COMPARING -> "Non pret"
+}
+
+internal fun eventBudgetParticipantBasisLabel(
+    acceptedCount: Int,
+    expectedParticipants: Int?,
+    invitedCount: Int
+): String = when {
+    acceptedCount > 0 -> "Base budget : $acceptedCount participant${if (acceptedCount == 1) "" else "s"} confirme${if (acceptedCount == 1) "" else "s"}"
+    expectedParticipants != null -> "Base budget : $expectedParticipants participant${if (expectedParticipants == 1) "" else "s"} prevu${if (expectedParticipants == 1) "" else "s"}"
+    invitedCount > 0 -> "Base budget : $invitedCount invite${if (invitedCount == 1) "" else "s"} a confirmer"
+    else -> "Base budget : participants a definir"
+}
+
+internal fun eventBudgetScopeLabel(eventType: EventType): String = when (eventType) {
+    EventType.WEDDING,
+    EventType.TEAM_BUILDING,
+    EventType.CONFERENCE,
+    EventType.OUTDOOR_ACTIVITY ->
+        "A chiffrer : transport, logement, repas, activites et extras."
+    EventType.FOOD_TASTING,
+    EventType.BIRTHDAY,
+    EventType.PARTY,
+    EventType.CULTURAL_EVENT,
+    EventType.FAMILY_GATHERING ->
+        "A chiffrer : lieu, repas, activites et extras."
+    EventType.WORKSHOP,
+    EventType.TECH_MEETUP,
+    EventType.CREATIVE_WORKSHOP ->
+        "A chiffrer : lieu, materiel, repas et intervenants."
+    EventType.SPORTS_EVENT,
+    EventType.SPORT_EVENT,
+    EventType.WELLNESS_EVENT ->
+        "A chiffrer : inscription, equipement, transport et repas."
+    EventType.OTHER,
+    EventType.CUSTOM ->
+        "A chiffrer : transport, repas, activites et extras."
+}
+
+internal fun eventBudgetNextActionLabel(status: EventStatus): String = when (status) {
+    EventStatus.CONFIRMED -> "Creez une estimation par personne avant de lancer les depenses."
+    EventStatus.ORGANIZING -> "Ajoutez les depenses au fil de l'eau pour garder le groupe aligne."
+    EventStatus.FINALIZED -> "Verifiez les depenses finales avant les remboursements."
+    EventStatus.DRAFT,
+    EventStatus.POLLING,
+    EventStatus.COMPARING -> "Attendez une date confirmee avant d'ouvrir le budget."
 }
 
 internal fun Event.toDayOfSummary(

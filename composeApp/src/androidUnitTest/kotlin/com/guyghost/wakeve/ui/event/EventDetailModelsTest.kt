@@ -6,6 +6,7 @@ import com.guyghost.wakeve.access.ParticipantRsvp
 import com.guyghost.wakeve.models.Album
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
+import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.LocationType
 import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.Vote
@@ -154,6 +155,71 @@ class EventDetailModelsTest {
         assertEquals(ParticipantRsvp.ACCEPTED, uiState.rsvp?.selectedResponse)
         assertTrue(uiState.rsvp?.isOrganizer == true)
         assertFalse(uiState.rsvp?.isEnabled ?: true)
+    }
+
+    @Test
+    fun budgetSummaryAnswersBudgetBasisForConfirmedOrganizer() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(
+                status = EventStatus.CONFIRMED,
+                eventType = EventType.OUTDOOR_ACTIVITY,
+                expectedParticipants = 8
+            ),
+            participantAccessStates = listOf(
+                ParticipantAccessState.organizer("organizer"),
+                ParticipantAccessState.member(
+                    userId = "participant-1",
+                    rsvp = ParticipantRsvp.ACCEPTED,
+                    dateValidation = DateValidationState.VALIDATED_RETAINED_DATE
+                )
+            )
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Budget", uiState.budgetSummary?.title)
+        assertEquals("A cadrer", uiState.budgetSummary?.statusLabel)
+        assertEquals("Base budget : 2 participants confirmes", uiState.budgetSummary?.participantBasisLabel)
+        assertEquals(
+            "A chiffrer : transport, logement, repas, activites et extras.",
+            uiState.budgetSummary?.scopeLabel
+        )
+        assertEquals(
+            "Creez une estimation par personne avant de lancer les depenses.",
+            uiState.budgetSummary?.nextActionLabel
+        )
+        assertTrue(uiState.budgetSummary?.canOpenBudget == true)
+    }
+
+    @Test
+    fun budgetSummaryFallsBackToExpectedParticipantsWhenRsvpIsNotSynced() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(
+                status = EventStatus.CONFIRMED,
+                expectedParticipants = 6
+            )
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Base budget : 6 participants prevus", uiState.budgetSummary?.participantBasisLabel)
+        assertTrue(uiState.budgetSummary?.canOpenBudget == true)
+    }
+
+    @Test
+    fun budgetSummaryBlocksBudgetActionForUnconfirmedInvitee() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.CONFIRMED),
+            participantAccessStates = listOf(ParticipantAccessState.invitedPending("participant-1"))
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "participant-1")
+
+        assertEquals("A cadrer", uiState.budgetSummary?.statusLabel)
+        assertFalse(uiState.budgetSummary?.canOpenBudget ?: true)
+    }
+
+    @Test
+    fun budgetSummaryIsHiddenBeforeDateIsConfirmed() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.POLLING)
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals(null, uiState.budgetSummary)
     }
 
     @Test
@@ -383,7 +449,9 @@ class EventDetailModelsTest {
         id: String = eventId,
         status: EventStatus,
         participants: List<String> = listOf("organizer", "participant-1"),
-        finalDate: String? = null
+        finalDate: String? = null,
+        eventType: EventType = EventType.OTHER,
+        expectedParticipants: Int? = null
     ): Event =
         Event(
             id = id,
@@ -396,7 +464,9 @@ class EventDetailModelsTest {
             status = status,
             finalDate = finalDate,
             createdAt = "2026-06-01T08:00:00Z",
-            updatedAt = "2026-06-01T08:00:00Z"
+            updatedAt = "2026-06-01T08:00:00Z",
+            eventType = eventType,
+            expectedParticipants = expectedParticipants
         )
 
     private fun potentialLocation(
