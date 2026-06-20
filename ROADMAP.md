@@ -293,6 +293,7 @@ Preuves du 2026-06-20:
 - Passe Compose hygiene locale: les `Divider` deprecies sont remplaces par `HorizontalDivider`, les icones directionnelles restantes utilisent `AutoMirrored`, et les menus exposes utilisent `menuAnchor(type = PrimaryNotEditable, enabled = ...)`.
 - Passe API Android locale: la configuration de couleur des Chrome Custom Tabs OAuth utilise `CustomTabColorSchemeParams` au lieu de l'appel `setToolbarColor` deprecie; le warning local restant concerne l'API Google Sign-In legacy et demande une migration auth separee.
 - Gate critique Android renforce: `./scripts/test-critical-release-gates.sh` bloque maintenant les regressions Compose hygiene (`Divider(`, `menuAnchor()` sans parametres et icones directionnelles sans `AutoMirrored`).
+- Passe build Android locale: les flags AGP deprecies non requis sont retires de `gradle.properties`, le theme Android ne modifie plus directement `window.statusBarColor`, et `:composeApp:compileDebugKotlinAndroid` ne garde que `android.builtInKotlin=false` / `android.newDsl=false`, necessaires tant que `com.android.*` cohabite avec `kotlin.multiplatform`.
 
 #### 2.2 Observabilite et performance
 
