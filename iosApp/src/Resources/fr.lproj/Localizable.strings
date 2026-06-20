@@ -1353,6 +1353,7 @@
 "events.preview.weather" = "Météo";
 "weather.title" = "Météo";
 "weather.loading" = "Chargement météo";
+"weather.stale_badge" = "Prévision en cache";
 "weather.required_date_message" = "Date confirmée requise pour afficher la météo.";
 "weather.past_date_message" = "La météo n'est plus disponible pour cette date passée.";
 "weather.unavailable_message" = "Météo indisponible. Vérifiez la capacité WeatherKit et la connexion.";

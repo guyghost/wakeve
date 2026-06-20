@@ -1353,6 +1353,7 @@
 "events.preview.weather" = "Weather";
 "weather.title" = "Weather";
 "weather.loading" = "Loading weather";
+"weather.stale_badge" = "Cached forecast";
 "weather.required_date_message" = "A confirmed date is required to show weather.";
 "weather.past_date_message" = "Weather is no longer available for this past date.";
 "weather.unavailable_message" = "Weather unavailable. Check WeatherKit capability and connection.";
