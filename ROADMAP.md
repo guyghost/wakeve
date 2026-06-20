@@ -134,8 +134,8 @@ Definition of done:
 Source documentaire: `docs/APP_STORE_READINESS.md`, `docs/APP_STORE_LIVE_URL_AASA_EVIDENCE.md`
 Blocker App Store principal: AS-14
 
-- [ ] DNS public pour `wakeve.app` et `api.wakeve.app`.
-- [ ] HTTPS valide pour legal, support, privacy, terms, AASA et backend health.
+- [ ] DNS public pour `wakeve.app`; conserver `api.wakeve.app` resolu via Cloudflare pendant toute la fenetre App Review.
+- [ ] HTTPS valide pour legal, support, privacy, terms et AASA; `https://api.wakeve.app/health` repond deja en GET mais doit rester inclus dans le smoke public final.
 - [ ] AASA configure avec le bon Apple Team ID de production.
 - [ ] Backend review-accessible pendant la fenetre App Review.
 - [ ] Smoke test public web, dashboard `/app`, redirects et endpoints critiques.
@@ -156,7 +156,7 @@ Preuves locales du 2026-06-20:
 
 - `./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 12` genere `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md`; le rapport conclut `FAIL. 16 required live URL/AASA checks failed or could not be validated`.
 - `wakeve.app` ne retourne toujours aucune entree DNS publique et tous les endpoints legal/support/terms/third-party-notices, dashboard `/app`, redirects legacy et AASA echouent avec `Could not resolve host: wakeve.app`.
-- `api.wakeve.app` resout vers Cloudflare (`104.21.48.204`, `172.67.156.46`) et repond a `curl -I https://api.wakeve.app/health` avec HTTP `405`, ce qui confirme que le blocker restant porte surtout sur le domaine web/AASA public et le vrai Apple Team ID.
+- `api.wakeve.app` resout vers Cloudflare (`104.21.48.204`, `172.67.156.46`), `curl -I https://api.wakeve.app/health` repond HTTP `405` et `curl https://api.wakeve.app/health` repond HTTP `200 OK`, ce qui confirme que le blocker restant porte surtout sur le domaine web/AASA public et le vrai Apple Team ID.
 
 #### 0.4 Signed archive, TestFlight et release evidence
 
