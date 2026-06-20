@@ -67,6 +67,7 @@ import com.guyghost.wakeve.ui.event.EventDetailUiState
 import com.guyghost.wakeve.ui.event.EventReorganizationSummary
 import com.guyghost.wakeve.ui.event.EventWorkspaceCreationTemplate
 import com.guyghost.wakeve.ui.event.EventRsvpResponseCard
+import com.guyghost.wakeve.ui.event.EventScheduleSummary
 import com.guyghost.wakeve.ui.event.toEventDetailUiState
 import com.guyghost.wakeve.ui.event.toReorganizationSummary
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
@@ -323,6 +324,12 @@ fun EventDetailContent(
                 // Status card
                 item {
                     StatusCard(event = event)
+                }
+
+                state.scheduleSummary?.let { summary ->
+                    item {
+                        EventScheduleSummaryCard(summary = summary)
+                    }
                 }
 
                 state.attendanceSummary?.let { summary ->
@@ -694,6 +701,46 @@ private fun EventAttendanceSummaryCard(
             }
             Text(
                 text = summary.declinedLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = summary.nextActionLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun EventScheduleSummaryCard(
+    summary: EventScheduleSummary,
+    modifier: Modifier = Modifier
+) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.statusLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (summary.hasConfirmedDate) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.tertiary
+                }
+            )
+            Text(
+                text = summary.primaryLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.deadlineLabel,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
