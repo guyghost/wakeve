@@ -7,9 +7,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.Group
 import androidx.compose.material.icons.outlined.People
-import androidx.compose.material.icons.outlined.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -176,7 +176,7 @@ fun ParticipantsEstimationCard(
                 placeholder = { Text("e.g., 20") },
                 leadingIcon = {
                     Icon(
-                        imageVector = Icons.Outlined.TrendingUp,
+                        imageVector = Icons.AutoMirrored.Outlined.TrendingUp,
                         contentDescription = null
                     )
                 },

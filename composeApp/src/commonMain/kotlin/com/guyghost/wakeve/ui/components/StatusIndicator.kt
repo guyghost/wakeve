@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Comment
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Comment
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.HowToVote
 import androidx.compose.material.icons.filled.Info
@@ -152,8 +152,8 @@ private fun getTypeIcon(type: InboxItemType): ImageVector {
         InboxItemType.EVENT_CONFIRMED -> Icons.Outlined.EventAvailable
         InboxItemType.PARTICIPANT_JOINED -> Icons.Default.Person
         InboxItemType.VOTE_SUBMITTED -> Icons.Default.Check
-        InboxItemType.COMMENT_POSTED -> Icons.Default.Comment
-        InboxItemType.COMMENT_REPLY -> Icons.Default.Comment
+        InboxItemType.COMMENT_POSTED -> Icons.AutoMirrored.Filled.Comment
+        InboxItemType.COMMENT_REPLY -> Icons.AutoMirrored.Filled.Comment
         InboxItemType.BUDGET_UPDATE -> Icons.Default.Info
         InboxItemType.ACTIVITY_UPDATE -> Icons.Default.Event
         InboxItemType.ACCOMMODATION_UPDATE -> Icons.Default.Info
