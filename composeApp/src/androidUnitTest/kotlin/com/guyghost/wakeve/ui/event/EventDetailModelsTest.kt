@@ -193,6 +193,15 @@ class EventDetailModelsTest {
             "Suivre les arrivees et traiter les absents avant la prochaine etape.",
             uiState.dayOfSummary?.nextActionLabel
         )
+        assertEquals(4, uiState.dayOfSummary?.checklist?.size)
+        assertEquals("Point de rendez-vous", uiState.dayOfSummary?.checklist?.get(0)?.title)
+        assertEquals("Presents a pointer", uiState.dayOfSummary?.checklist?.get(1)?.title)
+        assertEquals("Pret", uiState.dayOfSummary?.checklist?.get(1)?.statusLabel)
+        assertEquals("Reponses a relancer", uiState.dayOfSummary?.checklist?.get(2)?.title)
+        assertEquals("A relancer", uiState.dayOfSummary?.checklist?.get(2)?.statusLabel)
+        assertTrue(uiState.dayOfSummary?.checklist?.get(2)?.isBlocking == true)
+        assertEquals("Absents a traiter", uiState.dayOfSummary?.checklist?.get(3)?.title)
+        assertEquals("A traiter", uiState.dayOfSummary?.checklist?.get(3)?.statusLabel)
     }
 
     @Test
@@ -220,6 +229,9 @@ class EventDetailModelsTest {
             "Verifier le lieu de rendez-vous et envoyer le rappel de depart.",
             uiState.dayOfSummary?.nextActionLabel
         )
+        assertEquals("A synchroniser", uiState.dayOfSummary?.checklist?.get(1)?.statusLabel)
+        assertEquals("A synchroniser", uiState.dayOfSummary?.checklist?.get(2)?.statusLabel)
+        assertTrue(uiState.dayOfSummary?.checklist?.get(2)?.isBlocking == true)
     }
 
     @Test
@@ -300,6 +312,8 @@ class EventDetailModelsTest {
             uiState.dayOfSummary?.controlLabel
         )
         assertEquals("0 participants attendus", uiState.dayOfSummary?.attendanceLabel)
+        assertEquals("Bloque", uiState.dayOfSummary?.checklist?.get(1)?.statusLabel)
+        assertTrue(uiState.dayOfSummary?.checklist?.get(1)?.isBlocking == true)
     }
 
     @Test

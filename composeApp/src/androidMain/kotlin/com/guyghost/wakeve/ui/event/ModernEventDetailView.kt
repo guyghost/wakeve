@@ -194,6 +194,26 @@ private fun EventDayOfSummaryCard(summary: EventDayOfSummary) {
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                summary.checklist.forEach { item ->
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "${item.statusLabel} - ${item.title}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (item.isBlocking) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+                        )
+                        Text(
+                            text = item.body,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
             Text(
                 text = summary.nextActionLabel,
                 style = MaterialTheme.typography.bodyMedium,
