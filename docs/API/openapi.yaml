@@ -9,10 +9,10 @@ info:
     name: Wakeve Team
 
 servers:
-  - url: http://localhost:8080
-    description: Development
-  - url: https://api.wakeve.com
+  - url: https://api.wakeve.app
     description: Production
+  - url: http://localhost:8080
+    description: Local development
 
 security:
   - bearerAuth: []

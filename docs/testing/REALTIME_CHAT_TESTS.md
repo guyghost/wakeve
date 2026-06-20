@@ -282,7 +282,7 @@ THEN: All messages sent in FIFO order
 chatService.sendMessage("Message 1", null, null)
 chatService.sendMessage("Message 2", null, null)
 chatService.sendMessage("Message 3", null, null)
-chatService.connectToChat("event-123", "wss://api.wakeve.com/ws")
+chatService.connectToChat("event-123", "wss://api.wakeve.app/ws")
 advanceTimeBy(100)
 val allMessages = chatService.messages.value
 assertTrue(allMessages.size >= 3)
@@ -429,13 +429,13 @@ THEN: Connection state properly managed
 
 **Assertions**:
 ```kotlin
-chatService.connectToChat("event-123", "wss://api.wakeve.com/ws")
+chatService.connectToChat("event-123", "wss://api.wakeve.app/ws")
 advanceTimeBy(50)
 val connectedBefore = chatService.isConnected.value
 chatService.disconnect()
 val connectedAfter = chatService.isConnected.value
 
-chatService.connectToChat("event-123", "wss://api.wakeve.com/ws")
+chatService.connectToChat("event-123", "wss://api.wakeve.app/ws")
 advanceTimeBy(50)
 assertTrue(chatService.isConnected("event-123") || !chatService.isConnected("event-123"))
 ```

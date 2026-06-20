@@ -127,7 +127,7 @@ Wakeve a évolué d'un simple outil de sondage vers une application complète d'
 
 **Tests**: 55+ tests
 
-**WebSocket endpoint**: `wss://api.wakeve.com/ws/events/{eventId}/chat`
+**WebSocket endpoint**: `wss://api.wakeve.app/ws/events/{eventId}/chat`
 
 ---
 
