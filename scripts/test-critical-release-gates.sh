@@ -130,6 +130,51 @@ assert_release_performance_harness() {
     echo "PASS: release performance harness records Android build-only evidence safely"
 }
 
+assert_notification_review_contract() {
+    local model="$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationCategory.kt"
+    local service="$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/RichNotificationService.kt"
+    local docs="$PROJECT_DIR/docs/deep-linking.md"
+    local required_identifiers=(
+        'EVENT_INVITE("event_invite")'
+        'POLL_REMINDER("poll_reminder")'
+        'MEETING_STARTING("meeting_starting")'
+        'SCENARIO_VOTE("scenario_vote")'
+        'GENERAL("general")'
+    )
+
+    for identifier in "${required_identifiers[@]}"; do
+        if ! grep -Fq "$identifier" "$model"; then
+            echo "FAIL: notification category contract changed without release-review documentation: $identifier" >&2
+            exit 1
+        fi
+    done
+
+    local in_app_action_policy='NotificationCategory.EVENT_INVITE,
+        NotificationCategory.POLL_REMINDER,
+        NotificationCategory.SCENARIO_VOTE,
+        NotificationCategory.GENERAL -> emptyList()'
+    if ! grep -Fq "$in_app_action_policy" "$service"; then
+        echo "FAIL: rich notification review policy must keep invite, poll, scenario, and general direct actions disabled" >&2
+        exit 1
+    fi
+
+    local required_doc_rows=(
+        '| Event invite | `event_invite` | none |'
+        '| Poll reminder | `poll_reminder` | none |'
+        '| Meeting starting | `meeting_starting` | `join` |'
+        '| Scenario vote | `scenario_vote` | none |'
+        '| General | `general` | none |'
+    )
+    for row in "${required_doc_rows[@]}"; do
+        if ! grep -Fq "$row" "$docs"; then
+            echo "FAIL: deep-linking docs no longer match notification review contract: $row" >&2
+            exit 1
+        fi
+    done
+
+    echo "PASS: notification review contract keeps direct-write actions out of first-release categories"
+}
+
 assert_ios_profile_legal_notice_links() {
     local profile="$PROJECT_DIR/iosApp/src/Views/Profile/ProfileTabView.swift"
     local english="$PROJECT_DIR/iosApp/src/Resources/en.lproj/Localizable.strings"
@@ -244,6 +289,7 @@ assert_android_compose_hygiene
 assert_android_build_hygiene
 assert_android_resource_defaults
 assert_release_performance_harness
+assert_notification_review_contract
 assert_ios_profile_legal_notice_links
 assert_wakeve_ai_device_profile_helper
 assert_weatherkit_device_validation_helper
