@@ -19,7 +19,15 @@ data class EventDetailUiState(
     val canAccessOrganizationDetails: Boolean,
     val showTransportPlanning: Boolean,
     val showOrganizationTools: Boolean,
+    val dayOfSummary: EventDayOfSummary?,
     val rsvp: EventRsvpUiState?
+)
+
+data class EventDayOfSummary(
+    val title: String,
+    val attendanceLabel: String,
+    val missingLabel: String,
+    val nextActionLabel: String
 )
 
 data class EventRsvpUiState(
@@ -56,11 +64,62 @@ fun EventManagementContract.State.toEventDetailUiState(
             status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED),
         showOrganizationTools = canAccessOrganizationDetails &&
             status in listOf(EventStatus.ORGANIZING, EventStatus.FINALIZED),
+        dayOfSummary = event?.toDayOfSummary(participantAccessStates),
         rsvp = event?.let {
             participantAccessStates.firstOrNull { accessState -> accessState.userId == currentUserId }
                 ?.toRsvpUiState(isOrganizer = isOrganizer)
         }
     )
+}
+
+internal fun Event.toDayOfSummary(
+    accessStates: List<ParticipantAccessState>
+): EventDayOfSummary? {
+    if (status !in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED)) {
+        return null
+    }
+
+    val relevantAccessStates = accessStates
+        .filter { accessState -> accessState.userId == organizerId || accessState.userId in participants }
+        .distinctBy { it.userId }
+    if (relevantAccessStates.isEmpty()) {
+        return EventDayOfSummary(
+            title = eventDayOfTitle(),
+            attendanceLabel = "Participants invites : ${participants.size}",
+            missingLabel = "RSVP detailles non synchronises",
+            nextActionLabel = eventDayOfNextActionLabel(status)
+        )
+    }
+
+    val acceptedCount = relevantAccessStates.count { it.rsvp == ParticipantRsvp.ACCEPTED }
+    val pendingCount = relevantAccessStates.count { it.rsvp == ParticipantRsvp.PENDING }
+    val declinedCount = relevantAccessStates.count { it.rsvp == ParticipantRsvp.DECLINED }
+
+    return EventDayOfSummary(
+        title = eventDayOfTitle(),
+        attendanceLabel = "$acceptedCount participant${if (acceptedCount > 1) "s" else ""} attendus",
+        missingLabel = eventDayOfMissingLabel(pendingCount, declinedCount),
+        nextActionLabel = eventDayOfNextActionLabel(status)
+    )
+}
+
+internal fun eventDayOfTitle(): String = "Jour J"
+
+internal fun eventDayOfMissingLabel(pendingCount: Int, declinedCount: Int): String {
+    val parts = buildList {
+        if (pendingCount > 0) add("$pendingCount sans reponse")
+        if (declinedCount > 0) add("$declinedCount ne ${if (declinedCount > 1) "viennent" else "vient"} pas")
+    }
+    return if (parts.isEmpty()) "Aucune reponse manquante" else parts.joinToString(" · ")
+}
+
+internal fun eventDayOfNextActionLabel(status: EventStatus): String = when (status) {
+    EventStatus.CONFIRMED -> "Verifier le lieu de rendez-vous et envoyer le rappel de depart."
+    EventStatus.ORGANIZING -> "Suivre les arrivees et traiter les absents avant la prochaine etape."
+    EventStatus.FINALIZED -> "Evenement termine : consulter recap, photos et remboursements."
+    EventStatus.DRAFT,
+    EventStatus.POLLING,
+    EventStatus.COMPARING -> "Continuer la preparation avant le jour J."
 }
 
 private fun ParticipantAccessState.toRsvpUiState(isOrganizer: Boolean): EventRsvpUiState =

@@ -58,6 +58,7 @@ import com.guyghost.wakeve.ui.designsystem.WakeveProgressIndicator
 import com.guyghost.wakeve.ui.designsystem.WakeveSize
 import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
 import com.guyghost.wakeve.ui.designsystem.WakeveStateMessage
+import com.guyghost.wakeve.ui.event.EventDayOfSummary
 import com.guyghost.wakeve.ui.event.EventDetailUiState
 import com.guyghost.wakeve.ui.event.EventRsvpResponseCard
 import com.guyghost.wakeve.ui.event.toEventDetailUiState
@@ -314,6 +315,12 @@ fun EventDetailContent(
                     StatusCard(event = event)
                 }
 
+                state.dayOfSummary?.let { summary ->
+                    item {
+                        EventDayOfSummaryCard(summary = summary)
+                    }
+                }
+
                 if (event.status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED)) {
                     item {
                         AndroidWeatherStatusCard(
@@ -412,6 +419,37 @@ fun EventDetailContent(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EventDayOfSummaryCard(
+    summary: EventDayOfSummary,
+    modifier: Modifier = Modifier
+) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.attendanceLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.missingLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = summary.nextActionLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }

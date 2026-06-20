@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,6 +54,7 @@ fun EventWorkspaceScreen(
     onFilterChange: (EventListFilter) -> Unit,
     onSearchChange: (String) -> Unit,
     onCreateEvent: () -> Unit,
+    onCreateFromTemplate: (EventWorkspaceCreationTemplate) -> Unit,
     onOpenProfile: () -> Unit,
     onSelectEvent: (String, Boolean) -> Unit,
     onOpenEvent: (String) -> Unit,
@@ -110,6 +112,13 @@ fun EventWorkspaceScreen(
                         onFilterChange = onFilterChange,
                         onSearchChange = onSearchChange,
                         onSelectEvent = { eventId -> onSelectEvent(eventId, false) },
+                        onSummaryAction = { summary ->
+                            when (summary.action) {
+                                EventWorkspaceSummaryAction.OpenEvent -> onSelectEvent(summary.eventId, false)
+                                EventWorkspaceSummaryAction.OpenPoll -> onOpenPoll(summary.eventId)
+                                EventWorkspaceSummaryAction.RecreateFromTemplate -> summary.template?.let(onCreateFromTemplate)
+                            }
+                        },
                         onRetry = onRetry,
                         modifier = Modifier
                             .width(listPaneWidth)
@@ -139,6 +148,13 @@ fun EventWorkspaceScreen(
                     onFilterChange = onFilterChange,
                     onSearchChange = onSearchChange,
                     onSelectEvent = { eventId -> onSelectEvent(eventId, true) },
+                    onSummaryAction = { summary ->
+                        when (summary.action) {
+                            EventWorkspaceSummaryAction.OpenEvent -> onSelectEvent(summary.eventId, true)
+                            EventWorkspaceSummaryAction.OpenPoll -> onOpenPoll(summary.eventId)
+                            EventWorkspaceSummaryAction.RecreateFromTemplate -> summary.template?.let(onCreateFromTemplate)
+                        }
+                    },
                     onRetry = onRetry,
                     modifier = Modifier
                         .fillMaxSize()
@@ -157,6 +173,7 @@ private fun EventListPane(
     onFilterChange: (EventListFilter) -> Unit,
     onSearchChange: (String) -> Unit,
     onSelectEvent: (String) -> Unit,
+    onSummaryAction: (EventWorkspaceActionSummary) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -179,6 +196,12 @@ private fun EventListPane(
             layout = adaptiveInfo.filterLayout,
             modifier = Modifier.testTag("event_filter_${adaptiveInfo.filterLayout.name.lowercase()}")
         )
+        state.actionSummary?.let { summary ->
+            WorkspaceActionSummaryCard(
+                summary = summary,
+                onAction = { onSummaryAction(summary) }
+            )
+        }
         when {
             state.isLoading && state.events.isEmpty() -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -260,6 +283,12 @@ private fun EventListRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2
             )
+            Text(
+                text = event.nextActionLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)) {
                 Text(
                     text = event.participantsLabel,
@@ -273,6 +302,41 @@ private fun EventListRow(
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WorkspaceActionSummaryCard(
+    summary: EventWorkspaceActionSummary,
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(WakeveSpacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)
+            ) {
+                Text(
+                    text = summary.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = summary.body,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 3
+                )
+            }
+            TextButton(onClick = onAction) {
+                Text(summary.actionLabel)
             }
         }
     }

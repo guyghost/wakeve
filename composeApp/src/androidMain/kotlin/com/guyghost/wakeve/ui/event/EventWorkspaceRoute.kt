@@ -8,6 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import com.guyghost.wakeve.navigation.Screen
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
 
@@ -53,6 +54,15 @@ fun EventWorkspaceRoute(
         onFilterChange = { selectedFilter = it },
         onSearchChange = { searchQuery = it },
         onCreateEvent = { onNavigateTo("event_creation") },
+        onCreateFromTemplate = { template ->
+            onNavigateTo(
+                Screen.EventCreation.createRoute(
+                    templateTitle = template.title,
+                    templateDescription = template.description,
+                    templateType = template.eventType
+                )
+            )
+        },
         onOpenProfile = onOpenProfile,
         onSelectEvent = { eventId, navigate ->
             selectedEventId = eventId

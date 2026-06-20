@@ -73,6 +73,7 @@ class EventWorkspaceAdaptiveScreenshotTest {
                             onFilterChange = {},
                             onSearchChange = {},
                             onCreateEvent = {},
+                            onCreateFromTemplate = {},
                             onOpenProfile = {},
                             onSelectEvent = { _, _ -> },
                             onOpenEvent = {},
@@ -119,12 +120,20 @@ class EventWorkspaceAdaptiveScreenshotTest {
             error = null,
             selectedFilter = EventListFilter.Upcoming,
             searchQuery = "",
+            actionSummary = EventWorkspaceActionSummary(
+                eventId = events.first().id,
+                title = "Faites avancer le sondage",
+                body = "3 participants à relancer avant de bloquer une date.",
+                actionLabel = "Ouvrir le vote",
+                action = EventWorkspaceSummaryAction.OpenPoll
+            ),
             events = events.map {
                 EventListItemUiState(
                     id = it.id,
                     title = it.title,
                     description = it.description,
                     statusLabel = it.status.name.lowercase().replaceFirstChar { char -> char.titlecase() },
+                    nextActionLabel = "Vote attendu",
                     deadlineLabel = "Deadline ${it.deadline}",
                     participantsLabel = "${it.participants.size} participants",
                     isOrganizer = it.organizerId == "user-1"

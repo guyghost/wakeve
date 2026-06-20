@@ -31,6 +31,42 @@ class ScreenRouteEncodingContractTest {
         assertEquals("notifications", Screen.Notifications.createRoute("unread&admin=true"))
     }
 
+    @Test
+    fun eventCreationTemplateRouteBuilderEncodesQueryParameters() {
+        val source = projectFile(
+            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/Screen.kt"
+        ).readText()
+
+        assertTrue(
+            source.contains("add(\"templateTitle=${'$'}{Uri.encode(templateTitle)}\")"),
+            "Template titles can contain spaces or '&' and must be Uri-encoded."
+        )
+        assertTrue(
+            source.contains("add(\"templateDescription=${'$'}{Uri.encode(templateDescription)}\")"),
+            "Template descriptions can contain query delimiters and must be Uri-encoded."
+        )
+        assertTrue(
+            source.contains("add(\"templateType=${'$'}{Uri.encode(templateType.name)}\")"),
+            "Template event types must use the same query encoding path as other template fields."
+        )
+    }
+
+    @Test
+    fun workspaceTemplateReuseUsesTypedEventCreationRouteBuilder() {
+        val source = projectFile(
+            "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/event/EventWorkspaceRoute.kt"
+        ).readText()
+
+        assertTrue(
+            source.contains("Screen.EventCreation.createRoute("),
+            "Workspace template reuse must use the typed event creation route builder."
+        )
+        assertFalse(
+            source.contains("event_creation?templateTitle="),
+            "Workspace template reuse must not hand-build template query strings."
+        )
+    }
+
     private val rawPathInterpolationPattern = Regex(
         """event/${'$'}(eventId|scenarioId|budgetItemId)|meeting/${'$'}meetingId|event/${'$'}\{(eventId|scenarioId|budgetItemId)\}|meeting/${'$'}\{meetingId\}"""
     )
