@@ -365,6 +365,7 @@ Preuves du 2026-06-20:
 - `IOS_SIMULATOR='iPhone 17' ./scripts/profile-release-performance.sh --ios-only --build-ios --runs 5` genere `docs/performance/release-performance-2026-06-20T21-05-13Z.md`: build iOS Release simulateur non signee enregistree comme `BUILT_LOCAL_RELEASE_ARTIFACT`, 5 lancements `simctl launch` OK, min 239.8 ms, mediane 249.7 ms, p95/max 272.1 ms, moyenne 252.6 ms.
 - Ce rapport garde cold start device signe, Android runtime, home/list, creation event, scenario matrix et WakeveAI en `PENDING_DEVICE_TRACE`; il ne ferme donc pas les items performance device.
 - AS-11 payment compliance local: `./scripts/audit-app-store-payment-compliance.sh` genere un rapport local StoreKit/IAP, surfaces Payment/Tricount et notes/policy, garde `Generated report can close AS-11 = no - local scan only`, et le gate critique bloque la disparition de ce template. La preuve uploaded-build reste requise.
+- Durcissement performance evidence: `./scripts/profile-release-performance.sh` normalise les rapports generes et masque les chemins absolus locaux; le gate critique execute une capture temporaire sans device pour bloquer les regressions de CR, espaces finaux, chemins `$HOME`, statut local ou `PENDING_DEVICE_TRACE`.
 
 #### 2.3 Notifications et deep links
 
