@@ -129,6 +129,10 @@ http_status() {
     /usr/bin/curl -sS -o /dev/null -w '%{http_code}' --max-time "$TIMEOUT_SECONDS" "$url"
 }
 
+normalize_report_whitespace() {
+    perl -pi -e 's/\r//g; s/[ \t]+$//' "$report"
+}
+
 {
     printf '# App Store Live URL And AASA Capture\n\n'
     printf 'Date: %s\n\n' "$timestamp"
@@ -276,6 +280,8 @@ done
         printf 'Result: FAIL. %s required live URL/AASA checks failed or could not be validated.\n' "$failures"
     fi
 } >> "$report"
+
+normalize_report_whitespace
 
 printf 'Wrote %s\n' "$report"
 
