@@ -15,6 +15,26 @@ run() {
     "$@"
 }
 
+assert_generated_report_is_commit_safe() {
+    local report="$1"
+    local label="$2"
+
+    if LC_ALL=C grep -q $'\r' "$report"; then
+        echo "FAIL: $label report contains carriage returns" >&2
+        exit 1
+    fi
+
+    if grep -nE '[[:blank:]]+$' "$report"; then
+        echo "FAIL: $label report contains trailing whitespace" >&2
+        exit 1
+    fi
+
+    if [ -n "${HOME:-}" ] && grep -Fq "$HOME" "$report"; then
+        echo "FAIL: $label report contains an absolute local HOME path; redact before committing evidence" >&2
+        exit 1
+    fi
+}
+
 assert_no_sensitive_server_logs() {
     local files=(
         "$PROJECT_DIR/server/src/main/kotlin/com/guyghost/wakeve/auth/OtpManager.kt"
@@ -399,6 +419,7 @@ assert_wakeve_ai_device_profile_helper() {
         echo "FAIL: WakeveAI device profile helper did not create a report at $report" >&2
         exit 1
     fi
+    assert_generated_report_is_commit_safe "$report" "WakeveAI device profile"
 
     local required_patterns=(
         'Status: `'
@@ -436,6 +457,7 @@ assert_weatherkit_device_validation_helper() {
         echo "FAIL: WeatherKit device validation helper did not create a report at $report" >&2
         exit 1
     fi
+    assert_generated_report_is_commit_safe "$report" "WeatherKit device validation"
 
     local required_patterns=(
         'Status: `'

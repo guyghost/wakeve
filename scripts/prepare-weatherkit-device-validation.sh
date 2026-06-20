@@ -11,6 +11,10 @@ ENTITLEMENTS_FILE="$PROJECT_DIR/iosApp/src/Wakeve.entitlements"
 
 mkdir -p "$OUTPUT_DIR"
 
+sanitize_report() {
+    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$REPORT"
+}
+
 device_list="$(xcrun devicectl list devices 2>&1 || true)"
 xctrace_devices="$(xcrun xctrace list devices 2>&1 || true)"
 codesigning_identities="$(security find-identity -v -p codesigning 2>&1 || true)"
@@ -204,5 +208,7 @@ Do not mark \`1.2\` or \`6.2\` complete if any of these are true:
 - WeatherKit was not exercised on a real device or TestFlight-equivalent signed build.
 - The report uses personal location, participant, vote, address, price, or chat data that cannot be safely committed.
 EOF
+
+sanitize_report
 
 echo "$REPORT"
