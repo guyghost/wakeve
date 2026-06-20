@@ -136,6 +136,12 @@ Observed local result:
 - EN, FR, ES, IT, and PT `Localizable.strings` pass `plutil -lint` and are key-complete with `848` keys each, no duplicate keys, and no missing/extra keys versus EN after the ES/IT/PT App Store, moderation, data-management, and third-party-notices backfill.
 - `docs/a11y/ios-localization-parity-2026-06-13T13-48-19Z.md` records the same 5-locale key parity using the reusable `scripts/audit-ios-localization-parity.sh --write-report --fail-on-findings` audit, and `scripts/test-critical-release-gates.sh` now runs the parity audit in blocking mode.
 
+2026-06-20 local refresh:
+
+- `docs/a11y/ios-accessibility-source-audit-2026-06-20T20-55-42Z.md` reports `0` hardcoded accessibility string findings, `0` single-line text risks, `0` bare indeterminate `ProgressView()` risks, `0` icon-only button risks, and `0` total findings after the last local corrections.
+- `docs/a11y/ios-localization-parity-2026-06-20T20-55-45Z.md` reports EN, FR, ES, IT, and PT key parity with `1831` keys per locale, `0` duplicates, and no missing or extra keys versus EN.
+- `scripts/test-critical-release-gates.sh` now runs the iOS accessibility source audit in blocking mode with a temporary output directory and requires a generated report with `| Total | 0 |`.
+
 Local limitation:
 
 - Device Dynamic Type screenshots or UI inspection are still required before claiming Larger Text support. The source audit only proves the checked source no longer contains the audited static regressions.
