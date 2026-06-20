@@ -51,6 +51,8 @@ import com.guyghost.wakeve.access.ParticipantRsvp
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.postevent.PostEventControlSummary
+import com.guyghost.wakeve.postevent.PostEventPrimaryAction
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.ui.components.HeroImageSection
 import com.guyghost.wakeve.ui.designsystem.WakeveCard
@@ -321,12 +323,25 @@ fun EventDetailContent(
                     StatusCard(event = event)
                 }
 
-                event.toReorganizationSummary()?.let { summary ->
+                state.postEventSummary?.let { summary ->
                     item {
-                        EventReorganizationCard(
+                        EventPostEventSummaryCard(
                             summary = summary,
+                            event = event,
+                            onNavigateTo = onNavigateTo,
                             onCreateFromTemplate = onCreateFromTemplate
                         )
+                    }
+                }
+
+                if (state.postEventSummary == null) {
+                    event.toReorganizationSummary()?.let { summary ->
+                        item {
+                            EventReorganizationCard(
+                                summary = summary,
+                                onCreateFromTemplate = onCreateFromTemplate
+                            )
+                        }
                     }
                 }
 
@@ -437,6 +452,84 @@ fun EventDetailContent(
         }
     }
 }
+
+@Composable
+private fun EventPostEventSummaryCard(
+    summary: PostEventControlSummary,
+    event: Event,
+    onNavigateTo: (String) -> Unit,
+    onCreateFromTemplate: ((EventWorkspaceCreationTemplate) -> Unit)?,
+    modifier: Modifier = Modifier
+) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.headline,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = summary.body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)) {
+                Text(
+                    text = summary.settlementLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = summary.photoLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = summary.reorganizationLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Button(
+                onClick = {
+                    when (summary.primaryAction) {
+                        PostEventPrimaryAction.OPEN_EVENT -> onNavigateTo("event/${event.id}")
+                        PostEventPrimaryAction.OPEN_SETTLEMENTS -> onNavigateTo("event/${event.id}/budget")
+                        PostEventPrimaryAction.OPEN_PHOTOS -> Unit
+                        PostEventPrimaryAction.RECREATE_EVENT -> {
+                            event.toReorganizationSummary()?.template?.let { template ->
+                                onCreateFromTemplate?.invoke(template)
+                            }
+                        }
+                    }
+                },
+                enabled = when (summary.primaryAction) {
+                    PostEventPrimaryAction.OPEN_PHOTOS -> false
+                    PostEventPrimaryAction.RECREATE_EVENT -> onCreateFromTemplate != null
+                    else -> true
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = WakeveSize.minTouchTarget)
+            ) {
+                Text(summary.primaryAction.postEventActionLabel())
+            }
+        }
+    }
+}
+
+private fun PostEventPrimaryAction.postEventActionLabel(): String =
+    when (this) {
+        PostEventPrimaryAction.OPEN_EVENT -> "Ouvrir l'événement"
+        PostEventPrimaryAction.OPEN_SETTLEMENTS -> "Voir les remboursements"
+        PostEventPrimaryAction.OPEN_PHOTOS -> "Photos a connecter"
+        PostEventPrimaryAction.RECREATE_EVENT -> "Réorganiser"
+    }
 
 @Composable
 private fun EventReorganizationCard(
