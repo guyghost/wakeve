@@ -217,7 +217,7 @@ fun LoginScreen(
                 ) {
                     TextButton(
                         onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wakeve.com/privacy"))
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(WakeveLegalUrls.PRIVACY))
                             context.startActivity(intent)
                         }
                     ) {
@@ -234,7 +234,7 @@ fun LoginScreen(
                     )
                     TextButton(
                         onClick = {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://wakeve.com/terms"))
+                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(WakeveLegalUrls.TERMS))
                             context.startActivity(intent)
                         }
                     ) {
