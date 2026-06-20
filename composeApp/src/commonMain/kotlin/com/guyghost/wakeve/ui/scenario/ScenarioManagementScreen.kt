@@ -241,6 +241,13 @@ fun ScenarioManagementScreen(
                                 )
                             }
                         } else {
+                            item {
+                                ScenarioDestinationSummaryCard(
+                                    summary = scenarioDestinationSummary(state.scenarios),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+
                             items(
                                 items = state.getScenariosRanked(),
                                 key = { it.scenario.id }
@@ -816,6 +823,57 @@ private fun WorkflowStatusCard(
 }
 
 @Composable
+private fun ScenarioDestinationSummaryCard(
+    summary: ScenarioDestinationSummary,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = scenarioDestinationQuestionLabel(),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = summary.headline,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = summary.details,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = summary.voteSignal,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.82f)
+            )
+        }
+    }
+}
+
+@Composable
 private fun LockedAccessMessage(
     message: String,
     modifier: Modifier = Modifier
@@ -1337,7 +1395,92 @@ private object ScenarioScreenDefaults {
     val VerticalPadding = 12.dp
 }
 
+internal data class ScenarioDestinationSummary(
+    val title: String,
+    val headline: String,
+    val details: String,
+    val voteSignal: String
+)
+
+internal fun scenarioDestinationSummary(scenarios: List<ScenarioWithVotes>): ScenarioDestinationSummary {
+    val selected = scenarios
+        .filter { it.scenario.status == ScenarioStatus.SELECTED }
+        .maxWithOrNull(compareByScenarioDecisionSignal())
+
+    if (selected != null) {
+        return ScenarioDestinationSummary(
+            title = scenarioDestinationSelectedTitle(),
+            headline = selected.scenario.location,
+            details = scenarioDestinationDetails(selected.scenario),
+            voteSignal = scenarioDestinationRetainedSignal()
+        )
+    }
+
+    val leading = scenarios.maxWithOrNull(compareByScenarioDecisionSignal())
+        ?: return ScenarioDestinationSummary(
+            title = scenarioDestinationPendingTitle(),
+            headline = scenarioDestinationEmptyHeadline(),
+            details = scenarioDestinationEmptyDetails(),
+            voteSignal = scenarioNoVotesMessage()
+        )
+
+    return if (leading.votingResult.totalVotes > 0) {
+        ScenarioDestinationSummary(
+            title = scenarioDestinationLeaderTitle(),
+            headline = leading.scenario.location,
+            details = scenarioDestinationDetails(leading.scenario),
+            voteSignal = scenarioDestinationVoteSignal(
+                score = leading.votingResult.score,
+                totalVotes = leading.votingResult.totalVotes
+            )
+        )
+    } else {
+        ScenarioDestinationSummary(
+            title = scenarioDestinationPendingTitle(),
+            headline = scenarioDestinationOptionsCountLabel(scenarios.size),
+            details = scenarioDestinationPrimaryOptionLabel(leading.scenario),
+            voteSignal = scenarioNoVotesMessage()
+        )
+    }
+}
+
+private fun compareByScenarioDecisionSignal(): Comparator<ScenarioWithVotes> =
+    compareBy<ScenarioWithVotes> { it.votingResult.score }
+        .thenBy { it.votingResult.preferCount }
+        .thenBy { it.votingResult.totalVotes }
+
 internal fun scenarioScreenTitle(): String = "Scenarios proposes"
+
+internal fun scenarioDestinationQuestionLabel(): String = "Ou allons-nous ?"
+
+internal fun scenarioDestinationSelectedTitle(): String = "Destination retenue"
+
+internal fun scenarioDestinationLeaderTitle(): String = "Option en tete"
+
+internal fun scenarioDestinationPendingTitle(): String = "Destination a choisir"
+
+internal fun scenarioDestinationEmptyHeadline(): String = "Aucune option proposee"
+
+internal fun scenarioDestinationEmptyDetails(): String =
+    "Creez une destination ou un logement pour lancer la comparaison."
+
+internal fun scenarioDestinationOptionsCountLabel(count: Int): String =
+    if (count <= 1) "$count option a departager" else "$count options a departager"
+
+internal fun scenarioDestinationPrimaryOptionLabel(scenario: Scenario): String =
+    "Premiere option: ${scenario.location} - ${scenario.dateOrPeriod}"
+
+internal fun scenarioDestinationDetails(scenario: Scenario): String =
+    "${scenario.name} - ${scenario.dateOrPeriod} - ${scenarioDurationLabel(scenario.duration)}"
+
+internal fun scenarioDestinationRetainedSignal(): String = "Scenario retenu pour le groupe"
+
+internal fun scenarioDestinationVoteSignal(score: Int, totalVotes: Int): String =
+    if (totalVotes == 1) {
+        "Score $score avec 1 vote"
+    } else {
+        "Score $score avec $totalVotes votes"
+    }
 
 internal fun scenarioComparisonTitle(comparisonCount: Int): String =
     "Comparer ($comparisonCount selectionnes)"
