@@ -64,6 +64,7 @@ fun ModernEventDetailView(
     onAddToCalendar: () -> Unit = {},
     onShareInvite: () -> Unit = {},
     dayOfSummary: EventDayOfSummary? = null,
+    settlementSummary: EventSettlementSummary? = null,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -104,6 +105,10 @@ fun ModernEventDetailView(
 
             dayOfSummary?.let {
                 EventDayOfSummaryCard(summary = it)
+            }
+
+            settlementSummary?.let {
+                EventSettlementSummaryCard(summary = it, onOpenSettlements = openBudget)
             }
             
             // Action Buttons based on event status
@@ -147,6 +152,59 @@ fun ModernEventDetailView(
                 EventStatus.POLLING -> {
                     PollingModeActions()
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventSettlementSummaryCard(
+    summary: EventSettlementSummary,
+    onOpenSettlements: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = summary.statusLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = summary.body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = summary.totalLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            summary.lines.forEach { line ->
+                Text(
+                    text = line.sentence,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Button(
+                onClick = onOpenSettlements,
+                enabled = summary.canOpenBudget,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(summary.actionLabel)
             }
         }
     }

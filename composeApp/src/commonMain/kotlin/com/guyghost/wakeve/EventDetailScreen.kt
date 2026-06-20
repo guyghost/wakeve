@@ -51,6 +51,7 @@ import com.guyghost.wakeve.access.ParticipantRsvp
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Vote
+import com.guyghost.wakeve.payment.SettlementRecord
 import com.guyghost.wakeve.postevent.PostEventControlSummary
 import com.guyghost.wakeve.postevent.PostEventPrimaryAction
 import com.guyghost.wakeve.presentation.state.EventManagementContract
@@ -67,6 +68,7 @@ import com.guyghost.wakeve.ui.event.EventDetailUiState
 import com.guyghost.wakeve.ui.event.EventNotificationSummary
 import com.guyghost.wakeve.ui.event.EventProgramPlanningSummary
 import com.guyghost.wakeve.ui.event.EventReorganizationSummary
+import com.guyghost.wakeve.ui.event.EventSettlementSummary
 import com.guyghost.wakeve.ui.event.EventWorkspaceCreationTemplate
 import com.guyghost.wakeve.ui.event.EventRsvpResponseCard
 import com.guyghost.wakeve.ui.event.EventScheduleSummary
@@ -151,6 +153,7 @@ fun EventDetailScreen(
     onNavigateBack: () -> Unit = {},
     onShareInvite: ((eventId: String, eventTitle: String) -> Unit)? = null,
     onCreateFromTemplate: ((EventWorkspaceCreationTemplate) -> Unit)? = null,
+    settlements: List<SettlementRecord> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     // State from ViewModel
@@ -182,7 +185,11 @@ fun EventDetailScreen(
         }
     }
 
-    val uiState = state.toEventDetailUiState(eventId = eventId, currentUserId = userId)
+    val uiState = state.toEventDetailUiState(
+        eventId = eventId,
+        currentUserId = userId,
+        settlements = settlements
+    )
 
     EventDetailContent(
         state = uiState,
@@ -357,6 +364,15 @@ fun EventDetailContent(
                     }
                 }
 
+                state.settlementSummary?.let { summary ->
+                    item {
+                        EventSettlementSummaryCard(
+                            summary = summary,
+                            onOpenBudget = { onNavigateTo("event/${event.id}/budget") }
+                        )
+                    }
+                }
+
                 if (state.postEventSummary == null) {
                     event.toReorganizationSummary()?.let { summary ->
                         item {
@@ -490,6 +506,54 @@ fun EventDetailContent(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventSettlementSummaryCard(
+    summary: EventSettlementSummary,
+    onOpenBudget: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.statusLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = summary.body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = summary.totalLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            summary.lines.forEach { line ->
+                Text(
+                    text = line.sentence,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Button(
+                onClick = onOpenBudget,
+                enabled = summary.canOpenBudget,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = WakeveSize.minTouchTarget)
+            ) {
+                Text(summary.actionLabel)
             }
         }
     }

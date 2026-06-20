@@ -98,6 +98,7 @@ import com.guyghost.wakeve.models.TransportReadiness
 import com.guyghost.wakeve.notification.NotificationService
 import com.guyghost.wakeve.notification.isDeepLinkClickTarget
 import com.guyghost.wakeve.payment.PaymentPotRepository
+import com.guyghost.wakeve.payment.SettlementRepository
 import com.guyghost.wakeve.payment.TricountHandoffRepository
 import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.transport.TransportRepository
@@ -523,11 +524,16 @@ fun WakeveNavHost(
         ) { backStackEntry ->
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
             val viewModel: EventManagementViewModel = koinInject()
+            val database: WakeveDb = koinInject()
+            val settlements = remember(eventId, database) {
+                SettlementRepository(database).getSettlementsForEvent(eventId)
+            }
             
             EventDetailScreen(
                 eventId = eventId,
                 userId = userId,
                 viewModel = viewModel,
+                settlements = settlements,
                 onNavigateTo = { route ->
                     navController.navigate(route)
                 },
