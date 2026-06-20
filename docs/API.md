@@ -4,11 +4,13 @@
 
 REST API endpoints for the Wakeve event planning application.
 
-**Base URL:** `http://localhost:8080`
+**Production Base URL:** `https://api.wakeve.app`
+
+**Local Development Base URL:** `http://localhost:8080` after running `./gradlew server:run`
 
 **Content-Type:** `application/json`
 
-**Authentication:** TBD (Phase 3)
+**Authentication:** Bearer token for protected user flows. Some legacy examples below omit auth only to show payload shape.
 
 ---
 
