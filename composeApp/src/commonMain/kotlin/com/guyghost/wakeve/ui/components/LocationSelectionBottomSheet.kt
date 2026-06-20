@@ -25,7 +25,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -63,7 +62,7 @@ import kotlinx.datetime.Clock
  * Matches the design from lugarres.png with Material You styling.
  *
  * Features:
- * - Search bar with voice input button
+ * - Search bar
  * - Current location suggestion
  * - Optional custom location name input
  * - Checkmark confirmation button
@@ -161,8 +160,7 @@ fun LocationSelectionBottomSheet(
             // Search Bar
             SearchBar(
                 value = searchText,
-                onValueChange = { searchText = it },
-                onVoiceClick = { /* TODO: Implement voice search */ }
+                onValueChange = { searchText = it }
             )
             
             Spacer(modifier = Modifier.height(24.dp))
@@ -234,8 +232,7 @@ fun LocationSelectionBottomSheet(
 @Composable
 private fun SearchBar(
     value: String,
-    onValueChange: (String) -> Unit,
-    onVoiceClick: () -> Unit
+    onValueChange: (String) -> Unit
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -290,17 +287,6 @@ private fun SearchBar(
                 }
             }
             
-            IconButton(
-                onClick = onVoiceClick,
-                modifier = Modifier.size(24.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Mic,
-                    contentDescription = "Recherche vocale",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
         }
     }
 }
