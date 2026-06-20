@@ -133,6 +133,31 @@ struct EventWeatherSummary {
     let precipitationChance: Double
     let windSpeedKph: Double
     let fetchedAt: Date
+    let isStale: Bool
+
+    init(
+        placeName: String,
+        coordinate: CLLocationCoordinate2D,
+        condition: String,
+        symbolName: String,
+        lowTemperature: Double,
+        highTemperature: Double,
+        precipitationChance: Double,
+        windSpeedKph: Double,
+        fetchedAt: Date,
+        isStale: Bool = false
+    ) {
+        self.placeName = placeName
+        self.coordinate = coordinate
+        self.condition = condition
+        self.symbolName = symbolName
+        self.lowTemperature = lowTemperature
+        self.highTemperature = highTemperature
+        self.precipitationChance = precipitationChance
+        self.windSpeedKph = windSpeedKph
+        self.fetchedAt = fetchedAt
+        self.isStale = isStale
+    }
 }
 
 struct EventWeatherPlace {
@@ -178,6 +203,12 @@ struct EventWeatherMapCard: View {
                                 .font(WakeveTheme.Typography.callout)
                                 .foregroundColor(secondaryText)
                                 .lineLimit(2)
+
+                            if summary.isStale {
+                                Text(String(localized: "weather.stale_badge"))
+                                    .font(WakeveTheme.Typography.caption)
+                                    .foregroundColor(SemanticColor.warning(for: colorScheme))
+                            }
                         }
 
                         Spacer()
@@ -283,4 +314,64 @@ private extension Event {
             slot.start.flatMap { formatter.date(from: $0) }
         }.first
     }
+}
+
+enum EventWeatherMapCardPreviewFixtures {
+    static let fetchedAt = Date(timeIntervalSince1970: 1_784_640_000)
+    static let refreshDate = Date(timeIntervalSince1970: 1_784_985_600)
+
+    static let availableSummary = EventWeatherSummary(
+        placeName: "Biarritz",
+        coordinate: CLLocationCoordinate2D(latitude: 43.4832, longitude: -1.5586),
+        condition: "Sunny",
+        symbolName: "sun.max",
+        lowTemperature: 20,
+        highTemperature: 28,
+        precipitationChance: 0.12,
+        windSpeedKph: 16,
+        fetchedAt: fetchedAt
+    )
+
+    static let staleSummary = EventWeatherSummary(
+        placeName: "Biarritz",
+        coordinate: CLLocationCoordinate2D(latitude: 43.4832, longitude: -1.5586),
+        condition: "Cloudy",
+        symbolName: "cloud.sun",
+        lowTemperature: 17,
+        highTemperature: 23,
+        precipitationChance: 0.38,
+        windSpeedKph: 22,
+        fetchedAt: fetchedAt,
+        isStale: true
+    )
+}
+
+private struct EventWeatherMapCardPreviewSurface: View {
+    let state: EventWeatherCardState
+
+    var body: some View {
+        EventWeatherMapCard(state: state)
+            .padding()
+            .background(Color(.systemGroupedBackground))
+    }
+}
+
+#Preview("Weather Loading") {
+    EventWeatherMapCardPreviewSurface(state: .loading)
+}
+
+#Preview("Weather Available") {
+    EventWeatherMapCardPreviewSurface(state: .available(EventWeatherMapCardPreviewFixtures.availableSummary))
+}
+
+#Preview("Weather Stale") {
+    EventWeatherMapCardPreviewSurface(state: .available(EventWeatherMapCardPreviewFixtures.staleSummary))
+}
+
+#Preview("Weather Pending") {
+    EventWeatherMapCardPreviewSurface(state: .pending(refreshDate: EventWeatherMapCardPreviewFixtures.refreshDate))
+}
+
+#Preview("Weather Unavailable") {
+    EventWeatherMapCardPreviewSurface(state: .unavailable(message: String(localized: "weather.unavailable_message")))
 }

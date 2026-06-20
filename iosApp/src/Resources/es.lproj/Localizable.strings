@@ -1271,6 +1271,7 @@
 "events.preview.weather" = "Clima";
 "weather.title" = "Clima";
 "weather.loading" = "Cargando clima";
+"weather.stale_badge" = "Previsión en caché";
 "weather.required_date_message" = "Se necesita una fecha confirmada para mostrar el clima.";
 "weather.past_date_message" = "El clima ya no está disponible para esta fecha pasada.";
 "weather.unavailable_message" = "Clima no disponible. Comprueba la capacidad WeatherKit y la conexión.";

@@ -1271,6 +1271,7 @@
 "events.preview.weather" = "Meteo";
 "weather.title" = "Meteo";
 "weather.loading" = "Caricamento meteo";
+"weather.stale_badge" = "Previsione in cache";
 "weather.required_date_message" = "Serve una data confermata per mostrare il meteo.";
 "weather.past_date_message" = "Il meteo non è più disponibile per questa data passata.";
 "weather.unavailable_message" = "Meteo non disponibile. Verifica la capacità WeatherKit e la connessione.";
