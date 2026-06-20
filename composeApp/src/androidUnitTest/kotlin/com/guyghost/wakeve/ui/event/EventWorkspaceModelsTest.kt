@@ -207,14 +207,14 @@ class EventWorkspaceModelsTest {
         ).viralLoopSummary
 
         assertEquals("poll", summary.eventId)
-        assertEquals("Boucle de croissance", summary.title)
+        assertEquals("Invitations et retours", summary.title)
         assertEquals("2 votes à obtenir", summary.headline)
-        assertEquals("Pourquoi inviter : chaque invité débloque la décision collective.", summary.inviteReasonLabel)
+        assertEquals("Invitation : chaque invité débloque la décision collective.", summary.inviteReasonLabel)
         assertEquals(
-            "Pourquoi installer : voter, suivre la date limite et éviter les relances privées.",
+            "Pourquoi ouvrir Wakeve : voter, suivre la date limite et éviter les relances privées.",
             summary.installReasonLabel
         )
-        assertEquals("Pourquoi revenir : voir la date retenue et la suite du plan.", summary.returnReasonLabel)
+        assertEquals("À suivre : voir la date retenue et la suite du plan.", summary.returnReasonLabel)
         assertEquals("Partager le vote", summary.actionLabel)
         assertEquals(EventWorkspaceSummaryAction.OpenPoll, summary.action)
     }
@@ -239,10 +239,10 @@ class EventWorkspaceModelsTest {
         assertEquals("organizing", summary.eventId)
         assertEquals("Centre de contrôle actif", summary.headline)
         assertEquals(
-            "Pourquoi installer : savoir où aller, qui vient, quoi payer et quoi faire ensuite.",
+            "Pourquoi ouvrir Wakeve : savoir où aller, qui vient, quoi payer et quoi faire ensuite.",
             summary.installReasonLabel
         )
-        assertEquals("Pourquoi revenir : suivre le jour J et les prochaines étapes.", summary.returnReasonLabel)
+        assertEquals("À suivre : suivre le jour J et les prochaines étapes.", summary.returnReasonLabel)
         assertEquals("Piloter", summary.actionLabel)
         assertEquals(EventWorkspaceSummaryAction.OpenEvent, summary.action)
     }
@@ -262,11 +262,11 @@ class EventWorkspaceModelsTest {
         assertEquals("final", summary.eventId)
         assertEquals("Réutilisation après événement", summary.headline)
         assertEquals(
-            "Pourquoi inviter : partager le récap, les photos et les remboursements.",
+            "Invitation : partager le récap, les photos et les remboursements.",
             summary.inviteReasonLabel
         )
         assertEquals(
-            "Pourquoi revenir : recréer une nouvelle édition en un geste.",
+            "À suivre : recréer une nouvelle édition en un geste.",
             summary.returnReasonLabel
         )
         assertEquals("Réutiliser", summary.actionLabel)
@@ -287,9 +287,9 @@ class EventWorkspaceModelsTest {
 
         assertEquals(null, summary.eventId)
         assertEquals("Aucun événement à partager", summary.headline)
-        assertEquals("Pourquoi inviter : il manque un événement concret à proposer.", summary.inviteReasonLabel)
-        assertEquals("Pourquoi installer : Wakeve doit d'abord montrer un groupe actif.", summary.installReasonLabel)
-        assertEquals("Pourquoi revenir : créez un premier événement réutilisable.", summary.returnReasonLabel)
+        assertEquals("Invitation : il manque un événement concret à proposer.", summary.inviteReasonLabel)
+        assertEquals("Pourquoi ouvrir Wakeve : Wakeve doit d'abord montrer un groupe actif.", summary.installReasonLabel)
+        assertEquals("À suivre : créez un premier événement réutilisable.", summary.returnReasonLabel)
         assertEquals("Créer", summary.actionLabel)
         assertEquals(null, summary.action)
     }
@@ -299,9 +299,9 @@ class EventWorkspaceModelsTest {
         val summary = emptyList<Event>().toEmotionalSummary(currentUserId = "me", pollVotes = emptyMap())
 
         assertEquals(null, summary.eventId)
-        assertEquals("Signal émotionnel", summary.title)
+        assertEquals("Ambiance du groupe", summary.title)
         assertEquals("Valeur encore abstraite", summary.headline)
-        assertEquals("Score émotionnel : 20/100", summary.scoreLabel)
+        assertEquals("Confiance du groupe : 20/100", summary.scoreLabel)
         assertEquals("Excitation : faible tant qu'aucun événement n'existe.", summary.excitementLabel)
         assertEquals("Sentiment de groupe : absent.", summary.groupFeelingLabel)
         assertEquals("Créez un premier événement concret pour rendre la valeur visible.", summary.nextActionLabel)
@@ -325,7 +325,7 @@ class EventWorkspaceModelsTest {
 
         assertEquals("poll", summary.eventId)
         assertEquals("Engagement à débloquer", summary.headline)
-        assertEquals("Score émotionnel : 58/100", summary.scoreLabel)
+        assertEquals("Confiance du groupe : 58/100", summary.scoreLabel)
         assertEquals("Excitation : moyenne, le groupe commence à se projeter.", summary.excitementLabel)
         assertEquals("Engagement : 2 participants à relancer.", summary.engagementLabel)
         assertEquals("Sérénité : encore fragile tant que la date n'est pas retenue.", summary.serenityLabel)
@@ -352,7 +352,7 @@ class EventWorkspaceModelsTest {
 
         assertEquals("organizing", summary.eventId)
         assertEquals("Centre de contrôle crédible", summary.headline)
-        assertEquals("Score émotionnel : 86/100", summary.scoreLabel)
+        assertEquals("Confiance du groupe : 86/100", summary.scoreLabel)
         assertEquals("Sérénité : haute, Wakeve remplace le chaos opérationnel.", summary.serenityLabel)
         assertEquals("Contrôle : très fort, le jour J devient pilotable.", summary.controlLabel)
         assertEquals("Gardez uniquement les prochaines actions critiques visibles.", summary.nextActionLabel)
@@ -374,7 +374,7 @@ class EventWorkspaceModelsTest {
 
         assertEquals("final", summary.eventId)
         assertEquals("Mémoire et rétention", summary.headline)
-        assertEquals("Score émotionnel : 72/100", summary.scoreLabel)
+        assertEquals("Confiance du groupe : 72/100", summary.scoreLabel)
         assertEquals("Excitation : transformée en souvenir partageable.", summary.excitementLabel)
         assertEquals("Engagement : dépend des photos, remboursements et recap.", summary.engagementLabel)
         assertEquals("Partagez le recap puis recréez l'événement s'il a fonctionné.", summary.nextActionLabel)
@@ -391,26 +391,26 @@ class EventWorkspaceModelsTest {
     }
 
     @Test
-    fun `strategic summary explains empty workspace has no moat`() {
+    fun `strategic summary explains empty workspace has no group action`() {
         val summary = emptyList<Event>().toStrategicSummary(currentUserId = "me", pollVotes = emptyMap())
 
         assertEquals(null, summary.eventId)
-        assertEquals("Position stratégique", summary.title)
-        assertEquals("Pas encore défendable", summary.headline)
-        assertEquals("Verdict : agenda vide, aucun moat visible.", summary.verdictLabel)
-        assertEquals("Scores : produit 20/100 · UX 35/100 · rétention 10/100.", summary.scorecardLabel)
+        assertEquals("Prochaine décision", summary.title)
+        assertEquals("Aucune action claire", summary.headline)
+        assertEquals("État : agenda vide, aucune action de groupe visible.", summary.verdictLabel)
+        assertEquals("Priorité : concentrez le groupe sur la prochaine action utile.", summary.scorecardLabel)
         assertEquals(
-            "Honnête : je ne lancerais pas, ne paierais pas et ne recommanderais pas encore.",
+            "Confiance : trop faible tant qu'aucun événement n'est partagé.",
             summary.honestAnswerLabel
         )
-        assertEquals("Face aux concurrents : WhatsApp suffit encore.", summary.competitorLabel)
-        assertEquals("OS social : aucun espace collectif actif.", summary.operatingSystemLabel)
-        assertEquals("Problème critique : aucune valeur démontrée en 30 secondes.", summary.criticalProblemLabel)
+        assertEquals("À éviter : garder la décision dans un chat séparé.", summary.competitorLabel)
+        assertEquals("Coordination : aucun espace collectif actif.", summary.operatingSystemLabel)
+        assertEquals("Blocage : aucune valeur démontrée en 30 secondes.", summary.criticalProblemLabel)
         assertEquals(
-            "Fonction à créer : premier événement guidé avec invitation partageable.",
+            "Action utile : premier événement guidé avec invitation partageable.",
             summary.valueFeatureLabel
         )
-        assertEquals("Capacité manquante : créer un premier groupe coordonné.", summary.missingCapabilityLabel)
+        assertEquals("Manque : créer un premier groupe coordonné.", summary.missingCapabilityLabel)
         assertEquals("Créez un événement pour prouver la valeur de coordination.", summary.nextActionLabel)
         assertEquals("Créer", summary.actionLabel)
         assertEquals(null, summary.action)
@@ -431,31 +431,31 @@ class EventWorkspaceModelsTest {
         )
 
         assertEquals("poll", summary.eventId)
-        assertEquals("Meilleur que WhatsApp, pas encore un OS", summary.headline)
+        assertEquals("Date à décider", summary.headline)
         assertEquals(
-            "Verdict : utile pour choisir une date, pas encore pour organiser tout le séjour.",
+            "État : le vote avance, mais la préparation n'est pas encore ouverte.",
             summary.verdictLabel
         )
-        assertEquals("Scores : produit 52/100 · UX 66/100 · rétention 35/100.", summary.scorecardLabel)
+        assertEquals("Priorité : concentrez le groupe sur la prochaine action utile.", summary.scorecardLabel)
         assertEquals(
-            "Honnête : je l'utiliserais pour un dîner, pas encore pour 15 voyageurs.",
+            "Confiance : adapté à un événement simple, encore fragile pour un grand groupe.",
             summary.honestAnswerLabel
         )
         assertEquals(
-            "Face aux concurrents : WhatsApp perd la trace des votes et des relances.",
+            "À éviter : laisser les votes et les relances se perdre dans le chat.",
             summary.competitorLabel
         )
-        assertEquals("OS social : la première décision commune existe.", summary.operatingSystemLabel)
+        assertEquals("Coordination : la première décision commune existe.", summary.operatingSystemLabel)
         assertEquals(
-            "Problème critique : la valeur s'arrête si le vote ne débouche pas sur un plan.",
+            "Blocage : la valeur s'arrête si le vote ne débouche pas sur un plan.",
             summary.criticalProblemLabel
         )
         assertEquals(
-            "Fonction à créer : conversion automatique du vote en plan de préparation.",
+            "Action utile : conversion automatique du vote en plan de préparation.",
             summary.valueFeatureLabel
         )
         assertEquals(
-            "Capacité manquante : transformer le vote en plan budget, transport et programme.",
+            "Manque : transformer le vote en plan budget, transport et programme.",
             summary.missingCapabilityLabel
         )
         assertEquals("Obtenez les votes manquants pour sortir du débat.", summary.nextActionLabel)
@@ -480,27 +480,27 @@ class EventWorkspaceModelsTest {
         ).toStrategicSummary(currentUserId = "me", pollVotes = emptyMap())
 
         assertEquals("organizing", summary.eventId)
-        assertEquals("OS social crédible", summary.headline)
+        assertEquals("Centre de contrôle actif", summary.headline)
         assertEquals(
-            "Verdict : Wakeve garde une raison d'exister même si WhatsApp, Splitwise et TripIt fusionnent.",
+            "État : le groupe a besoin d'un seul endroit fiable pour le plan, le budget et le jour J.",
             summary.verdictLabel
         )
-        assertEquals("Scores : produit 78/100 · UX 78/100 · rétention 66/100.", summary.scorecardLabel)
+        assertEquals("Priorité : concentrez le groupe sur la prochaine action utile.", summary.scorecardLabel)
         assertEquals(
-            "Honnête : je l'utiliserais pour un voyage à 15 si ce cockpit reste fiable.",
+            "Confiance : forte si le cockpit reste fiable jusqu'au jour J.",
             summary.honestAnswerLabel
         )
         assertEquals(
-            "Face aux concurrents : plan, présences, budget et jour J vivent dans un seul espace.",
+            "À éviter : disperser plan, présences, budget et infos du jour J.",
             summary.competitorLabel
         )
-        assertEquals("OS social : décisions, participants et prochaines actions convergent.", summary.operatingSystemLabel)
+        assertEquals("Coordination : décisions, participants et prochaines actions convergent.", summary.operatingSystemLabel)
         assertEquals(
-            "Problème critique : trop d'alertes ou de sections casserait la confiance.",
+            "Blocage : trop d'alertes ou de sections casserait la confiance.",
             summary.criticalProblemLabel
         )
         assertEquals(
-            "Fonction à créer : cockpit jour J avec rôles, alertes et responsabilités.",
+            "Action utile : cockpit jour J avec rôles, alertes et responsabilités.",
             summary.valueFeatureLabel
         )
         assertEquals("Gardez le centre de contrôle comme écran principal jusqu'au jour J.", summary.nextActionLabel)
@@ -521,24 +521,24 @@ class EventWorkspaceModelsTest {
         ).toStrategicSummary(currentUserId = "me", pollVotes = emptyMap())
 
         assertEquals("final", summary.eventId)
-        assertEquals("Rétention à prouver", summary.headline)
+        assertEquals("Recap à partager", summary.headline)
         assertEquals(
-            "Verdict : utile après l'événement seulement si recap, photos et dettes ressortent vite.",
+            "État : le recap, les photos et les remboursements doivent rester faciles à retrouver.",
             summary.verdictLabel
         )
-        assertEquals("Scores : produit 64/100 · UX 70/100 · rétention 72/100.", summary.scorecardLabel)
+        assertEquals("Priorité : concentrez le groupe sur la prochaine action utile.", summary.scorecardLabel)
         assertEquals(
-            "Honnête : je reviendrais si le recap relance une nouvelle édition.",
+            "Confiance : le retour dépend du recap, des photos et des soldes.",
             summary.honestAnswerLabel
         )
         assertEquals(
-            "Face aux concurrents : Splitwise gagne si les remboursements restent séparés.",
+            "À éviter : laisser les remboursements hors du recap.",
             summary.competitorLabel
         )
-        assertEquals("OS social : mémoire du groupe réutilisable.", summary.operatingSystemLabel)
-        assertEquals("Problème critique : sans boucle post-event, Wakeve redevient jetable.", summary.criticalProblemLabel)
+        assertEquals("Coordination : mémoire du groupe réutilisable.", summary.operatingSystemLabel)
+        assertEquals("Blocage : sans boucle post-event, Wakeve redevient jetable.", summary.criticalProblemLabel)
         assertEquals(
-            "Fonction à créer : recap partageable avec photos, soldes et recréation.",
+            "Action utile : recap partageable avec photos, soldes et recréation.",
             summary.valueFeatureLabel
         )
         assertEquals("Transformez le recap en invitation pour la prochaine édition.", summary.nextActionLabel)
@@ -559,13 +559,13 @@ class EventWorkspaceModelsTest {
         val summary = emptyList<Event>().toRoadmapSummary(currentUserId = "me", pollVotes = emptyMap())
 
         assertEquals(null, summary.eventId)
-        assertEquals("Roadmap 6 mois", summary.title)
-        assertEquals("D'abord prouver un groupe actif", summary.headline)
-        assertEquals("0-30 jours : rendre la création et l'invitation évidentes.", summary.firstMonthLabel)
-        assertEquals("31-90 jours : mesurer activation, abandon et première réutilisation.", summary.secondQuarterLabel)
-        assertEquals("3-6 mois : connecter budget, transport, photos et recap.", summary.sixthMonthLabel)
+        assertEquals("Plan d'action", summary.title)
+        assertEquals("Créer un premier groupe actif", summary.headline)
+        assertEquals("Maintenant : rendre la création et l'invitation évidentes.", summary.firstMonthLabel)
+        assertEquals("Ensuite : mesurer activation, abandon et première réutilisation.", summary.secondQuarterLabel)
+        assertEquals("Plus tard : connecter budget, transport, photos et recap.", summary.sixthMonthLabel)
         assertEquals(
-            "Équipe : PM sur activation, designer sur premier wow, 3 devs sur création, partage et analytics.",
+            "Focus : créez un premier événement, publiez-le, puis partagez une invitation claire.",
             summary.teamFocusLabel
         )
         assertEquals("Créer", summary.actionLabel)
@@ -588,12 +588,12 @@ class EventWorkspaceModelsTest {
 
         assertEquals("poll", summary.eventId)
         assertEquals("Sortir du débat de date", summary.headline)
-        assertEquals("0-30 jours : relances utiles, vote lisible et décision sans ambiguïté.", summary.firstMonthLabel)
+        assertEquals("Maintenant : relances utiles, vote lisible et décision sans ambiguïté.", summary.firstMonthLabel)
         assertEquals(
-            "31-90 jours : convertir la date retenue en budget, transport et programme.",
+            "Ensuite : convertir la date retenue en budget, transport et programme.",
             summary.secondQuarterLabel
         )
-        assertEquals("3-6 mois : recommandations qui anticipent les blocages du groupe.", summary.sixthMonthLabel)
+        assertEquals("Plus tard : recommandations qui anticipent les blocages du groupe.", summary.sixthMonthLabel)
         assertEquals("Ouvrir le vote", summary.actionLabel)
         assertEquals(EventWorkspaceSummaryAction.OpenPoll, summary.action)
     }
@@ -616,14 +616,14 @@ class EventWorkspaceModelsTest {
         ).toRoadmapSummary(currentUserId = "me", pollVotes = emptyMap())
 
         assertEquals("organizing", summary.eventId)
-        assertEquals("Industrialiser le centre de contrôle", summary.headline)
+        assertEquals("Jour J à piloter", summary.headline)
         assertEquals(
-            "0-30 jours : fiabiliser jour J, présence, étapes et points de rendez-vous.",
+            "Maintenant : fiabiliser jour J, présence, étapes et points de rendez-vous.",
             summary.firstMonthLabel
         )
-        assertEquals("31-90 jours : rôles, alertes, offline et budget partagé.", summary.secondQuarterLabel)
+        assertEquals("Ensuite : rôles, alertes, offline et budget partagé.", summary.secondQuarterLabel)
         assertEquals(
-            "3-6 mois : OS social pour 4 à 50 personnes avec transport et multi-destinations.",
+            "Plus tard : coordination pour 4 à 50 personnes avec transport et multi-destinations.",
             summary.sixthMonthLabel
         )
         assertEquals("Piloter", summary.actionLabel)
@@ -643,11 +643,11 @@ class EventWorkspaceModelsTest {
         ).toRoadmapSummary(currentUserId = "me", pollVotes = emptyMap())
 
         assertEquals("final", summary.eventId)
-        assertEquals("Transformer la fin en rétention", summary.headline)
-        assertEquals("0-30 jours : recap, photos et remboursements visibles.", summary.firstMonthLabel)
-        assertEquals("31-90 jours : partage post-event et recréation en un geste.", summary.secondQuarterLabel)
+        assertEquals("Recap et prochaine édition", summary.headline)
+        assertEquals("Maintenant : recap, photos et remboursements visibles.", summary.firstMonthLabel)
+        assertEquals("Ensuite : partage post-event et recréation en un geste.", summary.secondQuarterLabel)
         assertEquals(
-            "3-6 mois : mémoire de groupe et recommandations pour la prochaine édition.",
+            "Plus tard : mémoire de groupe et recommandations pour la prochaine édition.",
             summary.sixthMonthLabel
         )
         assertEquals("Réutiliser", summary.actionLabel)
@@ -729,9 +729,9 @@ class EventWorkspaceModelsTest {
         assertEquals("Aujourd'hui", summary.title)
         assertEquals("Today barbecue", summary.headline)
         assertEquals("3 participants attendus", summary.body)
-        assertEquals("Interet utilisateur : 10/10", summary.userInterestLabel)
+        assertEquals("Utilité : 10/10", summary.userInterestLabel)
         assertEquals(
-            "Widget prioritaire : il evite d'ouvrir l'app pour retrouver le rendez-vous du jour.",
+            "Priorité : il evite d'ouvrir l'app pour retrouver le rendez-vous du jour.",
             summary.rationaleLabel
         )
         assertEquals("Ouvrir", summary.actionLabel)
@@ -757,9 +757,9 @@ class EventWorkspaceModelsTest {
         assertEquals("Board game night", summary.title)
         assertEquals("J-4", summary.headline)
         assertEquals("À préparer", summary.body)
-        assertEquals("Interet utilisateur : 8/10", summary.userInterestLabel)
+        assertEquals("Utilité : 8/10", summary.userInterestLabel)
         assertEquals(
-            "Widget compte a rebours utile : il cree de l'anticipation sans spammer le groupe.",
+            "Compte à rebours : il cree de l'anticipation sans spammer le groupe.",
             summary.rationaleLabel
         )
         assertEquals("Préparer", summary.actionLabel)
@@ -787,9 +787,9 @@ class EventWorkspaceModelsTest {
         assertEquals("Voyage à préparer", summary.title)
         assertEquals("Road trip Portugal", summary.headline)
         assertEquals("4 participants - transport, budget et programme à vérifier", summary.body)
-        assertEquals("Interet utilisateur : 9/10", summary.userInterestLabel)
+        assertEquals("Utilité : 9/10", summary.userInterestLabel)
         assertEquals(
-            "Widget voyage pertinent : il regroupe les points qui cassent les groupes longs.",
+            "Voyage : il regroupe les points qui cassent les groupes longs.",
             summary.rationaleLabel
         )
         assertEquals("Piloter", summary.actionLabel)
@@ -815,9 +815,9 @@ class EventWorkspaceModelsTest {
         assertEquals("Prochaine tâche", summary.title)
         assertEquals("Reprenez Draft dinner", summary.headline)
         assertEquals("Continuer", summary.body)
-        assertEquals("Interet utilisateur : 7/10", summary.userInterestLabel)
+        assertEquals("Utilité : 7/10", summary.userInterestLabel)
         assertEquals(
-            "Widget tache utile : il ramene l'organisateur vers le prochain blocage.",
+            "Prochaine tâche : il ramene l'organisateur vers le prochain blocage.",
             summary.rationaleLabel
         )
         assertEquals("Continuer", summary.actionLabel)
@@ -836,8 +836,8 @@ class EventWorkspaceModelsTest {
         assertEquals("Wakeve", summary.title)
         assertEquals("Aucun événement actif", summary.headline)
         assertEquals("Créez un événement pour afficher le prochain rendez-vous ici.", summary.body)
-        assertEquals("Interet utilisateur : a activer", summary.userInterestLabel)
-        assertEquals("Aucun widget utile sans evenement actif.", summary.rationaleLabel)
+        assertEquals("Utilité : a activer", summary.userInterestLabel)
+        assertEquals("Aucune action rapide sans événement actif.", summary.rationaleLabel)
         assertEquals("Créer", summary.actionLabel)
     }
 
