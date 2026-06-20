@@ -35,6 +35,54 @@ class MainActivityOAuthErrorMessageTest {
     }
 
     @Test
+    fun isAppleOAuthCallbackDeepLink_acceptsOnlyCanonicalCallbackAuthority() {
+        assertEquals(
+            true,
+            isAppleOAuthCallbackDeepLink(
+                scheme = "wakeve",
+                host = "apple-auth-callback",
+                encodedUserInfo = null,
+                encodedFragment = null,
+                port = -1
+            )
+        )
+    }
+
+    @Test
+    fun isAppleOAuthCallbackDeepLink_rejectsAmbiguousCallbackAuthority() {
+        assertEquals(
+            false,
+            isAppleOAuthCallbackDeepLink(
+                scheme = "wakeve",
+                host = "apple-auth-callback",
+                encodedUserInfo = "attacker",
+                encodedFragment = null,
+                port = -1
+            )
+        )
+        assertEquals(
+            false,
+            isAppleOAuthCallbackDeepLink(
+                scheme = "wakeve",
+                host = "apple-auth-callback",
+                encodedUserInfo = null,
+                encodedFragment = "code=AUTH-CODE-123",
+                port = -1
+            )
+        )
+        assertEquals(
+            false,
+            isAppleOAuthCallbackDeepLink(
+                scheme = "wakeve",
+                host = "apple-auth-callback",
+                encodedUserInfo = null,
+                encodedFragment = null,
+                port = 443
+            )
+        )
+    }
+
+    @Test
     fun authenticationFailureMessage_doesNotExposeOAuthProviderMessage() {
         val providerError = AuthError.OAuthError(
             provider = AuthMethod.GOOGLE,

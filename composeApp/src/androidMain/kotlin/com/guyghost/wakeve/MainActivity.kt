@@ -368,7 +368,15 @@ class MainActivity : ComponentActivity(), AuthCallbacks {
             Log.d("MainActivity", "Deep link received: ${redactDeepLinkForLog(uri.toString())}")
 
             // Handle Apple Sign-In callback specifically
-            if (uri.scheme == "wakeve" && uri.host == "apple-auth-callback") {
+            if (
+                isAppleOAuthCallbackDeepLink(
+                    scheme = uri.scheme,
+                    host = uri.host,
+                    encodedUserInfo = uri.encodedUserInfo,
+                    encodedFragment = uri.encodedFragment,
+                    port = uri.port
+                )
+            ) {
                 Log.d("MainActivity", "Apple Sign-In callback received: ${redactDeepLinkForLog(uri.toString())}")
                 handleAppleAuthCallback(uri)
             } else {
@@ -577,6 +585,20 @@ internal fun oauthUnavailableMessage(provider: OAuthProviderName): String {
 
 internal fun appleOAuthCallbackFailureMessage(providerError: String?): String {
     return "Connexion Apple annulée ou impossible."
+}
+
+internal fun isAppleOAuthCallbackDeepLink(
+    scheme: String?,
+    host: String?,
+    encodedUserInfo: String?,
+    encodedFragment: String?,
+    port: Int
+): Boolean {
+    return scheme == "wakeve" &&
+        host == "apple-auth-callback" &&
+        encodedUserInfo == null &&
+        encodedFragment == null &&
+        port == -1
 }
 
 internal fun authenticationFailureMessage(error: AuthError): String {
