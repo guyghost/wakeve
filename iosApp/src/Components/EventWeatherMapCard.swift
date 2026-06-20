@@ -71,23 +71,86 @@ final class EventWeatherViewModel: ObservableObject {
     }
 
     private func resolvePlace(for event: Event) async throws -> EventWeatherPlace? {
+        if let potentialLocationPlace = try await resolvePotentialLocationPlace(for: event) {
+            return potentialLocationPlace
+        }
+
+        return try await resolveScenarioPlace(for: event)
+    }
+
+    private func resolvePotentialLocationPlace(for event: Event) async throws -> EventWeatherPlace? {
         let locations = RepositoryProvider.shared.database.potentialLocationQueries
             .selectByEventId(eventId: event.id)
             .executeAsList()
 
-        guard let location = locations.first else {
+        for location in locations {
+            if let coordinates = location.coordinates.flatMap(Self.parseCoordinates) {
+                return EventWeatherPlace(
+                    name: location.name,
+                    coordinate: coordinates
+                )
+            }
+
+            if let place = try await searchPlace(
+                name: location.name,
+                address: location.address
+            ) {
+                return place
+            }
+        }
+
+        return nil
+    }
+
+    private func resolveScenarioPlace(for event: Event) async throws -> EventWeatherPlace? {
+        let scenarioRepository = ScenarioRepository(db: RepositoryProvider.shared.database)
+        let scenarios = scenarioPlaceCandidates(
+            selected: scenarioRepository.getSelectedScenario(eventId: event.id),
+            selectedFallbacks: scenarioRepository.getScenariosByEventIdAndStatus(eventId: event.id, status: ScenarioStatus.selected),
+            allScenarios: scenarioRepository.getScenariosByEventId(eventId: event.id)
+        )
+
+        for scenario in scenarios {
+            if let place = try await searchPlace(name: scenario.location, address: nil) {
+                return place
+            }
+        }
+
+        return nil
+    }
+
+    private func scenarioPlaceCandidates(
+        selected: Scenario_?,
+        selectedFallbacks: [Scenario_],
+        allScenarios: [Scenario_]
+    ) -> [Scenario_] {
+        var seenIds = Set<String>()
+        var candidates: [Scenario_] = []
+
+        for scenario in ([selected].compactMap { $0 } + selectedFallbacks + allScenarios) {
+            let location = scenario.location.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !location.isEmpty, !seenIds.contains(scenario.id) else {
+                continue
+            }
+
+            seenIds.insert(scenario.id)
+            candidates.append(scenario)
+        }
+
+        return candidates
+    }
+
+    private func searchPlace(name: String, address: String?) async throws -> EventWeatherPlace? {
+        let query = [name, address]
+            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+        guard !query.isEmpty else {
             return nil
         }
 
-        if let coordinates = location.coordinates.flatMap(Self.parseCoordinates) {
-            return EventWeatherPlace(
-                name: location.name,
-                coordinate: coordinates
-            )
-        }
-
         let request = MKLocalSearch.Request()
-        request.naturalLanguageQuery = [location.name, location.address].compactMap { $0 }.joined(separator: ", ")
+        request.naturalLanguageQuery = query
 
         let response = try await MKLocalSearch(request: request).start()
         guard let item = response.mapItems.first,
@@ -96,7 +159,7 @@ final class EventWeatherViewModel: ObservableObject {
         }
 
         return EventWeatherPlace(
-            name: item.name ?? location.name,
+            name: item.name ?? name,
             coordinate: coordinate
         )
     }
