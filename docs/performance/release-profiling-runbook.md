@@ -42,6 +42,13 @@ The helper records min, median, p95, max, and average for successful cold-start
 samples. When several iOS simulators are booted, `IOS_SIMULATOR` selects the
 preferred target before falling back to the first booted simulator.
 
+Android `--build-android` always attempts to build the Release APK before
+checking for a connected device. If no device or emulator is available, the
+report still records the local Release artifact and marks Android cold start as
+`SKIPPED`. The Gradle invocation disables configuration cache for this build so
+the `google-services` release task cannot turn a successful APK assembly into a
+configuration-cache storage failure.
+
 Builds are bounded so the helper can be used in release gates without hanging on
 slow or broken local toolchains:
 
