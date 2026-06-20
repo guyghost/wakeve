@@ -107,6 +107,7 @@ Instruments, unlock the device, trust this Mac, and enable Developer Mode in
 | TEAM_ID / APPLE_TEAM_ID environment value | \`${TEAM_ID_VALUE:-missing}\` |
 | Valid code signing identities | \`$valid_signing_identity_count\` |
 | Matching provisioning profiles | \`$(if [ -n "$matching_profiles" ]; then printf '%s' "present"; else printf '%s' "missing"; fi)\` |
+| Generated report can close OpenSpec task | \`no - preparation evidence only\` |
 
 ### Code Signing Identities
 
@@ -125,6 +126,10 @@ Development signing certificate in the login keychain, and ensure the Apple
 Developer account has a provisioning profile for \`$BUNDLE_ID\`.
 
 ## Required Closure Evidence
+
+Generated reports from this helper are never sufficient on their own. They only
+become closure evidence after the table below is filled from a supported
+physical device with Foundation Models available and reviewed.
 
 Record all fields below before checking off OpenSpec task \`6.6\`:
 

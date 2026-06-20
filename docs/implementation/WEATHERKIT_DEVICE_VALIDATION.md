@@ -44,6 +44,8 @@ The helper writes a report under `docs/weatherkit/` and records:
 
 The report is preparation evidence only. It must not be used to mark OpenSpec tasks `1.2` or `6.2` complete unless the required real-device WeatherKit fields are filled in.
 
+Every generated report explicitly records `Generated report can close OpenSpec tasks = no - preparation evidence only`. Closing `1.2` or `6.2` requires a reviewed signed-device or TestFlight-equivalent WeatherKit run, not just a fresh helper output.
+
 ## 2026-06-20 Simulator Regression Refresh
 
 Command:
