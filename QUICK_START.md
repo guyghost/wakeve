@@ -92,6 +92,12 @@ curl http://localhost:8080/health
 
 ## Android
 
+Backend target:
+
+- Default Android builds use `https://api.wakeve.app`.
+- For emulator-local backend development, add `server.url=http://10.0.2.2:8080` to `local.properties`.
+- For command-line overrides, pass `-Pwakeve.serverUrl=http://10.0.2.2:8080`.
+
 Build:
 
 ```bash
