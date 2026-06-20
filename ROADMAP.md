@@ -283,6 +283,12 @@ Preuves du 2026-06-13:
 - `./gradlew :shared:clean :shared:testWithCoverage :shared:jacocoCoverageVerification` passe; le rapport XML indique une couverture instructions globale de 33.32 % (`covered=76303`, `missed=152689`).
 - `./gradlew :shared:jvmTest --tests com.guyghost.wakeve.logistics.ActivityPlanningIntegrationTest --tests com.guyghost.wakeve.workflow.CompleteWorkflowE2ETest` passe apres realignement des tests legacy sur la moderation UGC et les guards de finalisation Phase 6.
 
+Preuves du 2026-06-20:
+
+- Les defaults Android release utilisent maintenant `https://api.wakeve.app` pour `BuildConfig.SERVER_URL`, FCM, auth et sync; le developpement local passe par `local.properties` (`server.url`) ou `-Pwakeve.serverUrl`.
+- `./scripts/test-critical-release-gates.sh` inclut `assert_no_android_release_local_backend_defaults` et echoue si `composeApp/src/androidMain` ou `shared/src/androidMain` reintroduisent `localhost`, `127.0.0.1` ou `10.0.2.2` comme backend par defaut.
+- Les docs API et la spec OpenAPI publient `https://api.wakeve.app` comme endpoint production, avec `http://localhost:8080` uniquement comme serveur de developpement local.
+
 #### 2.2 Observabilite et performance
 
 - [ ] Mesurer cold start iOS et Android.
