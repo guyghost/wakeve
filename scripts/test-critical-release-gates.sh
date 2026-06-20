@@ -32,6 +32,21 @@ assert_no_sensitive_server_logs() {
     echo "PASS: Server auth/notification/push logs avoid email, OTP, user IDs, event IDs, tokens, and notification payload values"
 }
 
+assert_no_android_release_local_backend_defaults() {
+    local source_dirs=(
+        "$PROJECT_DIR/composeApp/src/androidMain"
+        "$PROJECT_DIR/shared/src/androidMain"
+    )
+    local pattern='http://(localhost|127\.0\.0\.1|10\.0\.2\.2)|localhost:8080|127\.0\.0\.1:8080|10\.0\.2\.2:8080'
+
+    if grep -RInE "$pattern" "${source_dirs[@]}"; then
+        echo "FAIL: Android release source contains a local backend default; use BuildConfig/local.properties overrides for development" >&2
+        exit 1
+    fi
+
+    echo "PASS: Android release source has no localhost, loopback, or emulator backend defaults"
+}
+
 assert_ios_profile_legal_notice_links() {
     local profile="$PROJECT_DIR/iosApp/src/Views/Profile/ProfileTabView.swift"
     local english="$PROJECT_DIR/iosApp/src/Resources/en.lproj/Localizable.strings"
@@ -141,6 +156,7 @@ run openspec validate --all --strict
 run ./scripts/test-app-store-ugc-gates.sh
 
 assert_no_sensitive_server_logs
+assert_no_android_release_local_backend_defaults
 assert_ios_profile_legal_notice_links
 assert_wakeve_ai_device_profile_helper
 assert_weatherkit_device_validation_helper
