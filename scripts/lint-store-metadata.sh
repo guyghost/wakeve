@@ -3274,7 +3274,7 @@ validate_app_store_blocker_register() {
 	        "APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID='A1B2C3D4E5' ./scripts/lint-store-metadata.sh --ios-only --check-live-urls"
 	        "Current result on 2026-06-20: 17 live URL/AASA errors and 1 final-signoff warning"
 	        'api.wakeve.app/health` is reachable, but `wakeve.app` DNS/live web/AASA routes remain unreachable'
-	        "docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md"
+	        "docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-55-13Z.md"
 	        "/third-party-notices"
 	        "https://wakeve.app/third-party-notices"
         "App Store scope"
@@ -5654,7 +5654,7 @@ validate_app_store_live_url_aasa_evidence() {
         "scripts/app-store-local-web-route-check.sh"
         "A1B2C3D4E5.com.guyghost.wakeve"
         "Result on 2026-06-20: \`FAIL. 16 required live URL/AASA checks failed or could not be validated.\`"
-        "docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md"
+        "docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-55-13Z.md"
         "dig +short wakeve.app"
         "dig +short api.wakeve.app"
         "104.21.48.204"
