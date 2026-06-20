@@ -9,7 +9,7 @@ final class EventWeatherViewModel: ObservableObject {
 
     private let weatherProvider: EventWeatherProviding
 
-    init(weatherProvider: EventWeatherProviding = WeatherKitEventForecastProvider()) {
+    init(weatherProvider: EventWeatherProviding = CachedEventWeatherProvider(upstream: WeatherKitEventForecastProvider())) {
         self.weatherProvider = weatherProvider
     }
 

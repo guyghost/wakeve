@@ -19,7 +19,7 @@
 - [ ] 4.1 @codegen Add MapKit-based location search/resolution for event, scenario, and potential-location text.
 - [x] 4.2 @codegen Add WeatherKit provider integration using resolved coordinates and date ranges.
 - [x] 4.3 @codegen Add WeatherKit entitlement/configuration checks and map provider errors into shared availability states.
-- [ ] 4.4 @codegen Add request debouncing and cache reuse to avoid repeated provider calls on screen reload.
+- [x] 4.4 @codegen Add request debouncing and cache reuse to avoid repeated provider calls on screen reload.
 
 ## 5. iOS UI
 - [x] 5.1 @codegen Add an event weather card to iOS event detail for confirmed events.
@@ -37,5 +37,5 @@
 - 2.3 is covered by `EventWeatherProviderTests`, which exercises fakeable WeatherKit success, entitlement, outage, and unsupported-date mapping.
 - 2.4 is covered by named SwiftUI previews plus `EventWeatherMapCardContractTests` for loading, available, stale, pending, and unavailable states.
 - 4.1 is partially implemented for event potential locations; scenario text resolution remains pending.
-- 4.4 remains pending because the iOS WeatherKit provider still fetches directly instead of using shared cache/debounce orchestration.
+- 4.4 is covered by `CachedEventWeatherProvider`, which reuses fresh same-place/same-date results and coalesces concurrent duplicate requests before hitting WeatherKit.
 - 6.2 is partially covered by shared JVM tests, Android compilation, iOS simulator build, and targeted iOS XCTest; physical-device WeatherKit validation remains pending.

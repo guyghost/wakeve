@@ -33,6 +33,72 @@ protocol EventWeatherProviding {
     ) async -> EventWeatherProviderResult
 }
 
+struct EventWeatherRequestKey: Hashable {
+    let latitudeE5: Int
+    let longitudeE5: Int
+    let targetDay: String
+
+    init(place: EventWeatherPlace, targetDate: Date, calendar: Calendar = .current) {
+        self.latitudeE5 = Int((place.coordinate.latitude * 100_000).rounded())
+        self.longitudeE5 = Int((place.coordinate.longitude * 100_000).rounded())
+        let components = calendar.dateComponents([.year, .month, .day], from: targetDate)
+        self.targetDay = [
+            components.year.map(String.init) ?? "0000",
+            String(format: "%02d", components.month ?? 0),
+            String(format: "%02d", components.day ?? 0)
+        ].joined(separator: "-")
+    }
+}
+
+actor CachedEventWeatherProvider: EventWeatherProviding {
+    private struct Entry {
+        let result: EventWeatherProviderResult
+        let expiresAt: Date
+    }
+
+    private let upstream: EventWeatherProviding
+    private let ttlSeconds: TimeInterval
+    private let now: () -> Date
+    private var cache: [EventWeatherRequestKey: Entry] = [:]
+    private var inFlight: [EventWeatherRequestKey: Task<EventWeatherProviderResult, Never>] = [:]
+
+    init(
+        upstream: EventWeatherProviding,
+        ttlSeconds: TimeInterval = 600,
+        now: @escaping () -> Date = Date.init
+    ) {
+        self.upstream = upstream
+        self.ttlSeconds = ttlSeconds
+        self.now = now
+    }
+
+    func forecast(
+        for place: EventWeatherPlace,
+        targetDate: Date,
+        fetchedAt: Date
+    ) async -> EventWeatherProviderResult {
+        let key = EventWeatherRequestKey(place: place, targetDate: targetDate)
+        let requestTime = now()
+
+        if let cached = cache[key], cached.expiresAt > requestTime {
+            return cached.result
+        }
+        if let task = inFlight[key] {
+            return await task.value
+        }
+
+        let task = Task {
+            await upstream.forecast(for: place, targetDate: targetDate, fetchedAt: fetchedAt)
+        }
+        inFlight[key] = task
+
+        let result = await task.value
+        cache[key] = Entry(result: result, expiresAt: requestTime.addingTimeInterval(ttlSeconds))
+        inFlight[key] = nil
+        return result
+    }
+}
+
 enum EventWeatherProviderMapper {
     static func mapSuccess(
         days: [EventWeatherForecastDay],

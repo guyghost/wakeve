@@ -124,11 +124,100 @@ final class EventWeatherProviderTests: XCTestCase {
         )
     }
 
+    func testCachedProviderReusesFreshResultForSamePlaceAndDate() async {
+        var now = makeDate("2026-07-15T08:00:00Z")
+        let upstream = StubEventWeatherProvider()
+        let provider = CachedEventWeatherProvider(
+            upstream: upstream,
+            ttlSeconds: 600,
+            now: { now }
+        )
+        let place = makePlace()
+        let targetDate = makeDate("2026-07-18T10:00:00Z")
+
+        _ = await provider.forecast(for: place, targetDate: targetDate, fetchedAt: now)
+        _ = await provider.forecast(for: place, targetDate: targetDate, fetchedAt: now.addingTimeInterval(5))
+
+        let callCountBeforeExpiry = await upstream.callCount
+        XCTAssertEqual(callCountBeforeExpiry, 1)
+
+        now = now.addingTimeInterval(601)
+        _ = await provider.forecast(for: place, targetDate: targetDate, fetchedAt: now)
+
+        let callCountAfterExpiry = await upstream.callCount
+        XCTAssertEqual(callCountAfterExpiry, 2)
+    }
+
+    func testCachedProviderCoalescesConcurrentRequestsForSamePlaceAndDate() async {
+        let upstream = StubEventWeatherProvider(delayNanoseconds: 50_000_000)
+        let provider = CachedEventWeatherProvider(
+            upstream: upstream,
+            ttlSeconds: 600,
+            now: { self.makeDate("2026-07-15T08:00:00Z") }
+        )
+        let place = makePlace()
+        let targetDate = makeDate("2026-07-18T10:00:00Z")
+        let fetchedAt = makeDate("2026-07-15T08:00:00Z")
+
+        async let first = provider.forecast(for: place, targetDate: targetDate, fetchedAt: fetchedAt)
+        async let second = provider.forecast(for: place, targetDate: targetDate, fetchedAt: fetchedAt)
+        _ = await [first, second]
+
+        let callCount = await upstream.callCount
+        XCTAssertEqual(callCount, 1)
+    }
+
     private func fakeError(_ message: String) -> NSError {
         NSError(domain: "WeatherKit", code: 1, userInfo: [NSLocalizedDescriptionKey: message])
     }
 
+    private func makePlace() -> EventWeatherPlace {
+        EventWeatherPlace(
+            name: "Biarritz",
+            coordinate: CLLocationCoordinate2D(latitude: 43.4832, longitude: -1.5586)
+        )
+    }
+
     private func makeDate(_ value: String) -> Date {
         ISO8601DateFormatter().date(from: value)!
+    }
+
+    private actor StubEventWeatherProvider: EventWeatherProviding {
+        private let delayNanoseconds: UInt64
+        private var calls = 0
+
+        init(delayNanoseconds: UInt64 = 0) {
+            self.delayNanoseconds = delayNanoseconds
+        }
+
+        var callCount: Int {
+            calls
+        }
+
+        func forecast(
+            for place: EventWeatherPlace,
+            targetDate: Date,
+            fetchedAt: Date
+        ) async -> EventWeatherProviderResult {
+            calls += 1
+
+            if delayNanoseconds > 0 {
+                try? await Task.sleep(nanoseconds: delayNanoseconds)
+            }
+
+            return .available(
+                EventWeatherSummary(
+                    placeName: place.name,
+                    coordinate: place.coordinate,
+                    condition: "Sunny",
+                    symbolName: "sun.max",
+                    lowTemperature: 20,
+                    highTemperature: 28,
+                    precipitationChance: 0.1,
+                    windSpeedKph: 12,
+                    fetchedAt: fetchedAt
+                )
+            )
+        }
     }
 }
