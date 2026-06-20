@@ -142,8 +142,8 @@ Wakeve is not ready for App Store submission yet. The iOS app compiles in Debug 
   - Result: iPad Air 13-inch screenshot captured at 2048 x 2732 and copied to `fr-FR`.
 - `find composeApp/metadata/ios composeApp/screenshots/ios -type f -name '*.png'` with `sips -g pixelWidth -g pixelHeight`
   - Result: all iOS screenshots are App Store accepted sizes: iPhone screenshots are 1320 x 2868, and iPad screenshots are 2048 x 2732.
-- `curl -I --max-time 10 https://wakeve.app/privacy`, `https://wakeve.app/terms`, `https://wakeve.app/support`, and `https://api.wakeve.app/health`
-  - Result: DNS resolution failed for `wakeve.app` and `api.wakeve.app`; public legal/support pages and backend health are not live from this environment.
+- `dig +short wakeve.app`, `dig +short api.wakeve.app`, `curl -I --max-time 10 https://wakeve.app/privacy`, `curl -I --max-time 10 https://api.wakeve.app/health`, and `curl --max-time 10 -i https://api.wakeve.app/health`
+  - Result: `wakeve.app` still has no DNS answer and `https://wakeve.app/privacy` fails with `Could not resolve host: wakeve.app`; `api.wakeve.app` resolves to Cloudflare (`104.21.48.204`, `172.67.156.46`), `HEAD /health` returns HTTP `405`, and `GET /health` returns HTTP `200 OK`. Public legal/support/AASA pages remain not live from this environment, while backend health is reachable and must stay review-accessible.
 
 ## Fixed during this pass
 
