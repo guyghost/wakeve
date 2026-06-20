@@ -292,6 +292,7 @@ Preuves du 2026-06-20:
 - Passe Material/Android locale: la selection de lieu respecte une cible tactile de 48dp pour l'effacement, utilise `MaterialTheme.colorScheme.primary` au lieu d'une couleur codee en dur, les top app bars de notifications utilisent l'API Material3 actuelle, et les icones directionnelles Explore/Profile utilisent les variantes AutoMirrored.
 - Passe Compose hygiene locale: les `Divider` deprecies sont remplaces par `HorizontalDivider`, les icones directionnelles restantes utilisent `AutoMirrored`, et les menus exposes utilisent `menuAnchor(type = PrimaryNotEditable, enabled = ...)`.
 - Passe API Android locale: la configuration de couleur des Chrome Custom Tabs OAuth utilise `CustomTabColorSchemeParams` au lieu de l'appel `setToolbarColor` deprecie; le warning local restant concerne l'API Google Sign-In legacy et demande une migration auth separee.
+- Gate critique Android renforce: `./scripts/test-critical-release-gates.sh` bloque maintenant les regressions Compose hygiene (`Divider(`, `menuAnchor()` sans parametres et icones directionnelles sans `AutoMirrored`).
 
 #### 2.2 Observabilite et performance
 
