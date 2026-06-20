@@ -166,7 +166,7 @@ This refresh confirms the simulator-testable WakeveAI contracts, fallback genera
 
 ### 2026-06-21 Device Profile Refresh
 
-Device-profile preparation report: `docs/performance/wakeve-ai-device-profile-2026-06-20T22-44-14Z.md`.
+Device-profile preparation report: `docs/performance/wakeve-ai-device-profile-2026-06-20T23-08-57Z.md`.
 
 Current status remains `PHYSICAL_IOS_DEVICE_NOT_TRACE_READY`.
 
@@ -177,6 +177,7 @@ The refreshed helper output proves only the current local readiness state:
 - `TEAM_ID` / `APPLE_TEAM_ID` is missing from the shell environment.
 - `security find-identity -v -p codesigning` reports `0 valid identities found`.
 - No local provisioning profile matches bundle ID `com.guyghost.wakeve`.
+- The local capture is on Xcode 27.0 with iPhoneOS SDK 27.0.
 
 This report is preparation evidence only. It does not close OpenSpec task `6.6`; final closure still requires a supported physical device with Apple Intelligence enabled, Foundation Models `.available`, latency, cancellation, memory, Instruments trace, and production-log privacy evidence.
 

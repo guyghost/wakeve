@@ -17,6 +17,8 @@ sanitize_report() {
 
 device_list="$(xcrun devicectl list devices 2>&1 || true)"
 xctrace_devices="$(xcrun xctrace list devices 2>&1 || true)"
+xcode_version="$(xcodebuild -version 2>&1 || true)"
+iphoneos_sdk_version="$(xcodebuild -version -sdk iphoneos SDKVersion 2>&1 || true)"
 codesigning_identities="$(security find-identity -v -p codesigning 2>&1 || true)"
 valid_signing_identity_count="$(
     printf '%s\n' "$codesigning_identities" \
@@ -113,6 +115,13 @@ Instruments, unlock the device, trust this Mac, and enable Developer Mode in
 | Valid code signing identities | \`$valid_signing_identity_count\` |
 | Matching provisioning profiles | \`$(if [ -n "$matching_profiles" ]; then printf '%s' "present"; else printf '%s' "missing"; fi)\` |
 | Generated report can close OpenSpec task | \`no - preparation evidence only\` |
+
+## Toolchain Readiness
+
+| Field | Value |
+| --- | --- |
+| Xcode version | \`$(printf '%s' "${xcode_version:-missing}" | head -n 1)\` |
+| iPhoneOS SDK version | \`${iphoneos_sdk_version:-missing}\` |
 
 ### Code Signing Identities
 

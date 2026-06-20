@@ -301,7 +301,7 @@ Preuves du 2026-06-20:
 
 Preuves du 2026-06-21:
 
-- Refresh device WeatherKit/WakeveAI: `docs/weatherkit/weatherkit-device-validation-2026-06-20T22-44-14Z.md` et `docs/performance/wakeve-ai-device-profile-2026-06-20T22-44-14Z.md` confirment que l'iPhone physique est visible dans CoreDevice mais reste offline dans Instruments; `TEAM_ID`/`APPLE_TEAM_ID`, identite de signature valide et provisioning profile `com.guyghost.wakeve` restent manquants. Les items WeatherKit `1.2`/`6.2` et WakeveAI `6.6` restent ouverts.
+- Refresh device WeatherKit/WakeveAI: `docs/weatherkit/weatherkit-device-validation-2026-06-20T23-08-57Z.md` et `docs/performance/wakeve-ai-device-profile-2026-06-20T23-08-57Z.md` confirment que l'iPhone physique est visible dans CoreDevice mais reste offline dans Instruments; `TEAM_ID`/`APPLE_TEAM_ID`, identite de signature valide et provisioning profile `com.guyghost.wakeve` restent manquants. Les rapports capturent aussi Xcode 27.0 et iPhoneOS SDK 27.0 pour éviter une preuve device sans baseline toolchain. Les items WeatherKit `1.2`/`6.2` et WakeveAI `6.6` restent ouverts.
 
 ### P2 - Durcir KMP, backend et web apres release gate
 
