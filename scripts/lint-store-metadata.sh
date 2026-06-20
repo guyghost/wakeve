@@ -1611,7 +1611,7 @@ validate_app_store_readiness_report() {
     local required_status_phrases=(
         "Wakeve is not ready for App Store submission yet."
         "A signed archive/upload has not been produced"
-        "## Latest 2026-06-20 Refresh"
+        "## Latest 2026-06-21 Refresh"
         'api.wakeve.app` now resolves publicly and the live health URL is reachable'
         '`wakeve.app` itself still has no public DNS answer'
         "Result: 3106 checks passed, 0 errors, 1 warning"
@@ -3272,9 +3272,9 @@ validate_app_store_blocker_register() {
 	        "local Fastlane App Store preflight passes"
 	        "Live deployment baseline"
 	        "APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID='A1B2C3D4E5' ./scripts/lint-store-metadata.sh --ios-only --check-live-urls"
-	        "Current result on 2026-06-20: 17 live URL/AASA errors and 1 final-signoff warning"
+	        "Current result on 2026-06-21 local time: 17 live URL/AASA errors and 1 final-signoff warning remain expected"
 	        'api.wakeve.app/health` is reachable, but `wakeve.app` DNS/live web/AASA routes remain unreachable'
-	        "docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-55-13Z.md"
+	        "docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-02-42Z.md"
 	        "/third-party-notices"
 	        "https://wakeve.app/third-party-notices"
         "App Store scope"
@@ -5653,8 +5653,8 @@ validate_app_store_live_url_aasa_evidence() {
         "export const ssr = true"
         "scripts/app-store-local-web-route-check.sh"
         "A1B2C3D4E5.com.guyghost.wakeve"
-        "Result on 2026-06-20: \`FAIL. 16 required live URL/AASA checks failed or could not be validated.\`"
-        "docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-55-13Z.md"
+        "Result on 2026-06-21 local time, capture timestamp 2026-06-20T22:02:42Z: \`FAIL. 16 required live URL/AASA checks failed or could not be validated.\`"
+        "docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-02-42Z.md"
         "dig +short wakeve.app"
         "dig +short api.wakeve.app"
         "104.21.48.204"

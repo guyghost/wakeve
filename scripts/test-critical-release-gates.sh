@@ -468,7 +468,7 @@ assert_ios_release_screen_evidence_integrity() {
 
 assert_live_url_aasa_blocker_evidence() {
     local evidence="$PROJECT_DIR/docs/APP_STORE_LIVE_URL_AASA_EVIDENCE.md"
-    local capture="$PROJECT_DIR/docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-55-13Z.md"
+    local capture="$PROJECT_DIR/docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-02-42Z.md"
     local blocker_register="$PROJECT_DIR/docs/APP_STORE_BLOCKER_REGISTER.md"
 
     if ! grep -Fxq 'APP_STORE_LIVE_URL_AASA_EVIDENCE_COMPLETE=false' "$evidence"; then
@@ -476,7 +476,7 @@ assert_live_url_aasa_blocker_evidence() {
         exit 1
     fi
 
-    if ! grep -Fq 'docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-55-13Z.md' "$evidence"; then
+    if ! grep -Fq 'docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-02-42Z.md' "$evidence"; then
         echo "FAIL: live URL/AASA evidence must reference the latest AS-14 capture report" >&2
         exit 1
     fi
@@ -502,10 +502,10 @@ assert_live_url_aasa_blocker_evidence() {
     done
 
     local blocker_register_patterns=(
-        'Date: 2026-06-20'
-        'Current result on 2026-06-20: 17 live URL/AASA errors and 1 final-signoff warning.'
+        'Date: 2026-06-21'
+        'Current result on 2026-06-21 local time: 17 live URL/AASA errors and 1 final-signoff warning remain expected'
         'api.wakeve.app/health` is reachable, but `wakeve.app` DNS/live web/AASA routes remain unreachable'
-        'docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-55-13Z.md'
+        'docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-02-42Z.md'
     )
 
     for pattern in "${blocker_register_patterns[@]}"; do
