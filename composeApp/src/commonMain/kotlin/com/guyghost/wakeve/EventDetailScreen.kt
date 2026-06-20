@@ -65,6 +65,7 @@ import com.guyghost.wakeve.ui.event.EventAttendanceSummary
 import com.guyghost.wakeve.ui.event.EventBudgetPlanningSummary
 import com.guyghost.wakeve.ui.event.EventDayOfSummary
 import com.guyghost.wakeve.ui.event.EventDetailUiState
+import com.guyghost.wakeve.ui.event.EventDestinationSummary
 import com.guyghost.wakeve.ui.event.EventNotificationSummary
 import com.guyghost.wakeve.ui.event.EventProgramPlanningSummary
 import com.guyghost.wakeve.ui.event.EventReorganizationSummary
@@ -347,6 +348,15 @@ fun EventDetailContent(
                     }
                 }
 
+                state.destinationSummary?.let { summary ->
+                    item {
+                        EventDestinationSummaryCard(
+                            summary = summary,
+                            onOpenScenarios = { onNavigateTo("event/${event.id}/scenarios") }
+                        )
+                    }
+                }
+
                 state.notificationSummary?.let { summary ->
                     item {
                         EventNotificationSummaryCard(summary = summary)
@@ -505,6 +515,60 @@ fun EventDetailContent(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventDestinationSummaryCard(
+    summary: EventDestinationSummary,
+    onOpenScenarios: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.statusLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = summary.primaryLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.detailsLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            summary.options.forEach { option ->
+                Text(
+                    text = "${option.typeLabel} - ${option.title}: ${option.body}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = summary.nextActionLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            if (summary.canOpenScenarios) {
+                Button(
+                    onClick = onOpenScenarios,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = WakeveSize.minTouchTarget)
+                ) {
+                    Text("Voir les scenarios")
                 }
             }
         }

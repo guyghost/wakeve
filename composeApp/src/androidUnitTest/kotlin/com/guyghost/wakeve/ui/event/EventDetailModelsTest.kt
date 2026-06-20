@@ -432,6 +432,93 @@ class EventDetailModelsTest {
     }
 
     @Test
+    fun destinationSummaryAnswersWhereWeGoWithSingleConfirmedLocation() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.CONFIRMED),
+            participantAccessStates = listOf(ParticipantAccessState.organizer("organizer")),
+            potentialLocations = listOf(
+                potentialLocation(
+                    eventId = eventId,
+                    name = "Gare de Lyon",
+                    address = "Place Louis-Armand",
+                    locationType = LocationType.SPECIFIC_VENUE
+                ),
+                potentialLocation(
+                    eventId = "other-event",
+                    name = "Mauvais lieu",
+                    address = "Ne doit pas apparaitre"
+                )
+            )
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Ou allons-nous ?", uiState.destinationSummary?.title)
+        assertEquals("Lieu principal", uiState.destinationSummary?.statusLabel)
+        assertEquals("Gare de Lyon (Place Louis-Armand)", uiState.destinationSummary?.primaryLabel)
+        assertEquals(
+            "Ce lieu peut servir de base pour transport, budget et programme.",
+            uiState.destinationSummary?.detailsLabel
+        )
+        assertEquals(
+            "Gardez ce lieu visible dans les rappels et le programme.",
+            uiState.destinationSummary?.nextActionLabel
+        )
+        assertTrue(uiState.destinationSummary?.canOpenScenarios == true)
+        assertEquals("Lieu precis", uiState.destinationSummary?.options?.single()?.typeLabel)
+    }
+
+    @Test
+    fun destinationSummaryShowsMissingDestinationBeforeLocationsExist() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.DRAFT)
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Destination manquante", uiState.destinationSummary?.statusLabel)
+        assertEquals("Aucun lieu propose", uiState.destinationSummary?.primaryLabel)
+        assertEquals(
+            "Wakeve ne peut pas encore dire ou le groupe se retrouve.",
+            uiState.destinationSummary?.detailsLabel
+        )
+        assertEquals(
+            "Ajoutez au moins un lieu avant de lancer le sondage.",
+            uiState.destinationSummary?.nextActionLabel
+        )
+        assertFalse(uiState.destinationSummary?.canOpenScenarios ?: true)
+        assertEquals(emptyList(), uiState.destinationSummary?.options)
+    }
+
+    @Test
+    fun destinationSummaryComparesMultipleLocationsDuringComparingStatus() {
+        val summary = event(status = EventStatus.COMPARING).toDestinationSummary(
+            potentialLocations = listOf(
+                potentialLocation(
+                    eventId = eventId,
+                    name = "Marseille",
+                    locationType = LocationType.CITY
+                ),
+                potentialLocation(
+                    eventId = eventId,
+                    name = "Provence",
+                    locationType = LocationType.REGION
+                ),
+                potentialLocation(
+                    eventId = eventId,
+                    name = "Visio",
+                    locationType = LocationType.ONLINE
+                )
+            ),
+            canOpenScenarios = true,
+            maxOptions = 2
+        )
+
+        assertEquals("Options a comparer", summary.statusLabel)
+        assertEquals("3 lieux proposes", summary.primaryLabel)
+        assertEquals("2 options visibles sur 3; ouvrez les scenarios pour trancher.", summary.detailsLabel)
+        assertEquals("Choisissez la destination qui minimise les contraintes du groupe.", summary.nextActionLabel)
+        assertEquals(listOf("Ville", "Region"), summary.options.map { it.typeLabel })
+        assertEquals(listOf("Marseille", "Provence"), summary.options.map { it.title })
+    }
+
+    @Test
     fun notificationSummaryRecommendsVoteRemindersDuringPolling() {
         val uiState = EventManagementContract.State(
             selectedEvent = event(status = EventStatus.POLLING),
@@ -877,13 +964,14 @@ class EventDetailModelsTest {
     private fun potentialLocation(
         eventId: String,
         name: String,
-        address: String? = null
+        address: String? = null,
+        locationType: LocationType = LocationType.SPECIFIC_VENUE
     ): PotentialLocation =
         PotentialLocation(
             id = "location-$name",
             eventId = eventId,
             name = name,
-            locationType = LocationType.SPECIFIC_VENUE,
+            locationType = locationType,
             address = address,
             createdAt = "2026-06-01T08:00:00Z"
         )

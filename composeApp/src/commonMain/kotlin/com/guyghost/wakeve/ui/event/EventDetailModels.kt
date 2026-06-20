@@ -7,6 +7,7 @@ import com.guyghost.wakeve.models.Album
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
+import com.guyghost.wakeve.models.LocationType
 import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.notification.NotificationPriority
@@ -34,6 +35,7 @@ data class EventDetailUiState(
     val showOrganizationTools: Boolean,
     val scheduleSummary: EventScheduleSummary?,
     val attendanceSummary: EventAttendanceSummary?,
+    val destinationSummary: EventDestinationSummary?,
     val notificationSummary: EventNotificationSummary?,
     val programSummary: EventProgramPlanningSummary?,
     val budgetSummary: EventBudgetPlanningSummary?,
@@ -41,6 +43,22 @@ data class EventDetailUiState(
     val postEventSummary: PostEventControlSummary?,
     val settlementSummary: EventSettlementSummary?,
     val rsvp: EventRsvpUiState?
+)
+
+data class EventDestinationSummary(
+    val title: String,
+    val statusLabel: String,
+    val primaryLabel: String,
+    val detailsLabel: String,
+    val nextActionLabel: String,
+    val canOpenScenarios: Boolean,
+    val options: List<EventDestinationOption>
+)
+
+data class EventDestinationOption(
+    val title: String,
+    val body: String,
+    val typeLabel: String
 )
 
 data class EventSettlementSummary(
@@ -182,6 +200,11 @@ fun EventManagementContract.State.toEventDetailUiState(
             status in listOf(EventStatus.ORGANIZING, EventStatus.FINALIZED),
         scheduleSummary = event?.toScheduleSummary(),
         attendanceSummary = event?.toAttendanceSummary(participantAccessStates),
+        destinationSummary = event?.toDestinationSummary(
+            potentialLocations = eventPotentialLocations,
+            canOpenScenarios = canAccessOrganizationDetails &&
+                status in listOf(EventStatus.COMPARING, EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED)
+        ),
         notificationSummary = event?.toNotificationSummary(participantAccessStates),
         programSummary = event?.toProgramPlanningSummary(
             canOpenProgram = canAccessOrganizationDetails &&
@@ -210,6 +233,89 @@ fun EventManagementContract.State.toEventDetailUiState(
         }
     )
 }
+
+internal fun Event.toDestinationSummary(
+    potentialLocations: List<PotentialLocation>,
+    canOpenScenarios: Boolean,
+    maxOptions: Int = 3
+): EventDestinationSummary {
+    val locations = potentialLocations
+        .filter { it.eventId == id && it.name.isNotBlank() }
+        .sortedWith(compareBy<PotentialLocation> { it.createdAt }.thenBy { it.name })
+    val options = locations.take(maxOptions).map { location ->
+        EventDestinationOption(
+            title = location.name.trim(),
+            body = location.address?.trim()?.takeIf { it.isNotEmpty() } ?: "Adresse a preciser",
+            typeLabel = location.locationType.destinationTypeLabel()
+        )
+    }
+
+    return EventDestinationSummary(
+        title = "Ou allons-nous ?",
+        statusLabel = eventDestinationStatusLabel(status, locations.size),
+        primaryLabel = eventDestinationPrimaryLabel(locations),
+        detailsLabel = eventDestinationDetailsLabel(locations.size, options.size),
+        nextActionLabel = eventDestinationNextActionLabel(status, locations.size),
+        canOpenScenarios = canOpenScenarios,
+        options = options
+    )
+}
+
+internal fun eventDestinationStatusLabel(status: EventStatus, locationCount: Int): String = when {
+    locationCount == 0 -> "Destination manquante"
+    locationCount == 1 && status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED) ->
+        "Lieu principal"
+    locationCount == 1 -> "Option proposee"
+    status == EventStatus.COMPARING -> "Options a comparer"
+    status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED) ->
+        "Destination a clarifier"
+    else -> "Options a preparer"
+}
+
+private fun eventDestinationPrimaryLabel(locations: List<PotentialLocation>): String =
+    when (locations.size) {
+        0 -> "Aucun lieu propose"
+        1 -> locations.first().destinationDisplayLabel()
+        else -> "${locations.size} lieux proposes"
+    }
+
+private fun eventDestinationDetailsLabel(locationCount: Int, displayedCount: Int): String =
+    when {
+        locationCount == 0 -> "Wakeve ne peut pas encore dire ou le groupe se retrouve."
+        locationCount == 1 -> "Ce lieu peut servir de base pour transport, budget et programme."
+        locationCount > displayedCount -> "$displayedCount options visibles sur $locationCount; ouvrez les scenarios pour trancher."
+        else -> "Comparez les options avant de figer transport, budget et programme."
+    }
+
+private fun eventDestinationNextActionLabel(status: EventStatus, locationCount: Int): String =
+    when {
+        locationCount == 0 && status == EventStatus.DRAFT ->
+            "Ajoutez au moins un lieu avant de lancer le sondage."
+        locationCount == 0 ->
+            "Ajoutez une destination pour que le groupe sache ou aller."
+        status == EventStatus.COMPARING ->
+            "Choisissez la destination qui minimise les contraintes du groupe."
+        status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED) && locationCount > 1 ->
+            "Clarifiez le lieu retenu pour eviter les plans contradictoires."
+        status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED) ->
+            "Gardez ce lieu visible dans les rappels et le programme."
+        else ->
+            "Transformez les lieux proposes en scenarios comparables."
+    }
+
+private fun PotentialLocation.destinationDisplayLabel(): String {
+    val name = name.trim()
+    val address = address?.trim()?.takeIf { it.isNotEmpty() }
+    return if (address == null) name else "$name ($address)"
+}
+
+private fun LocationType.destinationTypeLabel(): String =
+    when (this) {
+        LocationType.CITY -> "Ville"
+        LocationType.REGION -> "Region"
+        LocationType.SPECIFIC_VENUE -> "Lieu precis"
+        LocationType.ONLINE -> "En ligne"
+    }
 
 internal fun Event.toSettlementSummary(
     settlements: List<SettlementRecord>,
