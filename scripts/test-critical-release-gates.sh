@@ -198,6 +198,7 @@ assert_android_resource_defaults() {
 
 assert_release_performance_harness() {
     local harness="$PROJECT_DIR/scripts/profile-release-performance.sh"
+    local runbook="$PROJECT_DIR/docs/performance/release-profiling-runbook.md"
 
     if ! grep -Fq 'OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_DIR/docs/performance}"' "$harness"; then
         echo "FAIL: release performance harness must respect OUTPUT_DIR overrides for temporary captures" >&2
@@ -216,6 +217,16 @@ assert_release_performance_harness() {
 
     if ! grep -Fq 'append_release_build_result "iOS"' "$harness"; then
         echo "FAIL: release performance harness must record iOS Release simulator artifacts when --build-ios is used" >&2
+        exit 1
+    fi
+
+    if ! grep -Fq './scripts/prepare-android-event-workspace-device-audit.sh' "$runbook"; then
+        echo "FAIL: release profiling runbook must reference the Android event-workspace device audit helper" >&2
+        exit 1
+    fi
+
+    if ! grep -Fq 'creation -> invitation -> vote -> date confirmed -> day J' "$runbook"; then
+        echo "FAIL: release profiling runbook must name the Android event-workspace audit flow" >&2
         exit 1
     fi
 
