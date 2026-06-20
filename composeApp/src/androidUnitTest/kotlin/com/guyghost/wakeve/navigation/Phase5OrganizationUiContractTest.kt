@@ -7,11 +7,17 @@ import kotlin.test.assertTrue
 
 class Phase5OrganizationUiContractTest {
     @Test
-    fun screenDefinesEventScopedRoutesForMeetingsBudgetPaymentAndTricount() {
+    fun screenDefinesEventScopedRoutesForProgramMeetingsBudgetPaymentAndTricount() {
         val source = projectFile(
             "composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/Screen.kt"
         ).readText()
 
+        assertTrue(
+            source.contains("ActivityPlanning") &&
+                source.contains("""Screen("event/{eventId}/activities")""") &&
+                source.contains("fun createRoute(eventId: String) = \"event/\${routePathSegment(eventId)}/activities\""),
+            "Android navigation must expose an event-scoped activity/program route."
+        )
         assertTrue(
             source.contains("MeetingList") &&
                 source.contains("""Screen("event/{eventId}/meetings")""") &&
@@ -49,6 +55,11 @@ class Phase5OrganizationUiContractTest {
         assertTrue(
             organizationSources.contains("EventStatus.ORGANIZING"),
             "The Android organization dashboard/detail surface must explicitly key Phase 5 entry points off ORGANIZING workflow state."
+        )
+        assertTrue(
+            containsAny(organizationSources, "Programme", "ActivityPlanning", "activities") &&
+                containsAny(organizationSources, "event/\${event.id}/activities", "/activities"),
+            "ORGANIZING dashboard/detail must expose a program/activity entry point."
         )
         assertTrue(
             containsAny(organizationSources, "Meeting", "Meetings", "Reunion", "Reunions") &&

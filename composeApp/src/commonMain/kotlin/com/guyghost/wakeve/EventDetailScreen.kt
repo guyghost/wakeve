@@ -387,6 +387,7 @@ fun EventDetailContent(
                             event = event,
                             readOnly = event.status == EventStatus.FINALIZED,
                             onOpenMeetings = { onNavigateTo("event/${event.id}/meetings") },
+                            onOpenActivities = { onNavigateTo("event/${event.id}/activities") },
                             onOpenBudget = { onNavigateTo("event/${event.id}/budget") },
                             onOpenPayment = { onNavigateTo("event/${event.id}/payment") },
                             onOpenTricount = { onNavigateTo("event/${event.id}/tricount") }
@@ -694,6 +695,7 @@ private fun Phase5OrganizationEntryCard(
     event: Event,
     readOnly: Boolean,
     onOpenMeetings: () -> Unit,
+    onOpenActivities: () -> Unit,
     onOpenBudget: () -> Unit,
     onOpenPayment: () -> Unit,
     onOpenTricount: () -> Unit,
@@ -710,13 +712,16 @@ private fun Phase5OrganizationEntryCard(
             )
             Text(
                 text = if (readOnly) {
-                    "Mode consultation pour ${event.title} : réunions, budget, cagnotte et Tricount restent consultables. Aucune modification n'est possible."
+                    "Mode consultation pour ${event.title} : programme, réunions, budget, cagnotte et Tricount restent consultables. Aucune modification n'est possible."
                 } else {
-                    "Organiser les réunions, le budget, la cagnotte et Tricount pour ${event.title}."
+                    "Organiser le programme, les réunions, le budget, la cagnotte et Tricount pour ${event.title}."
                 },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Button(onClick = onOpenActivities, modifier = Modifier.fillMaxWidth()) {
+                Text("Programme")
+            }
             Button(onClick = onOpenMeetings, modifier = Modifier.fillMaxWidth()) {
                 Text("Réunions")
             }
