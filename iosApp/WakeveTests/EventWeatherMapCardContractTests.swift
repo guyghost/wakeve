@@ -85,6 +85,28 @@ final class EventWeatherMapCardContractTests: XCTestCase {
         XCTAssertTrue(validation.contains("Dark/light mode"))
     }
 
+    func testWeatherPrivacyReviewGuardsProviderDataAndAccessControl() throws {
+        let source = try readProjectFile("iosApp/src/Components/EventWeatherMapCard.swift")
+        let provider = try readProjectFile("iosApp/src/Services/EventWeatherProvider.swift")
+        let detail = try readProjectFile("iosApp/src/Views/App/ContentView.swift")
+        let scenarioView = try readProjectFile("iosApp/src/Views/Events/ScenarioOrganizationView.swift")
+        let review = try readProjectFile("docs/reviews/event-weather-privacy-review.md")
+
+        XCTAssertTrue(provider.contains("CLLocation(latitude: place.coordinate.latitude, longitude: place.coordinate.longitude)"))
+        XCTAssertTrue(provider.contains("weatherService.weather(for: location)"))
+        XCTAssertFalse(provider.contains("participantId"))
+        XCTAssertFalse(provider.contains("participants"))
+        XCTAssertFalse(provider.contains("votes"))
+        XCTAssertTrue(source.contains("func hide()"))
+        XCTAssertTrue(detail.contains("if canShowWeatherContext"))
+        XCTAssertTrue(detail.contains("guard canShowWeatherContext else"))
+        XCTAssertTrue(detail.contains("canAccessOrganizationDetails"))
+        XCTAssertTrue(scenarioView.contains("if isLocked"))
+        XCTAssertTrue(scenarioView.contains("ScenarioWeatherComparisonContext(scenario: item.scenario)"))
+        XCTAssertTrue(review.contains("No blocking local privacy, access-control, or fallback issues remain"))
+        XCTAssertTrue(review.contains("Physical-device WeatherKit validation remains required"))
+    }
+
     private func readProjectFile(_ relativePath: String) throws -> String {
         let fileURL = URL(fileURLWithPath: #filePath)
         let runtimeURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)

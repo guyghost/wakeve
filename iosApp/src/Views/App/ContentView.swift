@@ -1831,7 +1831,9 @@ struct EventDetailView: View {
                         invitationLandingCard
                     }
                     metadataOverview
-                    EventWeatherMapCard(state: eventWeatherViewModel.state)
+                    if canShowWeatherContext {
+                        EventWeatherMapCard(state: eventWeatherViewModel.state)
+                    }
                     anticipationPanel
                     eventAISuggestionPanel
                     urgentNextAction
@@ -1864,7 +1866,11 @@ struct EventDetailView: View {
         .sheet(item: $moderationTarget) { target in
             ModerationActionSheet(target: target)
         }
-        .task(id: event.id) {
+        .task(id: "\(event.id)-\(canShowWeatherContext)") {
+            guard canShowWeatherContext else {
+                eventWeatherViewModel.hide()
+                return
+            }
             await eventWeatherViewModel.load(event: event)
         }
         .onAppear {
@@ -2886,6 +2892,10 @@ struct EventDetailView: View {
         default:
             return false
         }
+    }
+
+    private var canShowWeatherContext: Bool {
+        canAccessOrganizationDetails
     }
 
     private var organizationDashboardVisible: Bool {

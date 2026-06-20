@@ -13,6 +13,10 @@ final class EventWeatherViewModel: ObservableObject {
         self.weatherProvider = weatherProvider
     }
 
+    func hide() {
+        state = .hidden
+    }
+
     func load(event: Event) async {
         guard event.status == .confirmed || event.status == .organizing || event.status == .finalized else {
             state = .hidden
