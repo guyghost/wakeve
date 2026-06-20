@@ -317,6 +317,11 @@ Preuves du 2026-06-13:
 - Rapport local genere: `docs/performance/release-performance-2026-06-13T12-08-21Z.md`. Il mesure un cold start iOS simulateur existant a 308.9 ms via `simctl launch`, saute Android faute de device/emulateur connecte, et ne ferme pas les items device/release.
 - Rapport local actualise: `docs/performance/release-performance-2026-06-13T13-29-50Z.md`. Il mesure un cold start iPhone 17 simulateur a 292.2 ms via `simctl launch`, ajoute une table min/mediane/p95/max/moyenne et garde les flows cold start, home/list, creation event, scenario matrix et WakeveAI en `PENDING_DEVICE_TRACE`.
 
+Preuves du 2026-06-20:
+
+- `OUTPUT_DIR=$(mktemp -d) ./scripts/profile-release-performance.sh --android-only --build-android --runs 1` genere maintenant une preuve temporaire build-only sans polluer `docs/performance/`: APK release local `composeApp-release-unsigned.apk` produit, `Android Cold Start` marque `SKIPPED` faute de device/emulateur, et les traces runtime restent `PENDING_DEVICE_TRACE`.
+- Le harnais Android utilise `--no-configuration-cache` pour `:composeApp:assembleRelease`, ce qui evite que `processReleaseGoogleServices` transforme une assemblee APK reussie en echec de stockage du configuration cache.
+
 #### 2.3 Notifications et deep links
 
 - [x] Reprendre rich notifications seulement apres fermeture des blockers App Store.
