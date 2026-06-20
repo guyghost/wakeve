@@ -252,6 +252,11 @@ class EventWorkspaceModelsTest {
         assertEquals("Aujourd'hui", summary.title)
         assertEquals("Today barbecue", summary.headline)
         assertEquals("3 participants attendus", summary.body)
+        assertEquals("Interet utilisateur : 10/10", summary.userInterestLabel)
+        assertEquals(
+            "Widget prioritaire : il evite d'ouvrir l'app pour retrouver le rendez-vous du jour.",
+            summary.rationaleLabel
+        )
         assertEquals("Ouvrir", summary.actionLabel)
     }
 
@@ -275,6 +280,11 @@ class EventWorkspaceModelsTest {
         assertEquals("Board game night", summary.title)
         assertEquals("J-4", summary.headline)
         assertEquals("À préparer", summary.body)
+        assertEquals("Interet utilisateur : 8/10", summary.userInterestLabel)
+        assertEquals(
+            "Widget compte a rebours utile : il cree de l'anticipation sans spammer le groupe.",
+            summary.rationaleLabel
+        )
         assertEquals("Préparer", summary.actionLabel)
     }
 
@@ -300,6 +310,11 @@ class EventWorkspaceModelsTest {
         assertEquals("Voyage à préparer", summary.title)
         assertEquals("Road trip Portugal", summary.headline)
         assertEquals("4 participants - transport, budget et programme à vérifier", summary.body)
+        assertEquals("Interet utilisateur : 9/10", summary.userInterestLabel)
+        assertEquals(
+            "Widget voyage pertinent : il regroupe les points qui cassent les groupes longs.",
+            summary.rationaleLabel
+        )
         assertEquals("Piloter", summary.actionLabel)
     }
 
@@ -323,6 +338,11 @@ class EventWorkspaceModelsTest {
         assertEquals("Prochaine tâche", summary.title)
         assertEquals("Reprenez Draft dinner", summary.headline)
         assertEquals("Continuer", summary.body)
+        assertEquals("Interet utilisateur : 7/10", summary.userInterestLabel)
+        assertEquals(
+            "Widget tache utile : il ramene l'organisateur vers le prochain blocage.",
+            summary.rationaleLabel
+        )
         assertEquals("Continuer", summary.actionLabel)
     }
 
@@ -339,6 +359,8 @@ class EventWorkspaceModelsTest {
         assertEquals("Wakeve", summary.title)
         assertEquals("Aucun événement actif", summary.headline)
         assertEquals("Créez un événement pour afficher le prochain rendez-vous ici.", summary.body)
+        assertEquals("Interet utilisateur : a activer", summary.userInterestLabel)
+        assertEquals("Aucun widget utile sans evenement actif.", summary.rationaleLabel)
         assertEquals("Créer", summary.actionLabel)
     }
 

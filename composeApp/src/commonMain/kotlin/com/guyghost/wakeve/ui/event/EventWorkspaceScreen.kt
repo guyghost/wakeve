@@ -366,6 +366,22 @@ private fun EventWidgetSummaryCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2
                     )
+                    if (summary.userInterestLabel.isNotBlank()) {
+                        Text(
+                            text = summary.userInterestLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    if (summary.rationaleLabel.isNotBlank()) {
+                        Text(
+                            text = summary.rationaleLabel,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2
+                        )
+                    }
                 }
                 TextButton(onClick = onAction) {
                     Text(summary.actionLabel)

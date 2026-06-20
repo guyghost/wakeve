@@ -361,6 +361,8 @@ class EventWorkspaceScreenTest {
                 title = "Lisbon team retreat",
                 headline = "J-12",
                 body = "Vote attendu",
+                userInterestLabel = "Interet utilisateur : 8/10",
+                rationaleLabel = "Widget compte a rebours utile : il cree de l'anticipation sans spammer le groupe.",
                 actionLabel = "Préparer"
             ),
             events = events.map {
