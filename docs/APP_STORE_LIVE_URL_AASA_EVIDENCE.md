@@ -85,6 +85,7 @@ Result on 2026-06-20: `FAIL. 16 required live URL/AASA checks failed or could no
 
 Generated capture report:
 
+- `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-55-13Z.md`
 - `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md`
 - `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T19-28-38Z.md`
 - Apple Team ID was unset, so AASA app ID validation cannot pass even after the web host is live.
