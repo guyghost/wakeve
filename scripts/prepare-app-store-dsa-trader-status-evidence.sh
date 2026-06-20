@@ -8,6 +8,10 @@ REPORT="$OUTPUT_DIR/dsa-trader-status-$TIMESTAMP.md"
 
 mkdir -p "$OUTPUT_DIR"
 
+sanitize_report() {
+    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$REPORT"
+}
+
 dsa_file="$PROJECT_DIR/docs/APP_STORE_DSA_TRADER_STATUS.md"
 pricing_file="$PROJECT_DIR/docs/APP_STORE_PRICING_AVAILABILITY_EVIDENCE.md"
 availability_file="$PROJECT_DIR/docs/APP_STORE_AVAILABILITY_EVIDENCE.md"
@@ -123,5 +127,7 @@ Do not mark AS-08 complete if any of these are true:
 - App availability evidence contradicts the selected DSA path.
 - The report includes private trader contact details that should not be committed.
 EOF
+
+sanitize_report
 
 echo "$REPORT"

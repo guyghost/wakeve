@@ -8,6 +8,10 @@ REPORT="$OUTPUT_DIR/payment-compliance-$TIMESTAMP.md"
 
 mkdir -p "$OUTPUT_DIR"
 
+sanitize_report() {
+    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$REPORT"
+}
+
 IAP_PATTERN='StoreKit|SKProduct|SKProductsRequest|SKPayment|Product\.products|InAppPurchase|purchase\(|paywall'
 PAYMENT_SURFACE_PATTERN='PaymentPotRepository|TricountHandoffRepository|PaymentRoutes|paymentRoutes|tricountGroupUrl|providerUrl|isTrustedPaymentLink|isTrustedProviderUrl'
 POLICY_PATTERN='real-world shared event expenses|do not sell or unlock app features|trusted-domain validated|Tricount'
@@ -128,5 +132,7 @@ Do not mark AS-11 complete if any of these are true:
 - Arbitrary external payment-provider URLs are accepted for payment pots.
 - App Review notes do not explain real-world shared-event expenses and no digital unlocks.
 EOF
+
+sanitize_report
 
 echo "$REPORT"

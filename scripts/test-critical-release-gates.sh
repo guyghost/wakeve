@@ -286,7 +286,8 @@ assert_release_performance_harness() {
 assert_payment_compliance_audit_helper() {
     local output_dir
     local report
-    output_dir="$(mktemp -d)"
+    mkdir -p "$PROJECT_DIR/build/tmp"
+    output_dir="$(mktemp -d "$PROJECT_DIR/build/tmp/payment-compliance.XXXXXX")"
 
     bash -n "$PROJECT_DIR/scripts/audit-app-store-payment-compliance.sh"
     report="$(OUTPUT_DIR="$output_dir" "$PROJECT_DIR/scripts/audit-app-store-payment-compliance.sh")"
@@ -295,6 +296,7 @@ assert_payment_compliance_audit_helper() {
         echo "FAIL: payment compliance audit helper did not create a report at $report" >&2
         exit 1
     fi
+    assert_generated_report_is_commit_safe "$report" "payment compliance audit"
 
     local required_patterns=(
         'Status: `LOCAL_SOURCE_SCAN_READY`'
@@ -319,7 +321,8 @@ assert_payment_compliance_audit_helper() {
 assert_dsa_trader_status_evidence_helper() {
     local output_dir
     local report
-    output_dir="$(mktemp -d)"
+    mkdir -p "$PROJECT_DIR/build/tmp"
+    output_dir="$(mktemp -d "$PROJECT_DIR/build/tmp/dsa-trader-status.XXXXXX")"
 
     bash -n "$PROJECT_DIR/scripts/prepare-app-store-dsa-trader-status-evidence.sh"
     report="$(OUTPUT_DIR="$output_dir" "$PROJECT_DIR/scripts/prepare-app-store-dsa-trader-status-evidence.sh")"
@@ -328,6 +331,7 @@ assert_dsa_trader_status_evidence_helper() {
         echo "FAIL: DSA trader status evidence helper did not create a report at $report" >&2
         exit 1
     fi
+    assert_generated_report_is_commit_safe "$report" "DSA trader status evidence"
 
     local required_patterns=(
         'Status: `PENDING_APP_STORE_CONNECT_DSA_DECISION`'
