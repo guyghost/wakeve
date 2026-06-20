@@ -381,6 +381,10 @@ fun DraftEventWizard(
                             onCustomTypeChanged = { wizardState = wizardState.copy(eventTypeCustom = it) },
                             modifier = Modifier.fillMaxWidth()
                         )
+
+                        EventCreationFrictionCard(
+                            summary = wizardState.toCreationFrictionSummary()
+                        )
                     }
                     
                     // Step 2: Participants + Locations
@@ -409,6 +413,10 @@ fun DraftEventWizard(
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             isError = participantCount.isNotEmpty() && (participantCount.toIntOrNull() ?: 0) <= 0
+                        )
+
+                        EventCreationFrictionCard(
+                            summary = wizardState.toCreationFrictionSummary()
                         )
                         
                         // Locations section
@@ -832,5 +840,72 @@ fun DraftEventWizard(
                 }
             }
         )
+    }
+}
+
+@Composable
+private fun EventCreationFrictionCard(
+    summary: EventCreationFrictionSummary,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = summary.complexityLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = summary.estimatedTimeLabel,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+                Text(
+                    text = summary.actionCountLabel,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+            Text(
+                text = summary.frictionLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = summary.abandonmentRiskLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = summary.userScoreLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            Text(
+                text = summary.nextStepLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+        }
     }
 }
