@@ -68,6 +68,21 @@ assert_android_compose_hygiene() {
     echo "PASS: Android Compose source avoids deprecated dividers, parameterless menu anchors, and non-mirrored directional icons"
 }
 
+assert_android_build_hygiene() {
+    local obsolete_agp_flags_pattern='^android\.(defaults\.buildfeatures\.resvalues|sdk\.defaultTargetSdkToCompileSdkIfUnset|enableAppCompileTimeRClass|usesSdkInManifest\.disallowed|r8\.optimizedResourceShrinking)='
+    if grep -nE "$obsolete_agp_flags_pattern" "$PROJECT_DIR/gradle.properties"; then
+        echo "FAIL: gradle.properties reintroduced obsolete Android Gradle Plugin flags" >&2
+        exit 1
+    fi
+
+    if grep -RInE '\.statusBarColor\s*=' "$PROJECT_DIR/composeApp/src/androidMain"; then
+        echo "FAIL: Android source directly writes deprecated statusBarColor; use edge-to-edge APIs instead" >&2
+        exit 1
+    fi
+
+    echo "PASS: Android build hygiene avoids obsolete AGP flags and direct statusBarColor writes"
+}
+
 assert_ios_profile_legal_notice_links() {
     local profile="$PROJECT_DIR/iosApp/src/Views/Profile/ProfileTabView.swift"
     local english="$PROJECT_DIR/iosApp/src/Resources/en.lproj/Localizable.strings"
@@ -179,6 +194,7 @@ run ./scripts/test-app-store-ugc-gates.sh
 assert_no_sensitive_server_logs
 assert_no_android_release_local_backend_defaults
 assert_android_compose_hygiene
+assert_android_build_hygiene
 assert_ios_profile_legal_notice_links
 assert_wakeve_ai_device_profile_helper
 assert_weatherkit_device_validation_helper
