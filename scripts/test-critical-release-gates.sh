@@ -303,6 +303,38 @@ assert_ios_accessibility_source_audit() {
     echo "PASS: iOS accessibility source audit has zero release-source findings"
 }
 
+assert_ios_release_screen_evidence_integrity() {
+    local output_dir
+    local report
+    output_dir="$(mktemp -d)"
+
+    bash -n "$PROJECT_DIR/scripts/audit-ios-release-screen-evidence.sh"
+    report="$("$PROJECT_DIR/scripts/audit-ios-release-screen-evidence.sh" --output-dir "$output_dir")"
+
+    if [ ! -f "$report" ]; then
+        echo "FAIL: iOS release screen evidence audit did not create a report at $report" >&2
+        exit 1
+    fi
+
+    local required_patterns=(
+        'Local coverage: 3 / 5 required screens'
+        'Missing required screens: 2'
+        'Integrity checked: 13 indexed screenshots'
+        'Integrity failures: 0'
+        '| Event detail | MISSING | 0 |'
+        '| Organization | MISSING | 0 |'
+    )
+
+    for pattern in "${required_patterns[@]}"; do
+        if ! grep -Fq "$pattern" "$report"; then
+            echo "FAIL: iOS release screen evidence audit no longer matches expected local evidence state: $pattern" >&2
+            exit 1
+        fi
+    done
+
+    echo "PASS: iOS release screen evidence audit verifies indexed screenshots and keeps missing release screens explicit"
+}
+
 cd "$PROJECT_DIR"
 
 run openspec validate --all --strict
@@ -320,6 +352,7 @@ assert_ios_profile_legal_notice_links
 assert_wakeve_ai_device_profile_helper
 assert_weatherkit_device_validation_helper
 assert_ios_accessibility_source_audit
+assert_ios_release_screen_evidence_integrity
 run ./scripts/audit-ios-localization-parity.sh --fail-on-findings
 
 run ./gradlew :server:test \

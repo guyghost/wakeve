@@ -35,6 +35,7 @@ This directory stores local simulator screenshots used as partial App Store read
 - `docs/APP_STORE_MEDIA_LOCALIZATION_EVIDENCE.md`
 - `docs/APP_STORE_TESTFLIGHT_EVIDENCE.md`
 - `docs/ios-release-screen-evidence/release-screen-evidence-2026-06-13T13-32-47Z.md`
+- `docs/ios-release-screen-evidence/release-screen-evidence-2026-06-20T21-10-30Z.md`
 - `docs/APP_STORE_FINAL_SIGNOFF.md`
 
 ## Refresh Commands
