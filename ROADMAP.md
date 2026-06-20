@@ -289,6 +289,7 @@ Preuves du 2026-06-20:
 - `./scripts/test-critical-release-gates.sh` inclut `assert_no_android_release_local_backend_defaults` et echoue si `composeApp/src/androidMain` ou `shared/src/androidMain` reintroduisent `localhost`, `127.0.0.1` ou `10.0.2.2` comme backend par defaut.
 - Les docs API et la spec OpenAPI publient `https://api.wakeve.app` comme endpoint production, avec `http://localhost:8080` uniquement comme serveur de developpement local.
 - Passe Android UX locale: le profil/login ouvrent les liens legaux `wakeve.app`, l'inbox a un menu overflow fonctionnel, la selection de lieu ne promet plus une recherche vocale absente, et le lien "Afficher plus de reponses" n'est cliquable que si un handler de chargement est branche.
+- Passe Material/Android locale: la selection de lieu respecte une cible tactile de 48dp pour l'effacement, utilise `MaterialTheme.colorScheme.primary` au lieu d'une couleur codee en dur, les top app bars de notifications utilisent l'API Material3 actuelle, et les icones directionnelles Explore/Profile utilisent les variantes AutoMirrored.
 
 #### 2.2 Observabilite et performance
 
