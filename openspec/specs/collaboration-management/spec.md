@@ -10,7 +10,7 @@ The Collaboration Management capability allows event participants and organizers
 ---
 
 ### Requirement: Participant Invitation and RSVP Lifecycle
-Wakeve MUST manage event participants through invitation, join, RSVP, date validation, attendance confirmation, and decline states.
+Wakeve MUST manage event participants through invitation, join, RSVP, date validation, attendance confirmation, and decline states. Participants added from contacts MUST enter the same pending invitation state as participants added manually by email.
 
 #### Scenario: Invited participant joins and confirms attendance
 - **GIVEN** an organizer creates an invitation link for an event
@@ -19,6 +19,13 @@ Wakeve MUST manage event participants through invitation, join, RSVP, date valid
 - **AND** their RSVP and date-validation state is persisted locally
 - **AND** the update is queued for sync when offline
 - **AND** confirmed-attendee sections become available after the final date is confirmed
+
+#### Scenario: Contact-selected participant is invited
+- **GIVEN** an organizer selects a contact email as an event participant
+- **WHEN** Wakeve adds the selected email to the participant list
+- **THEN** the participant has pending RSVP state
+- **AND** the same offline queue and sync behavior applies as for manually entered email invitations
+- **AND** Wakeve does not store the contact's full address book record.
 
 ### Requirement: Section-Based Collaboration
 Wakeve MUST provide collaboration threads scoped to organization sections such as poll, scenarios, destination, lodging, transport, meetings, budget, equipment, meals, and general discussion.
