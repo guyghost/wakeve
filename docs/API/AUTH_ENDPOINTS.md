@@ -5,7 +5,7 @@ This document describes the REST API endpoints for authentication in Wakeve.
 ## Base URL
 
 ```
-https://api.wakeve.com/api/auth
+https://api.wakeve.app/api/auth
 ```
 
 ## Endpoints
