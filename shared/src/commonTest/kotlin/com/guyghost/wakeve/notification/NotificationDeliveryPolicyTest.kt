@@ -62,4 +62,18 @@ class NotificationDeliveryPolicyTest {
 
         assertEquals(listOf(NotificationType.MEETING_REMINDER), bypassingTypes)
     }
+
+    @Test
+    fun `legacy priority helper uses delivery policy`() {
+        NotificationType.entries.forEach { type ->
+            assertEquals(type.deliveryProfile().priority, type.getPriority())
+        }
+    }
+
+    @Test
+    fun `urgent helper uses delivery policy quiet hours bypass`() {
+        NotificationType.entries.forEach { type ->
+            assertEquals(type.deliveryProfile().bypassQuietHours, type.isUrgent())
+        }
+    }
 }
