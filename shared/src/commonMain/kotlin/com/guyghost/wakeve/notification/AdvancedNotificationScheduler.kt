@@ -79,10 +79,8 @@ class AdvancedNotificationScheduler(
 
         val reminderTime = finalDate.minus(DateTimePeriod(minutes = reminderMinutesBefore))
 
-        // Skip if reminder time has already passed
-        val now = Clock.System.now()
-        if (reminderTime <= now) {
-            return Result.success("skipped-past")
+        futureScheduleDelayMillis(reminderTime).exceptionOrNull()?.let { error ->
+            return Result.failure(error)
         }
 
         val title = "⏰ ${event.title}"
@@ -141,10 +139,8 @@ class AdvancedNotificationScheduler(
 
         val reminderTime = deadline.minus(DateTimePeriod(hours = reminderHoursBefore))
 
-        // Skip if reminder time has already passed
-        val now = Clock.System.now()
-        if (reminderTime <= now) {
-            return Result.success("skipped-past")
+        futureScheduleDelayMillis(reminderTime).exceptionOrNull()?.let { error ->
+            return Result.failure(error)
         }
 
         val title = "🗳️ Vote Closing Soon"
@@ -204,6 +200,7 @@ class AdvancedNotificationScheduler(
 
         val notificationIds = mutableListOf<String>()
         val errors = mutableListOf<String>()
+        var skippedPastReminders = 0
 
         // Calculate reminder times based on pattern
         val reminderTimes = calculateReminderTimes(finalDate, recurrencePattern)
@@ -211,6 +208,7 @@ class AdvancedNotificationScheduler(
         reminderTimes.forEachIndexed { index, reminderTime ->
             val now = Clock.System.now()
             if (reminderTime <= now) {
+                skippedPastReminders += 1
                 return@forEachIndexed // Skip past reminders
             }
 
@@ -224,7 +222,8 @@ class AdvancedNotificationScheduler(
 
             val notificationId = "${generateNotificationId("event", event.id)}-recurring-$index"
 
-            val result = platformScheduler().scheduleEventReminder(
+            val result = platformScheduler().scheduleEventReminderWithId(
+                notificationId = notificationId,
                 eventId = event.id,
                 title = title,
                 body = body,
@@ -232,7 +231,7 @@ class AdvancedNotificationScheduler(
             )
 
             result.fold(
-                onSuccess = { notificationIds.add(notificationId) },
+                onSuccess = { scheduledId -> notificationIds.add(scheduledId) },
                 onFailure = { errors.add(it.message ?: "Unknown error") }
             )
         }
@@ -242,7 +241,11 @@ class AdvancedNotificationScheduler(
         } else if (errors.isNotEmpty()) {
             Result.failure(IllegalStateException("Failed to schedule reminders: ${errors.joinToString(", ")}"))
         } else {
-            Result.success(emptyList()) // All reminders were in the past
+            Result.failure(
+                IllegalStateException(
+                    "Cannot schedule recurring reminders: no future reminders remain ($skippedPastReminders skipped)"
+                )
+            )
         }
     }
 
@@ -295,10 +298,8 @@ class AdvancedNotificationScheduler(
         // Adjust for quiet hours if necessary
         val adjustedTime = adjustForQuietHours(baseReminderTime, userPreferences)
 
-        // Skip if adjusted time has already passed
-        val now = Clock.System.now()
-        if (adjustedTime <= now) {
-            return Result.success("skipped-past")
+        futureScheduleDelayMillis(adjustedTime).exceptionOrNull()?.let { error ->
+            return Result.failure(error)
         }
 
         // Determine notification type based on event
@@ -330,25 +331,24 @@ class AdvancedNotificationScheduler(
     /**
      * Cancel all reminders for an event.
      *
-     * Cancels event reminders, poll reminders, and any recurring reminders.
+     * Cancels the base event reminder, poll reminder, smart reminder, and any
+     * recurring reminders whose IDs are provided by the caller. Recurring IDs are
+     * returned by [scheduleRecurringReminder].
      *
      * @param eventId The event ID to cancel reminders for
+     * @param recurringNotificationIds Optional recurring reminder IDs returned by scheduling
      * @return Result with Unit on success, error on failure
      */
-    suspend fun cancelEventReminders(eventId: String): Result<Unit> {
-        val baseId = generateNotificationId("event", eventId)
-        val pollId = generateNotificationId("poll", eventId)
-        val smartId = generateNotificationId("smart", eventId)
-
-        // Cancel base event reminder
+    suspend fun cancelEventReminders(
+        eventId: String,
+        recurringNotificationIds: List<String> = emptyList()
+    ): Result<Unit> {
         val results = mutableListOf<Result<Unit>>()
         val scheduler = platformScheduler()
-        results.add(scheduler.cancelScheduledNotification(baseId))
-        results.add(scheduler.cancelScheduledNotification(pollId))
-        results.add(scheduler.cancelScheduledNotification(smartId))
 
-        // Note: Recurring reminders would need to track their individual IDs
-        // This is a simplified implementation
+        scheduledNotificationIdsForCancellation(eventId, recurringNotificationIds).forEach { notificationId ->
+            results.add(scheduler.cancelScheduledNotification(notificationId))
+        }
 
         val failures = results.filter { it.isFailure }
         return if (failures.isEmpty()) {
@@ -376,6 +376,19 @@ class AdvancedNotificationScheduler(
      */
     private fun generateNotificationId(type: String, id: String): String {
         return "$type-$id"
+    }
+
+    internal fun scheduledNotificationIdsForCancellation(
+        eventId: String,
+        recurringNotificationIds: List<String> = emptyList()
+    ): List<String> {
+        val baseIds = listOf(
+            generateNotificationId("event", eventId),
+            generateNotificationId("poll", eventId),
+            generateNotificationId("smart", eventId)
+        )
+
+        return (baseIds + recurringNotificationIds.filter { it.isNotBlank() }).distinct()
     }
 
     /**

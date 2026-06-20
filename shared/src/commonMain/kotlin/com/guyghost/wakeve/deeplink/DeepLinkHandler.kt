@@ -128,46 +128,6 @@ abstract class BaseDeepLinkHandler : DeepLinkHandlerInterface {
 }
 
 /**
- * A mock implementation of DeepLinkHandler for testing purposes.
- */
-class MockDeepLinkHandler : BaseDeepLinkHandler() {
-    private val handledDeepLinks = mutableListOf<DeepLink>()
-
-    override fun canHandleDeepLink(deepLink: DeepLink): Boolean {
-        return true
-    }
-
-    override fun handleDefault(deepLink: DeepLink): Boolean {
-        handledDeepLinks.add(deepLink)
-        return true
-    }
-
-    /**
-     * Gets all deep links that were handled.
-     *
-     * @return List of handled deep links
-     */
-    fun getHandledDeepLinks(): List<DeepLink> = handledDeepLinks.toList()
-
-    /**
-     * Clears the list of handled deep links.
-     */
-    fun clearHandledDeepLinks() {
-        handledDeepLinks.clear()
-    }
-
-    /**
-     * Checks if a specific deep link was handled.
-     *
-     * @param uri The URI to check
-     * @return True if the deep link was handled
-     */
-    fun wasHandled(uri: String): Boolean {
-        return handledDeepLinks.any { it.fullUri == uri }
-    }
-}
-
-/**
  * Result of handling a deep link.
  */
 sealed class DeepLinkResult {

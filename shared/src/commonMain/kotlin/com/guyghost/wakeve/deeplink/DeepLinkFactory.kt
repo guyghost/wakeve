@@ -146,6 +146,17 @@ object DeepLinkFactory {
     }
 
     /**
+     * Creates a deep link to accept an event invitation.
+     *
+     * @param code The invitation code from the shareable invite link
+     * @return A DeepLink object
+     */
+    fun createInvitationLink(code: String): DeepLink {
+        require(code.isNotBlank()) { "Invitation code cannot be blank" }
+        return DeepLink.create(route = "invite/$code")
+    }
+
+    /**
      * Creates a deep link from a notification type and event ID.
      *
      * @param notificationType The type of notification

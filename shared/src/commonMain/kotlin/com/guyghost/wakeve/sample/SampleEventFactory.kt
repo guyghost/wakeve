@@ -5,6 +5,10 @@ import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.TimeSlot
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 
 /**
  * Pure factory for creating sample event data for first-launch onboarding.
@@ -16,7 +20,7 @@ import com.guyghost.wakeve.models.TimeSlot
  * All IDs are prefixed with "sample-" to identify them as synthetic data
  * that should never sync to the backend.
  *
- * FC&IS: This is pure core — no side effects, no I/O.
+ * FC&IS: The generated sample is deterministic when a reference date is provided.
  */
 object SampleEventFactory {
 
@@ -46,34 +50,37 @@ object SampleEventFactory {
 
     /**
      * Generate sample time slots 1-3 weeks from a reference date.
-     * Uses dynamic dates to avoid staleness.
+     * Uses dynamic dates by default to avoid stale first-launch events.
      *
-     * @param referenceDate ISO 8601 date string to compute future dates from.
-     *                      Defaults to a sensible future date.
+     * @param referenceDate ISO 8601 instant used to compute future dates.
      */
-    fun createTimeSlots(referenceDate: String = "2026-05-10T19:00:00Z"): List<TimeSlot> = listOf(
-        TimeSlot(
-            id = "sample-slot-1",
-            start = "2026-05-10T19:00:00Z",
-            end = "2026-05-10T23:00:00Z",
-            timezone = "Europe/Paris",
-            timeOfDay = TimeOfDay.EVENING
-        ),
-        TimeSlot(
-            id = "sample-slot-2",
-            start = "2026-05-16T10:00:00Z",
-            end = "2026-05-16T22:00:00Z",
-            timezone = "Europe/Paris",
-            timeOfDay = TimeOfDay.ALL_DAY
-        ),
-        TimeSlot(
-            id = "sample-slot-3",
-            start = "2026-05-23T14:00:00Z",
-            end = "2026-05-23T18:00:00Z",
-            timezone = "Europe/Paris",
-            timeOfDay = TimeOfDay.AFTERNOON
+    fun createTimeSlots(referenceDate: String = Clock.System.now().toString()): List<TimeSlot> {
+        val reference = Instant.parse(referenceDate)
+
+        return listOf(
+            TimeSlot(
+                id = "sample-slot-1",
+                start = reference.plus(7.days).toString(),
+                end = reference.plus(7.days + 4.hours).toString(),
+                timezone = "Europe/Paris",
+                timeOfDay = TimeOfDay.EVENING
+            ),
+            TimeSlot(
+                id = "sample-slot-2",
+                start = reference.plus(14.days).toString(),
+                end = reference.plus(14.days + 12.hours).toString(),
+                timezone = "Europe/Paris",
+                timeOfDay = TimeOfDay.ALL_DAY
+            ),
+            TimeSlot(
+                id = "sample-slot-3",
+                start = reference.plus(21.days).toString(),
+                end = reference.plus(21.days + 4.hours).toString(),
+                timezone = "Europe/Paris",
+                timeOfDay = TimeOfDay.AFTERNOON
+            )
         )
-    )
+    }
 
     /**
      * Create the complete sample event in POLLING status.
@@ -90,24 +97,29 @@ object SampleEventFactory {
      *   Slot 2 (ALL_DAY):   Alice=YES, Marc=YES, Léa=YES,  Thomas=YES → 2+2+2+2 = 8 ★ winner
      *   Slot 3 (AFTERNOON): Alice=MAYBE, Marc=NO, Léa=YES, Thomas=MAYBE → 1-1+2+1 = 3
      */
-    fun createSampleEvent(): Event = Event(
-        id = SAMPLE_EVENT_ID,
-        title = "Sophie's Birthday 🎂",
-        description = "Let's celebrate Sophie's birthday! Pick the best time for everyone. This is a sample event — feel free to explore and delete it anytime.",
-        organizerId = "sample-user-you",
-        participants = createParticipantIds(),
-        proposedSlots = createTimeSlots(),
-        deadline = "2026-06-01T23:59:59Z",
-        status = EventStatus.POLLING,
-        finalDate = null,
-        createdAt = "2026-04-15T10:00:00Z",
-        updatedAt = "2026-04-15T10:00:00Z",
-        eventType = EventType.BIRTHDAY,
-        eventTypeCustom = null,
-        minParticipants = 3,
-        maxParticipants = 10,
-        expectedParticipants = 6
-    )
+    fun createSampleEvent(referenceDate: String = Clock.System.now().toString()): Event {
+        val reference = Instant.parse(referenceDate)
+        val slots = createTimeSlots(referenceDate)
+
+        return Event(
+            id = SAMPLE_EVENT_ID,
+            title = "Sophie's Birthday 🎂",
+            description = "Let's celebrate Sophie's birthday! Pick the best time for everyone. This is a sample event — feel free to explore and delete it anytime.",
+            organizerId = "sample-user-you",
+            participants = createParticipantIds(),
+            proposedSlots = slots,
+            deadline = reference.plus(5.days).toString(),
+            status = EventStatus.POLLING,
+            finalDate = null,
+            createdAt = reference.toString(),
+            updatedAt = reference.toString(),
+            eventType = EventType.BIRTHDAY,
+            eventTypeCustom = null,
+            minParticipants = 3,
+            maxParticipants = 10,
+            expectedParticipants = 6
+        )
+    }
 
     /**
      * Pre-cast votes for the sample event.

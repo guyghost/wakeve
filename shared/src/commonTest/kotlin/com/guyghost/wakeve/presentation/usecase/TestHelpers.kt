@@ -66,6 +66,7 @@ fun createMockMeetingService(
     return MeetingService(
         database = database,
         calendarService = calendarService,
-        notificationService = notificationService
+        notificationService = notificationService,
+        meetingLinkProvider = com.guyghost.wakeve.meeting.DeterministicMeetingLinkProvider()
     )
 }

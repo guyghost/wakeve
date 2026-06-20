@@ -3,10 +3,9 @@ package com.guyghost.wakeve.gamification
 import com.guyghost.wakeve.models.BadgeNotification
 
 /**
- * iOS stub implementation of BadgeNotificationService.
- * 
- * This is a placeholder implementation. Full iOS notification support
- * using UNUserNotificationCenter should be implemented in the iosApp module.
+ * iOS badge notification service placeholder.
+ *
+ * Fails explicitly until a UNUserNotificationCenter bridge is wired in the iOS app.
  */
 class IosBadgeNotificationService : BadgeNotificationService {
     
@@ -15,8 +14,7 @@ class IosBadgeNotificationService : BadgeNotificationService {
         badge: Badge,
         pointsEarned: Int
     ) {
-        // Stub: iOS notifications should be handled in SwiftUI using UNUserNotificationCenter
-        println("iOS Badge notification: ${badge.name} unlocked with $pointsEarned points")
+        NoConfiguredBadgeNotificationService.showBadgeUnlockedNotification(userId, badge, pointsEarned)
     }
     
     override suspend fun showPointsEarnedNotification(
@@ -24,40 +22,33 @@ class IosBadgeNotificationService : BadgeNotificationService {
         points: Int,
         action: String
     ) {
-        // Stub: iOS notifications should be handled in SwiftUI using UNUserNotificationCenter
-        println("iOS Points notification: $points points earned for $action")
+        NoConfiguredBadgeNotificationService.showPointsEarnedNotification(userId, points, action)
     }
     
     override suspend fun showVoiceAssistantError(
         userId: String,
         error: String
     ) {
-        // Stub: iOS notifications should be handled in SwiftUI using UNUserNotificationCenter
-        println("iOS Voice assistant error: $error")
+        NoConfiguredBadgeNotificationService.showVoiceAssistantError(userId, error)
     }
     
     override suspend fun sendBadgeNotification(notification: BadgeNotification) {
-        // Stub: iOS notifications should be handled in SwiftUI
-        println("iOS Badge notification: ${notification.title}")
+        NoConfiguredBadgeNotificationService.sendBadgeNotification(notification)
     }
     
     override suspend fun clearBadgeNotification(notificationId: String) {
-        // Stub: iOS notifications should be handled in SwiftUI
-        println("iOS Clear notification: $notificationId")
+        NoConfiguredBadgeNotificationService.clearBadgeNotification(notificationId)
     }
     
     override suspend fun updateBadgeCount(count: Int) {
-        // Stub: iOS badge count should be set via UIApplication.shared.applicationIconBadgeNumber in SwiftUI
-        println("iOS Badge count: $count")
+        NoConfiguredBadgeNotificationService.updateBadgeCount(count)
     }
     
     override suspend fun requestNotificationPermission(): Boolean {
-        // Stub: iOS notification permission should be requested via UNUserNotificationCenter in SwiftUI
-        return false
+        return NoConfiguredBadgeNotificationService.requestNotificationPermission()
     }
     
     override fun isNotificationEnabled(): Boolean {
-        // Stub: iOS notification status should be checked via UNUserNotificationCenter in SwiftUI
-        return false
+        return NoConfiguredBadgeNotificationService.isNotificationEnabled()
     }
 }

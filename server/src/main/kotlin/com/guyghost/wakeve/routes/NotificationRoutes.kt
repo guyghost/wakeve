@@ -40,19 +40,25 @@ fun Route.notificationRoutes(
                     )
 
                 val request = call.receive<RegisterTokenRequest>()
-                val platform = when (request.platform.lowercase()) {
-                    "android" -> Platform.ANDROID
-                    "ios" -> Platform.IOS
-                    else -> return@post call.respond(
-                        HttpStatusCode.BadRequest,
-                        mapOf("error" to "Invalid platform: ${request.platform}. Must be 'android' or 'ios'")
-                    )
-                }
+                val token = validatePushToken(request.token)
+                    .getOrElse { error ->
+                        return@post call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to error.message)
+                        )
+                    }
+                val platform = parseNotificationPlatform(request.platform)
+                    .getOrElse { error ->
+                        return@post call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to error.message)
+                        )
+                    }
 
                 notificationService.registerPushToken(
                     userId = userId,
                     platform = platform,
-                    token = request.token
+                    token = token
                 )
 
                 call.respond(HttpStatusCode.OK, mapOf("success" to true))
@@ -79,20 +85,13 @@ fun Route.notificationRoutes(
                         mapOf("error" to "Missing userId in token")
                     )
 
-                val platformParam = call.request.queryParameters["platform"]
-                    ?: return@delete call.respond(
-                        HttpStatusCode.BadRequest,
-                        mapOf("error" to "platform query parameter required")
-                    )
-
-                val platform = when (platformParam.lowercase()) {
-                    "android" -> Platform.ANDROID
-                    "ios" -> Platform.IOS
-                    else -> return@delete call.respond(
-                        HttpStatusCode.BadRequest,
-                        mapOf("error" to "Invalid platform: $platformParam")
-                    )
-                }
+                val platform = parseNotificationPlatform(call.request.queryParameters["platform"])
+                    .getOrElse { error ->
+                        return@delete call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to error.message)
+                        )
+                    }
 
                 notificationService.unregisterPushToken(userId, platform)
 
@@ -111,7 +110,27 @@ fun Route.notificationRoutes(
          */
         post("/send") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                val senderUserId = principal?.payload?.getClaim("userId")?.asString()
+                    ?: return@post call.respond(
+                        HttpStatusCode.Unauthorized,
+                        mapOf("error" to "Missing userId in token")
+                    )
+
                 val request = call.receive<NotificationRequest>()
+                val authorization = authorizeNotificationSend(
+                    senderUserId = senderUserId,
+                    targetUserId = request.userId,
+                    role = principal.payload.getClaim("role")?.asString(),
+                    roles = principal.payload.getClaim("roles")?.asList(String::class.java).orEmpty(),
+                    permissions = principal.payload.getClaim("permissions")?.asList(String::class.java).orEmpty()
+                )
+                authorization.getOrElse { error ->
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to error.message)
+                    )
+                }
 
                 val notificationId = notificationService.sendNotification(request)
                     .getOrElse { error ->
@@ -145,7 +164,7 @@ fun Route.notificationRoutes(
                         HttpStatusCode.Unauthorized,
                         mapOf("error" to "Missing userId in token")
                     )
-                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 50
+                val limit = parseNotificationHistoryLimit(call.request.queryParameters["limit"])
 
                 val notifications = notificationService.getNotifications(userId, limit)
 
@@ -188,13 +207,23 @@ fun Route.notificationRoutes(
          */
         put("/{id}/read") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                    ?: return@put call.respond(
+                        HttpStatusCode.Unauthorized,
+                        mapOf("error" to "Missing userId in token")
+                    )
+
                 val id = call.parameters["id"]
                     ?: return@put call.respond(
                         HttpStatusCode.BadRequest,
                         mapOf("error" to "id required")
                     )
 
-                notificationService.markAsRead(id)
+                notificationService.markAsReadForUser(
+                    notificationId = id,
+                    userId = userId
+                )
                     .getOrElse { error ->
                         return@put call.respond(
                             HttpStatusCode.BadRequest,
@@ -247,13 +276,23 @@ fun Route.notificationRoutes(
          */
         delete("/{id}") {
             try {
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                    ?: return@delete call.respond(
+                        HttpStatusCode.Unauthorized,
+                        mapOf("error" to "Missing userId in token")
+                    )
+
                 val id = call.parameters["id"]
                     ?: return@delete call.respond(
                         HttpStatusCode.BadRequest,
                         mapOf("error" to "id required")
                     )
 
-                notificationService.deleteNotification(id)
+                notificationService.deleteNotificationForUser(
+                    notificationId = id,
+                    userId = userId
+                )
                     .getOrElse { error ->
                         return@delete call.respond(
                             HttpStatusCode.BadRequest,
@@ -304,7 +343,22 @@ fun Route.notificationRoutes(
          */
         put("/preferences") {
             try {
-                val preferences = call.receive<NotificationPreferences>()
+                val principal = call.principal<JWTPrincipal>()
+                val userId = principal?.payload?.getClaim("userId")?.asString()
+                    ?: return@put call.respond(
+                        HttpStatusCode.Unauthorized,
+                        mapOf("error" to "Missing userId in token")
+                    )
+
+                val preferences = bindPreferencesToAuthenticatedUser(
+                    preferences = call.receive<NotificationPreferences>(),
+                    authenticatedUserId = userId
+                ).getOrElse { error ->
+                    return@put call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to error.message)
+                    )
+                }
 
                 notificationService.updatePreferences(preferences)
                     .getOrElse { error ->
@@ -333,3 +387,95 @@ data class RegisterTokenRequest(
     val token: String,
     val platform: String // "android" or "ios"
 )
+
+internal fun validatePushToken(token: String): Result<String> {
+    val normalizedToken = token.trim()
+    return if (normalizedToken.isBlank()) {
+        Result.failure(IllegalArgumentException("Push token must not be blank"))
+    } else {
+        Result.success(normalizedToken)
+    }
+}
+
+internal fun parseNotificationPlatform(platform: String?): Result<Platform> {
+    val normalizedPlatform = platform?.trim()?.lowercase().orEmpty()
+    return when (normalizedPlatform) {
+        "" -> Result.failure(IllegalArgumentException("platform query parameter required"))
+        "android" -> Result.success(Platform.ANDROID)
+        "ios" -> Result.success(Platform.IOS)
+        else -> Result.failure(
+            IllegalArgumentException("Invalid platform: $platform. Must be 'android' or 'ios'")
+        )
+    }
+}
+
+internal fun bindPreferencesToAuthenticatedUser(
+    preferences: NotificationPreferences,
+    authenticatedUserId: String
+): Result<NotificationPreferences> {
+    val normalizedAuthenticatedUserId = authenticatedUserId.trim()
+    val requestedUserId = preferences.userId.trim()
+    return when {
+        normalizedAuthenticatedUserId.isBlank() -> Result.failure(
+            IllegalArgumentException("Missing userId in token")
+        )
+        requestedUserId.isBlank() -> Result.success(
+            preferences.copy(userId = normalizedAuthenticatedUserId)
+        )
+        requestedUserId == normalizedAuthenticatedUserId -> Result.success(
+            preferences.copy(userId = normalizedAuthenticatedUserId)
+        )
+        else -> Result.failure(
+            IllegalArgumentException("Cannot update notification preferences for another user")
+        )
+    }
+}
+
+internal fun authorizeNotificationSend(
+    senderUserId: String?,
+    targetUserId: String,
+    role: String?,
+    roles: List<String>,
+    permissions: List<String>
+): Result<Unit> {
+    val normalizedSenderUserId = senderUserId?.trim().orEmpty()
+    val normalizedTargetUserId = targetUserId.trim()
+    if (normalizedSenderUserId.isBlank()) {
+        return Result.failure(IllegalArgumentException("Missing userId in token"))
+    }
+    if (normalizedTargetUserId.isBlank()) {
+        return Result.failure(IllegalArgumentException("Notification target userId must not be blank"))
+    }
+    if (normalizedSenderUserId == normalizedTargetUserId) {
+        return Result.success(Unit)
+    }
+
+    val normalizedRoles = (roles + listOfNotNull(role))
+        .map { it.trim().uppercase() }
+        .filter { it.isNotBlank() }
+        .toSet()
+    val normalizedPermissions = permissions
+        .map { it.trim().uppercase() }
+        .filter { it.isNotBlank() }
+        .toSet()
+
+    val hasPrivilegedRole = normalizedRoles.any { it == "ADMIN" || it == "SERVICE" || it == "MODERATOR" }
+    val hasPrivilegedPermission = normalizedPermissions.any {
+        it == "NOTIFICATIONS_SEND" || it == "ADMIN" || it == "MODERATE"
+    }
+
+    return if (hasPrivilegedRole || hasPrivilegedPermission) {
+        Result.success(Unit)
+    } else {
+        Result.failure(IllegalArgumentException("Cannot send notifications to another user"))
+    }
+}
+
+internal fun parseNotificationHistoryLimit(rawLimit: String?): Int {
+    val parsedLimit = rawLimit?.trim()?.toIntOrNull() ?: DEFAULT_NOTIFICATION_HISTORY_LIMIT
+    return parsedLimit.coerceIn(MIN_NOTIFICATION_HISTORY_LIMIT, MAX_NOTIFICATION_HISTORY_LIMIT)
+}
+
+private const val DEFAULT_NOTIFICATION_HISTORY_LIMIT = 50
+private const val MIN_NOTIFICATION_HISTORY_LIMIT = 1
+private const val MAX_NOTIFICATION_HISTORY_LIMIT = 100

@@ -592,6 +592,7 @@
     <string name="prefs_weekly_digest_desc">Receber um resumo toda segunda-feira</string>
     <string name="prefs_general">Geral</string>
     <string name="prefs_sound">Som</string>
+    <string name="prefs_vibration">Vibração</string>
     <string name="prefs_do_not_disturb">Não perturbe</string>
     <string name="prefs_quiet_hours">Horário silencioso</string>
     <string name="prefs_quiet_hours_desc">As notificações serão silenciadas durante este período.</string>

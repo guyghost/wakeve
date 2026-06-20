@@ -348,18 +348,7 @@ fun io.ktor.server.routing.Route.activityRoutes(repository: ActivityRepository) 
                 }
                 
                 // Apply updates to existing activity - preserving ID, eventID and registered participants
-                val updatedActivityData = existingActivity.copy(
-                    name = request.name ?: existingActivity.name,
-                    description = request.description ?: existingActivity.description,
-                    date = request.date ?: existingActivity.date,
-                    time = request.time ?: existingActivity.time,
-                    duration = request.durationMinutes ?: existingActivity.duration,
-                    location = request.location ?: existingActivity.location,
-                    maxParticipants = request.maxParticipants ?: existingActivity.maxParticipants,
-                    cost = request.costPerPerson ?: existingActivity.cost,
-                    organizerId = request.organizerId ?: existingActivity.organizerId,
-                    updatedAt = java.time.Instant.now().toString()
-                )
+                val updatedActivityData = request.applyTo(existingActivity)
 
                 val updatedActivity = repository.updateActivity(updatedActivityData)
                 call.respond(HttpStatusCode.OK, updatedActivity)

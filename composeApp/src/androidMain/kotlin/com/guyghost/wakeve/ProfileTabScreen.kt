@@ -71,6 +71,7 @@ fun ProfileTabScreen(
     isAuthenticated: Boolean = false,
     userEmail: String? = null,
     userName: String? = null,
+    appVersionLabel: String = "Version inconnue",
     onNavigateToSettings: () -> Unit,
     onNavigateToInbox: () -> Unit,
     onNavigateToDashboard: () -> Unit = {},
@@ -323,7 +324,7 @@ fun ProfileTabScreen(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Version 1.0.0 (Phase 2)",
+                            text = appVersionLabel,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

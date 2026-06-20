@@ -101,16 +101,11 @@ fun Route.meetingProxyRoutes(
          * }
          * ```
          *
-         * Response:
+         * Response until a real server provider is configured:
          * ```json
          * {
-         *   "meetingId": "123456789",
-         *   "joinUrl": "https://zoom.us/j/123456789?pwd=abc123",
-         *   "password": "abc123",
-         *   "hostUrl": "https://zoom.us/j/123456789?pwd=xyz789",
-         *   "hostKey": "123456",
-         *   "dialInNumber": "+33 1 23 45 67 89",
-         *   "dialInPassword": "123456"
+         *   "error": "zoom_provider_not_implemented",
+         *   "message": "Zoom server provider is not implemented"
          * }
          * ```
          */
@@ -159,24 +154,10 @@ fun Route.meetingProxyRoutes(
                     )
                 }
 
-                // In production, this would call the actual Zoom API:
-                // POST https://api.zoom.us/v2/users/me/meetings
-                // With Authorization: Bearer <JWT>
-                // For now, return a mock response
-                val meetingId = generateZoomMeetingId()
-                val password = generateZoomPassword()
-                val hostPassword = generateZoomPassword()
-                val response = CreateZoomMeetingResponse(
-                    meetingId = meetingId,
-                    joinUrl = generateZoomJoinUrl(meetingId, password),
-                    password = password,
-                    hostUrl = generateZoomHostUrl(meetingId, hostPassword),
-                    hostKey = generateHostKey(),
-                    dialInNumber = "+33 1 23 45 67 89",
-                    dialInPassword = "123456"
+                call.respond(
+                    HttpStatusCode.ServiceUnavailable,
+                    meetingProviderUnavailable("zoom_provider_not_implemented", "Zoom server provider is not implemented")
                 )
-
-                call.respond(response)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -212,14 +193,9 @@ fun Route.meetingProxyRoutes(
             }
 
             try {
-                // In production, this would call:
-                // DELETE https://api.zoom.us/v2/meetings/{meetingId}
-                // For now, return mock response
                 call.respond(
-                    mapOf(
-                        "success" to true,
-                        "message" to "Meeting $meetingId cancelled successfully"
-                    )
+                    HttpStatusCode.ServiceUnavailable,
+                    meetingProviderUnavailable("zoom_provider_not_implemented", "Zoom server provider is not implemented")
                 )
             } catch (e: Exception) {
                 call.respond(
@@ -259,18 +235,10 @@ fun Route.meetingProxyRoutes(
             }
 
             try {
-                // In production, this would call:
-                // GET https://api.zoom.us/v2/meetings/{meetingId}
-                // For now, return mock response
-                val response = ZoomMeetingStatusResponse(
-                    meetingId = meetingId,
-                    status = "scheduled",
-                    startTime = "2026-02-08T14:00:00Z",
-                    duration = 60,
-                    participantCount = 0
+                call.respond(
+                    HttpStatusCode.ServiceUnavailable,
+                    meetingProviderUnavailable("zoom_provider_not_implemented", "Zoom server provider is not implemented")
                 )
-
-                call.respond(response)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -299,11 +267,11 @@ fun Route.meetingProxyRoutes(
          * }
          * ```
          *
-         * Response:
+         * Response until a real server provider is configured:
          * ```json
          * {
-         *   "meetingUrl": "https://meet.google.com/abc-def-ghi",
-         *   "meetingCode": "abc-def-ghi"
+         *   "error": "google_meet_provider_not_implemented",
+         *   "message": "Google Meet server provider is not implemented"
          * }
          * ```
          */
@@ -352,17 +320,13 @@ fun Route.meetingProxyRoutes(
                     )
                 }
 
-                // In production, this would call Google Calendar API:
-                // POST https://www.googleapis.com/calendar/v3/calendars/primary/events
-                // With conferenceDataVersion: 1 and conferenceData: { createRequest: { requestId: "..." } }
-                // For now, return a mock response
-                val meetingCode = generateGoogleMeetCode()
-                val response = CreateGoogleMeetResponse(
-                    meetingUrl = "https://meet.google.com/$meetingCode",
-                    meetingCode = meetingCode
+                call.respond(
+                    HttpStatusCode.ServiceUnavailable,
+                    meetingProviderUnavailable(
+                        "google_meet_provider_not_implemented",
+                        "Google Meet server provider is not implemented"
+                    )
                 )
-
-                call.respond(response)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
@@ -444,6 +408,12 @@ private fun meetingAuditDenial(eventId: String, userId: String, action: String):
         "auditAction" to action
     )
 
+private fun meetingProviderUnavailable(error: String, message: String): Map<String, String> =
+    mapOf(
+        "error" to error,
+        "message" to message
+    )
+
 /**
  * Response from creating a Zoom meeting
  */
@@ -498,36 +468,3 @@ data class CreateGoogleMeetResponse(
     val meetingUrl: String,
     val meetingCode: String
 )
-
-// ============================================================================
-// Mock Helpers (Replace with actual API calls in production)
-// ============================================================================
-
-private fun generateZoomMeetingId(): String {
-    return (1..10).map { (0..9).random() }.joinToString("")
-}
-
-private fun generateZoomJoinUrl(meetingId: String, password: String): String {
-    return "https://zoom.us/j/$meetingId?pwd=$password"
-}
-
-private fun generateZoomHostUrl(meetingId: String, password: String): String {
-    return "https://zoom.us/j/$meetingId?pwd=$password"
-}
-
-private fun generateZoomPassword(): String {
-    val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    return (1..6).map { chars.random() }.joinToString("")
-}
-
-private fun generateHostKey(): String {
-    return (1..6).map { (0..9).random() }.joinToString("")
-}
-
-private fun generateGoogleMeetCode(): String {
-    val chars = "abcdefghijklmnopqrstuvwxyz"
-    val part1 = (1..3).map { chars.random() }.joinToString("")
-    val part2 = (1..3).map { chars.random() }.joinToString("")
-    val part3 = (1..4).map { chars.random() }.joinToString("")
-    return "$part1-$part2-$part3"
-}

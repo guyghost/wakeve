@@ -1031,7 +1031,7 @@ class EventOrganizationPhase5RoutesTest {
     }
 
     @Test
-    fun `Phase5 zoom proxy response uses one meeting id across response fields`() = testApplication {
+    fun `Phase5 zoom proxy creation does not fabricate provider response when credentials are present`() = testApplication {
         val fixture = createFixture()
         val client = createJsonClient()
 
@@ -1058,18 +1058,54 @@ class EventOrganizationPhase5RoutesTest {
         }
 
         assertEquals(
-            HttpStatusCode.OK,
+            HttpStatusCode.ServiceUnavailable,
             response.status,
-            "Configured Zoom proxy fixture should reach provider creation so the response contract can be validated."
+            "Zoom proxy must fail honestly until a real server provider is implemented."
         )
+        assertFalse(
+            response.bodyAsText().contains("joinUrl") || response.bodyAsText().contains("hostUrl"),
+            "Zoom proxy must not fabricate provider-created meeting URLs."
+        )
+        assertTrue(response.bodyAsText().contains("zoom_provider_not_implemented"))
+    }
 
-        val body = json.parseToJsonElement(response.bodyAsText()).jsonObject
-        val meetingId = body["meetingId"]?.jsonPrimitive?.content.orEmpty()
-        val joinUrl = body["joinUrl"]?.jsonPrimitive?.content.orEmpty()
-        val hostUrl = body["hostUrl"]?.jsonPrimitive?.content.orEmpty()
+    @Test
+    fun `Phase5 google meet proxy creation does not fabricate provider response when credentials are present`() = testApplication {
+        val fixture = createFixture()
+        val client = createJsonClient()
 
-        assertEquals(meetingId, zoomMeetingIdFromUrl(joinUrl), "joinUrl must reference the response meetingId.")
-        assertEquals(meetingId, zoomMeetingIdFromUrl(hostUrl), "hostUrl must reference the response meetingId.")
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val response = withProviderEnvironment("GOOGLE_MEET_CREDENTIALS" to """{"client_id":"test"}""") {
+            client.post("/api/meetings/proxy/google-meet/create") {
+                header(HttpHeaders.Authorization, "Bearer ${createTestJwt(fixture.organizerId)}")
+                contentType(ContentType.Application.Json)
+                setBody(
+                    """
+                    {
+                      "eventId": "${fixture.eventId}",
+                      "title": "Consistent Google Meet",
+                      "scheduledFor": "2026-07-18T08:00:00Z",
+                      "duration": 60,
+                      "timezone": "Europe/Paris"
+                    }
+                    """.trimIndent()
+                )
+            }
+        }
+
+        assertEquals(
+            HttpStatusCode.ServiceUnavailable,
+            response.status,
+            "Google Meet proxy must fail honestly until a real server provider is implemented."
+        )
+        assertFalse(
+            response.bodyAsText().contains("meetingUrl") || response.bodyAsText().contains("meetingCode"),
+            "Google Meet proxy must not fabricate provider-created meeting details."
+        )
+        assertTrue(response.bodyAsText().contains("google_meet_provider_not_implemented"))
     }
 
     private fun ApplicationTestBuilder.createJsonClient() = createClient {
@@ -1396,9 +1432,6 @@ class EventOrganizationPhase5RoutesTest {
 
     private fun isSafeHttpsLink(link: String): Boolean =
         link.startsWith("https://") && !containsLiteralTemplateMarker(link)
-
-    private fun zoomMeetingIdFromUrl(url: String): String =
-        Regex("""/j/([^?]+)""").find(url)?.groupValues?.get(1).orEmpty()
 
     private inline fun <T> withProviderEnvironment(
         vararg values: Pair<String, String>,

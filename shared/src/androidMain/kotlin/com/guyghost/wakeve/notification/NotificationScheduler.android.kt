@@ -17,7 +17,6 @@ import androidx.work.WorkManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Instant
-import kotlinx.datetime.Clock
 
 /**
  * Android implementation of NotificationScheduler.
@@ -92,15 +91,35 @@ actual class NotificationScheduler {
         title: String,
         body: String,
         scheduledTime: Instant
-    ): Result<Unit> = withContext(Dispatchers.Default) {
-        if (calculateDelayMillis(scheduledTime) <= 0) {
-            return@withContext Result.success(Unit)
+    ): Result<Unit> {
+        return scheduleEventReminderWithId(
+            notificationId = generateNotificationId("event", eventId),
+            eventId = eventId,
+            title = title,
+            body = body,
+            scheduledTime = scheduledTime
+        ).map { Unit }
+    }
+
+    /**
+     * Schedule event reminder using a caller-provided WorkManager unique work ID.
+     */
+    actual suspend fun scheduleEventReminderWithId(
+        notificationId: String,
+        eventId: String,
+        title: String,
+        body: String,
+        scheduledTime: Instant
+    ): Result<String> = withContext(Dispatchers.Default) {
+        if (notificationId.isBlank()) {
+            return@withContext Result.failure(IllegalArgumentException("Notification ID cannot be blank"))
+        }
+
+        val delayMillis = futureScheduleDelayMillis(scheduledTime).getOrElse { error ->
+            return@withContext Result.failure(error)
         }
         
         runCatching {
-            val notificationId = generateNotificationId("event", eventId)
-            val delayMillis = calculateDelayMillis(scheduledTime)
-
             val workData = Data.Builder()
                 .putString(KEY_NOTIFICATION_ID, notificationId)
                 .putString(KEY_TITLE, title)
@@ -120,7 +139,7 @@ actual class NotificationScheduler {
                 workRequest
             )
 
-            Unit
+            notificationId
         }
     }
 
@@ -136,13 +155,12 @@ actual class NotificationScheduler {
         body: String,
         deadlineTime: Instant
     ): Result<Unit> = withContext(Dispatchers.Default) {
-        if (calculateDelayMillis(deadlineTime) <= 0) {
-            return@withContext Result.success(Unit)
+        val delayMillis = futureScheduleDelayMillis(deadlineTime).getOrElse { error ->
+            return@withContext Result.failure(error)
         }
         
         runCatching {
             val notificationId = generateNotificationId("poll", pollId)
-            val delayMillis = calculateDelayMillis(deadlineTime)
 
             val workData = Data.Builder()
                 .putString(KEY_NOTIFICATION_ID, notificationId)
@@ -216,15 +234,6 @@ actual class NotificationScheduler {
             notificationManager.createNotificationChannel(eventsChannel)
             notificationManager.createNotificationChannel(pollsChannel)
         }
-    }
-
-    /**
-     * Calculate delay in milliseconds from now to target time.
-     */
-    private fun calculateDelayMillis(targetTime: Instant): Long {
-        val now = Clock.System.now()
-        val duration = targetTime - now
-        return duration.inWholeMilliseconds
     }
 
     /**

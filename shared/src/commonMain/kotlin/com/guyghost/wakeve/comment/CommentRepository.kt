@@ -159,39 +159,60 @@ class CommentRepository(
         if (comment.moderationStatus == ModerationStatus.APPROVED && commentNotificationService != null && eventRepository != null) {
             // Send mention notifications
             mentionParseResult.mentionedUserIds.forEach { mentionedUserId ->
-                commentNotificationService.notifyMention(
-                    eventId = eventId,
-                    mentionedUserId = mentionedUserId,
-                    authorId = authorId,
-                    authorName = authorName,
-                    content = request.content,
+                runNotificationSideEffect(
                     commentId = commentId,
-                    excludeRecipient = authorId
-                )
+                    eventId = eventId,
+                    notificationType = "MENTION",
+                    recipientId = mentionedUserId
+                ) {
+                    commentNotificationService.notifyMention(
+                        eventId = eventId,
+                        mentionedUserId = mentionedUserId,
+                        authorId = authorId,
+                        authorName = authorName,
+                        content = request.content,
+                        commentId = commentId,
+                        excludeRecipient = authorId
+                    )
+                }
             }
 
             if (request.parentCommentId == null) {
                 // New top-level comment
-                commentNotificationService.notifyCommentPosted(
-                    eventId = eventId,
-                    section = request.section,
-                    sectionItemId = request.sectionItemId,
-                    authorId = authorId,
-                    authorName = authorName,
-                    content = request.content,
+                runNotificationSideEffect(
                     commentId = commentId,
-                    excludeRecipient = authorId
-                )
+                    eventId = eventId,
+                    notificationType = "COMMENT_POSTED",
+                    recipientId = null
+                ) {
+                    commentNotificationService.notifyCommentPosted(
+                        eventId = eventId,
+                        section = request.section,
+                        sectionItemId = request.sectionItemId,
+                        authorId = authorId,
+                        authorName = authorName,
+                        content = request.content,
+                        commentId = commentId,
+                        excludeRecipient = authorId
+                    )
+                }
             } else {
                 // Reply to a comment
                 val parentComment = getCommentById(request.parentCommentId!!)
                 if (parentComment != null) {
-                    commentNotificationService.notifyCommentReply(
+                    runNotificationSideEffect(
+                        commentId = commentId,
                         eventId = eventId,
-                        parentComment = parentComment,
-                        replyComment = comment,
-                        excludeRecipient = authorId
-                    )
+                        notificationType = "COMMENT_REPLY",
+                        recipientId = parentComment.authorId
+                    ) {
+                        commentNotificationService.notifyCommentReply(
+                            eventId = eventId,
+                            parentComment = parentComment,
+                            replyComment = comment,
+                            excludeRecipient = authorId
+                        )
+                    }
                 }
             }
         }
@@ -938,6 +959,69 @@ class CommentRepository(
                 }
             }
         }
+    }
+
+    private suspend fun runNotificationSideEffect(
+        commentId: String,
+        eventId: String,
+        notificationType: String,
+        recipientId: String?,
+        block: suspend () -> Unit
+    ) {
+        try {
+            block()
+        } catch (e: Exception) {
+            queueCommentNotificationRetry(
+                commentId = commentId,
+                eventId = eventId,
+                notificationType = notificationType,
+                recipientId = recipientId,
+                error = e.message.orEmpty()
+            )
+        }
+    }
+
+    private fun queueCommentNotificationRetry(
+        commentId: String,
+        eventId: String,
+        notificationType: String,
+        recipientId: String?,
+        error: String
+    ) {
+        val timestamp = getCurrentUtcIsoString()
+        val payload = buildString {
+            append("{")
+            appendJson("eventId", eventId)
+            append(",")
+            appendJson("commentId", commentId)
+            append(",")
+            appendJson("notificationType", notificationType)
+            append(",")
+            appendJson("recipientId", recipientId.orEmpty())
+            append(",")
+            appendJson("error", error)
+            append("}")
+        }
+
+        db.syncMetadataQueries.insertSyncMetadataWithPayload(
+            id = "sync-comment-notification-${commentId}-${generateId()}",
+            entityType = "comment_notification",
+            entityId = commentId,
+            operation = "SEND",
+            payload = payload,
+            timestamp = timestamp,
+            retryState = "READY",
+            retryCount = 0,
+            synced = 0
+        )
+    }
+
+    private fun StringBuilder.appendJson(key: String, value: String) {
+        append("\"")
+        append(key)
+        append("\":\"")
+        append(value.replace("\\", "\\\\").replace("\"", "\\\""))
+        append("\"")
     }
     
     /**

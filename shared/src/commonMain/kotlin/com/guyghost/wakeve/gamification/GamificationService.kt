@@ -2,6 +2,8 @@ package com.guyghost.wakeve.gamification
 
 import com.guyghost.wakeve.gamification.repository.UserBadgesRepository
 import com.guyghost.wakeve.gamification.repository.UserPointsRepository
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 /**
  * Service for managing gamification features including points, badges, and leaderboards.
@@ -44,6 +46,10 @@ class GamificationService(
 
         /** Daily decay rate (1%) */
         const val DECAY_RATE = 0.01
+
+        private const val DAY_MS = 24L * 60L * 60L * 1000L
+        private const val WEEK_MS = 7L * DAY_MS
+        private const val MONTH_MS = 30L * DAY_MS
     }
 
     /**
@@ -236,13 +242,14 @@ class GamificationService(
                     createLeaderboardEntry(points, index + 1, currentUserId, friendIds)
                 }
             }
-            LeaderboardType.THIS_MONTH, LeaderboardType.THIS_WEEK -> {
-                // For now, use all-time data
-                // In real implementation, filter by date
-                topEarners.mapIndexed { index, points ->
+            LeaderboardType.THIS_MONTH -> filterByLastUpdated(topEarners, MONTH_MS)
+                .mapIndexed { index, points ->
                     createLeaderboardEntry(points, index + 1, currentUserId, friendIds)
                 }
-            }
+            LeaderboardType.THIS_WEEK -> filterByLastUpdated(topEarners, WEEK_MS)
+                .mapIndexed { index, points ->
+                    createLeaderboardEntry(points, index + 1, currentUserId, friendIds)
+                }
             LeaderboardType.FRIENDS -> {
                 topEarners
                     .filter { friendIds.isEmpty() || it.userId in friendIds }
@@ -253,6 +260,21 @@ class GamificationService(
         }
 
         return filteredAndRanked.take(limit)
+    }
+
+    private fun filterByLastUpdated(users: List<UserPoints>, windowMs: Long): List<UserPoints> {
+        val now = Clock.System.now().toEpochMilliseconds()
+        val lowerBoundInclusive = now - windowMs
+
+        return users.filter { points ->
+            val updatedAt = parseLastUpdated(points.lastUpdated) ?: return@filter false
+            updatedAt in lowerBoundInclusive..now
+        }
+    }
+
+    private fun parseLastUpdated(lastUpdated: String): Long? {
+        if (lastUpdated.isBlank()) return null
+        return runCatching { Instant.parse(lastUpdated).toEpochMilliseconds() }.getOrNull()
     }
 
     /**

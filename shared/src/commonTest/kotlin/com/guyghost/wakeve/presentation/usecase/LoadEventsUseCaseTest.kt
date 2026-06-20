@@ -144,6 +144,17 @@ class LoadEventsUseCaseTest {
     }
 
     @Test
+    fun testLoadEvents_MissingRepositoryFailsExplicitly() {
+        val useCase = LoadEventsUseCase(null)
+        val result = useCase()
+
+        assertTrue(result.isFailure)
+        val exception = result.exceptionOrNull()
+        assertNotNull(exception)
+        assertTrue("EventRepository is not available" in exception.message.orEmpty())
+    }
+
+    @Test
     fun testLoadEvents_Exception() {
         val repository = MockEventRepository()
         repository.shouldThrowException = true

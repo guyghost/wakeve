@@ -65,6 +65,7 @@ fun TransportPlanningScreen(
     plans: List<TransportPlan> = emptyList(),
     selectedPlanId: String? = null,
     pendingSync: Boolean = false,
+    isTransportProviderConfigured: Boolean = true,
     onSaveDepartureLocation: (String) -> Unit = {},
     onGeneratePlan: (OptimizationType) -> Unit = {},
     onSelectFinalPlan: (TransportPlan) -> Unit = {},
@@ -79,10 +80,20 @@ fun TransportPlanningScreen(
         .ifEmpty { readiness?.missingDepartureParticipantIds.orEmpty() }
     val isReadinessComplete = readiness?.isComplete ?: false
     val transportNotNeeded = readiness?.transportNotNeeded == true
-    val canGenerate = isOrganizer && !isReadOnly && selectedDestination != null && !transportNotNeeded && (eventStatus == EventStatus.CONFIRMED || eventStatus == EventStatus.COMPARING || eventStatus == EventStatus.ORGANIZING) && (readiness?.canGeneratePlan ?: false)
+    val isMutableTransportStatus = eventStatus == EventStatus.CONFIRMED || eventStatus == EventStatus.COMPARING || eventStatus == EventStatus.ORGANIZING
+    val canGenerate = isTransportProviderConfigured && isOrganizer && !isReadOnly && selectedDestination != null && !transportNotNeeded && (eventStatus == EventStatus.CONFIRMED || eventStatus == EventStatus.COMPARING || eventStatus == EventStatus.ORGANIZING) && (readiness?.canGeneratePlan ?: false)
     val canSelectFinal = isOrganizer && !isReadOnly && selectedDestination != null && plans.isNotEmpty() && (eventStatus == EventStatus.CONFIRMED || eventStatus == EventStatus.COMPARING || eventStatus == EventStatus.ORGANIZING)
     val canMarkTransportNotNeeded = isOrganizer && !isReadOnly && selectedDestination != null && !transportNotNeeded && (eventStatus == EventStatus.CONFIRMED || eventStatus == EventStatus.COMPARING || eventStatus == EventStatus.ORGANIZING)
     val canSaveDeparture = canAccessTransportDetails && !isReadOnly && selectedDestination != null && (eventStatus == EventStatus.CONFIRMED || eventStatus == EventStatus.COMPARING || eventStatus == EventStatus.ORGANIZING)
+    val generationUnavailableReason = when {
+        !isTransportProviderConfigured -> "Aucun fournisseur de transport réel n'est configuré. Wakeve peut collecter les départs, mais ne génère pas encore de prix, horaires ou réservations."
+        !isOrganizer -> "Seul l'organisateur peut générer le plan de transport partagé."
+        selectedDestination == null -> "Sélectionnez une destination de scénario avant de générer un plan de transport."
+        transportNotNeeded -> "Le transport est indiqué comme non requis pour cet événement."
+        isReadOnly || !isMutableTransportStatus -> "Le transport est en lecture seule pour cet événement."
+        readiness?.canGeneratePlan != true -> "Ajoutez tous les points de départ manquants avant de générer les options de transport."
+        else -> null
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -171,11 +182,7 @@ fun TransportPlanningScreen(
 
                 if (!canGenerate) {
                     Text(
-                        text = if (isOrganizer) {
-                            "Ajoutez tous les points de départ manquants avant de générer les options de transport."
-                        } else {
-                            "Seul l'organisateur peut générer le plan de transport partagé."
-                        },
+                        text = generationUnavailableReason.orEmpty(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp)
@@ -203,7 +210,7 @@ fun TransportPlanningScreen(
 
             if (plans.isEmpty()) {
                 item {
-                    EmptyPlansCard()
+                    EmptyPlansCard(isTransportProviderConfigured = isTransportProviderConfigured)
                 }
             } else {
                 items(plans, key = { it.id }) { plan ->
@@ -457,7 +464,7 @@ private fun OptimizationModeCard(
 }
 
 @Composable
-private fun EmptyPlansCard() {
+private fun EmptyPlansCard(isTransportProviderConfigured: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp)
@@ -469,7 +476,11 @@ private fun EmptyPlansCard() {
             Icon(Icons.Default.Route, contentDescription = null)
             Text("Aucun plan généré", style = MaterialTheme.typography.titleMedium)
             Text(
-                text = "Choisissez un mode d'optimisation et générez un plan lorsque tous les départs sont prêts.",
+                text = if (isTransportProviderConfigured) {
+                    "Choisissez un mode d'optimisation et générez un plan lorsque tous les départs sont prêts."
+                } else {
+                    "Les départs peuvent être collectés maintenant. La génération de trajets nécessite un fournisseur réel de transport."
+                },
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

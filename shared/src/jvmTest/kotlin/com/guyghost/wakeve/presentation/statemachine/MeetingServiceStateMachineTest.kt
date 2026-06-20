@@ -4,15 +4,18 @@ import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.calendar.PlatformCalendarService
 import com.guyghost.wakeve.createFreshTestDatabase
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.meeting.DeterministicMeetingLinkProvider
+import com.guyghost.wakeve.meeting.DeterministicMeetingPlatformProvider
 import com.guyghost.wakeve.meeting.Meeting
 import com.guyghost.wakeve.meeting.MeetingRepository
 import com.guyghost.wakeve.meeting.MeetingService
-import com.guyghost.wakeve.meeting.MockMeetingPlatformProvider
 import com.guyghost.wakeve.models.CreateMeetingRequest
 import com.guyghost.wakeve.models.EnhancedCalendarEvent
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.MeetingPlatform
-import com.guyghost.wakeve.notification.DefaultNotificationService
+import com.guyghost.wakeve.models.NotificationMessage
+import com.guyghost.wakeve.models.PushToken
+import com.guyghost.wakeve.notification.NotificationServiceInterface
 import com.guyghost.wakeve.presentation.state.MeetingManagementContract.Intent
 import com.guyghost.wakeve.presentation.usecase.CancelMeetingUseCase
 import com.guyghost.wakeve.presentation.usecase.CreateMeetingUseCase
@@ -55,7 +58,12 @@ class MeetingServiceStateMachineTest {
     fun setUp() {
         database = createFreshTestDatabase()
         val calendarService = CalendarService(database, StubCalendarService())
-        meetingService = MeetingService(database, calendarService, DefaultNotificationService())
+        meetingService = MeetingService(
+            database = database,
+            calendarService = calendarService,
+            notificationService = StubNotificationService(),
+            meetingLinkProvider = DeterministicMeetingLinkProvider()
+        )
         val repo = MeetingRepository(database)
 
         stateMachine = MeetingServiceStateMachine(
@@ -63,7 +71,7 @@ class MeetingServiceStateMachineTest {
             createMeetingUseCase = CreateMeetingUseCase(meetingService, repo),
             updateMeetingUseCase = UpdateMeetingUseCase(repo),
             cancelMeetingUseCase = CancelMeetingUseCase(meetingService, repo),
-            generateMeetingLinkUseCase = GenerateMeetingLinkUseCase(MockMeetingPlatformProvider(), repo),
+            generateMeetingLinkUseCase = GenerateMeetingLinkUseCase(DeterministicMeetingPlatformProvider(), repo),
             scope = testScope
         )
 
@@ -308,4 +316,12 @@ private class StubCalendarService : PlatformCalendarService {
     override fun addEvent(event: EnhancedCalendarEvent): Result<Unit> = Result.success(Unit)
     override fun updateEvent(event: EnhancedCalendarEvent): Result<Unit> = Result.success(Unit)
     override fun deleteEvent(eventId: String): Result<Unit> = Result.success(Unit)
+}
+
+private class StubNotificationService : NotificationServiceInterface {
+    override suspend fun sendNotification(message: NotificationMessage): Result<Unit> = Result.success(Unit)
+    override suspend fun registerPushToken(token: PushToken): Result<Unit> = Result.success(Unit)
+    override suspend fun unregisterPushToken(userId: String, deviceId: String): Result<Unit> = Result.success(Unit)
+    override suspend fun getUnreadNotifications(userId: String): List<NotificationMessage> = emptyList()
+    override suspend fun markAsRead(notificationId: String): Result<Unit> = Result.success(Unit)
 }

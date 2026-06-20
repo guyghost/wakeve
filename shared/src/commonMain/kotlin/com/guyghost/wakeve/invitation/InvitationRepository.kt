@@ -36,10 +36,15 @@ class InvitationRepository(private val db: WakeveDb) {
      * Get an invitation by its unique code.
      */
     fun getByCode(code: String): Invitation? {
-        return try {
+        return getByCodeResult(code).getOrNull()
+    }
+
+    /**
+     * Get an invitation by its unique code while preserving database failures.
+     */
+    fun getByCodeResult(code: String): Result<Invitation?> {
+        return runCatching {
             db.invitationQueries.selectByCode(code).executeAsOneOrNull()?.toInvitation()
-        } catch (e: Exception) {
-            null
         }
     }
 
@@ -70,6 +75,7 @@ class InvitationRepository(private val db: WakeveDb) {
      */
     fun incrementUses(code: String): Result<Unit> {
         return try {
+            requireInvitationCodeExists(code)
             db.invitationQueries.incrementCurrentUses(code)
             Result.success(Unit)
         } catch (e: Exception) {
@@ -82,6 +88,7 @@ class InvitationRepository(private val db: WakeveDb) {
      */
     fun deleteById(id: String): Result<Unit> {
         return try {
+            requireInvitationIdExists(id)
             db.invitationQueries.deleteById(id)
             Result.success(Unit)
         } catch (e: Exception) {
@@ -98,6 +105,18 @@ class InvitationRepository(private val db: WakeveDb) {
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+
+    private fun requireInvitationCodeExists(code: String) {
+        require(db.invitationQueries.selectByCode(code).executeAsOneOrNull() != null) {
+            "Invitation not found: $code"
+        }
+    }
+
+    private fun requireInvitationIdExists(id: String) {
+        require(db.invitationQueries.selectById(id).executeAsOneOrNull() != null) {
+            "Invitation not found: $id"
         }
     }
 }

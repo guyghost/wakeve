@@ -3,6 +3,7 @@ package com.guyghost.wakeve.offline
 import com.guyghost.wakeve.access.DateValidationState
 import com.guyghost.wakeve.access.ParticipantRsvp
 import com.guyghost.wakeve.invitation.InvitationParticipantOfflineRepository
+import com.guyghost.wakeve.invitation.InvitationParticipantState
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.TimeOfDay
@@ -10,8 +11,10 @@ import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.sync.PendingSyncOperation
 import com.guyghost.wakeve.sync.SyncOperationType
 import kotlin.test.Test
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class InvitationParticipantOfflineRepositoryTest {
@@ -86,6 +89,75 @@ class InvitationParticipantOfflineRepositoryTest {
         }
         assertEquals(SyncOperationType.CREATE, participantSync.operation)
         assertFalse(participantSync.isSynced)
+
+        val invitationSync = repository.pendingSyncOperations().single {
+            it.entityType == "invitation" &&
+                it.entityId == invitation.id &&
+                it.operation == SyncOperationType.UPDATE
+        }
+        assertFalse(invitationSync.isSynced)
+        assertEquals(1, repository.getInvitationByCode(invitation.code)?.currentUses)
+    }
+
+    @Test
+    fun `accepting invitation is idempotent for the same participant`() {
+        val repository = InvitationParticipantOfflineRepository.inMemory()
+        repository.saveEvent(event)
+        val invitation = repository.createInvitation(
+            eventId = event.id,
+            createdBy = "organizer-1",
+            createdAt = "2026-05-21T10:05:00Z",
+            maxUses = 1
+        ).getOrThrow()
+
+        val first = repository.acceptInvitation(invitation.code, "participant-1", "2026-05-21T10:10:00Z").getOrThrow()
+        val second = repository.acceptInvitation(invitation.code, "participant-1", "2026-05-21T10:12:00Z").getOrThrow()
+
+        assertEquals(first, second)
+        assertEquals(1, repository.getInvitationByCode(invitation.code)?.currentUses)
+        assertEquals(
+            1,
+            repository.pendingSyncOperations().count {
+                it.entityType == "participant" && it.entityId == first.id && it.operation == SyncOperationType.CREATE
+            }
+        )
+    }
+
+    @Test
+    fun `accepting expired invitation fails without creating participant`() {
+        val repository = InvitationParticipantOfflineRepository.inMemory()
+        repository.saveEvent(event)
+        val invitation = repository.createInvitation(
+            eventId = event.id,
+            createdBy = "organizer-1",
+            createdAt = "2026-05-21T10:05:00Z",
+            expiresAt = "2026-05-21T10:06:00Z"
+        ).getOrThrow()
+
+        val result = repository.acceptInvitation(invitation.code, "participant-1", "2026-05-21T10:10:00Z")
+
+        assertInvitationFailure(result, "Invitation expired: ${invitation.code}")
+        assertEquals(null, repository.getParticipantState(event.id, "participant-1"))
+        assertEquals(0, repository.getInvitationByCode(invitation.code)?.currentUses)
+    }
+
+    @Test
+    fun `accepting invitation at max uses fails without consuming another use`() {
+        val repository = InvitationParticipantOfflineRepository.inMemory()
+        repository.saveEvent(event)
+        val invitation = repository.createInvitation(
+            eventId = event.id,
+            createdBy = "organizer-1",
+            createdAt = "2026-05-21T10:05:00Z",
+            maxUses = 1
+        ).getOrThrow()
+        repository.acceptInvitation(invitation.code, "participant-1", "2026-05-21T10:10:00Z").getOrThrow()
+
+        val result = repository.acceptInvitation(invitation.code, "participant-2", "2026-05-21T10:12:00Z")
+
+        assertInvitationFailure(result, "Invitation max uses reached: ${invitation.code}")
+        assertEquals(null, repository.getParticipantState(event.id, "participant-2"))
+        assertEquals(1, repository.getInvitationByCode(invitation.code)?.currentUses)
     }
 
     @Test
@@ -144,11 +216,21 @@ class InvitationParticipantOfflineRepositoryTest {
             listOf(
                 "invitation:${SyncOperationType.CREATE}",
                 "participant:${SyncOperationType.CREATE}",
+                "invitation:${SyncOperationType.UPDATE}",
                 "participant:${SyncOperationType.UPDATE}"
             ),
             gateway.sentOperations.map { "${it.entityType}:${it.operation}" }
         )
         assertTrue(repository.pendingSyncOperations().isEmpty())
+    }
+
+    private fun assertInvitationFailure(
+        result: Result<InvitationParticipantState>,
+        expectedMessage: String
+    ) {
+        assertFalse(result.isSuccess)
+        val error = assertIs<IllegalArgumentException>(result.exceptionOrNull())
+        assertContains(error.message.orEmpty(), expectedMessage)
     }
 }
 

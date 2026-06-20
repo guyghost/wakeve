@@ -1,12 +1,13 @@
 package com.guyghost.wakeve.di
 
 import com.guyghost.wakeve.image.ImagePickerService
-import com.guyghost.wakeve.image.StubImagePickerService
+import com.guyghost.wakeve.image.NoConfiguredImagePickerService
 
 /**
  * JVM implementation of ImagePickerFactory.
- * 
- * Provides a stub implementation for desktop/server environments.
+ *
+ * Provides an explicit not-configured implementation for desktop/server
+ * environments without a native image picker.
  */
 actual class ImagePickerFactory {
     
@@ -17,6 +18,6 @@ actual class ImagePickerFactory {
     }
     
     actual fun createPickerService(): ImagePickerService {
-        return StubImagePickerService()
+        return NoConfiguredImagePickerService
     }
 }

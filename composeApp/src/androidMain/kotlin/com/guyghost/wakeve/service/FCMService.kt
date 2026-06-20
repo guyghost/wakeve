@@ -1,8 +1,6 @@
 package com.guyghost.wakeve.service
 
 import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -12,16 +10,25 @@ import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import com.guyghost.wakeve.AndroidDatabaseFactory
 import com.guyghost.wakeve.MainActivity
+import com.guyghost.wakeve.database.DatabaseProvider
+import com.guyghost.wakeve.deeplink.parseDeepLinkParts
+import com.guyghost.wakeve.notification.NotificationChannelManager
+import com.guyghost.wakeve.notification.NotificationPriority
+import com.guyghost.wakeve.notification.NotificationType
+import com.guyghost.wakeve.notification.getPriority
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import java.util.UUID
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -31,8 +38,121 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import java.net.URI
+
+internal fun validateBackendHttpSuccess(
+    operation: String,
+    status: HttpStatusCode,
+    responseBody: String = ""
+): Result<Unit> {
+    return if (status.value in 200..299) {
+        Result.success(Unit)
+    } else {
+        val bodySuffix = responseBody
+            .takeIf { it.isNotBlank() }
+            ?.let { ": $it" }
+            .orEmpty()
+        Result.failure(IllegalStateException("$operation failed with status $status$bodySuffix"))
+    }
+}
+
+internal sealed interface FcmTokenRegistrationDecision {
+    data class Register(
+        val token: String,
+        val accessToken: String
+    ) : FcmTokenRegistrationDecision
+
+    data object MissingToken : FcmTokenRegistrationDecision
+    data object MissingAccessToken : FcmTokenRegistrationDecision
+}
+
+internal fun resolveFcmTokenRegistrationDecision(
+    storedToken: String?,
+    accessToken: String?
+): FcmTokenRegistrationDecision {
+    val normalizedToken = storedToken?.trim().orEmpty()
+    if (normalizedToken.isBlank()) {
+        return FcmTokenRegistrationDecision.MissingToken
+    }
+
+    val normalizedAccessToken = accessToken?.trim().orEmpty()
+    if (normalizedAccessToken.isBlank()) {
+        return FcmTokenRegistrationDecision.MissingAccessToken
+    }
+
+    return FcmTokenRegistrationDecision.Register(
+        token = normalizedToken,
+        accessToken = normalizedAccessToken
+    )
+}
+
+internal fun resolveNotificationType(data: Map<String, String>): NotificationType {
+    return data["type"]
+        ?.trim()
+        ?.uppercase()
+        ?.let { runCatching { NotificationType.valueOf(it) }.getOrNull() }
+        ?: NotificationType.EVENT_UPDATE
+}
+
+internal fun resolveNotificationChannelId(data: Map<String, String>): String {
+    return NotificationChannelManager.getChannelId(resolveNotificationType(data)).id
+}
+
+internal fun resolveNotificationPriority(data: Map<String, String>): Int {
+    return when (resolveNotificationType(data).getPriority()) {
+        NotificationPriority.LOW -> NotificationCompat.PRIORITY_LOW
+        NotificationPriority.MEDIUM -> NotificationCompat.PRIORITY_DEFAULT
+        NotificationPriority.HIGH -> NotificationCompat.PRIORITY_HIGH
+        NotificationPriority.URGENT -> NotificationCompat.PRIORITY_MAX
+    }
+}
+
+internal fun resolveNotificationDeepLink(data: Map<String, String>): String? {
+    data["deepLink"]?.trim()
+        ?.takeIf { it.isNotBlank() && isSupportedNotificationDeepLink(it) }
+        ?.let { return it }
+
+    val invitationCode = data["invitationCode"] ?: data["inviteCode"]
+    if (!invitationCode.isNullOrBlank()) {
+        return "wakeve://invite/$invitationCode"
+    }
+
+    val type = data["type"]?.uppercase().orEmpty()
+    val meetingId = data["meetingId"]
+    if (!meetingId.isNullOrBlank() && (type == "MEETING_REMINDER" || type == "MEETING_STARTING")) {
+        return "wakeve://meeting/$meetingId"
+    }
+
+    val eventId = data["eventId"] ?: return null
+    if (eventId.isBlank()) return null
+
+    return when (type) {
+        "VOTE_REMINDER",
+        "VOTE_CLOSE_REMINDER",
+        "POLL_REMINDER",
+        "DEADLINE_REMINDER" -> "wakeve://poll/$eventId"
+        else -> "wakeve://event/$eventId"
+    }
+}
+
+private fun isSupportedNotificationDeepLink(rawDeepLink: String): Boolean {
+    return try {
+        val uri = URI(rawDeepLink)
+        parseDeepLinkParts(
+            scheme = uri.scheme,
+            host = uri.host,
+            pathSegments = uri.path
+                ?.split("/")
+                ?.filter { it.isNotBlank() }
+                .orEmpty()
+        ) != null
+    } catch (e: Exception) {
+        false
+    }
+}
 
 /**
  * Firebase Cloud Messaging Service for Android.
@@ -46,9 +166,6 @@ import io.ktor.serialization.kotlinx.json.json
 class FCMService : FirebaseMessagingService() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val CHANNEL_ID = "wakeve_notifications"
-    private val CHANNEL_NAME = "Wakeve Notifications"
-    private val CHANNEL_DESCRIPTION = "Notifications for Wakeve events and updates"
 
     companion object {
         private const val TAG = "FCMService"
@@ -106,12 +223,25 @@ class FCMService : FirebaseMessagingService() {
          * @param accessToken JWT access token for authentication
          */
         fun registerStoredTokenWithBackend(context: Context, accessToken: String) {
-            val token = getStoredToken(context) ?: return
+            val decision = resolveFcmTokenRegistrationDecision(
+                storedToken = getStoredToken(context),
+                accessToken = accessToken
+            )
             val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
             scope.launch {
                 try {
-                    registerTokenWithBackendApi(token, accessToken)
-                    Log.i(TAG, "Stored FCM token registered with backend after login")
+                    when (decision) {
+                        FcmTokenRegistrationDecision.MissingToken -> {
+                            Log.i(TAG, "No stored FCM token to register after login")
+                        }
+                        FcmTokenRegistrationDecision.MissingAccessToken -> {
+                            Log.w(TAG, "Cannot register stored FCM token without access token")
+                        }
+                        is FcmTokenRegistrationDecision.Register -> {
+                            registerTokenWithBackendApi(decision.token, decision.accessToken)
+                            Log.i(TAG, "Stored FCM token registered with backend after login")
+                        }
+                    }
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to register stored token: ${e.message}", e)
                 }
@@ -128,11 +258,19 @@ class FCMService : FirebaseMessagingService() {
             scope.launch {
                 try {
                     val client = createHttpClient()
-                    val response = client.delete("${getBaseUrl()}/notifications/unregister?platform=android") {
-                        header("Authorization", "Bearer $accessToken")
+                    try {
+                        val response = client.delete("${getBaseUrl()}/notifications/unregister?platform=android") {
+                            header("Authorization", "Bearer $accessToken")
+                        }
+                        validateBackendHttpSuccess(
+                            operation = "FCM token unregistration",
+                            status = response.status,
+                            responseBody = response.bodyAsText()
+                        ).getOrThrow()
+                        Log.i(TAG, "Token unregistered from backend")
+                    } finally {
+                        client.close()
                     }
-                    Log.i(TAG, "Token unregistered from backend: ${response.status}")
-                    client.close()
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to unregister token: ${e.message}", e)
                 }
@@ -161,7 +299,12 @@ class FCMService : FirebaseMessagingService() {
                         platform = "android"
                     )))
                 }
-                Log.i(TAG, "Token registration response: ${response.status}")
+                validateBackendHttpSuccess(
+                    operation = "FCM token registration",
+                    status = response.status,
+                    responseBody = response.bodyAsText()
+                ).getOrThrow()
+                Log.i(TAG, "Token registered with backend")
             } finally {
                 client.close()
             }
@@ -179,16 +322,60 @@ class FCMService : FirebaseMessagingService() {
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         Log.d(TAG, "Received FCM message from: ${remoteMessage.from}")
 
-        // Check if message contains a data payload
-        if (remoteMessage.data.isNotEmpty()) {
-            Log.d(TAG, "Message data payload: ${remoteMessage.data}")
-            handleDataMessage(remoteMessage.data)
+        val data = remoteMessage.data
+        val notification = remoteMessage.notification
+        val title = data["title"] ?: notification?.title ?: "Wakeve"
+        val body = data["body"] ?: notification?.body ?: "Nouvelle notification"
+        val notificationId = data["notificationId"] ?: remoteMessage.messageId ?: UUID.randomUUID().toString()
+        val notificationType = resolveNotificationType(data)
+        val eventId = data["eventId"]
+        val deepLink = resolveNotificationDeepLink(data)
+
+        Log.i(TAG, "FCM payload: title=$title, body=$body, eventId=$eventId")
+
+        persistNotification(notificationId, title, body, notificationType, data)
+        showNotification(title, body, notificationId, notificationType, eventId, deepLink)
+    }
+
+    private fun persistNotification(
+        notificationId: String,
+        title: String,
+        body: String,
+        notificationType: NotificationType,
+        data: Map<String, String>
+    ) {
+        val userId = data["userId"]
+            ?: data["recipientUserId"]
+            ?: getSharedPreferences("wakeve_prefs", Context.MODE_PRIVATE).getString("user_id", null)
+
+        if (userId.isNullOrBlank()) {
+            Log.w(TAG, "Cannot persist notification $notificationId without userId")
+            return
         }
 
-        // Check if message contains a notification payload
-        remoteMessage.notification?.let {
-            Log.d(TAG, "Message notification payload: ${it.body}")
-            handleNotificationMessage(it, remoteMessage.data)
+        serviceScope.launch {
+            try {
+                val database = DatabaseProvider.getDatabase(AndroidDatabaseFactory(applicationContext))
+                val existing = database.notificationQueries.getNotificationById(notificationId).executeAsOneOrNull()
+                if (existing != null) {
+                    return@launch
+                }
+
+                val nowMs = Clock.System.now().toEpochMilliseconds()
+                database.notificationQueries.insertNotification(
+                    id = notificationId,
+                    user_id = userId,
+                    type = notificationType.name,
+                    title = title,
+                    body = body,
+                    data_ = Json.encodeToString(data),
+                    created_at = data["createdAt"]?.toLongOrNull() ?: nowMs,
+                    sent_at = data["sentAt"]?.toLongOrNull() ?: nowMs
+                )
+                Log.i(TAG, "Persisted FCM notification $notificationId for user $userId")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to persist FCM notification $notificationId: ${e.message}", e)
+            }
         }
     }
 
@@ -222,49 +409,13 @@ class FCMService : FirebaseMessagingService() {
     }
 
     /**
-     * Handle data-only messages.
-     * These are always delivered to onMessageReceived (foreground + background).
-     */
-    private fun handleDataMessage(data: Map<String, String>) {
-        val title = data["title"] ?: "Wakeve"
-        val body = data["body"] ?: "New notification"
-        val notificationId = data["notificationId"] ?: "unknown"
-        val eventId = data["eventId"]
-        val deepLink = data["deepLink"]
-
-        Log.i(TAG, "Data message: title=$title, body=$body, eventId=$eventId")
-
-        // Show notification
-        showNotification(title, body, notificationId, eventId, deepLink)
-    }
-
-    /**
-     * Handle notification messages (with title and body).
-     * In background, system shows notification automatically.
-     * In foreground, we handle it here.
-     */
-    private fun handleNotificationMessage(
-        notification: RemoteMessage.Notification,
-        data: Map<String, String>
-    ) {
-        val title = notification.title ?: "Wakeve"
-        val body = notification.body ?: "New notification"
-        val notificationId = data["notificationId"] ?: "unknown"
-        val eventId = data["eventId"]
-        val deepLink = data["deepLink"]
-
-        Log.i(TAG, "Notification message: title=$title, body=$body")
-
-        showNotification(title, body, notificationId, eventId, deepLink)
-    }
-
-    /**
      * Show a system notification with deep link intent.
      */
     private fun showNotification(
         title: String,
         body: String,
         notificationId: String,
+        notificationType: NotificationType,
         eventId: String?,
         deepLink: String? = null
     ) {
@@ -305,11 +456,11 @@ class FCMService : FirebaseMessagingService() {
         )
 
         // Build notification
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, NotificationChannelManager.getChannelId(notificationType).id)
             .setSmallIcon(com.guyghost.wakeve.R.drawable.ic_launcher_foreground)
             .setContentTitle(title)
             .setContentText(body)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(resolveNotificationPriority(mapOf("type" to notificationType.name)))
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .build()
@@ -336,22 +487,7 @@ class FCMService : FirebaseMessagingService() {
      * Create notification channel (required for Android 8.0+).
      */
     private fun createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = CHANNEL_DESCRIPTION
-                enableVibration(true)
-                enableLights(true)
-            }
-
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager.createNotificationChannel(channel)
-
-            Log.d(TAG, "Notification channel created")
-        }
+        NotificationChannelManager(this).createAllChannels()
     }
 
     /**
@@ -363,12 +499,17 @@ class FCMService : FirebaseMessagingService() {
         val accessToken = getSharedPreferences("wakeve_prefs", Context.MODE_PRIVATE)
             .getString("access_token", null)
 
-        if (accessToken == null) {
-            Log.i(TAG, "User not authenticated, storing token for later registration")
-            return
+        when (val decision = resolveFcmTokenRegistrationDecision(token, accessToken)) {
+            FcmTokenRegistrationDecision.MissingToken -> {
+                Log.w(TAG, "Cannot register blank FCM token")
+            }
+            FcmTokenRegistrationDecision.MissingAccessToken -> {
+                Log.i(TAG, "User not authenticated, storing token for later registration")
+            }
+            is FcmTokenRegistrationDecision.Register -> {
+                registerTokenWithBackendApi(decision.token, decision.accessToken)
+            }
         }
-
-        registerTokenWithBackendApi(token, accessToken)
     }
 }
 

@@ -213,6 +213,10 @@ enum class DeepLinkRoute(
         pattern = "event/{eventId}/meetings",
         description = "Event meetings screen"
     ),
+    INVITE(
+        pattern = "invite/{code}",
+        description = "Event invitation acceptance flow"
+    ),
 
     // User Routes
     PROFILE(

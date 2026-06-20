@@ -4,10 +4,16 @@ import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.ai.EventPlanningAiAssistant
 import com.guyghost.wakeve.ai.EventSummaryAiAssistant
-import com.guyghost.wakeve.ai.FakePlanningAgentClient
 import com.guyghost.wakeve.ai.OrganizerMessageAiAssistant
 import com.guyghost.wakeve.ai.PlanningAgentClient
 import com.guyghost.wakeve.ai.RuleBasedEventPlanningAiAssistant
+import com.guyghost.wakeve.ai.UnavailablePlanningAgentClient
+import com.guyghost.wakeve.gamification.BadgeEligibilityChecker
+import com.guyghost.wakeve.gamification.GamificationService
+import com.guyghost.wakeve.gamification.repository.InMemoryUserBadgesRepository
+import com.guyghost.wakeve.gamification.repository.InMemoryUserPointsRepository
+import com.guyghost.wakeve.gamification.repository.UserBadgesRepository
+import com.guyghost.wakeve.gamification.repository.UserPointsRepository
 import com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachine
 import com.guyghost.wakeve.presentation.statemachine.ScenarioManagementStateMachine
 import com.guyghost.wakeve.presentation.usecase.CreateEventUseCase
@@ -21,6 +27,7 @@ import com.guyghost.wakeve.presentation.usecase.VoteScenarioUseCase
 import com.guyghost.wakeve.viewmodel.AiWorkflowDemoViewModel
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
 import com.guyghost.wakeve.viewmodel.EventPlanningAssistantViewModel
+import com.guyghost.wakeve.viewmodel.ProfileViewModel
 import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,6 +57,33 @@ import org.koin.dsl.module
  * ```
  */
 val appModule: Module = module {
+    // ========================================================================
+    // Gamification
+    // ========================================================================
+
+    single<UserPointsRepository> {
+        InMemoryUserPointsRepository()
+    }
+
+    single<UserBadgesRepository> {
+        InMemoryUserBadgesRepository()
+    }
+
+    single {
+        BadgeEligibilityChecker(
+            userPointsRepository = get(),
+            userBadgesRepository = get()
+        )
+    }
+
+    single {
+        GamificationService(
+            userPointsRepository = get(),
+            userBadgesRepository = get(),
+            badgeEligibilityChecker = get()
+        )
+    }
+
     // ========================================================================
     // Use Cases
     // ========================================================================
@@ -215,6 +249,14 @@ val appModule: Module = module {
         ScenarioManagementViewModel(stateMachine = stateMachine)
     }
 
+    factory { (userId: String) ->
+        ProfileViewModel(
+            currentUserId = userId,
+            gamificationService = get(),
+            userBadgesRepository = get()
+        )
+    }
+
     factory {
         EventPlanningAssistantViewModel(
             assistant = getOrNull<EventPlanningAiAssistant>() ?: RuleBasedEventPlanningAiAssistant()
@@ -224,7 +266,7 @@ val appModule: Module = module {
     factory {
         val summaryAssistant = getOrNull<EventSummaryAiAssistant>()
         val messageAssistant = getOrNull<OrganizerMessageAiAssistant>()
-        val planningAgentClient = getOrNull<PlanningAgentClient>() ?: FakePlanningAgentClient()
+        val planningAgentClient = getOrNull<PlanningAgentClient>() ?: UnavailablePlanningAgentClient()
 
         if (summaryAssistant != null && messageAssistant != null) {
             AiWorkflowDemoViewModel(

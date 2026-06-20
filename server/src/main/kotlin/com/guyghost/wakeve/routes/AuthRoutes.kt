@@ -1,6 +1,8 @@
 package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.auth.AuthenticationService
+import com.guyghost.wakeve.auth.EmailOtpSender
+import com.guyghost.wakeve.auth.NoConfiguredEmailOtpSender
 import com.guyghost.wakeve.auth.OtpManager
 import com.guyghost.wakeve.models.AppleAuthRequest
 import com.guyghost.wakeve.models.AuthErrorResponse
@@ -33,7 +35,11 @@ import java.util.UUID
  * - POST /api/auth/guest - Create guest session
  * - POST /api/auth/refresh - Refresh access token
  */
-fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager = OtpManager()) {
+fun Route.authRoutes(
+    authService: AuthenticationService,
+    otpManager: OtpManager = OtpManager(),
+    emailOtpSender: EmailOtpSender = NoConfiguredEmailOtpSender
+) {
     route("/auth") {
         
         // ========== OAuth Authentication ==========
@@ -137,8 +143,28 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
                     return@post
                 }
 
-                // En production, envoyer l'email ici.
-                // Pour le développement, l'OTP est loggé par OtpManager.
+                val deliveryResult = try {
+                    emailOtpSender.sendOtp(
+                        email = request.email,
+                        otp = otp,
+                        expiresInSeconds = 300
+                    )
+                } catch (error: Throwable) {
+                    Result.failure(error)
+                }
+
+                if (deliveryResult.isFailure) {
+                    otpManager.discardOtp(request.email)
+                    call.respond(
+                        HttpStatusCode.ServiceUnavailable,
+                        AuthErrorResponse(
+                            "EMAIL_OTP_UNAVAILABLE",
+                            deliveryResult.exceptionOrNull()?.message
+                                ?: "Email OTP sender is not configured"
+                        )
+                    )
+                    return@post
+                }
 
                 call.respond(
                     HttpStatusCode.OK,

@@ -22,6 +22,9 @@ object DeepLinkStateManager {
     private val _pendingDeepLink = MutableStateFlow<Uri?>(null)
     val pendingDeepLink: StateFlow<Uri?> = _pendingDeepLink.asStateFlow()
 
+    private val _pendingInviteCode = MutableStateFlow<String?>(null)
+    val pendingInviteCode: StateFlow<String?> = _pendingInviteCode.asStateFlow()
+
     /**
      * Update the pending deep link.
      *
@@ -49,5 +52,26 @@ object DeepLinkStateManager {
      */
     fun hasPendingDeepLink(): Boolean {
         return _pendingDeepLink.value != null
+    }
+
+    /**
+     * Store an invitation code extracted from a deep link until the app can resolve and accept it.
+     */
+    fun updatePendingInviteCode(code: String) {
+        _pendingInviteCode.value = code
+    }
+
+    /**
+     * Clear the pending invitation code after it has been resolved, accepted, or explicitly dismissed.
+     */
+    fun clearPendingInviteCode() {
+        _pendingInviteCode.value = null
+    }
+
+    /**
+     * Check if there's a pending invitation code waiting for app-level processing.
+     */
+    fun hasPendingInviteCode(): Boolean {
+        return _pendingInviteCode.value != null
     }
 }

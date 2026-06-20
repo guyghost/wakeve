@@ -2,10 +2,9 @@ package com.guyghost.wakeve.file
 
 /**
  * Android implementation of DocumentPickerFactory.
- * 
- * Note: This is a stub implementation. For full functionality,
- * the document picker should be implemented in the composeApp module
- * where Activity context is available.
+ *
+ * Returns an explicit not-configured service until an Activity-backed picker
+ * is wired from the composeApp module.
  */
 actual class DocumentPickerFactory {
     
@@ -16,6 +15,6 @@ actual class DocumentPickerFactory {
     }
     
     actual fun createPickerService(): DocumentPickerService {
-        return StubDocumentPickerService()
+        return NoConfiguredDocumentPickerService
     }
 }

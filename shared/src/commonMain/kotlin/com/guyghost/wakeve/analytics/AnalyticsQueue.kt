@@ -29,6 +29,7 @@ class AnalyticsQueue {
 
     private val mutex = Mutex()
     private val maxRetries = 3
+    private var nextEventSequence = 0L
 
     /**
      * Add event to queue.
@@ -106,7 +107,8 @@ class AnalyticsQueue {
      * Generate unique event ID.
      */
     private fun generateEventId(): String {
-        return "event-${currentTimeMillis()}-${(0..9999).random()}"
+        nextEventSequence += 1
+        return "event-${currentTimeMillis()}-$nextEventSequence"
     }
 
     /**

@@ -116,6 +116,27 @@ class NotificationService(
         }
     }
 
+    suspend fun markAsReadForUser(
+        notificationId: String,
+        userId: String
+    ): Result<Unit> = withContext(Dispatchers.Default) {
+        runCatching {
+            val notification = database.notificationQueries
+                .getNotificationById(notificationId)
+                .executeAsOneOrNull()
+
+            if (notification?.user_id != userId) {
+                error("Notification not found for authenticated user")
+            }
+
+            database.notificationQueries.markAsReadForUser(
+                read_at = Clock.System.now().toEpochMilliseconds(),
+                id = notificationId,
+                user_id = userId
+            )
+        }
+    }
+
     suspend fun markAllAsRead(userId: String): Result<Unit> = withContext(Dispatchers.Default) {
         runCatching {
             database.notificationQueries.markAllAsRead(
@@ -128,6 +149,26 @@ class NotificationService(
     suspend fun deleteNotification(notificationId: String): Result<Unit> = withContext(Dispatchers.Default) {
         runCatching {
             database.notificationQueries.deleteNotification(notificationId)
+        }
+    }
+
+    suspend fun deleteNotificationForUser(
+        notificationId: String,
+        userId: String
+    ): Result<Unit> = withContext(Dispatchers.Default) {
+        runCatching {
+            val notification = database.notificationQueries
+                .getNotificationById(notificationId)
+                .executeAsOneOrNull()
+
+            if (notification?.user_id != userId) {
+                error("Notification not found for authenticated user")
+            }
+
+            database.notificationQueries.deleteNotificationForUser(
+                id = notificationId,
+                user_id = userId
+            )
         }
     }
 
@@ -192,20 +233,46 @@ interface APNsSender {
     ): Result<Unit>
 }
 
+object NoConfiguredFCMSender : FCMSender {
+    override suspend fun sendNotification(
+        token: String,
+        title: String,
+        body: String,
+        data: Map<String, String>
+    ): Result<Unit> = Result.failure(IllegalStateException("FCM sender is not configured"))
+}
+
+object NoConfiguredAPNsSender : APNsSender {
+    override suspend fun sendNotification(
+        token: String,
+        title: String,
+        body: String,
+        data: Map<String, String>
+    ): Result<Unit> = Result.failure(IllegalStateException("APNs sender is not configured"))
+}
+
+@Deprecated(
+    message = "Use NoConfiguredFCMSender in production or a deterministic test sender in tests.",
+    replaceWith = ReplaceWith("NoConfiguredFCMSender")
+)
 class MockFCMSender : FCMSender {
     override suspend fun sendNotification(
         token: String,
         title: String,
         body: String,
         data: Map<String, String>
-    ): Result<Unit> = Result.success(Unit)
+    ): Result<Unit> = NoConfiguredFCMSender.sendNotification(token, title, body, data)
 }
 
+@Deprecated(
+    message = "Use NoConfiguredAPNsSender in production or a deterministic test sender in tests.",
+    replaceWith = ReplaceWith("NoConfiguredAPNsSender")
+)
 class MockAPNsSender : APNsSender {
     override suspend fun sendNotification(
         token: String,
         title: String,
         body: String,
         data: Map<String, String>
-    ): Result<Unit> = Result.success(Unit)
+    ): Result<Unit> = NoConfiguredAPNsSender.sendNotification(token, title, body, data)
 }

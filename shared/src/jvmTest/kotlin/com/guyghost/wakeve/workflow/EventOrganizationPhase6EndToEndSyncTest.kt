@@ -8,6 +8,7 @@ import com.guyghost.wakeve.calendar.PlatformCalendarService
 import com.guyghost.wakeve.createFreshTestDatabase
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.meeting.MeetingService
+import com.guyghost.wakeve.meeting.DeterministicMeetingLinkProvider
 import com.guyghost.wakeve.models.Accommodation
 import com.guyghost.wakeve.models.AccommodationType
 import com.guyghost.wakeve.models.BookingStatus
@@ -66,7 +67,8 @@ class EventOrganizationPhase6EndToEndSyncTest {
         meetingService = MeetingService(
             database = database,
             calendarService = CalendarService(database, Phase6NoopPlatformCalendarService()),
-            notificationService = Phase6NoopNotificationService()
+            notificationService = Phase6NoopNotificationService(),
+            meetingLinkProvider = DeterministicMeetingLinkProvider()
         )
         budgetRepository = BudgetRepository(database)
         expenseRepository = ExpenseRepository(database)

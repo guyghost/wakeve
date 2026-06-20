@@ -1,5 +1,8 @@
 package com.guyghost.wakeve.navigation
 
+import android.net.Uri
+import com.guyghost.wakeve.models.EventType
+
 /**
  * Sealed class defining all navigation routes in the Wakeve Android app.
  * 
@@ -23,7 +26,29 @@ sealed class Screen(val route: String) {
     data object Onboarding : Screen("onboarding")
     
     // Event Management
-    data object EventCreation : Screen("event_creation")
+    data object EventCreation : Screen("event_creation?templateTitle={templateTitle}&templateDescription={templateDescription}&templateType={templateType}") {
+        const val baseRoute = "event_creation"
+
+        fun createRoute(
+            templateTitle: String? = null,
+            templateDescription: String? = null,
+            templateType: EventType? = null
+        ): String {
+            val params = buildList {
+                if (!templateTitle.isNullOrBlank()) {
+                    add("templateTitle=${Uri.encode(templateTitle)}")
+                }
+                if (!templateDescription.isNullOrBlank()) {
+                    add("templateDescription=${Uri.encode(templateDescription)}")
+                }
+                if (templateType != null) {
+                    add("templateType=${Uri.encode(templateType.name)}")
+                }
+            }
+
+            return if (params.isEmpty()) baseRoute else "$baseRoute?${params.joinToString("&")}"
+        }
+    }
     data object EventPlanningAssistant : Screen("event_planning_assistant")
     data object EventDetail : Screen("event/{eventId}") {
         fun createRoute(eventId: String) = "event/$eventId"

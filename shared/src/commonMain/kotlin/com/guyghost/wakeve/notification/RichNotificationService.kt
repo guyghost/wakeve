@@ -12,6 +12,24 @@ import kotlinx.serialization.json.Json
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+internal object RichNotificationDeepLinks {
+    fun event(eventId: String): String = "wakeve://event/$eventId"
+
+    fun poll(eventId: String): String = "wakeve://poll/$eventId"
+
+    fun meeting(meetingId: String): String = "wakeve://meeting/$meetingId"
+}
+
+internal object RichNotificationActionPolicy {
+    fun trustedActionsFor(category: NotificationCategory): List<NotificationAction> = when (category) {
+        NotificationCategory.MEETING_STARTING -> NotificationAction.meetingStartingActions()
+        NotificationCategory.EVENT_INVITE,
+        NotificationCategory.POLL_REMINDER,
+        NotificationCategory.SCENARIO_VOTE,
+        NotificationCategory.GENERAL -> emptyList()
+    }
+}
+
 /**
  * Service for sending rich notifications with enhanced visual and interactive capabilities.
  * Supports images, custom sounds, vibration patterns, LED colors, actions, and deep links.
@@ -110,7 +128,7 @@ class RichNotificationService(
 
     /**
      * Send an event invite notification with an image.
-     * Includes accept/decline/maybe actions.
+     * Tapping the notification opens the event flow; invite decisions stay in-app.
      *
      * @param eventId The event identifier
      * @param userId Target user identifier
@@ -138,16 +156,16 @@ class RichNotificationService(
             imageUrl(eventImageUrl)
             category(NotificationCategory.EVENT_INVITE)
             priority(RichNotificationPriority.HIGH)
-            deepLink("wakeve://events/$eventId/invite")
-            withDefaultActions()
+            deepLink(RichNotificationDeepLinks.event(eventId))
+            actions(RichNotificationActionPolicy.trustedActionsFor(NotificationCategory.EVENT_INVITE))
         }
 
         return sendRichNotification(notification)
     }
 
     /**
-     * Send a poll reminder notification with action buttons.
-     * Includes vote and view actions.
+     * Send a poll reminder notification.
+     * Tapping the notification opens the poll flow; vote mutations stay in-app.
      *
      * @param eventId The event identifier
      * @param userId Target user identifier
@@ -168,9 +186,9 @@ class RichNotificationService(
             body("You have $deadlineHours hours left to vote on the date.")
             category(NotificationCategory.POLL_REMINDER)
             priority(RichNotificationPriority.DEFAULT)
-            deepLink("wakeve://events/$eventId/poll")
+            deepLink(RichNotificationDeepLinks.poll(eventId))
             vibrationPattern(RichNotification.DEFAULT_VIBRATION_PATTERN)
-            withDefaultActions()
+            actions(RichNotificationActionPolicy.trustedActionsFor(NotificationCategory.POLL_REMINDER))
         }
 
         return sendRichNotification(notification)
@@ -207,24 +225,19 @@ class RichNotificationService(
             body(body)
             category(NotificationCategory.MEETING_STARTING)
             priority(RichNotificationPriority.HIGH)
-            deepLink("wakeve://meetings/$meetingId/join")
+            deepLink(RichNotificationDeepLinks.meeting(meetingId))
             customSound("meeting_start_alert")
             vibrationPattern(RichNotification.URGENT_VIBRATION_PATTERN)
             ledColor(RichNotification.URGENT_LED_COLOR)
-            actions(NotificationAction.meetingStartingActions())
+            actions(RichNotificationActionPolicy.trustedActionsFor(NotificationCategory.MEETING_STARTING))
         }
 
-        // Store join URL in notification data for action handling
-        return sendRichNotification(notification.copy(
-            actions = listOf(
-                NotificationAction("join", "Join Now", ActionType.JOIN_MEETING),
-                NotificationAction("snooze", "Snooze", ActionType.VOTE_MAYBE)
-            )
-        ))
+        return sendRichNotification(notification)
     }
 
     /**
-     * Send a scenario vote notification with yes/no actions.
+     * Send a scenario vote notification.
+     * Tapping the notification opens the event flow; scenario votes stay in-app.
      *
      * @param eventId The event identifier
      * @param userId Target user identifier
@@ -245,8 +258,8 @@ class RichNotificationService(
             body("$proposedBy proposed: $scenarioDescription")
             category(NotificationCategory.SCENARIO_VOTE)
             priority(RichNotificationPriority.DEFAULT)
-            deepLink("wakeve://events/$eventId/scenarios")
-            withDefaultActions()
+            deepLink(RichNotificationDeepLinks.event(eventId))
+            actions(RichNotificationActionPolicy.trustedActionsFor(NotificationCategory.SCENARIO_VOTE))
         }
 
         return sendRichNotification(notification)
@@ -424,22 +437,38 @@ interface RichAPNsSender {
     ): Result<Unit>
 }
 
-/**
- * Mock implementation of RichFCMSender for testing.
- */
+object NoConfiguredRichFCMSender : RichFCMSender {
+    override suspend fun sendRichNotification(
+        token: String,
+        notification: RichNotification
+    ): Result<Unit> = Result.failure(IllegalStateException("Rich FCM sender is not configured"))
+}
+
+object NoConfiguredRichAPNsSender : RichAPNsSender {
+    override suspend fun sendRichNotification(
+        token: String,
+        notification: RichNotification
+    ): Result<Unit> = Result.failure(IllegalStateException("Rich APNs sender is not configured"))
+}
+
+@Deprecated(
+    message = "Use NoConfiguredRichFCMSender in production or a deterministic test sender in tests.",
+    replaceWith = ReplaceWith("NoConfiguredRichFCMSender")
+)
 class MockRichFCMSender : RichFCMSender {
     override suspend fun sendRichNotification(
         token: String,
         notification: RichNotification
-    ): Result<Unit> = Result.success(Unit)
+    ): Result<Unit> = NoConfiguredRichFCMSender.sendRichNotification(token, notification)
 }
 
-/**
- * Mock implementation of RichAPNsSender for testing.
- */
+@Deprecated(
+    message = "Use NoConfiguredRichAPNsSender in production or a deterministic test sender in tests.",
+    replaceWith = ReplaceWith("NoConfiguredRichAPNsSender")
+)
 class MockRichAPNsSender : RichAPNsSender {
     override suspend fun sendRichNotification(
         token: String,
         notification: RichNotification
-    ): Result<Unit> = Result.success(Unit)
+    ): Result<Unit> = NoConfiguredRichAPNsSender.sendRichNotification(token, notification)
 }

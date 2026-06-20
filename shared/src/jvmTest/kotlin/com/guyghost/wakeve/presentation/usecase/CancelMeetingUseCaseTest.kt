@@ -4,12 +4,15 @@ import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.calendar.PlatformCalendarService
 import com.guyghost.wakeve.createFreshTestDatabase
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.meeting.DeterministicMeetingLinkProvider
 import com.guyghost.wakeve.meeting.MeetingRepository
 import com.guyghost.wakeve.meeting.MeetingService
 import com.guyghost.wakeve.meeting.MeetingStatus
 import com.guyghost.wakeve.models.EnhancedCalendarEvent
 import com.guyghost.wakeve.models.MeetingPlatform
-import com.guyghost.wakeve.notification.DefaultNotificationService
+import com.guyghost.wakeve.models.NotificationMessage
+import com.guyghost.wakeve.models.PushToken
+import com.guyghost.wakeve.notification.NotificationServiceInterface
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Clock
 import kotlin.test.BeforeTest
@@ -36,7 +39,12 @@ class CancelMeetingUseCaseTest {
     fun setUp() {
         database = createFreshTestDatabase()
         val calendarService = CalendarService(database, StubPlatformCalendarService())
-        meetingService = MeetingService(database, calendarService, DefaultNotificationService())
+        meetingService = MeetingService(
+            database = database,
+            calendarService = calendarService,
+            notificationService = StubNotificationService(),
+            meetingLinkProvider = DeterministicMeetingLinkProvider()
+        )
         useCase = CancelMeetingUseCase(
             meetingService = meetingService,
             repository = MeetingRepository(database)
@@ -187,4 +195,12 @@ private class StubPlatformCalendarService : PlatformCalendarService {
     override fun addEvent(event: EnhancedCalendarEvent): Result<Unit> = Result.success(Unit)
     override fun updateEvent(event: EnhancedCalendarEvent): Result<Unit> = Result.success(Unit)
     override fun deleteEvent(eventId: String): Result<Unit> = Result.success(Unit)
+}
+
+private class StubNotificationService : NotificationServiceInterface {
+    override suspend fun sendNotification(message: NotificationMessage): Result<Unit> = Result.success(Unit)
+    override suspend fun registerPushToken(token: PushToken): Result<Unit> = Result.success(Unit)
+    override suspend fun unregisterPushToken(userId: String, deviceId: String): Result<Unit> = Result.success(Unit)
+    override suspend fun getUnreadNotifications(userId: String): List<NotificationMessage> = emptyList()
+    override suspend fun markAsRead(notificationId: String): Result<Unit> = Result.success(Unit)
 }

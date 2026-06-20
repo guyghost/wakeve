@@ -108,6 +108,9 @@ fun createNotificationDataWithDeepLink(
                 autoJoin = additionalParams["autoJoin"] == "true"
             )
         }
+        DeepLinkRoute.INVITE -> DeepLinkFactory.createInvitationLink(
+            code = additionalParams["code"] ?: additionalParams["invitationCode"] ?: ""
+        )
         DeepLinkRoute.PROFILE -> DeepLinkFactory.createProfileLink(additionalParams["userId"])
         DeepLinkRoute.SETTINGS -> DeepLinkFactory.createNotificationPreferencesLink(
             section = additionalParams["section"]
@@ -224,6 +227,9 @@ private fun createDeepLinkForRoute(
             eventId = request.eventId ?: "",
             meetingId = additionalParams["meetingId"] ?: "",
             autoJoin = additionalParams["autoJoin"] == "true"
+        )
+        DeepLinkRoute.INVITE -> DeepLinkFactory.createInvitationLink(
+            code = additionalParams["code"] ?: additionalParams["invitationCode"] ?: ""
         )
         DeepLinkRoute.PROFILE -> DeepLinkFactory.createProfileLink(
             userId = additionalParams["userId"]

@@ -73,8 +73,8 @@ class EventPlanningAiAssistantTest {
     }
 
     @Test
-    fun `fake assistant supports unsupported device tests without platform APIs`() = runTest {
-        val assistant = FakeEventPlanningAiAssistant(
+    fun `deterministic assistant supports unsupported device tests without platform APIs`() = runTest {
+        val assistant = DeterministicEventPlanningAiAssistant(
             availability = EventPlanningAiAvailability.UNAVAILABLE
         )
 
@@ -87,7 +87,7 @@ class EventPlanningAiAssistantTest {
 
     @Test
     fun `fallback wrapper uses rule based assistant when primary is unsupported`() = runTest {
-        val primary = FakeEventPlanningAiAssistant(availability = EventPlanningAiAvailability.UNAVAILABLE)
+        val primary = DeterministicEventPlanningAiAssistant(availability = EventPlanningAiAvailability.UNAVAILABLE)
         val assistant = FallbackEventPlanningAiAssistant(
             primary = primary,
             fallback = RuleBasedEventPlanningAiAssistant(defaultYear = 2026)

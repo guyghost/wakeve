@@ -83,8 +83,11 @@ import androidx.compose.ui.unit.dp
 import com.guyghost.wakeve.models.InboxItem
 import com.guyghost.wakeve.models.InboxItemStatus
 import com.guyghost.wakeve.models.InboxItemType
+import com.guyghost.wakeve.models.NotificationMessage
+import com.guyghost.wakeve.models.NotificationType
+import com.guyghost.wakeve.notification.NotificationService
 import com.guyghost.wakeve.ui.components.StatusIndicator
-import kotlinx.coroutines.delay
+import kotlinx.datetime.Clock
 import kotlinx.coroutines.launch
 
 /**
@@ -122,6 +125,7 @@ enum class InboxFilterType(
 @Composable
 fun InboxScreen(
     userId: String,
+    notificationService: NotificationService? = null,
     onNotificationClick: (String) -> Unit,
     onBack: () -> Unit,
     onNavigateToNotifications: (() -> Unit)? = null,
@@ -168,11 +172,27 @@ fun InboxScreen(
         onUnreadCountChanged?.invoke(unreadCount)
     }
 
-    // Load sample data
-    LaunchedEffect(Unit) {
-        delay(500)
-        items.addAll(getSampleInboxItems())
+    suspend fun loadInboxItems(showRefreshing: Boolean = false) {
+        if (showRefreshing) {
+            isRefreshing = true
+        } else {
+            isLoading = true
+        }
+
+        val loadedItems = notificationService
+            ?.getNotifications(userId)
+            ?.map(NotificationMessage::toInboxItem)
+            .orEmpty()
+
+        items.clear()
+        items.addAll(loadedItems)
         isLoading = false
+        isRefreshing = false
+    }
+
+    // Load persisted inbox notifications.
+    LaunchedEffect(notificationService, userId) {
+        loadInboxItems()
     }
 
     // Available events for the filter sheet
@@ -182,25 +202,48 @@ fun InboxScreen(
 
     // Actions
     fun markAllAsRead() {
-        val updated = items.map { it.copy(isRead = true) }
-        items.clear()
-        items.addAll(updated)
+        scope.launch {
+            if (notificationService != null) {
+                notificationService.markAllAsRead(userId)
+                loadInboxItems()
+            } else {
+                val updated = items.map { it.copy(isRead = true) }
+                items.clear()
+                items.addAll(updated)
+            }
+        }
     }
 
     fun markSelectedAsRead() {
-        val updated = items.map { item ->
-            if (selectedIds.contains(item.id)) item.copy(isRead = true) else item
+        val idsToMark = selectedIds.toList()
+        scope.launch {
+            if (notificationService != null) {
+                idsToMark.forEach { notificationService.markAsRead(it) }
+                loadInboxItems()
+            } else {
+                val updated = items.map { item ->
+                    if (idsToMark.contains(item.id)) item.copy(isRead = true) else item
+                }
+                items.clear()
+                items.addAll(updated)
+            }
+            selectedIds.clear()
+            isSelectionMode = false
         }
-        items.clear()
-        items.addAll(updated)
-        selectedIds.clear()
-        isSelectionMode = false
     }
 
     fun markSelectedAsDone() {
-        items.removeAll { selectedIds.contains(it.id) }
-        selectedIds.clear()
-        isSelectionMode = false
+        val idsToDelete = selectedIds.toList()
+        scope.launch {
+            if (notificationService != null) {
+                idsToDelete.forEach { notificationService.deleteNotification(it) }
+                loadInboxItems()
+            } else {
+                items.removeAll { idsToDelete.contains(it.id) }
+            }
+            selectedIds.clear()
+            isSelectionMode = false
+        }
     }
 
     fun handleItemTap(item: InboxItem) {
@@ -212,12 +255,18 @@ fun InboxScreen(
                 selectedIds.add(item.id)
             }
         } else {
-            // Mark as read on tap
-            val index = items.indexOfFirst { it.id == item.id }
-            if (index >= 0) {
-                items[index] = items[index].copy(isRead = true)
+            scope.launch {
+                if (notificationService != null && !item.isRead) {
+                    notificationService.markAsRead(item.id)
+                    loadInboxItems()
+                } else {
+                    val index = items.indexOfFirst { it.id == item.id }
+                    if (index >= 0) {
+                        items[index] = items[index].copy(isRead = true)
+                    }
+                }
             }
-            onNotificationClick(item.id)
+            item.eventId?.let(onNotificationClick)
         }
     }
 
@@ -233,9 +282,7 @@ fun InboxScreen(
 
     fun refresh() {
         scope.launch {
-            isRefreshing = true
-            delay(1000)
-            isRefreshing = false
+            loadInboxItems(showRefreshing = true)
         }
     }
 
@@ -789,82 +836,43 @@ private fun InboxEmptyState(
     }
 }
 
-/**
- * Sample inbox items for testing.
- */
-private fun getSampleInboxItems(): List<InboxItem> = listOf(
+private fun NotificationMessage.toInboxItem(): InboxItem =
     InboxItem(
-        id = "1",
-        type = InboxItemType.EVENT_INVITATION,
-        status = InboxItemStatus.ACTION_REQUIRED,
-        title = "Week-end à la montagne",
-        subtitle = "Marie vous invite",
-        eventTitle = "Week-end ski 2024",
-        timestamp = "2026-02-24T10:30:00Z",
-        isRead = false,
-        commentCount = 3
-    ),
-    InboxItem(
-        id = "2",
-        type = InboxItemType.POLL_UPDATE,
-        status = InboxItemStatus.ACTION_REQUIRED,
-        title = "Nouveau sondage de dates disponible",
-        description = "3 créneaux proposés pour le week-end",
-        eventTitle = "Anniversaire de Paul",
-        timestamp = "2026-02-24T08:00:00Z",
-        isRead = false,
-        commentCount = 0
-    ),
-    InboxItem(
-        id = "3",
-        type = InboxItemType.VOTE_REMINDER,
-        status = InboxItemStatus.WARNING,
-        title = "N'oubliez pas de voter !",
-        description = "Le sondage se termine dans 2 jours",
-        eventTitle = "Soirée jeux",
-        timestamp = "2026-02-23T18:00:00Z",
-        isRead = false,
-        commentCount = 0
-    ),
-    InboxItem(
-        id = "4",
-        type = InboxItemType.EVENT_CONFIRMED,
-        status = InboxItemStatus.SUCCESS,
-        title = "Date confirmée : 25 février",
-        eventTitle = "Dîner d'équipe",
-        timestamp = "2026-02-23T14:00:00Z",
-        isRead = true,
-        commentCount = 5
-    ),
-    InboxItem(
-        id = "5",
-        type = InboxItemType.COMMENT_REPLY,
-        status = InboxItemStatus.INFO,
-        title = "Thomas a répondu à votre commentaire",
-        description = "\"Super idée pour le restaurant !\"",
-        eventTitle = "Dîner d'équipe",
-        timestamp = "2026-02-23T12:30:00Z",
-        isRead = true,
-        commentCount = 1
-    ),
-    InboxItem(
-        id = "6",
-        type = InboxItemType.PARTICIPANT_JOINED,
-        status = InboxItemStatus.INFO,
-        title = "Sophie a rejoint l'événement",
-        eventTitle = "Week-end ski 2024",
-        timestamp = "2026-02-22T09:00:00Z",
-        isRead = true,
-        commentCount = 0
-    ),
-    InboxItem(
-        id = "7",
-        type = InboxItemType.BUDGET_UPDATE,
-        status = InboxItemStatus.INFO,
-        title = "Budget mis à jour : 150€/personne",
-        eventTitle = "Week-end ski 2024",
-        timestamp = "2026-02-21T16:00:00Z",
-        isRead = true,
-        commentCount = 2
+        id = id,
+        type = type.toInboxType(),
+        status = type.toInboxStatus(),
+        title = title,
+        description = body,
+        eventId = data["eventId"],
+        eventTitle = data["eventTitle"],
+        timestamp = sentAt ?: Clock.System.now().toString(),
+        isRead = readAt != null,
+        commentCount = data["commentCount"]?.toIntOrNull() ?: 0,
+        metadata = data
     )
-)
+
+private fun NotificationType.toInboxType(): InboxItemType =
+    when (this) {
+        NotificationType.DEADLINE_REMINDER -> InboxItemType.VOTE_REMINDER
+        NotificationType.EVENT_UPDATE -> InboxItemType.POLL_UPDATE
+        NotificationType.VOTE_CLOSE_REMINDER -> InboxItemType.VOTE_REMINDER
+        NotificationType.EVENT_CONFIRMED -> InboxItemType.EVENT_CONFIRMED
+        NotificationType.PARTICIPANT_JOINED -> InboxItemType.PARTICIPANT_JOINED
+        NotificationType.VOTE_SUBMITTED -> InboxItemType.VOTE_SUBMITTED
+        NotificationType.COMMENT_POSTED -> InboxItemType.COMMENT_POSTED
+        NotificationType.COMMENT_REPLY -> InboxItemType.COMMENT_REPLY
+        NotificationType.MENTION -> InboxItemType.COMMENT_REPLY
+    }
+
+private fun NotificationType.toInboxStatus(): InboxItemStatus =
+    when (this) {
+        NotificationType.DEADLINE_REMINDER,
+        NotificationType.VOTE_CLOSE_REMINDER -> InboxItemStatus.WARNING
+        NotificationType.EVENT_CONFIRMED -> InboxItemStatus.SUCCESS
+        NotificationType.EVENT_UPDATE,
+        NotificationType.PARTICIPANT_JOINED,
+        NotificationType.VOTE_SUBMITTED,
+        NotificationType.COMMENT_POSTED,
+        NotificationType.COMMENT_REPLY,
+        NotificationType.MENTION -> InboxItemStatus.INFO
+    }

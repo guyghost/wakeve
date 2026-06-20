@@ -97,6 +97,22 @@ class OtpManager(
     }
 
     /**
+     * Removes a newly generated OTP when delivery fails.
+     */
+    fun discardOtp(email: String) {
+        val normalizedEmail = email.lowercase().trim()
+        otpStore.remove(normalizedEmail)
+
+        val history = requestHistory[normalizedEmail] ?: return
+        if (history.isNotEmpty()) {
+            history.removeAt(history.lastIndex)
+        }
+        if (history.isEmpty()) {
+            requestHistory.remove(normalizedEmail)
+        }
+    }
+
+    /**
      * Vérifie un OTP pour l'email donné.
      *
      * @param email L'adresse email

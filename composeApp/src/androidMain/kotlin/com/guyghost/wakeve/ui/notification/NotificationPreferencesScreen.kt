@@ -37,9 +37,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,6 +51,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.guyghost.wakeve.R
+import com.guyghost.wakeve.notification.NotificationPreferences
+import com.guyghost.wakeve.notification.NotificationService
+import com.guyghost.wakeve.notification.NotificationType
+import com.guyghost.wakeve.notification.QuietTime
+import com.guyghost.wakeve.notification.defaultNotificationPreferences
+import kotlinx.coroutines.launch
+import kotlinx.datetime.Clock
 
 // MARK: - Preference Item Data
 
@@ -57,6 +66,7 @@ data class PreferenceToggleItem(
     val label: String,
     val description: String,
     val icon: ImageVector,
+    val notificationTypes: Set<NotificationType>,
     val isEnabled: Boolean
 )
 
@@ -66,8 +76,11 @@ data class PreferenceToggleItem(
 @Composable
 fun NotificationPreferencesScreen(
     onBack: () -> Unit,
+    userId: String? = null,
+    notificationService: NotificationService? = null,
     modifier: Modifier = Modifier
 ) {
+    val scope = rememberCoroutineScope()
     val votesLabel = stringResource(R.string.votes)
     val votesDesc = stringResource(R.string.prefs_votes_desc)
     val commentsLabel = stringResource(R.string.comments)
@@ -80,58 +93,94 @@ fun NotificationPreferencesScreen(
     val deadlinesDesc = stringResource(R.string.prefs_deadlines_desc)
     val weeklyLabel = stringResource(R.string.prefs_weekly_digest)
     val weeklyDesc = stringResource(R.string.prefs_weekly_digest_desc)
-
-    var preferences by remember {
-        mutableStateOf(
-            listOf(
-                PreferenceToggleItem(
-                    id = "votes",
-                    label = votesLabel,
-                    description = votesDesc,
-                    icon = Icons.Filled.HowToVote,
-                    isEnabled = true
-                ),
-                PreferenceToggleItem(
-                    id = "comments",
-                    label = commentsLabel,
-                    description = commentsDesc,
-                    icon = Icons.Filled.ChatBubble,
-                    isEnabled = true
-                ),
-                PreferenceToggleItem(
-                    id = "status_changes",
-                    label = statusLabel,
-                    description = statusDesc,
-                    icon = Icons.Filled.SwapHoriz,
-                    isEnabled = true
-                ),
-                PreferenceToggleItem(
-                    id = "reminders",
-                    label = remindersLabel,
-                    description = remindersDesc,
-                    icon = Icons.Filled.Notifications,
-                    isEnabled = true
-                ),
-                PreferenceToggleItem(
-                    id = "deadlines",
-                    label = deadlinesLabel,
-                    description = deadlinesDesc,
-                    icon = Icons.Filled.AccessTime,
-                    isEnabled = true
-                ),
-                PreferenceToggleItem(
-                    id = "weekly_digest",
-                    label = weeklyLabel,
-                    description = weeklyDesc,
-                    icon = Icons.Filled.Newspaper,
-                    isEnabled = false
-                )
-            )
+    val preferenceDefinitions = listOf(
+        PreferenceToggleItem(
+            id = "votes",
+            label = votesLabel,
+            description = votesDesc,
+            icon = Icons.Filled.HowToVote,
+            notificationTypes = setOf(NotificationType.VOTE_REMINDER, NotificationType.VOTE_CLOSE_REMINDER),
+            isEnabled = true
+        ),
+        PreferenceToggleItem(
+            id = "comments",
+            label = commentsLabel,
+            description = commentsDesc,
+            icon = Icons.Filled.ChatBubble,
+            notificationTypes = setOf(NotificationType.NEW_COMMENT, NotificationType.COMMENT_REPLY, NotificationType.MENTION),
+            isEnabled = true
+        ),
+        PreferenceToggleItem(
+            id = "status_changes",
+            label = statusLabel,
+            description = statusDesc,
+            icon = Icons.Filled.SwapHoriz,
+            notificationTypes = setOf(NotificationType.DATE_CONFIRMED, NotificationType.NEW_SCENARIO, NotificationType.SCENARIO_SELECTED),
+            isEnabled = true
+        ),
+        PreferenceToggleItem(
+            id = "reminders",
+            label = remindersLabel,
+            description = remindersDesc,
+            icon = Icons.Filled.Notifications,
+            notificationTypes = setOf(NotificationType.EVENT_INVITE, NotificationType.MEETING_REMINDER, NotificationType.PAYMENT_DUE),
+            isEnabled = true
+        ),
+        PreferenceToggleItem(
+            id = "deadlines",
+            label = deadlinesLabel,
+            description = deadlinesDesc,
+            icon = Icons.Filled.AccessTime,
+            notificationTypes = setOf(NotificationType.DEADLINE_REMINDER),
+            isEnabled = true
+        ),
+        PreferenceToggleItem(
+            id = "weekly_digest",
+            label = weeklyLabel,
+            description = weeklyDesc,
+            icon = Icons.Filled.Newspaper,
+            notificationTypes = setOf(NotificationType.EVENT_UPDATE),
+            isEnabled = false
         )
+    )
+
+    var enabledTypes by remember(userId) {
+        mutableStateOf(defaultNotificationPreferences(userId.orEmpty()).enabledTypes)
+    }
+    var soundEnabled by remember { mutableStateOf(true) }
+    var vibrationEnabled by remember { mutableStateOf(true) }
+    var quietHoursEnabled by remember { mutableStateOf(false) }
+
+    LaunchedEffect(notificationService, userId) {
+        if (notificationService == null || userId.isNullOrBlank()) return@LaunchedEffect
+        val storedPreferences = notificationService.getPreferences(userId)
+            ?: defaultNotificationPreferences(userId)
+        enabledTypes = storedPreferences.enabledTypes
+        soundEnabled = storedPreferences.soundEnabled
+        vibrationEnabled = storedPreferences.vibrationEnabled
+        quietHoursEnabled = storedPreferences.quietHoursStart != null && storedPreferences.quietHoursEnd != null
     }
 
-    var soundEnabled by remember { mutableStateOf(true) }
-    var quietHoursEnabled by remember { mutableStateOf(false) }
+    val preferences = preferenceDefinitions.map { item ->
+        item.copy(isEnabled = item.notificationTypes.any { it in enabledTypes })
+    }
+
+    fun savePreferences() {
+        if (notificationService == null || userId.isNullOrBlank()) return
+        scope.launch {
+            notificationService.updatePreferences(
+                NotificationPreferences(
+                    userId = userId,
+                    enabledTypes = enabledTypes,
+                    quietHoursStart = if (quietHoursEnabled) QuietTime(22, 0) else null,
+                    quietHoursEnd = if (quietHoursEnabled) QuietTime(7, 0) else null,
+                    soundEnabled = soundEnabled,
+                    vibrationEnabled = vibrationEnabled,
+                    updatedAt = Clock.System.now()
+                )
+            )
+        }
+    }
 
     Scaffold(
         modifier = modifier,
@@ -153,7 +202,7 @@ fun NotificationPreferencesScreen(
                 },
                 actions = {
                     TextButton(onClick = {
-                        // TODO: Appeler l'API PUT /api/notifications/preferences
+                        savePreferences()
                     }) {
                         Text(
                             text = stringResource(R.string.prefs_save),
@@ -195,8 +244,10 @@ fun NotificationPreferencesScreen(
                         PreferenceRow(
                             item = item,
                             onToggle = { enabled ->
-                                preferences = preferences.toMutableList().also {
-                                    it[index] = item.copy(isEnabled = enabled)
+                                enabledTypes = if (enabled) {
+                                    enabledTypes + item.notificationTypes
+                                } else {
+                                    enabledTypes - item.notificationTypes
                                 }
                             }
                         )
@@ -250,6 +301,40 @@ fun NotificationPreferencesScreen(
                     Switch(
                         checked = soundEnabled,
                         onCheckedChange = { soundEnabled = it }
+                    )
+                }
+            }
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer
+                )
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Notifications,
+                        contentDescription = null,
+                        tint = if (vibrationEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(24.dp)
+                    )
+
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Text(
+                        text = stringResource(R.string.prefs_vibration),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Switch(
+                        checked = vibrationEnabled,
+                        onCheckedChange = { vibrationEnabled = it }
                     )
                 }
             }

@@ -19,17 +19,15 @@ import kotlin.coroutines.resumeWithException
 import com.guyghost.wakeve.models.FaceDetection as ModelFaceDetection
 
 /**
- * Android implementation stub of photo recognition using Google ML Kit Vision.
+ * Android implementation of photo recognition using Google ML Kit Vision.
  * 
  * Features:
  * - Local on-device processing for privacy (no cloud uploads)
  * - Face detection with bounding boxes
- * - Photo tagging placeholder
  * 
  * All processing runs locally on device per privacy requirements (photo-105).
  * 
- * Note: This is a stub implementation. Full ML Kit integration requires additional
- * dependency configuration and API setup.
+ * Note: Photo tagging requires ML Kit Image Labeling to be wired separately.
  * 
  * @see PhotoRecognitionService
  */
@@ -61,11 +59,12 @@ class AndroidPhotoRecognitionService(
      * Detects faces in the given image using ML Kit Face Detection.
      * All processing is performed locally on-device for privacy.
      * 
-     * @param image The image to analyze (accepts Bitmap or null)
+     * @param image The image to analyze (Bitmap)
      * @return List of detected faces with bounding boxes and confidence scores
      */
     override suspend fun detectFaces(image: Any?): List<ModelFaceDetection> {
-        val bitmap = image as? Bitmap ?: return emptyList()
+        val bitmap = image as? Bitmap
+            ?: throw IllegalArgumentException("Android face detection requires a Bitmap image")
         return detectFacesFromBitmap(bitmap)
     }
     
@@ -97,15 +96,8 @@ class AndroidPhotoRecognitionService(
         }
     }
     
-    /**
-     * Stub implementation - photo tagging requires additional ML Kit dependencies.
-     * 
-     * @param image The image to analyze (accepts Bitmap or null)
-     * @return Empty list (tagging not implemented in stub)
-     */
     override suspend fun tagPhoto(image: Any?): List<PhotoTag> {
-        Log.d(TAG, "Photo tagging stub - ML Kit Image Labeling not configured")
-        return emptyList()
+        throw IllegalStateException("Photo tagging is not configured")
     }
     
     /**

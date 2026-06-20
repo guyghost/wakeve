@@ -97,6 +97,7 @@ class MeetingRepository(private val database: WakeveDb) {
     
     suspend fun updateMeetingStatus(id: String, status: MeetingStatus): Result<Unit> {
         return try {
+            getMeetingById(id) ?: return Result.failure(MeetingNotFoundException(id))
             meetingQueries.updateMeetingStatus(status.name, id)
             Result.success(Unit)
         } catch (e: Exception) {
@@ -106,6 +107,7 @@ class MeetingRepository(private val database: WakeveDb) {
     
     suspend fun deleteMeeting(id: String): Result<Unit> {
         return try {
+            getMeetingById(id) ?: return Result.failure(MeetingNotFoundException(id))
             meetingQueries.deleteMeeting(id)
             Result.success(Unit)
         } catch (e: Exception) {

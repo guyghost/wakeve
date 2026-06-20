@@ -35,75 +35,69 @@ sealed class AndroidNavigationDeepLink(val route: String) {
  */
 fun parseDeepLink(uri: Uri): AndroidNavigationDeepLink? {
     return try {
-        val scheme = uri.scheme
-        val host = uri.host
-        val pathSegments = uri.pathSegments
-
-        // Handle universal links (https://wakeve.app/invite/{code})
-        if ((scheme == "https" || scheme == "http") && host == "wakeve.app") {
-            val segments = pathSegments
-            if (segments.size >= 2 && segments[0] == "invite") {
-                return AndroidNavigationDeepLink.Invite(segments[1])
-            }
-            Log.d("DeepLinkParser", "Unknown universal link path: $pathSegments")
-            return null
-        }
-
-        // Validate custom scheme
-        if (scheme != "wakeve") {
-            Log.d("DeepLinkParser", "Invalid scheme: $scheme")
-            return null
-        }
-
-        when (host) {
-            "event" -> {
-                // wakeve://event/{id}
-                val eventId = pathSegments.firstOrNull()
-                if (eventId != null) {
-                    AndroidNavigationDeepLink.EventDetail(eventId)
-                } else {
-                    Log.d("DeepLinkParser", "Missing event ID in deep link")
-                    null
-                }
-            }
-            "poll" -> {
-                // wakeve://poll/{eventId}
-                val eventId = pathSegments.firstOrNull()
-                if (eventId != null) {
-                    AndroidNavigationDeepLink.PollVoting(eventId)
-                } else {
-                    Log.d("DeepLinkParser", "Missing event ID in poll deep link")
-                    null
-                }
-            }
-            "meeting" -> {
-                // wakeve://meeting/{meetingId}
-                val meetingId = pathSegments.firstOrNull()
-                if (meetingId != null) {
-                    AndroidNavigationDeepLink.MeetingDetail(meetingId)
-                } else {
-                    Log.d("DeepLinkParser", "Missing meeting ID in deep link")
-                    null
-                }
-            }
-            "invite" -> {
-                // wakeve://invite/{token}
-                val token = pathSegments.firstOrNull()
-                if (token != null) {
-                    AndroidNavigationDeepLink.Invite(token)
-                } else {
-                    Log.d("DeepLinkParser", "Missing token in invite deep link")
-                    null
-                }
-            }
-            else -> {
-                Log.d("DeepLinkParser", "Unknown deep link host: $host")
-                null
-            }
-        }
+        parseDeepLinkParts(uri.scheme, uri.host, uri.pathSegments)
     } catch (e: Exception) {
         Log.e("DeepLinkParser", "Error parsing deep link: ${e.message}", e)
         null
+    }
+}
+
+internal fun parseDeepLinkParts(
+    scheme: String?,
+    host: String?,
+    pathSegments: List<String>
+): AndroidNavigationDeepLink? {
+    // Handle universal links (https://wakeve.app/invite/{code})
+    if ((scheme == "https" || scheme == "http") && host == "wakeve.app") {
+        if (pathSegments.size == 2 && pathSegments[0] == "invite" && pathSegments[1].isNotBlank()) {
+            return AndroidNavigationDeepLink.Invite(pathSegments[1])
+        }
+        return null
+    }
+
+    // Validate custom scheme
+    if (scheme != "wakeve") {
+        return null
+    }
+
+    return when (host) {
+        "event" -> {
+            // wakeve://event/{id}
+            val eventId = pathSegments.singleOrNull()
+            if (!eventId.isNullOrBlank()) {
+                AndroidNavigationDeepLink.EventDetail(eventId)
+            } else {
+                null
+            }
+        }
+        "poll" -> {
+            // wakeve://poll/{eventId}
+            val eventId = pathSegments.singleOrNull()
+            if (!eventId.isNullOrBlank()) {
+                AndroidNavigationDeepLink.PollVoting(eventId)
+            } else {
+                null
+            }
+        }
+        "meeting" -> {
+            // wakeve://meeting/{meetingId}
+            val meetingId = pathSegments.singleOrNull()
+            if (!meetingId.isNullOrBlank()) {
+                AndroidNavigationDeepLink.MeetingDetail(meetingId)
+            } else {
+                null
+            }
+        }
+        "invite" -> {
+            // wakeve://invite/{token}
+            val token = pathSegments.singleOrNull()
+            if (!token.isNullOrBlank()) {
+                AndroidNavigationDeepLink.Invite(token)
+            } else {
+                null
+            }
+        }
+        else -> null
     }
 }
 
@@ -282,14 +276,21 @@ class AndroidNavigationDeepLinkHandler {
      * Pending invitation code waiting to be processed.
      * After authentication, the app should check this value and accept the invitation.
      */
-    var pendingInviteCode: String? = null
-        private set
+    var pendingInviteCode: String?
+        get() = DeepLinkStateManager.pendingInviteCode.value
+        private set(value) {
+            if (value == null) {
+                DeepLinkStateManager.clearPendingInviteCode()
+            } else {
+                DeepLinkStateManager.updatePendingInviteCode(value)
+            }
+        }
 
     /**
      * Clear the pending invite code after it has been processed.
      */
     fun clearPendingInvite() {
-        pendingInviteCode = null
+        DeepLinkStateManager.clearPendingInviteCode()
         Log.d(TAG, "Cleared pending invite code")
     }
 }

@@ -141,7 +141,7 @@ class EventOrganizationPhase4TransportRoutesTest {
     }
 
     @Test
-    fun `organizer can generate and select a transport plan once readiness data exists`() = testApplication {
+    fun `organizer gets explicit conflict when transport provider is not configured`() = testApplication {
         val fixture = createFixture("generate-select", EventStatus.ORGANIZING)
         val organizerToken = createTestJwt(fixture.organizerId)
         val client = createJsonClient()
@@ -157,15 +157,10 @@ class EventOrganizationPhase4TransportRoutesTest {
             contentType(ContentType.Application.Json)
             setBody(generatePlanBody())
         }
-        assertEquals(HttpStatusCode.Created, generated.status)
 
-        val planId = generated.extractId()
-        val selected = client.post("/api/events/${fixture.eventId}/transport/plans/$planId/select") {
-            header(HttpHeaders.Authorization, "Bearer $organizerToken")
-        }
-
-        assertEquals(HttpStatusCode.OK, selected.status)
-        assertTrue(selected.bodyAsText().contains(planId))
+        assertEquals(HttpStatusCode.Conflict, generated.status)
+        val body = generated.bodyAsText()
+        assertTrue(body.contains("Transport option provider is not configured"), body)
     }
 
     @Test
@@ -539,21 +534,14 @@ class EventOrganizationPhase4TransportRoutesTest {
         val eventA = createFixture("cross-event-a", EventStatus.ORGANIZING, database)
         val eventB = createFixture("cross-event-b", EventStatus.ORGANIZING, database)
         val organizerAToken = createTestJwt(eventA.organizerId)
-        val organizerBToken = createTestJwt(eventB.organizerId)
         val client = createJsonClient()
 
         application {
             module(database)
         }
 
-        putAllDepartures(client, eventB, organizerBToken)
-        val generatedForEventB = client.post("/api/events/${eventB.eventId}/transport/plans/generate") {
-            header(HttpHeaders.Authorization, "Bearer $organizerBToken")
-            contentType(ContentType.Application.Json)
-            setBody(generatePlanBody())
-        }
-        assertEquals(HttpStatusCode.Created, generatedForEventB.status)
-        val eventBPlanId = generatedForEventB.extractId()
+        val eventBPlanId = "transport-plan-cross-event-b-existing"
+        insertTransportPlan(database, eventB.eventId, eventBPlanId)
 
         val readThroughEventA = client.get("/api/events/${eventA.eventId}/transport/plans/$eventBPlanId") {
             header(HttpHeaders.Authorization, "Bearer $organizerAToken")

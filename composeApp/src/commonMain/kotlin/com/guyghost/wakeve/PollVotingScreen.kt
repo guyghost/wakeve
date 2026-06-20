@@ -33,6 +33,11 @@ import com.guyghost.wakeve.ui.designsystem.WakeveCard
 import com.guyghost.wakeve.ui.designsystem.WakeveProgressIndicator
 import com.guyghost.wakeve.ui.designsystem.WakeveSize
 import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
+import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 data class PollVotingState(
     val eventId: String = "",
@@ -63,12 +68,12 @@ fun PollVotingScreen(
                 .padding(WakeveSpacing.md)
         ) {
             Text(
-                "Vote on Time Slots",
+                "Choisir une date",
                 style = MaterialTheme.typography.headlineLarge,
                 modifier = Modifier.padding(bottom = WakeveSpacing.sm)
             )
             Text(
-                "Event: ${event.title}",
+                event.title,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = WakeveSpacing.lg)
@@ -81,19 +86,19 @@ fun PollVotingScreen(
             ) {
                 Column {
                     Text(
-                        "Voting Deadline",
+                        "Date limite du vote",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        event.deadline,
+                        formatInstantLabel(event.deadline),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
             }
 
             Text(
-                "Proposed Time Slots",
+                "Créneaux proposés",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.padding(bottom = WakeveSpacing.sm)
             )
@@ -145,7 +150,7 @@ fun PollVotingScreen(
                     }
                 } else {
                     Text(
-                        if (state.hasVoted) "Votes submitted" else "Submit Votes",
+                        if (state.hasVoted) "Votes envoyés" else "Envoyer mes votes",
                         style = MaterialTheme.typography.labelLarge
                     )
                 }
@@ -160,6 +165,8 @@ fun TimeSlotVoteCard(
     currentVote: Vote?,
     onVoteChange: (Vote) -> Unit
 ) {
+    val slotLabel = formatTimeSlotLabel(slot)
+
     Card(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -172,36 +179,36 @@ fun TimeSlotVoteCard(
             ) {
                 Column {
                     Text(
-                        "From: ${slot.start}",
-                        style = MaterialTheme.typography.bodySmall
+                        slotLabel.date,
+                        style = MaterialTheme.typography.titleSmall
                     )
                     Text(
-                        "To: ${slot.end}",
-                        style = MaterialTheme.typography.bodySmall
+                        slotLabel.time,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 AssistChip(
                     onClick = {},
-                    label = { Text("UTC") }
+                    label = { Text(slot.timezone.ifBlank { "UTC" }) }
                 )
             }
 
-            // Vote Options
             WakeveButtonGroup {
                 VoteButton(
-                    label = "Yes",
+                    label = "Oui",
                     vote = Vote.YES,
                     isSelected = currentVote == Vote.YES,
                     onClick = { onVoteChange(Vote.YES) }
                 )
                 VoteButton(
-                    label = "Maybe",
+                    label = "Peut-être",
                     vote = Vote.MAYBE,
                     isSelected = currentVote == Vote.MAYBE,
                     onClick = { onVoteChange(Vote.MAYBE) }
                 )
                 VoteButton(
-                    label = "No",
+                    label = "Non",
                     vote = Vote.NO,
                     isSelected = currentVote == Vote.NO,
                     onClick = { onVoteChange(Vote.NO) }
@@ -230,5 +237,94 @@ fun RowScope.VoteButton(
         }
     ) {
         Text(label, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+private data class TimeSlotLabel(
+    val date: String,
+    val time: String
+)
+
+private fun formatTimeSlotLabel(slot: TimeSlot): TimeSlotLabel {
+    val timeZone = runCatching { TimeZone.of(slot.timezone.ifBlank { "UTC" }) }
+        .getOrDefault(TimeZone.UTC)
+    val start = slot.start?.toLocalDateTimeOrNull(timeZone)
+    val end = slot.end?.toLocalDateTimeOrNull(timeZone)
+
+    if (start == null && end == null) {
+        return TimeSlotLabel(
+            date = formatTimeOfDay(slot.timeOfDay),
+            time = "Horaire flexible"
+        )
+    }
+
+    val date = start ?: end
+    val dateLabel = date?.let(::formatDate) ?: "Date à confirmer"
+    val timeLabel = when {
+        start != null && end != null && start.date == end.date -> {
+            "${formatTime(start)} - ${formatTime(end)}"
+        }
+        start != null && end != null -> {
+            "Du ${formatDateTime(start)} au ${formatDateTime(end)}"
+        }
+        start != null -> "À partir de ${formatTime(start)}"
+        end != null -> "Jusqu'à ${formatTime(end)}"
+        else -> "Horaire à confirmer"
+    }
+
+    return TimeSlotLabel(date = dateLabel, time = timeLabel)
+}
+
+private fun formatInstantLabel(value: String): String {
+    return value.toLocalDateTimeOrNull(TimeZone.currentSystemDefault())
+        ?.let(::formatDateTime)
+        ?: value
+}
+
+private fun String.toLocalDateTimeOrNull(timeZone: TimeZone): LocalDateTime? {
+    return runCatching { Instant.parse(this).toLocalDateTime(timeZone) }.getOrNull()
+}
+
+private fun formatDateTime(value: LocalDateTime): String = "${formatDate(value)} à ${formatTime(value)}"
+
+private fun formatDate(value: LocalDateTime): String {
+    val day = when (value.dayOfWeek) {
+        DayOfWeek.MONDAY -> "lun."
+        DayOfWeek.TUESDAY -> "mar."
+        DayOfWeek.WEDNESDAY -> "mer."
+        DayOfWeek.THURSDAY -> "jeu."
+        DayOfWeek.FRIDAY -> "ven."
+        DayOfWeek.SATURDAY -> "sam."
+        DayOfWeek.SUNDAY -> "dim."
+    }
+    val month = when (value.monthNumber) {
+        1 -> "janv."
+        2 -> "févr."
+        3 -> "mars"
+        4 -> "avr."
+        5 -> "mai"
+        6 -> "juin"
+        7 -> "juil."
+        8 -> "août"
+        9 -> "sept."
+        10 -> "oct."
+        11 -> "nov."
+        12 -> "déc."
+        else -> value.monthNumber.toString()
+    }
+    return "$day ${value.dayOfMonth} $month ${value.year}"
+}
+
+private fun formatTime(value: LocalDateTime): String {
+    return "${value.hour.toString().padStart(2, '0')}:${value.minute.toString().padStart(2, '0')}"
+}
+
+private fun formatTimeOfDay(timeOfDay: com.guyghost.wakeve.models.TimeOfDay): String {
+    return when (timeOfDay) {
+        com.guyghost.wakeve.models.TimeOfDay.ALL_DAY -> "Toute la journée"
+        com.guyghost.wakeve.models.TimeOfDay.MORNING -> "Matin"
+        com.guyghost.wakeve.models.TimeOfDay.AFTERNOON -> "Après-midi"
+        com.guyghost.wakeve.models.TimeOfDay.EVENING -> "Soirée"
+        com.guyghost.wakeve.models.TimeOfDay.SPECIFIC -> "Horaire à préciser"
     }
 }

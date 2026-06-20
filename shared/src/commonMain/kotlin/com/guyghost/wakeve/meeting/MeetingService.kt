@@ -33,18 +33,14 @@ import kotlin.time.Duration.Companion.minutes
 class MeetingService(
     private val database: WakeveDb,
     private val calendarService: CalendarService,
-    private val notificationService: NotificationServiceInterface
+    private val notificationService: NotificationServiceInterface,
+    private val meetingLinkProvider: MeetingLinkProvider = NoConfiguredMeetingLinkProvider
 ) {
 
     private val eventQueries = database.eventQueries
     private val participantQueries = database.participantQueries
     private val syncMetadataQueries = database.syncMetadataQueries
     private val meetingRepository: MeetingRepository = MeetingRepository(database)
-
-    // Platform providers
-    private val zoomProvider = ZoomMeetingPlatformProvider()
-    private val googleMeetProvider = GoogleMeetPlatformProvider()
-    private val facetimeProvider = FaceTimePlatformProvider()
 
     /**
      * Crée une nouvelle réunion virtuelle
@@ -77,7 +73,10 @@ class MeetingService(
             val invitedParticipants = getConfirmedParticipantIds(eventId)
 
             val meetingDetails = when (platform) {
-                MeetingPlatform.ZOOM -> createZoomMeetingDetails(
+                MeetingPlatform.ZOOM,
+                MeetingPlatform.GOOGLE_MEET,
+                MeetingPlatform.FACETIME -> meetingLinkProvider.createMeeting(
+                    platform = platform,
                     title = title,
                     description = description,
                     scheduledFor = scheduledFor,
@@ -86,21 +85,6 @@ class MeetingService(
                     participantLimit = participantLimit,
                     requirePassword = requirePassword,
                     waitingRoom = waitingRoom
-                )
-                MeetingPlatform.GOOGLE_MEET -> createGoogleMeetMeetingDetails(
-                    title = title,
-                    description = description,
-                    scheduledFor = scheduledFor,
-                    duration = duration,
-                    timezone = timezone
-                )
-                MeetingPlatform.FACETIME -> createFaceTimeMeetingDetails(
-                    title = title,
-                    description = description,
-                    scheduledFor = scheduledFor,
-                    duration = duration,
-                    timezone = timezone,
-                    organizerId = organizerId
                 )
                 MeetingPlatform.TEAMS, MeetingPlatform.WEBEX ->
                     return Result.failure(Exception("Platform $platform is not supported"))
@@ -126,7 +110,7 @@ class MeetingService(
                 createdAt = Clock.System.now().toString()
             )
 
-            meetingRepository.createMeeting(meeting)
+            meetingRepository.createMeeting(meeting).getOrThrow()
             queueMeetingCreateSync(meeting, meetingDetails)
 
             scheduleMeetingReminders(
@@ -169,13 +153,13 @@ class MeetingService(
                 duration = duration
             )
 
-            meetingRepository.updateMeeting(meetingId, updates)
+            meetingRepository.updateMeeting(meetingId, updates).getOrThrow()
 
             val meeting = meetingRepository.getMeetingById(meetingId) ?: return Result.failure(Exception("Meeting $meetingId not found"))
             calendarService.updateNativeCalendarEvent(
                 eventId = meeting.eventId,
                 participantId = meeting.organizerId
-            )
+            ).getOrThrow()
 
             val updatedMeeting = meetingRepository.getMeetingById(meetingId) ?: return Result.failure(MeetingException.MeetingNotFound(meetingId))
             Result.success(toVirtualMeeting(updatedMeeting, null, "UTC"))
@@ -192,13 +176,14 @@ class MeetingService(
             val platform = meeting.platform
 
             when (platform) {
-                MeetingPlatform.ZOOM -> zoomProvider.cancelMeeting(platform, meeting.hostMeetingId)
-                MeetingPlatform.GOOGLE_MEET -> googleMeetProvider.cancelMeeting(platform, meeting.hostMeetingId)
-                MeetingPlatform.FACETIME -> facetimeProvider.cancelMeeting(platform, meeting.hostMeetingId)
-                else -> { }
+                MeetingPlatform.ZOOM,
+                MeetingPlatform.GOOGLE_MEET,
+                MeetingPlatform.FACETIME -> meetingLinkProvider.cancelMeeting(platform, meeting.hostMeetingId).getOrThrow()
+                MeetingPlatform.TEAMS,
+                MeetingPlatform.WEBEX -> { }
             }
 
-            meetingRepository.updateMeetingStatus(meetingId, com.guyghost.wakeve.meeting.MeetingStatus.CANCELLED)
+            meetingRepository.updateMeetingStatus(meetingId, com.guyghost.wakeve.meeting.MeetingStatus.CANCELLED).getOrThrow()
 
             cancelMeetingReminders(meetingId)
 
@@ -219,7 +204,7 @@ class MeetingService(
                 return Result.failure(Exception("Meeting $meetingId has already been started"))
             }
 
-            meetingRepository.updateMeetingStatus(meetingId, com.guyghost.wakeve.meeting.MeetingStatus.STARTED)
+            meetingRepository.updateMeetingStatus(meetingId, com.guyghost.wakeve.meeting.MeetingStatus.STARTED).getOrThrow()
 
             val updated = meetingRepository.getMeetingById(meetingId) ?: return Result.failure(Exception("Meeting $meetingId not found"))
             Result.success(toVirtualMeeting(updated, null, "UTC"))
@@ -237,7 +222,7 @@ class MeetingService(
                 return Result.failure(Exception("Meeting $meetingId has already ended"))
             }
 
-            meetingRepository.updateMeetingStatus(meetingId, com.guyghost.wakeve.meeting.MeetingStatus.ENDED)
+            meetingRepository.updateMeetingStatus(meetingId, com.guyghost.wakeve.meeting.MeetingStatus.ENDED).getOrThrow()
 
             val updated = meetingRepository.getMeetingById(meetingId) ?: return Result.failure(Exception("Meeting $meetingId not found"))
             Result.success(toVirtualMeeting(updated, null, "UTC"))
@@ -277,13 +262,13 @@ class MeetingService(
                     sentAt = Clock.System.now().toString(),
                     readAt = null
                 )
-                notificationService.sendNotification(notification)
+                notificationService.sendNotification(notification).getOrThrow()
             }
 
             calendarService.addToNativeCalendar(
                 eventId = meeting.eventId,
                 participantId = meeting.organizerId
-            )
+            ).getOrThrow()
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -325,56 +310,19 @@ class MeetingService(
         duration: Duration
     ): Result<MeetingLinkResponse> {
         return try {
-            val meetingLink = when (platform) {
-                MeetingPlatform.ZOOM -> zoomProvider.generateMeetingLink(
-                    platform = platform,
-                    title = title,
-                    description = description,
-                    startTime = scheduledFor,
-                    duration = duration
-                )
-                MeetingPlatform.GOOGLE_MEET -> googleMeetProvider.generateMeetingLink(
-                    platform = platform,
-                    title = title,
-                    description = description,
-                    startTime = scheduledFor,
-                    duration = duration
-                )
-                MeetingPlatform.FACETIME -> facetimeProvider.generateMeetingLink(
-                    platform = platform,
-                    title = title,
-                    description = description,
-                    startTime = scheduledFor,
-                    duration = duration
-                )
+            val response = when (platform) {
+                MeetingPlatform.ZOOM,
+                MeetingPlatform.GOOGLE_MEET,
+                MeetingPlatform.FACETIME -> meetingLinkProvider.generateMeetingLink(
+                        platform = platform,
+                        title = title,
+                        description = description,
+                        scheduledFor = scheduledFor,
+                        duration = duration
+                    )
                 else -> return Result.failure(Exception("Platform $platform is not supported"))
             }
-
-            val hostMeetingId = when (platform) {
-                MeetingPlatform.ZOOM -> zoomProvider.getHostMeetingId(meetingLink)
-                MeetingPlatform.GOOGLE_MEET -> googleMeetProvider.getHostMeetingId(meetingLink)
-                MeetingPlatform.FACETIME -> facetimeProvider.getHostMeetingId(meetingLink)
-                else -> meetingLink
-            }
-
-            val dialInNumber = when (platform) {
-                MeetingPlatform.ZOOM -> (zoomProvider as ZoomMeetingPlatformProvider).getDialInNumber()
-                else -> null
-            }
-
-            val password = when (platform) {
-                MeetingPlatform.ZOOM -> meetingLink.substringAfter("pwd=")
-                else -> null
-            }
-
-            Result.success(
-                MeetingLinkResponse(
-                    meetingId = hostMeetingId,
-                    meetingUrl = meetingLink,
-                    dialInNumber = dialInNumber,
-                    password = password
-                )
-            )
+            Result.success(response)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -412,6 +360,7 @@ class MeetingService(
     }
 
     private suspend fun cancelMeetingReminders(meetingId: String) {
+        database.meetingReminderQueries.deleteByMeetingId(meetingId)
     }
 
     private fun getConfirmedParticipantIds(eventId: String): List<String> =
@@ -430,7 +379,7 @@ class MeetingService(
             calendarService.addToNativeCalendar(
                 eventId = eventId,
                 participantId = participantId
-            )
+            ).getOrThrow()
         }
     }
 
@@ -452,94 +401,8 @@ class MeetingService(
                 sentAt = Clock.System.now().toString(),
                 readAt = null
             )
-            notificationService.sendNotification(notification)
+            notificationService.sendNotification(notification).getOrThrow()
         }
-    }
-
-    private data class MeetingDetails(
-        val url: String,
-        val hostMeetingId: String,
-        val password: String?,
-        val dialInNumber: String?,
-        val participantLimit: Int?,
-        val requirePassword: Boolean,
-        val waitingRoom: Boolean,
-        val hostKey: String?
-    )
-
-    private fun createZoomMeetingDetails(
-        title: String,
-        description: String?,
-        scheduledFor: Instant,
-        duration: Duration,
-        timezone: String,
-        participantLimit: Int?,
-        requirePassword: Boolean,
-        waitingRoom: Boolean
-    ): MeetingDetails {
-        val meetingId = (1..10).map { Random.nextInt(0, 10) }.joinToString("")
-        val password = generatePassword(6)
-        val url = "https://zoom.us/j/$meetingId?pwd=$password"
-        val dialIn = "+33 1 23 45 67 ${Random.nextInt(10, 99)}"
-        val dialInPassword = meetingId.substring(0, 6)
-        val hostKey = (1..6).map { Random.nextInt(0, 10) }.joinToString("")
-
-        return MeetingDetails(
-            url = url,
-            hostMeetingId = meetingId,
-            password = password,
-            dialInNumber = dialIn,
-            participantLimit = participantLimit,
-            requirePassword = requirePassword,
-            waitingRoom = waitingRoom,
-            hostKey = hostKey
-        )
-    }
-
-    private fun createGoogleMeetMeetingDetails(
-        title: String,
-        description: String?,
-        scheduledFor: Instant,
-        duration: Duration,
-        timezone: String
-    ): MeetingDetails {
-        val chars = "abcdefghijklmnopqrstuvwxyz"
-        val part1 = (1..3).map { chars.random() }.joinToString("")
-        val part2 = (1..3).map { chars.random() }.joinToString("")
-        val part3 = (1..4).map { chars.random() }.joinToString("")
-        val meetCode = "$part1-$part2-$part3"
-        val url = "https://meet.google.com/$meetCode"
-
-        return MeetingDetails(
-            url = url,
-            hostMeetingId = meetCode,
-            password = null,
-            dialInNumber = null,
-            participantLimit = null,
-            requirePassword = false,
-            waitingRoom = false,
-            hostKey = null
-        )
-    }
-
-    private fun createFaceTimeMeetingDetails(
-        title: String,
-        description: String?,
-        scheduledFor: Instant,
-        duration: Duration,
-        timezone: String,
-        organizerId: String
-    ): MeetingDetails {
-        return MeetingDetails(
-            url = "facetime://",
-            hostMeetingId = organizerId,
-            password = null,
-            dialInNumber = null,
-            participantLimit = null,
-            requirePassword = false,
-            waitingRoom = false,
-            hostKey = null
-        )
     }
 
     private fun toVirtualMeeting(
@@ -586,7 +449,23 @@ class MeetingService(
         }
     }
 
-    private fun notifyParticipantsMeetingCancelled(meeting: com.guyghost.wakeve.meeting.Meeting) {
+    private suspend fun notifyParticipantsMeetingCancelled(meeting: com.guyghost.wakeve.meeting.Meeting) {
+        meeting.invitedParticipants.distinct().forEach { participantId ->
+            val notification = NotificationMessage(
+                id = generateId(),
+                userId = participantId,
+                type = NotificationType.EVENT_UPDATE,
+                title = "Réunion annulée: ${meeting.title}",
+                body = "La réunion virtuelle prévue le ${formatDate(meeting.startTime)} a été annulée",
+                data = mapOf(
+                    "eventId" to meeting.eventId,
+                    "meetingId" to meeting.id
+                ),
+                sentAt = Clock.System.now().toString(),
+                readAt = null
+            )
+            notificationService.sendNotification(notification).getOrThrow()
+        }
     }
 
     private fun queueMeetingCreateSync(
@@ -647,11 +526,6 @@ class MeetingService(
     private fun formatDate(instant: Instant): String {
         val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
         return "${localDateTime.date} ${localDateTime.time}"
-    }
-
-    private fun generatePassword(length: Int): String {
-        val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        return (1..length).map { chars.random() }.joinToString("")
     }
 
     private fun generateId(): String {

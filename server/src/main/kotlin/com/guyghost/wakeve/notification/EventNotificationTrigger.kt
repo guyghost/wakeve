@@ -239,6 +239,7 @@ class EventNotificationTrigger(
                 }
 
                 // Notifier tous les participants (sauf l'organisateur qui a fait le changement)
+                val deliveryResults = mutableListOf<Result<String>>()
                 for (participantId in participants) {
                     if (participantId == event.organizerId) continue
 
@@ -255,11 +256,20 @@ class EventNotificationTrigger(
                         )
                     )
 
-                    sendWithRateLimit(request)
+                    val result = sendWithRateLimit(request)
+                    deliveryResults += result
+                    result
                         .onFailure { logger.warn("Failed to send status change notification") }
                 }
 
-                logger.info("Status change notifications sent (status={}, recipients={})", newStatus, participants.size - 1)
+                val summary = summarizeNotificationDelivery(deliveryResults)
+                logger.info(
+                    "Status change notifications processed (status={}, attempted={}, sent={}, failed={})",
+                    newStatus,
+                    summary.attempted,
+                    summary.sent,
+                    summary.failed
+                )
             } catch (e: Exception) {
                 logger.error("Error triggering status change notification", e)
             }
@@ -288,6 +298,7 @@ class EventNotificationTrigger(
                     commentPreview
                 }
 
+                val deliveryResults = mutableListOf<Result<String>>()
                 for (participantId in participants) {
                     // Ne pas notifier l'auteur du commentaire
                     if (participantId == authorId) continue
@@ -305,9 +316,19 @@ class EventNotificationTrigger(
                         )
                     )
 
-                    sendWithRateLimit(request)
+                    val result = sendWithRateLimit(request)
+                    deliveryResults += result
+                    result
                         .onFailure { logger.warn("Failed to send comment notification") }
                 }
+
+                val summary = summarizeNotificationDelivery(deliveryResults)
+                logger.info(
+                    "Comment notifications processed (attempted={}, sent={}, failed={})",
+                    summary.attempted,
+                    summary.sent,
+                    summary.failed
+                )
             } catch (e: Exception) {
                 logger.error("Error triggering comment notification", e)
             }
@@ -334,6 +355,7 @@ class EventNotificationTrigger(
                     else -> ServerLocalizer.t("notification.deadline.time_days", locale, hoursRemaining / 24)
                 }
 
+                val deliveryResults = mutableListOf<Result<String>>()
                 for (participantId in participants) {
                     val request = NotificationRequest(
                         userId = participantId,
@@ -347,14 +369,39 @@ class EventNotificationTrigger(
                         )
                     )
 
-                    sendWithRateLimit(request)
+                    val result = sendWithRateLimit(request)
+                    deliveryResults += result
+                    result
                         .onFailure { logger.warn("Failed to send deadline reminder") }
                 }
 
-                logger.info("Deadline reminders sent (recipients={}, hoursRemaining={})", participants.size, hoursRemaining)
+                val summary = summarizeNotificationDelivery(deliveryResults)
+                logger.info(
+                    "Deadline reminders processed (attempted={}, sent={}, failed={}, hoursRemaining={})",
+                    summary.attempted,
+                    summary.sent,
+                    summary.failed,
+                    hoursRemaining
+                )
             } catch (e: Exception) {
                 logger.error("Error triggering deadline notification", e)
             }
         }
     }
+}
+
+internal data class NotificationDeliverySummary(
+    val attempted: Int,
+    val sent: Int,
+    val failed: Int
+)
+
+internal fun summarizeNotificationDelivery(results: List<Result<String>>): NotificationDeliverySummary {
+    val sent = results.count { it.isSuccess }
+    val failed = results.count { it.isFailure }
+    return NotificationDeliverySummary(
+        attempted = results.size,
+        sent = sent,
+        failed = failed
+    )
 }

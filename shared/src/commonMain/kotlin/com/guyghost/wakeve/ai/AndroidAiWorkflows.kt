@@ -219,6 +219,19 @@ interface AiTextGenerationClient {
     ): AiTextGenerationResult
 }
 
+class UnavailableAiTextGenerationClient(
+    private val reason: String = "AI text generation client is not configured."
+) : AiTextGenerationClient {
+    override suspend fun availability(): AiModelAvailability = AiModelAvailability.UNAVAILABLE
+
+    override suspend fun generateText(
+        prompt: String,
+        config: AiTextGenerationConfig
+    ): AiTextGenerationResult {
+        error(reason)
+    }
+}
+
 interface EventSummaryAiAssistant {
     suspend fun availability(): AiModelAvailability
 
@@ -253,6 +266,30 @@ interface PlanningAgentClient {
         requestId: String,
         accepted: Boolean
     ): PlanningAgentEvent
+}
+
+class UnavailablePlanningAgentClient(
+    private val reason: String = "Planning agent is not configured on this build."
+) : PlanningAgentClient {
+    override fun startSession(context: EventPlanningPromptContext): Flow<PlanningAgentEvent> = flow {
+        emit(
+            PlanningAgentEvent.SessionStarted(
+                PlanningAgentSession(
+                    id = "unavailable-${context.eventId ?: context.title.slug()}",
+                    eventId = context.eventId,
+                    title = context.title,
+                    status = PlanningAgentSessionStatus.FAILED
+                )
+            )
+        )
+        emit(PlanningAgentEvent.Failed(reason))
+    }
+
+    override suspend fun submitConfirmation(
+        sessionId: String,
+        requestId: String,
+        accepted: Boolean
+    ): PlanningAgentEvent = PlanningAgentEvent.Failed(reason)
 }
 
 class OnDeviceEventSummaryAiAssistant(
@@ -459,87 +496,28 @@ class HybridOrganizerMessageAiAssistant(
     }
 }
 
+@Deprecated(
+    message = "Use UnavailablePlanningAgentClient in production or DeterministicPlanningAgentClient in tests.",
+    replaceWith = ReplaceWith("UnavailablePlanningAgentClient()")
+)
 class FakePlanningAgentClient : PlanningAgentClient {
+    private val delegate = UnavailablePlanningAgentClient("Planning agent test fake is not available in production.")
+
     override fun startSession(context: EventPlanningPromptContext): Flow<PlanningAgentEvent> = flow {
-        val session = PlanningAgentSession(
-            id = "fake-agent-${context.eventId ?: context.title.slug()}",
-            eventId = context.eventId,
-            title = context.title,
-            status = PlanningAgentSessionStatus.RUNNING
-        )
-        emit(PlanningAgentEvent.SessionStarted(session))
-        emit(PlanningAgentEvent.Progress("Reading event context", step = 1, totalSteps = 5))
-        emit(
-            PlanningAgentEvent.SuggestedPlan(
-                title = "Suggested event plan",
-                items = listOf(
-                    "Confirm dates and destination",
-                    "Lock participant count",
-                    "Prepare logistics checklist"
-                )
-            )
-        )
-        emit(PlanningAgentEvent.Progress("Splitting participant tasks", step = 2, totalSteps = 5))
-        emit(
-            PlanningAgentEvent.ParticipantTasksSuggested(
-                tasks = buildTaskSuggestions(context)
-            )
-        )
-        emit(PlanningAgentEvent.Progress("Proposing budget categories", step = 3, totalSteps = 5))
-        emit(
-            PlanningAgentEvent.BudgetCategoriesSuggested(
-                categories = listOf(
-                    BudgetCategorySuggestion("Transport", "Train, fuel, parking, or rideshare costs"),
-                    BudgetCategorySuggestion("Lodging", "Shared accommodation and deposits"),
-                    BudgetCategorySuggestion("Food", "Groceries, restaurant, and drinks"),
-                    BudgetCategorySuggestion("Activities", "Bookings, tickets, and equipment")
-                )
-            )
-        )
-        emit(PlanningAgentEvent.Progress("Checking missing logistics", step = 4, totalSteps = 5))
-        emit(
-            PlanningAgentEvent.MissingLogisticsIdentified(
-                items = context.missingInformationLabels().ifEmpty {
-                    listOf("Arrival times", "Accommodation address", "Emergency contact")
-                }
-            )
-        )
-        emit(
-            PlanningAgentEvent.ConfirmationRequested(
-                PlanningAgentConfirmationRequest(
-                    id = "confirm-budget-categories",
-                    title = "Apply budget categories",
-                    description = "Use transport, lodging, food, and activities as draft budget categories.",
-                    confirmLabel = "Apply",
-                    dismissLabel = "Skip"
-                )
-            )
-        )
-        emit(PlanningAgentEvent.Progress("Preparing final review", step = 5, totalSteps = 5))
-        emit(PlanningAgentEvent.Completed("Planning draft is ready for organizer review."))
+        delegate.startSession(context).collect { emit(it) }
     }
 
     override suspend fun submitConfirmation(
         sessionId: String,
         requestId: String,
         accepted: Boolean
-    ): PlanningAgentEvent = PlanningAgentEvent.ConfirmationResolved(
-        requestId = requestId,
-        accepted = accepted
-    )
-
-    private fun buildTaskSuggestions(context: EventPlanningPromptContext): List<ParticipantTaskSuggestion> {
-        val names = context.participants.ifEmpty { listOf("Organizer", "Participant 1", "Participant 2") }
-        val tasks = listOf("Confirm transport", "Check lodging", "Coordinate food")
-        return tasks.mapIndexed { index, task ->
-            ParticipantTaskSuggestion(
-                participantName = names[index % names.size],
-                task = task
-            )
-        }
-    }
+    ): PlanningAgentEvent = delegate.submitConfirmation(sessionId, requestId, accepted)
 }
 
+@Deprecated(
+    message = "Use UnavailableAiTextGenerationClient in production or DeterministicAiTextGenerationClient in tests.",
+    replaceWith = ReplaceWith("UnavailableAiTextGenerationClient()")
+)
 class FakeAiTextGenerationClient(
     private val availability: AiModelAvailability = AiModelAvailability.AVAILABLE,
     private val response: String,
@@ -553,23 +531,13 @@ class FakeAiTextGenerationClient(
     var lastPrompt: String? = null
         private set
 
-    override suspend fun availability(): AiModelAvailability = availability
+    override suspend fun availability(): AiModelAvailability = AiModelAvailability.UNAVAILABLE
 
     override suspend fun generateText(
         prompt: String,
         config: AiTextGenerationConfig
     ): AiTextGenerationResult {
-        generateCallCount += 1
-        lastPrompt = prompt
-        return AiTextGenerationResult(
-            text = response,
-            routing = AiRoutingMetadata(
-                route = route,
-                providerName = providerName,
-                modelName = modelName,
-                cloudUsed = route == AiInferenceRoute.CLOUD_FIREBASE_AI_LOGIC
-            )
-        )
+        error("AI text generation test fake is not available in production.")
     }
 }
 

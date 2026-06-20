@@ -592,6 +592,7 @@
     <string name="prefs_weekly_digest_desc">Ricevi un riepilogo ogni lunedì</string>
     <string name="prefs_general">Generale</string>
     <string name="prefs_sound">Suono</string>
+    <string name="prefs_vibration">Vibrazione</string>
     <string name="prefs_do_not_disturb">Non disturbare</string>
     <string name="prefs_quiet_hours">Ore silenziose</string>
     <string name="prefs_quiet_hours_desc">Le notifiche verranno silenziate durante questo periodo.</string>
