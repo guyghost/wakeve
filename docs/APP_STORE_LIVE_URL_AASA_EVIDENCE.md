@@ -81,17 +81,16 @@ Latest capture command:
 ./scripts/capture-app-store-live-url-aasa.sh --allow-failures --timeout 12
 ```
 
-Result on 2026-06-21 local time, capture timestamp 2026-06-20T22:02:42Z: `FAIL. 16 required live URL/AASA checks failed or could not be validated.`
+Result on 2026-06-21 local time, capture timestamp 2026-06-20T22:15:31Z: `FAIL. 16 required live URL/AASA checks failed or could not be validated.`
 
 Generated capture report:
 
+- `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-15-31Z.md`
 - `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-02-42Z.md`
 - `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-55-13Z.md`
-- `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md`
-- `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T19-28-38Z.md`
 - Apple Team ID was unset, so AASA app ID validation cannot pass even after the web host is live.
 - `dig +short wakeve.app` returned no answer.
-- `dig +short api.wakeve.app` returned `172.67.156.46` and `104.21.48.204`.
+- `dig +short api.wakeve.app` returned `104.21.48.204` and `172.67.156.46`.
 - `curl -I --max-time 12 https://api.wakeve.app/health` reached Cloudflare and returned HTTP `405` for HEAD.
 - `curl --max-time 12 -i https://api.wakeve.app/health` reached Cloudflare and returned HTTP `200 OK`.
 - All required `wakeve.app` legal pages, dashboard shell routes, legacy redirects, and AASA URLs failed with `curl: (6) Could not resolve host: wakeve.app`.
