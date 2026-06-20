@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$PROJECT_DIR/scripts/lib/report-sanitization.sh"
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_DIR/docs/product}"
 APP_ID="${ANDROID_APP_ID:-com.guyghost.wakeve}"
 TIMESTAMP="$(date -u +"%Y-%m-%dT%H-%M-%SZ")"
@@ -11,7 +12,7 @@ ASSET_DIR="$OUTPUT_DIR/android-event-workspace-device-audit-assets-$TIMESTAMP"
 mkdir -p "$OUTPUT_DIR"
 
 sanitize_report() {
-    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$REPORT"
+    sanitize_report_file "$REPORT"
 }
 
 if command -v adb >/dev/null 2>&1; then

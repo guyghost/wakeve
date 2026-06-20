@@ -340,6 +340,7 @@ Preuves du 2026-06-20:
 - Preparation audit device Android: `./scripts/prepare-android-event-workspace-device-audit.sh` genere un template d'evidence pour le parcours creation -> invitation -> vote -> date confirmee -> jour J et marque explicitement que ce template ne ferme pas P2.1 sans execution sur device/emulateur avec screenshots, TalkBack, font scaling et back navigation.
 - Preparation audit device Android renforcee: le meme helper pre-remplit maintenant `ANDROID_SERIAL`, modele/API Android, package `com.guyghost.wakeve`, metadata du package installe si disponible, repertoire d'assets et commandes `adb` de capture screenshot/screenrecord. Le gate critique bloque la regression de ces champs, mais l'item P2.1 reste ouvert tant que le parcours n'est pas execute sur device/emulateur.
 - Durcissement audit device Android: le helper normalise les rapports generes et masque les chemins absolus locaux avant commit; le gate critique execute le helper dans un chemin projet pour bloquer les regressions de CR, espaces finaux ou chemins `$HOME`.
+- Maintenance gates release: la normalisation commit-safe des rapports d'evidence est centralisee dans `scripts/lib/report-sanitization.sh`, afin que les helpers AS-08/AS-11/AS-14, iOS, Android, WeatherKit, WakeveAI et performance partagent la meme regle.
 
 #### 2.2 Observabilite et performance
 

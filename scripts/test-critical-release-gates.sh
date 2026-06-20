@@ -657,13 +657,15 @@ assert_live_url_aasa_blocker_evidence() {
     local capture="$PROJECT_DIR/docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T22-15-31Z.md"
     local blocker_register="$PROJECT_DIR/docs/APP_STORE_BLOCKER_REGISTER.md"
     local capture_script="$PROJECT_DIR/scripts/capture-app-store-live-url-aasa.sh"
+    local sanitizer="$PROJECT_DIR/scripts/lib/report-sanitization.sh"
 
     if ! grep -Fxq 'APP_STORE_LIVE_URL_AASA_EVIDENCE_COMPLETE=false' "$evidence"; then
         echo "FAIL: live URL/AASA evidence marker must stay false until public wakeve.app and AASA checks pass" >&2
         exit 1
     fi
 
-    if ! grep -Fq "perl -pi -e 's/\\r//g; s/[ \\t]+$//'" "$capture_script"; then
+    if ! grep -Fq 'sanitize_report_file "$report"' "$capture_script" \
+        || ! grep -Fq 's/\r//g; s/[ \t]+$//' "$sanitizer"; then
         echo "FAIL: live URL/AASA capture script must normalize trailing whitespace before reports are committed" >&2
         exit 1
     fi

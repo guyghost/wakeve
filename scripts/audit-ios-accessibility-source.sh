@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$PROJECT_DIR/scripts/lib/report-sanitization.sh"
 OUTPUT_DIR="$PROJECT_DIR/docs/a11y"
 FAIL_ON_FINDINGS=false
 
@@ -53,7 +54,7 @@ mkdir -p "$TMP_DIR"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 sanitize_report() {
-    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$REPORT"
+    sanitize_report_file "$REPORT"
 }
 
 SOURCE_ROOT="$PROJECT_DIR/iosApp/src"

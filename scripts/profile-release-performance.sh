@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$PROJECT_DIR/scripts/lib/report-sanitization.sh"
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_DIR/docs/performance}"
 RUN_DIR="${TMPDIR:-/tmp}/wakeve-performance-profile-$$"
 RUNS="${RUNS:-5}"
@@ -112,7 +113,7 @@ markdown_escape() {
 }
 
 sanitize_report() {
-    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$REPORT"
+    sanitize_report_file "$REPORT"
 }
 
 append_numeric_summary() {

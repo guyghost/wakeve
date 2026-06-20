@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$PROJECT_DIR/scripts/lib/report-sanitization.sh"
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_DIR/docs/app-store-dsa}"
 TIMESTAMP="$(date -u +"%Y-%m-%dT%H-%M-%SZ")"
 REPORT="$OUTPUT_DIR/dsa-trader-status-$TIMESTAMP.md"
@@ -9,7 +10,7 @@ REPORT="$OUTPUT_DIR/dsa-trader-status-$TIMESTAMP.md"
 mkdir -p "$OUTPUT_DIR"
 
 sanitize_report() {
-    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$REPORT"
+    sanitize_report_file "$REPORT"
 }
 
 dsa_file="$PROJECT_DIR/docs/APP_STORE_DSA_TRADER_STATUS.md"
