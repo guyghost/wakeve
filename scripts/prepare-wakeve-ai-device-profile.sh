@@ -10,6 +10,10 @@ TEAM_ID_VALUE="${TEAM_ID:-${APPLE_TEAM_ID:-}}"
 
 mkdir -p "$OUTPUT_DIR"
 
+sanitize_report() {
+    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$REPORT"
+}
+
 device_list="$(xcrun devicectl list devices 2>&1 || true)"
 xctrace_devices="$(xcrun xctrace list devices 2>&1 || true)"
 codesigning_identities="$(security find-identity -v -p codesigning 2>&1 || true)"
@@ -179,5 +183,7 @@ Do not mark \`6.6\` complete if any of these are true:
 - Latency is measured without cancellation and memory evidence.
 - Logs contain personal prompt text, generated content, participant names, votes, addresses, or prices.
 EOF
+
+sanitize_report
 
 echo "$REPORT"
