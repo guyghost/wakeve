@@ -16,8 +16,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.Comment
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -29,7 +30,6 @@ import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.ShoppingBag
-import androidx.compose.material.icons.outlined.Comment
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -37,6 +37,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FloatingActionButton
@@ -132,10 +133,10 @@ fun BudgetDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Détails du budget") },
+                title = { Text(budgetDetailTitle()) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, budgetDetailBackContentDescription())
                     }
                 },
                 actions = {
@@ -146,8 +147,8 @@ fun BudgetDetailScreen(
                         }) {
                             Box {
                                 Icon(
-                                    Icons.Outlined.Comment,
-                                    contentDescription = if (commentCount == 0) "Aucun commentaire" else "$commentCount commentaires"
+                                    Icons.AutoMirrored.Outlined.Comment,
+                                    contentDescription = budgetCommentContentDescription(commentCount)
                                 )
                                 if (commentCount > 0) {
                                     Box(
@@ -179,7 +180,7 @@ fun BudgetDetailScreen(
                 FloatingActionButton(
                     onClick = { showAddItemDialog = true }
                 ) {
-                    Icon(Icons.Default.Add, "Ajouter un item")
+                    Icon(Icons.Default.Add, budgetAddItemContentDescription())
                 }
             }
         }
@@ -223,7 +224,7 @@ fun BudgetDetailScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = if (items.isEmpty()) "Aucun item de budget" else "Aucun item correspondant aux filtres",
+                            text = budgetDetailEmptyMessage(items.isEmpty()),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -238,6 +239,7 @@ fun BudgetDetailScreen(
                     items(filteredItems, key = { it.id }) { item ->
                         BudgetItemCard(
                             item = item,
+                            currentUserId = currentUserId,
                             canMutateBudget = canMutateBudget,
                             onEdit = { if (canMutateBudget) itemToEdit = item },
                             onDelete = { if (canMutateBudget) itemToDelete = item },
@@ -289,8 +291,8 @@ fun BudgetDetailScreen(
         itemToDelete?.takeIf { canMutateBudget }?.let { item ->
             AlertDialog(
                 onDismissRequest = { itemToDelete = null },
-                title = { Text("Supprimer l'item ?") },
-                text = { Text("Voulez-vous vraiment supprimer '${item.name}' ?") },
+                title = { Text(budgetDeleteItemTitle()) },
+                text = { Text(budgetDeleteItemMessage(item.name)) },
                 confirmButton = {
                     TextButton(
                         onClick = {
@@ -299,12 +301,12 @@ fun BudgetDetailScreen(
                             loadData()
                         }
                     ) {
-                        Text("Supprimer", color = MaterialTheme.colorScheme.error)
+                        Text(budgetDeleteActionLabel(), color = MaterialTheme.colorScheme.error)
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { itemToDelete = null }) {
-                        Text("Annuler")
+                        Text(budgetCancelActionLabel())
                     }
                 }
             )
@@ -327,7 +329,7 @@ private fun BudgetSummaryHeader(budget: Budget) {
         ) {
             Column {
                 Text(
-                    text = "Total",
+                    text = budgetDetailTotalLabel(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
@@ -342,7 +344,7 @@ private fun BudgetSummaryHeader(budget: Budget) {
             if (budget.isOverBudget) {
                 AssistChip(
                     onClick = {},
-                    label = { Text("⚠️ Dépassement") },
+                    label = { Text(budgetDetailOverBudgetLabel()) },
                     colors = AssistChipDefaults.assistChipColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer,
                         labelColor = MaterialTheme.colorScheme.onErrorContainer
@@ -370,7 +372,7 @@ private fun BudgetFiltersRow(
         // Category filters
         item {
             Text(
-                text = "Catégories",
+                text = budgetCategoryFilterTitle(),
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -384,7 +386,7 @@ private fun BudgetFiltersRow(
                 FilterChip(
                     selected = selectedCategory == null,
                     onClick = { onCategorySelected(null) },
-                    label = { Text("Toutes") }
+                    label = { Text(budgetAllCategoriesLabel()) }
                 )
                 
                 BudgetCategory.values().forEach { category ->
@@ -394,9 +396,7 @@ private fun BudgetFiltersRow(
                             onCategorySelected(if (selectedCategory == category) null else category)
                         },
                         label = { 
-                            Text(
-                                category.name.lowercase().replaceFirstChar { it.uppercase() }
-                            )
+                            Text(budgetCategoryLabel(category))
                         }
                     )
                 }
@@ -406,7 +406,7 @@ private fun BudgetFiltersRow(
         // Payment status filters
         item {
             Text(
-                text = "Statut",
+                text = budgetStatusFilterTitle(),
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
@@ -419,7 +419,7 @@ private fun BudgetFiltersRow(
                 FilterChip(
                     selected = showPaidOnly,
                     onClick = { onPaidFilterChanged(!showPaidOnly) },
-                    label = { Text("Payés") },
+                    label = { Text(budgetPaidFilterLabel()) },
                     leadingIcon = if (showPaidOnly) {
                         { Icon(Icons.Default.CheckCircle, null) }
                     } else null
@@ -428,7 +428,7 @@ private fun BudgetFiltersRow(
                 FilterChip(
                     selected = showUnpaidOnly,
                     onClick = { onUnpaidFilterChanged(!showUnpaidOnly) },
-                    label = { Text("Non payés") },
+                    label = { Text(budgetUnpaidFilterLabel()) },
                     leadingIcon = if (showUnpaidOnly) {
                         { Icon(Icons.Default.Schedule, null) }
                     } else null
@@ -441,6 +441,7 @@ private fun BudgetFiltersRow(
 @Composable
 private fun BudgetItemCard(
     item: BudgetItem,
+    currentUserId: String,
     canMutateBudget: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -508,7 +509,7 @@ private fun BudgetItemCard(
                     if (item.isPaid) {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Payé",
+                            contentDescription = budgetItemPaidContentDescription(),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -519,14 +520,14 @@ private fun BudgetItemCard(
             // Participants
             if (item.sharedBy.isNotEmpty()) {
                 Text(
-                    text = "Partagé par ${item.sharedBy.size} participant${if (item.sharedBy.size > 1) "s" else ""}",
+                    text = budgetSharedByLabel(item.sharedBy.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
                 if (item.isPaid && item.paidBy != null) {
                     Text(
-                        text = "Payé par ${item.paidBy}",
+                        text = budgetPaidByLabel(item.paidBy, currentUserId),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -535,7 +536,7 @@ private fun BudgetItemCard(
             
             // Cost per person
             Text(
-                text = "%.2f € / personne".format(item.costPerPerson),
+                text = budgetCostPerPersonLabel(item.costPerPerson),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -547,7 +548,7 @@ private fun BudgetItemCard(
                 if (canMutateBudget && !item.isPaid) {
                     AssistChip(
                         onClick = onMarkPaid,
-                        label = { Text("Marquer payé") },
+                        label = { Text(budgetMarkPaidActionLabel()) },
                         leadingIcon = { Icon(Icons.Default.CheckCircle, null) }
                     )
                 }
@@ -555,13 +556,13 @@ private fun BudgetItemCard(
                 if (canMutateBudget) {
                     AssistChip(
                         onClick = onEdit,
-                        label = { Text("Modifier") },
+                        label = { Text(budgetEditActionLabel()) },
                         leadingIcon = { Icon(Icons.Default.Edit, null) }
                     )
 
                     AssistChip(
                         onClick = onDelete,
-                        label = { Text("Supprimer") },
+                        label = { Text(budgetDeleteActionLabel()) },
                         leadingIcon = { Icon(Icons.Default.Delete, null) },
                         colors = AssistChipDefaults.assistChipColors(
                             labelColor = MaterialTheme.colorScheme.error
@@ -591,7 +592,7 @@ fun BudgetItemDialog(
     
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (existingItem == null) "Ajouter un item" else "Modifier l'item") },
+        title = { Text(budgetItemDialogTitle(isNewItem = existingItem == null)) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -599,7 +600,7 @@ fun BudgetItemDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nom") },
+                    label = { Text(budgetItemNameLabel()) },
                     modifier = Modifier.fillMaxWidth(),
                     isError = errorMessage != null && name.isBlank()
                 )
@@ -607,14 +608,14 @@ fun BudgetItemDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description") },
+                    label = { Text(budgetItemDescriptionLabel()) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 
                 OutlinedTextField(
                     value = estimatedCost,
                     onValueChange = { estimatedCost = it },
-                    label = { Text("Coût estimé (€)") },
+                    label = { Text(budgetItemEstimatedCostLabel()) },
                     modifier = Modifier.fillMaxWidth(),
                     isError = errorMessage != null && estimatedCost.toDoubleOrNull() == null
                 )
@@ -627,16 +628,19 @@ fun BudgetItemDialog(
                     onExpandedChange = { expanded = !expanded }
                 ) {
                     OutlinedTextField(
-                        value = selectedCategory.name.lowercase().replaceFirstChar { it.uppercase() },
+                        value = budgetCategoryLabel(selectedCategory),
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Catégorie") },
+                        label = { Text(budgetItemCategoryLabel()) },
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor()
+                            .menuAnchor(
+                                type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                                enabled = true
+                            )
                     )
                     
                     ExposedDropdownMenu(
@@ -645,7 +649,7 @@ fun BudgetItemDialog(
                     ) {
                         BudgetCategory.values().forEach { category ->
                             DropdownMenuItem(
-                                text = { Text(category.name.lowercase().replaceFirstChar { it.uppercase() }) },
+                                text = { Text(budgetCategoryLabel(category)) },
                                 onClick = {
                                     selectedCategory = category
                                     expanded = false
@@ -669,13 +673,13 @@ fun BudgetItemDialog(
                 onClick = {
                     // Validation
                     if (name.isBlank()) {
-                        errorMessage = "Le nom est requis"
+                        errorMessage = budgetItemMissingNameMessage()
                         return@TextButton
                     }
                     
                     val cost = estimatedCost.toDoubleOrNull()
                     if (cost == null || cost < 0) {
-                        errorMessage = "Le coût doit être un nombre positif"
+                        errorMessage = budgetItemInvalidCostMessage()
                         return@TextButton
                     }
                     
@@ -708,17 +712,94 @@ fun BudgetItemDialog(
                     }
                 }
             ) {
-                Text(if (existingItem == null) "Ajouter" else "Modifier")
+                Text(budgetItemDialogConfirmLabel(isNewItem = existingItem == null))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler")
+                Text(budgetCancelActionLabel())
             }
         }
     )
 }
 
+internal fun budgetDetailTitle(): String = "Détails du budget"
+
+internal fun budgetDetailBackContentDescription(): String = "Retour"
+
+internal fun budgetCommentContentDescription(commentCount: Int): String =
+    if (commentCount <= 0) "Aucun commentaire budget" else "$commentCount commentaire${if (commentCount > 1) "s" else ""} budget"
+
+internal fun budgetAddItemContentDescription(): String = "Ajouter une dépense"
+
+internal fun budgetDetailEmptyMessage(noItems: Boolean): String =
+    if (noItems) "Aucune dépense enregistrée" else "Aucune dépense ne correspond aux filtres"
+
+internal fun budgetDeleteItemTitle(): String = "Supprimer la dépense ?"
+
+internal fun budgetDeleteItemMessage(itemName: String): String =
+    "Supprimer \"$itemName\" du budget ? Cette action ne supprime pas les remboursements déjà notés ailleurs."
+
+internal fun budgetDeleteActionLabel(): String = "Supprimer"
+
+internal fun budgetCancelActionLabel(): String = "Annuler"
+
+internal fun budgetDetailTotalLabel(): String = "Total"
+
+internal fun budgetDetailOverBudgetLabel(): String = "Dépassement de budget"
+
+internal fun budgetCategoryFilterTitle(): String = "Catégories"
+
+internal fun budgetAllCategoriesLabel(): String = "Toutes"
+
+internal fun budgetStatusFilterTitle(): String = "Statut"
+
+internal fun budgetPaidFilterLabel(): String = "Payées"
+
+internal fun budgetUnpaidFilterLabel(): String = "À payer"
+
+internal fun budgetCategoryLabel(category: BudgetCategory): String = when (category) {
+    BudgetCategory.TRANSPORT -> "Transport"
+    BudgetCategory.ACCOMMODATION -> "Logement"
+    BudgetCategory.MEALS -> "Repas"
+    BudgetCategory.ACTIVITIES -> "Activités"
+    BudgetCategory.EQUIPMENT -> "Équipement"
+    BudgetCategory.OTHER -> "Autre"
+}
+
+internal fun budgetItemPaidContentDescription(): String = "Dépense payée"
+
+internal fun budgetSharedByLabel(sharedByCount: Int): String =
+    "Partagée par $sharedByCount participant${if (sharedByCount > 1) "s" else ""}"
+
+internal fun budgetPaidByLabel(paidBy: String?, currentUserId: String): String =
+    if (paidBy != null && paidBy == currentUserId) "Payée par vous" else "Payée par un participant"
+
+internal fun budgetCostPerPersonLabel(costPerPerson: Double): String =
+    "%.2f € par personne".format(costPerPerson)
+
+internal fun budgetMarkPaidActionLabel(): String = "Marquer payée"
+
+internal fun budgetEditActionLabel(): String = "Modifier"
+
+internal fun budgetItemDialogTitle(isNewItem: Boolean): String =
+    if (isNewItem) "Ajouter une dépense" else "Modifier la dépense"
+
+internal fun budgetItemNameLabel(): String = "Nom"
+
+internal fun budgetItemDescriptionLabel(): String = "Description"
+
+internal fun budgetItemEstimatedCostLabel(): String = "Coût estimé (€)"
+
+internal fun budgetItemCategoryLabel(): String = "Catégorie"
+
+internal fun budgetItemMissingNameMessage(): String = "Le nom de la dépense est requis."
+
+internal fun budgetItemInvalidCostMessage(): String = "Le coût doit être un nombre positif."
+
+internal fun budgetItemDialogConfirmLabel(isNewItem: Boolean): String =
+    if (isNewItem) "Ajouter" else "Modifier"
+
 internal fun budgetItemSaveFailureMessage(): String {
-    return "Impossible d'enregistrer cet item de budget. Reessayez."
+    return "Impossible d'enregistrer cette dépense. Réessayez."
 }
