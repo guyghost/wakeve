@@ -277,6 +277,27 @@ assert_weatherkit_device_validation_helper() {
     echo "PASS: WeatherKit device validation helper generates the required 1.2/6.2 evidence template"
 }
 
+assert_ios_accessibility_source_audit() {
+    local output_dir
+    local report
+    output_dir="$(mktemp -d)"
+
+    bash -n "$PROJECT_DIR/scripts/audit-ios-accessibility-source.sh"
+    report="$("$PROJECT_DIR/scripts/audit-ios-accessibility-source.sh" --fail-on-findings --output "$output_dir")"
+
+    if [ ! -f "$report" ]; then
+        echo "FAIL: iOS accessibility source audit did not create a report at $report" >&2
+        exit 1
+    fi
+
+    if ! grep -Fq '| Total | 0 |' "$report"; then
+        echo "FAIL: iOS accessibility source audit report must have zero findings" >&2
+        exit 1
+    fi
+
+    echo "PASS: iOS accessibility source audit has zero release-source findings"
+}
+
 cd "$PROJECT_DIR"
 
 run openspec validate --all --strict
@@ -293,6 +314,7 @@ assert_notification_review_contract
 assert_ios_profile_legal_notice_links
 assert_wakeve_ai_device_profile_helper
 assert_weatherkit_device_validation_helper
+assert_ios_accessibility_source_audit
 run ./scripts/audit-ios-localization-parity.sh --fail-on-findings
 
 run ./gradlew :server:test \
