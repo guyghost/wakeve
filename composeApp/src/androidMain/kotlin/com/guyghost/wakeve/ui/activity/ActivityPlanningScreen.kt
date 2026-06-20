@@ -19,15 +19,15 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.EventNote
+import androidx.compose.material.icons.automirrored.outlined.Comment
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.EventNote
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.outlined.Comment
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -120,10 +120,10 @@ fun ActivityPlanningScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Planification des activités") },
+                title = { Text(activityPlanningTitle()) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Retour")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, activityBackContentDescription())
                     }
                 },
                 actions = {
@@ -133,8 +133,8 @@ fun ActivityPlanningScreen(
                     }) {
                         Box {
                             Icon(
-                                Icons.Outlined.Comment,
-                                contentDescription = if (commentCount == 0) "Aucun commentaire" else "$commentCount commentaires"
+                                Icons.AutoMirrored.Outlined.Comment,
+                                contentDescription = activityCommentContentDescription(commentCount)
                             )
                             if (commentCount > 0) {
                                 Box(
@@ -164,7 +164,7 @@ fun ActivityPlanningScreen(
             FloatingActionButton(
                 onClick = { showAddActivityDialog = true }
             ) {
-                Icon(Icons.Default.Add, "Ajouter une activité")
+                Icon(Icons.Default.Add, activityAddContentDescription())
             }
         }
     ) { padding ->
@@ -198,9 +198,9 @@ fun ActivityPlanningScreen(
             if (allActivities.isEmpty()) {
                 EmptyStateCard(
                     message = if (activitiesByDate.isEmpty())
-                        "Aucune activité planifiée"
+                        activityEmptyPlanningMessage()
                     else
-                        "Aucune activité à cette date",
+                        activityEmptyDateMessage(),
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp)
@@ -273,20 +273,20 @@ fun ActivityPlanningScreen(
     activityToDelete?.let { activity ->
         AlertDialog(
             onDismissRequest = { activityToDelete = null },
-            title = { Text("Supprimer l'activité ?") },
-            text = { Text("Voulez-vous vraiment supprimer « ${activity.name} » ?") },
+            title = { Text(activityDeleteTitle()) },
+            text = { Text(activityDeleteMessage(activity.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     activityRepository.deleteActivity(activity.id)
                     activityToDelete = null
                     loadData()
                 }) {
-                    Text("Supprimer", color = MaterialTheme.colorScheme.error)
+                    Text(activityDeleteActionLabel(), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { activityToDelete = null }) {
-                    Text("Annuler")
+                    Text(activityCancelActionLabel())
                 }
             }
         )
@@ -316,7 +316,7 @@ private fun ActivitySummaryCard(
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Activités",
+                    text = activitySummaryCountLabel(totalActivities),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -332,7 +332,7 @@ private fun ActivitySummaryCard(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Coût total",
+                    text = activityTotalCostLabel(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -356,7 +356,7 @@ private fun DateFilterRow(
             FilterChip(
                 selected = selectedDate == null,
                 onClick = { onDateSelected("") },
-                label = { Text("Toutes") }
+                label = { Text(activityAllDatesLabel()) }
             )
         }
 
@@ -471,7 +471,7 @@ private fun ActivityItemRow(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "${activity.activity.time} (${activity.activity.duration}min)",
+                                text = activityTimeDurationLabel(activity.activity.time, activity.activity.duration),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -502,7 +502,7 @@ private fun ActivityItemRow(
                     activity.activity.cost?.let { cost ->
                         if (cost > 0) {
                             Text(
-                                text = "${cost / 100}€/pers",
+                                text = activityCostPerPersonLabel(cost),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary
                             )
@@ -519,11 +519,10 @@ private fun ActivityItemRow(
                         onClick = onParticipantsClick,
                         label = {
                             Text(
-                                text = if (activity.activity.maxParticipants != null) {
-                                    "${activity.registeredCount} / ${activity.activity.maxParticipants} inscrits"
-                                } else {
-                                    "${activity.registeredCount} inscrits"
-                                },
+                                text = activityRegistrationLabel(
+                                    registeredCount = activity.registeredCount,
+                                    maxParticipants = activity.activity.maxParticipants
+                                ),
                                 style = MaterialTheme.typography.labelSmall
                             )
                         },
@@ -540,7 +539,7 @@ private fun ActivityItemRow(
                     if (activity.isFull) {
                         SuggestionChip(
                             onClick = {},
-                            label = { Text("Complet", style = MaterialTheme.typography.labelSmall) },
+                            label = { Text(activityFullLabel(), style = MaterialTheme.typography.labelSmall) },
                             colors = SuggestionChipDefaults.suggestionChipColors(
                                 containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
                                 labelColor = MaterialTheme.colorScheme.error
@@ -561,7 +560,7 @@ private fun ActivityItemRow(
             ) {
                 AssistChip(
                     onClick = onClick,
-                    label = { Text("Modifier") },
+                    label = { Text(activityEditActionLabel()) },
                     leadingIcon = {
                         Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp))
                     }
@@ -569,7 +568,7 @@ private fun ActivityItemRow(
 
                 AssistChip(
                     onClick = onParticipantsClick,
-                    label = { Text("Participants") },
+                    label = { Text(activityParticipantsActionLabel()) },
                     leadingIcon = {
                         Icon(Icons.Default.People, null, modifier = Modifier.size(16.dp))
                     }
@@ -577,7 +576,7 @@ private fun ActivityItemRow(
 
                 AssistChip(
                     onClick = onDeleteClick,
-                    label = { Text("Supprimer") },
+                    label = { Text(activityDeleteActionLabel()) },
                     leadingIcon = {
                         Icon(Icons.Default.Delete, null, modifier = Modifier.size(16.dp))
                     },
@@ -607,7 +606,7 @@ private fun EmptyStateCard(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.EventNote,
+                imageVector = Icons.AutoMirrored.Filled.EventNote,
                 contentDescription = null,
                 modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
@@ -644,3 +643,51 @@ private fun formatDateString(dateStr: String): String {
         dateStr
     }
 }
+
+internal fun activityPlanningTitle(): String = "Planification des activités"
+
+internal fun activityBackContentDescription(): String = "Retour"
+
+internal fun activityCommentContentDescription(commentCount: Int): String =
+    if (commentCount <= 0) "Aucun commentaire activité" else "$commentCount commentaire${if (commentCount > 1) "s" else ""} activité"
+
+internal fun activityAddContentDescription(): String = "Ajouter une activité"
+
+internal fun activityEmptyPlanningMessage(): String = "Aucune activité planifiée"
+
+internal fun activityEmptyDateMessage(): String = "Aucune activité à cette date"
+
+internal fun activityDeleteTitle(): String = "Supprimer l'activité ?"
+
+internal fun activityDeleteMessage(activityName: String): String =
+    "Supprimer « $activityName » du programme ?"
+
+internal fun activityDeleteActionLabel(): String = "Supprimer"
+
+internal fun activityCancelActionLabel(): String = "Annuler"
+
+internal fun activitySummaryCountLabel(totalActivities: Int): String =
+    if (totalActivities <= 1) "Activité" else "Activités"
+
+internal fun activityTotalCostLabel(): String = "Coût total"
+
+internal fun activityAllDatesLabel(): String = "Toutes"
+
+internal fun activityTimeDurationLabel(time: String?, durationMinutes: Int): String =
+    "${time ?: "Heure à définir"} (${durationMinutes} min)"
+
+internal fun activityCostPerPersonLabel(costCents: Long): String =
+    "${costCents / 100} € / personne"
+
+internal fun activityRegistrationLabel(registeredCount: Int, maxParticipants: Int?): String =
+    if (maxParticipants != null) {
+        "$registeredCount / $maxParticipants inscrits"
+    } else {
+        "$registeredCount inscrit${if (registeredCount > 1) "s" else ""}"
+    }
+
+internal fun activityFullLabel(): String = "Complet"
+
+internal fun activityEditActionLabel(): String = "Modifier"
+
+internal fun activityParticipantsActionLabel(): String = "Participants"

@@ -22,12 +22,12 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.EventNote
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.outlined.EventNote
 import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material3.Button
@@ -167,7 +167,7 @@ fun ScenarioManagementScreen(
                     } else {
                         scope.launch {
                             snackbarHostState.showSnackbar(
-                                "Select at least 2 scenarios to compare",
+                                scenarioCompareMinimumMessage(),
                                 duration = SnackbarDuration.Short
                             )
                         }
@@ -182,7 +182,7 @@ fun ScenarioManagementScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = "Create scenario")
+                    Icon(Icons.Default.Add, contentDescription = scenarioCreateContentDescription())
                 }
             }
         },
@@ -236,7 +236,7 @@ fun ScenarioManagementScreen(
                         if (!canAccessScenarioDetails) {
                             item {
                                 LockedAccessMessage(
-                                    message = "Confirm your attendance to view scenario details and vote.",
+                                    message = scenarioAccessLockedDetailsMessage(),
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
@@ -265,7 +265,7 @@ fun ScenarioManagementScreen(
                                         onDispatch(Intent.VoteScenario(scenarioId, voteType))
                                         scope.launch {
                                             snackbarHostState.showSnackbar(
-                                                "Vote submitted",
+                                                scenarioVoteSubmittedMessage(),
                                                 duration = SnackbarDuration.Short
                                             )
                                         }
@@ -291,7 +291,7 @@ fun ScenarioManagementScreen(
             // Error state overlay
             if (state.hasError) {
                 ErrorBanner(
-                    message = state.error ?: "Unknown error",
+                    message = state.error ?: scenarioUnknownErrorMessage(),
                     onDismiss = { onDispatch(Intent.ClearError) },
                     modifier = Modifier.align(Alignment.TopCenter)
                 )
@@ -313,7 +313,7 @@ fun ScenarioManagementScreen(
                 editingScenario = null
                 scope.launch {
                     snackbarHostState.showSnackbar(
-                        "Scenario created successfully",
+                        scenarioCreatedMessage(),
                         duration = SnackbarDuration.Short
                     )
                 }
@@ -324,7 +324,7 @@ fun ScenarioManagementScreen(
                 editingScenario = null
                 scope.launch {
                     snackbarHostState.showSnackbar(
-                        "Scenario updated successfully",
+                        scenarioUpdatedMessage(),
                         duration = SnackbarDuration.Short
                     )
                 }
@@ -343,7 +343,7 @@ fun ScenarioManagementScreen(
                     scenarioToDelete = null
                     scope.launch {
                         snackbarHostState.showSnackbar(
-                            "Scenario deleted successfully",
+                            scenarioDeletedMessage(),
                             duration = SnackbarDuration.Short
                         )
                     }
@@ -373,12 +373,12 @@ private fun ScenarioManagementTopBar(
         title = {
             if (showComparisonMode) {
                 Text(
-                    "Compare ($comparisonCount selected)",
+                    scenarioComparisonTitle(comparisonCount),
                     style = MaterialTheme.typography.headlineSmall
                 )
             } else {
                 Text(
-                    "Scenarios",
+                    scenarioScreenTitle(),
                     style = MaterialTheme.typography.headlineSmall
                 )
             }
@@ -390,13 +390,13 @@ private fun ScenarioManagementTopBar(
         actions = {
             if (showComparisonMode) {
                 IconButton(onClick = onClearComparison) {
-                    Icon(Icons.Default.Edit, contentDescription = "Cancel comparison")
+                    Icon(Icons.Default.Edit, contentDescription = scenarioCancelComparisonContentDescription())
                 }
                 Button(
                     onClick = onCompare,
                     modifier = Modifier.padding(end = 8.dp)
                 ) {
-                    Text("Compare")
+                    Text(scenarioCompareActionLabel())
                 }
             }
         }
@@ -502,7 +502,7 @@ private fun ScenarioCard(
                                 shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
-                                    "Selected",
+                                    scenarioSelectedStatusLabel(),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onPrimary,
                                     modifier = Modifier.padding(4.dp, 2.dp)
@@ -514,7 +514,7 @@ private fun ScenarioCard(
                                 shape = RoundedCornerShape(4.dp)
                             ) {
                                 Text(
-                                    "Draft",
+                                    scenarioDraftStatusLabel(),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer,
                                     modifier = Modifier.padding(4.dp, 2.dp)
@@ -526,9 +526,9 @@ private fun ScenarioCard(
                     if (scenario.generationType == ScenarioGenerationType.MATRIX) {
                         Text(
                             text = listOfNotNull(
-                                scenario.sourceTimeSlotId?.let { "slot $it" },
-                                scenario.sourcePotentialLocationId?.let { "destination $it" }
-                            ).joinToString(" • ", prefix = "Matrix: "),
+                                scenario.sourceTimeSlotId?.let { scenarioMatrixSlotLabel(it) },
+                                scenario.sourcePotentialLocationId?.let { scenarioMatrixDestinationLabel(it) }
+                            ).joinToString(" • ", prefix = scenarioMatrixPrefix()),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,
                             maxLines = 1,
@@ -555,7 +555,7 @@ private fun ScenarioCard(
                         ) {
                             Icon(
                                 Icons.Default.Edit,
-                                contentDescription = "Edit",
+                                contentDescription = scenarioEditContentDescription(),
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -566,7 +566,7 @@ private fun ScenarioCard(
                         ) {
                             Icon(
                                 Icons.Default.Delete,
-                                contentDescription = "Delete",
+                                contentDescription = scenarioDeleteContentDescription(),
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(18.dp)
                             )
@@ -585,19 +585,19 @@ private fun ScenarioCard(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 DetailBadge(
-                    icon = Icons.Outlined.EventNote,
-                    text = "Period: ${scenario.dateOrPeriod}",
+                    icon = Icons.AutoMirrored.Outlined.EventNote,
+                    text = scenarioPeriodLabel(scenario.dateOrPeriod),
                     modifier = Modifier.weight(1f)
                 )
                 DetailBadge(
                     icon = Icons.Outlined.PersonAdd,
-                    text = "${scenario.estimatedParticipants} participants",
+                    text = scenarioParticipantsLabel(scenario.estimatedParticipants),
                     modifier = Modifier.weight(1f)
                 )
             }
 
             Text(
-                text = "Destination / lodging: ${scenario.location}",
+                text = scenarioLocationLabel(scenario.location),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -611,12 +611,12 @@ private fun ScenarioCard(
             ) {
                 DetailBadge(
                     icon = Icons.Outlined.Info,
-                    text = "Duration: ${scenario.duration} days",
+                    text = scenarioDurationLabel(scenario.duration),
                     modifier = Modifier.weight(1f)
                 )
                 DetailBadge(
                     icon = Icons.Outlined.Info,
-                    text = "Budget: ₹${scenario.estimatedBudgetPerPerson}/person",
+                    text = scenarioBudgetLabel(scenario.estimatedBudgetPerPerson),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -644,7 +644,7 @@ private fun ScenarioCard(
                             }
                         },
                         shape = RoundedCornerShape(12.dp),
-                        label = { Text("Prefer") },
+                        label = { Text(scenarioPreferVoteLabel()) },
                         enabled = !isLocked && canVote
                     )
                     SegmentedButton(
@@ -655,7 +655,7 @@ private fun ScenarioCard(
                             }
                         },
                         shape = RoundedCornerShape(12.dp),
-                        label = { Text("Neutral") },
+                        label = { Text(scenarioNeutralVoteLabel()) },
                         enabled = !isLocked && canVote
                     )
                     SegmentedButton(
@@ -666,7 +666,7 @@ private fun ScenarioCard(
                             }
                         },
                         shape = RoundedCornerShape(12.dp),
-                        label = { Text("Against") },
+                        label = { Text(scenarioAgainstVoteLabel()) },
                         enabled = !isLocked && canVote
                     )
                 }
@@ -674,7 +674,7 @@ private fun ScenarioCard(
 
             if (isLocked) {
                 Text(
-                    text = "This scenario has been selected. Voting is locked.",
+                    text = scenarioVotingLockedMessage(),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 4.dp)
@@ -683,7 +683,7 @@ private fun ScenarioCard(
 
             if (!canAccessDetails) {
                 LockedAccessMessage(
-                    message = "Confirm your attendance to view details and vote.",
+                    message = scenarioAccessLockedDetailsMessage(),
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -702,7 +702,7 @@ private fun ScenarioCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "Select for comparison",
+                        scenarioSelectForComparisonLabel(),
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.weight(1f)
                     )
@@ -792,7 +792,7 @@ private fun WorkflowStatusCard(
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    text = "Workflow: ${eventStatus?.name ?: "UNKNOWN"}",
+                    text = scenarioWorkflowStatusLabel(eventStatus),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Bold,
                     color = if (isAccessLocked) {
@@ -802,7 +802,7 @@ private fun WorkflowStatusCard(
                     }
                 )
                 Text(
-                    text = lockMessage ?: "Destination and lodging scenarios are available for comparison.",
+                    text = lockMessage ?: scenarioWorkflowAvailableMessage(),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (isAccessLocked) {
                         MaterialTheme.colorScheme.onErrorContainer
@@ -864,12 +864,12 @@ private fun VotingBreakdown(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Voting Results",
+                text = scenarioVotingResultsTitle(),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                text = "Score: ${votingResult.score}",
+                text = scenarioScoreLabel(votingResult.score),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = if (votingResult.score > 0) {
@@ -884,7 +884,7 @@ private fun VotingBreakdown(
 
         if (votingResult.totalVotes == 0) {
             Text(
-                text = "No votes yet",
+                text = scenarioNoVotesMessage(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 4.dp)
@@ -892,26 +892,26 @@ private fun VotingBreakdown(
         } else {
             // Vote breakdowns
             VoteBreakdownRow(
-                label = "👍 Prefer",
+                label = scenarioPreferVoteBreakdownLabel(),
                 count = votingResult.preferCount,
                 percentage = votingResult.preferPercentage,
                 color = MaterialTheme.colorScheme.primary
             )
             VoteBreakdownRow(
-                label = "😐 Neutral",
+                label = scenarioNeutralVoteBreakdownLabel(),
                 count = votingResult.neutralCount,
                 percentage = votingResult.neutralPercentage,
                 color = MaterialTheme.colorScheme.tertiary
             )
             VoteBreakdownRow(
-                label = "👎 Against",
+                label = scenarioAgainstVoteBreakdownLabel(),
                 count = votingResult.againstCount,
                 percentage = votingResult.againstPercentage,
                 color = MaterialTheme.colorScheme.error
             )
 
             Text(
-                text = "Total: ${votingResult.totalVotes} votes",
+                text = scenarioTotalVotesLabel(votingResult.totalVotes),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
@@ -984,23 +984,23 @@ private fun ScenarioEmptyState(
         verticalArrangement = Arrangement.Center
     ) {
         Icon(
-            Icons.Outlined.EventNote,
+            Icons.AutoMirrored.Outlined.EventNote,
             contentDescription = null,
             modifier = Modifier.size(64.dp),
             tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = if (isAccessLocked) "Scenario access locked" else "No scenarios yet",
+            text = if (isAccessLocked) scenarioAccessLockedTitle() else scenarioEmptyTitle(),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = if (isAccessLocked) {
-                "Confirm your attendance to access destination, lodging and voting details."
+                scenarioAccessLockedEmptyMessage()
             } else {
-                "Create a scenario to get started. Scenarios help participants vote on destination and lodging options."
+                scenarioEmptyMessage()
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1013,7 +1013,7 @@ private fun ScenarioEmptyState(
             ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Create Scenario")
+                Text(scenarioCreateActionLabel())
             }
         }
     }
@@ -1066,7 +1066,7 @@ private fun CreateScenarioDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = if (scenario == null) "Create Scenario" else "Edit Scenario",
+                    text = if (scenario == null) scenarioCreateDialogTitle() else scenarioEditDialogTitle(),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -1075,30 +1075,30 @@ private fun CreateScenarioDialog(
                 DialogTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = "Scenario Name",
-                    placeholder = "e.g., Beach Trip"
+                    label = scenarioNameFieldLabel(),
+                    placeholder = scenarioNamePlaceholder()
                 )
 
                 DialogTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = "Description",
-                    placeholder = "Details about this scenario",
+                    label = scenarioDescriptionFieldLabel(),
+                    placeholder = scenarioDescriptionPlaceholder(),
                     maxLines = 3
                 )
 
                 DialogTextField(
                     value = dateOrPeriod,
                     onValueChange = { dateOrPeriod = it },
-                    label = "Date or Period",
-                    placeholder = "e.g., Dec 20-22, 2025"
+                    label = scenarioDateFieldLabel(),
+                    placeholder = scenarioDatePlaceholder()
                 )
 
                 DialogTextField(
                     value = location,
                     onValueChange = { location = it },
-                    label = "Location",
-                    placeholder = "e.g., Goa, India"
+                    label = scenarioLocationFieldLabel(),
+                    placeholder = scenarioLocationPlaceholder()
                 )
 
                 Row(
@@ -1108,14 +1108,14 @@ private fun CreateScenarioDialog(
                     DialogTextField(
                         value = duration,
                         onValueChange = { duration = it },
-                        label = "Duration (days)",
+                        label = scenarioDurationFieldLabel(),
                         placeholder = "3",
                         modifier = Modifier.weight(1f)
                     )
                     DialogTextField(
                         value = estimatedParticipants,
                         onValueChange = { estimatedParticipants = it },
-                        label = "Estimated People",
+                        label = scenarioEstimatedPeopleFieldLabel(),
                         placeholder = "5",
                         modifier = Modifier.weight(1f)
                     )
@@ -1124,7 +1124,7 @@ private fun CreateScenarioDialog(
                 DialogTextField(
                     value = budget,
                     onValueChange = { budget = it },
-                    label = "Budget per Person (₹)",
+                    label = scenarioBudgetFieldLabel(),
                     placeholder = "1000"
                 )
 
@@ -1140,7 +1140,7 @@ private fun CreateScenarioDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(scenarioCancelActionLabel())
                     }
 
                     Button(
@@ -1171,7 +1171,7 @@ private fun CreateScenarioDialog(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text(if (scenario == null) "Create" else "Update")
+                        Text(if (scenario == null) scenarioCreateActionLabel() else scenarioUpdateActionLabel())
                     }
                 }
             }
@@ -1248,13 +1248,13 @@ private fun DeleteConfirmationDialog(
                 )
 
                 Text(
-                    text = "Delete Scenario?",
+                    text = scenarioDeleteDialogTitle(),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
-                    text = "Are you sure you want to delete \"$scenarioName\"? This action cannot be undone.",
+                    text = scenarioDeleteDialogMessage(scenarioName),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -1268,7 +1268,7 @@ private fun DeleteConfirmationDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(scenarioCancelActionLabel())
                     }
                     Button(
                         onClick = onConfirm,
@@ -1277,7 +1277,7 @@ private fun DeleteConfirmationDialog(
                             containerColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("Delete")
+                        Text(scenarioDeleteActionLabel())
                     }
                 }
             }
@@ -1320,7 +1320,7 @@ private fun ErrorBanner(
             ) {
                 Icon(
                     Icons.Default.Close,
-                    contentDescription = "Dismiss",
+                    contentDescription = scenarioDismissContentDescription(),
                     tint = MaterialTheme.colorScheme.onErrorContainer,
                     modifier = Modifier.size(16.dp)
                 )
@@ -1336,3 +1336,139 @@ private object ScenarioScreenDefaults {
     val HorizontalPadding = 16.dp
     val VerticalPadding = 12.dp
 }
+
+internal fun scenarioScreenTitle(): String = "Scenarios proposes"
+
+internal fun scenarioComparisonTitle(comparisonCount: Int): String =
+    "Comparer ($comparisonCount selectionnes)"
+
+internal fun scenarioCompareActionLabel(): String = "Comparer"
+
+internal fun scenarioCompareMinimumMessage(): String =
+    "Selectionnez au moins 2 scenarios a comparer."
+
+internal fun scenarioCancelComparisonContentDescription(): String =
+    "Annuler la comparaison"
+
+internal fun scenarioCreateContentDescription(): String = "Creer un scenario"
+
+internal fun scenarioCreateActionLabel(): String = "Creer"
+
+internal fun scenarioEditContentDescription(): String = "Modifier le scenario"
+
+internal fun scenarioDeleteContentDescription(): String = "Supprimer le scenario"
+
+internal fun scenarioVoteSubmittedMessage(): String = "Vote enregistre."
+
+internal fun scenarioCreatedMessage(): String = "Scenario cree."
+
+internal fun scenarioUpdatedMessage(): String = "Scenario mis a jour."
+
+internal fun scenarioDeletedMessage(): String = "Scenario supprime."
+
+internal fun scenarioUnknownErrorMessage(): String = "Erreur inconnue"
+
+internal fun scenarioSelectedStatusLabel(): String = "Retenu"
+
+internal fun scenarioDraftStatusLabel(): String = "Brouillon"
+
+internal fun scenarioMatrixPrefix(): String = "Combinaison: "
+
+internal fun scenarioMatrixSlotLabel(slotId: String): String = "creneau $slotId"
+
+internal fun scenarioMatrixDestinationLabel(destinationId: String): String =
+    "destination $destinationId"
+
+internal fun scenarioPeriodLabel(dateOrPeriod: String): String = "Periode: $dateOrPeriod"
+
+internal fun scenarioParticipantsLabel(count: Int): String = "$count participants"
+
+internal fun scenarioLocationLabel(location: String): String = "Destination / logement: $location"
+
+internal fun scenarioDurationLabel(days: Int): String =
+    if (days <= 1) "$days jour" else "$days jours"
+
+internal fun scenarioBudgetLabel(amount: Double): String = "Budget: $amount par personne"
+
+internal fun scenarioPreferVoteLabel(): String = "Pour"
+
+internal fun scenarioNeutralVoteLabel(): String = "Neutre"
+
+internal fun scenarioAgainstVoteLabel(): String = "Contre"
+
+internal fun scenarioPreferVoteBreakdownLabel(): String = "Pour"
+
+internal fun scenarioNeutralVoteBreakdownLabel(): String = "Neutre"
+
+internal fun scenarioAgainstVoteBreakdownLabel(): String = "Contre"
+
+internal fun scenarioVotingLockedMessage(): String =
+    "Ce scenario a ete retenu. Les votes sont verrouilles."
+
+internal fun scenarioAccessLockedDetailsMessage(): String =
+    "Confirmez votre presence pour voir les details et voter."
+
+internal fun scenarioSelectForComparisonLabel(): String = "Selectionner pour comparaison"
+
+internal fun scenarioWorkflowStatusLabel(eventStatus: EventStatus?): String =
+    "Statut: ${eventStatus?.name ?: "INCONNU"}"
+
+internal fun scenarioWorkflowAvailableMessage(): String =
+    "Les scenarios de destination et de logement sont disponibles pour comparaison."
+
+internal fun scenarioVotingResultsTitle(): String = "Resultats des votes"
+
+internal fun scenarioScoreLabel(score: Int): String = "Score: $score"
+
+internal fun scenarioNoVotesMessage(): String = "Aucun vote pour le moment"
+
+internal fun scenarioTotalVotesLabel(totalVotes: Int): String = "Total: $totalVotes votes"
+
+internal fun scenarioAccessLockedTitle(): String = "Acces aux scenarios verrouille"
+
+internal fun scenarioEmptyTitle(): String = "Aucun scenario"
+
+internal fun scenarioAccessLockedEmptyMessage(): String =
+    "Confirmez votre presence pour acceder aux details de destination, logement et vote."
+
+internal fun scenarioEmptyMessage(): String =
+    "Creez un scenario pour aider les participants a comparer destination, logement et budget."
+
+internal fun scenarioCreateDialogTitle(): String = "Creer un scenario"
+
+internal fun scenarioEditDialogTitle(): String = "Modifier le scenario"
+
+internal fun scenarioNameFieldLabel(): String = "Nom du scenario"
+
+internal fun scenarioNamePlaceholder(): String = "Ex: week-end plage"
+
+internal fun scenarioDescriptionFieldLabel(): String = "Description"
+
+internal fun scenarioDescriptionPlaceholder(): String = "Details utiles pour comparer cette option"
+
+internal fun scenarioDateFieldLabel(): String = "Date ou periode"
+
+internal fun scenarioDatePlaceholder(): String = "Ex: 20-22 decembre 2025"
+
+internal fun scenarioLocationFieldLabel(): String = "Lieu"
+
+internal fun scenarioLocationPlaceholder(): String = "Ex: Marseille, France"
+
+internal fun scenarioDurationFieldLabel(): String = "Duree (jours)"
+
+internal fun scenarioEstimatedPeopleFieldLabel(): String = "Participants estimes"
+
+internal fun scenarioBudgetFieldLabel(): String = "Budget par personne"
+
+internal fun scenarioCancelActionLabel(): String = "Annuler"
+
+internal fun scenarioUpdateActionLabel(): String = "Mettre a jour"
+
+internal fun scenarioDeleteDialogTitle(): String = "Supprimer le scenario ?"
+
+internal fun scenarioDeleteDialogMessage(scenarioName: String): String =
+    "Voulez-vous vraiment supprimer \"$scenarioName\" ? Cette action est definitive."
+
+internal fun scenarioDeleteActionLabel(): String = "Supprimer"
+
+internal fun scenarioDismissContentDescription(): String = "Fermer"

@@ -13,6 +13,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -64,7 +65,7 @@ fun AddEditItemDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (item == null) "Ajouter un équipement" else "Modifier l'équipement") },
+        title = { Text(equipmentItemDialogTitle(isNewItem = item == null)) },
         text = {
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -74,7 +75,7 @@ fun AddEditItemDialog(
                     OutlinedTextField(
                         value = name,
                         onValueChange = { name = it },
-                        label = { Text("Nom *") },
+                        label = { Text(equipmentItemNameLabel()) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
@@ -84,7 +85,7 @@ fun AddEditItemDialog(
                     OutlinedTextField(
                         value = notes,
                         onValueChange = { notes = it },
-                        label = { Text("Notes") },
+                        label = { Text(equipmentItemNotesLabel()) },
                         modifier = Modifier.fillMaxWidth(),
                         maxLines = 3
                     )
@@ -98,7 +99,7 @@ fun AddEditItemDialog(
                         OutlinedTextField(
                             value = quantity,
                             onValueChange = { quantity = it },
-                            label = { Text("Quantité *") },
+                            label = { Text(equipmentItemQuantityLabel()) },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
@@ -107,7 +108,7 @@ fun AddEditItemDialog(
                         OutlinedTextField(
                             value = sharedCost,
                             onValueChange = { sharedCost = it },
-                            label = { Text("Coût (€)") },
+                            label = { Text(equipmentItemSharedCostLabel()) },
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true,
@@ -123,14 +124,17 @@ fun AddEditItemDialog(
                         onExpandedChange = { showCategoryMenu = it }
                     ) {
                         OutlinedTextField(
-                            value = getCategoryLabel(category),
+                            value = equipmentCategoryLabel(category),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Catégorie") },
+                            label = { Text(equipmentItemCategoryLabel()) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(showCategoryMenu) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor()
+                                .menuAnchor(
+                                    type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                                    enabled = true
+                                )
                         )
 
                         ExposedDropdownMenu(
@@ -139,7 +143,7 @@ fun AddEditItemDialog(
                         ) {
                             EquipmentCategory.entries.forEach { cat ->
                                 DropdownMenuItem(
-                                    text = { Text(getCategoryLabel(cat)) },
+                                    text = { Text(equipmentCategoryLabel(cat)) },
                                     onClick = {
                                         category = cat
                                         showCategoryMenu = false
@@ -157,14 +161,17 @@ fun AddEditItemDialog(
                         onExpandedChange = { showStatusMenu = it }
                     ) {
                         OutlinedTextField(
-                            value = getStatusLabel(status),
+                            value = equipmentStatusLabel(status),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Statut") },
+                            label = { Text(equipmentItemStatusLabel()) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(showStatusMenu) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor()
+                                .menuAnchor(
+                                    type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                                    enabled = true
+                                )
                         )
 
                         ExposedDropdownMenu(
@@ -173,7 +180,7 @@ fun AddEditItemDialog(
                         ) {
                             ItemStatus.entries.forEach { st ->
                                 DropdownMenuItem(
-                                    text = { Text(getStatusLabel(st)) },
+                                    text = { Text(equipmentStatusLabel(st)) },
                                     onClick = {
                                         status = st
                                         showStatusMenu = false
@@ -192,15 +199,18 @@ fun AddEditItemDialog(
                     ) {
                         OutlinedTextField(
                             value = assignedTo?.let { id ->
-                                participants.find { it.id == id }?.name ?: "Non assigné"
-                            } ?: "Non assigné",
+                                participants.find { it.id == id }?.name ?: equipmentUnassignedLabel()
+                            } ?: equipmentUnassignedLabel(),
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Assigné à") },
+                            label = { Text(equipmentAssignedToLabel()) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(showParticipantMenu) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor()
+                                .menuAnchor(
+                                    type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                                    enabled = true
+                                )
                         )
 
                         ExposedDropdownMenu(
@@ -208,7 +218,7 @@ fun AddEditItemDialog(
                             onDismissRequest = { showParticipantMenu = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Non assigné") },
+                                text = { Text(equipmentUnassignedLabel()) },
                                 onClick = {
                                     assignedTo = null
                                     showParticipantMenu = false
@@ -251,12 +261,12 @@ fun AddEditItemDialog(
                 },
                 enabled = isValid
             ) {
-                Text(if (item == null) "Ajouter" else "Modifier")
+                Text(equipmentItemDialogConfirmLabel(isNewItem = item == null))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler")
+                Text(equipmentCancelActionLabel())
             }
         }
     )
@@ -276,12 +286,12 @@ fun AssignItemDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Assigner « ${item.name} »") },
+        title = { Text(equipmentAssignDialogTitle(item.name)) },
         text = {
             LazyColumn {
                 item {
                     ListItem(
-                        headlineContent = { Text("Non assigné") },
+                        headlineContent = { Text(equipmentUnassignedLabel()) },
                         leadingContent = {
                             RadioButton(
                                 selected = selectedParticipant == null,
@@ -314,12 +324,12 @@ fun AssignItemDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(selectedParticipant) }) {
-                Text("Confirmer")
+                Text(equipmentConfirmActionLabel())
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler")
+                Text(equipmentCancelActionLabel())
             }
         }
     )
@@ -346,13 +356,13 @@ fun AutoGenerateDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Préparer une liste d'équipement") },
+        title = { Text(equipmentAutoGenerateTitle()) },
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "Sélectionnez le type d'événement pour préparer une liste d'équipement adaptée :",
+                    text = equipmentAutoGenerateDescription(),
                     style = MaterialTheme.typography.bodyMedium
                 )
 
@@ -374,18 +384,53 @@ fun AutoGenerateDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(selectedType) }) {
-                Text("Préparer")
+                Text(equipmentPrepareActionLabel())
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Annuler")
+                Text(equipmentCancelActionLabel())
             }
         }
     )
 }
 
-private fun getCategoryLabel(category: EquipmentCategory): String {
+internal fun equipmentItemDialogTitle(isNewItem: Boolean): String =
+    if (isNewItem) "Ajouter un équipement" else "Modifier l'équipement"
+
+internal fun equipmentItemNameLabel(): String = "Nom requis"
+
+internal fun equipmentItemNotesLabel(): String = "Notes"
+
+internal fun equipmentItemQuantityLabel(): String = "Quantité requise"
+
+internal fun equipmentItemSharedCostLabel(): String = "Coût partagé (€)"
+
+internal fun equipmentItemCategoryLabel(): String = "Catégorie"
+
+internal fun equipmentItemStatusLabel(): String = "Statut"
+
+internal fun equipmentAssignedToLabel(): String = "Responsable"
+
+internal fun equipmentUnassignedLabel(): String = "Non assigné"
+
+internal fun equipmentItemDialogConfirmLabel(isNewItem: Boolean): String =
+    if (isNewItem) "Ajouter" else "Modifier"
+
+internal fun equipmentCancelActionLabel(): String = "Annuler"
+
+internal fun equipmentConfirmActionLabel(): String = "Confirmer"
+
+internal fun equipmentAssignDialogTitle(itemName: String): String = "Assigner « $itemName »"
+
+internal fun equipmentAutoGenerateTitle(): String = "Préparer une liste d'équipement"
+
+internal fun equipmentAutoGenerateDescription(): String =
+    "Sélectionnez le type d'événement pour préparer une liste adaptée au groupe."
+
+internal fun equipmentPrepareActionLabel(): String = "Préparer"
+
+internal fun equipmentCategoryLabel(category: EquipmentCategory): String {
     return when (category) {
         EquipmentCategory.CAMPING -> "Camping"
         EquipmentCategory.SPORTS -> "Sport"
@@ -396,12 +441,12 @@ private fun getCategoryLabel(category: EquipmentCategory): String {
     }
 }
 
-private fun getStatusLabel(status: ItemStatus): String {
+internal fun equipmentStatusLabel(status: ItemStatus): String {
     return when (status) {
         ItemStatus.NEEDED -> "Requis"
         ItemStatus.ASSIGNED -> "Assigné"
         ItemStatus.CONFIRMED -> "Confirmé"
-        ItemStatus.PACKED -> "Emballé"
+        ItemStatus.PACKED -> "Prêt"
         ItemStatus.CANCELLED -> "Annulé"
     }
 }

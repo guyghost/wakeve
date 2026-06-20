@@ -158,7 +158,7 @@ fun ScenarioDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Scenario Details",
+                        text = scenarioDetailScreenTitle(),
                         style = MaterialTheme.typography.titleLarge
                     )
                 },
@@ -166,7 +166,7 @@ fun ScenarioDetailScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = scenarioDetailBackContentDescription()
                         )
                     }
                 },
@@ -178,7 +178,7 @@ fun ScenarioDetailScreen(
                             modifier = Modifier.padding(end = 8.dp)
                         ) {
                             Text(
-                                text = "Selected",
+                                text = scenarioDetailSelectedStatusLabel(),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -211,13 +211,13 @@ fun ScenarioDetailScreen(
             // Date and Location Information
             ScenarioInfoCard(
                 icon = Icons.Outlined.CalendarToday,
-                label = "Date/Period",
+                label = scenarioDetailDateLabel(),
                 value = scenario.dateOrPeriod
             )
 
             ScenarioInfoCard(
                 icon = Icons.Default.LocationOn,
-                label = "Destination / lodging",
+                label = scenarioDetailLocationLabel(),
                 value = scenario.location
             )
 
@@ -228,14 +228,14 @@ fun ScenarioDetailScreen(
             ) {
                 ScenarioInfoCard(
                     icon = Icons.Default.Schedule,
-                    label = "Duration",
-                    value = "${scenario.duration} days",
+                    label = scenarioDetailDurationLabel(),
+                    value = scenarioDetailDurationValue(scenario.duration),
                     modifier = Modifier.weight(1f)
                 )
                 ScenarioInfoCard(
                     icon = Icons.Default.People,
-                    label = "Participants",
-                    value = "${scenario.estimatedParticipants} people",
+                    label = scenarioDetailParticipantsLabel(),
+                    value = scenarioDetailParticipantsValue(scenario.estimatedParticipants),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -244,7 +244,7 @@ fun ScenarioDetailScreen(
 
             // Budget Section
             Text(
-                text = "Budget",
+                text = scenarioDetailBudgetTitle(),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -259,7 +259,7 @@ fun ScenarioDetailScreen(
             // Voting Results
             if (votingResult != null && votingResult.totalVotes > 0) {
                 Text(
-                    text = "Voting Results",
+                    text = scenarioDetailVotingResultsTitle(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -299,7 +299,7 @@ fun ScenarioDetailScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Select as Final Scenario")
+                        Text(scenarioDetailSelectFinalLabel())
                     }
                 }
 
@@ -314,7 +314,7 @@ fun ScenarioDetailScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("View Meetings")
+                        Text(scenarioDetailViewMeetingsLabel())
                     }
                 }
                 if (canNavigateToTransport) {
@@ -328,7 +328,7 @@ fun ScenarioDetailScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Open Transport")
+                        Text(scenarioDetailOpenTransportLabel())
                     }
                 }
             } else if (scenario.status == ScenarioStatus.SELECTED && canNavigateToMeetings) {
@@ -345,7 +345,7 @@ fun ScenarioDetailScreen(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("View Meetings")
+                    Text(scenarioDetailViewMeetingsLabel())
                 }
                 if (canNavigateToTransport) {
                     OutlinedButton(
@@ -358,7 +358,7 @@ fun ScenarioDetailScreen(
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Open Transport")
+                        Text(scenarioDetailOpenTransportLabel())
                     }
                 }
             }
@@ -378,7 +378,7 @@ private fun ScenarioDetailLockedScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Scenario Details",
+                        text = scenarioDetailScreenTitle(),
                         style = MaterialTheme.typography.titleLarge
                     )
                 },
@@ -386,7 +386,7 @@ private fun ScenarioDetailLockedScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = scenarioDetailBackContentDescription()
                         )
                     }
                 },
@@ -424,13 +424,13 @@ private fun ScenarioDetailLockedScreen(
                         modifier = Modifier.size(32.dp)
                     )
                     Text(
-                        text = "Scenario access locked",
+                        text = scenarioDetailAccessLockedTitle(),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
                     Text(
-                        text = "Confirm your attendance to view destination and lodging details.",
+                        text = scenarioDetailAccessLockedMessage(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
@@ -482,7 +482,7 @@ private fun ScenarioHeaderCard(
                         shape = RoundedCornerShape(4.dp)
                     ) {
                         Text(
-                            text = "Selected",
+                            text = scenarioDetailSelectedStatusLabel(),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -580,7 +580,7 @@ private fun BudgetCard(
             ) {
                 Column {
                     Text(
-                        text = "Per Person",
+                        text = scenarioDetailBudgetPerPersonLabel(),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -594,7 +594,7 @@ private fun BudgetCard(
 
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "Total Estimate",
+                        text = scenarioDetailBudgetTotalLabel(),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -608,7 +608,7 @@ private fun BudgetCard(
             }
 
             Text(
-                text = "For $estimatedParticipants participants",
+                text = scenarioDetailBudgetParticipantsLabel(estimatedParticipants),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -646,7 +646,7 @@ private fun VotingResultsCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Score",
+                    text = scenarioDetailScoreTitle(),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -664,21 +664,21 @@ private fun VotingResultsCard(
 
             // Vote breakdown
             VoteProgressRow(
-                label = "Prefer",
+                label = scenarioDetailPreferVoteLabel(),
                 count = votingResult.preferCount,
                 percentage = votingResult.preferPercentage,
                 color = MaterialTheme.colorScheme.primary
             )
 
             VoteProgressRow(
-                label = "Neutral",
+                label = scenarioDetailNeutralVoteLabel(),
                 count = votingResult.neutralCount,
                 percentage = votingResult.neutralPercentage,
                 color = MaterialTheme.colorScheme.tertiary
             )
 
             VoteProgressRow(
-                label = "Against",
+                label = scenarioDetailAgainstVoteLabel(),
                 count = votingResult.againstCount,
                 percentage = votingResult.againstPercentage,
                 color = MaterialTheme.colorScheme.error
@@ -687,7 +687,7 @@ private fun VotingResultsCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             Text(
-                text = "Total votes: ${votingResult.totalVotes} / $totalParticipants participants",
+                text = scenarioDetailTotalVotesLabel(votingResult.totalVotes, totalParticipants),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -758,3 +758,55 @@ fun ScenarioDetailPlaceholder(
         CircularProgressIndicator()
     }
 }
+
+internal fun scenarioDetailScreenTitle(): String = "Details du scenario"
+
+internal fun scenarioDetailBackContentDescription(): String = "Retour"
+
+internal fun scenarioDetailSelectedStatusLabel(): String = "Retenu"
+
+internal fun scenarioDetailDateLabel(): String = "Date / periode"
+
+internal fun scenarioDetailLocationLabel(): String = "Destination / logement"
+
+internal fun scenarioDetailDurationLabel(): String = "Duree"
+
+internal fun scenarioDetailDurationValue(days: Int): String =
+    if (days <= 1) "$days jour" else "$days jours"
+
+internal fun scenarioDetailParticipantsLabel(): String = "Participants"
+
+internal fun scenarioDetailParticipantsValue(count: Int): String = "$count personnes"
+
+internal fun scenarioDetailBudgetTitle(): String = "Budget"
+
+internal fun scenarioDetailVotingResultsTitle(): String = "Resultats des votes"
+
+internal fun scenarioDetailSelectFinalLabel(): String = "Retenir ce scenario"
+
+internal fun scenarioDetailViewMeetingsLabel(): String = "Voir les reunions"
+
+internal fun scenarioDetailOpenTransportLabel(): String = "Ouvrir le transport"
+
+internal fun scenarioDetailAccessLockedTitle(): String = "Acces au scenario verrouille"
+
+internal fun scenarioDetailAccessLockedMessage(): String =
+    "Confirmez votre presence pour voir la destination, le logement et le budget."
+
+internal fun scenarioDetailBudgetPerPersonLabel(): String = "Par personne"
+
+internal fun scenarioDetailBudgetTotalLabel(): String = "Estimation totale"
+
+internal fun scenarioDetailBudgetParticipantsLabel(estimatedParticipants: Int): String =
+    "Pour $estimatedParticipants participants"
+
+internal fun scenarioDetailScoreTitle(): String = "Score"
+
+internal fun scenarioDetailPreferVoteLabel(): String = "Pour"
+
+internal fun scenarioDetailNeutralVoteLabel(): String = "Neutre"
+
+internal fun scenarioDetailAgainstVoteLabel(): String = "Contre"
+
+internal fun scenarioDetailTotalVotesLabel(totalVotes: Int, totalParticipants: Int): String =
+    "Votes: $totalVotes / $totalParticipants participants"
