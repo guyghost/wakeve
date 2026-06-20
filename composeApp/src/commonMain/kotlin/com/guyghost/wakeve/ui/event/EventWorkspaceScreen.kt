@@ -135,6 +135,14 @@ fun EventWorkspaceScreen(
                                 null -> onCreateEvent()
                             }
                         },
+                        onStrategicAction = { summary ->
+                            when (summary.action) {
+                                EventWorkspaceSummaryAction.OpenEvent -> summary.eventId?.let { onSelectEvent(it, false) }
+                                EventWorkspaceSummaryAction.OpenPoll -> summary.eventId?.let(onOpenPoll)
+                                EventWorkspaceSummaryAction.RecreateFromTemplate -> summary.template?.let(onCreateFromTemplate)
+                                null -> onCreateEvent()
+                            }
+                        },
                         onWidgetAction = { summary ->
                             val eventId = summary.eventId
                             if (eventId == null) {
@@ -195,6 +203,14 @@ fun EventWorkspaceScreen(
                             null -> onCreateEvent()
                         }
                     },
+                    onStrategicAction = { summary ->
+                        when (summary.action) {
+                            EventWorkspaceSummaryAction.OpenEvent -> summary.eventId?.let { onSelectEvent(it, true) }
+                            EventWorkspaceSummaryAction.OpenPoll -> summary.eventId?.let(onOpenPoll)
+                            EventWorkspaceSummaryAction.RecreateFromTemplate -> summary.template?.let(onCreateFromTemplate)
+                            null -> onCreateEvent()
+                        }
+                    },
                     onWidgetAction = { summary ->
                         val eventId = summary.eventId
                         if (eventId == null) {
@@ -224,6 +240,7 @@ private fun EventListPane(
     onSummaryAction: (EventWorkspaceActionSummary) -> Unit,
     onViralLoopAction: (EventViralLoopSummary) -> Unit,
     onEmotionalAction: (EventEmotionalSummary) -> Unit,
+    onStrategicAction: (EventStrategicSummary) -> Unit,
     onWidgetAction: (EventWidgetSummary) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
@@ -258,6 +275,10 @@ private fun EventListPane(
         EventEmotionalSummaryCard(
             summary = state.emotionalSummary,
             onAction = { onEmotionalAction(state.emotionalSummary) }
+        )
+        EventStrategicSummaryCard(
+            summary = state.strategicSummary,
+            onAction = { onStrategicAction(state.strategicSummary) }
         )
         state.actionSummary?.let { summary ->
             WorkspaceActionSummaryCard(
@@ -547,6 +568,71 @@ private fun EventEmotionalSummaryCard(
                         text = label,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2
+                    )
+                }
+                Text(
+                    text = summary.nextActionLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventStrategicSummaryCard(
+    summary: EventStrategicSummary,
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    WakeveCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("event_strategic_summary")
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)
+                ) {
+                    Text(
+                        text = summary.title,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = summary.headline,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                TextButton(onClick = onAction) {
+                    Text(summary.actionLabel)
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)) {
+                listOf(
+                    summary.verdictLabel,
+                    summary.competitorLabel,
+                    summary.operatingSystemLabel,
+                    summary.missingCapabilityLabel
+                ).forEachIndexed { index, label ->
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (index == 0) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                         maxLines = 2
                     )
                 }

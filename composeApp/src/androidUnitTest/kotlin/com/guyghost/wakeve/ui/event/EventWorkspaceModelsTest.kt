@@ -391,6 +391,124 @@ class EventWorkspaceModelsTest {
     }
 
     @Test
+    fun `strategic summary explains empty workspace has no moat`() {
+        val summary = emptyList<Event>().toStrategicSummary(currentUserId = "me", pollVotes = emptyMap())
+
+        assertEquals(null, summary.eventId)
+        assertEquals("Position stratégique", summary.title)
+        assertEquals("Pas encore défendable", summary.headline)
+        assertEquals("Verdict : agenda vide, aucun moat visible.", summary.verdictLabel)
+        assertEquals("Face aux concurrents : WhatsApp suffit encore.", summary.competitorLabel)
+        assertEquals("OS social : aucun espace collectif actif.", summary.operatingSystemLabel)
+        assertEquals("Capacité manquante : créer un premier groupe coordonné.", summary.missingCapabilityLabel)
+        assertEquals("Créez un événement pour prouver la valeur de coordination.", summary.nextActionLabel)
+        assertEquals("Créer", summary.actionLabel)
+        assertEquals(null, summary.action)
+    }
+
+    @Test
+    fun `strategic summary frames polling as useful but incomplete coordination`() {
+        val summary = listOf(
+            event(
+                id = "poll",
+                title = "Vote dinner",
+                status = EventStatus.POLLING,
+                participants = listOf("me", "alice", "sam")
+            )
+        ).toStrategicSummary(
+            currentUserId = "me",
+            pollVotes = mapOf("poll" to mapOf("me" to Vote.YES))
+        )
+
+        assertEquals("poll", summary.eventId)
+        assertEquals("Meilleur que WhatsApp, pas encore un OS", summary.headline)
+        assertEquals(
+            "Verdict : utile pour choisir une date, pas encore pour organiser tout le séjour.",
+            summary.verdictLabel
+        )
+        assertEquals(
+            "Face aux concurrents : WhatsApp perd la trace des votes et des relances.",
+            summary.competitorLabel
+        )
+        assertEquals("OS social : la première décision commune existe.", summary.operatingSystemLabel)
+        assertEquals(
+            "Capacité manquante : transformer le vote en plan budget, transport et programme.",
+            summary.missingCapabilityLabel
+        )
+        assertEquals("Obtenez les votes manquants pour sortir du débat.", summary.nextActionLabel)
+        assertEquals("Ouvrir le vote", summary.actionLabel)
+        assertEquals(EventWorkspaceSummaryAction.OpenPoll, summary.action)
+    }
+
+    @Test
+    fun `strategic summary prioritizes organizing as social operating system proof`() {
+        val summary = listOf(
+            event(
+                id = "final",
+                title = "Finished dinner",
+                status = EventStatus.FINALIZED
+            ),
+            event(
+                id = "organizing",
+                title = "Team offsite",
+                status = EventStatus.ORGANIZING,
+                participants = listOf("me", "alice", "sam")
+            )
+        ).toStrategicSummary(currentUserId = "me", pollVotes = emptyMap())
+
+        assertEquals("organizing", summary.eventId)
+        assertEquals("OS social crédible", summary.headline)
+        assertEquals(
+            "Verdict : Wakeve garde une raison d'exister même si WhatsApp, Splitwise et TripIt fusionnent.",
+            summary.verdictLabel
+        )
+        assertEquals(
+            "Face aux concurrents : plan, présences, budget et jour J vivent dans un seul espace.",
+            summary.competitorLabel
+        )
+        assertEquals("OS social : décisions, participants et prochaines actions convergent.", summary.operatingSystemLabel)
+        assertEquals("Gardez le centre de contrôle comme écran principal jusqu'au jour J.", summary.nextActionLabel)
+        assertEquals("Piloter", summary.actionLabel)
+        assertEquals(EventWorkspaceSummaryAction.OpenEvent, summary.action)
+    }
+
+    @Test
+    fun `strategic summary turns finalized event into retention challenge`() {
+        val summary = listOf(
+            event(
+                id = "final",
+                title = "Summer retreat",
+                description = "A weekend by the sea",
+                status = EventStatus.FINALIZED,
+                eventType = EventType.OUTDOOR_ACTIVITY
+            )
+        ).toStrategicSummary(currentUserId = "me", pollVotes = emptyMap())
+
+        assertEquals("final", summary.eventId)
+        assertEquals("Rétention à prouver", summary.headline)
+        assertEquals(
+            "Verdict : utile après l'événement seulement si recap, photos et dettes ressortent vite.",
+            summary.verdictLabel
+        )
+        assertEquals(
+            "Face aux concurrents : Splitwise gagne si les remboursements restent séparés.",
+            summary.competitorLabel
+        )
+        assertEquals("OS social : mémoire du groupe réutilisable.", summary.operatingSystemLabel)
+        assertEquals("Transformez le recap en invitation pour la prochaine édition.", summary.nextActionLabel)
+        assertEquals("Réutiliser", summary.actionLabel)
+        assertEquals(EventWorkspaceSummaryAction.RecreateFromTemplate, summary.action)
+        assertEquals(
+            EventWorkspaceCreationTemplate(
+                title = "Summer retreat",
+                description = "A weekend by the sea",
+                eventType = EventType.OUTDOOR_ACTIVITY
+            ),
+            summary.template
+        )
+    }
+
+    @Test
     fun `finalized event builds quick reorganization summary`() {
         val event = event(
             id = "finalized",

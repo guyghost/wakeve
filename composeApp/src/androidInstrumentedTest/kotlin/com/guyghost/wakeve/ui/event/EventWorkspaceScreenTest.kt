@@ -380,6 +380,18 @@ class EventWorkspaceScreenTest {
                 actionLabel = "Ouvrir le vote",
                 action = EventWorkspaceSummaryAction.OpenPoll
             ),
+            strategicSummary = EventStrategicSummary(
+                eventId = events.first().id,
+                title = "Position stratégique",
+                headline = "Meilleur que WhatsApp, pas encore un OS",
+                verdictLabel = "Verdict : utile pour choisir une date, pas encore pour organiser tout le séjour.",
+                competitorLabel = "Face aux concurrents : WhatsApp perd la trace des votes et des relances.",
+                operatingSystemLabel = "OS social : la première décision commune existe.",
+                missingCapabilityLabel = "Capacité manquante : transformer le vote en plan budget, transport et programme.",
+                nextActionLabel = "Obtenez les votes manquants pour sortir du débat.",
+                actionLabel = "Ouvrir le vote",
+                action = EventWorkspaceSummaryAction.OpenPoll
+            ),
             widgetSummary = EventWidgetSummary(
                 kind = EventWidgetKind.Countdown,
                 eventId = events.first().id,
