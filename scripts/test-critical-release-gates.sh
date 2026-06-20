@@ -338,6 +338,7 @@ assert_ios_release_screen_evidence_integrity() {
 assert_live_url_aasa_blocker_evidence() {
     local evidence="$PROJECT_DIR/docs/APP_STORE_LIVE_URL_AASA_EVIDENCE.md"
     local capture="$PROJECT_DIR/docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md"
+    local blocker_register="$PROJECT_DIR/docs/APP_STORE_BLOCKER_REGISTER.md"
 
     if ! grep -Fxq 'APP_STORE_LIVE_URL_AASA_EVIDENCE_COMPLETE=false' "$evidence"; then
         echo "FAIL: live URL/AASA evidence marker must stay false until public wakeve.app and AASA checks pass" >&2
@@ -365,6 +366,20 @@ assert_live_url_aasa_blocker_evidence() {
     for pattern in "${required_patterns[@]}"; do
         if ! grep -Fq "$pattern" "$capture"; then
             echo "FAIL: latest live URL/AASA capture report no longer documents expected AS-14 blocker evidence: $pattern" >&2
+            exit 1
+        fi
+    done
+
+    local blocker_register_patterns=(
+        'Date: 2026-06-20'
+        'Current result on 2026-06-20: 17 live URL/AASA errors and 1 final-signoff warning.'
+        'api.wakeve.app/health` is reachable, but `wakeve.app` DNS/live web/AASA routes remain unreachable'
+        'docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md'
+    )
+
+    for pattern in "${blocker_register_patterns[@]}"; do
+        if ! grep -Fq "$pattern" "$blocker_register"; then
+            echo "FAIL: App Store blocker register no longer documents current AS-14 public-check status: $pattern" >&2
             exit 1
         fi
     done
