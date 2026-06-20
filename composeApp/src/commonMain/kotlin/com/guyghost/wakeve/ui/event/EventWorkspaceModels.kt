@@ -81,6 +81,8 @@ data class EventWidgetSummary(
     val title: String,
     val headline: String,
     val body: String,
+    val userInterestLabel: String = "",
+    val rationaleLabel: String = "",
     val actionLabel: String
 )
 
@@ -303,6 +305,8 @@ internal fun List<Event>.toEventWidgetSummary(
             title = "Aujourd'hui",
             headline = todayEvent.title,
             body = "${todayEvent.participants.size} participant${if (todayEvent.participants.size > 1) "s" else ""} attendus",
+            userInterestLabel = "Interet utilisateur : 10/10",
+            rationaleLabel = "Widget prioritaire : il evite d'ouvrir l'app pour retrouver le rendez-vous du jour.",
             actionLabel = "Ouvrir"
         )
     }
@@ -325,6 +329,8 @@ internal fun List<Event>.toEventWidgetSummary(
                 title = "Voyage à préparer",
                 headline = event.title,
                 body = "${event.participants.size} participant${if (event.participants.size > 1) "s" else ""} - transport, budget et programme à vérifier",
+                userInterestLabel = "Interet utilisateur : 9/10",
+                rationaleLabel = "Widget voyage pertinent : il regroupe les points qui cassent les groupes longs.",
                 actionLabel = if (event.organizerId == currentUserId) "Piloter" else "Préparer"
             )
         }
@@ -334,6 +340,8 @@ internal fun List<Event>.toEventWidgetSummary(
             title = event.title,
             headline = if (daysUntil == 1) "Demain" else "J-$daysUntil",
             body = event.workspaceNextActionLabel(isOrganizer = event.organizerId == currentUserId),
+            userInterestLabel = "Interet utilisateur : 8/10",
+            rationaleLabel = "Widget compte a rebours utile : il cree de l'anticipation sans spammer le groupe.",
             actionLabel = "Préparer"
         )
     }
@@ -348,6 +356,8 @@ internal fun List<Event>.toEventWidgetSummary(
             title = "Prochaine tâche",
             headline = nextTask.workspaceActionTitle(currentUserId),
             body = nextTask.workspaceActionButtonLabel(currentUserId),
+            userInterestLabel = "Interet utilisateur : 7/10",
+            rationaleLabel = "Widget tache utile : il ramene l'organisateur vers le prochain blocage.",
             actionLabel = "Continuer"
         )
     }
@@ -358,6 +368,8 @@ internal fun List<Event>.toEventWidgetSummary(
         title = "Wakeve",
         headline = "Aucun événement actif",
         body = "Créez un événement pour afficher le prochain rendez-vous ici.",
+        userInterestLabel = "Interet utilisateur : a activer",
+        rationaleLabel = "Aucun widget utile sans evenement actif.",
         actionLabel = "Créer"
     )
 }
