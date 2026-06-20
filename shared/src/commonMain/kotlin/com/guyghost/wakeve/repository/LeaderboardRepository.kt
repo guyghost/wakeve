@@ -10,6 +10,7 @@ import com.guyghost.wakeve.gamification.repository.UserPointsRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 /**
  * Repository interface for managing leaderboard data.
@@ -108,6 +109,10 @@ class LeaderboardRepositoryImpl(
 
         /** Maximum entries to fetch for processing */
         private const val MAX_FETCH_LIMIT = 100
+
+        private const val DAY_MS = 24L * 60L * 60L * 1000L
+        private const val WEEK_MS = 7L * DAY_MS
+        private const val MONTH_MS = 30L * DAY_MS
 
         /** Gets current time in milliseconds */
         private fun currentTimeMs(): Long {
@@ -257,22 +262,36 @@ class LeaderboardRepositoryImpl(
 
     /**
      * Filters users who earned points this month.
-     * For now, uses a simplified implementation.
      */
     private fun filterByMonth(users: List<UserPoints>, monthsAgo: Int): List<UserPoints> {
-        // In a full implementation, this would filter by lastUpdated timestamp
-        // For now, return all users (placeholder implementation)
-        return users
+        return filterByLastUpdated(users, MONTH_MS, monthsAgo)
     }
 
     /**
      * Filters users who earned points this week.
-     * For now, uses a simplified implementation.
      */
     private fun filterByWeek(users: List<UserPoints>, weeksAgo: Int): List<UserPoints> {
-        // In a full implementation, this would filter by lastUpdated timestamp
-        // For now, return all users (placeholder implementation)
-        return users
+        return filterByLastUpdated(users, WEEK_MS, weeksAgo)
+    }
+
+    private fun filterByLastUpdated(
+        users: List<UserPoints>,
+        windowMs: Long,
+        windowsAgo: Int
+    ): List<UserPoints> {
+        val now = currentTimeMs()
+        val upperBoundExclusive = now - (windowsAgo.coerceAtLeast(0) * windowMs)
+        val lowerBoundInclusive = upperBoundExclusive - windowMs
+
+        return users.filter { points ->
+            val updatedAt = parseLastUpdated(points.lastUpdated) ?: return@filter false
+            updatedAt in lowerBoundInclusive until upperBoundExclusive
+        }
+    }
+
+    private fun parseLastUpdated(lastUpdated: String): Long? {
+        if (lastUpdated.isBlank()) return null
+        return runCatching { Instant.parse(lastUpdated).toEpochMilliseconds() }.getOrNull()
     }
 
     /**
@@ -396,6 +415,9 @@ class InMemoryLeaderboardRepository(
     companion object {
         private const val CACHE_DURATION_MS = 5 * 60 * 1000L
         private const val MAX_FETCH_LIMIT = 100
+        private const val DAY_MS = 24L * 60L * 60L * 1000L
+        private const val WEEK_MS = 7L * DAY_MS
+        private const val MONTH_MS = 30L * DAY_MS
 
         /** Gets current time in milliseconds */
         private fun currentTimeMs(): Long {
@@ -479,12 +501,28 @@ class InMemoryLeaderboardRepository(
     ): List<UserPoints> {
         return when (type) {
             LeaderboardType.ALL_TIME -> users
-            LeaderboardType.THIS_MONTH, LeaderboardType.THIS_WEEK -> users
+            LeaderboardType.THIS_MONTH -> filterByLastUpdated(users, MONTH_MS)
+            LeaderboardType.THIS_WEEK -> filterByLastUpdated(users, WEEK_MS)
             LeaderboardType.FRIENDS -> {
                 if (friendIds.isEmpty()) emptyList()
                 else users.filter { friendIds.contains(it.userId) }
             }
         }
+    }
+
+    private fun filterByLastUpdated(users: List<UserPoints>, windowMs: Long): List<UserPoints> {
+        val now = currentTimeMs()
+        val lowerBoundInclusive = now - windowMs
+
+        return users.filter { points ->
+            val updatedAt = parseLastUpdated(points.lastUpdated) ?: return@filter false
+            updatedAt in lowerBoundInclusive..now
+        }
+    }
+
+    private fun parseLastUpdated(lastUpdated: String): Long? {
+        if (lastUpdated.isBlank()) return null
+        return runCatching { Instant.parse(lastUpdated).toEpochMilliseconds() }.getOrNull()
     }
 
     private fun processLeaderboard(

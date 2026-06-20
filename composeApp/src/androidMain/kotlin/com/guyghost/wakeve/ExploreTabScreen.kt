@@ -64,6 +64,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.EventSearchResult
 import com.guyghost.wakeve.models.RecommendedEventsResponse
 import com.guyghost.wakeve.models.SearchResultsResponse
@@ -90,6 +91,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun ExploreTabScreen(
     onEventClick: (String) -> Unit,
+    onTemplateClick: (EventTemplateSeed) -> Unit = {},
     repository: DatabaseEventRepository? = null
 ) {
     var searchText by remember { mutableStateOf("") }
@@ -330,7 +332,7 @@ fun ExploreTabScreen(
                         Column {
                             templates.forEach { template ->
                                 TemplateCard(template = template, onClick = {
-                                    // TODO: Create event from template
+                                    onTemplateClick(template.toSeed())
                                 })
                             }
                         }
@@ -885,11 +887,25 @@ private fun TipCard(tip: PlanningTip) {
 /**
  * Event template data class.
  */
+data class EventTemplateSeed(
+    val title: String,
+    val description: String,
+    val eventType: EventType
+)
+
 private data class EventTemplate(
     val name: String,
     val description: String,
+    val eventType: EventType,
     val icon: ImageVector
-)
+) {
+    fun toSeed(): EventTemplateSeed =
+        EventTemplateSeed(
+            title = name,
+            description = description,
+            eventType = eventType
+        )
+}
 
 /**
  * Planning tip data class.
@@ -907,21 +923,25 @@ private fun eventTemplates() = listOf(
     EventTemplate(
         name = stringResource(R.string.explore_template_weekend_name),
         description = stringResource(R.string.explore_template_weekend_desc),
+        eventType = EventType.PARTY,
         icon = Icons.Default.Favorite
     ),
     EventTemplate(
         name = stringResource(R.string.explore_template_family_name),
         description = stringResource(R.string.explore_template_family_desc),
+        eventType = EventType.FAMILY_GATHERING,
         icon = Icons.Default.Face
     ),
     EventTemplate(
         name = stringResource(R.string.explore_template_trip_name),
         description = stringResource(R.string.explore_template_trip_desc),
+        eventType = EventType.OUTDOOR_ACTIVITY,
         icon = Icons.Default.DateRange
     ),
     EventTemplate(
         name = stringResource(R.string.explore_template_sport_name),
         description = stringResource(R.string.explore_template_sport_desc),
+        eventType = EventType.SPORT_EVENT,
         icon = Icons.Default.AccountCircle
     )
 )

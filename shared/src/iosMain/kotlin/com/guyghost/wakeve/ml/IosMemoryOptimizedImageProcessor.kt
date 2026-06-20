@@ -2,26 +2,45 @@ package com.guyghost.wakeve.ml
 
 /**
  * iOS implementation of memory-optimized image processing.
- * Simplified stub implementation.
+ *
+ * Fails explicitly until a native image processing bridge is wired.
  */
 class IosMemoryOptimizedImageProcessor : MemoryOptimizedImageProcessor {
-    override suspend fun processImage(image: Any, config: MemoryOptimizationConfig): MemoryOptimizedResult = MemoryOptimizedResult(
-        success = false,
-        originalSize = ImageSize(0, 0),
-        processedSize = ImageSize(0, 0),
-        memoryUsedMB = 0.0,
-        processingTimeMs = 0,
-        downsampleFactor = 1.0
-    )
-    override suspend fun processImagesInBatches(images: List<Any>, config: MemoryOptimizationConfig): List<MemoryOptimizedResult> = emptyList()
-    override fun getCurrentMemoryUsageMB(): Double = 0.0
-    override fun shouldThrottleProcessing(config: MemoryOptimizationConfig): Boolean = false
-    override suspend fun suggestGarbageCollection() {}
+    override suspend fun processImage(
+        image: Any,
+        config: MemoryOptimizationConfig
+    ): MemoryOptimizedResult =
+        NoConfiguredMemoryOptimizedImageProcessor.processImage(image, config)
+
+    override suspend fun processImagesInBatches(
+        images: List<Any>,
+        config: MemoryOptimizationConfig
+    ): List<MemoryOptimizedResult> =
+        NoConfiguredMemoryOptimizedImageProcessor.processImagesInBatches(images, config)
+
+    override fun getCurrentMemoryUsageMB(): Double =
+        NoConfiguredMemoryOptimizedImageProcessor.getCurrentMemoryUsageMB()
+
+    override fun shouldThrottleProcessing(config: MemoryOptimizationConfig): Boolean =
+        NoConfiguredMemoryOptimizedImageProcessor.shouldThrottleProcessing(config)
+
+    override suspend fun suggestGarbageCollection() {
+        NoConfiguredMemoryOptimizedImageProcessor.suggestGarbageCollection()
+    }
 }
 
 class IosImageMemoryPool(private val maxPoolSize: Int) : ImageMemoryPool {
-    override fun acquireBuffer(size: Int): ByteArray? = null
-    override fun releaseBuffer(buffer: ByteArray) {}
-    override fun clear() {}
-    override fun getStatistics(): MemoryPoolStatistics = MemoryPoolStatistics(0, 0, 0, 0, 0, 0)
+    override fun acquireBuffer(size: Int): ByteArray? =
+        NoConfiguredImageMemoryPool.acquireBuffer(size)
+
+    override fun releaseBuffer(buffer: ByteArray) {
+        NoConfiguredImageMemoryPool.releaseBuffer(buffer)
+    }
+
+    override fun clear() {
+        NoConfiguredImageMemoryPool.clear()
+    }
+
+    override fun getStatistics(): MemoryPoolStatistics =
+        NoConfiguredImageMemoryPool.getStatistics()
 }

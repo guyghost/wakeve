@@ -24,6 +24,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.Instant
@@ -50,11 +52,13 @@ class SyncManager(
      * When false, falls back to the original last-write-wins behaviour.
      * Safe to flip at runtime — the sync loop checks this on every conflict.
      */
-    val conflictResolutionEnabled: Boolean = true
+    val conflictResolutionEnabled: Boolean = true,
+    private val pendingSideEffectReplayers: List<PendingSyncSideEffectReplayer> = emptyList()
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val conflictLog = ConflictLogRepository(database)
+    private val syncMutex = Mutex()
 
     // Callbacks for the presentation layer
     /** Called when critical conflicts require user resolution. */
@@ -113,7 +117,8 @@ class SyncManager(
      * Check if there are pending changes to sync
      */
     suspend fun hasPendingChanges(): Boolean {
-        return userRepository.getPendingSyncChanges().isNotEmpty()
+        return userRepository.getPendingSyncChanges().isNotEmpty() ||
+            pendingSideEffectReplayers.any { it.hasPending() }
     }
 
     /**
@@ -139,7 +144,9 @@ class SyncManager(
      * Trigger synchronization with server
      */
     suspend fun triggerSync(): Result<SyncResponse> = runCatching {
-        syncWithRetry().getOrThrow()
+        syncMutex.withLock {
+            syncWithRetry().getOrThrow()
+        }
     }
 
     /**
@@ -405,7 +412,11 @@ class SyncManager(
 
         val authToken = authTokenProvider() ?: throw IllegalStateException("No auth token available")
 
-        _syncStatus.value = SyncStatus.Syncing
+        if (hasPendingChanges()) {
+            _syncStatus.value = SyncStatus.Syncing
+        }
+
+        replayPendingSideEffects()
 
         val pendingChanges = getPendingChangesForSync()
         if (pendingChanges.isEmpty()) {
@@ -459,6 +470,16 @@ class SyncManager(
         checkPerformance(duration)
 
         return response
+    }
+
+    private suspend fun replayPendingSideEffects(): Int {
+        var replayed = 0
+        pendingSideEffectReplayers.forEach { replayer ->
+            if (replayer.hasPending()) {
+                replayed += replayer.replayPending().getOrThrow()
+            }
+        }
+        return replayed
     }
 
     /**

@@ -41,6 +41,35 @@ interface MeetingProvider {
 }
 
 /**
+ * Meeting provider for builds where no external meeting platform integration has been wired.
+ */
+object NoConfiguredMeetingProvider : MeetingProvider {
+    private fun notConfigured(platform: MeetingPlatform? = null): MeetingProviderException {
+        val suffix = platform?.let { " for $it" }.orEmpty()
+        return MeetingProviderException("Meeting provider is not configured$suffix")
+    }
+
+    override suspend fun createMeeting(
+        platform: MeetingPlatform,
+        title: String,
+        description: String?,
+        scheduledFor: kotlinx.datetime.Instant,
+        duration: kotlin.time.Duration,
+        timezone: String,
+        participantLimit: Int?,
+        requirePassword: Boolean,
+        waitingRoom: Boolean
+    ): Result<MeetingLinkResponse> = Result.failure(notConfigured(platform))
+
+    override fun isPlatformAvailable(platform: MeetingPlatform): Boolean = false
+
+    override fun getAppUrl(platform: MeetingPlatform): String? = null
+
+    override fun launchMeeting(meetingUrl: String): Result<Unit> =
+        Result.failure(notConfigured())
+}
+
+/**
  * Meeting provider exception
  */
 open class MeetingProviderException(message: String, cause: Throwable? = null) : Exception(message, cause)

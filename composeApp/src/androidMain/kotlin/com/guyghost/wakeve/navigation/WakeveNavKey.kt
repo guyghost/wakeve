@@ -24,7 +24,7 @@ fun WakeveNavKey.toScreenRoute(): String =
         WakeveNavKey.Inbox -> Screen.Inbox.route
         WakeveNavKey.Explore -> Screen.Explore.route
         WakeveNavKey.Profile -> Screen.Profile.route
-        WakeveNavKey.EventCreation -> Screen.EventCreation.route
+        WakeveNavKey.EventCreation -> Screen.EventCreation.createRoute()
         is WakeveNavKey.EventDetail -> Screen.EventDetail.createRoute(eventId)
         is WakeveNavKey.PollVoting -> Screen.PollVoting.createRoute(eventId)
         is WakeveNavKey.PollResults -> Screen.PollResults.createRoute(eventId)

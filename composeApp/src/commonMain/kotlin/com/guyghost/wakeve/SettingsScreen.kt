@@ -52,6 +52,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.auth.SessionData
+import com.guyghost.wakeve.auth.SessionRepository
 import kotlinx.coroutines.launch
 
 data class SessionDisplayData(
@@ -94,6 +96,7 @@ fun SettingsScreen(
     isAuthenticated: Boolean = false,
     userEmail: String? = null,
     userName: String? = null,
+    sessionRepository: SessionRepository? = null,
     onLogout: () -> Unit,
     onCreateAccount: () -> Unit = {},
     onBack: () -> Unit
@@ -105,41 +108,31 @@ fun SettingsScreen(
     var showRevokeAllDialog by remember { mutableStateOf(false) }
     var sessionToRevoke by remember { mutableStateOf<SessionDisplayData?>(null) }
 
-    // Load sessions on first composition
-    LaunchedEffect(userId) {
+    suspend fun loadSessions() {
         isLoading = true
-        // TODO: Load sessions from repository
-        // For now, show mock data
-        sessions = listOf(
-            SessionDisplayData(
-                id = currentSessionId,
-                deviceName = "Appareil actuel",
-                deviceId = "device-1",
-                ipAddress = "192.168.1.100",
-                createdAt = "2025-11-20T10:00:00Z",
-                lastAccessed = "2025-11-27T14:30:00Z",
-                isCurrent = true
-            ),
-            SessionDisplayData(
-                id = "session-2",
-                deviceName = "iPhone 14 Pro",
-                deviceId = "device-2",
-                ipAddress = "192.168.1.101",
-                createdAt = "2025-11-15T08:00:00Z",
-                lastAccessed = "2025-11-26T18:00:00Z",
-                isCurrent = false
-            ),
-            SessionDisplayData(
-                id = "session-3",
-                deviceName = "MacBook Pro",
-                deviceId = "device-3",
-                ipAddress = "192.168.1.102",
-                createdAt = "2025-11-10T12:00:00Z",
-                lastAccessed = "2025-11-25T09:00:00Z",
-                isCurrent = false
-            )
+        errorMessage = null
+        val repository = sessionRepository
+        if (repository == null || userId.isBlank() || isGuest) {
+            sessions = emptyList()
+            isLoading = false
+            return
+        }
+
+        repository.getActiveSessionsForUser(userId).fold(
+            onSuccess = { activeSessions ->
+                sessions = activeSessions.map { it.toDisplayData(currentSessionId) }
+            },
+            onFailure = { error ->
+                sessions = emptyList()
+                errorMessage = error.message ?: "Impossible de charger les sessions actives"
+            }
         )
         isLoading = false
+    }
+
+    // Load sessions on first composition
+    LaunchedEffect(userId, currentSessionId, isGuest, sessionRepository) {
+        loadSessions()
     }
 
     // Revoke all other sessions dialog
@@ -154,8 +147,17 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         scope.launch {
-                            // TODO: Call API to revoke all other sessions
-                            sessions = sessions.filter { it.isCurrent }
+                            val repository = sessionRepository
+                            if (repository == null) {
+                                sessions = sessions.filter { it.isCurrent }
+                            } else {
+                                repository.revokeAllOtherSessions(userId, currentSessionId).fold(
+                                    onSuccess = { loadSessions() },
+                                    onFailure = { error ->
+                                        errorMessage = error.message ?: "Impossible de révoquer les autres sessions"
+                                    }
+                                )
+                            }
                             showRevokeAllDialog = false
                         }
                     }
@@ -183,8 +185,17 @@ fun SettingsScreen(
                 TextButton(
                     onClick = {
                         scope.launch {
-                            // TODO: Call API to revoke session
-                            sessions = sessions.filter { it.id != session.id }
+                            val repository = sessionRepository
+                            if (repository == null) {
+                                sessions = sessions.filter { it.id != session.id }
+                            } else {
+                                repository.revokeSession(session.id, reason = "device_revoked").fold(
+                                    onSuccess = { loadSessions() },
+                                    onFailure = { error ->
+                                        errorMessage = error.message ?: "Impossible de révoquer la session"
+                                    }
+                                )
+                            }
                             sessionToRevoke = null
                         }
                     }
@@ -261,7 +272,7 @@ fun SettingsScreen(
                                 style = MaterialTheme.typography.titleMedium
                             )
 
-                            if (sessions.size > 1) {
+                            if (sessions.size > 1 && currentSessionId.isNotBlank()) {
                                 TextButton(
                                     onClick = { showRevokeAllDialog = true }
                                 ) {
@@ -274,16 +285,21 @@ fun SettingsScreen(
                         }
                     }
 
-                    // Session List
-                    items(sessions) { session ->
-                        SessionCard(
-                            session = session,
-                            onRevokeSession = {
-                                if (!session.isCurrent) {
-                                    sessionToRevoke = session
+                    if (sessions.isEmpty()) {
+                        item {
+                            EmptySessionsCard(isGuest = isGuest)
+                        }
+                    } else {
+                        items(sessions) { session ->
+                            SessionCard(
+                                session = session,
+                                onRevokeSession = {
+                                    if (!session.isCurrent) {
+                                        sessionToRevoke = session
+                                    }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
 
                     // Logout Button (only for authenticated users)
@@ -320,6 +336,17 @@ fun SettingsScreen(
         }
     }
 }
+
+private fun SessionData.toDisplayData(currentSessionId: String): SessionDisplayData =
+    SessionDisplayData(
+        id = id,
+        deviceName = deviceName,
+        deviceId = deviceId,
+        ipAddress = ipAddress,
+        createdAt = createdAt,
+        lastAccessed = lastAccessed,
+        isCurrent = id == currentSessionId
+    )
 
 @Composable
 fun SessionCard(
@@ -392,6 +419,37 @@ fun SessionCard(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EmptySessionsCard(isGuest: Boolean) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = if (isGuest) "Aucune session synchronisée" else "Aucune session active enregistrée",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = if (isGuest) {
+                    "Le mode invité reste local à cet appareil."
+                } else {
+                    "Les appareils connectés apparaîtront ici dès qu'une session sera créée par l'authentification."
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }

@@ -53,6 +53,23 @@ class FailingSyncHttpClient(
     fun getCallCount(): Int = callCount
 }
 
+private class RecordingPendingSideEffectReplayer(
+    private var pending: Boolean = true,
+    private val failure: Exception? = null
+) : PendingSyncSideEffectReplayer {
+    var replayCount = 0
+
+    override suspend fun hasPending(): Boolean = pending
+
+    override suspend fun replayPending(): Result<Int> {
+        replayCount += 1
+        failure?.let { return Result.failure(it) }
+        val replayed = if (pending) 1 else 0
+        pending = false
+        return Result.success(replayed)
+    }
+}
+
 class SyncManagerTest {
 
     private lateinit var database: com.guyghost.wakeve.database.WakeveDb
@@ -200,6 +217,60 @@ class SyncManagerTest {
         assertTrue(response.success)
         assertEquals(0, response.appliedChanges)
         assertEquals("No changes to sync", response.message)
+    }
+
+    @Test
+    fun testTriggerSyncReplaysPendingSideEffectsWithoutServerChanges() = runBlocking {
+        val replayer = RecordingPendingSideEffectReplayer()
+        val sideEffectNetworkDetector = TestNetworkStatusDetector().apply {
+            setNetworkAvailable(false)
+        }
+        val sideEffectSyncManager = SyncManager(
+            database = database,
+            eventRepository = DatabaseEventRepository(database),
+            userRepository = userRepository,
+            networkDetector = sideEffectNetworkDetector,
+            httpClient = httpClient,
+            authTokenProvider = { "test-token" },
+            pendingSideEffectReplayers = listOf(replayer)
+        )
+
+        assertTrue(sideEffectSyncManager.hasPendingChanges())
+        sideEffectNetworkDetector.setNetworkAvailable(true)
+
+        val result = sideEffectSyncManager.triggerSync()
+
+        assertTrue(result.isSuccess)
+        assertEquals(1, replayer.replayCount)
+        assertEquals("No changes to sync", result.getOrThrow().message)
+        assertEquals(false, sideEffectSyncManager.hasPendingChanges())
+    }
+
+    @Test
+    fun testTriggerSyncFailsWhenPendingSideEffectReplayFails() = runBlocking {
+        val replayer = RecordingPendingSideEffectReplayer(
+            failure = IllegalStateException("comment notification replay failed")
+        )
+        val sideEffectNetworkDetector = TestNetworkStatusDetector().apply {
+            setNetworkAvailable(false)
+        }
+        val sideEffectSyncManager = SyncManager(
+            database = database,
+            eventRepository = DatabaseEventRepository(database),
+            userRepository = userRepository,
+            networkDetector = sideEffectNetworkDetector,
+            httpClient = httpClient,
+            authTokenProvider = { "test-token" },
+            pendingSideEffectReplayers = listOf(replayer),
+            maxRetries = 0
+        )
+
+        sideEffectNetworkDetector.setNetworkAvailable(true)
+        val result = sideEffectSyncManager.triggerSync()
+
+        assertTrue(result.isFailure)
+        assertEquals("comment notification replay failed", result.exceptionOrNull()?.message)
+        assertTrue(replayer.replayCount >= 1)
     }
 
     @Test

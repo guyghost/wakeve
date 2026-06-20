@@ -6,41 +6,38 @@ import com.guyghost.wakeve.models.DocumentType
 import com.guyghost.wakeve.models.PickedDocument
 
 /**
- * iOS stub implementation of DocumentPickerService.
- * 
- * This is a placeholder implementation. Full iOS document picker integration
- * using UIDocumentPickerViewController should be implemented in the iosApp module
- * using SwiftUI/UIKit integration.
+ * iOS document picker placeholder.
+ *
+ * Fails explicitly until UIDocumentPickerViewController or SwiftUI fileImporter
+ * is bridged into this service.
  */
 class IosDocumentPickerService : DocumentPickerService {
-    
-    private var lastPickedDocument: PickedDocument? = null
-    
+
     override suspend fun pickDocument(): Result<PickedDocument> {
-        return Result.failure(NotImplementedError("iOS document picker not yet implemented. Use SwiftUI fileImporter."))
+        return NoConfiguredDocumentPickerService.pickDocument()
     }
     
     override suspend fun pickDocuments(limit: Int): Result<List<PickedDocument>> {
-        return Result.failure(NotImplementedError("iOS document picker not yet implemented. Use SwiftUI fileImporter."))
+        return NoConfiguredDocumentPickerService.pickDocuments(limit)
     }
     
     override suspend fun pickDocument(type: DocumentType): Result<PickedDocument> {
-        return Result.failure(NotImplementedError("iOS document picker not yet implemented. Use SwiftUI fileImporter."))
+        return NoConfiguredDocumentPickerService.pickDocument(type)
     }
     
     override suspend fun pickDocumentsWithConfig(config: DocumentPickerConfig): Result<DocumentBatchResult> {
-        return Result.failure(NotImplementedError("iOS document picker not yet implemented. Use SwiftUI fileImporter."))
+        return NoConfiguredDocumentPickerService.pickDocumentsWithConfig(config)
     }
     
     override fun isDocumentPickerAvailable(): Boolean {
-        return true
+        return NoConfiguredDocumentPickerService.isDocumentPickerAvailable()
     }
     
     override fun getLastPickedDocument(): PickedDocument? {
-        return lastPickedDocument
+        return NoConfiguredDocumentPickerService.getLastPickedDocument()
     }
     
     override fun clearCache() {
-        lastPickedDocument = null
+        NoConfiguredDocumentPickerService.clearCache()
     }
 }

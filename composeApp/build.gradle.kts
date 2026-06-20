@@ -115,6 +115,7 @@ kotlin {
                 // Image loading
                 implementation(libs.coil.compose)
                 implementation(libs.coil.svg)
+                implementation(libs.zxing.core)
                 
                 // Kotlinx Serialization
                 implementation(libs.kotlinx.serialization.json)
@@ -241,6 +242,10 @@ buildConfig {
     
     // Server URL for OAuth endpoints
     buildConfigField("String", "SERVER_URL", "\"http://10.0.2.2:8080\"")
+
+    // App metadata surfaced in settings/about UI.
+    buildConfigField("String", "VERSION_NAME", "\"${android.defaultConfig.versionName}\"")
+    buildConfigField("Int", "VERSION_CODE", "${android.defaultConfig.versionCode}")
     
     // Google OAuth Client ID
     buildConfigField(

@@ -12,7 +12,7 @@ import kotlin.test.assertTrue
 class AndroidAiWorkflowsTest {
     @Test
     fun eventSummaryUsesOnDeviceModelWhenAvailable() = runTest {
-        val localClient = FakeAiTextGenerationClient(
+        val localClient = DeterministicAiTextGenerationClient(
             availability = AiModelAvailability.AVAILABLE,
             response = """
                 SUMMARY: Weekend in Biarritz for 8 participants from July 12 to July 15.
@@ -44,7 +44,7 @@ class AndroidAiWorkflowsTest {
 
     @Test
     fun eventSummaryFallsBackLocallyWhenOnDeviceModelIsUnavailable() = runTest {
-        val localClient = FakeAiTextGenerationClient(
+        val localClient = DeterministicAiTextGenerationClient(
             availability = AiModelAvailability.UNAVAILABLE,
             response = "This response should not be used."
         )
@@ -62,11 +62,11 @@ class AndroidAiWorkflowsTest {
 
     @Test
     fun hybridOrganizerMessageUsesLocalInferenceWhenAvailable() = runTest {
-        val localClient = FakeAiTextGenerationClient(
+        val localClient = DeterministicAiTextGenerationClient(
             availability = AiModelAvailability.AVAILABLE,
             response = "Salut tout le monde, voici l'invitation pour Biarritz."
         )
-        val cloudClient = FakeAiTextGenerationClient(
+        val cloudClient = DeterministicAiTextGenerationClient(
             availability = AiModelAvailability.AVAILABLE,
             response = "Cloud message"
         )
@@ -91,11 +91,11 @@ class AndroidAiWorkflowsTest {
 
     @Test
     fun hybridOrganizerMessageFallsBackToFirebaseCloudWhenLocalModelUnavailable() = runTest {
-        val localClient = FakeAiTextGenerationClient(
+        val localClient = DeterministicAiTextGenerationClient(
             availability = AiModelAvailability.UNAVAILABLE,
             response = "Local should not run."
         )
-        val cloudClient = FakeAiTextGenerationClient(
+        val cloudClient = DeterministicAiTextGenerationClient(
             availability = AiModelAvailability.AVAILABLE,
             response = "Petit rappel budget: pensez à confirmer les 300 EUR par personne.",
             providerName = "Firebase AI Logic",
@@ -123,8 +123,8 @@ class AndroidAiWorkflowsTest {
     }
 
     @Test
-    fun fakePlanningAgentEmitsProgressAndConfirmationRequest() = runTest {
-        val client = FakePlanningAgentClient()
+    fun deterministicPlanningAgentEmitsProgressAndConfirmationRequest() = runTest {
+        val client = DeterministicPlanningAgentClient()
 
         val events = client.startSession(sampleContext()).toList()
 

@@ -85,6 +85,10 @@ class EventOrganizationBackendAccessRoutesTest {
 
         assertNotNull(participant)
         assertEquals(0L, participant.hasValidatedDate)
+        val invitation = fixture.database.invitationQueries
+            .selectByCode(fixture.invitationCode)
+            .executeAsOne()
+        assertEquals(1L, invitation.currentUses)
 
         val budgetResponse = client.get("/api/events/${fixture.eventId}/budget") {
             header(HttpHeaders.Authorization, "Bearer $participantToken")
@@ -307,6 +311,101 @@ class EventOrganizationBackendAccessRoutesTest {
     }
 
     @Test
+    fun `non organizer cannot create invitation link for event`() = testApplication {
+        val fixture = createFixture()
+        val nonOrganizerToken = createTestJwt(fixture.pendingUserId)
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val response = client.post("/api/events/${fixture.eventId}/invite") {
+            header(HttpHeaders.Authorization, "Bearer $nonOrganizerToken")
+            contentType(ContentType.Application.Json)
+            setBody("{}")
+        }
+
+        assertEquals(
+            HttpStatusCode.Forbidden,
+            response.status,
+            "Only the event organizer should be able to create shareable invitation links"
+        )
+    }
+
+    @Test
+    fun `already joined participant can reaccept exhausted invitation idempotently`() = testApplication {
+        val fixture = createFixture(invitationMaxUses = 1, invitationCurrentUses = 1)
+        val participantToken = createTestJwt(fixture.pendingUserId)
+
+        fixture.database.participantQueries.insertParticipant(
+            id = "part_${fixture.eventId}_${fixture.pendingUserId}",
+            eventId = fixture.eventId,
+            userId = fixture.pendingUserId,
+            role = "PARTICIPANT",
+            hasValidatedDate = 0,
+            joinedAt = "2026-05-21T10:05:00Z",
+            updatedAt = "2026-05-21T10:05:00Z"
+        )
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val response = client.post("/api/invite/${fixture.invitationCode}/accept") {
+            header(HttpHeaders.Authorization, "Bearer $participantToken")
+        }
+
+        assertEquals(
+            HttpStatusCode.OK,
+            response.status,
+            "Invitation acceptance should be idempotent for an existing participant before max-use rejection is applied"
+        )
+        assertTrue(response.bodyAsText().contains("déjà"))
+    }
+
+    @Test
+    fun `invitation code generation retries when candidate already exists`() {
+        val fixture = createFixture()
+        val invitationRepository = InvitationRepository(fixture.database)
+        val candidates = ArrayDeque(listOf(fixture.invitationCode, "NEWCODE9"))
+
+        val result = generateUniqueInvitationCode(
+            invitationRepository = invitationRepository,
+            generateCandidate = { candidates.removeFirst() },
+            maxAttempts = 2
+        )
+
+        assertEquals("NEWCODE9", result.getOrThrow())
+    }
+
+    @Test
+    fun `invitation code generation fails when all candidates collide`() {
+        val fixture = createFixture()
+        val invitationRepository = InvitationRepository(fixture.database)
+
+        val result = generateUniqueInvitationCode(
+            invitationRepository = invitationRepository,
+            generateCandidate = { fixture.invitationCode },
+            maxAttempts = 2
+        )
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message.orEmpty().contains("Failed to generate unique invitation code"))
+    }
+
+    @Test
     fun `participant rsvp with non retained slot is rejected and does not validate date`() = testApplication {
         val fixture = createFixture()
         val participantToken = createTestJwt(fixture.pendingUserId)
@@ -400,7 +499,9 @@ class EventOrganizationBackendAccessRoutesTest {
 
     private fun createFixture(
         status: EventStatus = EventStatus.ORGANIZING,
-        confirmFinalSlot: Boolean = true
+        confirmFinalSlot: Boolean = true,
+        invitationMaxUses: Int? = null,
+        invitationCurrentUses: Int = 0
     ): BackendAccessFixture {
         val database = DatabaseProvider.getDatabase(JvmDatabaseFactory(":memory:"))
         val eventRepository = DatabaseEventRepository(database)
@@ -447,6 +548,8 @@ class EventOrganizationBackendAccessRoutesTest {
                 code = invitationCode,
                 eventId = eventId,
                 createdBy = organizerId,
+                maxUses = invitationMaxUses,
+                currentUses = invitationCurrentUses,
                 createdAt = now
             )
         ).getOrThrow()
@@ -468,6 +571,7 @@ class EventOrganizationBackendAccessRoutesTest {
             database = database,
             eventRepository = eventRepository,
             eventId = eventId,
+            organizerId = organizerId,
             pendingUserId = pendingUserId,
             invitationCode = invitationCode,
             finalSlotId = finalSlotId
@@ -489,6 +593,7 @@ class EventOrganizationBackendAccessRoutesTest {
         val database: com.guyghost.wakeve.database.WakeveDb,
         val eventRepository: DatabaseEventRepository,
         val eventId: String,
+        val organizerId: String,
         val pendingUserId: String,
         val invitationCode: String,
         val finalSlotId: String

@@ -12,8 +12,8 @@ import com.guyghost.wakeve.ai.MlKitEventPlanningAiAssistant
 import com.guyghost.wakeve.ai.OnDeviceEventSummaryAiAssistant
 import com.guyghost.wakeve.ai.OrganizerMessageAiAssistant
 import com.guyghost.wakeve.ai.PlanningAgentClient
-import com.guyghost.wakeve.ai.FakePlanningAgentClient
 import com.guyghost.wakeve.ai.RuleBasedEventPlanningAiAssistant
+import com.guyghost.wakeve.ai.UnavailablePlanningAgentClient
 import com.guyghost.wakeve.database.DatabaseFactory
 import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.repository.DatabaseEventRepository
@@ -24,7 +24,13 @@ import com.guyghost.wakeve.auth.shell.services.EmailAuthService
 import com.guyghost.wakeve.auth.shell.services.GuestModeService
 import com.guyghost.wakeve.auth.shell.services.TokenStorage
 import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
+import com.guyghost.wakeve.auth.SessionRepository
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.notification.NoConfiguredAPNsSender
+import com.guyghost.wakeve.notification.NoConfiguredFCMSender
+import com.guyghost.wakeve.notification.NotificationPreferencesRepository
+import com.guyghost.wakeve.notification.NotificationPreferencesRepositoryInterface
+import com.guyghost.wakeve.notification.NotificationService
 import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.ui.auth.AuthViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -99,6 +105,23 @@ fun platformModule(): Module = module {
     single {
         val database = get<WakeveDb>()
         ScenarioRepository(database)
+    }
+
+    single<NotificationPreferencesRepositoryInterface> {
+        NotificationPreferencesRepository(get())
+    }
+
+    single {
+        NotificationService(
+            database = get(),
+            preferencesRepository = get(),
+            fcmSender = NoConfiguredFCMSender,
+            apnsSender = NoConfiguredAPNsSender
+        )
+    }
+
+    single {
+        SessionRepository(get())
     }
     
     // ========================================================================
@@ -213,6 +236,6 @@ fun platformModule(): Module = module {
     }
 
     single<PlanningAgentClient> {
-        FakePlanningAgentClient()
+        UnavailablePlanningAgentClient()
     }
 }

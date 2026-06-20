@@ -76,7 +76,7 @@ class CommentNotificationService(
                         )
                     )
 
-                    notificationService.sendNotification(notification)
+                    notificationService.sendNotification(notification).getOrThrow()
                 }
             }.awaitAll()
         }
@@ -123,7 +123,7 @@ class CommentNotificationService(
             )
         )
 
-        notificationService.sendNotification(notification)
+        notificationService.sendNotification(notification).getOrThrow()
     }
 
     /**
@@ -170,7 +170,7 @@ class CommentNotificationService(
             )
         )
 
-        notificationService.sendNotification(notification)
+        notificationService.sendNotification(notification).getOrThrow()
     }
 
     /**

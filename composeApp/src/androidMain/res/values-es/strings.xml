@@ -605,6 +605,7 @@
     <string name="prefs_weekly_digest_desc">Recibir un resumen cada lunes</string>
     <string name="prefs_general">General</string>
     <string name="prefs_sound">Sonido</string>
+    <string name="prefs_vibration">Vibración</string>
     <string name="prefs_do_not_disturb">No molestar</string>
     <string name="prefs_quiet_hours">Horas silenciosas</string>
     <string name="prefs_quiet_hours_desc">Las notificaciones se silenciarán durante este período.</string>

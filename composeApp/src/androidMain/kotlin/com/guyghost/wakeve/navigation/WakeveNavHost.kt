@@ -35,6 +35,8 @@ import com.guyghost.wakeve.OnboardingScreen
 import com.guyghost.wakeve.ProfileTabScreen
 import com.guyghost.wakeve.SettingsScreen
 import com.guyghost.wakeve.SplashScreen
+import com.guyghost.wakeve.deeplink.AndroidInvitationShareService
+import com.guyghost.wakeve.deeplink.InvitationShareCreationResult
 import com.guyghost.wakeve.ui.auth.AuthScreen
 import com.guyghost.wakeve.ui.auth.AuthSideEffect
 import com.guyghost.wakeve.ui.auth.AuthViewModel
@@ -43,6 +45,7 @@ import com.guyghost.wakeve.ui.event.DraftEventCreationRouteUiState
 import com.guyghost.wakeve.ui.event.DraftEventWizardEventFactory
 import com.guyghost.wakeve.ui.event.DraftEventWizard
 import com.guyghost.wakeve.ui.event.EventWorkspaceRoute
+import com.guyghost.wakeve.ui.meeting.MeetingDetailScreen
 import com.guyghost.wakeve.ui.meeting.MeetingListScreen
 import com.guyghost.wakeve.ui.scenario.ScenarioComparisonScreen
 import com.guyghost.wakeve.ui.scenario.ScenarioDetailScreen
@@ -77,12 +80,15 @@ import com.guyghost.wakeve.models.Route
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.access.DateValidationState
 import com.guyghost.wakeve.access.ParticipantRepositoryRecord
+import com.guyghost.wakeve.auth.SessionRepository
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.TransportLocation
 import com.guyghost.wakeve.models.TransportOption
 import com.guyghost.wakeve.models.TransportPlan
 import com.guyghost.wakeve.models.TransportReadiness
+import com.guyghost.wakeve.notification.NotificationService
 import com.guyghost.wakeve.payment.PaymentPotRepository
 import com.guyghost.wakeve.payment.TricountHandoffRepository
 import com.guyghost.wakeve.repository.ScenarioRepository
@@ -91,6 +97,7 @@ import com.guyghost.wakeve.viewmodel.EventManagementViewModel
 import com.guyghost.wakeve.viewmodel.EventPlanningAssistantViewModel
 import com.guyghost.wakeve.repository.EventRepositoryInterface as EventRepository
 import com.guyghost.wakeve.viewmodel.MeetingManagementViewModel
+import com.guyghost.wakeve.viewmodel.ProfileViewModel
 import com.guyghost.wakeve.viewmodel.ScenarioManagementViewModel
 import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
@@ -98,6 +105,7 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 /**
  * Navigation host for the Wakeve Android app.
@@ -161,6 +169,15 @@ fun WakeveNavHost(
             ExploreTabScreen(
                 onEventClick = { eventId ->
                     navController.navigate(Screen.EventDetail.createRoute(eventId))
+                },
+                onTemplateClick = { template ->
+                    navController.navigate(
+                        Screen.EventCreation.createRoute(
+                            templateTitle = template.title,
+                            templateDescription = template.description,
+                            templateType = template.eventType
+                        )
+                    )
                 }
             )
         }
@@ -175,6 +192,7 @@ fun WakeveNavHost(
                 isAuthenticated = authState.isAuthenticated,
                 userEmail = authState.currentUser?.email,
                 userName = authState.currentUser?.displayName,
+                appVersionLabel = "Version ${com.guyghost.wakeve.BuildConfig.VERSION_NAME} (${com.guyghost.wakeve.BuildConfig.VERSION_CODE})",
                 onNavigateToSettings = {
                     navController.navigate(Screen.Settings.route)
                 },
@@ -379,19 +397,61 @@ fun WakeveNavHost(
         // EVENT MANAGEMENT
         // ========================================
         
-        composable(Screen.EventCreation.route) {
+        composable(
+            route = Screen.EventCreation.route,
+            arguments = listOf(
+                navArgument("templateTitle") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("templateDescription") {
+                    type = NavType.StringType
+                    nullable = true
+                },
+                navArgument("templateType") {
+                    type = NavType.StringType
+                    nullable = true
+                }
+            )
+        ) { backStackEntry ->
             val viewModel: EventManagementViewModel = koinInject()
             var routeState by remember { mutableStateOf(DraftEventCreationRouteUiState()) }
-            val eventFactory = remember {
+            val templateTitle = backStackEntry.arguments?.getString("templateTitle").orEmpty()
+            val templateDescription = backStackEntry.arguments?.getString("templateDescription").orEmpty()
+            val templateType = backStackEntry.arguments
+                ?.getString("templateType")
+                ?.let { type -> runCatching { EventType.valueOf(type) }.getOrNull() }
+                ?: EventType.OTHER
+            val generatedEventId = remember { "event-${Clock.System.now().toEpochMilliseconds()}" }
+            val templateInitialEvent = remember(templateTitle, templateDescription, templateType, generatedEventId, userId) {
+                if (templateTitle.isBlank() && templateDescription.isBlank()) {
+                    null
+                } else {
+                    val now = Clock.System.now().toString()
+                    Event(
+                        id = generatedEventId,
+                        title = templateTitle,
+                        description = templateDescription,
+                        organizerId = userId,
+                        proposedSlots = emptyList(),
+                        deadline = now,
+                        status = EventStatus.DRAFT,
+                        createdAt = now,
+                        updatedAt = now,
+                        eventType = templateType
+                    )
+                }
+            }
+            val eventFactory = remember(templateInitialEvent, generatedEventId) {
                 DraftEventWizardEventFactory(
-                    initialEvent = null,
-                    generatedId = "event-${Clock.System.now().toEpochMilliseconds()}",
+                    initialEvent = templateInitialEvent,
+                    generatedId = generatedEventId,
                     nowIso = { Clock.System.now().toString() }
                 )
             }
             
             DraftEventWizard(
-                initialEvent = null,
+                initialEvent = templateInitialEvent,
                 userId = userId,
                 onSaveStep = { wizardState ->
                     val event = eventFactory.buildEvent(
@@ -486,17 +546,46 @@ fun WakeveNavHost(
             val eventId = backStackEntry.arguments?.getString("eventId") ?: ""
             val eventViewModel: EventManagementViewModel = koinInject()
             val eventTitle = eventViewModel.state.value.selectedEvent?.title ?: "Événement"
+            val invitationShareService = remember(context) {
+                AndroidInvitationShareService(context.applicationContext)
+            }
+            var invitationCode by remember(eventId) { mutableStateOf<String?>(null) }
+            var isCreatingInvitation by remember(eventId) { mutableStateOf(false) }
+            var invitationError by remember(eventId) { mutableStateOf<String?>(null) }
+            var retryInvitationCreation by remember(eventId) { mutableStateOf(0) }
 
-            // Generate a local invitation code (in production, call server API)
-            val invitationCode = remember {
-                val chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-                (1..8).map { chars.random() }.joinToString("")
+            LaunchedEffect(eventId, retryInvitationCreation) {
+                if (eventId.isBlank()) {
+                    invitationError = "Événement introuvable."
+                    return@LaunchedEffect
+                }
+
+                isCreatingInvitation = true
+                invitationError = null
+                when (val result = invitationShareService.createInvitation(eventId)) {
+                    is InvitationShareCreationResult.Created -> {
+                        invitationCode = result.invitation.code
+                        invitationError = null
+                    }
+                    is InvitationShareCreationResult.AuthenticationRequired -> {
+                        invitationCode = null
+                        invitationError = result.message
+                    }
+                    is InvitationShareCreationResult.Failed -> {
+                        invitationCode = null
+                        invitationError = result.message
+                    }
+                }
+                isCreatingInvitation = false
             }
 
             InvitationShareScreen(
                 eventId = eventId,
                 eventTitle = eventTitle,
                 invitationCode = invitationCode,
+                isLoading = isCreatingInvitation,
+                errorMessage = invitationError,
+                onRetry = { retryInvitationCreation += 1 },
                 onDismiss = {
                     navigateBackOrHome()
                 }
@@ -849,6 +938,7 @@ fun WakeveNavHost(
                 plans = transportPlans,
                 selectedPlanId = selectedTransportPlanId,
                 pendingSync = pendingTransportSync,
+                isTransportProviderConfigured = false,
                 onSaveDepartureLocation = { departureName ->
                     coroutineScope.launch {
                         if (selectedDestination == null) return@launch
@@ -908,10 +998,12 @@ fun WakeveNavHost(
         // ========================================
         
         composable(Screen.Inbox.route) {
+            val notificationService: NotificationService = koinInject()
             InboxScreen(
                 userId = userId,
-                onNotificationClick = { notificationId ->
-                    // TODO: Navigate to relevant screen based on notification type
+                notificationService = notificationService,
+                onNotificationClick = { eventId ->
+                    navController.navigate(Screen.EventDetail.createRoute(eventId))
                 },
                 onBack = {
                     // Inbox is a main tab, no back navigation
@@ -942,9 +1034,10 @@ fun WakeveNavHost(
                 eventViewModel = eventViewModel,
                 eventRepository = eventRepository
             )
+            val canAccessOrganizationDetails = phase5Access.canAccessOrganizationDetails
             val pendingSync = remember(eventId) { database.hasPendingPhase5Sync(eventId) }
 
-            if (!phase5Access.canEnterOrganizationRoutes) {
+            if (!canAccessOrganizationDetails || !phase5Access.isOrganizationStatusAllowed) {
                 AccessDenied(
                     message = "Confirmez votre présence pour accéder aux détails des réunions.",
                     onBack = { navController.navigateUp() }
@@ -971,10 +1064,17 @@ fun WakeveNavHost(
             arguments = listOf(navArgument("meetingId") { type = NavType.StringType })
         ) { backStackEntry ->
             val meetingId = backStackEntry.arguments?.getString("meetingId") ?: ""
-            
-            // TODO: Implement MeetingDetailScreen (Phase 4)
-            // For now, show placeholder
-            navController.navigateUp()
+            val viewModel: MeetingManagementViewModel = koinInject()
+            val meetingState by viewModel.state.collectAsState()
+
+            MeetingDetailScreen(
+                meetingId = meetingId,
+                viewModel = viewModel,
+                isOrganizer = meetingState.selectedMeeting?.organizerId == userId,
+                currentUserId = userId,
+                onBack = { navController.navigateUp() },
+                onDeleted = { navController.navigateUp() }
+            )
         }
 
         composable(
@@ -992,9 +1092,10 @@ fun WakeveNavHost(
                 eventViewModel = eventViewModel,
                 eventRepository = eventRepository
             )
+            val canAccessOrganizationDetails = phase5Access.canAccessOrganizationDetails
             val pendingSync = remember(eventId) { database.hasPendingPhase5Sync(eventId) }
 
-            if (!phase5Access.canEnterOrganizationRoutes) {
+            if (!canAccessOrganizationDetails || !phase5Access.isOrganizationStatusAllowed) {
                 AccessDenied(
                     message = "Confirmez votre présence pour accéder aux détails de la cagnotte.",
                     onBack = { navController.navigateUp() }
@@ -1032,9 +1133,10 @@ fun WakeveNavHost(
                 eventViewModel = eventViewModel,
                 eventRepository = eventRepository
             )
+            val canAccessOrganizationDetails = phase5Access.canAccessOrganizationDetails
             val pendingSync = remember(eventId) { database.hasPendingPhase5Sync(eventId) }
 
-            if (!phase5Access.canEnterOrganizationRoutes) {
+            if (!canAccessOrganizationDetails || !phase5Access.isOrganizationStatusAllowed) {
                 AccessDenied(
                     message = "Confirmez votre présence pour ouvrir les détails Tricount.",
                     onBack = { navController.navigateUp() }
@@ -1063,14 +1165,16 @@ fun WakeveNavHost(
         composable(Screen.Settings.route) {
             val authViewModel: AuthViewModel = koinInject()
             val authState by authViewModel.uiState.collectAsState()
+            val sessionRepository: SessionRepository = koinInject()
 
             SettingsScreen(
                 userId = userId,
-                currentSessionId = authState.currentUser?.id ?: "",
+                currentSessionId = "",
                 isGuest = authState.isGuest,
                 isAuthenticated = authState.isAuthenticated,
                 userEmail = authState.currentUser?.email,
                 userName = authState.currentUser?.displayName,
+                sessionRepository = sessionRepository,
                 onLogout = {
                     authViewModel.signOut()
                     navController.navigate(Screen.Auth.route) {
@@ -1105,9 +1209,10 @@ fun WakeveNavHost(
                 eventViewModel = eventViewModel,
                 eventRepository = eventRepository
             )
+            val canAccessOrganizationDetails = phase5Access.canAccessOrganizationDetails
             val pendingSync = remember(eventId) { database.hasPendingPhase5Sync(eventId) }
 
-            if (!phase5Access.canEnterOrganizationRoutes) {
+            if (!canAccessOrganizationDetails || !phase5Access.isOrganizationStatusAllowed) {
                 AccessDenied(
                     message = "Confirmez votre présence pour accéder aux détails du budget.",
                     onBack = { navController.navigateUp() }
@@ -1326,6 +1431,7 @@ fun WakeveNavHost(
         // ========================================
 
         composable(Screen.Notifications.route) {
+            val notificationService: NotificationService = koinInject()
             NotificationsScreen(
                 onBack = {
                     navController.navigateUp()
@@ -1335,15 +1441,20 @@ fun WakeveNavHost(
                 },
                 onNotificationClick = { eventId ->
                     navController.navigate(Screen.EventDetail.createRoute(eventId))
-                }
+                },
+                userId = userId,
+                notificationService = notificationService
             )
         }
 
         composable(Screen.NotificationPreferences.route) {
+            val notificationService: NotificationService = koinInject()
             NotificationPreferencesScreen(
                 onBack = {
                     navController.navigateUp()
-                }
+                },
+                userId = userId,
+                notificationService = notificationService
             )
         }
 
@@ -1352,7 +1463,11 @@ fun WakeveNavHost(
         // ========================================
 
         composable(Screen.Leaderboard.route) {
+            val profileViewModel: ProfileViewModel = koinInject(
+                parameters = { parametersOf(userId) }
+            )
             LeaderboardScreen(
+                viewModel = profileViewModel,
                 onNavigateBack = {
                     navController.navigateUp()
                 }
@@ -1364,7 +1479,18 @@ fun WakeveNavHost(
         // ========================================
 
         composable(Screen.OrganizerDashboard.route) {
+            val eventViewModel: EventManagementViewModel = koinInject()
+            val eventState by eventViewModel.state.collectAsState()
+
+            LaunchedEffect(Unit) {
+                eventViewModel.loadEvents()
+            }
+
             OrganizerDashboardScreen(
+                events = eventState.events,
+                currentUserId = userId,
+                isLoading = eventState.isLoading,
+                error = eventState.error,
                 onNavigateBack = {
                     navController.navigateUp()
                 }

@@ -794,10 +794,11 @@ class ScenarioManagementStateMachine(
 
     private fun canAccessScenarioDetails(eventId: String, userId: String): Boolean {
         if (userId.isBlank()) return false
-        val event = eventRepository?.getEvent(eventId) ?: return true
+        val repository = eventRepository ?: return false
+        val event = repository.getEvent(eventId) ?: return false
         if (event.organizerId == userId) return true
 
-        val participantRecord = eventRepository.getParticipantRecords(eventId)
+        val participantRecord = repository.getParticipantRecords(eventId)
             ?.firstOrNull { it.userId == userId }
 
         return participantRecord?.hasValidatedDate == 1L

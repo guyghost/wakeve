@@ -586,15 +586,15 @@ private class NotImplementedError(message: String) : Exception(message)
  * Dummy implementation of SecureTokenStorage for shared module compilation.
  */
 private class DummySecureTokenStorage : SecureTokenStorage {
-    override suspend fun storeAccessToken(token: String) = Result.success(Unit)
-    override suspend fun storeRefreshToken(token: String) = Result.success(Unit)
-    override suspend fun storeUserId(userId: String) = Result.success(Unit)
-    override suspend fun storeTokenExpiry(expiryTimestamp: Long) = Result.success(Unit)
-    override suspend fun storeUserEmail(email: String) = Result.success(Unit)
-    override suspend fun storeUserName(name: String) = Result.success(Unit)
-    override suspend fun storeUserProvider(provider: String) = Result.success(Unit)
-    override suspend fun storeUserAvatarUrl(avatarUrl: String?) = Result.success(Unit)
-    override suspend fun storeUserProfile(profile: UserProfileData) = Result.success(Unit)
+    override suspend fun storeAccessToken(token: String) = storageUnavailable()
+    override suspend fun storeRefreshToken(token: String) = storageUnavailable()
+    override suspend fun storeUserId(userId: String) = storageUnavailable()
+    override suspend fun storeTokenExpiry(expiryTimestamp: Long) = storageUnavailable()
+    override suspend fun storeUserEmail(email: String) = storageUnavailable()
+    override suspend fun storeUserName(name: String) = storageUnavailable()
+    override suspend fun storeUserProvider(provider: String) = storageUnavailable()
+    override suspend fun storeUserAvatarUrl(avatarUrl: String?) = storageUnavailable()
+    override suspend fun storeUserProfile(profile: UserProfileData) = storageUnavailable()
     override suspend fun getAccessToken(): String? = null
     override suspend fun getRefreshToken(): String? = null
     override suspend fun getUserId(): String? = null
@@ -605,10 +605,14 @@ private class DummySecureTokenStorage : SecureTokenStorage {
     override suspend fun getUserAvatarUrl(): String? = null
     override suspend fun getUserProfile(): UserProfileData? = null
     override suspend fun getSessionId(): String? = null
-    override suspend fun storeSessionId(sessionId: String) = Result.success(Unit)
-    override suspend fun clearAllTokens() = Result.success(Unit)
+    override suspend fun storeSessionId(sessionId: String) = storageUnavailable()
+    override suspend fun clearAllTokens() = storageUnavailable()
     override suspend fun isTokenExpired(): Boolean = true
     override suspend fun hasValidToken(): Boolean = false
+
+    private fun storageUnavailable(): Result<Unit> {
+        return Result.failure(NotImplementedError("Use platform-specific secure token storage"))
+    }
 }
 
 /**
@@ -627,7 +631,8 @@ private class DummyAuthenticationService(
     override suspend fun refreshToken(): Result<OAuthLoginResponse> =
         Result.failure(NotImplementedError("Use platform-specific implementation"))
 
-    override suspend fun logout(): Result<Unit> = Result.success(Unit)
+    override suspend fun logout(): Result<Unit> =
+        Result.failure(NotImplementedError("Use platform-specific implementation"))
 
     override suspend fun getStoredAccessToken(): String? = null
 

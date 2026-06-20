@@ -6,6 +6,7 @@ import com.guyghost.wakeve.createFreshTestDatabase
 import com.guyghost.wakeve.budget.BudgetRepository
 import com.guyghost.wakeve.budget.ExpenseRepository
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.meeting.DeterministicMeetingLinkProvider
 import com.guyghost.wakeve.meeting.MeetingService
 import com.guyghost.wakeve.models.BudgetCategory
 import com.guyghost.wakeve.models.EnhancedCalendarEvent
@@ -13,7 +14,6 @@ import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.MeetingPlatform
 import com.guyghost.wakeve.models.NotificationMessage
 import com.guyghost.wakeve.models.PushToken
-import com.guyghost.wakeve.notification.DefaultNotificationService
 import com.guyghost.wakeve.notification.NotificationServiceInterface
 import com.guyghost.wakeve.payment.PaymentPotRepository
 import com.guyghost.wakeve.payment.TricountHandoffRepository
@@ -50,7 +50,8 @@ class EventOrganizationPhase5ReadinessTest {
         meetingService = MeetingService(
             database = database,
             calendarService = CalendarService(database, NoopPlatformCalendarService()),
-            notificationService = DefaultNotificationService()
+            notificationService = RecordingNotificationService(),
+            meetingLinkProvider = DeterministicMeetingLinkProvider()
         )
     }
 
@@ -245,7 +246,8 @@ class EventOrganizationPhase5ReadinessTest {
         val service = MeetingService(
             database = database,
             calendarService = CalendarService(database, platformCalendarService),
-            notificationService = RecordingNotificationService()
+            notificationService = RecordingNotificationService(),
+            meetingLinkProvider = DeterministicMeetingLinkProvider()
         )
         seedEvent("phase5-meeting-calendar", EventStatus.ORGANIZING)
         seedParticipant("phase5-meeting-calendar", "organizer-1", role = "ORGANIZER", confirmed = true)
@@ -276,7 +278,8 @@ class EventOrganizationPhase5ReadinessTest {
         val service = MeetingService(
             database = database,
             calendarService = CalendarService(database, NoopPlatformCalendarService()),
-            notificationService = notificationService
+            notificationService = notificationService,
+            meetingLinkProvider = DeterministicMeetingLinkProvider()
         )
         seedEvent("phase5-meeting-notifications", EventStatus.ORGANIZING)
         seedParticipant("phase5-meeting-notifications", "organizer-1", role = "ORGANIZER", confirmed = true)

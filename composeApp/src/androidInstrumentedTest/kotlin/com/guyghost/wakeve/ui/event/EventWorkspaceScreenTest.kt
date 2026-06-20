@@ -136,7 +136,7 @@ class EventWorkspaceScreenTest {
         }
 
         composeTestRule.onNodeWithTag("event_list_pane").assertIsDisplayed()
-        composeTestRule.onAllNodesWithText("Select an event").assertCountEquals(1)
+        composeTestRule.onAllNodesWithText("Sélectionnez un événement").assertCountEquals(1)
     }
 
     @Test
@@ -198,8 +198,8 @@ class EventWorkspaceScreenTest {
         }
 
         composeTestRule.onNodeWithTag("event_filter_wrapped").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("event_grid_columns_3").assertIsDisplayed()
-        composeTestRule.onAllNodesWithText("Select an event").assertCountEquals(1)
+        composeTestRule.onNodeWithTag("event_grid_columns_2").assertIsDisplayed()
+        composeTestRule.onAllNodesWithText("Sélectionnez un événement").assertCountEquals(1)
     }
 
     @Test
@@ -289,8 +289,8 @@ class EventWorkspaceScreenTest {
         }
 
         composeTestRule.onNodeWithTag("poll_voting_screen").assertIsDisplayed()
-        composeTestRule.onNodeWithText("Maybe").performClick()
-        composeTestRule.onNodeWithText("Submit Votes").assertIsEnabled().performClick()
+        composeTestRule.onNodeWithText("Peut-être").performClick()
+        composeTestRule.onNodeWithText("Envoyer mes votes").assertIsEnabled().performClick()
 
         assertEquals(Vote.MAYBE, selectedVote)
         assertEquals(true, submitted)

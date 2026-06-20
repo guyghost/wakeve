@@ -177,6 +177,7 @@ class ScenarioRepository(private val db: WakeveDb) {
      */
     suspend fun updateScenario(scenario: Scenario): Result<Scenario> {
         return try {
+            requireScenarioExists(scenario.id)
             val now = getCurrentUtcIsoString()
             scenarioQueries.updateScenarioWithMetadata(
                 name = scenario.name,
@@ -203,6 +204,7 @@ class ScenarioRepository(private val db: WakeveDb) {
      */
     suspend fun updateScenarioStatus(scenarioId: String, status: ScenarioStatus): Result<Unit> {
         return try {
+            requireScenarioExists(scenarioId)
             val now = getCurrentUtcIsoString()
             scenarioQueries.updateScenarioStatus(
                 status = status.name,
@@ -267,6 +269,7 @@ class ScenarioRepository(private val db: WakeveDb) {
      */
     suspend fun deleteScenario(scenarioId: String): Result<Unit> {
         return try {
+            requireScenarioExists(scenarioId)
             scenarioQueries.deleteScenario(scenarioId)
             Result.success(Unit)
         } catch (e: Exception) {
@@ -280,6 +283,7 @@ class ScenarioRepository(private val db: WakeveDb) {
      */
     suspend fun addVote(vote: ScenarioVote): Result<ScenarioVote> {
         return try {
+            requireScenarioExists(vote.scenarioId)
             // Check if vote already exists
             val existingVote = scenarioVoteQueries.selectByScenarioIdAndParticipantId(
                 vote.scenarioId,
@@ -321,6 +325,7 @@ class ScenarioRepository(private val db: WakeveDb) {
      */
     suspend fun updateVote(vote: ScenarioVote): Result<Unit> {
         return try {
+            requireVoteExists(vote.scenarioId, vote.participantId)
             scenarioVoteQueries.updateScenarioVote(
                 vote = vote.vote.name,
                 scenarioId = vote.scenarioId,
@@ -410,6 +415,7 @@ class ScenarioRepository(private val db: WakeveDb) {
      */
     suspend fun deleteVote(scenarioId: String, participantId: String): Result<Unit> {
         return try {
+            requireVoteExists(scenarioId, participantId)
             scenarioVoteQueries.deleteByScenarioIdAndParticipantId(scenarioId, participantId)
             Result.success(Unit)
         } catch (e: Exception) {
@@ -567,6 +573,21 @@ class ScenarioRepository(private val db: WakeveDb) {
             sourcePotentialLocationId = scenario.sourcePotentialLocationId,
             generationType = scenario.generationType.name
         )
+    }
+
+    private fun requireScenarioExists(scenarioId: String) {
+        require(scenarioQueries.selectById(scenarioId).executeAsOneOrNull() != null) {
+            "Scenario not found: $scenarioId"
+        }
+    }
+
+    private fun requireVoteExists(scenarioId: String, participantId: String) {
+        require(
+            scenarioVoteQueries.selectByScenarioIdAndParticipantId(scenarioId, participantId)
+                .executeAsOneOrNull() != null
+        ) {
+            "Scenario vote not found: $scenarioId/$participantId"
+        }
     }
 
     private fun confirmMatrixScenario(eventId: String, scenarioId: String, organizerId: String, now: String) {

@@ -284,6 +284,14 @@ class DeepLinkTest {
 
         assertEquals(DeepLinkRoute.EVENT_MEETINGS, route)
     }
+
+    @Test
+    fun deepLinkRoute_invite_extractsInvitationCode() {
+        val deepLink = DeepLink.create("invite/invite-code-123", emptyMap())
+
+        assertEquals(DeepLinkRoute.INVITE, deepLink.toDeepLinkRoute())
+        assertEquals("invite-code-123", DeepLinkRoute.INVITE.extractParameters(deepLink)["code"])
+    }
 }
 
 /**
@@ -407,6 +415,22 @@ class DeepLinkFactoryTest {
         val deepLink = DeepLinkFactory.createHomeLink("upcoming")
 
         assertEquals("upcoming", deepLink.getParameter("tab"))
+    }
+
+    @Test
+    fun createInvitationLink_withCode_createsRoutableInviteLink() {
+        val deepLink = DeepLinkFactory.createInvitationLink("invite-code-123")
+
+        assertEquals("invite/invite-code-123", deepLink.route)
+        assertEquals("wakeve://invite/invite-code-123", deepLink.fullUri)
+        assertEquals(DeepLinkRoute.INVITE, deepLink.toDeepLinkRoute())
+    }
+
+    @Test
+    fun createInvitationLink_blankCode_fails() {
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkFactory.createInvitationLink(" ")
+        }
     }
 }
 

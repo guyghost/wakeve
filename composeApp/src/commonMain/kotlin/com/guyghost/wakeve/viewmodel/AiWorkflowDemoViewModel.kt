@@ -8,8 +8,6 @@ import com.guyghost.wakeve.ai.EventAiSummary
 import com.guyghost.wakeve.ai.EventPlanningPromptContext
 import com.guyghost.wakeve.ai.EventSummaryAiAssistant
 import com.guyghost.wakeve.ai.EventSummaryAiUpdate
-import com.guyghost.wakeve.ai.FakeAiTextGenerationClient
-import com.guyghost.wakeve.ai.FakePlanningAgentClient
 import com.guyghost.wakeve.ai.GeneratedOrganizerMessage
 import com.guyghost.wakeve.ai.HybridOrganizerMessageAiAssistant
 import com.guyghost.wakeve.ai.MoneyAmount
@@ -21,6 +19,8 @@ import com.guyghost.wakeve.ai.OrganizerMessageType
 import com.guyghost.wakeve.ai.PlanningAgentClient
 import com.guyghost.wakeve.ai.PlanningAgentEvent
 import com.guyghost.wakeve.ai.PlanningAgentSession
+import com.guyghost.wakeve.ai.UnavailableAiTextGenerationClient
+import com.guyghost.wakeve.ai.UnavailablePlanningAgentClient
 import com.guyghost.wakeve.ui.ai.PlanningAgentEventUiItem
 import com.guyghost.wakeve.ui.ai.toPlanningAgentEventUiItem
 import kotlinx.coroutines.Job
@@ -54,24 +54,14 @@ data class AiWorkflowDemoUiState(
 
 class AiWorkflowDemoViewModel(
     private val summaryAssistant: EventSummaryAiAssistant = OnDeviceEventSummaryAiAssistant(
-        FakeAiTextGenerationClient(
-            availability = AiModelAvailability.UNAVAILABLE,
-            response = ""
-        )
+        UnavailableAiTextGenerationClient()
     ),
     private val messageAssistant: OrganizerMessageAiAssistant = HybridOrganizerMessageAiAssistant(
-        onDeviceClient = FakeAiTextGenerationClient(
-            availability = AiModelAvailability.UNAVAILABLE,
-            response = ""
-        ),
-        cloudClient = FakeAiTextGenerationClient(
-            response = "Cloud fallback message",
-            providerName = "Firebase AI Logic",
-            modelName = "gemini-3.1-flash-lite",
-            route = AiInferenceRoute.CLOUD_FIREBASE_AI_LOGIC
-        )
+        onDeviceClient = UnavailableAiTextGenerationClient("On-device message model is not configured."),
+        cloudClient = UnavailableAiTextGenerationClient("Cloud message model is not configured."),
+        allowCloudFallback = false
     ),
-    private val planningAgentClient: PlanningAgentClient = FakePlanningAgentClient()
+    private val planningAgentClient: PlanningAgentClient = UnavailablePlanningAgentClient()
 ) : ViewModel() {
     private val _state = MutableStateFlow(AiWorkflowDemoUiState())
     val state: StateFlow<AiWorkflowDemoUiState> = _state.asStateFlow()

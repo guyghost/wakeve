@@ -4,6 +4,7 @@ import com.guyghost.wakeve.calendar.CalendarService
 import com.guyghost.wakeve.calendar.PlatformCalendarService
 import com.guyghost.wakeve.createFreshTestDatabase
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.meeting.DeterministicMeetingLinkProvider
 import com.guyghost.wakeve.meeting.MeetingService
 import com.guyghost.wakeve.models.EnhancedCalendarEvent
 import com.guyghost.wakeve.models.EventStatus
@@ -34,7 +35,8 @@ class EventOrganizationPhase56SharedOfflineRedTest {
         meetingService = MeetingService(
             database = database,
             calendarService = CalendarService(database, Phase56NoopPlatformCalendarService()),
-            notificationService = Phase56NoopNotificationService()
+            notificationService = Phase56NoopNotificationService(),
+            meetingLinkProvider = DeterministicMeetingLinkProvider()
         )
         paymentPotRepository = PaymentPotRepository(database)
         tricountHandoffRepository = TricountHandoffRepository(database)

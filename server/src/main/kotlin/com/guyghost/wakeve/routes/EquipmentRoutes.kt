@@ -246,6 +246,17 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                 )
 
                 val request = call.receive<UpdateEquipmentItemRequest>()
+                val existingItem = repository.getEquipmentItemById(itemId)
+                    ?: return@put call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Equipment item not found")
+                    )
+                if (existingItem.eventId != eventId) {
+                    return@put call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Equipment item not found")
+                    )
+                }
                 
                 // Validate request
                 if (request.name != null && request.name.isBlank()) {
@@ -262,7 +273,7 @@ fun io.ktor.server.routing.Route.equipmentRoutes(
                     )
                 }
 
-                val updatedItem = repository.updateEquipmentItem(request.applyTo(itemId, eventId))
+                val updatedItem = repository.updateEquipmentItem(request.applyTo(existingItem))
                 call.respond(HttpStatusCode.OK, updatedItem)
             } catch (e: Exception) {
                 call.respond(

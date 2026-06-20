@@ -128,7 +128,7 @@ class NotificationScheduler(
      */
     fun cancelReminders(eventId: String) {
         scheduledJobs.keys
-            .filter { it.contains(eventId) }
+            .filter { scheduledJobBelongsToEvent(it, eventId) }
             .forEach { key ->
                 scheduledJobs[key]?.cancel()
                 scheduledJobs.remove(key)
@@ -284,4 +284,15 @@ class NotificationScheduler(
 
         scheduledJobs[weekKey] = Job()
     }
+
+}
+
+internal fun scheduledJobBelongsToEvent(jobKey: String, eventId: String): Boolean {
+    if (eventId.isBlank()) return false
+
+    return jobKey == "deadline-24h-$eventId" ||
+        jobKey == "deadline-1h-$eventId" ||
+        jobKey == "deadline-check-24h-$eventId" ||
+        jobKey == "deadline-check-1h-$eventId" ||
+        jobKey.startsWith("event-day-$eventId-")
 }

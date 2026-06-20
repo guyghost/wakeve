@@ -592,6 +592,7 @@
     <string name="prefs_weekly_digest_desc">Jeden Montag eine Zusammenfassung erhalten</string>
     <string name="prefs_general">Allgemein</string>
     <string name="prefs_sound">Ton</string>
+    <string name="prefs_vibration">Vibration</string>
     <string name="prefs_do_not_disturb">Nicht stoeren</string>
     <string name="prefs_quiet_hours">Ruhezeiten</string>
     <string name="prefs_quiet_hours_desc">Benachrichtigungen werden in diesem Zeitraum stummgeschaltet.</string>

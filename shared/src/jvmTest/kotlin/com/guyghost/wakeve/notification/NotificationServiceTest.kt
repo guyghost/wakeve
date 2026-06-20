@@ -450,6 +450,24 @@ class NotificationServiceTest {
         assertNotNull(dbNotification.read_at)
     }
 
+    @Test
+    fun markAsReadForUser_rejectsNotificationOwnedByAnotherUser() = runTest {
+        seedNotificationUser("user456")
+        service.registerPushToken("user456", Platform.ANDROID, "fcm-token-456").getOrThrow()
+
+        val notificationId = service.sendNotification(
+            createRequest(body = "Private notification", userId = "user456")
+        ).getOrThrow()
+
+        val result = service.markAsReadForUser(
+            notificationId = notificationId,
+            userId = "user123"
+        )
+
+        assertTrue(result.isFailure)
+        assertEquals(1, service.getUnreadNotifications("user456").size)
+    }
+
     // ==================== 7. markAllAsRead Tests ====================
 
     @Test
@@ -506,6 +524,29 @@ class NotificationServiceTest {
     fun deleteNotification_success_whenNotificationDoesNotExist() = runTest {
         val result = service.deleteNotification("non-existent-id")
         assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun deleteNotificationForUser_rejectsNotificationOwnedByAnotherUser() = runTest {
+        seedNotificationUser("user456")
+        service.registerPushToken("user456", Platform.ANDROID, "fcm-token-456").getOrThrow()
+
+        val notificationId = service.sendNotification(
+            createRequest(body = "Do not delete", userId = "user456")
+        ).getOrThrow()
+
+        val result = service.deleteNotificationForUser(
+            notificationId = notificationId,
+            userId = "user123"
+        )
+
+        assertTrue(result.isFailure)
+        assertEquals(1, service.getNotifications("user456").size)
+        assertNotNull(
+            database.notificationQueries
+                .getNotificationById(notificationId)
+                .executeAsOneOrNull()
+        )
     }
 
     // ==================== 9. getPreferences Tests ====================
@@ -736,9 +777,12 @@ class NotificationServiceTest {
 
     // ==================== Helper Methods ====================
 
-    private fun createRequest(body: String): NotificationRequest {
+    private fun createRequest(
+        body: String,
+        userId: String = "user123"
+    ): NotificationRequest {
         return NotificationRequest(
-            userId = "user123",
+            userId = userId,
             type = NotificationType.EVENT_INVITE,
             title = "Test Title",
             body = body
@@ -757,6 +801,17 @@ class NotificationServiceTest {
             role = "USER",
             created_at = now,
             updated_at = now
+        )
+    }
+
+    private fun seedNotificationUser(userId: String) {
+        seedUser(userId)
+        preferencesRepository.setPreferences(
+            defaultNotificationPreferences(userId).copy(
+                enabledTypes = NotificationType.entries.toSet(),
+                quietHoursStart = null,
+                quietHoursEnd = null
+            )
         )
     }
 }

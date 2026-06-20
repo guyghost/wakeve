@@ -146,6 +146,17 @@
                     android:scheme="wakeve"
                     android:host="invite" />
             </intent-filter>
+
+            <!-- App Link: Invite - https://wakeve.app/invite/{token} -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="wakeve.app"
+                    android:pathPrefix="/invite" />
+            </intent-filter>
         </activity>
 
         <!-- Shortcuts for Google Assistant -->

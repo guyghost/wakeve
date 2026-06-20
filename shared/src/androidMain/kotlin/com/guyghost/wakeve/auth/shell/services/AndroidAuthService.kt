@@ -18,7 +18,7 @@ import kotlinx.coroutines.withContext
   * - Google Sign-In is handled via AndroidOAuthProvider interface
   * - Apple Sign-In is handled via AppleSignInProvider interface (web-based OAuth flow)
   * - Providers can be injected via setOAuthProvider() and setAppleSignInProvider() methods
-  * - If no provider is set, falls back to mock implementation
+  * - If no provider is set, OAuth attempts fail with an explicit configuration error
   *
   * Token storage is managed separately via TokenStorage interface (AndroidTokenStorage),
   * which uses EncryptedSharedPreferences with Android Keystore for security ✅
@@ -37,13 +37,13 @@ actual class AuthService {
 
     /**
      * Android-specific OAuth provider for handling Google Sign-In.
-     * Can be null if not injected (falls back to mock).
+     * Can be null if Google OAuth is not configured.
      */
     private var oauthProvider: AndroidOAuthProvider? = null
 
     /**
      * Android-specific Apple Sign-In provider for handling web-based OAuth flow.
-     * Can be null if not injected (falls back to mock).
+     * Can be null if Apple OAuth is not configured.
      */
     private var appleSignInProvider: AppleSignInProvider? = null
 
@@ -78,22 +78,18 @@ actual class AuthService {
      /**
        * Initiates Google Sign-In flow on Android.
       *
-      * If an OAuth provider is set via setOAuthProvider(), this will launch
-      * the real Google Sign-In flow. Otherwise, returns a mock result.
+      * If an OAuth provider is set via setOAuthProvider(), this will route callers
+      * toward the real Google Sign-In flow. Otherwise, it fails explicitly.
       *
       * REAL IMPLEMENTATION (with OAuth provider):
       * - Uses AndroidOAuthProvider.getGoogleSignInIntent() to get the intent
       * - The caller must launch this intent with startActivityForResult
       * - Then call handleGoogleSignInResult() with the result data
       *
-      * MOCK IMPLEMENTATION (without OAuth provider):
-      * - Returns a mock user for testing purposes
-      *
       * @return AuthResult with authenticated user or error
       */
     actual suspend fun signInWithGoogle(): AuthResult = withContext(Dispatchers.Main) {
         try {
-            // If OAuth provider is set, use it for real sign-in
             if (oauthProvider != null) {
                 // Real implementation: the provider handles the sign-in flow
                 // Note: This method signature doesn't allow returning Intent,
@@ -106,20 +102,10 @@ actual class AuthService {
                     )
                 )
             } else {
-                // Mock implementation for testing
-                AuthResult.success(
-                    User(
-                        id = "google_user_123",
-                        email = "user@gmail.com",
-                        name = "Google User",
-                        authMethod = AuthMethod.GOOGLE,
-                        isGuest = false,
-                        createdAt = System.currentTimeMillis(),
-                        lastLoginAt = System.currentTimeMillis()
-                    ),
-                    com.guyghost.wakeve.auth.core.models.AuthToken.createLongLived(
-                        value = "google_id_token_placeholder",
-                        expiresInDays = 30
+                AuthResult.error(
+                    AuthError.OAuthError(
+                        provider = AuthMethod.GOOGLE,
+                        message = "Google OAuth provider not configured. Call setOAuthProvider() before starting Google Sign-In."
                     )
                 )
             }
@@ -138,7 +124,7 @@ actual class AuthService {
      * Uses web-based Sign in with Apple JS for Android.
      *
      * If an Apple Sign-In provider is set via setAppleSignInProvider(),
-     * this will provide a real web-based OAuth flow. Otherwise, returns a mock result.
+     * this will route callers toward the real web-based OAuth flow. Otherwise, it fails explicitly.
      *
      * REAL IMPLEMENTATION (with Apple Sign-In provider):
      * - This method returns an error indicating the limitation
@@ -146,14 +132,10 @@ actual class AuthService {
      * - Then open the URL in a browser or Custom Tab
      * - After callback, call handleAppleAuthCallback() to process the result
      *
-     * MOCK IMPLEMENTATION (without Apple Sign-In provider):
-     * - Returns a mock user for testing purposes
-     *
      * @return AuthResult with authenticated user or error
      */
     actual suspend fun signInWithApple(): AuthResult = withContext(Dispatchers.Main) {
         try {
-            // If Apple Sign-In provider is set, use it for real sign-in
             if (appleSignInProvider != null) {
                 // Real implementation: the provider handles the sign-in flow
                 // Note: This method signature doesn't allow returning the auth URL,
@@ -166,20 +148,10 @@ actual class AuthService {
                     )
                 )
             } else {
-                // Mock implementation for testing
-                AuthResult.success(
-                    User(
-                        id = "apple_user_456",
-                        email = "user@icloud.com",
-                        name = "Apple User",
-                        authMethod = AuthMethod.APPLE,
-                        isGuest = false,
-                        createdAt = System.currentTimeMillis(),
-                        lastLoginAt = System.currentTimeMillis()
-                    ),
-                    com.guyghost.wakeve.auth.core.models.AuthToken.createLongLived(
-                        value = "apple_identity_token_placeholder",
-                        expiresInDays = 30
+                AuthResult.error(
+                    AuthError.OAuthError(
+                        provider = AuthMethod.APPLE,
+                        message = "Apple Sign-In provider not configured. Call setAppleSignInProvider() before starting Apple Sign-In."
                     )
                 )
             }
@@ -496,19 +468,8 @@ actual class AuthService {
     actual suspend fun isProviderAvailable(provider: AuthMethod): Boolean {
         return withContext(Dispatchers.Main) {
             when (provider) {
-                AuthMethod.GOOGLE -> {
-                    // Check if Google Play Services is available
-                    try {
-                        // In production: GoogleSignIn.getClient(context, gso) != null
-                        true
-                    } catch (e: Exception) {
-                        false
-                    }
-                }
-                AuthMethod.APPLE -> {
-                    // Apple Sign-In via web is always available on Android
-                    true
-                }
+                AuthMethod.GOOGLE -> oauthProvider != null
+                AuthMethod.APPLE -> appleSignInProvider != null
                 else -> false
             }
         }

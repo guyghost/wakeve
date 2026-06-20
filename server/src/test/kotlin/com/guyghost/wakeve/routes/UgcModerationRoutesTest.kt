@@ -12,9 +12,9 @@ import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.moderation.ModerationRepository
 import com.guyghost.wakeve.module
+import com.guyghost.wakeve.notification.APNsSender
 import com.guyghost.wakeve.notification.EventNotificationTrigger
-import com.guyghost.wakeve.notification.MockAPNsSender
-import com.guyghost.wakeve.notification.MockFCMSender
+import com.guyghost.wakeve.notification.FCMSender
 import com.guyghost.wakeve.notification.NotificationPreferencesRepository
 import com.guyghost.wakeve.notification.NotificationService
 import com.guyghost.wakeve.repository.DatabaseEventRepository
@@ -269,8 +269,8 @@ class UgcModerationRoutesTest {
         val notificationService = NotificationService(
             database = fixture.database,
             preferencesRepository = NotificationPreferencesRepository(fixture.database),
-            fcmSender = MockFCMSender(),
-            apnsSender = MockAPNsSender()
+            fcmSender = SuccessfulFCMSender(),
+            apnsSender = SuccessfulAPNsSender()
         )
         val notificationTrigger = EventNotificationTrigger(notificationService, eventRepository, moderationRepository)
 
@@ -540,6 +540,24 @@ class UgcModerationRoutesTest {
 
     private fun kotlinx.serialization.json.JsonElement.jsonObjectValue(key: String): String =
         jsonObject[key]?.jsonPrimitive?.content ?: error("Missing JSON field $key")
+
+    private class SuccessfulFCMSender : FCMSender {
+        override suspend fun sendNotification(
+            token: String,
+            title: String,
+            body: String,
+            data: Map<String, String>
+        ): Result<Unit> = Result.success(Unit)
+    }
+
+    private class SuccessfulAPNsSender : APNsSender {
+        override suspend fun sendNotification(
+            token: String,
+            title: String,
+            body: String,
+            data: Map<String, String>
+        ): Result<Unit> = Result.success(Unit)
+    }
 
     private data class ModerationFixture(
         val database: WakeveDb,

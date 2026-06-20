@@ -171,6 +171,7 @@ data class EventTheme(
 @Composable
 fun HomeScreen(
     viewModel: EventManagementViewModel,
+    currentUserId: String = "currentUser",
     onNavigateTo: (String) -> Unit = {},
     onShowToast: (String) -> Unit = {},
     onProfileClick: () -> Unit = {},
@@ -200,8 +201,8 @@ fun HomeScreen(
 
     val backgroundColor = MaterialTheme.colorScheme.background
 
-    val filteredEvents = remember(state.events, selectedFilter) {
-        filterEvents(state.events, selectedFilter)
+    val filteredEvents = remember(state.events, selectedFilter, currentUserId) {
+        filterEvents(state.events, selectedFilter, currentUserId)
     }
 
     // First-launch detection: show sample event CTA when no real events exist
@@ -321,7 +322,7 @@ fun HomeScreen(
                     EventsCarousel(
                         events = filteredEvents,
                         isDarkTheme = isDarkTheme,
-                        userId = "currentUser", // TODO: Replace with actual user ID
+                        userId = currentUserId,
                         onEventClick = { event ->
                             viewModel.dispatch(EventManagementContract.Intent.SelectEvent(event.id))
                         }
@@ -353,12 +354,16 @@ fun HomeScreen(
     
 }
 
-internal fun filterEvents(events: List<Event>, filter: HomeEventFilter): List<Event> {
+internal fun filterEvents(
+    events: List<Event>,
+    filter: HomeEventFilter,
+    currentUserId: String = "currentUser"
+): List<Event> {
     return when (filter) {
         HomeEventFilter.UPCOMING -> events.filter { it.status != EventStatus.FINALIZED }
         HomeEventFilter.PAST -> events.filter { it.status == EventStatus.FINALIZED }
         HomeEventFilter.DRAFTS -> events.filter { it.status == EventStatus.DRAFT }
-        HomeEventFilter.ORGANIZED_BY_ME -> events.filter { it.organizerId == "currentUser" }
+        HomeEventFilter.ORGANIZED_BY_ME -> events.filter { it.organizerId == currentUserId }
         HomeEventFilter.CONFIRMED -> events.filter { it.status == EventStatus.CONFIRMED }
     }
 }

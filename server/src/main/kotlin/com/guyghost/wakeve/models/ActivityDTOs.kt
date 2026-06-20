@@ -52,22 +52,17 @@ data class UpdateActivityRequest(
     val costPerPerson: Long? = null,
     val organizerId: String? = null
 ) {
-    fun applyTo(activityId: String, eventId: String): Activity {
-        // Dummy implementation to satisfy compilation
-        return Activity(
-            id = activityId,
-            eventId = eventId,
-            name = name ?: "",
-            description = description ?: "",
-            date = date,
-            time = time,
-            duration = durationMinutes ?: 60,
-            location = location,
-            maxParticipants = maxParticipants,
-            cost = costPerPerson,
-            registeredParticipantIds = emptyList(), // Logic needs to preserve this
-            organizerId = organizerId ?: "unknown",
-            createdAt = "",
+    fun applyTo(existing: Activity): Activity {
+        return existing.copy(
+            name = name ?: existing.name,
+            description = description ?: existing.description,
+            date = date ?: existing.date,
+            time = time ?: existing.time,
+            duration = durationMinutes ?: existing.duration,
+            location = location ?: existing.location,
+            maxParticipants = maxParticipants ?: existing.maxParticipants,
+            cost = costPerPerson ?: existing.cost,
+            organizerId = organizerId ?: existing.organizerId,
             updatedAt = java.time.Instant.now().toString()
         )
     }

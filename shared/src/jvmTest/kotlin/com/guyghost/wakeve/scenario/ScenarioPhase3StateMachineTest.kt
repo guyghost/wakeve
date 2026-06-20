@@ -160,14 +160,36 @@ class ScenarioPhase3StateMachineTest {
         )
     }
 
-    private fun createStateMachine(scope: kotlinx.coroutines.CoroutineScope) =
+    @Test
+    fun `scenario details fail closed when event repository is unavailable`() = runTest {
+        val eventId = "event-scenario-missing-event-repository"
+        eventRepository.createEvent(eventFixture(eventId, EventStatus.COMPARING))
+        scenarioRepository.createScenario(scenarioFixture("scenario-locked", eventId, "Private chalet", "Chamonix, France"))
+        val stateMachine = createStateMachine(scope = this, includeEventRepository = false)
+
+        stateMachine.dispatch(ScenarioManagementContract.Intent.LoadScenariosForEvent(eventId, "pending-user"))
+        advanceUntilIdle()
+        stateMachine.dispatch(ScenarioManagementContract.Intent.SelectScenario("scenario-locked"))
+        advanceUntilIdle()
+
+        assertEquals(null, stateMachine.state.value.selectedScenario)
+        assertTrue(
+            stateMachine.state.value.error?.contains("confirmed participant", ignoreCase = true) == true,
+            "Scenario details must not open when participant access cannot be verified"
+        )
+    }
+
+    private fun createStateMachine(
+        scope: kotlinx.coroutines.CoroutineScope,
+        includeEventRepository: Boolean = true
+    ) =
         ScenarioManagementStateMachine(
             loadScenariosUseCase = LoadScenariosUseCase(scenarioRepository),
             createScenarioUseCase = CreateScenarioUseCase(scenarioRepository),
             voteScenarioUseCase = VoteScenarioUseCase(scenarioRepository),
             updateScenarioUseCase = UpdateScenarioUseCase(scenarioRepository),
             deleteScenarioUseCase = DeleteScenarioUseCase(scenarioRepository),
-            eventRepository = eventRepository,
+            eventRepository = eventRepository.takeIf { includeEventRepository },
             scenarioRepository = scenarioRepository,
             scope = scope
         )

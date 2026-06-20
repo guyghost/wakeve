@@ -69,6 +69,14 @@ class InvitationParticipantOfflineRepository private constructor() {
         acceptedAt: String
     ): Result<InvitationParticipantState> = runCatching {
         val invitation = invitationsByCode[code] ?: error("Invitation not found: $code")
+        require(!invitation.isExpired(acceptedAt)) { "Invitation expired: $code" }
+
+        participantsByEventAndUser[invitation.eventId to userId]?.let { existing ->
+            return@runCatching existing
+        }
+
+        require(!invitation.isMaxUsesReached()) { "Invitation max uses reached: $code" }
+
         val participant = InvitationParticipantState(
             id = "${invitation.eventId}:$userId",
             eventId = invitation.eventId,
@@ -80,11 +88,18 @@ class InvitationParticipantOfflineRepository private constructor() {
         )
 
         participantsByEventAndUser[participant.eventId to participant.userId] = participant
-        invitationsByCode[code] = invitation.copy(currentUses = invitation.currentUses + 1)
+        val updatedInvitation = invitation.copy(currentUses = invitation.currentUses + 1)
+        invitationsByCode[code] = updatedInvitation
         enqueue(
             entityType = "participant",
             entityId = participant.id,
             operation = SyncOperationType.CREATE,
+            createdAt = acceptedAt
+        )
+        enqueue(
+            entityType = "invitation",
+            entityId = updatedInvitation.id,
+            operation = SyncOperationType.UPDATE,
             createdAt = acceptedAt
         )
         participant

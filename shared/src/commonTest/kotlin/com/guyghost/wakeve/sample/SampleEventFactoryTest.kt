@@ -4,6 +4,7 @@ import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.Vote
+import kotlinx.datetime.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -66,6 +67,21 @@ class SampleEventFactoryTest {
         assertTrue(slots.any { it.timeOfDay == TimeOfDay.EVENING })
         assertTrue(slots.any { it.timeOfDay == TimeOfDay.ALL_DAY })
         assertTrue(slots.any { it.timeOfDay == TimeOfDay.AFTERNOON })
+    }
+
+    @Test
+    fun `sample dates are generated after reference date`() {
+        val referenceDate = "2026-06-20T08:00:00Z"
+        val reference = Instant.parse(referenceDate)
+        val event = SampleEventFactory.createSampleEvent(referenceDate)
+
+        assertTrue(Instant.parse(event.deadline) > reference)
+        assertTrue(event.proposedSlots.all { slot ->
+            val start = Instant.parse(slot.start!!)
+            val end = Instant.parse(slot.end!!)
+            start > reference && end > start
+        })
+        assertTrue(Instant.parse(event.deadline) < Instant.parse(event.proposedSlots.first().start!!))
     }
 
     @Test

@@ -75,7 +75,7 @@ fun EventWorkspaceScreen(
             showTopBar = !adaptiveInfo.useCompactChrome,
             actions = {
                 IconButton(onClick = onOpenProfile) {
-                    Icon(Icons.Default.Person, contentDescription = "Profile")
+                    Icon(Icons.Default.Person, contentDescription = "Profil")
                 }
             },
             floatingActionButton = {
@@ -104,7 +104,7 @@ fun EventWorkspaceScreen(
                         state = state,
                         selectedEventId = state.selectedEvent?.id,
                         adaptiveInfo = calculateWakeveAdaptiveInfo(
-                            widthDp = plannedListPaneWidth.value.toInt(),
+                            widthDp = listPaneWidth.value.toInt(),
                             heightDp = adaptiveInfo.heightDp
                         ),
                         onFilterChange = onFilterChange,
@@ -268,7 +268,7 @@ private fun EventListRow(
                 )
                 if (event.isOrganizer) {
                     Text(
-                        text = "Organizer",
+                        text = "Organisateur",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -289,7 +289,7 @@ private fun EventDetailPane(
 ) {
     if (event == null) {
         WakeveStateMessage(
-            title = "Select an event",
+            title = "Sélectionnez un événement",
             body = "Les détails apparaîtront ici sur les grands écrans.",
             icon = Icons.Default.CalendarMonth,
             modifier = modifier
@@ -305,7 +305,7 @@ private fun EventDetailPane(
         item {
             WakeveCard(modifier = Modifier.fillMaxWidth()) {
                 Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.md)) {
-                    WakeveStatusChip(label = event.status.name.lowercase().replaceFirstChar { it.titlecase() })
+                    WakeveStatusChip(label = event.status.displayLabel())
                     Text(
                         text = event.title,
                         style = MaterialTheme.typography.headlineMedium,
@@ -339,6 +339,17 @@ private fun EventDetailPane(
                 }
             }
         }
+    }
+}
+
+private fun EventStatus.displayLabel(): String {
+    return when (this) {
+        EventStatus.DRAFT -> "Brouillon"
+        EventStatus.POLLING -> "Vote en cours"
+        EventStatus.COMPARING -> "Comparaison"
+        EventStatus.CONFIRMED -> "Confirmé"
+        EventStatus.ORGANIZING -> "Organisation"
+        EventStatus.FINALIZED -> "Finalisé"
     }
 }
 

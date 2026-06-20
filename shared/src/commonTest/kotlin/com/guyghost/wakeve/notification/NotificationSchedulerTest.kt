@@ -113,7 +113,7 @@ class NotificationSchedulerTest {
     }
 
     @Test
-    fun `scheduleEventReminder skips past reminders`() = runTest {
+    fun `scheduleEventReminder fails for past reminders`() = runTest {
         val scheduler = AdvancedNotificationScheduler()
         val pastDate = Clock.System.now().minus(2.days)
         val event = createTestEvent(
@@ -123,8 +123,8 @@ class NotificationSchedulerTest {
 
         val result = scheduler.scheduleEventReminder(event)
 
-        assertTrue(result.isSuccess)
-        assertEquals("skipped-past", result.getOrNull())
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("future") == true)
     }
 
     @Test
@@ -139,6 +139,22 @@ class NotificationSchedulerTest {
         val error = result.exceptionOrNull()
         assertNotNull(error)
         assertTrue(error!!.message!!.contains("POLLING"))
+    }
+
+    @Test
+    fun `schedulePollDeadlineReminder fails for past reminders`() = runTest {
+        val scheduler = AdvancedNotificationScheduler()
+        val poll = createTestPoll()
+        val pastDeadline = Clock.System.now().minus(2.days)
+        val pollingEvent = createTestEvent(
+            status = EventStatus.POLLING,
+            deadline = pastDeadline.toString()
+        )
+
+        val result = scheduler.schedulePollDeadlineReminder(poll, pollingEvent)
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("future") == true)
     }
 
     @Test
@@ -190,6 +206,24 @@ class NotificationSchedulerTest {
     }
 
     @Test
+    fun `scheduleRecurringReminder fails when all reminders are in the past`() = runTest {
+        val scheduler = AdvancedNotificationScheduler()
+        val pastDate = Clock.System.now().minus(1.days)
+        val event = createTestEvent(
+            status = EventStatus.CONFIRMED,
+            finalDate = pastDate.toString()
+        )
+        val pattern = RecurrencePattern.minimal()
+
+        val result = scheduler.scheduleRecurringReminder(event, pattern)
+
+        assertTrue(result.isFailure)
+        val error = result.exceptionOrNull()
+        assertNotNull(error)
+        assertContains(error!!.message ?: "", "no future reminders remain")
+    }
+
+    @Test
     fun `scheduleSmartReminder checks user preferences enabled types`() = runTest {
         val scheduler = AdvancedNotificationScheduler()
         val futureDate = Clock.System.now().plus(2.days)
@@ -224,7 +258,7 @@ class NotificationSchedulerTest {
     }
 
     @Test
-    fun `scheduleSmartReminder skips past reminders`() = runTest {
+    fun `scheduleSmartReminder fails for past reminders`() = runTest {
         val scheduler = AdvancedNotificationScheduler()
         val pastDate = Clock.System.now().minus(2.days)
         val event = createTestEvent(
@@ -235,8 +269,8 @@ class NotificationSchedulerTest {
 
         val result = scheduler.scheduleSmartReminder(event, preferences)
 
-        assertTrue(result.isSuccess)
-        assertEquals("skipped-past", result.getOrNull())
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("future") == true)
     }
 
     @Test
@@ -247,6 +281,32 @@ class NotificationSchedulerTest {
 
         // Should succeed even if nothing was scheduled
         assertTrue(result.isSuccess || result.isFailure) // Accept either due to platform unavailability
+    }
+
+    @Test
+    fun `scheduledNotificationIdsForCancellation includes known recurring reminder ids`() {
+        val scheduler = AdvancedNotificationScheduler()
+
+        val ids = scheduler.scheduledNotificationIdsForCancellation(
+            eventId = "event-1",
+            recurringNotificationIds = listOf(
+                "event-event-1-recurring-0",
+                "",
+                "event-event-1-recurring-1",
+                "event-event-1-recurring-0"
+            )
+        )
+
+        assertEquals(
+            listOf(
+                "event-event-1",
+                "poll-event-1",
+                "smart-event-1",
+                "event-event-1-recurring-0",
+                "event-event-1-recurring-1"
+            ),
+            ids
+        )
     }
 
     // ============ Notification Type Priority Tests ============

@@ -603,6 +603,7 @@
     <string name="prefs_weekly_digest_desc">Recevoir un résumé chaque lundi</string>
     <string name="prefs_general">Général</string>
     <string name="prefs_sound">Son</string>
+    <string name="prefs_vibration">Vibration</string>
     <string name="prefs_do_not_disturb">Ne pas déranger</string>
     <string name="prefs_quiet_hours">Heures silencieuses</string>
     <string name="prefs_quiet_hours_desc">Les notifications seront mises en sourdine pendant cette période.</string>

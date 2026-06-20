@@ -79,6 +79,11 @@ UPDATE notification
 SET is_read = 1, read_at = ?
 WHERE id = ?;
 
+markAsReadForUser:
+UPDATE notification
+SET is_read = 1, read_at = ?
+WHERE id = ? AND user_id = ?;
+
 -- Mark all as read for user
 markAllAsRead:
 UPDATE notification
@@ -88,6 +93,9 @@ WHERE user_id = ? AND is_read = 0;
 -- Delete notification
 deleteNotification:
 DELETE FROM notification WHERE id = ?;
+
+deleteNotificationForUser:
+DELETE FROM notification WHERE id = ? AND user_id = ?;
 
 -- Delete all notifications for user
 deleteAllNotifications:

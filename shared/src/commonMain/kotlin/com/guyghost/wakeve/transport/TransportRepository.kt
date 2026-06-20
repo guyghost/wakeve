@@ -25,9 +25,7 @@ class TransportRepository(
         departure: TransportLocation,
         destination: TransportLocation,
         eventTime: String
-    ) -> List<TransportOption> = { _, departure, destination, eventTime ->
-        TransportService().getTransportOptions(departure, destination, eventTime)
-    }
+    ) -> List<TransportOption> = NoConfiguredTransportOptionProvider::optionsFor
 ) {
     private val transportQueries = database.transportQueries
     private val participantQueries = database.participantQueries
