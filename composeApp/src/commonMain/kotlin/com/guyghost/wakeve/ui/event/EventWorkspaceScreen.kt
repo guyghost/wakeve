@@ -119,6 +119,14 @@ fun EventWorkspaceScreen(
                                 EventWorkspaceSummaryAction.RecreateFromTemplate -> summary.template?.let(onCreateFromTemplate)
                             }
                         },
+                        onWidgetAction = { summary ->
+                            val eventId = summary.eventId
+                            if (eventId == null) {
+                                onCreateEvent()
+                            } else {
+                                onSelectEvent(eventId, false)
+                            }
+                        },
                         onRetry = onRetry,
                         modifier = Modifier
                             .width(listPaneWidth)
@@ -155,6 +163,14 @@ fun EventWorkspaceScreen(
                             EventWorkspaceSummaryAction.RecreateFromTemplate -> summary.template?.let(onCreateFromTemplate)
                         }
                     },
+                    onWidgetAction = { summary ->
+                        val eventId = summary.eventId
+                        if (eventId == null) {
+                            onCreateEvent()
+                        } else {
+                            onSelectEvent(eventId, true)
+                        }
+                    },
                     onRetry = onRetry,
                     modifier = Modifier
                         .fillMaxSize()
@@ -174,6 +190,7 @@ private fun EventListPane(
     onSearchChange: (String) -> Unit,
     onSelectEvent: (String) -> Unit,
     onSummaryAction: (EventWorkspaceActionSummary) -> Unit,
+    onWidgetAction: (EventWidgetSummary) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -195,6 +212,10 @@ private fun EventListPane(
             onSelected = onFilterChange,
             layout = adaptiveInfo.filterLayout,
             modifier = Modifier.testTag("event_filter_${adaptiveInfo.filterLayout.name.lowercase()}")
+        )
+        EventWidgetSummaryCard(
+            summary = state.widgetSummary,
+            onAction = { onWidgetAction(state.widgetSummary) }
         )
         state.actionSummary?.let { summary ->
             WorkspaceActionSummaryCard(
@@ -301,6 +322,53 @@ private fun EventListRow(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventWidgetSummaryCard(
+    summary: EventWidgetSummary,
+    onAction: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    WakeveCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("event_widget_summary")
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)
+                ) {
+                    Text(
+                        text = summary.title,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = summary.headline,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = summary.body,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2
+                    )
+                }
+                TextButton(onClick = onAction) {
+                    Text(summary.actionLabel)
                 }
             }
         }

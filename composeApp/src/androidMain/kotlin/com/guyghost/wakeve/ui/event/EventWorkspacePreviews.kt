@@ -116,6 +116,14 @@ private fun previewWorkspaceState(selected: Boolean = true): EventWorkspaceUiSta
             actionLabel = "Ouvrir le vote",
             action = EventWorkspaceSummaryAction.OpenPoll
         ),
+        widgetSummary = EventWidgetSummary(
+            kind = EventWidgetKind.Countdown,
+            eventId = events.first().id,
+            title = "Lisbon team retreat",
+            headline = "J-12",
+            body = "Vote attendu",
+            actionLabel = "Préparer"
+        ),
         events = events.map {
             EventListItemUiState(
                 id = it.id,
