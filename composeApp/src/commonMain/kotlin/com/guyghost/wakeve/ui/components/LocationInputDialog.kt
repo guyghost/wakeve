@@ -8,11 +8,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Card
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -88,7 +88,7 @@ fun LocationInputDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 
-                Divider()
+                HorizontalDivider()
                 
                 // Name field
                 OutlinedTextField(
@@ -168,7 +168,7 @@ fun LocationInputDialog(
                     )
                 }
                 
-                Divider()
+                HorizontalDivider()
                 
                 // Actions
                 Row(
