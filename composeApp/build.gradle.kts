@@ -25,6 +25,11 @@ val enableDesktopTarget = providers.gradleProperty("enableDesktopTarget")
     .orNull
     ?.toBooleanStrictOrNull() == true
 
+val serverUrl = (localProperties["server.url"] as? String)
+    ?: providers.gradleProperty("wakeve.serverUrl").orNull
+    ?: "https://api.wakeve.app"
+val escapedServerUrl = serverUrl.replace("\\", "\\\\").replace("\"", "\\\"")
+
 kotlin {
     // Android target
     androidTarget {
@@ -240,8 +245,8 @@ buildConfig {
     // Feature flag for progressive OAuth rollout
     buildConfigField("Boolean", "ENABLE_OAUTH", "true")
     
-    // Server URL for OAuth endpoints
-    buildConfigField("String", "SERVER_URL", "\"http://10.0.2.2:8080\"")
+    // Server URL for OAuth, invitation, and notification endpoints.
+    buildConfigField("String", "SERVER_URL", "\"$escapedServerUrl\"")
 
     // App metadata surfaced in settings/about UI.
     buildConfigField("String", "VERSION_NAME", "\"${android.defaultConfig.versionName}\"")

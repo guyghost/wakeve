@@ -12,6 +12,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.guyghost.wakeve.AndroidDatabaseFactory
+import com.guyghost.wakeve.BuildConfig
 import com.guyghost.wakeve.MainActivity
 import com.guyghost.wakeve.database.DatabaseProvider
 import com.guyghost.wakeve.deeplink.normalizeDeepLinkPathSegment
@@ -122,6 +123,21 @@ private const val MAX_FCM_BODY_LENGTH = 240
 private const val MAX_FCM_NOTIFICATION_ID_LENGTH = 120
 private const val EPOCH_SECONDS_UPPER_BOUND = 9_999_999_999L
 private const val MAX_FCM_TIMESTAMP_FUTURE_SKEW_MS = 5 * 60 * 1000L
+private const val DEFAULT_ANDROID_LOCAL_SERVER_URL = "http://10.0.2.2:8080"
+
+internal fun resolveFcmBackendApiBaseUrl(serverUrl: String?): String {
+    val normalized = serverUrl
+        ?.trim()
+        ?.trimEnd('/')
+        ?.takeIf { it.isNotBlank() }
+        ?: DEFAULT_ANDROID_LOCAL_SERVER_URL
+
+    return if (normalized.endsWith("/api")) {
+        normalized
+    } else {
+        "$normalized/api"
+    }
+}
 
 internal fun resolveFcmTokenRegistrationDecision(
     storedToken: String?,
@@ -705,10 +721,7 @@ class FCMService : FirebaseMessagingService() {
         /**
          * Get the server base URL.
          */
-        private fun getBaseUrl(): String {
-            // TODO: Move to BuildConfig or remote config
-            return "http://10.0.2.2:8080/api" // Android emulator localhost
-        }
+        private fun getBaseUrl(): String = resolveFcmBackendApiBaseUrl(BuildConfig.SERVER_URL)
 
         /**
          * Request notification permission for Android 13+.
