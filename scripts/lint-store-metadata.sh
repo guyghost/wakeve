@@ -1611,6 +1611,12 @@ validate_app_store_readiness_report() {
     local required_status_phrases=(
         "Wakeve is not ready for App Store submission yet."
         "A signed archive/upload has not been produced"
+        "## Latest 2026-06-20 Refresh"
+        'api.wakeve.app` now resolves publicly and the live health URL is reachable'
+        '`wakeve.app` itself still has no public DNS answer'
+        "Result: 3104 checks passed, 0 errors, 1 warning"
+        "Result: 3105 checks passed, 17 errors, 1 warning"
+        'https://api.wakeve.app/health` is now publicly reachable'
         "live URL/AASA evidence"
         "final signoff record"
         "Result: local App Store preflight ran and passed"
