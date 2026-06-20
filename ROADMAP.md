@@ -20,6 +20,7 @@ Changements OpenSpec actifs:
 |---|---:|---|
 | `add-event-weather-forecast` | 20/22 taches | P1 produit iOS, WeatherKit/MapKit/cache/UI verifies localement; reste Apple Developer capability, profil signe et validation WeatherKit sur device physique. |
 | `add-on-device-wakeve-ai` | 40/41 taches | P1 produit iOS, client Foundation Models local finalise et fallback simulateur verifie; reste profiling device reel. |
+| `migrate-android-google-auth-credential-manager` | 0/8 taches | Proposition OpenSpec validee pour migrer Android Google auth vers Credential Manager; implementation en attente d'approbation. |
 
 Changements OpenSpec archives le 2026-06-20:
 
