@@ -295,6 +295,102 @@ class EventWorkspaceModelsTest {
     }
 
     @Test
+    fun `emotional summary explains empty workspace weakness`() {
+        val summary = emptyList<Event>().toEmotionalSummary(currentUserId = "me", pollVotes = emptyMap())
+
+        assertEquals(null, summary.eventId)
+        assertEquals("Signal émotionnel", summary.title)
+        assertEquals("Valeur encore abstraite", summary.headline)
+        assertEquals("Score émotionnel : 20/100", summary.scoreLabel)
+        assertEquals("Excitation : faible tant qu'aucun événement n'existe.", summary.excitementLabel)
+        assertEquals("Sentiment de groupe : absent.", summary.groupFeelingLabel)
+        assertEquals("Créez un premier événement concret pour rendre la valeur visible.", summary.nextActionLabel)
+        assertEquals("Créer", summary.actionLabel)
+        assertEquals(null, summary.action)
+    }
+
+    @Test
+    fun `emotional summary surfaces polling engagement blocker`() {
+        val summary = listOf(
+            event(
+                id = "poll",
+                title = "Vote dinner",
+                status = EventStatus.POLLING,
+                participants = listOf("me", "alice", "sam")
+            )
+        ).toEmotionalSummary(
+            currentUserId = "me",
+            pollVotes = mapOf("poll" to mapOf("me" to Vote.YES))
+        )
+
+        assertEquals("poll", summary.eventId)
+        assertEquals("Engagement à débloquer", summary.headline)
+        assertEquals("Score émotionnel : 58/100", summary.scoreLabel)
+        assertEquals("Excitation : moyenne, le groupe commence à se projeter.", summary.excitementLabel)
+        assertEquals("Engagement : 2 participants à relancer.", summary.engagementLabel)
+        assertEquals("Sérénité : encore fragile tant que la date n'est pas retenue.", summary.serenityLabel)
+        assertEquals("Relancez les votes manquants avant de promettre une date.", summary.nextActionLabel)
+        assertEquals("Ouvrir le vote", summary.actionLabel)
+        assertEquals(EventWorkspaceSummaryAction.OpenPoll, summary.action)
+    }
+
+    @Test
+    fun `emotional summary prioritizes organizing control center`() {
+        val summary = listOf(
+            event(
+                id = "confirmed",
+                title = "Confirmed dinner",
+                status = EventStatus.CONFIRMED
+            ),
+            event(
+                id = "organizing",
+                title = "Team offsite",
+                status = EventStatus.ORGANIZING,
+                participants = listOf("me", "alice", "sam")
+            )
+        ).toEmotionalSummary(currentUserId = "me", pollVotes = emptyMap())
+
+        assertEquals("organizing", summary.eventId)
+        assertEquals("Centre de contrôle crédible", summary.headline)
+        assertEquals("Score émotionnel : 86/100", summary.scoreLabel)
+        assertEquals("Sérénité : haute, Wakeve remplace le chaos opérationnel.", summary.serenityLabel)
+        assertEquals("Contrôle : très fort, le jour J devient pilotable.", summary.controlLabel)
+        assertEquals("Gardez uniquement les prochaines actions critiques visibles.", summary.nextActionLabel)
+        assertEquals("Piloter", summary.actionLabel)
+        assertEquals(EventWorkspaceSummaryAction.OpenEvent, summary.action)
+    }
+
+    @Test
+    fun `emotional summary turns finalized event into memory and retention`() {
+        val summary = listOf(
+            event(
+                id = "final",
+                title = "Summer retreat",
+                description = "A weekend by the sea",
+                status = EventStatus.FINALIZED,
+                eventType = EventType.OUTDOOR_ACTIVITY
+            )
+        ).toEmotionalSummary(currentUserId = "me", pollVotes = emptyMap())
+
+        assertEquals("final", summary.eventId)
+        assertEquals("Mémoire et rétention", summary.headline)
+        assertEquals("Score émotionnel : 72/100", summary.scoreLabel)
+        assertEquals("Excitation : transformée en souvenir partageable.", summary.excitementLabel)
+        assertEquals("Engagement : dépend des photos, remboursements et recap.", summary.engagementLabel)
+        assertEquals("Partagez le recap puis recréez l'événement s'il a fonctionné.", summary.nextActionLabel)
+        assertEquals("Réutiliser", summary.actionLabel)
+        assertEquals(EventWorkspaceSummaryAction.RecreateFromTemplate, summary.action)
+        assertEquals(
+            EventWorkspaceCreationTemplate(
+                title = "Summer retreat",
+                description = "A weekend by the sea",
+                eventType = EventType.OUTDOOR_ACTIVITY
+            ),
+            summary.template
+        )
+    }
+
+    @Test
     fun `finalized event builds quick reorganization summary`() {
         val event = event(
             id = "finalized",
