@@ -228,6 +228,8 @@ assert_android_resource_defaults() {
 assert_release_performance_harness() {
     local harness="$PROJECT_DIR/scripts/profile-release-performance.sh"
     local runbook="$PROJECT_DIR/docs/performance/release-profiling-runbook.md"
+    local output_dir
+    local report
 
     if ! grep -Fq 'OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_DIR/docs/performance}"' "$harness"; then
         echo "FAIL: release performance harness must respect OUTPUT_DIR overrides for temporary captures" >&2
@@ -246,6 +248,25 @@ assert_release_performance_harness() {
 
     if ! grep -Fq 'append_release_build_result "iOS"' "$harness"; then
         echo "FAIL: release performance harness must record iOS Release simulator artifacts when --build-ios is used" >&2
+        exit 1
+    fi
+
+    mkdir -p "$PROJECT_DIR/build/tmp"
+    output_dir="$(mktemp -d "$PROJECT_DIR/build/tmp/release-performance.XXXXXX")"
+    report="$(PATH="/usr/bin:/bin" OUTPUT_DIR="$output_dir" "$harness" --android-only --runs 1)"
+    if [ ! -f "$report" ]; then
+        echo "FAIL: release performance harness did not create a report at $report" >&2
+        exit 1
+    fi
+    assert_generated_report_is_commit_safe "$report" "release performance"
+
+    if ! grep -Fq 'Status: LOCAL EVIDENCE' "$report"; then
+        echo "FAIL: release performance report must keep local evidence status explicit" >&2
+        exit 1
+    fi
+
+    if ! grep -Fq 'PENDING_DEVICE_TRACE' "$report"; then
+        echo "FAIL: release performance report must keep device trace closure status explicit" >&2
         exit 1
     fi
 

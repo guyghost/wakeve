@@ -10,7 +10,7 @@ This report is a reproducible local capture. It does not close the App Store or 
 
 | Field | Value |
 | --- | --- |
-| Project | `/Users/guy/Developer/dev/wakeve` |
+| Project | `~/Developer/dev/wakeve` |
 | Runs per platform | 5 |
 | iOS enabled | true |
 | Android enabled | false |
@@ -32,7 +32,7 @@ Build version 27A5194q
 -- iOS 18.4 --
 -- iOS 26.5 --
 -- iOS 27.0 --
-    iPhone 17 (57ACA8ED-0497-4661-B429-F3B34E7FA508) (Booted) 
+    iPhone 17 (57ACA8ED-0497-4661-B429-F3B34E7FA508) (Booted)
 List of devices attached
 
 ```

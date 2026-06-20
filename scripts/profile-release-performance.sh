@@ -111,6 +111,10 @@ markdown_escape() {
     sed 's/|/\\|/g'
 }
 
+sanitize_report() {
+    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$REPORT"
+}
+
 append_numeric_summary() {
     local title="$1"
     local metric="$2"
@@ -461,5 +465,6 @@ append_env
 [ "$PROFILE_IOS" = true ] && profile_ios
 [ "$PROFILE_ANDROID" = true ] && profile_android
 append_runtime_flow_matrix
+sanitize_report
 
 echo "$REPORT"
