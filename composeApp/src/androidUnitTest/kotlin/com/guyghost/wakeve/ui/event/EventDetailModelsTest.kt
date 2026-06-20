@@ -127,6 +127,11 @@ class EventDetailModelsTest {
         ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
 
         assertEquals("Jour J", uiState.dayOfSummary?.title)
+        assertEquals(EventDayOfStatus.NeedsAttention, uiState.dayOfSummary?.status)
+        assertEquals(
+            "Controle incomplet : 2 RSVP a verifier avant depart.",
+            uiState.dayOfSummary?.controlLabel
+        )
         assertEquals("2 participants attendus", uiState.dayOfSummary?.attendanceLabel)
         assertEquals("1 sans reponse · 1 ne vient pas", uiState.dayOfSummary?.missingLabel)
         assertEquals(
@@ -149,6 +154,11 @@ class EventDetailModelsTest {
             selectedEvent = event(status = EventStatus.CONFIRMED)
         ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
 
+        assertEquals(EventDayOfStatus.NeedsAttention, uiState.dayOfSummary?.status)
+        assertEquals(
+            "Controle incomplet : synchronisez les RSVP avant de pointer les presents.",
+            uiState.dayOfSummary?.controlLabel
+        )
         assertEquals("Participants invites : 2", uiState.dayOfSummary?.attendanceLabel)
         assertEquals("RSVP detailles non synchronises", uiState.dayOfSummary?.missingLabel)
         assertEquals(
@@ -218,8 +228,31 @@ class EventDetailModelsTest {
         val summary = event(status = EventStatus.ORGANIZING)
             .toDayOfSummary(listOf(ParticipantAccessState.organizer("organizer")))
 
+        assertEquals(EventDayOfStatus.Ready, summary?.status)
+        assertEquals("Controle pret : tous les participants attendus sont confirmes.", summary?.controlLabel)
         assertFalse(summary?.arrivalTrackingLabel.orEmpty().contains("arrive", ignoreCase = true))
         assertTrue(summary?.arrivalTrackingLabel.orEmpty().contains("pointer"))
+    }
+
+    @Test
+    fun dayOfSummaryIsBlockedWhenNobodyHasConfirmed() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(
+                status = EventStatus.ORGANIZING,
+                participants = listOf("participant-1", "participant-2")
+            ),
+            participantAccessStates = listOf(
+                ParticipantAccessState.invitedPending("participant-1"),
+                ParticipantAccessState.declined("participant-2")
+            )
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals(EventDayOfStatus.Blocked, uiState.dayOfSummary?.status)
+        assertEquals(
+            "Controle bloque : aucun participant confirme pour l'instant.",
+            uiState.dayOfSummary?.controlLabel
+        )
+        assertEquals("0 participants attendus", uiState.dayOfSummary?.attendanceLabel)
     }
 
     @Test
