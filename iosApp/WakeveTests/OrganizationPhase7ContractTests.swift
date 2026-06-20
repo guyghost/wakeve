@@ -223,6 +223,22 @@ final class OrganizationPhase7ContractTests: XCTestCase {
         }
     }
 
+    func testScenarioComparisonSurfacesOptionalWeatherContext() throws {
+        let scenarioView = try readProjectFile("iosApp/src/Views/Events/ScenarioOrganizationView.swift")
+        let comparisonSection = slice(scenarioView, from: "private func comparisonSection", to: "private var lockedState")
+        let weatherContext = slice(scenarioView, from: "private enum ScenarioWeatherContextState", to: "private struct ScenarioOrganizationCard")
+
+        XCTAssertTrue(scenarioView.contains("import MapKit"))
+        XCTAssertTrue(comparisonSection.contains("ScenarioWeatherComparisonContext(scenario: item.scenario)"))
+        XCTAssertTrue(weatherContext.contains("ScenarioWeatherContextViewModel"))
+        XCTAssertTrue(weatherContext.contains("ScenarioWeatherDateParser.firstDate(in: scenario.dateOrPeriod)"))
+        XCTAssertTrue(weatherContext.contains("MKLocalSearch.Request()"))
+        XCTAssertTrue(weatherContext.contains("WeatherKitEventForecastProvider()"))
+        XCTAssertTrue(weatherContext.contains("weatherProvider.forecast(for: place, targetDate: targetDate"))
+        XCTAssertTrue(weatherContext.contains("weather.title"))
+        XCTAssertTrue(weatherContext.contains("weather.pending_title"))
+    }
+
     func testScenarioManualCreationAndMatrixCopyUseLocalizationKeys() throws {
         let scenarioView = try readProjectFile("iosApp/src/Views/Events/ScenarioOrganizationView.swift")
         let helpers = slice(scenarioView, from: "private var budgetDecisionSubtitle", to: "private func formatBudget")
