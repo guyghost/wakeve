@@ -32,4 +32,27 @@ class InvitationShareScreenTest {
         assertNull(createInviteUrl("invite%3Fnext=evil"))
         assertNull(createInviteUrl("invite%23fragment"))
     }
+
+    @Test
+    fun createInvitationShareContent_normalizesTitleAndTrustedUrl() {
+        val content = createInvitationShareContent(
+            eventTitle = "  Week-end   Biarritz  ",
+            invitationCode = " invite-code-123 "
+        )
+
+        assertEquals(
+            InvitationShareContent(
+                eventTitle = "Week-end Biarritz",
+                inviteUrl = "https://wakeve.app/invite/invite-code-123"
+            ),
+            content
+        )
+    }
+
+    @Test
+    fun createInvitationShareContent_returnsNullForBlankTitleOrInvalidCode() {
+        assertNull(createInvitationShareContent(" ", "invite-code-123"))
+        assertNull(createInvitationShareContent("Week-end", null))
+        assertNull(createInvitationShareContent("Week-end", "invite/code"))
+    }
 }

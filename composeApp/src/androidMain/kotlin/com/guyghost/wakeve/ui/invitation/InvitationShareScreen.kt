@@ -85,6 +85,7 @@ fun InvitationShareScreen(
 ) {
     val context = LocalContext.current
     val inviteUrl = createInviteUrl(invitationCode)
+    val shareContent = createInvitationShareContent(eventTitle, invitationCode)
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     // Generate QR code on first composition
@@ -131,7 +132,7 @@ fun InvitationShareScreen(
             if (isLoading) {
                 CircularProgressIndicator()
                 Text(
-                    text = "Création du lien d'invitation...",
+                    text = stringResource(R.string.loading),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -146,7 +147,7 @@ fun InvitationShareScreen(
                     textAlign = TextAlign.Center
                 )
                 OutlinedButton(onClick = onRetry, enabled = !isLoading) {
-                    Text("Réessayer")
+                    Text(stringResource(R.string.retry))
                 }
             }
 
@@ -271,11 +272,12 @@ fun InvitationShareScreen(
             // Share Button
             Button(
                 onClick = {
-                    val shareText = context.getString(R.string.invitation_share_text, eventTitle, inviteUrl)
+                    val content = shareContent ?: return@Button
+                    val shareText = context.getString(R.string.invitation_share_text, content.eventTitle, content.inviteUrl)
                     val shareIntent = Intent().apply {
                         action = Intent.ACTION_SEND
                         putExtra(Intent.EXTRA_TEXT, shareText)
-                        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.invitation_share_subject, eventTitle))
+                        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.invitation_share_subject, content.eventTitle))
                         type = "text/plain"
                     }
                     context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.invitation_share_chooser)))
@@ -283,7 +285,7 @@ fun InvitationShareScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                enabled = inviteUrl != null && !isLoading,
+                enabled = inviteUrl != null && !isLoading && shareContent != null,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
@@ -309,6 +311,29 @@ internal fun createInviteUrl(invitationCode: String?): String? {
     return normalizeDeepLinkPathSegment(invitationCode)
         ?.let { "https://wakeve.app/invite/$it" }
 }
+
+internal data class InvitationShareContent(
+    val eventTitle: String,
+    val inviteUrl: String
+)
+
+internal fun createInvitationShareContent(
+    eventTitle: String,
+    invitationCode: String?
+): InvitationShareContent? {
+    val normalizedTitle = normalizeInvitationShareTitle(eventTitle)
+        .takeIf(String::isNotBlank)
+        ?: return null
+    val inviteUrl = createInviteUrl(invitationCode) ?: return null
+
+    return InvitationShareContent(
+        eventTitle = normalizedTitle,
+        inviteUrl = inviteUrl
+    )
+}
+
+internal fun normalizeInvitationShareTitle(eventTitle: String): String =
+    eventTitle.trim().replace(Regex("\\s+"), " ")
 
 /**
  * Generate a scannable QR code bitmap from a string.
