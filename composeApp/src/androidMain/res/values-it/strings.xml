@@ -651,4 +651,15 @@
     <string name="leaderboard_you">Tu</string>
     <string name="leaderboard_badges">%1$d badge</string>
     <string name="leaderboard_global">Globale</string>
+    <string name="badges_count_label">%1$d badge</string>
+    <string name="duration_label">Durata</string>
+    <string name="points_value_label">%1$d punti</string>
+    <string name="try_again_later">Riprova più tardi</string>
+    <string name="loading_more">Caricamento altro…</string>
+    <string name="notification_event_created">Evento creato</string>
+    <string name="notification_poll_opened">Sondaggio aperto</string>
+    <string name="notification_date_confirmed">Data confermata</string>
+    <string name="entity_event">Evento</string>
+    <string name="entity_scenario">Opzione</string>
+    <string name="entity_meeting">Riunione</string>
 </resources>
