@@ -53,3 +53,4 @@
 
 ## Notes
 - `scripts/prepare-wakeve-ai-device-profile.sh` generates the required real-device profiling evidence template for 6.6 and is guarded by `scripts/test-critical-release-gates.sh`; it does not close 6.6 until a physical supported device with Apple Intelligence and Foundation Models available records latency, cancellation, memory, trace, and production-log privacy evidence.
+- 2026-06-20 XcodeBuildMCP focused simulator refresh passed `42/42` combined WeatherKit/WakeveAI tests on `iPhone 17`; the WakeveAI subset passed `27/27` selected tests after contract assertions were aligned with localized SwiftUI copy keys. Artifacts: `test_sim_2026-06-20T19-56-28-754Z_pid9347_bb3368ef.log` and `test_sim_2026-06-20T19-56-28-754Z_pid9347_e5479204.xcresult`.

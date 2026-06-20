@@ -26,9 +26,9 @@ final class WakeveAIContractTests: XCTestCase {
         XCTAssertTrue(source.contains("viewModel.generateSmartEventDraft()"))
         XCTAssertTrue(source.contains("viewModel.cancelSmartEventDraft()"))
         XCTAssertTrue(source.contains("viewModel.ignoreSmartEventDraft()"))
-        XCTAssertTrue(source.contains("Modifier"))
+        XCTAssertTrue(source.contains("String(localized: \"common.edit\")"))
         XCTAssertTrue(source.contains("String(localized: \"common.apply\")"))
-        XCTAssertTrue(source.contains("Ignorer"))
+        XCTAssertTrue(source.contains("String(localized: \"create_event.ai.ignore\")"))
         XCTAssertTrue(source.contains("applySmartEventDraft"))
         XCTAssertFalse(source.contains("LanguageModelSession("), "SwiftUI views must not own Foundation Models sessions.")
     }
@@ -178,10 +178,10 @@ final class WakeveAIContractTests: XCTestCase {
 
         XCTAssertTrue(content.contains("transportHelperCard"))
         XCTAssertTrue(content.contains("TransportSuggestionGenerator"))
-        XCTAssertTrue(content.contains("Message à envoyer"))
-        XCTAssertTrue(content.contains("Modifier"))
-        XCTAssertTrue(content.contains("Appliquer"))
-        XCTAssertTrue(content.contains("Ignorer"))
+        XCTAssertTrue(content.contains("String(localized: \"transport.ai.message_to_send\")"))
+        XCTAssertTrue(content.contains("String(localized: \"common.edit\")"))
+        XCTAssertTrue(content.contains("String(localized: \"common.apply\")"))
+        XCTAssertTrue(content.contains("String(localized: \"transport.ai.ignore_action\")"))
         XCTAssertFalse(content.contains("LanguageModelSession("), "Transport planning views must not own Foundation Models sessions.")
     }
 
