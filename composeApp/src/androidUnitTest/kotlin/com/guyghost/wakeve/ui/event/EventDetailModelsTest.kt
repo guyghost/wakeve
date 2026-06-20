@@ -124,6 +124,104 @@ class EventDetailModelsTest {
     }
 
     @Test
+    fun finalizedEventSettlementSummaryAnswersWhoMustReimburseWhom() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.FINALIZED)
+        ).toEventDetailUiState(
+            eventId = eventId,
+            currentUserId = "organizer",
+            settlements = listOf(
+                settlement(
+                    eventId = eventId,
+                    fromParticipantId = "participant-2",
+                    toParticipantId = "organizer",
+                    amount = 44.0
+                ),
+                settlement(
+                    eventId = eventId,
+                    fromParticipantId = "participant-1",
+                    toParticipantId = "participant-2",
+                    amount = 12.0
+                ),
+                settlement(
+                    eventId = eventId,
+                    fromParticipantId = "participant-3",
+                    toParticipantId = "organizer",
+                    amount = 99.0,
+                    status = "PAID"
+                ),
+                settlement(
+                    eventId = "other-event",
+                    fromParticipantId = "participant-4",
+                    toParticipantId = "organizer",
+                    amount = 200.0
+                )
+            )
+        )
+
+        assertEquals("Remboursements", uiState.settlementSummary?.title)
+        assertEquals("2 remboursements a regler", uiState.settlementSummary?.statusLabel)
+        assertEquals("Total restant : 56 EUR", uiState.settlementSummary?.totalLabel)
+        assertEquals(
+            "Liste claire de qui doit rembourser qui apres l'evenement.",
+            uiState.settlementSummary?.body
+        )
+        assertEquals("Regler les remboursements", uiState.settlementSummary?.actionLabel)
+        assertTrue(uiState.settlementSummary?.canOpenBudget == true)
+        assertEquals(
+            listOf(
+                "Participant 2 doit 44 EUR a Organizer",
+                "Participant 1 doit 12 EUR a Participant 2"
+            ),
+            uiState.settlementSummary?.lines?.map { it.sentence }
+        )
+    }
+
+    @Test
+    fun finalizedEventSettlementSummaryPromptsCalculationWhenNoSettlementsExist() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.FINALIZED)
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("A calculer", uiState.settlementSummary?.statusLabel)
+        assertEquals(
+            "Aucun remboursement n'est encore renseigne pour cet evenement.",
+            uiState.settlementSummary?.body
+        )
+        assertEquals("Total a regler : non disponible", uiState.settlementSummary?.totalLabel)
+        assertEquals(emptyList(), uiState.settlementSummary?.lines)
+    }
+
+    @Test
+    fun finalizedEventSettlementSummaryMarksSettledRecordsAsDone() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.FINALIZED)
+        ).toEventDetailUiState(
+            eventId = eventId,
+            currentUserId = "organizer",
+            settlements = listOf(settlement(eventId = eventId, status = "SETTLED"))
+        )
+
+        assertEquals("Soldes", uiState.settlementSummary?.statusLabel)
+        assertEquals("Tous les remboursements connus sont marques comme regles.", uiState.settlementSummary?.body)
+        assertEquals("Total restant : 0 EUR", uiState.settlementSummary?.totalLabel)
+        assertEquals(emptyList(), uiState.settlementSummary?.lines)
+    }
+
+    @Test
+    fun finalizedEventSettlementSummaryIsHiddenForUnconfirmedParticipant() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.FINALIZED)
+        ).toEventDetailUiState(
+            eventId = eventId,
+            currentUserId = "participant-1",
+            settlements = listOf(settlement(eventId = eventId))
+        )
+
+        assertEquals(null, uiState.settlementSummary)
+    }
+
+    @Test
     fun confirmedParticipantCanAccessTransportButNotOrganizationToolsBeforeOrganizing() {
         val uiState = EventManagementContract.State(
             selectedEvent = event(status = EventStatus.CONFIRMED),
@@ -793,14 +891,16 @@ class EventDetailModelsTest {
     private fun settlement(
         eventId: String,
         amount: Double = 25.0,
-        status: String = "PERSISTED"
+        status: String = "PERSISTED",
+        fromParticipantId: String = "participant-1",
+        toParticipantId: String = "organizer"
     ): SettlementRecord =
         SettlementRecord(
-            settlementId = "settlement-$status",
+            settlementId = "settlement-$status-$fromParticipantId-$toParticipantId",
             eventId = eventId,
             budgetId = "budget-1",
-            fromParticipantId = "participant-1",
-            toParticipantId = "organizer",
+            fromParticipantId = fromParticipantId,
+            toParticipantId = toParticipantId,
             amount = amount,
             status = status,
             createdAt = "2026-06-02T08:00:00Z",

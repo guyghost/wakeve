@@ -39,7 +39,25 @@ data class EventDetailUiState(
     val budgetSummary: EventBudgetPlanningSummary?,
     val dayOfSummary: EventDayOfSummary?,
     val postEventSummary: PostEventControlSummary?,
+    val settlementSummary: EventSettlementSummary?,
     val rsvp: EventRsvpUiState?
+)
+
+data class EventSettlementSummary(
+    val title: String,
+    val statusLabel: String,
+    val body: String,
+    val totalLabel: String,
+    val actionLabel: String,
+    val canOpenBudget: Boolean,
+    val lines: List<EventSettlementLine>
+)
+
+data class EventSettlementLine(
+    val fromParticipantLabel: String,
+    val toParticipantLabel: String,
+    val amountLabel: String,
+    val sentence: String
 )
 
 data class EventDayOfSummary(
@@ -181,12 +199,104 @@ fun EventManagementContract.State.toEventDetailUiState(
         postEventSummary = event
             ?.takeIf { it.status == EventStatus.FINALIZED }
             ?.toPostEventControlSummary(settlements = settlements, albums = albums),
+        settlementSummary = event?.toSettlementSummary(
+            settlements = settlements,
+            canOpenBudget = canAccessOrganizationDetails &&
+                status in listOf(EventStatus.ORGANIZING, EventStatus.FINALIZED)
+        ),
         rsvp = event?.let {
             participantAccessStates.firstOrNull { accessState -> accessState.userId == currentUserId }
                 ?.toRsvpUiState(isOrganizer = isOrganizer)
         }
     )
 }
+
+internal fun Event.toSettlementSummary(
+    settlements: List<SettlementRecord>,
+    canOpenBudget: Boolean,
+    maxLines: Int = 3
+): EventSettlementSummary? {
+    if (status != EventStatus.FINALIZED || !canOpenBudget) return null
+
+    val eventSettlements = settlements
+        .filter { it.eventId == id && it.amount > 0.01 }
+        .sortedWith(compareByDescending<SettlementRecord> { it.amount }.thenBy { it.fromParticipantId }.thenBy { it.toParticipantId })
+    val unresolvedSettlements = eventSettlements.filterNot { it.isSettledForEventDetail() }
+
+    if (eventSettlements.isEmpty()) {
+        return EventSettlementSummary(
+            title = "Remboursements",
+            statusLabel = "A calculer",
+            body = "Aucun remboursement n'est encore renseigne pour cet evenement.",
+            totalLabel = "Total a regler : non disponible",
+            actionLabel = "Ouvrir le budget",
+            canOpenBudget = true,
+            lines = emptyList()
+        )
+    }
+
+    if (unresolvedSettlements.isEmpty()) {
+        return EventSettlementSummary(
+            title = "Remboursements",
+            statusLabel = "Soldes",
+            body = "Tous les remboursements connus sont marques comme regles.",
+            totalLabel = "Total restant : 0 EUR",
+            actionLabel = "Voir le budget",
+            canOpenBudget = true,
+            lines = emptyList()
+        )
+    }
+
+    val displayedSettlements = unresolvedSettlements.take(maxLines)
+    val lines = displayedSettlements.map { settlement ->
+        val fromLabel = settlement.fromParticipantId.toSettlementParticipantLabel()
+        val toLabel = settlement.toParticipantId.toSettlementParticipantLabel()
+        val amountLabel = settlement.amount.toSettlementAmountLabel()
+        EventSettlementLine(
+            fromParticipantLabel = fromLabel,
+            toParticipantLabel = toLabel,
+            amountLabel = amountLabel,
+            sentence = "$fromLabel doit $amountLabel a $toLabel"
+        )
+    }
+
+    return EventSettlementSummary(
+        title = "Remboursements",
+        statusLabel = if (unresolvedSettlements.size == 1) "1 remboursement a regler" else "${unresolvedSettlements.size} remboursements a regler",
+        body = eventSettlementBody(unresolvedSettlements.size, displayedSettlements.size),
+        totalLabel = "Total restant : ${unresolvedSettlements.sumOf { it.amount }.toSettlementAmountLabel()}",
+        actionLabel = "Regler les remboursements",
+        canOpenBudget = true,
+        lines = lines
+    )
+}
+
+private fun SettlementRecord.isSettledForEventDetail(): Boolean =
+    status.uppercase() in setOf("PAID", "SETTLED", "COMPLETED", "CLOSED")
+
+private fun String.toSettlementParticipantLabel(): String =
+    trim()
+        .takeIf { it.isNotEmpty() }
+        ?.replace('-', ' ')
+        ?.replace('_', ' ')
+        ?.split(' ')
+        ?.filter { it.isNotBlank() }
+        ?.joinToString(" ") { part -> part.replaceFirstChar { it.uppercase() } }
+        ?: "Participant"
+
+private fun Double.toSettlementAmountLabel(): String =
+    if (this % 1.0 == 0.0) {
+        "${toInt()} EUR"
+    } else {
+        "${((this * 100).toInt() / 100.0)} EUR"
+    }
+
+private fun eventSettlementBody(totalCount: Int, displayedCount: Int): String =
+    if (totalCount > displayedCount) {
+        "$displayedCount remboursements prioritaires affiches sur $totalCount."
+    } else {
+        "Liste claire de qui doit rembourser qui apres l'evenement."
+    }
 
 internal fun Event.toProgramPlanningSummary(canOpenProgram: Boolean): EventProgramPlanningSummary =
     EventProgramPlanningSummary(
