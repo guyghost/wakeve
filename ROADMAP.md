@@ -288,6 +288,7 @@ Preuves du 2026-06-20:
 - Les defaults Android release utilisent maintenant `https://api.wakeve.app` pour `BuildConfig.SERVER_URL`, FCM, auth et sync; le developpement local passe par `local.properties` (`server.url`) ou `-Pwakeve.serverUrl`.
 - `./scripts/test-critical-release-gates.sh` inclut `assert_no_android_release_local_backend_defaults` et echoue si `composeApp/src/androidMain` ou `shared/src/androidMain` reintroduisent `localhost`, `127.0.0.1` ou `10.0.2.2` comme backend par defaut.
 - Les docs API et la spec OpenAPI publient `https://api.wakeve.app` comme endpoint production, avec `http://localhost:8080` uniquement comme serveur de developpement local.
+- Passe Android UX locale: le profil/login ouvrent les liens legaux `wakeve.app`, l'inbox a un menu overflow fonctionnel, la selection de lieu ne promet plus une recherche vocale absente, et le lien "Afficher plus de reponses" n'est cliquable que si un handler de chargement est branche.
 
 #### 2.2 Observabilite et performance
 
