@@ -268,7 +268,7 @@ Preuves du 2026-06-13:
 
 - Les decisions Accessibility/Availability sont realignees sur les build settings Release: iPhone/iPad restent cibles, Mac Apple silicon et Apple Vision Pro sont desactives cote Xcode pour la premiere release.
 - `docs/APP_STORE_ACCESSIBILITY_LABELS.md` ne recommande plus de claims Mac/Vision pour la premiere release; toute reactivation future exige des smoke tests runtime specifiques.
-- `APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/lint-store-metadata.sh --ios-only` passe apres realignement: 3088 checks, 0 erreur, 1 warning.
+- `APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/lint-store-metadata.sh --ios-only` passe apres realignement: 3106 checks, 0 erreur, 1 warning.
 - `docs/app-store-evidence/README.md` indexe les captures simulateur locales avec dimensions et SHA-256, et `docs/APP_STORE_ACCESSIBILITY_EVIDENCE.md` / `docs/APP_STORE_MEDIA_LOCALIZATION_EVIDENCE.md` referencent cet index comme preuve partielle non suffisante pour le signoff TestFlight.
 - Les fichiers `iosApp/src/Resources/en.lproj/Localizable.strings`, `fr.lproj`, `es.lproj`, `it.lproj` et `pt.lproj` passent `plutil -lint`, ont chacun 848 cles, 0 doublon et aucune cle manquante entre langues apres localisation des labels d'accessibilite du login, des controles release supplementaires, des textes de chargement release, des hints VoiceOver detectes par audit source renforce, des boutons icone seule, des surfaces account deletion, des controles moderation et des notices tierces.
 - `scripts/audit-ios-localization-parity.sh` rend cette parite executable et bloquante dans `scripts/test-critical-release-gates.sh`; `docs/a11y/ios-localization-parity-2026-06-13T13-48-19Z.md` passe avec 0 finding.
@@ -338,7 +338,7 @@ Preuves du 2026-06-13:
 - `OtpManager`, `PushNotificationSender`, `EventNotificationTrigger` et `NotificationScheduler` ne loggent plus les emails, OTP, tokens push, payloads de notification, user IDs, participant IDs, event IDs ni previews de contenu sur les chemins serveur critiques.
 - `./scripts/test-critical-release-gates.sh` inclut maintenant `assert_no_sensitive_server_logs` sur ces fichiers et echoue si ces valeurs reapparaissent dans les logs.
 - `./scripts/test-critical-release-gates.sh` passe apres ce durcissement.
-- `APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/lint-store-metadata.sh --ios-only` passe: 3049 checks, 0 erreur, 1 warning.
+- `APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/lint-store-metadata.sh --ios-only` passe: 3106 checks, 0 erreur, 1 warning.
 - `docs/analytics/FIREBASE_ANALYTICS_PROVIDER.md` reflete l'etat reel de la premiere release iOS: provider local-only, pas de bridge Firebase Analytics iOS actif, pas d'emission third-party cote iOS.
 - `docs/APP_STORE_OBSERVABILITY_EVIDENCE.md` documente l'audit local analytics/crash: `PrivacyInfo.xcprivacy` declare `NSPrivacyTracking=false`, product interaction reste declare pour analytics de facon conservative, et la recherche locale ne trouve pas d'integration active Crashlytics/Sentry/Bugsnag/AppCenter/IDFA/ATT sur les chemins iOS release verifies.
 - `scripts/profile-release-performance.sh` ajoute un harnais local pour mesurer les cold starts iOS/Android quand un simulateur/emulateur ou device est disponible. Il produit des rapports Markdown dans `docs/performance/`, borne les builds release via `IOS_BUILD_TIMEOUT_SECONDS` / `ANDROID_BUILD_TIMEOUT_SECONDS`, cible le simulateur booté demande via `IOS_SIMULATOR`, resume les samples cold start et separe explicitement les preuves locales des traces device necessaires.
