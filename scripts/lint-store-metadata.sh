@@ -1614,8 +1614,8 @@ validate_app_store_readiness_report() {
         "## Latest 2026-06-20 Refresh"
         'api.wakeve.app` now resolves publicly and the live health URL is reachable'
         '`wakeve.app` itself still has no public DNS answer'
-        "Result: 3104 checks passed, 0 errors, 1 warning"
-        "Result: 3105 checks passed, 17 errors, 1 warning"
+        "Result: 3106 checks passed, 0 errors, 1 warning"
+        "Result: 3107 checks passed, 17 errors, 1 warning"
         'https://api.wakeve.app/health` is now publicly reachable'
         "live URL/AASA evidence"
         "final signoff record"
@@ -1709,7 +1709,9 @@ validate_app_store_submission_runbook() {
         "Apple Developer signing team"
         "App Review contact phone"
         "Apple Developer capabilities/profiles"
-        'live `wakeve.app` and `api.wakeve.app` deployment'
+        'live `wakeve.app` legal/support/dashboard/AASA deployment'
+        'api.wakeve.app/health` is currently reachable and must stay review-accessible'
+        'AS-09 and AS-10 were approved through `docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md` and locally implemented'
         "production Apple Team ID in both AASA endpoints"
         "privacy label/legal approval"
         "accessibility evidence"
