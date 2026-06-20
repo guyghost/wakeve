@@ -9,6 +9,7 @@ import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.LocationType
 import com.guyghost.wakeve.models.PotentialLocation
+import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.Vote
 import com.guyghost.wakeve.payment.SettlementRecord
 import com.guyghost.wakeve.postevent.PostEventItemStatus
@@ -155,6 +156,74 @@ class EventDetailModelsTest {
         assertEquals(ParticipantRsvp.ACCEPTED, uiState.rsvp?.selectedResponse)
         assertTrue(uiState.rsvp?.isOrganizer == true)
         assertFalse(uiState.rsvp?.isEnabled ?: true)
+    }
+
+    @Test
+    fun scheduleSummaryShowsConfirmedDepartureDate() {
+        val finalDate = "2026-07-14T18:30:00Z"
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(
+                status = EventStatus.CONFIRMED,
+                finalDate = finalDate,
+                proposedSlots = listOf(timeSlot("slot-1", "2026-07-13T08:00:00Z"))
+            )
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Date et depart", uiState.scheduleSummary?.title)
+        assertEquals("Date retenue", uiState.scheduleSummary?.statusLabel)
+        assertEquals(
+            "Depart confirme : ${eventDayOfFormatFinalDate(finalDate)}",
+            uiState.scheduleSummary?.primaryLabel
+        )
+        assertEquals(
+            "Decision prise; gardez l'horaire visible pour le groupe.",
+            uiState.scheduleSummary?.deadlineLabel
+        )
+        assertEquals(
+            "Partagez la date retenue et preparez les rappels de depart.",
+            uiState.scheduleSummary?.nextActionLabel
+        )
+        assertTrue(uiState.scheduleSummary?.hasConfirmedDate == true)
+    }
+
+    @Test
+    fun scheduleSummaryShowsPollingSlotsBeforeConfirmation() {
+        val earliestSlot = "2026-07-12T08:00:00Z"
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(
+                status = EventStatus.POLLING,
+                proposedSlots = listOf(
+                    timeSlot("slot-2", "2026-07-14T18:30:00Z"),
+                    timeSlot("slot-1", earliestSlot)
+                )
+            )
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Vote en cours", uiState.scheduleSummary?.statusLabel)
+        assertEquals(
+            "2 creneaux proposes - premier depart possible : ${eventDayOfFormatFinalDate(earliestSlot)}",
+            uiState.scheduleSummary?.primaryLabel
+        )
+        assertTrue(uiState.scheduleSummary?.deadlineLabel.orEmpty().contains("Votes ouverts jusqu'au"))
+        assertEquals(
+            "Relancez les votes avant de confirmer la date.",
+            uiState.scheduleSummary?.nextActionLabel
+        )
+        assertFalse(uiState.scheduleSummary?.hasConfirmedDate ?: true)
+    }
+
+    @Test
+    fun scheduleSummaryWarnsWhenNoSlotIsProposed() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.DRAFT)
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("A planifier", uiState.scheduleSummary?.statusLabel)
+        assertEquals("Aucun creneau propose", uiState.scheduleSummary?.primaryLabel)
+        assertEquals(
+            "Ajoutez au moins un creneau pour obtenir une decision.",
+            uiState.scheduleSummary?.nextActionLabel
+        )
     }
 
     @Test
@@ -519,7 +588,8 @@ class EventDetailModelsTest {
         participants: List<String> = listOf("organizer", "participant-1"),
         finalDate: String? = null,
         eventType: EventType = EventType.OTHER,
-        expectedParticipants: Int? = null
+        expectedParticipants: Int? = null,
+        proposedSlots: List<TimeSlot> = emptyList()
     ): Event =
         Event(
             id = id,
@@ -527,7 +597,7 @@ class EventDetailModelsTest {
             description = "Detail description",
             organizerId = "organizer",
             participants = participants,
-            proposedSlots = emptyList(),
+            proposedSlots = proposedSlots,
             deadline = "2026-07-01T12:00:00Z",
             status = status,
             finalDate = finalDate,
@@ -535,6 +605,14 @@ class EventDetailModelsTest {
             updatedAt = "2026-06-01T08:00:00Z",
             eventType = eventType,
             expectedParticipants = expectedParticipants
+        )
+
+    private fun timeSlot(id: String, start: String): TimeSlot =
+        TimeSlot(
+            id = id,
+            start = start,
+            end = null,
+            timezone = "Europe/Paris"
         )
 
     private fun potentialLocation(

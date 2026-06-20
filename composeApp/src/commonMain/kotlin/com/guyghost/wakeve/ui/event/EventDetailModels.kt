@@ -28,6 +28,7 @@ data class EventDetailUiState(
     val canAccessOrganizationDetails: Boolean,
     val showTransportPlanning: Boolean,
     val showOrganizationTools: Boolean,
+    val scheduleSummary: EventScheduleSummary?,
     val attendanceSummary: EventAttendanceSummary?,
     val budgetSummary: EventBudgetPlanningSummary?,
     val dayOfSummary: EventDayOfSummary?,
@@ -76,6 +77,15 @@ data class EventAttendanceSummary(
     val hasSyncedRsvp: Boolean
 )
 
+data class EventScheduleSummary(
+    val title: String,
+    val statusLabel: String,
+    val primaryLabel: String,
+    val deadlineLabel: String,
+    val nextActionLabel: String,
+    val hasConfirmedDate: Boolean
+)
+
 enum class EventDayOfStatus {
     Ready,
     NeedsAttention,
@@ -121,6 +131,7 @@ fun EventManagementContract.State.toEventDetailUiState(
             status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED),
         showOrganizationTools = canAccessOrganizationDetails &&
             status in listOf(EventStatus.ORGANIZING, EventStatus.FINALIZED),
+        scheduleSummary = event?.toScheduleSummary(),
         attendanceSummary = event?.toAttendanceSummary(participantAccessStates),
         budgetSummary = event?.toBudgetPlanningSummary(
             accessStates = participantAccessStates,
@@ -139,6 +150,72 @@ fun EventManagementContract.State.toEventDetailUiState(
                 ?.toRsvpUiState(isOrganizer = isOrganizer)
         }
     )
+}
+
+internal fun Event.toScheduleSummary(): EventScheduleSummary =
+    EventScheduleSummary(
+        title = "Date et depart",
+        statusLabel = eventScheduleStatusLabel(status, finalDate),
+        primaryLabel = eventSchedulePrimaryLabel(finalDate, proposedSlots.mapNotNull { it.start }),
+        deadlineLabel = eventScheduleDeadlineLabel(status, deadline),
+        nextActionLabel = eventScheduleNextActionLabel(status, finalDate, proposedSlots.size),
+        hasConfirmedDate = !finalDate.isNullOrBlank()
+    )
+
+internal fun eventScheduleStatusLabel(status: EventStatus, finalDate: String?): String =
+    if (!finalDate.isNullOrBlank()) {
+        "Date retenue"
+    } else {
+        when (status) {
+            EventStatus.DRAFT -> "A planifier"
+            EventStatus.POLLING -> "Vote en cours"
+            EventStatus.COMPARING -> "Options a comparer"
+            EventStatus.CONFIRMED,
+            EventStatus.ORGANIZING,
+            EventStatus.FINALIZED -> "Date a verifier"
+        }
+    }
+
+internal fun eventSchedulePrimaryLabel(finalDate: String?, proposedSlotStarts: List<String>): String {
+    if (!finalDate.isNullOrBlank()) {
+        return "Depart confirme : ${eventDayOfFormatFinalDate(finalDate)}"
+    }
+
+    val slotCount = proposedSlotStarts.size
+    if (slotCount == 0) return "Aucun creneau propose"
+
+    val firstSlot = proposedSlotStarts
+        .mapNotNull { raw -> runCatching { Instant.parse(raw) }.getOrNull()?.let { it to raw } }
+        .minByOrNull { it.first.toEpochMilliseconds() }
+        ?.second
+    val countLabel = "$slotCount creneau${if (slotCount == 1) "" else "x"} propose${if (slotCount == 1) "" else "s"}"
+
+    return firstSlot
+        ?.let { "$countLabel - premier depart possible : ${eventDayOfFormatFinalDate(it)}" }
+        ?: countLabel
+}
+
+internal fun eventScheduleDeadlineLabel(status: EventStatus, deadline: String): String =
+    when (status) {
+        EventStatus.DRAFT -> "Date limite de vote : ${eventDayOfFormatFinalDate(deadline)}"
+        EventStatus.POLLING,
+        EventStatus.COMPARING -> "Votes ouverts jusqu'au ${eventDayOfFormatFinalDate(deadline)}"
+        EventStatus.CONFIRMED,
+        EventStatus.ORGANIZING -> "Decision prise; gardez l'horaire visible pour le groupe."
+        EventStatus.FINALIZED -> "Decision verrouillee pour le recap."
+    }
+
+internal fun eventScheduleNextActionLabel(
+    status: EventStatus,
+    finalDate: String?,
+    proposedSlotCount: Int
+): String = when {
+    !finalDate.isNullOrBlank() -> "Partagez la date retenue et preparez les rappels de depart."
+    proposedSlotCount == 0 -> "Ajoutez au moins un creneau pour obtenir une decision."
+    status == EventStatus.POLLING -> "Relancez les votes avant de confirmer la date."
+    status == EventStatus.COMPARING -> "Choisissez l'option qui minimise les absents et les conflits."
+    status == EventStatus.DRAFT -> "Verifiez les creneaux avant de lancer le sondage."
+    else -> "Confirmez une date avant d'ouvrir l'organisation detaillee."
 }
 
 internal fun Event.toAttendanceSummary(
