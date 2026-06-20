@@ -1,5 +1,6 @@
 import SwiftUI
 import Shared
+import MapKit
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -380,6 +381,8 @@ struct ScenarioOrganizationView: View {
                             comparisonMetric(String(localized: "scenario.budget"), formatBudget(item.scenario.estimatedBudgetPerPerson))
                             comparisonMetric(String(localized: "scenario.duration"), String(format: String(localized: "scenario.duration_days_format"), item.scenario.duration))
                         }
+
+                        ScenarioWeatherComparisonContext(scenario: item.scenario)
                     }
                     .padding(.vertical, 4)
                 }
@@ -1249,6 +1252,197 @@ private struct ScenarioDecisionMetricRow: View {
         .padding(WakeveTheme.Spacing.sm)
         .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
         .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+    }
+}
+
+private enum ScenarioWeatherContextState {
+    case idle
+    case hidden
+    case loading
+    case available(EventWeatherSummary)
+    case pending(Date)
+}
+
+@MainActor
+private final class ScenarioWeatherContextViewModel: ObservableObject {
+    @Published private(set) var state: ScenarioWeatherContextState = .idle
+
+    private let weatherProvider: EventWeatherProviding
+
+    init(weatherProvider: EventWeatherProviding = CachedEventWeatherProvider(upstream: WeatherKitEventForecastProvider())) {
+        self.weatherProvider = weatherProvider
+    }
+
+    func load(scenario: Scenario_) async {
+        let location = scenario.location.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !location.isEmpty,
+              let targetDate = ScenarioWeatherDateParser.firstDate(in: scenario.dateOrPeriod) else {
+            state = .hidden
+            return
+        }
+
+        let daysUntilScenario = Calendar.current.dateComponents(
+            [.day],
+            from: Calendar.current.startOfDay(for: Date()),
+            to: Calendar.current.startOfDay(for: targetDate)
+        ).day ?? 0
+
+        guard daysUntilScenario >= 0 else {
+            state = .hidden
+            return
+        }
+
+        guard daysUntilScenario <= 10 else {
+            let refreshDate = Calendar.current.date(byAdding: .day, value: -9, to: targetDate) ?? targetDate
+            state = .pending(refreshDate)
+            return
+        }
+
+        state = .loading
+
+        do {
+            guard let place = try await resolvePlace(location) else {
+                state = .hidden
+                return
+            }
+
+            switch await weatherProvider.forecast(for: place, targetDate: targetDate, fetchedAt: Date()) {
+            case .available(let summary):
+                state = .available(summary)
+            case .pending(let refreshDate):
+                state = .pending(refreshDate)
+            case .permissionOrEntitlementRequired, .providerUnavailable:
+                state = .hidden
+            }
+        } catch {
+            state = .hidden
+        }
+    }
+
+    private func resolvePlace(_ location: String) async throws -> EventWeatherPlace? {
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = location
+
+        let response = try await MKLocalSearch(request: request).start()
+        guard let item = response.mapItems.first,
+              let coordinate = item.placemark.location?.coordinate else {
+            return nil
+        }
+
+        return EventWeatherPlace(
+            name: item.name ?? location,
+            coordinate: coordinate
+        )
+    }
+}
+
+private enum ScenarioWeatherDateParser {
+    static func firstDate(in rawValue: String) -> Date? {
+        let matches = isoLikeDateMatches(in: rawValue)
+        for candidate in matches {
+            if let date = ISO8601DateFormatter().date(from: candidate) {
+                return date
+            }
+
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = .current
+            formatter.dateFormat = "yyyy-MM-dd"
+            if let date = formatter.date(from: candidate) {
+                return date
+            }
+        }
+
+        return nil
+    }
+
+    private static func isoLikeDateMatches(in rawValue: String) -> [String] {
+        let pattern = #"\d{4}-\d{2}-\d{2}(?:T[^\s,/]+)?"#
+        guard let expression = try? NSRegularExpression(pattern: pattern) else {
+            return []
+        }
+
+        let range = NSRange(rawValue.startIndex..<rawValue.endIndex, in: rawValue)
+        return expression.matches(in: rawValue, range: range).compactMap { match in
+            guard let matchRange = Range(match.range, in: rawValue) else {
+                return nil
+            }
+            return String(rawValue[matchRange])
+        }
+    }
+}
+
+private struct ScenarioWeatherComparisonContext: View {
+    @Environment(\.colorScheme) private var colorScheme
+    @StateObject private var viewModel: ScenarioWeatherContextViewModel
+
+    let scenario: Scenario_
+
+    init(
+        scenario: Scenario_,
+        weatherProvider: EventWeatherProviding = CachedEventWeatherProvider(upstream: WeatherKitEventForecastProvider())
+    ) {
+        self.scenario = scenario
+        _viewModel = StateObject(wrappedValue: ScenarioWeatherContextViewModel(weatherProvider: weatherProvider))
+    }
+
+    var body: some View {
+        Group {
+            switch viewModel.state {
+            case .idle, .hidden:
+                EmptyView()
+            case .loading:
+                weatherRow(
+                    icon: "cloud.sun",
+                    title: String(localized: "weather.title"),
+                    value: String(localized: "weather.loading")
+                )
+            case .available(let summary):
+                weatherRow(
+                    icon: summary.symbolName,
+                    title: String(localized: "weather.title"),
+                    value: "\(Int(summary.lowTemperature.rounded()))° / \(Int(summary.highTemperature.rounded()))° · \(Int((summary.precipitationChance * 100).rounded()))%"
+                )
+            case .pending(let refreshDate):
+                weatherRow(
+                    icon: "calendar.badge.clock",
+                    title: String(localized: "weather.pending_title"),
+                    value: refreshDate.formatted(date: .abbreviated, time: .omitted)
+                )
+            }
+        }
+        .task(id: "\(scenario.id)-\(scenario.location)-\(scenario.dateOrPeriod)") {
+            await viewModel.load(scenario: scenario)
+        }
+    }
+
+    private func weatherRow(icon: String, title: String, value: String) -> some View {
+        HStack(spacing: WakeveTheme.Spacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(.blue)
+                .frame(width: 30, height: 30)
+                .background(Color.blue.opacity(0.12))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(WakeveTheme.ColorToken.secondaryText(for: colorScheme))
+                Text(value)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(WakeveTheme.ColorToken.primaryText(for: colorScheme))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, WakeveTheme.Spacing.sm)
+        .padding(.vertical, WakeveTheme.Spacing.xs)
+        .background(WakeveTheme.ColorToken.controlFill(for: colorScheme))
+        .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.md, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 
