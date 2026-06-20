@@ -427,6 +427,20 @@ private struct EventWeatherMapCardPreviewSurface: View {
     EventWeatherMapCardPreviewSurface(state: .available(EventWeatherMapCardPreviewFixtures.availableSummary))
 }
 
+#Preview("Weather Available Dark") {
+    EventWeatherMapCardPreviewSurface(state: .available(EventWeatherMapCardPreviewFixtures.availableSummary))
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Weather Available Dynamic Type") {
+    EventWeatherMapCardPreviewSurface(state: .available(EventWeatherMapCardPreviewFixtures.availableSummary))
+        .dynamicTypeSize(.accessibility3)
+}
+
+#Preview("Weather Reduce Transparency") {
+    EventWeatherMapCardPreviewSurface(state: .available(EventWeatherMapCardPreviewFixtures.availableSummary))
+}
+
 #Preview("Weather Stale") {
     EventWeatherMapCardPreviewSurface(state: .available(EventWeatherMapCardPreviewFixtures.staleSummary))
 }

@@ -8,6 +8,9 @@ final class EventWeatherMapCardContractTests: XCTestCase {
         for previewName in [
             "Weather Loading",
             "Weather Available",
+            "Weather Available Dark",
+            "Weather Available Dynamic Type",
+            "Weather Reduce Transparency",
             "Weather Stale",
             "Weather Pending",
             "Weather Unavailable"
@@ -59,6 +62,27 @@ final class EventWeatherMapCardContractTests: XCTestCase {
         XCTAssertTrue(project.contains("CODE_SIGN_ENTITLEMENTS = src/Wakeve.entitlements;"))
         XCTAssertTrue(project.contains("PRODUCT_BUNDLE_IDENTIFIER = com.guyghost.wakeve;"))
         XCTAssertTrue(project.contains("DEVELOPMENT_TEAM = \"${TEAM_ID}\";"))
+    }
+
+    func testWeatherDesignValidationCoversA11yAndAppearanceModes() throws {
+        let source = try readProjectFile("iosApp/src/Components/EventWeatherMapCard.swift")
+        let scenarioView = try readProjectFile("iosApp/src/Views/Events/ScenarioOrganizationView.swift")
+        let glassModifier = try readProjectFile("iosApp/src/Theme/LiquidGlassModifier.swift")
+        let validation = try readProjectFile("docs/design/event-weather-ios-validation.md")
+
+        XCTAssertTrue(source.contains(".preferredColorScheme(.dark)"))
+        XCTAssertTrue(source.contains(".dynamicTypeSize(.accessibility3)"))
+        XCTAssertTrue(source.contains("#Preview(\"Weather Reduce Transparency\")"))
+        XCTAssertTrue(glassModifier.contains("accessibilityReduceTransparency"))
+        XCTAssertTrue(glassModifier.contains("regularMaterial"))
+        XCTAssertTrue(source.contains("weather.map_accessibility_format"))
+        XCTAssertTrue(source.contains("WakeveTheme.Typography"))
+        XCTAssertTrue(source.contains("WakeveTheme.ColorToken"))
+        XCTAssertTrue(scenarioView.contains(".accessibilityElement(children: .combine)"))
+        XCTAssertTrue(validation.contains("Liquid Glass / material hierarchy"))
+        XCTAssertTrue(validation.contains("Dynamic Type"))
+        XCTAssertTrue(validation.contains("Reduce Transparency"))
+        XCTAssertTrue(validation.contains("Dark/light mode"))
     }
 
     private func readProjectFile(_ relativePath: String) throws -> String {
