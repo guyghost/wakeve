@@ -60,6 +60,7 @@ class EventWorkspaceScreenTest {
                         onFilterChange = {},
                         onSearchChange = {},
                         onCreateEvent = {},
+                        onCreateFromTemplate = {},
                         onOpenProfile = {},
                         onSelectEvent = { _, _ -> },
                         onOpenEvent = {},
@@ -92,6 +93,7 @@ class EventWorkspaceScreenTest {
                         onFilterChange = {},
                         onSearchChange = {},
                         onCreateEvent = {},
+                        onCreateFromTemplate = {},
                         onOpenProfile = {},
                         onSelectEvent = { _, _ -> },
                         onOpenEvent = {},
@@ -123,6 +125,7 @@ class EventWorkspaceScreenTest {
                         onFilterChange = {},
                         onSearchChange = {},
                         onCreateEvent = {},
+                        onCreateFromTemplate = {},
                         onOpenProfile = {},
                         onSelectEvent = { _, _ -> },
                         onOpenEvent = {},
@@ -153,6 +156,7 @@ class EventWorkspaceScreenTest {
                         onFilterChange = {},
                         onSearchChange = {},
                         onCreateEvent = {},
+                        onCreateFromTemplate = {},
                         onOpenProfile = {},
                         onSelectEvent = { _, _ -> },
                         onOpenEvent = {},
@@ -185,6 +189,7 @@ class EventWorkspaceScreenTest {
                         onFilterChange = {},
                         onSearchChange = {},
                         onCreateEvent = {},
+                        onCreateFromTemplate = {},
                         onOpenProfile = {},
                         onSelectEvent = { _, _ -> },
                         onOpenEvent = {},
@@ -219,6 +224,7 @@ class EventWorkspaceScreenTest {
                         onFilterChange = {},
                         onSearchChange = {},
                         onCreateEvent = {},
+                        onCreateFromTemplate = {},
                         onOpenProfile = {},
                         onSelectEvent = { eventId, navigate ->
                             selectedEventId = eventId
@@ -251,6 +257,7 @@ class EventWorkspaceScreenTest {
                     onFilterChange = {},
                     onSearchChange = {},
                     onCreateEvent = { createClicked = true },
+                    onCreateFromTemplate = {},
                     onOpenProfile = {},
                     onSelectEvent = { _, _ -> },
                     onOpenEvent = {},
@@ -341,12 +348,20 @@ class EventWorkspaceScreenTest {
             error = null,
             selectedFilter = EventListFilter.Upcoming,
             searchQuery = "",
+            actionSummary = EventWorkspaceActionSummary(
+                eventId = events.first().id,
+                title = "Faites avancer le sondage",
+                body = "1 participant à relancer avant de bloquer une date.",
+                actionLabel = "Ouvrir le vote",
+                action = EventWorkspaceSummaryAction.OpenPoll
+            ),
             events = events.map {
                 EventListItemUiState(
                     id = it.id,
                     title = it.title,
                     description = it.description,
                     statusLabel = it.status.name.lowercase().replaceFirstChar { char -> char.titlecase() },
+                    nextActionLabel = "Vote attendu",
                     deadlineLabel = "Deadline ${it.deadline}",
                     participantsLabel = "${it.participants.size} participants",
                     isOrganizer = true

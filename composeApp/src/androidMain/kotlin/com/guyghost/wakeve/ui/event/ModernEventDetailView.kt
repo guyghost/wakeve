@@ -11,12 +11,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Comment
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Comment
 import androidx.compose.material.icons.filled.Euro
 import androidx.compose.material.icons.filled.Hotel
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocalActivity
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Share
@@ -63,6 +63,7 @@ fun ModernEventDetailView(
     onNavigateToHome: () -> Unit,
     onAddToCalendar: () -> Unit = {},
     onShareInvite: () -> Unit = {},
+    dayOfSummary: EventDayOfSummary? = null,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -74,12 +75,12 @@ fun ModernEventDetailView(
                 title = { Text(event.title) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateToHome) {
-                        Icon(Icons.Default.ArrowBack, stringResource(R.string.navigate_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.navigate_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onNavigateToComments) {
-                        Icon(Icons.Default.Comment, stringResource(R.string.participants))
+                        Icon(Icons.AutoMirrored.Filled.Comment, stringResource(R.string.participants))
                     }
                 }
             )
@@ -98,6 +99,12 @@ fun ModernEventDetailView(
             
             // Event Description
             EventDescriptionCard(event)
+
+            EventNextStepCard(event.status)
+
+            dayOfSummary?.let {
+                EventDayOfSummaryCard(summary = it)
+            }
             
             // Action Buttons based on event status
             when (event.status) {
@@ -146,6 +153,42 @@ fun ModernEventDetailView(
 }
 
 @Composable
+private fun EventDayOfSummaryCard(summary: EventDayOfSummary) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = summary.attendanceLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.missingLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = summary.nextActionLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
+@Composable
 private fun EventStatusHeader(event: Event) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -165,7 +208,7 @@ private fun EventStatusHeader(event: Event) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = event.status.name.lowercase().replaceFirstChar { it.uppercase() },
+                text = eventDetailStatusLabel(event.status),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = when (event.status) {
@@ -202,6 +245,32 @@ private fun EventStatusHeader(event: Event) {
 }
 
 @Composable
+private fun EventNextStepCard(status: EventStatus) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = eventDetailNextStepTitle(status),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = eventDetailNextStepBody(status),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
 private fun EventDescriptionCard(event: Event) {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -232,7 +301,7 @@ private fun DraftModeActions(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = stringResource(R.string.draft_mode_actions),
+            text = eventDetailNextStepTitle(EventStatus.DRAFT),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -241,7 +310,7 @@ private fun DraftModeActions(
             onClick = onNavigateToScenarioList,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.List, contentDescription = null)
+            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text(stringResource(R.string.create_scenarios))
         }
@@ -255,7 +324,7 @@ private fun PollingModeActions() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = stringResource(R.string.polling_mode_actions),
+            text = eventDetailNextStepTitle(EventStatus.POLLING),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -278,7 +347,7 @@ private fun ComparingModeActions(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = stringResource(R.string.comparing_mode_actions),
+            text = eventDetailNextStepTitle(EventStatus.COMPARING),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -287,7 +356,7 @@ private fun ComparingModeActions(
             onClick = onNavigateToScenarioList,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.List, contentDescription = null)
+            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text(stringResource(R.string.view_scenarios))
         }
@@ -319,7 +388,7 @@ private fun ConfirmedModeActions(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = stringResource(R.string.confirmed_mode_actions),
+            text = eventDetailNextStepTitle(EventStatus.CONFIRMED),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -352,7 +421,7 @@ private fun ConfirmedModeActions(
             onClick = onNavigateToScenarioList,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.List, contentDescription = null)
+            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text(stringResource(R.string.view_scenarios))
         }
@@ -418,7 +487,7 @@ private fun OrganizingModeActions(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = stringResource(R.string.organizing_mode_actions),
+            text = eventDetailNextStepTitle(EventStatus.ORGANIZING),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -427,7 +496,7 @@ private fun OrganizingModeActions(
             onClick = onNavigateToScenarioList,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.List, contentDescription = null)
+            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text(stringResource(R.string.view_scenarios))
         }
@@ -483,26 +552,47 @@ private fun OrganizingModeActions(
 private fun FinalizedModeActions(
 ) {
     val readOnly = true
-    val viewOnly = readOnly
-    val mutationsDisabled = viewOnly
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = stringResource(R.string.finalized_mode_actions),
+            text = eventDetailNextStepTitle(EventStatus.FINALIZED),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
 
         Text(
-            text = if (mutationsDisabled) {
-                "Mode consultation. Cet événement est finalisé; les détails restent consultables."
-            } else {
-                "Organisation disponible."
-            },
+            text = eventDetailNextStepBody(EventStatus.FINALIZED),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = if (readOnly) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
         )
     }
+}
+
+internal fun eventDetailStatusLabel(status: EventStatus): String = when (status) {
+    EventStatus.DRAFT -> "Brouillon"
+    EventStatus.POLLING -> "Sondage"
+    EventStatus.COMPARING -> "Comparaison"
+    EventStatus.CONFIRMED -> "Date confirmee"
+    EventStatus.ORGANIZING -> "Organisation"
+    EventStatus.FINALIZED -> "Finalise"
+}
+
+internal fun eventDetailNextStepTitle(status: EventStatus): String = when (status) {
+    EventStatus.DRAFT -> "Terminer la creation"
+    EventStatus.POLLING -> "Obtenir les votes"
+    EventStatus.COMPARING -> "Choisir la meilleure option"
+    EventStatus.CONFIRMED -> "Inviter et preparer"
+    EventStatus.ORGANIZING -> "Piloter l'evenement"
+    EventStatus.FINALIZED -> "Consulter le recapitulatif"
+}
+
+internal fun eventDetailNextStepBody(status: EventStatus): String = when (status) {
+    EventStatus.DRAFT -> "Ajoutez les informations manquantes, puis lancez le sondage quand l'evenement est pret."
+    EventStatus.POLLING -> "Relancez les participants qui n'ont pas vote avant de confirmer la date."
+    EventStatus.COMPARING -> "Comparez destination, budget et contraintes avant de selectionner le scenario final."
+    EventStatus.CONFIRMED -> "Partagez l'invitation, ajoutez l'evenement au calendrier et preparez les details pratiques."
+    EventStatus.ORGANIZING -> "Suivez budget, hebergement, repas, materiel et activites depuis ce centre de controle."
+    EventStatus.FINALIZED -> "L'evenement est verrouille; gardez le recapitulatif accessible pour les participants."
 }
