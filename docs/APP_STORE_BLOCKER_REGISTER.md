@@ -62,7 +62,7 @@ Live deployment baseline:
 APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID='A1B2C3D4E5' ./scripts/lint-store-metadata.sh --ios-only --check-live-urls
 ```
 
-Current result on 2026-06-20: 17 live URL/AASA errors and 1 final-signoff warning. The API health URL is now reachable, but `wakeve.app` still has no public DNS answer from the local network, so legal/support/terms/third-party-notices, dashboard `/app`, legacy redirects, and both AASA URLs remain unreachable. `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md` records the matching command output, including `api.wakeve.app` resolving to Cloudflare and responding to `curl -I https://api.wakeve.app/health` with HTTP `405`. These errors keep AS-14 open until production DNS, legal/support pages, AASA files, and API health are reachable with the real Apple Team ID.
+Current result on 2026-06-20: 17 live URL/AASA errors and 1 final-signoff warning. The API health URL is now reachable, but `wakeve.app` still has no public DNS answer from the local network, so legal/support/terms/third-party-notices, dashboard `/app`, legacy redirects, and both AASA URLs remain unreachable. `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md` records the matching command output, including `api.wakeve.app` resolving to Cloudflare and responding to `curl -I https://api.wakeve.app/health` with HTTP `405`. These errors keep AS-14 open until production `wakeve.app` DNS, legal/support pages, AASA files, and the real Apple Team ID are live; `api.wakeve.app/health` must stay review-accessible through the final live smoke.
 
 ## Blockers
 
