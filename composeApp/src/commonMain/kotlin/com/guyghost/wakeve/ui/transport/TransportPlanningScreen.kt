@@ -93,6 +93,10 @@ fun TransportPlanningScreen(
         highlightedPlan = highlightedPlan,
         readiness = readiness
     )
+    val departureSummary = transportDepartureSummary(
+        highlightedPlan = highlightedPlan,
+        readiness = readiness
+    )
     val generationUnavailableReason = when {
         !isTransportProviderConfigured -> transportProviderMissingMessage()
         !isOrganizer -> transportOrganizerOnlyGenerationMessage()
@@ -150,6 +154,10 @@ fun TransportPlanningScreen(
 
             item {
                 TransportMeetingPointCard(summary = meetingPointSummary)
+            }
+
+            item {
+                TransportDepartureSummaryCard(summary = departureSummary)
             }
 
             item {
@@ -233,6 +241,41 @@ fun TransportPlanningScreen(
                         onSelectFinal = { onSelectFinalPlan(plan) }
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransportDepartureSummaryCard(summary: TransportDepartureSummary) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Route, contentDescription = null)
+                Text(
+                    text = summary.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+            }
+            Text(
+                text = summary.body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            summary.detail?.let { detail ->
+                Text(
+                    text = detail,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
@@ -786,5 +829,74 @@ internal fun transportMeetingArrivalLabel(rawArrival: String): String {
         "$date à $timePart"
     } else {
         trimmed
+    }
+}
+
+internal data class TransportDepartureSummary(
+    val title: String,
+    val body: String,
+    val detail: String? = null
+)
+
+internal fun transportDepartureSummary(
+    highlightedPlan: TransportPlan?,
+    readiness: TransportReadiness?
+): TransportDepartureSummary {
+    if (readiness?.transportNotNeeded == true) {
+        return TransportDepartureSummary(
+            title = transportDepartureSummaryTitle(),
+            body = "Aucun départ collectif requis pour cet événement."
+        )
+    }
+
+    val departures = highlightedPlan
+        ?.participantRoutes
+        .orEmpty()
+        .values
+        .mapNotNull { route -> route.segments.firstOrNull()?.departureTime?.takeIf { it.isNotBlank() } }
+        .sorted()
+
+    if (departures.isNotEmpty()) {
+        return TransportDepartureSummary(
+            title = transportDepartureSummaryTitle(),
+            body = "Premier départ prévu : ${transportMeetingArrivalLabel(departures.first())}.",
+            detail = transportDeparturePlanDetail(departures)
+        )
+    }
+
+    val missingParticipants = readiness?.missingDepartureParticipantNames.orEmpty()
+        .ifEmpty { readiness?.missingDepartureParticipantIds.orEmpty() }
+
+    if (missingParticipants.isNotEmpty()) {
+        return TransportDepartureSummary(
+            title = transportDepartureIncompleteTitle(),
+            body = "Impossible de répondre à quand partons-nous tant que tous les départs ne sont pas renseignés.",
+            detail = transportMeetingPointMissingDeparturesDetail(missingParticipants)
+        )
+    }
+
+    return if (readiness?.isComplete == true) {
+        TransportDepartureSummary(
+            title = transportDepartureIncompleteTitle(),
+            body = "Tous les points de départ sont prêts. Générez un plan pour afficher l'heure de départ du groupe."
+        )
+    } else {
+        TransportDepartureSummary(
+            title = transportDepartureIncompleteTitle(),
+            body = "Ajoutez les points de départ pour calculer l'heure de départ du groupe."
+        )
+    }
+}
+
+internal fun transportDepartureSummaryTitle(): String = "Départ du groupe"
+
+internal fun transportDepartureIncompleteTitle(): String = "Départ à confirmer"
+
+internal fun transportDeparturePlanDetail(departures: List<String>): String? {
+    if (departures.isEmpty()) return null
+    return if (departures.size == 1) {
+        "1 trajet suivi."
+    } else {
+        "${departures.size} trajets suivis · Dernier départ : ${transportMeetingArrivalLabel(departures.last())}."
     }
 }
