@@ -324,6 +324,7 @@ Preuves du 2026-06-20:
 - Correction source Android du 2026-06-20: les cartes Home sont maintenant reformulees en coordination utilisateur (`Invitations et retours`, `Ambiance du groupe`, `Prochaine decision`, `Plan d'action`) dans `EventWorkspaceModels.kt`, previews et tests. `./gradlew --no-configuration-cache :composeApp:testDebugUnitTest --tests com.guyghost.wakeve.ui.event.EventWorkspaceModelsTest` passe; l'audit device/emulateur reste ouvert.
 - Gate critique Android renforce: `./scripts/test-critical-release-gates.sh` bloque maintenant la reintroduction de vocabulaire produit interne dans la Home Android (`Boucle de croissance`, `Position strategique`, `Scores`, etc.) et exige les libelles de coordination utilisateur dans `EventWorkspaceModels.kt`.
 - Harnais Android Home dedie: `./scripts/test-android-event-workspace.sh` execute le test unitaire cible `EventWorkspaceModelsTest` et la compilation androidTest avec `--no-configuration-cache`, afin d'eviter que `processDebugGoogleServices` masque une regression produit par un echec de stockage du configuration cache. Le gate critique valide la presence de ce harnais sans relancer ces builds lourds.
+- Preparation audit device Android: `./scripts/prepare-android-event-workspace-device-audit.sh` genere un template d'evidence pour le parcours creation -> invitation -> vote -> date confirmee -> jour J et marque explicitement que ce template ne ferme pas P2.1 sans execution sur device/emulateur avec screenshots, TalkBack, font scaling et back navigation.
 
 #### 2.2 Observabilite et performance
 
