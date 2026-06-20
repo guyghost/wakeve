@@ -346,6 +346,10 @@ Preuves du 2026-06-20:
 - Durcissement audit device Android: le helper normalise les rapports generes et masque les chemins absolus locaux avant commit; le gate critique execute le helper dans un chemin projet pour bloquer les regressions de CR, espaces finaux ou chemins `$HOME`.
 - Maintenance gates release: la normalisation commit-safe des rapports d'evidence est centralisee dans `scripts/lib/report-sanitization.sh`, afin que les helpers AS-08/AS-11/AS-14, iOS, Android, WeatherKit, WakeveAI et performance partagent la meme regle; le gate critique bloque aussi la reintroduction de sanitizers Perl inline hors helper.
 
+Preuves du 2026-06-21:
+
+- Refresh audit device Android: `docs/product/android-event-workspace-device-audit-2026-06-20T22-46-22Z.md` confirme que `adb` est disponible, mais qu'aucun device/emulateur Android n'est connecte (`PENDING_ANDROID_DEVICE_OR_EMULATOR`). L'item P2.1 reste ouvert tant que le parcours creation -> invitation -> vote -> date confirmee -> jour J n'est pas execute avec screenshots/screenrecord, TalkBack, font scaling et back navigation.
+
 #### 2.2 Observabilite et performance
 
 - [ ] Mesurer cold start iOS et Android.
