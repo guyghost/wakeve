@@ -227,6 +227,62 @@ class EventDetailModelsTest {
     }
 
     @Test
+    fun programSummaryGuidesConfirmedOrganizerToSharedProgram() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(
+                status = EventStatus.CONFIRMED,
+                eventType = EventType.OUTDOOR_ACTIVITY
+            ),
+            participantAccessStates = listOf(ParticipantAccessState.organizer("organizer"))
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Programme", uiState.programSummary?.title)
+        assertEquals("A construire", uiState.programSummary?.statusLabel)
+        assertEquals(
+            "A cadrer : activites, niveaux, equipement, pauses et repli.",
+            uiState.programSummary?.scopeLabel
+        )
+        assertEquals(
+            "Creez le programme partage pour que le groupe sache quoi suivre.",
+            uiState.programSummary?.nextActionLabel
+        )
+        assertTrue(uiState.programSummary?.canOpenProgram == true)
+    }
+
+    @Test
+    fun programSummaryBlocksProgramActionBeforeDateIsConfirmed() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(status = EventStatus.POLLING)
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("En attente de date", uiState.programSummary?.statusLabel)
+        assertEquals(
+            "Attendez les votes ou preparez des idees de programme.",
+            uiState.programSummary?.nextActionLabel
+        )
+        assertFalse(uiState.programSummary?.canOpenProgram ?: true)
+    }
+
+    @Test
+    fun programSummaryKeepsProgramReadOnlyForFinalizedEvents() {
+        val uiState = EventManagementContract.State(
+            selectedEvent = event(
+                status = EventStatus.FINALIZED,
+                eventType = EventType.WEDDING
+            ),
+            participantAccessStates = listOf(ParticipantAccessState.organizer("organizer"))
+        ).toEventDetailUiState(eventId = eventId, currentUserId = "organizer")
+
+        assertEquals("Verrouille", uiState.programSummary?.statusLabel)
+        assertEquals(
+            "A cadrer : ceremonie, repas, transitions et temps forts.",
+            uiState.programSummary?.scopeLabel
+        )
+        assertEquals("Conservez le programme comme reference du recap.", uiState.programSummary?.nextActionLabel)
+        assertTrue(uiState.programSummary?.canOpenProgram == true)
+    }
+
+    @Test
     fun attendanceSummaryAnswersWhoComesWhenRsvpAreSynced() {
         val uiState = EventManagementContract.State(
             selectedEvent = event(

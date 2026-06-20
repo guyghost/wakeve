@@ -64,6 +64,7 @@ import com.guyghost.wakeve.ui.event.EventAttendanceSummary
 import com.guyghost.wakeve.ui.event.EventBudgetPlanningSummary
 import com.guyghost.wakeve.ui.event.EventDayOfSummary
 import com.guyghost.wakeve.ui.event.EventDetailUiState
+import com.guyghost.wakeve.ui.event.EventProgramPlanningSummary
 import com.guyghost.wakeve.ui.event.EventReorganizationSummary
 import com.guyghost.wakeve.ui.event.EventWorkspaceCreationTemplate
 import com.guyghost.wakeve.ui.event.EventRsvpResponseCard
@@ -363,6 +364,15 @@ fun EventDetailContent(
                 state.dayOfSummary?.let { summary ->
                     item {
                         EventDayOfSummaryCard(summary = summary)
+                    }
+                }
+
+                state.programSummary?.let { summary ->
+                    item {
+                        EventProgramPlanningCard(
+                            summary = summary,
+                            onOpenProgram = { onNavigateTo("event/${event.id}/activities") }
+                        )
                     }
                 }
 
@@ -749,6 +759,58 @@ private fun EventScheduleSummaryCard(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        }
+    }
+}
+
+@Composable
+private fun EventProgramPlanningCard(
+    summary: EventProgramPlanningSummary,
+    onOpenProgram: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.xs)) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.statusLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (summary.canOpenProgram) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.tertiary
+                }
+            )
+            Text(
+                text = summary.scopeLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = summary.nextActionLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (summary.canOpenProgram) {
+                Button(
+                    onClick = onOpenProgram,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = WakeveSize.minTouchTarget)
+                ) {
+                    Text("Ouvrir le programme")
+                }
+            } else {
+                Text(
+                    text = "Confirmez la date pour ouvrir le programme partage.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }

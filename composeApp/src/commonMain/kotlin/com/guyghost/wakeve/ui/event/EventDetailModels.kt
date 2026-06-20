@@ -30,6 +30,7 @@ data class EventDetailUiState(
     val showOrganizationTools: Boolean,
     val scheduleSummary: EventScheduleSummary?,
     val attendanceSummary: EventAttendanceSummary?,
+    val programSummary: EventProgramPlanningSummary?,
     val budgetSummary: EventBudgetPlanningSummary?,
     val dayOfSummary: EventDayOfSummary?,
     val postEventSummary: PostEventControlSummary?,
@@ -86,6 +87,14 @@ data class EventScheduleSummary(
     val hasConfirmedDate: Boolean
 )
 
+data class EventProgramPlanningSummary(
+    val title: String,
+    val statusLabel: String,
+    val scopeLabel: String,
+    val nextActionLabel: String,
+    val canOpenProgram: Boolean
+)
+
 enum class EventDayOfStatus {
     Ready,
     NeedsAttention,
@@ -133,6 +142,10 @@ fun EventManagementContract.State.toEventDetailUiState(
             status in listOf(EventStatus.ORGANIZING, EventStatus.FINALIZED),
         scheduleSummary = event?.toScheduleSummary(),
         attendanceSummary = event?.toAttendanceSummary(participantAccessStates),
+        programSummary = event?.toProgramPlanningSummary(
+            canOpenProgram = canAccessOrganizationDetails &&
+                status in listOf(EventStatus.CONFIRMED, EventStatus.ORGANIZING, EventStatus.FINALIZED)
+        ),
         budgetSummary = event?.toBudgetPlanningSummary(
             accessStates = participantAccessStates,
             canOpenBudget = canAccessOrganizationDetails &&
@@ -150,6 +163,58 @@ fun EventManagementContract.State.toEventDetailUiState(
                 ?.toRsvpUiState(isOrganizer = isOrganizer)
         }
     )
+}
+
+internal fun Event.toProgramPlanningSummary(canOpenProgram: Boolean): EventProgramPlanningSummary =
+    EventProgramPlanningSummary(
+        title = "Programme",
+        statusLabel = eventProgramStatusLabel(status),
+        scopeLabel = eventProgramScopeLabel(eventType),
+        nextActionLabel = eventProgramNextActionLabel(status),
+        canOpenProgram = canOpenProgram
+    )
+
+internal fun eventProgramStatusLabel(status: EventStatus): String = when (status) {
+    EventStatus.DRAFT -> "A definir"
+    EventStatus.POLLING -> "En attente de date"
+    EventStatus.COMPARING -> "A comparer"
+    EventStatus.CONFIRMED -> "A construire"
+    EventStatus.ORGANIZING -> "A suivre"
+    EventStatus.FINALIZED -> "Verrouille"
+}
+
+internal fun eventProgramScopeLabel(eventType: EventType): String = when (eventType) {
+    EventType.WEDDING ->
+        "A cadrer : ceremonie, repas, transitions et temps forts."
+    EventType.CONFERENCE,
+    EventType.WORKSHOP,
+    EventType.TECH_MEETUP,
+    EventType.CREATIVE_WORKSHOP ->
+        "A cadrer : sessions, pauses, intervenants et materiel."
+    EventType.OUTDOOR_ACTIVITY,
+    EventType.SPORTS_EVENT,
+    EventType.SPORT_EVENT ->
+        "A cadrer : activites, niveaux, equipement, pauses et repli."
+    EventType.FOOD_TASTING,
+    EventType.BIRTHDAY,
+    EventType.PARTY,
+    EventType.CULTURAL_EVENT,
+    EventType.FAMILY_GATHERING,
+    EventType.TEAM_BUILDING,
+    EventType.WELLNESS_EVENT ->
+        "A cadrer : activites, repas, pauses et temps libres."
+    EventType.OTHER,
+    EventType.CUSTOM ->
+        "A cadrer : activites, repas, pauses et prochaines etapes."
+}
+
+internal fun eventProgramNextActionLabel(status: EventStatus): String = when (status) {
+    EventStatus.DRAFT -> "Ajoutez des creneaux avant de decouper le programme."
+    EventStatus.POLLING -> "Attendez les votes ou preparez des idees de programme."
+    EventStatus.COMPARING -> "Gardez le programme provisoire tant que la destination n'est pas choisie."
+    EventStatus.CONFIRMED -> "Creez le programme partage pour que le groupe sache quoi suivre."
+    EventStatus.ORGANIZING -> "Mettez a jour les activites et les prochaines etapes au fil de l'eau."
+    EventStatus.FINALIZED -> "Conservez le programme comme reference du recap."
 }
 
 internal fun Event.toScheduleSummary(): EventScheduleSummary =
