@@ -536,6 +536,15 @@ fun WakeveNavHost(
                 },
                 onShareInvite = { evtId, _ ->
                     navController.navigate(Screen.InvitationShare.createRoute(evtId))
+                },
+                onCreateFromTemplate = { template ->
+                    navController.navigate(
+                        Screen.EventCreation.createRoute(
+                            templateTitle = template.title,
+                            templateDescription = template.description,
+                            templateType = template.eventType
+                        )
+                    )
                 }
             )
         }

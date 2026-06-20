@@ -60,8 +60,11 @@ import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
 import com.guyghost.wakeve.ui.designsystem.WakeveStateMessage
 import com.guyghost.wakeve.ui.event.EventDayOfSummary
 import com.guyghost.wakeve.ui.event.EventDetailUiState
+import com.guyghost.wakeve.ui.event.EventReorganizationSummary
+import com.guyghost.wakeve.ui.event.EventWorkspaceCreationTemplate
 import com.guyghost.wakeve.ui.event.EventRsvpResponseCard
 import com.guyghost.wakeve.ui.event.toEventDetailUiState
+import com.guyghost.wakeve.ui.event.toReorganizationSummary
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
 import com.guyghost.wakeve.weather.EventWeatherContext
 import com.guyghost.wakeve.weather.WeatherAvailability
@@ -140,6 +143,7 @@ fun EventDetailScreen(
     onShowToast: (String) -> Unit = {},
     onNavigateBack: () -> Unit = {},
     onShareInvite: ((eventId: String, eventTitle: String) -> Unit)? = null,
+    onCreateFromTemplate: ((EventWorkspaceCreationTemplate) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     // State from ViewModel
@@ -181,6 +185,7 @@ fun EventDetailScreen(
         onRsvpSelected = { response ->
             onShowToast("Réponse RSVP sélectionnée : ${response.toFrenchLabel()}")
         },
+        onCreateFromTemplate = onCreateFromTemplate,
         onRequestDelete = { showDeleteConfirmation = true },
         modifier = modifier
     )
@@ -232,6 +237,7 @@ fun EventDetailContent(
     onNavigateBack: () -> Unit,
     onShareInvite: ((eventId: String, eventTitle: String) -> Unit)?,
     onRsvpSelected: (ParticipantRsvp) -> Unit,
+    onCreateFromTemplate: ((EventWorkspaceCreationTemplate) -> Unit)?,
     onRequestDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -313,6 +319,15 @@ fun EventDetailContent(
                 // Status card
                 item {
                     StatusCard(event = event)
+                }
+
+                event.toReorganizationSummary()?.let { summary ->
+                    item {
+                        EventReorganizationCard(
+                            summary = summary,
+                            onCreateFromTemplate = onCreateFromTemplate
+                        )
+                    }
                 }
 
                 state.dayOfSummary?.let { summary ->
@@ -417,6 +432,38 @@ fun EventDetailContent(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventReorganizationCard(
+    summary: EventReorganizationSummary,
+    onCreateFromTemplate: ((EventWorkspaceCreationTemplate) -> Unit)?,
+    modifier: Modifier = Modifier
+) {
+    WakeveCard(modifier = modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (onCreateFromTemplate != null) {
+                Button(
+                    onClick = { onCreateFromTemplate(summary.template) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = WakeveSize.minTouchTarget)
+                ) {
+                    Text(summary.actionLabel)
                 }
             }
         }

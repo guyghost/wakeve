@@ -55,6 +55,13 @@ data class EventWorkspaceCreationTemplate(
     val eventType: EventType
 )
 
+data class EventReorganizationSummary(
+    val title: String,
+    val body: String,
+    val actionLabel: String,
+    val template: EventWorkspaceCreationTemplate
+)
+
 data class EventWorkspaceUiState(
     val isLoading: Boolean,
     val error: String?,
@@ -218,7 +225,7 @@ private fun Event.workspaceSummaryAction(): EventWorkspaceSummaryAction =
         else -> EventWorkspaceSummaryAction.OpenEvent
     }
 
-private fun Event.workspaceCreationTemplate(): EventWorkspaceCreationTemplate? =
+internal fun Event.workspaceCreationTemplate(): EventWorkspaceCreationTemplate? =
     if (status == EventStatus.FINALIZED) {
         EventWorkspaceCreationTemplate(
             title = title,
@@ -228,3 +235,14 @@ private fun Event.workspaceCreationTemplate(): EventWorkspaceCreationTemplate? =
     } else {
         null
     }
+
+internal fun Event.toReorganizationSummary(): EventReorganizationSummary? {
+    val template = workspaceCreationTemplate() ?: return null
+
+    return EventReorganizationSummary(
+        title = "Réorganiser rapidement",
+        body = "Créez une nouvelle édition de $title avec le titre, la description et le type déjà repris.",
+        actionLabel = "Créer une nouvelle édition",
+        template = template
+    )
+}
