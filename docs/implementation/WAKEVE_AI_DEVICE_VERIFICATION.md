@@ -142,6 +142,26 @@ The refreshed helper now accepts either `TEAM_ID` or `APPLE_TEAM_ID` and records
 
 This refresh is preparation evidence only. It does not close OpenSpec task `6.6`, because no supported physical device has been profiled with Apple Intelligence enabled, Foundation Models `.available`, latency, cancellation, memory, trace, and production-log privacy evidence.
 
+### 2026-06-20 Simulator Regression Refresh
+
+Command:
+
+```bash
+XcodeBuildMCP test_sim \
+  -only-testing:WakeveTests/WakeveAIContractTests \
+  -only-testing:WakeveTests/WakeveAIGeneratorTests \
+  -only-testing:WakeveTests/WakeveAIValidationTests
+```
+
+Result: `TEST SUCCEEDED` on the configured `iPhone 17` simulator as part of the combined WeatherKit/WakeveAI focused suite. The WakeveAI subset passed `27/27` selected tests.
+
+Artifacts:
+
+- Build log: `/Users/guy/Library/Developer/XcodeBuildMCP/workspaces/wakeve-cf467b3193b0/logs/test_sim_2026-06-20T19-56-28-754Z_pid9347_bb3368ef.log`
+- Result bundle: `/Users/guy/Library/Developer/XcodeBuildMCP/workspaces/wakeve-cf467b3193b0/result-bundles/test_sim_2026-06-20T19-56-28-754Z_pid9347_e5479204.xcresult`
+
+This refresh confirms the simulator-testable WakeveAI contracts, fallback generator behavior, timeout handling, validation bounds, locale-aware UI contracts, and debug availability override remain green after localization contract updates. It does not close OpenSpec task `6.6`, because latency, cancellation, memory, Foundation Models availability, and production-log privacy still require a supported physical device.
+
 ## Production Privacy Constraints
 
 - Production builds do not read the Debug availability override.

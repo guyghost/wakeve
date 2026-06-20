@@ -44,6 +44,26 @@ The helper writes a report under `docs/weatherkit/` and records:
 
 The report is preparation evidence only. It must not be used to mark OpenSpec tasks `1.2` or `6.2` complete unless the required real-device WeatherKit fields are filled in.
 
+## 2026-06-20 Simulator Regression Refresh
+
+Command:
+
+```bash
+XcodeBuildMCP test_sim \
+  -only-testing:WakeveTests/EventWeatherProviderTests \
+  -only-testing:WakeveTests/EventWeatherMapCardContractTests \
+  -only-testing:WakeveTests/PremiumEventDetailContractTests/testEventDetailWeatherCardUsesWeatherKitAndMapKit
+```
+
+Result: `TEST SUCCEEDED` on the configured `iPhone 17` simulator as part of the combined WeatherKit/WakeveAI focused suite. The weather subset passed `15/15` selected tests.
+
+Artifacts:
+
+- Build log: `/Users/guy/Library/Developer/XcodeBuildMCP/workspaces/wakeve-cf467b3193b0/logs/test_sim_2026-06-20T19-56-28-754Z_pid9347_bb3368ef.log`
+- Result bundle: `/Users/guy/Library/Developer/XcodeBuildMCP/workspaces/wakeve-cf467b3193b0/result-bundles/test_sim_2026-06-20T19-56-28-754Z_pid9347_e5479204.xcresult`
+
+This refresh proves the simulator-testable provider mapping, entitlement source wiring, UI state contracts, and premium access-control integration remain green. It does not close tasks `1.2` or `6.2`, because simulator XCTest cannot prove Apple Developer portal WeatherKit capability, signed app entitlements, or live WeatherKit behavior on a physical device.
+
 ## Closure Requirements
 
 Before checking off `1.2` and `6.2`, record:
