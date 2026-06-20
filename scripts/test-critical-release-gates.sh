@@ -35,6 +35,36 @@ assert_generated_report_is_commit_safe() {
     fi
 }
 
+assert_report_sanitizer_is_shared() {
+    local sanitizer="$PROJECT_DIR/scripts/lib/report-sanitization.sh"
+
+    bash -n "$sanitizer"
+
+    if ! grep -Fq 'sanitize_report_file()' "$sanitizer" \
+        || ! grep -Fq 's/\r//g; s/[ \t]+$//' "$sanitizer" \
+        || ! grep -Fq 's/$home/~/g if $home ne ""' "$sanitizer"; then
+        echo "FAIL: shared report sanitizer must strip CR, trailing whitespace, and local HOME paths" >&2
+        exit 1
+    fi
+
+    local duplicate_sanitizers
+    duplicate_sanitizers="$(
+        find "$PROJECT_DIR/scripts" -type f -name '*.sh' \
+            ! -path "$sanitizer" \
+            ! -path "$PROJECT_DIR/scripts/test-critical-release-gates.sh" \
+            -print0 \
+            | xargs -0 grep -nE 'perl -pi -e.*s/\\r//g|perl -pi -e.*s/\[ \\t\]\+\$//' || true
+    )"
+
+    if [ -n "$duplicate_sanitizers" ]; then
+        echo "$duplicate_sanitizers" >&2
+        echo "FAIL: report sanitization must use scripts/lib/report-sanitization.sh instead of inline Perl" >&2
+        exit 1
+    fi
+
+    echo "PASS: release evidence report sanitization is centralized"
+}
+
 assert_no_sensitive_server_logs() {
     local files=(
         "$PROJECT_DIR/server/src/main/kotlin/com/guyghost/wakeve/auth/OtpManager.kt"
@@ -758,6 +788,7 @@ assert_no_android_release_local_backend_defaults
 assert_android_compose_hygiene
 assert_android_home_workspace_user_copy
 assert_android_event_workspace_harness
+assert_report_sanitizer_is_shared
 assert_android_event_workspace_device_audit_helper
 assert_android_build_hygiene
 assert_android_resource_defaults
