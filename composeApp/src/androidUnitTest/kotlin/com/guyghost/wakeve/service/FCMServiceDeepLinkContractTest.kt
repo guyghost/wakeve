@@ -50,6 +50,34 @@ class FCMServiceDeepLinkContractTest {
     }
 
     @Test
+    fun resolveFcmBackendApiBaseUrl_appendsApiPathToConfiguredServerUrl() {
+        val result = resolveFcmBackendApiBaseUrl("https://api.wakeve.app")
+
+        assertEquals("https://api.wakeve.app/api", result)
+    }
+
+    @Test
+    fun resolveFcmBackendApiBaseUrl_trimsTrailingSlashBeforeApiPath() {
+        val result = resolveFcmBackendApiBaseUrl("https://api.wakeve.app/")
+
+        assertEquals("https://api.wakeve.app/api", result)
+    }
+
+    @Test
+    fun resolveFcmBackendApiBaseUrl_keepsConfiguredApiPath() {
+        val result = resolveFcmBackendApiBaseUrl("https://api.wakeve.app/api")
+
+        assertEquals("https://api.wakeve.app/api", result)
+    }
+
+    @Test
+    fun resolveFcmBackendApiBaseUrl_usesLocalDefaultWhenBlank() {
+        val result = resolveFcmBackendApiBaseUrl("  ")
+
+        assertEquals("http://10.0.2.2:8080/api", result)
+    }
+
+    @Test
     fun resolveFcmNotificationId_prefersTrimmedPayloadId() {
         val result = resolveFcmNotificationId(
             payloadNotificationId = " notification-123 ",
