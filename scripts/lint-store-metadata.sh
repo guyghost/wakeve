@@ -4004,6 +4004,8 @@ validate_app_store_dsa_trader_status() {
 	        "Provide and verify trader status for EU distribution"
 	        "Disable EU availability for the first release"
 	        "declare non-trader status in App Store Connect"
+	        "./scripts/prepare-app-store-dsa-trader-status-evidence.sh"
+	        "Generated report can close AS-08 = no - preparation evidence only"
 	        "Labels and Markings URL is not applicable or enter the final URL"
 	        "APP_STORE_DSA_TRADER_STATUS_CONFIRMED=true"
 	        "APP_STORE_DSA_TRADER_STATUS_EVIDENCE_COMPLETE=true"
