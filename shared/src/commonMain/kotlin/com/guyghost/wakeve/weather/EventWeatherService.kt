@@ -1,6 +1,9 @@
 package com.guyghost.wakeve.weather
 
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.Scenario
+import com.guyghost.wakeve.models.ScenarioStatus
+import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.Instant
@@ -15,7 +18,8 @@ class EventWeatherService(
     private val locationRepository: EventWeatherLocationRepository,
     private val weatherCache: EventWeatherCache,
     private val weatherProvider: EventWeatherProvider,
-    private val nowProvider: () -> String
+    private val nowProvider: () -> String,
+    private val scenarioRepository: EventWeatherScenarioRepository? = null
 ) {
     suspend fun loadWeatherContext(
         eventId: String,
@@ -24,7 +28,7 @@ class EventWeatherService(
         val event = eventRepository.getEvent(eventId)
             ?: return unavailable(eventId, WeatherAvailability.PROVIDER_UNAVAILABLE, "Event not found")
 
-        val dateRange = event.weatherDateRange()
+        val dateRange = event.weatherDateRange(scenarioRepository)
             ?: return unavailable(eventId, WeatherAvailability.PENDING_FORECAST_WINDOW, "Event date is not confirmed")
 
         val location = locationRepository.getWeatherLocation(eventId)
@@ -141,12 +145,20 @@ class EventWeatherService(
         val timezone: String
     )
 
-    private fun Event.weatherDateRange(): WeatherDateRange? {
-        val confirmedSlot = finalDate?.let { confirmedDate ->
-            proposedSlots.firstOrNull { it.start == confirmedDate } ?: proposedSlots.firstOrNull { it.id == confirmedDate }
-        } ?: proposedSlots.firstOrNull { it.start != null }
+    private fun Event.weatherDateRange(
+        scenarioRepository: EventWeatherScenarioRepository?
+    ): WeatherDateRange? {
+        return confirmedWeatherDateRange()
+            ?: scenarioWeatherDateRange(scenarioRepository)
+            ?: candidateTimeSlotWeatherDateRange()
+    }
 
-        val start = finalDate?.takeIf { it.contains("T") } ?: confirmedSlot?.start ?: return null
+    private fun Event.confirmedWeatherDateRange(): WeatherDateRange? {
+        val confirmedDate = finalDate ?: return null
+        val confirmedSlot = proposedSlots.firstOrNull { it.start == confirmedDate }
+            ?: proposedSlots.firstOrNull { it.id == confirmedDate }
+
+        val start = confirmedDate.takeIf { it.contains("T") } ?: confirmedSlot?.start ?: return null
         val end = confirmedSlot?.end ?: start
         val timezone = confirmedSlot?.timezone ?: "UTC"
         return WeatherDateRange(
@@ -154,6 +166,60 @@ class EventWeatherService(
             endDate = end.toIsoDate(timezone),
             timezone = timezone
         )
+    }
+
+    private fun Event.candidateTimeSlotWeatherDateRange(): WeatherDateRange? {
+        return proposedSlots.firstOrNull { it.start != null }?.toWeatherDateRange()
+    }
+
+    private fun Event.scenarioWeatherDateRange(
+        scenarioRepository: EventWeatherScenarioRepository?
+    ): WeatherDateRange? {
+        scenarioRepository ?: return null
+        val selectedScenario = scenarioRepository.getSelectedScenario(id)
+        val scenarios = selectedScenario?.let(::listOf)
+            ?: scenarioRepository.getScenarios(id)
+                .filter { it.status != ScenarioStatus.REJECTED }
+                .sortedWith(compareBy<Scenario> { it.status.weatherPriority() }.thenBy { it.dateOrPeriod })
+
+        return scenarios
+            .mapNotNull { it.toWeatherDateRange(this) }
+            .minByOrNull { it.startDate }
+    }
+
+    private fun Scenario.toWeatherDateRange(event: Event): WeatherDateRange? {
+        val sourceSlotRange = sourceTimeSlotId
+            ?.let { slotId -> event.proposedSlots.firstOrNull { it.id == slotId } }
+            ?.toWeatherDateRange()
+        if (sourceSlotRange != null) return sourceSlotRange
+
+        val tokens = isoDateOrInstantPattern.findAll(dateOrPeriod)
+            .map { it.value }
+            .toList()
+        val start = tokens.firstOrNull()?.toIsoDate("UTC") ?: return null
+        val end = tokens.getOrNull(1)?.toIsoDate("UTC") ?: endDateFromDuration(start, duration)
+        return WeatherDateRange(
+            startDate = start,
+            endDate = end,
+            timezone = "UTC"
+        )
+    }
+
+    private fun TimeSlot.toWeatherDateRange(): WeatherDateRange? {
+        val start = start ?: return null
+        val end = end ?: start
+        return WeatherDateRange(
+            startDate = start.toIsoDate(timezone),
+            endDate = end.toIsoDate(timezone),
+            timezone = timezone
+        )
+    }
+
+    private fun ScenarioStatus.weatherPriority(): Int = when (this) {
+        ScenarioStatus.SELECTED -> 0
+        ScenarioStatus.PROPOSED -> 1
+        ScenarioStatus.DRAFT -> 2
+        ScenarioStatus.REJECTED -> 3
     }
 
     private fun WeatherSnapshot.toContext(
@@ -177,12 +243,23 @@ class EventWeatherService(
     }
 }
 
+private val isoDateOrInstantPattern = Regex("""\d{4}-\d{2}-\d{2}(?:T[^\s/]+)?""")
+
 private fun String.toIsoDate(timezoneId: String): String {
     return try {
         val timeZone = TimeZone.of(timezoneId)
         Instant.parse(this).toLocalDateTime(timeZone).date.toString()
     } catch (_: Exception) {
         substringBefore("T")
+    }
+}
+
+private fun endDateFromDuration(startDateIso: String, durationDays: Int): String {
+    return try {
+        val extraDays = if (durationDays > 1) durationDays - 1 else 0
+        LocalDate.parse(startDateIso).plus(DatePeriod(days = extraDays)).toString()
+    } catch (_: Exception) {
+        startDateIso
     }
 }
 

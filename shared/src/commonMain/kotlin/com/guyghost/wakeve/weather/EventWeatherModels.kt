@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.weather
 
 import com.guyghost.wakeve.models.Coordinates
+import com.guyghost.wakeve.models.Scenario
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -135,4 +136,9 @@ interface EventWeatherCache {
 interface EventWeatherLocationRepository {
     fun getWeatherLocation(eventId: String): EventWeatherLocation?
     fun saveResolvedLocation(location: EventWeatherLocation)
+}
+
+interface EventWeatherScenarioRepository {
+    fun getSelectedScenario(eventId: String): Scenario?
+    fun getScenarios(eventId: String): List<Scenario>
 }

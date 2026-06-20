@@ -12,7 +12,7 @@
 ## 3. Shared Domain and Storage
 - [x] 3.1 @codegen Add shared weather domain models, availability states, provider interfaces, and cache freshness policy.
 - [x] 3.2 @codegen Add SQLDelight tables and queries for weather snapshots and resolved event-location metadata.
-- [ ] 3.3 @codegen Add an EventWeatherService that chooses final event date, scenario dates, or candidate time slots and returns typed weather summaries.
+- [x] 3.3 @codegen Add an EventWeatherService that chooses final event date, scenario dates, or candidate time slots and returns typed weather summaries.
 - [x] 3.4 @codegen Ensure offline reads serve cached weather with explicit freshness metadata and queue no destructive sync operation.
 
 ## 4. iOS MapKit and WeatherKit Integration
@@ -33,7 +33,7 @@
 - [x] 6.3 @docs Document WeatherKit entitlement setup, MapKit location resolution behavior, cache policy, and provider limitations.
 
 ## Notes
-- 3.3 is partially implemented for confirmed dates and candidate time slots; scenario date selection remains pending.
+- 3.3 is implemented for confirmed dates, selected/proposed scenario dates, and candidate time slots.
 - 4.1 is partially implemented for event potential locations; scenario text resolution remains pending.
 - 4.4 remains pending because the iOS card calls WeatherKit directly instead of the shared cache layer.
 - 6.2 is partially covered by shared JVM tests, Android compilation, iOS simulator build, and targeted iOS XCTest; physical-device WeatherKit validation remains pending.
