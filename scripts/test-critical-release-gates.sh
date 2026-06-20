@@ -233,6 +233,39 @@ assert_release_performance_harness() {
     echo "PASS: release performance harness records local Release artifacts safely"
 }
 
+assert_payment_compliance_audit_helper() {
+    local output_dir
+    local report
+    output_dir="$(mktemp -d)"
+
+    bash -n "$PROJECT_DIR/scripts/audit-app-store-payment-compliance.sh"
+    report="$(OUTPUT_DIR="$output_dir" "$PROJECT_DIR/scripts/audit-app-store-payment-compliance.sh")"
+
+    if [ ! -f "$report" ]; then
+        echo "FAIL: payment compliance audit helper did not create a report at $report" >&2
+        exit 1
+    fi
+
+    local required_patterns=(
+        'Status: `LOCAL_SOURCE_SCAN_READY`'
+        'IAP/paywall source matches | `none`'
+        'Payment/Tricount surface matches | `present`'
+        'Review-note/policy matches | `present`'
+        'Generated report can close AS-11 | `no - local scan only`'
+        'Payment surfaces inspected in uploaded build | TODO'
+        'Do not mark AS-11 complete'
+    )
+
+    for pattern in "${required_patterns[@]}"; do
+        if ! grep -Fq "$pattern" "$report"; then
+            echo "FAIL: payment compliance audit report is missing required field: $pattern" >&2
+            exit 1
+        fi
+    done
+
+    echo "PASS: payment compliance audit helper generates the required AS-11 local evidence template"
+}
+
 assert_notification_review_contract() {
     local model="$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/NotificationCategory.kt"
     local service="$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/notification/RichNotificationService.kt"
@@ -500,6 +533,7 @@ assert_android_event_workspace_device_audit_helper
 assert_android_build_hygiene
 assert_android_resource_defaults
 assert_release_performance_harness
+assert_payment_compliance_audit_helper
 assert_notification_review_contract
 assert_ios_profile_legal_notice_links
 assert_wakeve_ai_device_profile_helper

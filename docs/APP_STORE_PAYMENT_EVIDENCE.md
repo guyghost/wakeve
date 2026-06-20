@@ -51,6 +51,7 @@ Last checked: 2026-05-28.
 Run these before setting `APP_STORE_PAYMENT_COMPLIANCE_CONFIRMED=true`:
 
 ```bash
+./scripts/audit-app-store-payment-compliance.sh
 rg -n "StoreKit|SKProduct|SKProductsRequest|SKPayment|Product\\.products|InAppPurchase|purchase\\(|paywall" iosApp/src shared/src/commonMain/kotlin server/src/main/kotlin apps/landing/src
 rg -n "PaymentPotRepository|TricountHandoffRepository|PaymentRoutes|paymentRoutes|tricountGroupUrl|providerUrl|isTrustedPaymentLink|isTrustedProviderUrl" iosApp/src shared/src/commonMain/kotlin server/src/main/kotlin apps/landing/src
 rg -n "real-world shared event expenses|do not sell or unlock app features|trusted-domain validated|Tricount" composeApp/metadata/ios/review_information/notes.txt docs/APP_STORE_PAYMENT_COMPLIANCE.md docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md
@@ -70,6 +71,7 @@ rg -n "real-world shared event expenses|do not sell or unlock app features|trust
 
 Local result:
 
+- Repeatable helper: `./scripts/audit-app-store-payment-compliance.sh` generates a timestamped report under `docs/app-store-payment/` with StoreKit/IAP, payment-surface, and policy-note scans. Generated reports explicitly record `Generated report can close AS-11 = no - local scan only`.
 - StoreKit/IAP scan: `NO_MATCHES` for `StoreKit`, `SKProduct`, `SKProductsRequest`, `SKPayment`, `Product.products`, `InAppPurchase`, `purchase(`, and `paywall` in `iosApp/src`, `shared/src/commonMain/kotlin`, `server/src/main/kotlin`, and `apps/landing/src`.
 - Payment surface scan: payment surfaces are present in `PaymentPotRepository`, `TricountHandoffRepository`, `server/src/main/kotlin/com/guyghost/wakeve/routes/PaymentRoutes.kt`, and `iosApp/src/Views/App/ContentView.swift`.
 - Trusted link scan: `PaymentPotRepository.isTrustedPaymentLink` and `TricountHandoffRepository.isTrustedProviderUrl` require HTTPS Tricount hosts, reject non-Tricount providers when a payment-pot URL is present, and reject template markers.
