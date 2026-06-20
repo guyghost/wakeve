@@ -66,6 +66,23 @@ Artifacts:
 
 This refresh proves the simulator-testable provider mapping, entitlement source wiring, UI state contracts, and premium access-control integration remain green. It does not close tasks `1.2` or `6.2`, because simulator XCTest cannot prove Apple Developer portal WeatherKit capability, signed app entitlements, or live WeatherKit behavior on a physical device.
 
+## 2026-06-21 Device Readiness Refresh
+
+Preparation report: `docs/weatherkit/weatherkit-device-validation-2026-06-20T22-44-14Z.md`.
+
+Current status remains `PHYSICAL_IOS_DEVICE_NOT_TRACE_READY`.
+
+The refreshed helper output proves only the current local readiness state:
+
+- Source entitlement wiring still declares `com.apple.developer.weatherkit = true`.
+- CoreDevice sees the physical `iPhone de GuyGhost`, model `iPhone 15 Pro (iPhone16,1)`.
+- Instruments still lists the same iPhone under `Devices Offline`, so it is not trace-ready for WeatherKit validation.
+- `TEAM_ID` / `APPLE_TEAM_ID` is missing from the shell environment.
+- `security find-identity -v -p codesigning` reports `0 valid identities found`.
+- No local provisioning profile matches bundle ID `com.guyghost.wakeve`.
+
+This report is preparation evidence only. It does not close tasks `1.2` or `6.2`; final closure still requires the Apple Developer WeatherKit capability, a regenerated provisioning profile containing the WeatherKit entitlement, signed app entitlement inspection, and a real-device or TestFlight-equivalent WeatherKit run.
+
 ## Closure Requirements
 
 Before checking off `1.2` and `6.2`, record:

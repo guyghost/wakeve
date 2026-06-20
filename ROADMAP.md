@@ -299,6 +299,10 @@ Preuves du 2026-06-20:
 - Durcissement media/privacy/localization: les audits `audit-app-store-media-localization.sh`, `audit-app-store-privacy-alignment.sh` et `audit-ios-localization-parity.sh --write-report` normalisent aussi leurs rapports; le gate critique verifie des sorties temporaires commit-safe avec 0 finding local et conserve les markers App Store externes ouverts.
 - Ces preuves restent locales et ne ferment pas les validations Dynamic Type, high contrast et VoiceOver sur build signe/TestFlight.
 
+Preuves du 2026-06-21:
+
+- Refresh device WeatherKit/WakeveAI: `docs/weatherkit/weatherkit-device-validation-2026-06-20T22-44-14Z.md` et `docs/performance/wakeve-ai-device-profile-2026-06-20T22-44-14Z.md` confirment que l'iPhone physique est visible dans CoreDevice mais reste offline dans Instruments; `TEAM_ID`/`APPLE_TEAM_ID`, identite de signature valide et provisioning profile `com.guyghost.wakeve` restent manquants. Les items WeatherKit `1.2`/`6.2` et WakeveAI `6.6` restent ouverts.
+
 ### P2 - Durcir KMP, backend et web apres release gate
 
 Objectif: consolider sans bloquer artificiellement la premiere soumission.

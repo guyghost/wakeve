@@ -164,6 +164,22 @@ Artifacts:
 
 This refresh confirms the simulator-testable WakeveAI contracts, fallback generator behavior, timeout handling, validation bounds, locale-aware UI contracts, and debug availability override remain green after localization contract updates. It does not close OpenSpec task `6.6`, because latency, cancellation, memory, Foundation Models availability, and production-log privacy still require a supported physical device.
 
+### 2026-06-21 Device Profile Refresh
+
+Device-profile preparation report: `docs/performance/wakeve-ai-device-profile-2026-06-20T22-44-14Z.md`.
+
+Current status remains `PHYSICAL_IOS_DEVICE_NOT_TRACE_READY`.
+
+The refreshed helper output proves only the current local readiness state:
+
+- CoreDevice sees the physical `iPhone de GuyGhost`, model `iPhone 15 Pro (iPhone16,1)`.
+- Instruments still lists the same iPhone under `Devices Offline`, so it is not trace-ready for profiling.
+- `TEAM_ID` / `APPLE_TEAM_ID` is missing from the shell environment.
+- `security find-identity -v -p codesigning` reports `0 valid identities found`.
+- No local provisioning profile matches bundle ID `com.guyghost.wakeve`.
+
+This report is preparation evidence only. It does not close OpenSpec task `6.6`; final closure still requires a supported physical device with Apple Intelligence enabled, Foundation Models `.available`, latency, cancellation, memory, Instruments trace, and production-log privacy evidence.
+
 ## Production Privacy Constraints
 
 - Production builds do not read the Debug availability override.
