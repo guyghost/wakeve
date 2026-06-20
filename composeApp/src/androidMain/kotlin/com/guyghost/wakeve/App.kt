@@ -252,13 +252,13 @@ fun App() {
                 navController.navigate(Screen.NotificationPreferences.route)
             },
             onPrivacyClick = { 
-                uriHandler.openUri(WAKEVE_PRIVACY_URL)
+                uriHandler.openUri(WakeveLegalUrls.PRIVACY)
             },
             onHelpClick = { 
-                uriHandler.openUri(WAKEVE_SUPPORT_URL)
+                uriHandler.openUri(WakeveLegalUrls.SUPPORT)
             },
             onTermsClick = { 
-                uriHandler.openUri(WAKEVE_TERMS_URL)
+                uriHandler.openUri(WakeveLegalUrls.TERMS)
             },
             onSignOutClick = {
                 authViewModel.signOut()
@@ -274,10 +274,6 @@ fun App() {
         )
     }
 }
-
-private const val WAKEVE_PRIVACY_URL = "https://wakeve.app/privacy"
-private const val WAKEVE_SUPPORT_URL = "https://wakeve.app/support"
-private const val WAKEVE_TERMS_URL = "https://wakeve.app/terms"
 
 private fun NotificationPreferences?.toQuietHoursLabel(): String {
     val prefs = this ?: return "Non configurées"
