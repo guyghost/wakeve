@@ -48,6 +48,19 @@ final class EventWeatherMapCardContractTests: XCTestCase {
         }
     }
 
+    func testWeatherKitEntitlementIsWiredToAppTarget() throws {
+        let entitlements = try readProjectFile("iosApp/src/Wakeve.entitlements")
+        let project = try readProjectFile("iosApp/iosApp.xcodeproj/project.pbxproj")
+        let provider = try readProjectFile("iosApp/src/Services/EventWeatherProvider.swift")
+
+        XCTAssertTrue(provider.contains("import WeatherKit"))
+        XCTAssertTrue(entitlements.contains("<key>com.apple.developer.weatherkit</key>"))
+        XCTAssertTrue(entitlements.contains("<true/>"))
+        XCTAssertTrue(project.contains("CODE_SIGN_ENTITLEMENTS = src/Wakeve.entitlements;"))
+        XCTAssertTrue(project.contains("PRODUCT_BUNDLE_IDENTIFIER = com.guyghost.wakeve;"))
+        XCTAssertTrue(project.contains("DEVELOPMENT_TEAM = \"${TEAM_ID}\";"))
+    }
+
     private func readProjectFile(_ relativePath: String) throws -> String {
         let fileURL = URL(fileURLWithPath: #filePath)
         let runtimeURL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)

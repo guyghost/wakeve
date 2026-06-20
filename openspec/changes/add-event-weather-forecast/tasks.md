@@ -36,6 +36,7 @@
 - 3.3 is implemented for confirmed dates, selected/proposed scenario dates, and candidate time slots.
 - 2.3 is covered by `EventWeatherProviderTests`, which exercises fakeable WeatherKit success, entitlement, outage, and unsupported-date mapping.
 - 2.4 is covered by named SwiftUI previews plus `EventWeatherMapCardContractTests` for loading, available, stale, pending, and unavailable states.
+- 1.2 is locally guarded by `EventWeatherMapCardContractTests.testWeatherKitEntitlementIsWiredToAppTarget` and `scripts/lint-store-metadata.sh`: source entitlements include `com.apple.developer.weatherkit=true`, `CODE_SIGN_ENTITLEMENTS` points to `src/Wakeve.entitlements`, and the app target uses bundle ID `com.guyghost.wakeve` with `TEAM_ID` supplied by the release environment. Final Apple Developer portal/App ID/profile proof still requires signed-device or TestFlight validation.
 - 4.1 is implemented for potential event locations and scenario location text. Event-level location text currently resolves through potential-location records because `Event` has no standalone location field.
 - 4.4 is covered by `CachedEventWeatherProvider`, which reuses fresh same-place/same-date results and coalesces concurrent duplicate requests before hitting WeatherKit.
 - 5.2 is implemented in iOS scenario comparison rows. The weather context appears only when a scenario has non-empty location text and an ISO-like date in `dateOrPeriod`; provider errors stay silent because this context is advisory.

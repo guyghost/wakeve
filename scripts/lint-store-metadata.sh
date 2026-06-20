@@ -6636,6 +6636,14 @@ validate_ios_entitlements() {
             error "Entitlements: Missing applinks:wakeve.app while Universal Links are parsed"
         fi
     fi
+
+    if grep -R "import WeatherKit\\|WeatherService\\.shared" "$PROJECT_DIR/iosApp/src" >/dev/null 2>&1; then
+        if grep -A1 "<key>com.apple.developer.weatherkit</key>" "$entitlements" | grep -q "<true/>"; then
+            pass "Entitlements: WeatherKit capability declared"
+        else
+            error "Entitlements: Missing com.apple.developer.weatherkit while WeatherKit is used"
+        fi
+    fi
 }
 
 validate_ios_universal_links() {
