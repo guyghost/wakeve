@@ -1,6 +1,6 @@
 # App Store Blocker Register - Wakeve
 
-Date: 2026-06-13
+Date: 2026-06-20
 
 Status: NOT READY
 
@@ -46,7 +46,7 @@ Current audit baseline:
 APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/app-store-submission-audit.sh --skip-preflight
 ```
 
-Current result on 2026-06-13: 21 blockers, 1 warning. The phone number above is a non-placeholder test value used only to verify blocker accounting without committing personal information; the documented placeholder `+15551234567` is now rejected by the final audit.
+Current result on 2026-06-20: 21 blockers, 1 warning. The phone number above is a non-placeholder test value used only to verify blocker accounting without committing personal information; the documented placeholder `+15551234567` is now rejected by the final audit.
 
 Full local preflight baseline:
 
@@ -54,7 +54,7 @@ Full local preflight baseline:
 APP_REVIEW_PHONE_NUMBER='+33123456789' ./scripts/app-store-submission-audit.sh
 ```
 
-Current result on 2026-06-13: 21 blockers, 0 warnings. This confirms the local Fastlane App Store preflight passes; the remaining blockers are Apple/App Store Connect/deployment/signoff gates.
+Last full local preflight result on 2026-06-13: 21 blockers, 0 warnings. This confirmed the local Fastlane App Store preflight passes; the remaining blockers are Apple/App Store Connect/deployment/signoff gates.
 
 Live deployment baseline:
 
@@ -62,7 +62,7 @@ Live deployment baseline:
 APP_REVIEW_PHONE_NUMBER='+33123456789' APPLE_TEAM_ID='A1B2C3D4E5' ./scripts/lint-store-metadata.sh --ios-only --check-live-urls
 ```
 
-Current result on 2026-06-13: 9 live URL/AASA errors and 1 final-signoff warning. Direct `curl -I --max-time 12` checks on the same date show `Could not resolve host` for `wakeve.app` and `api.wakeve.app`. These errors keep AS-14 open until production DNS, legal/support pages, AASA files, and API health are reachable with the real Apple Team ID.
+Current result on 2026-06-20: 17 live URL/AASA errors and 1 final-signoff warning. The API health URL is now reachable, but `wakeve.app` still has no public DNS answer from the local network, so legal/support/terms/third-party-notices, dashboard `/app`, legacy redirects, and both AASA URLs remain unreachable. `docs/app-store-live-url-aasa/live-url-aasa-2026-06-20T21-12-38Z.md` records the matching command output, including `api.wakeve.app` resolving to Cloudflare and responding to `curl -I https://api.wakeve.app/health` with HTTP `405`. These errors keep AS-14 open until production DNS, legal/support pages, AASA files, and API health are reachable with the real Apple Team ID.
 
 ## Blockers
 
@@ -81,7 +81,7 @@ Current result on 2026-06-13: 9 live URL/AASA errors and 1 final-signoff warning
 | AS-11 | Payment/external purchase compliance | Manual/product evidence incomplete. | `docs/APP_STORE_PAYMENT_COMPLIANCE.md` is verified against the review build; App Review notes explain real-world shared-event expenses and no digital unlocks; `docs/APP_STORE_PAYMENT_EVIDENCE.md` contains `APP_STORE_PAYMENT_EVIDENCE_COMPLETE=true`; `APP_STORE_PAYMENT_COMPLIANCE_CONFIRMED=true`. | `docs/APP_STORE_PAYMENT_COMPLIANCE.md` |
 | AS-12 | TestFlight smoke test | Apple-source baseline and repository-side evidence checklist refreshed on 2026-06-01; no uploaded TestFlight build, signed IPA/archive, real-device TestFlight install, 24-hour monitoring window, or uploaded-build crash/feedback evidence is recorded. | TestFlight smoke checklist passes on iPhone and iPad, including account deletion and UGC/payment surfaces if enabled; crash/dSYM/backend/support monitoring is recorded; `docs/APP_STORE_TESTFLIGHT_EVIDENCE.md` contains `TESTFLIGHT_SMOKE_EVIDENCE_COMPLETE=true`; `docs/APP_STORE_OBSERVABILITY_EVIDENCE.md` contains `APP_STORE_OBSERVABILITY_EVIDENCE_COMPLETE=true`; `TESTFLIGHT_SMOKE_PASSED=true`. | `docs/APP_STORE_LAUNCH_CHECKLIST.md` |
 | AS-13 | Apple Developer capabilities/profiles | External Apple Developer verification incomplete. | Signed IPA entitlements include Push Notifications, Siri, Sign in with Apple, Associated Domains, and production APNs; `docs/APP_STORE_CAPABILITIES_EVIDENCE.md` contains `APP_STORE_CAPABILITIES_EVIDENCE_COMPLETE=true`; `APP_STORE_CAPABILITIES_CONFIRMED=true`. | `bundle exec fastlane ios validate_ipa_entitlements ipa:build/ios/WakeveApp.ipa` |
-| AS-14 | Live URL/AASA validation | Not run against public production endpoints. | `https://wakeve.app/privacy`, `/terms`, `/support`, `/third-party-notices`, both AASA paths, and `https://api.wakeve.app/health` are reachable and validated with real `APPLE_TEAM_ID`; `docs/APP_STORE_LIVE_URL_AASA_EVIDENCE.md` contains `APP_STORE_LIVE_URL_AASA_EVIDENCE_COMPLETE=true` with deployment, DNS, command-output, cache, rollout, and rollback evidence. | `./scripts/app-store-submission-audit.sh --check-live-urls` |
+| AS-14 | Live URL/AASA validation | Public checks were rerun on 2026-06-20: `api.wakeve.app/health` is reachable, but `wakeve.app` DNS/live web/AASA routes remain unreachable and the real Apple Team ID is not deployed. | `https://wakeve.app/privacy`, `/terms`, `/support`, `/third-party-notices`, both AASA paths, and `https://api.wakeve.app/health` are reachable and validated with real `APPLE_TEAM_ID`; `docs/APP_STORE_LIVE_URL_AASA_EVIDENCE.md` contains `APP_STORE_LIVE_URL_AASA_EVIDENCE_COMPLETE=true` with deployment, DNS, command-output, cache, rollout, and rollback evidence. | `./scripts/app-store-submission-audit.sh --check-live-urls` |
 | AS-15 | Signed final submission gate | Not run with Apple signing. | `bundle exec fastlane ios submission_ready` passes with real Apple credentials and signing, `docs/APP_STORE_APP_INFORMATION_EVIDENCE.md` contains `APP_STORE_APP_INFORMATION_EVIDENCE_COMPLETE=true`, `docs/APP_STORE_VERSIONING_EVIDENCE.md` contains `APP_STORE_VERSIONING_EVIDENCE_COMPLETE=true`, `docs/APP_STORE_RELEASE_ARTIFACT_EVIDENCE.md` contains `APP_STORE_RELEASE_ARTIFACT_EVIDENCE_COMPLETE=true`, `docs/APP_STORE_CONTENT_RIGHTS_EVIDENCE.md` contains `APP_STORE_CONTENT_RIGHTS_EVIDENCE_COMPLETE=true`, `docs/APP_STORE_EXPORT_COMPLIANCE_EVIDENCE.md` contains `APP_STORE_EXPORT_COMPLIANCE_EVIDENCE_COMPLETE=true`, and the final audit is run with `--run-submission-ready`. | `./scripts/app-store-submission-audit.sh --run-submission-ready` |
 | AS-16 | App Review contact phone | Missing external value unless supplied through release secrets. | `APP_REVIEW_PHONE_NUMBER` is set in the release shell/CI secret store with a plausible phone number, or `composeApp/metadata/ios/review_information/phone_number.txt` is intentionally populated as a fallback without committing private reviewer-only credentials. | `./scripts/app-store-submission-audit.sh` and `bundle exec fastlane ios preflight strict:true` |
 | AS-17 | Pricing and storefront availability | Manual App Store Connect decision incomplete. | App Store Connect Pricing and Availability choices for price, storefronts, pre-order, education/business distribution, custom app distribution, tax category, and Paid Apps Agreement compatibility are recorded in `docs/APP_STORE_PRICING_AVAILABILITY_EVIDENCE.md`; `APP_STORE_PRICING_AVAILABILITY_EVIDENCE_COMPLETE=true`; `APP_STORE_PRICING_AVAILABILITY_CONFIRMED=true`. | `docs/APP_STORE_PRICING_AVAILABILITY_EVIDENCE.md` |
