@@ -170,6 +170,11 @@ private fun EventDayOfSummaryCard(summary: EventDayOfSummary) {
                 fontWeight = FontWeight.Bold
             )
             Text(
+                text = summary.controlLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
                 text = summary.attendanceLabel,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface

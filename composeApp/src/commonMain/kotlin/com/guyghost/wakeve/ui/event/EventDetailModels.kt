@@ -25,12 +25,20 @@ data class EventDetailUiState(
 
 data class EventDayOfSummary(
     val title: String,
+    val status: EventDayOfStatus,
+    val controlLabel: String,
     val attendanceLabel: String,
     val missingLabel: String,
     val arrivalTrackingLabel: String,
     val missingPeopleLabel: String,
     val nextActionLabel: String
 )
+
+enum class EventDayOfStatus {
+    Ready,
+    NeedsAttention,
+    Blocked
+}
 
 data class EventRsvpUiState(
     val participantId: String,
@@ -87,6 +95,14 @@ internal fun Event.toDayOfSummary(
     if (relevantAccessStates.isEmpty()) {
         return EventDayOfSummary(
             title = eventDayOfTitle(),
+            status = EventDayOfStatus.NeedsAttention,
+            controlLabel = eventDayOfControlLabel(
+                status = status,
+                acceptedCount = 0,
+                pendingCount = participants.size,
+                declinedCount = 0,
+                hasSyncedRsvp = false
+            ),
             attendanceLabel = "Participants invites : ${participants.size}",
             missingLabel = "RSVP detailles non synchronises",
             arrivalTrackingLabel = eventDayOfArrivalTrackingUnavailableLabel(),
@@ -104,7 +120,20 @@ internal fun Event.toDayOfSummary(
 
     return EventDayOfSummary(
         title = eventDayOfTitle(),
-        attendanceLabel = "$acceptedCount participant${if (acceptedCount > 1) "s" else ""} attendus",
+        status = eventDayOfStatus(
+            eventStatus = status,
+            acceptedCount = acceptedCount,
+            pendingCount = pendingCount,
+            declinedCount = declinedCount
+        ),
+        controlLabel = eventDayOfControlLabel(
+            status = status,
+            acceptedCount = acceptedCount,
+            pendingCount = pendingCount,
+            declinedCount = declinedCount,
+            hasSyncedRsvp = true
+        ),
+        attendanceLabel = "$acceptedCount participant${if (acceptedCount == 1) "" else "s"} attendus",
         missingLabel = eventDayOfMissingLabel(pendingCount, declinedCount),
         arrivalTrackingLabel = eventDayOfArrivalTrackingLabel(acceptedParticipants.map { it.userId }),
         missingPeopleLabel = eventDayOfMissingPeopleLabel(
@@ -116,6 +145,44 @@ internal fun Event.toDayOfSummary(
 }
 
 internal fun eventDayOfTitle(): String = "Jour J"
+
+internal fun eventDayOfStatus(
+    eventStatus: EventStatus,
+    acceptedCount: Int,
+    pendingCount: Int,
+    declinedCount: Int
+): EventDayOfStatus =
+    when {
+        eventStatus == EventStatus.FINALIZED -> EventDayOfStatus.Ready
+        acceptedCount == 0 -> EventDayOfStatus.Blocked
+        pendingCount > 0 || declinedCount > 0 -> EventDayOfStatus.NeedsAttention
+        else -> EventDayOfStatus.Ready
+    }
+
+internal fun eventDayOfControlLabel(
+    status: EventStatus,
+    acceptedCount: Int,
+    pendingCount: Int,
+    declinedCount: Int,
+    hasSyncedRsvp: Boolean
+): String {
+    if (status == EventStatus.FINALIZED) {
+        return "Evenement termine : recap, photos et remboursements a traiter."
+    }
+    if (!hasSyncedRsvp) {
+        return "Controle incomplet : synchronisez les RSVP avant de pointer les presents."
+    }
+    if (acceptedCount == 0) {
+        return "Controle bloque : aucun participant confirme pour l'instant."
+    }
+
+    val unresolvedCount = pendingCount + declinedCount
+    return if (unresolvedCount == 0) {
+        "Controle pret : tous les participants attendus sont confirmes."
+    } else {
+        "Controle incomplet : $unresolvedCount RSVP a verifier avant depart."
+    }
+}
 
 internal fun eventDayOfMissingLabel(pendingCount: Int, declinedCount: Int): String {
     val parts = buildList {
