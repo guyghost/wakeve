@@ -9,6 +9,7 @@ Wakeve displays event weather only when an event has a confirmed or organizing d
   - Reads stored `PotentialLocation` rows from SQLDelight.
   - Uses stored coordinates when available.
   - Falls back to `MKLocalSearch` for location name/address text.
+  - Scenario comparison rows resolve non-empty scenario location text through `MKLocalSearch` when `dateOrPeriod` contains an ISO-like date.
 - Weather source:
   - Uses `WeatherService.shared.weather(for:)`.
   - Shows daily low/high temperature, precipitation chance, wind speed, condition, and a compact MapKit marker.
@@ -35,5 +36,5 @@ Wakeve displays event weather only when an event has a confirmed or organizing d
 ## Current Limitations
 
 - The iOS card currently fetches directly through WeatherKit and does not yet route through the shared SQLDelight weather cache.
-- Scenario/date comparison weather context is not implemented yet.
-- Physical-device WeatherKit validation still depends on a configured Apple Developer capability.
+- Scenario/date comparison weather context is intentionally compact and silent on provider failures because it is advisory.
+- Physical-device WeatherKit validation still depends on a configured Apple Developer capability, the `TEAM_ID` release environment, and a regenerated provisioning profile for `com.guyghost.wakeve`.
