@@ -1,9 +1,11 @@
 package com.guyghost.wakeve.ui.notification
 
+import com.guyghost.wakeve.models.NotificationType
 import java.util.Date
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class NotificationsScreenFilterTest {
     @Test
@@ -36,13 +38,71 @@ class NotificationsScreenFilterTest {
         assertFalse(message.contains("SQL failed"))
     }
 
+    @Test
+    fun notificationAttentionCueMarksBlockingRemindersAsActionable() {
+        val cue = notificationAttentionCue(
+            notificationItem(
+                id = "deadline",
+                isRead = false,
+                notificationType = NotificationType.DEADLINE_REMINDER
+            )
+        )
+
+        assertEquals("Action attendue - evite de bloquer le groupe", cue.label)
+        assertTrue(cue.requiresAttention)
+    }
+
+    @Test
+    fun notificationAttentionCueMarksMentionsAsRequired() {
+        val cue = notificationAttentionCue(
+            notificationItem(
+                id = "mention",
+                isRead = false,
+                notificationType = NotificationType.MENTION
+            )
+        )
+
+        assertEquals("Action requise - vous etes mentionne", cue.label)
+        assertTrue(cue.requiresAttention)
+    }
+
+    @Test
+    fun notificationAttentionCueExplainsDateConfirmationImportance() {
+        val cue = notificationAttentionCue(
+            notificationItem(
+                id = "confirmed",
+                isRead = false,
+                notificationType = NotificationType.EVENT_CONFIRMED
+            )
+        )
+
+        assertEquals("Important - date validee", cue.label)
+        assertTrue(cue.requiresAttention)
+    }
+
+    @Test
+    fun notificationAttentionCueKeepsGenericUpdatesLowNoise() {
+        val cue = notificationAttentionCue(
+            notificationItem(
+                id = "update",
+                isRead = true,
+                notificationType = NotificationType.EVENT_UPDATE
+            )
+        )
+
+        assertEquals("Info - bruit limite", cue.label)
+        assertFalse(cue.requiresAttention)
+    }
+
     private fun notificationItem(
         id: String,
-        isRead: Boolean
+        isRead: Boolean,
+        notificationType: NotificationType? = null
     ): NotificationItem {
         return NotificationItem(
             id = id,
             type = NotificationItemType.EVENT_UPDATE,
+            notificationType = notificationType,
             title = "Title",
             body = "Body",
             isRead = isRead,
