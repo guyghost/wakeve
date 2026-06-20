@@ -101,6 +101,7 @@ enum class NotificationItemType(
 data class NotificationItem(
     val id: String,
     val type: NotificationItemType,
+    val notificationType: NotificationType? = null,
     val title: String,
     val body: String,
     val eventId: String? = null,
@@ -163,6 +164,47 @@ internal fun filterNotificationItems(
 
 internal fun notificationInboxErrorMessage(error: Throwable? = null): String {
     return "Impossible de charger les notifications."
+}
+
+internal data class NotificationAttentionCue(
+    val label: String,
+    val requiresAttention: Boolean
+)
+
+internal fun notificationAttentionCue(notification: NotificationItem): NotificationAttentionCue {
+    return when (notification.notificationType) {
+        NotificationType.DEADLINE_REMINDER,
+        NotificationType.VOTE_CLOSE_REMINDER -> NotificationAttentionCue(
+            label = "Action attendue - evite de bloquer le groupe",
+            requiresAttention = true
+        )
+        NotificationType.MENTION -> NotificationAttentionCue(
+            label = "Action requise - vous etes mentionne",
+            requiresAttention = true
+        )
+        NotificationType.EVENT_CONFIRMED -> NotificationAttentionCue(
+            label = "Important - date validee",
+            requiresAttention = true
+        )
+        NotificationType.PARTICIPANT_JOINED -> NotificationAttentionCue(
+            label = "Utile - presence du groupe mise a jour",
+            requiresAttention = false
+        )
+        NotificationType.VOTE_SUBMITTED -> NotificationAttentionCue(
+            label = "Info utile - vote enregistre",
+            requiresAttention = false
+        )
+        NotificationType.COMMENT_POSTED,
+        NotificationType.COMMENT_REPLY -> NotificationAttentionCue(
+            label = "Conversation - faible priorite",
+            requiresAttention = false
+        )
+        NotificationType.EVENT_UPDATE,
+        null -> NotificationAttentionCue(
+            label = "Info - bruit limite",
+            requiresAttention = false
+        )
+    }
 }
 
 // MARK: - Screen
@@ -463,6 +505,8 @@ private fun NotificationRow(
     notification: NotificationItem,
     onClick: () -> Unit
 ) {
+    val attentionCue = notificationAttentionCue(notification)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -524,6 +568,20 @@ private fun NotificationRow(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = attentionCue.label,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (attentionCue.requiresAttention) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
@@ -621,6 +679,7 @@ private fun NotificationMessage.toNotificationItem(): NotificationItem =
     NotificationItem(
         id = id,
         type = type.toItemType(),
+        notificationType = type,
         title = title,
         body = body,
         eventId = data["eventId"] ?: data["event_id"],
