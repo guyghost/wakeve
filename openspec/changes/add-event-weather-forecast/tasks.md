@@ -25,7 +25,7 @@
 - [x] 5.1 @codegen Add an event weather card to iOS event detail for confirmed events.
 - [x] 5.2 @codegen Add optional weather context in scenario/date comparison when location and date are known.
 - [x] 5.3 @codegen Add compact MapKit place context when the event location has coordinates or a selected map item.
-- [ ] 5.4 @designer Validate Liquid Glass, accessibility, dynamic type, reduce transparency, and dark/light mode states.
+- [x] 5.4 @designer Validate Liquid Glass, accessibility, dynamic type, reduce transparency, and dark/light mode states.
 
 ## 6. Review and Verification
 - [ ] 6.1 @review Review privacy, access control, App Store entitlement risk, and fallback behavior.
@@ -40,4 +40,5 @@
 - 4.1 is implemented for potential event locations and scenario location text. Event-level location text currently resolves through potential-location records because `Event` has no standalone location field.
 - 4.4 is covered by `CachedEventWeatherProvider`, which reuses fresh same-place/same-date results and coalesces concurrent duplicate requests before hitting WeatherKit.
 - 5.2 is implemented in iOS scenario comparison rows. The weather context appears only when a scenario has non-empty location text and an ISO-like date in `dateOrPeriod`; provider errors stay silent because this context is advisory.
+- 5.4 is covered by `docs/design/event-weather-ios-validation.md` and `EventWeatherMapCardContractTests.testWeatherDesignValidationCoversA11yAndAppearanceModes`, with previews for dark mode, Dynamic Type, and the shared Reduce Transparency fallback path.
 - 6.2 is partially covered by shared JVM tests, Android compilation, iOS simulator build, and targeted iOS XCTest; physical-device WeatherKit validation remains pending.
