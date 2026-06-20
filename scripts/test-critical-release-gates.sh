@@ -83,6 +83,32 @@ assert_android_build_hygiene() {
     echo "PASS: Android build hygiene avoids obsolete AGP flags and direct statusBarColor writes"
 }
 
+assert_android_resource_defaults() {
+    local base_strings="$PROJECT_DIR/composeApp/src/androidMain/res/values/strings.xml"
+    local required_keys=(
+        "badges_count_label"
+        "duration_label"
+        "points_value_label"
+        "try_again_later"
+        "loading_more"
+        "notification_event_created"
+        "notification_poll_opened"
+        "notification_date_confirmed"
+        "entity_event"
+        "entity_scenario"
+        "entity_meeting"
+    )
+
+    for key in "${required_keys[@]}"; do
+        if ! grep -Eq "<string name=\"$key\">" "$base_strings"; then
+            echo "FAIL: Android default strings are missing release resource key: $key" >&2
+            exit 1
+        fi
+    done
+
+    echo "PASS: Android release string resources have required default values"
+}
+
 assert_ios_profile_legal_notice_links() {
     local profile="$PROJECT_DIR/iosApp/src/Views/Profile/ProfileTabView.swift"
     local english="$PROJECT_DIR/iosApp/src/Resources/en.lproj/Localizable.strings"
@@ -195,6 +221,7 @@ assert_no_sensitive_server_logs
 assert_no_android_release_local_backend_defaults
 assert_android_compose_hygiene
 assert_android_build_hygiene
+assert_android_resource_defaults
 assert_ios_profile_legal_notice_links
 assert_wakeve_ai_device_profile_helper
 assert_weatherkit_device_validation_helper
