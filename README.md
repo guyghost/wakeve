@@ -74,6 +74,10 @@ openspec validate --all --strict
 # Start server
 ./gradlew server:run   # http://localhost:8080
 
+# Android uses https://api.wakeve.app by default.
+# For emulator-local backend development, add this to local.properties:
+# server.url=http://10.0.2.2:8080
+
 # Build Android app
 ./gradlew :composeApp:assembleDebug
 ```
@@ -274,11 +278,13 @@ GET    /api/meetings/proxy/zoom/{id}/status        # Get Zoom meeting status
 
 **Security Note:** Meeting proxy endpoints secure external API keys (Zoom, Google Meet) by handling all external API calls server-side.
 
-See [docs/api/meeting-api.md](./docs/api/meeting-api.md) for detailed MeetingProxy API documentation.
+See [docs/API/meeting-api.md](./docs/API/meeting-api.md) for detailed MeetingProxy API documentation.
 
 ### Example: Create Event
 ```bash
-curl -X POST http://localhost:8080/api/events \
+WAKEVE_API_BASE="${WAKEVE_API_BASE:-https://api.wakeve.app}"
+
+curl -X POST "$WAKEVE_API_BASE/api/events" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Team Meeting",
