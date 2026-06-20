@@ -143,6 +143,9 @@ class ModerationRepository(
     fun isBlocked(blockerUserId: String, blockedUserId: String): Boolean =
         queries.isUserBlocked(blockerUserId, blockedUserId).executeAsOne() > 0
 
+    fun isBlockedForEvent(blockerUserId: String, blockedUserId: String, eventId: String): Boolean =
+        queries.isUserBlockedForEvent(blockerUserId, blockedUserId, eventId).executeAsOne() > 0
+
     private fun now(): String = clock.now().toString()
 }
 

@@ -228,6 +228,35 @@ class MeetingServiceStateMachineTest {
         )
     }
 
+    @Test
+    fun `failure messages do not expose throwable details`() {
+        val messages = listOf(
+            meetingLoadFailureMessage(),
+            meetingCreateFailureMessage(),
+            meetingUpdateFailureMessage(),
+            meetingCancelFailureMessage(),
+            meetingLinkGenerationFailureMessage(),
+            meetingReloadFailureMessage()
+        )
+
+        messages.forEach { message ->
+            assertFalse(message.contains("SECRET"))
+            assertFalse(message.contains("token="))
+            assertFalse(message.contains("internal.local"))
+            assertFalse(message.contains("SQL"))
+        }
+    }
+
+    @Test
+    fun `state machine does not use throwable messages for UI errors`() {
+        val stateMachineSource = readProjectFile("shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/statemachine/MeetingServiceStateMachine.kt")
+        val throwableMessage = listOf("error", ".message").joinToString("")
+        val nullableMessage = listOf("message", " ?:").joinToString("")
+
+        assertFalse(stateMachineSource.contains(throwableMessage))
+        assertFalse(stateMachineSource.contains(nullableMessage))
+    }
+
     // ── State helpers ────────────────────────────────────────────────────────
 
     @Test

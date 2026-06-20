@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.navigation
 
+import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,7 +37,9 @@ import com.guyghost.wakeve.ProfileTabScreen
 import com.guyghost.wakeve.SettingsScreen
 import com.guyghost.wakeve.SplashScreen
 import com.guyghost.wakeve.deeplink.AndroidInvitationShareService
+import com.guyghost.wakeve.deeplink.AndroidNavigationDeepLinkHandler
 import com.guyghost.wakeve.deeplink.InvitationShareCreationResult
+import com.guyghost.wakeve.deeplink.normalizeDeepLinkPathSegment
 import com.guyghost.wakeve.ui.auth.AuthScreen
 import com.guyghost.wakeve.ui.auth.AuthSideEffect
 import com.guyghost.wakeve.ui.auth.AuthViewModel
@@ -66,6 +69,7 @@ import com.guyghost.wakeve.ui.comment.CommentsScreen
 import com.guyghost.wakeve.ui.invitation.InvitationShareScreen
 import com.guyghost.wakeve.ui.notification.NotificationsScreen
 import com.guyghost.wakeve.ui.notification.NotificationPreferencesScreen
+import com.guyghost.wakeve.ui.notification.parseNotificationInboxFilter
 import com.guyghost.wakeve.ui.screens.LeaderboardScreen
 import com.guyghost.wakeve.ui.screens.OrganizerDashboardScreen
 import com.guyghost.wakeve.budget.BudgetRepository
@@ -89,6 +93,7 @@ import com.guyghost.wakeve.models.TransportOption
 import com.guyghost.wakeve.models.TransportPlan
 import com.guyghost.wakeve.models.TransportReadiness
 import com.guyghost.wakeve.notification.NotificationService
+import com.guyghost.wakeve.notification.isDeepLinkClickTarget
 import com.guyghost.wakeve.payment.PaymentPotRepository
 import com.guyghost.wakeve.payment.TricountHandoffRepository
 import com.guyghost.wakeve.repository.ScenarioRepository
@@ -1002,8 +1007,8 @@ fun WakeveNavHost(
             InboxScreen(
                 userId = userId,
                 notificationService = notificationService,
-                onNotificationClick = { eventId ->
-                    navController.navigate(Screen.EventDetail.createRoute(eventId))
+                onNotificationClick = { clickTarget ->
+                    navController.navigateNotificationClickTarget(clickTarget)
                 },
                 onBack = {
                     // Inbox is a main tab, no back navigation
@@ -1430,7 +1435,16 @@ fun WakeveNavHost(
         // NOTIFICATIONS
         // ========================================
 
-        composable(Screen.Notifications.route) {
+        composable(
+            route = Screen.Notifications.route,
+            arguments = listOf(
+                navArgument(NOTIFICATIONS_FILTER_ARG) {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
             val notificationService: NotificationService = koinInject()
             NotificationsScreen(
                 onBack = {
@@ -1439,11 +1453,14 @@ fun WakeveNavHost(
                 onNavigateToPreferences = {
                     navController.navigate(Screen.NotificationPreferences.route)
                 },
-                onNotificationClick = { eventId ->
-                    navController.navigate(Screen.EventDetail.createRoute(eventId))
+                onNotificationClick = { clickTarget ->
+                    navController.navigateNotificationClickTarget(clickTarget)
                 },
                 userId = userId,
-                notificationService = notificationService
+                notificationService = notificationService,
+                initialFilter = parseNotificationInboxFilter(
+                    backStackEntry.arguments?.getString(NOTIFICATIONS_FILTER_ARG)
+                )
             )
         }
 
@@ -1617,6 +1634,23 @@ private fun openSafeUrl(
     if (validatedURL.startsWith("https://") && !validatedURL.contains("\${")) {
         safeUrlOpener(validatedURL)
     }
+}
+
+private fun NavHostController.navigateNotificationClickTarget(clickTarget: String) {
+    val normalizedTarget = clickTarget.trim()
+    if (normalizedTarget.isBlank()) return
+
+    if (isDeepLinkClickTarget(normalizedTarget)) {
+        AndroidNavigationDeepLinkHandler().handleDeepLink(
+            uri = Uri.parse(normalizedTarget),
+            navController = this,
+            isAuthenticated = true
+        )
+        return
+    }
+
+    normalizeDeepLinkPathSegment(normalizedTarget)
+        ?.let { navigate(Screen.EventDetail.createRoute(it)) }
 }
 
 @Composable

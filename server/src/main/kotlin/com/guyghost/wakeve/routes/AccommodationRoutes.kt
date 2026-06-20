@@ -58,7 +58,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to accommodationListFailureMessage())
                 )
             }
         }
@@ -88,30 +88,13 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
                 }
                 
                 val request = call.receive<AccommodationRequest>()
-                
-                // Validate data
-                val validationError = AccommodationService.validateAccommodation(
-                    name = request.name,
-                    capacity = request.capacity,
-                    pricePerNight = request.pricePerNight,
-                    totalNights = request.totalNights,
-                    checkInDate = request.checkInDate,
-                    checkOutDate = request.checkOutDate
-                )
-                
-                if (validationError != null) {
+                if (request.eventId.trim() != eventId) {
                     return@post call.respond(
                         HttpStatusCode.BadRequest,
-                        mapOf("error" to validationError)
+                        mapOf("error" to "Accommodation eventId must match path eventId")
                     )
                 }
-                
-                // Calculate total cost
-                val totalCost = AccommodationService.calculateTotalCost(
-                    request.pricePerNight,
-                    request.totalNights
-                )
-                
+
                 // Create accommodation
                 val accommodation = Accommodation(
                     id = UUID.randomUUID().toString(),
@@ -122,7 +105,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
                     capacity = request.capacity,
                     pricePerNight = request.pricePerNight,
                     totalNights = request.totalNights,
-                    totalCost = totalCost,
+                    totalCost = 0,
                     bookingStatus = request.bookingStatus,
                     bookingUrl = request.bookingUrl,
                     checkInDate = request.checkInDate,
@@ -131,14 +114,20 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
                     createdAt = AccommodationService.getCurrentUtcIsoString(),
                     updatedAt = AccommodationService.getCurrentUtcIsoString()
                 )
+                val normalized = AccommodationService.normalizeAccommodation(accommodation).getOrElse { _ ->
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to accommodationValidationFailureMessage())
+                    )
+                }
 
-                val created = repository.createAccommodation(accommodation)
+                val created = repository.createAccommodation(normalized)
                 call.respond(HttpStatusCode.Created, created)
                 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to accommodationCreateFailureMessage())
                 )
             }
         }
@@ -178,7 +167,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to accommodationDetailFailureMessage())
                 )
             }
         }
@@ -205,29 +194,12 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
                 }
                 
                 val request = call.receive<AccommodationRequest>()
-                
-                // Validate data
-                val validationError = AccommodationService.validateAccommodation(
-                    name = request.name,
-                    capacity = request.capacity,
-                    pricePerNight = request.pricePerNight,
-                    totalNights = request.totalNights,
-                    checkInDate = request.checkInDate,
-                    checkOutDate = request.checkOutDate
-                )
-                
-                if (validationError != null) {
+                if (request.eventId.trim() != eventId) {
                     return@put call.respond(
                         HttpStatusCode.BadRequest,
-                        mapOf("error" to validationError)
+                        mapOf("error" to "Accommodation eventId must match path eventId")
                     )
                 }
-                
-                // Calculate total cost
-                val totalCost = AccommodationService.calculateTotalCost(
-                    request.pricePerNight,
-                    request.totalNights
-                )
 
                 // Get existing accommodation
                 val existing = repository.getAccommodationById(accommodationId)
@@ -261,7 +233,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
                     capacity = request.capacity,
                     pricePerNight = request.pricePerNight,
                     totalNights = request.totalNights,
-                    totalCost = totalCost,
+                    totalCost = existing.totalCost,
                     bookingStatus = request.bookingStatus,
                     bookingUrl = request.bookingUrl,
                     checkInDate = request.checkInDate,
@@ -270,14 +242,20 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
                     createdAt = existing.createdAt,
                     updatedAt = AccommodationService.getCurrentUtcIsoString()
                 )
+                val normalized = AccommodationService.normalizeAccommodation(accommodation).getOrElse { _ ->
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to accommodationValidationFailureMessage())
+                    )
+                }
 
-                val updated = repository.updateAccommodation(accommodation)
+                val updated = repository.updateAccommodation(normalized)
                 call.respond(HttpStatusCode.OK, updated)
                 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to accommodationUpdateFailureMessage())
                 )
             }
         }
@@ -326,7 +304,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to accommodationDeleteFailureMessage())
                 )
             }
         }
@@ -367,7 +345,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to roomListFailureMessage())
                 )
             }
         }
@@ -394,6 +372,12 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
                 }
                 
                 val request = call.receive<RoomAssignmentRequest>()
+                if (request.accommodationId.trim() != accommodationId) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Room accommodationId must match path accommodationId")
+                    )
+                }
                 
                 // Validate room assignment
                 val validationError = AccommodationService.validateRoomAssignment(
@@ -423,13 +407,23 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
                         mapOf("error" to "Accommodation not found")
                     )
                 }
+                val assignedParticipants = validateRoomAssignedParticipants(
+                    database = database,
+                    eventId = eventId,
+                    assignedParticipants = request.assignedParticipants
+                ).getOrElse { _ ->
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to roomAssignedParticipantsFailureMessage())
+                    )
+                }
 
                 // Calculate price share per person
                 val priceShare = AccommodationService.calculateRoomPriceShare(
                     accommodationTotalCost = accommodation.totalCost,
                     roomCapacity = request.capacity,
                     totalAccommodationCapacity = accommodation.capacity,
-                    assignedParticipants = request.assignedParticipants.size
+                    assignedParticipants = assignedParticipants.size
                 )
 
                 val roomAssignment = RoomAssignment(
@@ -437,19 +431,25 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
                     accommodationId = accommodationId,
                     roomNumber = request.roomNumber,
                     capacity = request.capacity,
-                    assignedParticipants = request.assignedParticipants,
+                    assignedParticipants = assignedParticipants,
                     priceShare = priceShare,
                     createdAt = AccommodationService.getCurrentUtcIsoString(),
                     updatedAt = AccommodationService.getCurrentUtcIsoString()
                 )
+                val normalized = AccommodationService.normalizeRoomAssignment(roomAssignment).getOrElse { _ ->
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to roomValidationFailureMessage())
+                    )
+                }
 
-                val created = repository.createRoomAssignment(roomAssignment)
+                val created = repository.createRoomAssignment(normalized)
                 call.respond(HttpStatusCode.Created, created)
                 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to roomCreateFailureMessage())
                 )
             }
         }
@@ -480,6 +480,12 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
                 }
                 
                 val request = call.receive<RoomAssignmentRequest>()
+                if (request.accommodationId.trim() != accommodationId) {
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Room accommodationId must match path accommodationId")
+                    )
+                }
                 
                 // Validate room assignment
                 val validationError = AccommodationService.validateRoomAssignment(
@@ -526,13 +532,23 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
                         mapOf("error" to "Finalized events are read-only")
                     )
                 }
+                val assignedParticipants = validateRoomAssignedParticipants(
+                    database = database,
+                    eventId = eventId,
+                    assignedParticipants = request.assignedParticipants
+                ).getOrElse { _ ->
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to roomAssignedParticipantsFailureMessage())
+                    )
+                }
 
                 // Calculate price share per person
                 val priceShare = AccommodationService.calculateRoomPriceShare(
                     accommodationTotalCost = accommodation.totalCost,
                     roomCapacity = request.capacity,
                     totalAccommodationCapacity = accommodation.capacity,
-                    assignedParticipants = request.assignedParticipants.size
+                    assignedParticipants = assignedParticipants.size
                 )
 
                 val updated = RoomAssignment(
@@ -540,19 +556,25 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
                     accommodationId = existing.accommodationId,
                     roomNumber = request.roomNumber,
                     capacity = request.capacity,
-                    assignedParticipants = request.assignedParticipants,
+                    assignedParticipants = assignedParticipants,
                     priceShare = priceShare,
                     createdAt = existing.createdAt,
                     updatedAt = AccommodationService.getCurrentUtcIsoString()
                 )
+                val normalized = AccommodationService.normalizeRoomAssignment(updated).getOrElse { _ ->
+                    return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to roomValidationFailureMessage())
+                    )
+                }
 
-                repository.updateRoomAssignment(updated)
-                call.respond(HttpStatusCode.OK, updated)
+                val saved = repository.updateRoomAssignment(normalized)
+                call.respond(HttpStatusCode.OK, saved)
                 
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to roomUpdateFailureMessage())
                 )
             }
         }
@@ -611,7 +633,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to roomDeleteFailureMessage())
                 )
             }
         }
@@ -640,7 +662,7 @@ fun Route.accommodationRoutes(repository: AccommodationRepository, database: Wak
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to accommodationStatisticsFailureMessage())
                 )
             }
         }
@@ -682,3 +704,66 @@ private fun isAccommodationEventFinalized(database: WakeveDb, eventId: String): 
         .executeAsOneOrNull()
         ?.status == EventStatus.FINALIZED.name
 }
+
+private fun validateRoomAssignedParticipants(
+    database: WakeveDb,
+    eventId: String,
+    assignedParticipants: List<String>
+): Result<List<String>> = runCatching {
+    val normalized = assignedParticipants.map { it.trim() }
+    require(normalized.none { it.isBlank() }) { "assignedParticipants cannot contain blank participant IDs" }
+    require(normalized.toSet().size == normalized.size) { "Duplicate participants are not allowed" }
+
+    val event = database.eventQueries.selectById(eventId).executeAsOneOrNull()
+        ?: throw IllegalArgumentException("Event not found")
+    val eventMemberIds = database.participantQueries
+        .selectByEventId(eventId)
+        .executeAsList()
+        .map { it.userId }
+        .toSet() + event.organizerId
+    val unknownParticipants = normalized.filterNot { it in eventMemberIds }
+    require(unknownParticipants.isEmpty()) {
+        "Room assignments can only include event members: ${unknownParticipants.joinToString(", ")}"
+    }
+
+    normalized
+}
+
+internal fun accommodationListFailureMessage(): String =
+    "Failed to fetch accommodations. Please try again."
+
+internal fun accommodationValidationFailureMessage(): String =
+    "Invalid accommodation details. Please review the request and try again."
+
+internal fun accommodationCreateFailureMessage(): String =
+    "Failed to create accommodation. Please try again."
+
+internal fun accommodationDetailFailureMessage(): String =
+    "Failed to fetch accommodation details. Please try again."
+
+internal fun accommodationUpdateFailureMessage(): String =
+    "Failed to update accommodation. Please try again."
+
+internal fun accommodationDeleteFailureMessage(): String =
+    "Failed to delete accommodation. Please try again."
+
+internal fun roomListFailureMessage(): String =
+    "Failed to fetch room assignments. Please try again."
+
+internal fun roomAssignedParticipantsFailureMessage(): String =
+    "Invalid assigned participants. Please select event members and try again."
+
+internal fun roomValidationFailureMessage(): String =
+    "Invalid room assignment details. Please review the request and try again."
+
+internal fun roomCreateFailureMessage(): String =
+    "Failed to create room assignment. Please try again."
+
+internal fun roomUpdateFailureMessage(): String =
+    "Failed to update room assignment. Please try again."
+
+internal fun roomDeleteFailureMessage(): String =
+    "Failed to delete room assignment. Please try again."
+
+internal fun accommodationStatisticsFailureMessage(): String =
+    "Failed to fetch accommodation statistics. Please try again."

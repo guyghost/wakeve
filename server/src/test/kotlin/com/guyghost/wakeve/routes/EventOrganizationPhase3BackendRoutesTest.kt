@@ -13,6 +13,7 @@ import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.Scenario
+import com.guyghost.wakeve.models.ScenarioResponse
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.RoomAssignment
 import com.guyghost.wakeve.models.TimeOfDay
@@ -202,6 +203,255 @@ class EventOrganizationPhase3BackendRoutesTest {
     }
 
     @Test
+    fun `organizer cannot create accommodation with mismatched event body`() = testApplication {
+        val fixture = createFixture("accommodation-body-mismatch", EventStatus.CONFIRMED)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val repository = AccommodationRepository(fixture.database)
+        val beforeCount = repository.getAccommodationsByEventId(fixture.eventId).size
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database)
+        }
+
+        val response = client.post("/api/events/${fixture.eventId}/accommodation") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(createAccommodationBody(fixture, "Wrong event hotel", eventId = "another-event"))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        assertEquals(
+            beforeCount,
+            repository.getAccommodationsByEventId(fixture.eventId).size,
+            "Mismatched accommodation body must not create accommodation rows"
+        )
+    }
+
+    @Test
+    fun `organizer cannot create invalid accommodation payload`() = testApplication {
+        val fixture = createFixture("invalid-accommodation-create", EventStatus.CONFIRMED)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val repository = AccommodationRepository(fixture.database)
+        val beforeCount = repository.getAccommodationsByEventId(fixture.eventId).size
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database)
+        }
+
+        val response = client.post("/api/events/${fixture.eventId}/accommodation") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                createAccommodationBody(
+                    fixture = fixture,
+                    name = "Invalid hotel",
+                    address = "   ",
+                    bookingUrl = "javascript:alert(1)",
+                    checkInDate = "2026-06-24",
+                    checkOutDate = "2026-06-22"
+                )
+            )
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        assertEquals(
+            beforeCount,
+            repository.getAccommodationsByEventId(fixture.eventId).size,
+            "Invalid accommodation payload must not create accommodation rows"
+        )
+    }
+
+    @Test
+    fun `organizer cannot update accommodation with invalid payload`() = testApplication {
+        val fixture = createFixture("invalid-accommodation-update", EventStatus.CONFIRMED)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val repository = AccommodationRepository(fixture.database)
+        val before = repository.getAccommodationById(fixture.accommodationId)
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database)
+        }
+
+        val response = client.put("/api/events/${fixture.eventId}/accommodation/${fixture.accommodationId}") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                createAccommodationBody(
+                    fixture = fixture,
+                    name = "Invalid update",
+                    address = "Too many nights lane",
+                    totalNights = 366
+                )
+            )
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        val after = repository.getAccommodationById(fixture.accommodationId)
+        assertEquals(before?.name, after?.name)
+        assertEquals(before?.totalNights, after?.totalNights)
+        assertEquals(before?.totalCost, after?.totalCost)
+    }
+
+    @Test
+    fun `organizer created accommodation is normalized before persistence`() = testApplication {
+        val fixture = createFixture("normalized-accommodation-create", EventStatus.CONFIRMED)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database)
+        }
+
+        val response = client.post("/api/events/${fixture.eventId}/accommodation") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                createAccommodationBody(
+                    fixture = fixture,
+                    name = "  Trimmed hotel  ",
+                    address = "  3 rue Normalisee, Lyon  ",
+                    bookingUrl = "  https://example.test/normalized  ",
+                    notes = "  Bring towels  "
+                )
+            )
+        }
+
+        assertEquals(HttpStatusCode.Created, response.status, response.bodyAsText())
+        val created = json.decodeFromString<Accommodation>(response.bodyAsText())
+        assertEquals("Trimmed hotel", created.name)
+        assertEquals("3 rue Normalisee, Lyon", created.address)
+        assertEquals("https://example.test/normalized", created.bookingUrl)
+        assertEquals("Bring towels", created.notes)
+        assertEquals(28_000, created.totalCost)
+    }
+
+    @Test
+    fun `organizer cannot create scenario with mismatched event body`() = testApplication {
+        val fixture = createFixture("scenario-body-mismatch", EventStatus.CONFIRMED)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val beforeCount = ScenarioRepository(fixture.database).getScenariosByEventId(fixture.eventId).size
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database)
+        }
+
+        val response = client.post("/api/events/${fixture.eventId}/scenarios") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(createScenarioBody(fixture, "Wrong event scenario", eventId = "another-event"))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        assertEquals(
+            beforeCount,
+            ScenarioRepository(fixture.database).getScenariosByEventId(fixture.eventId).size,
+            "Mismatched scenario body must not create a scenario"
+        )
+    }
+
+    @Test
+    fun `organizer cannot create invalid scenario payload`() = testApplication {
+        val fixture = createFixture("invalid-scenario-create", EventStatus.CONFIRMED)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val repository = ScenarioRepository(fixture.database)
+        val beforeCount = repository.getScenariosByEventId(fixture.eventId).size
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database)
+        }
+
+        val response = client.post("/api/events/${fixture.eventId}/scenarios") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                createScenarioBody(
+                    fixture = fixture,
+                    name = "Scenario impossible",
+                    duration = 366,
+                    estimatedBudgetPerPerson = 1_000_001.0
+                )
+            )
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        assertEquals(
+            beforeCount,
+            repository.getScenariosByEventId(fixture.eventId).size,
+            "Invalid scenario payload must not create scenario rows"
+        )
+    }
+
+    @Test
+    fun `organizer created scenario is normalized before persistence`() = testApplication {
+        val fixture = createFixture("normalized-scenario-create", EventStatus.CONFIRMED)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database)
+        }
+
+        val response = client.post("/api/events/${fixture.eventId}/scenarios") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                createScenarioBody(
+                    fixture = fixture,
+                    name = "  Trimmed scenario  ",
+                    dateOrPeriod = "  2026-06-22  ",
+                    location = "  Lyon  ",
+                    description = "  Scenario created through backend API  ",
+                    generationType = "manual"
+                )
+            )
+        }
+
+        assertEquals(HttpStatusCode.Created, response.status, response.bodyAsText())
+        val created = json.decodeFromString<ScenarioResponse>(response.bodyAsText())
+        assertEquals("Trimmed scenario", created.name)
+        assertEquals("2026-06-22", created.dateOrPeriod)
+        assertEquals("Lyon", created.location)
+        assertEquals("Scenario created through backend API", created.description)
+        assertEquals("MANUAL", created.generationType)
+    }
+
+    @Test
+    fun `organizer cannot update scenario with invalid payload`() = testApplication {
+        val fixture = createFixture("invalid-scenario-update", EventStatus.CONFIRMED)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val repository = ScenarioRepository(fixture.database)
+        val before = repository.getScenarioById(fixture.scenarioId)
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database)
+        }
+
+        val response = client.put("/api/scenarios/${fixture.scenarioId}") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                updateScenarioBody(
+                    name = "Invalid update",
+                    duration = 366,
+                    estimatedBudgetPerPerson = 1_000_001.0
+                )
+            )
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        val after = repository.getScenarioById(fixture.scenarioId)
+        assertEquals(before?.name, after?.name)
+        assertEquals(before?.duration, after?.duration)
+        assertEquals(before?.estimatedBudgetPerPerson, after?.estimatedBudgetPerPerson)
+    }
+
+    @Test
     fun `confirmed participant cannot read accommodation from another event through authorized event path`() = testApplication {
         val database = DatabaseProvider.getDatabase(JvmDatabaseFactory(":memory:"))
         val eventA = createFixture("idor-read-event-a", EventStatus.CONFIRMED, database)
@@ -322,6 +572,169 @@ class EventOrganizationPhase3BackendRoutesTest {
         )
         assertEquals(eventB.roomNumber, afterDelete?.roomNumber, "Event B room must still exist")
     }
+
+    @Test
+    fun `organizer cannot assign room to non member or blank participant`() = testApplication {
+        val fixture = createFixture("room-assignment-membership", EventStatus.CONFIRMED)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val repository = AccommodationRepository(fixture.database)
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database)
+        }
+
+        val beforeRooms = repository.getRoomAssignmentsByAccommodationId(fixture.accommodationId)
+        val nonMemberCreate = client.post(
+            "/api/events/${fixture.eventId}/accommodation/${fixture.accommodationId}/rooms"
+        ) {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(createRoomBodyWithParticipants(fixture, "Non-member room", listOf(fixture.nonMemberId)))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, nonMemberCreate.status, nonMemberCreate.bodyAsText())
+        assertEquals(
+            beforeRooms.size,
+            repository.getRoomAssignmentsByAccommodationId(fixture.accommodationId).size,
+            "Invalid room assignment must not create a room"
+        )
+
+        val blankParticipantCreate = client.post(
+            "/api/events/${fixture.eventId}/accommodation/${fixture.accommodationId}/rooms"
+        ) {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(createRoomBodyWithParticipants(fixture, "Blank participant room", listOf("   ")))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, blankParticipantCreate.status, blankParticipantCreate.bodyAsText())
+    }
+
+    @Test
+    fun `organizer cannot create room with mismatched accommodation body`() = testApplication {
+        val fixture = createFixture("room-body-mismatch", EventStatus.CONFIRMED)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val repository = AccommodationRepository(fixture.database)
+        val beforeRooms = repository.getRoomAssignmentsByAccommodationId(fixture.accommodationId)
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database)
+        }
+
+        val response = client.post(
+            "/api/events/${fixture.eventId}/accommodation/${fixture.accommodationId}/rooms"
+        ) {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                createRoomBodyWithParticipants(
+                    fixture = fixture,
+                    roomNumber = "Mismatched room",
+                    participantIds = listOf(fixture.confirmedParticipantId),
+                    accommodationId = "another-accommodation"
+                )
+            )
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        assertEquals(
+            beforeRooms.size,
+            repository.getRoomAssignmentsByAccommodationId(fixture.accommodationId).size,
+            "Mismatched room body must not create room rows"
+        )
+    }
+
+    @Test
+    fun `organizer created room assignment is normalized before persistence`() = testApplication {
+        val fixture = createFixture("room-normalized-create", EventStatus.CONFIRMED)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database)
+        }
+
+        val response = client.post(
+            "/api/events/${fixture.eventId}/accommodation/${fixture.accommodationId}/rooms"
+        ) {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                createRoomBodyWithParticipants(
+                    fixture = fixture,
+                    roomNumber = "  Trimmed room  ",
+                    participantIds = listOf("  ${fixture.confirmedParticipantId}  ")
+                )
+            )
+        }
+
+        assertEquals(HttpStatusCode.Created, response.status, response.bodyAsText())
+        val created = json.decodeFromString<RoomAssignment>(response.bodyAsText())
+        assertEquals("Trimmed room", created.roomNumber)
+        assertEquals(listOf(fixture.confirmedParticipantId), created.assignedParticipants)
+    }
+
+    @Test
+    fun `organizer cannot update room assignment with non member participant`() = testApplication {
+        val fixture = createFixture("room-update-membership", EventStatus.CONFIRMED)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val repository = AccommodationRepository(fixture.database)
+        val beforeRoom = repository.getRoomAssignmentById(fixture.roomId)
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database)
+        }
+
+        val response = client.put(
+            "/api/events/${fixture.eventId}/accommodation/${fixture.accommodationId}/rooms/${fixture.roomId}"
+        ) {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(createRoomBodyWithParticipants(fixture, "Invalid room update", listOf(fixture.confirmedParticipantId, fixture.nonMemberId)))
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        val afterRoom = repository.getRoomAssignmentById(fixture.roomId)
+        assertEquals(beforeRoom?.roomNumber, afterRoom?.roomNumber)
+        assertEquals(beforeRoom?.assignedParticipants, afterRoom?.assignedParticipants)
+    }
+
+    @Test
+    fun `organizer cannot update room with mismatched accommodation body`() = testApplication {
+        val fixture = createFixture("room-update-body-mismatch", EventStatus.CONFIRMED)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val repository = AccommodationRepository(fixture.database)
+        val beforeRoom = repository.getRoomAssignmentById(fixture.roomId)
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database)
+        }
+
+        val response = client.put(
+            "/api/events/${fixture.eventId}/accommodation/${fixture.accommodationId}/rooms/${fixture.roomId}"
+        ) {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                createRoomBodyWithParticipants(
+                    fixture = fixture,
+                    roomNumber = "Mismatched update",
+                    participantIds = listOf(fixture.confirmedParticipantId),
+                    accommodationId = "another-accommodation"
+                )
+            )
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        val afterRoom = repository.getRoomAssignmentById(fixture.roomId)
+        assertEquals(beforeRoom?.roomNumber, afterRoom?.roomNumber)
+        assertEquals(beforeRoom?.assignedParticipants, afterRoom?.assignedParticipants)
+    }
+
 
     @Test
     fun `organizer cannot create logistics before confirmed or after finalized workflow status`() = testApplication {
@@ -709,62 +1122,106 @@ class EventOrganizationPhase3BackendRoutesTest {
         """.trimIndent()
     }
 
-    private fun createScenarioBody(fixture: Phase3BackendFixture, name: String): String {
+    private fun createScenarioBody(
+        fixture: Phase3BackendFixture,
+        name: String,
+        eventId: String = fixture.eventId,
+        dateOrPeriod: String = "2026-06-22",
+        location: String = "Lyon",
+        duration: Int = 2,
+        estimatedParticipants: Int = 4,
+        estimatedBudgetPerPerson: Double = 150.0,
+        description: String = "Scenario created through backend API",
+        generationType: String? = null
+    ): String {
+        val generationTypeJson = generationType?.let { ""","generationType": "$it"""" } ?: ""
         return """
             {
-              "eventId": "${fixture.eventId}",
+              "eventId": "$eventId",
               "name": "$name",
-              "dateOrPeriod": "2026-06-22",
-              "location": "Lyon",
-              "duration": 2,
-              "estimatedParticipants": 4,
-              "estimatedBudgetPerPerson": 150.0,
-              "description": "Scenario created through backend API"
+              "dateOrPeriod": "$dateOrPeriod",
+              "location": "$location",
+              "duration": $duration,
+              "estimatedParticipants": $estimatedParticipants,
+              "estimatedBudgetPerPerson": $estimatedBudgetPerPerson,
+              "description": "$description"$generationTypeJson
             }
         """.trimIndent()
     }
 
-    private fun updateScenarioBody(name: String): String {
+    private fun updateScenarioBody(
+        name: String,
+        dateOrPeriod: String = "2026-06-22",
+        location: String = "Lyon",
+        duration: Int = 2,
+        estimatedParticipants: Int = 4,
+        estimatedBudgetPerPerson: Double = 150.0,
+        description: String = "Scenario updated through backend API",
+        status: String = "PROPOSED",
+        generationType: String? = null
+    ): String {
+        val generationTypeJson = generationType?.let { ""","generationType": "$it"""" } ?: ""
         return """
             {
               "name": "$name",
-              "dateOrPeriod": "2026-06-22",
-              "location": "Lyon",
-              "duration": 2,
-              "estimatedParticipants": 4,
-              "estimatedBudgetPerPerson": 150.0,
-              "description": "Scenario updated through backend API",
-              "status": "PROPOSED"
+              "dateOrPeriod": "$dateOrPeriod",
+              "location": "$location",
+              "duration": $duration,
+              "estimatedParticipants": $estimatedParticipants,
+              "estimatedBudgetPerPerson": $estimatedBudgetPerPerson,
+              "description": "$description",
+              "status": "$status"$generationTypeJson
             }
         """.trimIndent()
     }
 
-    private fun createAccommodationBody(fixture: Phase3BackendFixture, name: String): String {
+    private fun createAccommodationBody(
+        fixture: Phase3BackendFixture,
+        name: String,
+        eventId: String = fixture.eventId,
+        address: String = "2 rue API, Lyon",
+        pricePerNight: Long = 14_000,
+        totalNights: Int = 2,
+        bookingUrl: String = "https://example.test/api-booking",
+        checkInDate: String = "2026-06-22",
+        checkOutDate: String = "2026-06-24",
+        notes: String = "Created through backend API"
+    ): String {
         return """
             {
-              "eventId": "${fixture.eventId}",
+              "eventId": "$eventId",
               "name": "$name",
               "type": "HOTEL",
-              "address": "2 rue API, Lyon",
+              "address": "$address",
               "capacity": 4,
-              "pricePerNight": 14000,
-              "totalNights": 2,
+              "pricePerNight": $pricePerNight,
+              "totalNights": $totalNights,
               "bookingStatus": "RESERVED",
-              "bookingUrl": "https://example.test/api-booking",
-              "checkInDate": "2026-06-22",
-              "checkOutDate": "2026-06-24",
-              "notes": "Created through backend API"
+              "bookingUrl": "$bookingUrl",
+              "checkInDate": "$checkInDate",
+              "checkOutDate": "$checkOutDate",
+              "notes": "$notes"
             }
         """.trimIndent()
     }
 
     private fun createRoomBody(fixture: Phase3BackendFixture, roomNumber: String): String {
+        return createRoomBodyWithParticipants(fixture, roomNumber, listOf(fixture.confirmedParticipantId))
+    }
+
+    private fun createRoomBodyWithParticipants(
+        fixture: Phase3BackendFixture,
+        roomNumber: String,
+        participantIds: List<String>,
+        accommodationId: String = fixture.accommodationId
+    ): String {
+        val participantsJson = participantIds.joinToString(", ") { "\"$it\"" }
         return """
             {
-              "accommodationId": "${fixture.accommodationId}",
+              "accommodationId": "$accommodationId",
               "roomNumber": "$roomNumber",
               "capacity": 2,
-              "assignedParticipants": ["${fixture.confirmedParticipantId}"]
+              "assignedParticipants": [$participantsJson]
             }
         """.trimIndent()
     }

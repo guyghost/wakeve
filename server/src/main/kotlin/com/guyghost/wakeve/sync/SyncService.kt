@@ -81,7 +81,7 @@ class SyncService(private val db: WakeveDb) {
                 appliedChanges = appliedChanges,
                 conflicts = conflicts,
                 serverTimestamp = getCurrentUtcIsoString(),
-                message = "Sync failed: ${e.message}"
+                message = serverSyncFailureMessage()
             )
         }
     }
@@ -103,6 +103,9 @@ class SyncService(private val db: WakeveDb) {
 
         when (SyncOperation.valueOf(change.operation)) {
             SyncOperation.CREATE -> {
+                if (eventData.organizerId != change.userId) {
+                    throw IllegalArgumentException("Cannot create an event for another organizer")
+                }
                 // Check if event already exists
                 val existing = eventRepository.getEvent(change.recordId)
                 if (existing == null) {
@@ -126,6 +129,9 @@ class SyncService(private val db: WakeveDb) {
             SyncOperation.UPDATE -> {
                 val existing = eventRepository.getEvent(change.recordId)
                     ?: throw IllegalArgumentException("Event not found: ${change.recordId}")
+                if (existing.organizerId != change.userId) {
+                    throw IllegalArgumentException("Only the event organizer can sync event updates")
+                }
 
                 // Conflit : si la version serveur est plus recente, le serveur gagne
                 if (existing.updatedAt > change.timestamp) {
@@ -146,6 +152,9 @@ class SyncService(private val db: WakeveDb) {
                 // Si l'evenement n'existe plus, on ignore silencieusement
                 val existing = eventRepository.getEvent(change.recordId)
                 if (existing != null) {
+                    if (existing.organizerId != change.userId) {
+                        throw IllegalArgumentException("Only the event organizer can sync event deletion")
+                    }
                     eventRepository.deleteEvent(change.recordId)
                 }
                 // Deja supprime : rien a faire
@@ -155,6 +164,11 @@ class SyncService(private val db: WakeveDb) {
 
     private suspend fun applyParticipantChange(change: SyncChange) {
         val participantData = json.decodeFromString<SyncParticipantData>(change.data)
+        val event = eventRepository.getEvent(participantData.eventId)
+            ?: throw IllegalArgumentException("Event not found: ${participantData.eventId}")
+        if (event.organizerId != change.userId) {
+            throw IllegalArgumentException("Only the event organizer can sync participant changes")
+        }
 
         when (SyncOperation.valueOf(change.operation)) {
             SyncOperation.CREATE -> {
@@ -201,6 +215,19 @@ class SyncService(private val db: WakeveDb) {
 
     private suspend fun applyVoteChange(change: SyncChange) {
         val voteData = json.decodeFromString<SyncVoteData>(change.data)
+        if (voteData.participantId != change.userId) {
+            throw IllegalArgumentException("Cannot sync a vote for another participant")
+        }
+        val event = eventRepository.getEvent(voteData.eventId)
+            ?: throw IllegalArgumentException("Event not found: ${voteData.eventId}")
+        if (!event.participants.contains(change.userId)) {
+            throw IllegalArgumentException("Participant not in event")
+        }
+        val slot = db.timeSlotQueries.selectById(voteData.slotId).executeAsOneOrNull()
+            ?: throw IllegalArgumentException("Time slot not found: ${voteData.slotId}")
+        if (slot.eventId != voteData.eventId) {
+            throw IllegalArgumentException("Vote slot does not belong to event")
+        }
 
         when (SyncOperation.valueOf(change.operation)) {
             SyncOperation.CREATE -> {
@@ -287,3 +314,6 @@ class SyncService(private val db: WakeveDb) {
         return Clock.System.now().toString()
     }
 }
+
+internal fun serverSyncFailureMessage(): String =
+    "Sync failed. Please retry when your connection is stable."

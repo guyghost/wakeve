@@ -4,6 +4,7 @@ import com.guyghost.wakeve.models.Accommodation
 import com.guyghost.wakeve.models.AccommodationWithRooms
 import com.guyghost.wakeve.models.RoomAssignment
 import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDate
 
 /**
  * Service for managing accommodations and room assignments.
@@ -17,10 +18,23 @@ import kotlinx.datetime.Clock
  */
 object AccommodationService {
 
+    private const val MAX_ACCOMMODATION_NAME_LENGTH = 160
+    private const val MAX_ACCOMMODATION_ADDRESS_LENGTH = 300
+    private const val MAX_BOOKING_URL_LENGTH = 2048
+    private const val MAX_NOTES_LENGTH = 1000
+    private const val MAX_CAPACITY = 10_000
+    private const val MAX_TOTAL_NIGHTS = 365
+    private const val MAX_ROOM_NUMBER_LENGTH = 80
+    private const val MAX_ROOM_CAPACITY = 100
+    private val bookingUrlPattern = Regex("^https?://\\S+$")
+
     /**
      * Calculate the total cost of an accommodation
      */
     fun calculateTotalCost(pricePerNight: Long, totalNights: Int): Long {
+        if (pricePerNight > 0 && totalNights > 0 && pricePerNight > Long.MAX_VALUE / totalNights) {
+            throw IllegalArgumentException("Total cost is too large")
+        }
         return pricePerNight * totalNights
     }
 
@@ -72,23 +86,94 @@ object AccommodationService {
         pricePerNight: Long,
         totalNights: Int,
         checkInDate: String,
-        checkOutDate: String
+        checkOutDate: String,
+        address: String? = null,
+        bookingUrl: String? = null,
+        notes: String? = null
     ): String? {
-        if (name.isBlank()) return "Name cannot be empty"
+        val normalizedName = name.trim()
+        val normalizedAddress = address?.trim()
+        val normalizedBookingUrl = bookingUrl?.trim()
+        val normalizedNotes = notes?.trim()
+        val normalizedCheckInDate = checkInDate.trim()
+        val normalizedCheckOutDate = checkOutDate.trim()
+
+        if (normalizedName.isBlank()) return "Name cannot be empty"
+        if (normalizedName.length > MAX_ACCOMMODATION_NAME_LENGTH) {
+            return "Name cannot exceed $MAX_ACCOMMODATION_NAME_LENGTH characters"
+        }
+        if (normalizedAddress != null) {
+            if (normalizedAddress.isBlank()) return "Address cannot be empty"
+            if (normalizedAddress.length > MAX_ACCOMMODATION_ADDRESS_LENGTH) {
+                return "Address cannot exceed $MAX_ACCOMMODATION_ADDRESS_LENGTH characters"
+            }
+        }
         if (capacity <= 0) return "Capacity must be positive"
+        if (capacity > MAX_CAPACITY) return "Capacity cannot exceed $MAX_CAPACITY"
         if (pricePerNight < 0) return "Price per night cannot be negative"
         if (totalNights <= 0) return "Total nights must be positive"
-        if (checkInDate.isBlank()) return "Check-in date is required"
-        if (checkOutDate.isBlank()) return "Check-out date is required"
+        if (totalNights > MAX_TOTAL_NIGHTS) return "Total nights cannot exceed $MAX_TOTAL_NIGHTS"
+        if (pricePerNight > 0 && pricePerNight > Long.MAX_VALUE / totalNights) {
+            return "Total cost is too large"
+        }
+        if (normalizedCheckInDate.isBlank()) return "Check-in date is required"
+        if (normalizedCheckOutDate.isBlank()) return "Check-out date is required"
 
         // Validate that checkOut is strictly after checkIn
-        val checkInParsed = runCatching { kotlinx.datetime.Instant.parse(checkInDate) }.getOrNull()
-        val checkOutParsed = runCatching { kotlinx.datetime.Instant.parse(checkOutDate) }.getOrNull()
-        if (checkInParsed != null && checkOutParsed != null && checkOutParsed <= checkInParsed) {
+        val checkInParsed = runCatching { LocalDate.parse(normalizedCheckInDate) }.getOrNull()
+            ?: return "Check-in date must be an ISO-8601 date"
+        val checkOutParsed = runCatching { LocalDate.parse(normalizedCheckOutDate) }.getOrNull()
+            ?: return "Check-out date must be an ISO-8601 date"
+        if (checkOutParsed <= checkInParsed) {
             return "Check-out date must be after check-in date"
+        }
+        if (normalizedBookingUrl != null) {
+            if (normalizedBookingUrl.isBlank()) return "Booking URL cannot be empty"
+            if (normalizedBookingUrl.length > MAX_BOOKING_URL_LENGTH) {
+                return "Booking URL cannot exceed $MAX_BOOKING_URL_LENGTH characters"
+            }
+            if (!bookingUrlPattern.matches(normalizedBookingUrl)) {
+                return "Booking URL must be an http or https URL"
+            }
+        }
+        if (normalizedNotes != null && normalizedNotes.length > MAX_NOTES_LENGTH) {
+            return "Notes cannot exceed $MAX_NOTES_LENGTH characters"
         }
         
         return null
+    }
+
+    fun normalizeAccommodation(accommodation: Accommodation): Result<Accommodation> = runCatching {
+        val normalizedName = accommodation.name.trim()
+        val normalizedAddress = accommodation.address.trim()
+        val normalizedBookingUrl = accommodation.bookingUrl?.trim()?.takeIf { it.isNotEmpty() }
+        val normalizedNotes = accommodation.notes?.trim()?.takeIf { it.isNotEmpty() }
+        val normalizedCheckInDate = accommodation.checkInDate.trim()
+        val normalizedCheckOutDate = accommodation.checkOutDate.trim()
+
+        val validationError = validateAccommodation(
+            name = normalizedName,
+            capacity = accommodation.capacity,
+            pricePerNight = accommodation.pricePerNight,
+            totalNights = accommodation.totalNights,
+            checkInDate = normalizedCheckInDate,
+            checkOutDate = normalizedCheckOutDate,
+            address = normalizedAddress,
+            bookingUrl = normalizedBookingUrl,
+            notes = normalizedNotes
+        )
+        require(validationError == null) { validationError ?: "Invalid accommodation" }
+
+        accommodation.copy(
+            eventId = accommodation.eventId.trim(),
+            name = normalizedName,
+            address = normalizedAddress,
+            totalCost = calculateTotalCost(accommodation.pricePerNight, accommodation.totalNights),
+            bookingUrl = normalizedBookingUrl,
+            checkInDate = normalizedCheckInDate,
+            checkOutDate = normalizedCheckOutDate,
+            notes = normalizedNotes
+        )
     }
 
     /**
@@ -101,19 +186,51 @@ object AccommodationService {
         capacity: Int,
         assignedParticipants: List<String>
     ): String? {
-        if (roomNumber.isBlank()) return "Room number cannot be empty"
+        val normalizedRoomNumber = roomNumber.trim()
+        val normalizedParticipants = assignedParticipants.map { it.trim() }
+
+        if (normalizedRoomNumber.isBlank()) return "Room number cannot be empty"
+        if (normalizedRoomNumber.length > MAX_ROOM_NUMBER_LENGTH) {
+            return "Room number cannot exceed $MAX_ROOM_NUMBER_LENGTH characters"
+        }
         if (capacity <= 0) return "Room capacity must be positive"
-        if (assignedParticipants.size > capacity) {
-            return "Too many participants assigned (${assignedParticipants.size} > $capacity)"
+        if (capacity > MAX_ROOM_CAPACITY) return "Room capacity cannot exceed $MAX_ROOM_CAPACITY"
+        if (normalizedParticipants.any { it.isBlank() }) return "Assigned participants cannot contain blank IDs"
+        if (normalizedParticipants.size > capacity) {
+            return "Too many participants assigned (${normalizedParticipants.size} > $capacity)"
         }
         
         // Check for duplicate participant IDs
-        val uniqueParticipants = assignedParticipants.toSet()
-        if (uniqueParticipants.size != assignedParticipants.size) {
+        val uniqueParticipants = normalizedParticipants.toSet()
+        if (uniqueParticipants.size != normalizedParticipants.size) {
             return "Duplicate participants found in assignment"
         }
         
         return null
+    }
+
+    fun normalizeRoomAssignment(roomAssignment: RoomAssignment): Result<RoomAssignment> = runCatching {
+        val normalizedParticipants = normalizeRoomParticipantIds(roomAssignment.assignedParticipants).getOrThrow()
+        val validationError = validateRoomAssignment(
+            roomNumber = roomAssignment.roomNumber,
+            capacity = roomAssignment.capacity,
+            assignedParticipants = normalizedParticipants
+        )
+        require(validationError == null) { validationError ?: "Invalid room assignment" }
+        require(roomAssignment.priceShare >= 0) { "Room price share cannot be negative" }
+
+        roomAssignment.copy(
+            accommodationId = roomAssignment.accommodationId.trim(),
+            roomNumber = roomAssignment.roomNumber.trim(),
+            assignedParticipants = normalizedParticipants
+        )
+    }
+
+    fun normalizeRoomParticipantIds(assignedParticipants: List<String>): Result<List<String>> = runCatching {
+        val normalized = assignedParticipants.map { it.trim() }
+        require(normalized.none { it.isBlank() }) { "Assigned participants cannot contain blank IDs" }
+        require(normalized.toSet().size == normalized.size) { "Duplicate participants found in assignment" }
+        normalized
     }
 
     /**

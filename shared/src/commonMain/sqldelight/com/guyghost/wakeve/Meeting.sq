@@ -35,6 +35,9 @@ SELECT * FROM meeting WHERE eventId = ? ORDER BY createdAt DESC;
 selectByOrganizerId:
 SELECT * FROM meeting WHERE organizerId = ? ORDER BY createdAt DESC;
 
+selectByHostMeetingId:
+SELECT * FROM meeting WHERE hostMeetingId = ?;
+
 insertMeeting:
 INSERT INTO meeting(
     id, eventId, organizerId, title, description, startTime, duration,

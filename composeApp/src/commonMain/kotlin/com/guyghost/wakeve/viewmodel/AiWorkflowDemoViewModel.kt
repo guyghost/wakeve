@@ -22,6 +22,7 @@ import com.guyghost.wakeve.ai.PlanningAgentSession
 import com.guyghost.wakeve.ai.UnavailableAiTextGenerationClient
 import com.guyghost.wakeve.ai.UnavailablePlanningAgentClient
 import com.guyghost.wakeve.ui.ai.PlanningAgentEventUiItem
+import com.guyghost.wakeve.ui.ai.planningAgentFailureDisplayMessage
 import com.guyghost.wakeve.ui.ai.toPlanningAgentEventUiItem
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -97,11 +98,11 @@ class AiWorkflowDemoViewModel(
                         }
                     }
                     is EventSummaryAiUpdate.Unavailable -> {
-                        _state.update { it.copy(summaryError = update.message) }
+                        _state.update { it.copy(summaryError = aiSummaryUnavailableMessage()) }
                     }
                     is EventSummaryAiUpdate.Error -> {
                         _state.update {
-                            it.copy(isGeneratingSummary = false, summaryError = update.message)
+                            it.copy(isGeneratingSummary = false, summaryError = aiSummaryFailureMessage())
                         }
                     }
                 }
@@ -134,11 +135,11 @@ class AiWorkflowDemoViewModel(
                         }
                     }
                     is OrganizerMessageAiUpdate.Unavailable -> {
-                        _state.update { it.copy(messageError = update.message) }
+                        _state.update { it.copy(messageError = aiOrganizerMessageUnavailableMessage()) }
                     }
                     is OrganizerMessageAiUpdate.Error -> {
                         _state.update {
-                            it.copy(isGeneratingMessage = false, messageError = update.message)
+                            it.copy(isGeneratingMessage = false, messageError = aiOrganizerMessageFailureMessage())
                         }
                     }
                 }
@@ -187,11 +188,23 @@ class AiWorkflowDemoViewModel(
             state.copy(
                 agentSession = session,
                 agentEvents = state.agentEvents + event.toPlanningAgentEventUiItem(),
-                agentError = (event as? PlanningAgentEvent.Failed)?.message
+                agentError = (event as? PlanningAgentEvent.Failed)?.let { planningAgentFailureDisplayMessage() }
             )
         }
     }
 }
+
+internal fun aiSummaryUnavailableMessage(): String =
+    "Le resume IA n'est pas disponible pour le moment."
+
+internal fun aiSummaryFailureMessage(): String =
+    "Impossible de generer le resume IA. Reessayez."
+
+internal fun aiOrganizerMessageUnavailableMessage(): String =
+    "Le message IA n'est pas disponible pour le moment."
+
+internal fun aiOrganizerMessageFailureMessage(): String =
+    "Impossible de generer le message IA. Reessayez."
 
 private fun AiInferenceRoute.label(): String = when (this) {
     AiInferenceRoute.ON_DEVICE -> "On-device"

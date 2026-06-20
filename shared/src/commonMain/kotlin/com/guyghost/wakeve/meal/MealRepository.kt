@@ -208,6 +208,15 @@ class MealRepository(private val db: WakeveDb) {
             .executeAsList()
             .map { it.toRestrictionModel() }
     }
+
+    /**
+     * Get dietary restriction by ID.
+     */
+    fun getDietaryRestrictionById(restrictionId: String): ParticipantDietaryRestriction? {
+        return dietaryRestrictionQueries.getDietaryRestrictionById(restrictionId)
+            .executeAsOneOrNull()
+            ?.toRestrictionModel()
+    }
     
     /**
      * Get count of participants with each dietary restriction.

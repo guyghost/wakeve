@@ -78,11 +78,17 @@ class ChatService(
         content: String,
         section: CommentSection? = null,
         parentMessageId: String? = null
-    ): ChatMessage = withContext(Dispatchers.IO) {
+    ): ChatMessage? = withContext(Dispatchers.IO) {
         try {
             val moderationResult = moderationPolicy.evaluate(content)
             if (moderationResult.status == ModerationStatus.REJECTED) {
                 throw ModerationRejectedException(moderationResult)
+            }
+            val parentMessage = parentMessageId?.let { parentId ->
+                getMessage(parentId) ?: return@withContext null
+            }
+            if (parentMessage != null && (parentMessage.eventId != eventId || !parentMessage.isVisibleTo(userId))) {
+                return@withContext null
             }
 
             val messageId = generateMessageId()
@@ -146,7 +152,7 @@ class ChatService(
         } catch (e: ModerationRejectedException) {
             throw e
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to send message: ${e.message}", e)
+            throw ChatServiceException(chatMessageSendFailureMessage(), e)
         }
     }
     
@@ -163,8 +169,10 @@ class ChatService(
         messageId: String,
         userId: String,
         emoji: String
-    ) = withContext(Dispatchers.IO) {
+    ): Boolean = withContext(Dispatchers.IO) {
         try {
+            getAccessibleMessage(eventId, messageId, userId) ?: return@withContext false
+            val normalizedEmoji = emoji.trim().takeIf { it.isNotEmpty() } ?: return@withContext false
             val timestamp = getCurrentTimestamp()
             val reactionId = generateMessageId()
             
@@ -173,7 +181,7 @@ class ChatService(
                 id = reactionId,
                 message_id = messageId,
                 user_id = userId,
-                emoji = emoji,
+                emoji = normalizedEmoji,
                 timestamp = timestamp
             )
             
@@ -192,9 +200,10 @@ class ChatService(
             )
             
             // Broadcast reaction via WebSocket
-            broadcastReaction(eventId, messageId, userId, emoji)
+            broadcastReaction(eventId, messageId, userId, normalizedEmoji)
+            true
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to add reaction: ${e.message}", e)
+            throw ChatServiceException(chatReactionAddFailureMessage(), e)
         }
     }
     
@@ -211,15 +220,17 @@ class ChatService(
         messageId: String,
         userId: String,
         emoji: String
-    ) = withContext(Dispatchers.IO) {
+    ): Boolean = withContext(Dispatchers.IO) {
         try {
+            getAccessibleMessage(eventId, messageId, userId) ?: return@withContext false
+            val normalizedEmoji = emoji.trim().takeIf { it.isNotEmpty() } ?: return@withContext false
             val timestamp = getCurrentTimestamp()
             
             // Remove reaction from message_reaction table
             database.chatMessagesQueries.deleteReaction(
                 messageId,
                 userId,
-                emoji
+                normalizedEmoji
             )
             
             // Get updated reactions for the message
@@ -237,9 +248,10 @@ class ChatService(
             )
             
             // Broadcast reaction removal via WebSocket
-            broadcastReaction(eventId, messageId, userId, emoji)
+            broadcastReaction(eventId, messageId, userId, normalizedEmoji)
+            true
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to remove reaction: ${e.message}", e)
+            throw ChatServiceException(chatReactionRemoveFailureMessage(), e)
         }
     }
     
@@ -254,8 +266,9 @@ class ChatService(
         eventId: String,
         messageId: String,
         userId: String
-    ) = withContext(Dispatchers.IO) {
+    ): Boolean = withContext(Dispatchers.IO) {
         try {
+            val message = getAccessibleMessage(eventId, messageId, userId) ?: return@withContext false
             val timestamp = getCurrentTimestamp()
             val readStatusId = generateMessageId()
             
@@ -267,35 +280,22 @@ class ChatService(
                 read_at = timestamp
             )
             
-            // Update read_by_json in chat_message
-            val message = database.chatMessagesQueries
-                .selectMessageById(messageId)
-                .executeAsOneOrNull()
-            
-            message?.let { msg ->
-                val currentReadBy = msg.read_by_json?.let {
-                    try {
-                        json.decodeFromString<List<String>>(it)
-                    } catch (e: Exception) {
-                        emptyList<String>()
-                    }
-                }?.toMutableList() ?: mutableListOf()
-                
-                if (!currentReadBy.contains(userId)) {
-                    currentReadBy.add(userId)
-                    val readByJson = json.encodeToString(currentReadBy)
-                    database.chatMessagesQueries.updateMessageReadBy(
-                        readByJson,
-                        timestamp,
-                        messageId
-                    )
-                }
+            val currentReadBy = message.readBy.toMutableList()
+            if (!currentReadBy.contains(userId)) {
+                currentReadBy.add(userId)
+                val readByJson = json.encodeToString(currentReadBy)
+                database.chatMessagesQueries.updateMessageReadBy(
+                    readByJson,
+                    timestamp,
+                    messageId
+                )
             }
             
             // Broadcast read receipt via WebSocket
             broadcastReadReceipt(eventId, messageId, userId)
+            true
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to mark message as read: ${e.message}", e)
+            throw ChatServiceException(chatReadReceiptFailureMessage(), e)
         }
     }
     
@@ -312,11 +312,8 @@ class ChatService(
         try {
             val timestamp = getCurrentTimestamp()
             
-            // Get all messages not sent by this user
-            val messages = database.chatMessagesQueries
-                .selectMessagesByEvent(eventId)
-                .executeAsList()
-                .filter { it.sender_id != userId }
+            val messages = getMessages(eventId, limit = 0, viewerUserId = userId)
+                .filter { it.senderId != userId }
             
             // Mark each message as read
             messages.forEach { message ->
@@ -327,17 +324,18 @@ class ChatService(
                     user_id = userId,
                     read_at = timestamp
                 )
+
+                if (!message.readBy.contains(userId)) {
+                    val readByJson = json.encodeToString(message.readBy + userId)
+                    database.chatMessagesQueries.updateMessageReadBy(
+                        readByJson,
+                        timestamp,
+                        message.id
+                    )
+                }
             }
-            
-            // Update read_by_json for all messages
-            val readByJson = json.encodeToString(listOf(userId))
-            database.chatMessagesQueries.markAllMessagesAsReadByUser(
-                readByJson,
-                timestamp,
-                eventId
-            )
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to mark all messages as read: ${e.message}", e)
+            throw ChatServiceException(chatMarkAllReadFailureMessage(), e)
         }
     }
     
@@ -372,7 +370,7 @@ class ChatService(
             // Broadcast typing indicator via WebSocket
             broadcastTyping(eventId, userId, userName, isTyping)
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to update typing status: ${e.message}", e)
+            throw ChatServiceException(chatTypingStatusFailureMessage(), e)
         }
     }
     
@@ -392,13 +390,25 @@ class ChatService(
     ): List<ChatMessage> = withContext(Dispatchers.IO) {
         try {
             val messages = if (limit > 0) {
-                database.chatMessagesQueries
-                    .selectMessagesByEventPaginated(eventId, limit.toLong(), offset.toLong())
-                    .executeAsList()
+                if (viewerUserId != null) {
+                    database.chatMessagesQueries
+                        .selectVisibleMessagesByEventPaginated(eventId, viewerUserId, limit.toLong(), offset.toLong())
+                        .executeAsList()
+                } else {
+                    database.chatMessagesQueries
+                        .selectMessagesByEventPaginated(eventId, limit.toLong(), offset.toLong())
+                        .executeAsList()
+                }
             } else {
-                database.chatMessagesQueries
-                    .selectMessagesByEvent(eventId)
-                    .executeAsList()
+                if (viewerUserId != null) {
+                    database.chatMessagesQueries
+                        .selectVisibleMessagesByEvent(eventId, viewerUserId)
+                        .executeAsList()
+                } else {
+                    database.chatMessagesQueries
+                        .selectMessagesByEvent(eventId)
+                        .executeAsList()
+                }
             }
             
             messages.map { row ->
@@ -432,11 +442,29 @@ class ChatService(
                     isEdited = row.is_edited == 1L,
                     moderationStatus = ModerationStatus.valueOf(row.moderation_status)
                 )
-            }.filterNot { message ->
-                viewerUserId != null && moderationRepository?.isBlocked(viewerUserId, message.senderId) == true
-            }
+            }.filter { message -> message.isVisibleTo(viewerUserId) }
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to get messages: ${e.message}", e)
+            throw ChatServiceException(chatMessagesFetchFailureMessage(), e)
+        }
+    }
+
+    suspend fun countVisibleMessages(
+        eventId: String,
+        viewerUserId: String? = null
+    ): Int = withContext(Dispatchers.IO) {
+        try {
+            val totalCount = if (viewerUserId != null) {
+                database.chatMessagesQueries.countVisibleApprovedMessagesByEvent(eventId, viewerUserId).executeAsOne()
+            } else {
+                database.chatMessagesQueries.countApprovedMessagesByEvent(eventId).executeAsOne()
+            }
+
+            totalCount
+                .coerceAtLeast(0)
+                .coerceAtMost(Int.MAX_VALUE.toLong())
+                .toInt()
+        } catch (e: Exception) {
+            throw ChatServiceException(chatMessagesCountFailureMessage(), e)
         }
     }
     
@@ -447,7 +475,9 @@ class ChatService(
      * @return List of messages in the thread
      */
     suspend fun getThreadMessages(
-        parentMessageId: String
+        eventId: String,
+        parentMessageId: String,
+        viewerUserId: String? = null
     ): List<ChatMessage> = withContext(Dispatchers.IO) {
         try {
             val messages = database.chatMessagesQueries
@@ -485,9 +515,11 @@ class ChatService(
                     isEdited = row.is_edited == 1L,
                     moderationStatus = ModerationStatus.valueOf(row.moderation_status)
                 )
+            }.filter { message ->
+                message.eventId == eventId && message.isVisibleTo(viewerUserId)
             }
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to get thread messages: ${e.message}", e)
+            throw ChatServiceException(chatThreadMessagesFetchFailureMessage(), e)
         }
     }
     
@@ -500,7 +532,8 @@ class ChatService(
      */
     suspend fun getMessagesBySection(
         eventId: String,
-        section: CommentSection
+        section: CommentSection,
+        viewerUserId: String? = null
     ): List<ChatMessage> = withContext(Dispatchers.IO) {
         try {
             val messages = database.chatMessagesQueries
@@ -538,9 +571,9 @@ class ChatService(
                     isEdited = row.is_edited == 1L,
                     moderationStatus = ModerationStatus.valueOf(row.moderation_status)
                 )
-            }
+            }.filter { message -> message.isVisibleTo(viewerUserId) }
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to get messages by section: ${e.message}", e)
+            throw ChatServiceException(chatSectionMessagesFetchFailureMessage(), e)
         }
     }
     
@@ -584,12 +617,32 @@ class ChatService(
                             }
                         } ?: emptyList(),
                         isEdited = row.is_edited == 1L,
-                    moderationStatus = ModerationStatus.valueOf(row.moderation_status)
+                        moderationStatus = ModerationStatus.valueOf(row.moderation_status)
                     )
                 }
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to get message: ${e.message}", e)
+            throw ChatServiceException(chatMessageFetchFailureMessage(), e)
         }
+    }
+
+    fun isBlockedForViewer(eventId: String, viewerUserId: String, senderId: String): Boolean =
+        moderationRepository?.isBlockedForEvent(viewerUserId, senderId, eventId) == true
+
+    private suspend fun getAccessibleMessage(
+        eventId: String,
+        messageId: String,
+        viewerUserId: String
+    ): ChatMessage? {
+        val message = getMessage(messageId) ?: return null
+        return message.takeIf { it.eventId == eventId && it.isVisibleTo(viewerUserId) }
+    }
+
+    private fun ChatMessage.isVisibleTo(viewerUserId: String?): Boolean {
+        if (moderationStatus != ModerationStatus.APPROVED && senderId != viewerUserId) {
+            return false
+        }
+
+        return viewerUserId == null || moderationRepository?.isBlockedForEvent(viewerUserId, senderId, eventId) != true
     }
     
     /**
@@ -604,12 +657,10 @@ class ChatService(
         userId: String
     ): Int = withContext(Dispatchers.IO) {
         try {
-            database.chatMessagesQueries
-                .selectUnreadCountForUser(eventId, userId, userId)
-                .executeAsOne()
-                .toInt()
+            getMessages(eventId, limit = 0, viewerUserId = userId)
+                .count { message -> message.senderId != userId && !message.readBy.contains(userId) }
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to get unread count: ${e.message}", e)
+            throw ChatServiceException(chatUnreadCountFailureMessage(), e)
         }
     }
     
@@ -641,7 +692,7 @@ class ChatService(
                     )
                 }
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to get typing users: ${e.message}", e)
+            throw ChatServiceException(chatTypingUsersFetchFailureMessage(), e)
         }
     }
     
@@ -654,6 +705,7 @@ class ChatService(
      * @return The updated message
      */
     suspend fun updateMessage(
+        eventId: String,
         messageId: String,
         content: String,
         userId: String
@@ -670,7 +722,7 @@ class ChatService(
                 .selectMessageById(messageId)
                 .executeAsOneOrNull()
             
-            if (message == null || message.sender_id != userId) {
+            if (message == null || message.event_id != eventId || message.sender_id != userId) {
                 return@withContext null
             }
             
@@ -688,7 +740,7 @@ class ChatService(
         } catch (e: ModerationRejectedException) {
             throw e
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to update message: ${e.message}", e)
+            throw ChatServiceException(chatMessageUpdateFailureMessage(), e)
         }
     }
     
@@ -700,6 +752,7 @@ class ChatService(
      * @return True if deleted, false otherwise
      */
     suspend fun deleteMessage(
+        eventId: String,
         messageId: String,
         userId: String
     ): Boolean = withContext(Dispatchers.IO) {
@@ -709,7 +762,7 @@ class ChatService(
                 .selectMessageById(messageId)
                 .executeAsOneOrNull()
             
-            if (message == null || message.sender_id != userId) {
+            if (message == null || message.event_id != eventId || message.sender_id != userId) {
                 return@withContext false
             }
             
@@ -726,7 +779,7 @@ class ChatService(
             
             true
         } catch (e: Exception) {
-            throw ChatServiceException("Failed to delete message: ${e.message}", e)
+            throw ChatServiceException(chatMessageDeleteFailureMessage(), e)
         }
     }
     
@@ -842,6 +895,51 @@ class ChatServiceException(
     cause: Throwable? = null
 ) : Exception(message, cause)
 
+internal fun chatMessageSendFailureMessage(): String =
+    "Failed to send chat message. Please try again."
+
+internal fun chatReactionAddFailureMessage(): String =
+    "Failed to add chat reaction. Please try again."
+
+internal fun chatReactionRemoveFailureMessage(): String =
+    "Failed to remove chat reaction. Please try again."
+
+internal fun chatReadReceiptFailureMessage(): String =
+    "Failed to mark chat message as read. Please try again."
+
+internal fun chatMarkAllReadFailureMessage(): String =
+    "Failed to mark chat messages as read. Please try again."
+
+internal fun chatTypingStatusFailureMessage(): String =
+    "Failed to update chat typing status. Please try again."
+
+internal fun chatMessagesFetchFailureMessage(): String =
+    "Failed to fetch chat messages. Please try again."
+
+internal fun chatMessagesCountFailureMessage(): String =
+    "Failed to count chat messages. Please try again."
+
+internal fun chatThreadMessagesFetchFailureMessage(): String =
+    "Failed to fetch chat thread messages. Please try again."
+
+internal fun chatSectionMessagesFetchFailureMessage(): String =
+    "Failed to fetch chat section messages. Please try again."
+
+internal fun chatMessageFetchFailureMessage(): String =
+    "Failed to fetch chat message. Please try again."
+
+internal fun chatUnreadCountFailureMessage(): String =
+    "Failed to fetch unread chat count. Please try again."
+
+internal fun chatTypingUsersFetchFailureMessage(): String =
+    "Failed to fetch chat typing users. Please try again."
+
+internal fun chatMessageUpdateFailureMessage(): String =
+    "Failed to update chat message. Please try again."
+
+internal fun chatMessageDeleteFailureMessage(): String =
+    "Failed to delete chat message. Please try again."
+
 /**
  * Routes for chat HTTP endpoints.
  */
@@ -863,18 +961,18 @@ fun io.ktor.server.routing.Route.chatRoutes(
                 HttpStatusCode.Unauthorized,
                 mapOf("error" to "Invalid user ID in token")
             )
-            val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 100
-            val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
-
-            val messages = chatService.getMessages(eventId, limit, offset, userId)
-            val totalCount = chatService.getMessages(eventId, Int.MAX_VALUE, 0, userId).size
+            val limit = parseChatMessageLimit(call.request.queryParameters["limit"])
+            val offset = parseChatMessageOffset(call.request.queryParameters["offset"])
+            val lookaheadMessages = chatService.getMessages(eventId, limit + 1, offset, userId)
+            val messages = lookaheadMessages.take(limit)
+            val totalCount = chatService.countVisibleMessages(eventId, userId)
 
             call.respond(
                 HttpStatusCode.OK,
                 MessagesResponse(
                     messages = messages,
                     totalCount = totalCount,
-                    hasMore = messages.size == limit
+                    hasMore = lookaheadMessages.size > limit
                 )
             )
         }
@@ -893,7 +991,7 @@ fun io.ktor.server.routing.Route.chatRoutes(
                 HttpStatusCode.Unauthorized,
                 mapOf("error" to "Invalid user ID in token")
             )
-            val userName = principal.payload.getClaim("userName")?.asString() ?: "Unknown"
+            val userName = principal.chatDisplayName(userId)
             val userAvatarUrl = principal.payload.getClaim("avatarUrl")?.asString()
 
             val request = call.receive<CreateMessageRequest>()
@@ -908,6 +1006,10 @@ fun io.ktor.server.routing.Route.chatRoutes(
                     section = request.section,
                     parentMessageId = request.parentMessageId
                 )
+                if (message == null) {
+                    return@post call.respond(HttpStatusCode.NotFound, mapOf("error" to "Parent message not found"))
+                }
+
                 val status = if (message.moderationStatus == ModerationStatus.PENDING_REVIEW) {
                     HttpStatusCode.Accepted
                 } else {
@@ -925,6 +1027,10 @@ fun io.ktor.server.routing.Route.chatRoutes(
 
         // Get a specific message
         get("messages/{messageId}") {
+            val eventId = call.parameters["eventId"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
             val messageId = call.parameters["messageId"] ?: return@get call.respond(
                 HttpStatusCode.BadRequest,
                 mapOf("error" to "Message ID required")
@@ -940,7 +1046,11 @@ fun io.ktor.server.routing.Route.chatRoutes(
             val message = chatService.getMessage(messageId)
 
             if (message != null) {
-                if (message.moderationStatus != ModerationStatus.APPROVED && message.senderId != userId) {
+                if (
+                    message.eventId != eventId ||
+                    (message.moderationStatus != ModerationStatus.APPROVED && message.senderId != userId) ||
+                    chatService.isBlockedForViewer(eventId, userId, message.senderId)
+                ) {
                     call.respond(HttpStatusCode.NotFound, mapOf("error" to "Message not found"))
                 } else {
                     call.respond(HttpStatusCode.OK, mapOf("message" to message))
@@ -952,6 +1062,10 @@ fun io.ktor.server.routing.Route.chatRoutes(
 
         // Update a message
         put("messages/{messageId}") {
+            val eventId = call.parameters["eventId"] ?: return@put call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
             val messageId = call.parameters["messageId"] ?: return@put call.respond(
                 HttpStatusCode.BadRequest,
                 mapOf("error" to "Message ID required")
@@ -967,7 +1081,7 @@ fun io.ktor.server.routing.Route.chatRoutes(
             val request = call.receive<CreateMessageRequest>()
 
             try {
-                val message = chatService.updateMessage(messageId, request.content, userId)
+                val message = chatService.updateMessage(eventId, messageId, request.content, userId)
 
                 if (message != null) {
                     call.respond(HttpStatusCode.OK, mapOf("message" to message))
@@ -984,6 +1098,10 @@ fun io.ktor.server.routing.Route.chatRoutes(
 
         // Delete a message
         delete("messages/{messageId}") {
+            val eventId = call.parameters["eventId"] ?: return@delete call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
             val messageId = call.parameters["messageId"] ?: return@delete call.respond(
                 HttpStatusCode.BadRequest,
                 mapOf("error" to "Message ID required")
@@ -997,7 +1115,7 @@ fun io.ktor.server.routing.Route.chatRoutes(
                 mapOf("error" to "Invalid user ID in token")
             )
 
-            val deleted = chatService.deleteMessage(messageId, userId)
+            val deleted = chatService.deleteMessage(eventId, messageId, userId)
 
             if (deleted) {
                 call.respond(HttpStatusCode.OK, mapOf("success" to true))
@@ -1008,11 +1126,23 @@ fun io.ktor.server.routing.Route.chatRoutes(
 
         // Get thread messages
         get("messages/{messageId}/replies") {
+            val eventId = call.parameters["eventId"] ?: return@get call.respond(
+                HttpStatusCode.BadRequest,
+                mapOf("error" to "Event ID required")
+            )
             val messageId = call.parameters["messageId"] ?: return@get call.respond(
                 HttpStatusCode.BadRequest,
                 mapOf("error" to "Message ID required")
             )
-            val messages = chatService.getThreadMessages(messageId)
+            val principal = call.principal<JWTPrincipal>() ?: return@get call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Authentication required")
+            )
+            val userId = principal.payload.getClaim("userId")?.asString() ?: return@get call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid user ID in token")
+            )
+            val messages = chatService.getThreadMessages(eventId, messageId, userId)
             call.respond(HttpStatusCode.OK, mapOf("messages" to messages))
         }
 
@@ -1036,8 +1166,12 @@ fun io.ktor.server.routing.Route.chatRoutes(
             )
             val request = call.receive<AddReactionRequest>()
 
-            chatService.addReaction(eventId, messageId, userId, request.emoji)
-            call.respond(HttpStatusCode.OK, mapOf("success" to true))
+            val added = chatService.addReaction(eventId, messageId, userId, request.emoji)
+            if (added) {
+                call.respond(HttpStatusCode.OK, mapOf("success" to true))
+            } else {
+                call.respond(HttpStatusCode.NotFound, mapOf("error" to "Message not found"))
+            }
         }
 
         // Remove reaction from a message
@@ -1063,8 +1197,12 @@ fun io.ktor.server.routing.Route.chatRoutes(
                 mapOf("error" to "Emoji required")
             )
 
-            chatService.removeReaction(eventId, messageId, userId, emoji)
-            call.respond(HttpStatusCode.OK, mapOf("success" to true))
+            val removed = chatService.removeReaction(eventId, messageId, userId, emoji)
+            if (removed) {
+                call.respond(HttpStatusCode.OK, mapOf("success" to true))
+            } else {
+                call.respond(HttpStatusCode.NotFound, mapOf("error" to "Message not found"))
+            }
         }
 
         // Mark message as read
@@ -1086,8 +1224,12 @@ fun io.ktor.server.routing.Route.chatRoutes(
                 mapOf("error" to "Invalid user ID in token")
             )
 
-            chatService.markAsRead(eventId, messageId, userId)
-            call.respond(HttpStatusCode.OK, mapOf("success" to true))
+            val marked = chatService.markAsRead(eventId, messageId, userId)
+            if (marked) {
+                call.respond(HttpStatusCode.OK, mapOf("success" to true))
+            } else {
+                call.respond(HttpStatusCode.NotFound, mapOf("error" to "Message not found"))
+            }
         }
 
         // Mark all messages as read
@@ -1133,7 +1275,7 @@ fun io.ktor.server.routing.Route.chatRoutes(
                 HttpStatusCode.Unauthorized,
                 mapOf("error" to "Invalid user ID in token")
             )
-            val userName = principal.payload.getClaim("userName")?.asString() ?: "Unknown"
+            val userName = principal.chatDisplayName(userId)
             val isTyping = call.request.queryParameters["typing"]?.toBoolean() ?: true
 
             chatService.setTypingStatus(eventId, userId, userName, isTyping)
@@ -1174,9 +1316,46 @@ fun io.ktor.server.routing.Route.chatRoutes(
             } catch (e: Exception) {
                 return@get call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Invalid section"))
             }
+            val principal = call.principal<JWTPrincipal>() ?: return@get call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Authentication required")
+            )
+            val userId = principal.payload.getClaim("userId")?.asString() ?: return@get call.respond(
+                HttpStatusCode.Unauthorized,
+                mapOf("error" to "Invalid user ID in token")
+            )
 
-            val messages = chatService.getMessagesBySection(eventId, section)
+            val messages = chatService.getMessagesBySection(eventId, section, userId)
             call.respond(HttpStatusCode.OK, mapOf("messages" to messages))
         }
     }
 }
+
+private fun JWTPrincipal.chatDisplayName(userId: String): String {
+    val userName = payload.getClaim("userName")?.asString()?.trim()
+    if (!userName.isNullOrEmpty()) return userName
+
+    val emailName = payload.getClaim("email")?.asString()
+        ?.trim()
+        ?.substringBefore("@")
+        ?.takeIf { it.isNotEmpty() }
+
+    return emailName ?: userId
+}
+
+internal fun parseChatMessageLimit(rawLimit: String?): Int {
+    val parsedLimit = rawLimit?.trim()?.toIntOrNull() ?: DEFAULT_CHAT_MESSAGE_LIMIT
+    return parsedLimit.coerceIn(MIN_CHAT_MESSAGE_LIMIT, MAX_CHAT_MESSAGE_LIMIT)
+}
+
+internal fun parseChatMessageOffset(rawOffset: String?): Int {
+    val parsedOffset = rawOffset?.trim()?.toIntOrNull() ?: DEFAULT_CHAT_MESSAGE_OFFSET
+    return parsedOffset.coerceIn(MIN_CHAT_MESSAGE_OFFSET, MAX_CHAT_MESSAGE_OFFSET)
+}
+
+private const val DEFAULT_CHAT_MESSAGE_LIMIT = 100
+private const val MIN_CHAT_MESSAGE_LIMIT = 1
+private const val MAX_CHAT_MESSAGE_LIMIT = 100
+private const val DEFAULT_CHAT_MESSAGE_OFFSET = 0
+private const val MIN_CHAT_MESSAGE_OFFSET = 0
+private const val MAX_CHAT_MESSAGE_OFFSET = 10_000

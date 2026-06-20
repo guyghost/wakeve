@@ -29,6 +29,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
 import kotlin.time.Duration.Companion.hours
@@ -507,6 +508,61 @@ class EventOrganizationPhase5ReadinessTest {
     }
 
     @Test
+    fun `Phase5 payment pot create normalizes trusted fields before persistence and sync`() {
+        seedEvent("phase5-payment-pot-normalized", EventStatus.ORGANIZING)
+        seedParticipant("phase5-payment-pot-normalized", "organizer-1", role = "ORGANIZER", confirmed = true)
+        val paymentPotRepository = PaymentPotRepository(database)
+
+        val pot = paymentPotRepository.createPot(
+            eventId = " phase5-payment-pot-normalized ",
+            organizerId = " organizer-1 ",
+            goalAmount = 480.0,
+            title = "  Weekend pot  ",
+            currency = " eur ",
+            paymentProvider = " tricount ",
+            tricountGroupId = " tricount-123 ",
+            tricountGroupUrl = "  https://tricount.com/group/weekend-pot  "
+        )
+
+        assertEquals("phase5-payment-pot-normalized", pot.eventId)
+        assertEquals("organizer-1", pot.organizerId)
+        assertEquals("Weekend pot", pot.title)
+        assertEquals("EUR", pot.currency)
+        assertEquals("TRICOUNT", pot.paymentProvider)
+        assertEquals("tricount-123", pot.tricountGroupId)
+        assertEquals("https://tricount.com/group/weekend-pot", pot.tricountGroupUrl)
+
+        val pendingSync = database.syncMetadataQueries.selectByEntity("payment_pot", pot.id).executeAsList()
+        assertTrue(pendingSync.any { it.payload.contains("\"eventId\":\"phase5-payment-pot-normalized\"") })
+        assertTrue(pendingSync.none { it.payload.contains(" phase5-payment-pot-normalized ") })
+    }
+
+    @Test
+    fun `Phase5 payment pot create rejects invalid direct repository values before persistence`() {
+        seedEvent("phase5-payment-pot-invalid-direct", EventStatus.ORGANIZING)
+        seedParticipant("phase5-payment-pot-invalid-direct", "organizer-1", role = "ORGANIZER", confirmed = true)
+        val paymentPotRepository = PaymentPotRepository(database)
+
+        listOf(
+            { paymentPotRepository.createPot("phase5-payment-pot-invalid-direct", "organizer-1", Double.POSITIVE_INFINITY, "Weekend pot") },
+            { paymentPotRepository.createPot("phase5-payment-pot-invalid-direct", "organizer-1", 120.0, "   ") },
+            { paymentPotRepository.createPot("phase5-payment-pot-invalid-direct", "organizer-1", 120.0, "Weekend pot", currency = "EURO") },
+            { paymentPotRepository.createPot("phase5-payment-pot-invalid-direct", "organizer-1", 120.0, "Weekend pot", paymentProvider = "PAYPAL") }
+        ).forEach { create ->
+            assertFailsWith<IllegalArgumentException> {
+                create()
+            }
+        }
+
+        assertNull(database.potQueries.selectActiveByEvent("phase5-payment-pot-invalid-direct").executeAsOneOrNull())
+        assertTrue(
+            database.syncMetadataQueries.selectPending().executeAsList()
+                .none { it.entityType == "payment_pot" && it.payload.contains("phase5-payment-pot-invalid-direct") },
+            "Invalid direct payment pot writes must not queue sync metadata."
+        )
+    }
+
+    @Test
     fun `Phase5 payment pot rejects non Tricount external provider links`() {
         seedEvent("phase5-payment-pot-provider-link", EventStatus.ORGANIZING)
         seedParticipant("phase5-payment-pot-provider-link", "organizer-1", role = "ORGANIZER", confirmed = true)
@@ -551,6 +607,83 @@ class EventOrganizationPhase5ReadinessTest {
             "Tricount not-needed decisions must queue replayable sync payload for offline replay."
         )
         tricountSync.forEach { assertReplayableSyncPayload(it.payload, it.retryState, it.retryCount) }
+    }
+
+    @Test
+    fun `Phase5 Tricount handoff normalizes direct writes before persistence and sync`() {
+        seedEvent("phase5-tricount-normalized", EventStatus.ORGANIZING)
+        seedParticipant("phase5-tricount-normalized", "organizer-1", role = "ORGANIZER", confirmed = true)
+        val tricountHandoffRepository = TricountHandoffRepository(database)
+
+        val linked = tricountHandoffRepository.linkHandoff(
+            eventId = " phase5-tricount-normalized ",
+            provider = " tricount ",
+            providerId = " tri-normalized ",
+            providerUrl = "  https://tricount.com/group/tri-normalized  ",
+            syncStatus = " synced "
+        )
+
+        assertEquals("phase5-tricount-normalized", linked.eventId)
+        assertEquals("TRICOUNT", linked.provider)
+        assertEquals("tri-normalized", linked.providerId)
+        assertEquals("https://tricount.com/group/tri-normalized", linked.providerUrl)
+        assertEquals("SYNCED", linked.syncStatus)
+        assertNotNull(linked.lastSyncAt)
+
+        val readiness = tricountHandoffRepository.getPaymentReadiness(" phase5-tricount-normalized ")
+        assertTrue(readiness.complete)
+        assertEquals("phase5-tricount-normalized", readiness.eventId)
+
+        val pendingSync = database.syncMetadataQueries
+            .selectByEntity("tricount_handoff", "phase5-tricount-normalized")
+            .executeAsList()
+        assertTrue(pendingSync.any { it.payload.contains("\"eventId\":\"phase5-tricount-normalized\"") })
+        assertTrue(pendingSync.none { it.payload.contains(" phase5-tricount-normalized ") })
+    }
+
+    @Test
+    fun `Phase5 Tricount handoff rejects invalid direct writes before persistence`() {
+        seedEvent("phase5-tricount-invalid-direct", EventStatus.ORGANIZING)
+        seedParticipant("phase5-tricount-invalid-direct", "organizer-1", role = "ORGANIZER", confirmed = true)
+        val tricountHandoffRepository = TricountHandoffRepository(database)
+
+        listOf(
+            {
+                tricountHandoffRepository.linkHandoff(
+                    eventId = "   ",
+                    provider = "TRICOUNT",
+                    providerId = "tri-invalid",
+                    providerUrl = "https://tricount.com/group/tri-invalid",
+                    syncStatus = "LINKED"
+                )
+            },
+            {
+                tricountHandoffRepository.linkHandoff(
+                    eventId = "phase5-tricount-invalid-direct",
+                    provider = "TRICOUNT",
+                    providerId = "   ",
+                    providerUrl = "https://tricount.com/group/tri-invalid",
+                    syncStatus = "LINKED"
+                )
+            },
+            {
+                tricountHandoffRepository.markNotNeeded(
+                    eventId = "phase5-tricount-invalid-direct",
+                    decidedBy = "   "
+                )
+            }
+        ).forEach { write ->
+            assertFailsWith<IllegalArgumentException> {
+                write()
+            }
+        }
+
+        assertNull(tricountHandoffRepository.getHandoff("phase5-tricount-invalid-direct"))
+        assertTrue(
+            database.syncMetadataQueries.selectPending().executeAsList()
+                .none { it.entityType == "tricount_handoff" && it.entityId == "phase5-tricount-invalid-direct" },
+            "Invalid direct Tricount handoff writes must not queue sync metadata."
+        )
     }
 
     @Test

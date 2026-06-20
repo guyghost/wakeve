@@ -15,6 +15,7 @@ import kotlin.test.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 
 class CommentNotificationServiceContractTest {
@@ -119,7 +120,9 @@ class CommentNotificationServiceContractTest {
         assertEquals(0L, pendingRetry.retryCount)
         assertContains(pendingRetry.payload, "\"commentId\":\"${comment.id}\"")
         assertContains(pendingRetry.payload, "\"notificationType\":\"COMMENT_POSTED\"")
-        assertContains(pendingRetry.payload, "comment delivery failed")
+        assertContains(pendingRetry.payload, commentNotificationRetryFailureMessage())
+        assertFalse(pendingRetry.payload.contains("comment delivery failed"))
+        assertFalse(pendingRetry.payload.contains("token=", ignoreCase = true))
     }
 
     @Test

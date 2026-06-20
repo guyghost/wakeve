@@ -90,6 +90,24 @@ class PollViewModelAndroidUnitTest {
     }
 
     @Test
+    fun submitVotesUsesGenericMessageWhenRepositoryFails() = runTest {
+        val event = testEvent(listOf("slot-1"))
+        repository.addVoteFailure = IllegalStateException(
+            "SQL constraint failed for user secret@example.com token=SECRET"
+        )
+
+        viewModel.selectVote("slot-1", Vote.YES)
+        viewModel.submitVotes(event, participantId = "participant-42", onSuccess = {})
+        advanceUntilIdle()
+
+        assertEquals(pollVoteSubmissionFailureMessage(), viewModel.errorMessage.value)
+        assertFalse(viewModel.hasSubmitted.value)
+        assertLastErrorContextDoesNotExpose("secret@example.com")
+        assertLastErrorContextDoesNotExpose("SECRET")
+        assertLastErrorContextDoesNotExpose("SQL constraint")
+    }
+
+    @Test
     fun confirmFinalDateRequiresSelectedSlot() = runTest {
         val event = testEvent(listOf("slot-1"))
 
@@ -98,6 +116,22 @@ class PollViewModelAndroidUnitTest {
 
         assertEquals("Select a time slot before confirming", viewModel.confirmationError.value)
         assertTrue(repository.statusUpdates.isEmpty())
+    }
+
+    @Test
+    fun confirmFinalDateShowsStableOrganizerRequiredMessage() = runTest {
+        val event = testEvent(listOf("slot-1"))
+
+        viewModel.selectFinalSlot("slot-1")
+        viewModel.confirmFinalDate(event, userId = "participant-42", onSuccess = {})
+        advanceUntilIdle()
+
+        assertEquals(finalDateOrganizerRequiredMessage(), viewModel.confirmationError.value)
+        assertTrue(repository.statusUpdates.isEmpty())
+        assertEquals(
+            finalDateOrganizerRequiredAnalyticsContext(),
+            analyticsProvider.events.filterIsInstance<AnalyticsEvent.ErrorOccurred>().last().errorContext
+        )
     }
 
     @Test
@@ -119,6 +153,36 @@ class PollViewModelAndroidUnitTest {
         assertTrue(successCalled)
         assertTrue(viewModel.hasConfirmedFinalDate.value)
         assertFalse(viewModel.isConfirmingFinalDate.value)
+    }
+
+    @Test
+    fun confirmFinalDateUsesGenericMessageWhenRepositoryFails() = runTest {
+        val event = testEvent(listOf("slot-1"))
+        repository.organizerIds += "organizer"
+        repository.updateStatusFailure = IllegalStateException(
+            "Backend 500 while confirming event-1 for secret@example.com token=SECRET"
+        )
+
+        viewModel.selectFinalSlot("slot-1")
+        viewModel.confirmFinalDate(event, userId = "organizer", onSuccess = {})
+        advanceUntilIdle()
+
+        assertEquals(finalDateConfirmationFailureMessage(), viewModel.confirmationError.value)
+        assertFalse(viewModel.hasConfirmedFinalDate.value)
+        assertLastErrorContextDoesNotExpose("secret@example.com")
+        assertLastErrorContextDoesNotExpose("SECRET")
+        assertLastErrorContextDoesNotExpose("Backend 500")
+    }
+
+    @Test
+    fun pollErrorHelpersUseStableCopyAndContexts() {
+        assertEquals("Impossible d'enregistrer vos votes. Réessayez.", pollVoteSubmissionFailureMessage())
+        assertEquals("Impossible de confirmer la date finale. Réessayez.", finalDateConfirmationFailureMessage())
+        assertEquals("Seul l'organisateur peut confirmer la date finale.", finalDateOrganizerRequiredMessage())
+        assertEquals("vote_submission_failed", pollVoteFailureAnalyticsContext())
+        assertEquals("poll_close_failed", pollCloseFailureAnalyticsContext())
+        assertEquals("final_date_confirmation_failed", finalDateConfirmationFailureAnalyticsContext())
+        assertEquals("organizer_required", finalDateOrganizerRequiredAnalyticsContext())
     }
 
     private fun testEvent(slotIds: List<String>): Event =
@@ -159,6 +223,8 @@ class PollViewModelAndroidUnitTest {
         val addedVotes = mutableListOf<AddedVote>()
         val statusUpdates = mutableListOf<StatusUpdate>()
         val organizerIds = mutableSetOf<String>()
+        var addVoteFailure: Throwable? = null
+        var updateStatusFailure: Throwable? = null
 
         override suspend fun createEvent(event: Event): Result<Event> = Result.success(event)
         override fun getEvent(id: String): Event? = null
@@ -172,12 +238,14 @@ class PollViewModelAndroidUnitTest {
             slotId: String,
             vote: Vote
         ): Result<Boolean> {
+            addVoteFailure?.let { return Result.failure(it) }
             addedVotes += AddedVote(eventId, participantId, slotId, vote)
             return Result.success(true)
         }
 
         override suspend fun updateEvent(event: Event): Result<Event> = Result.success(event)
         override suspend fun updateEventStatus(id: String, status: EventStatus, finalDate: String?): Result<Boolean> {
+            updateStatusFailure?.let { return Result.failure(it) }
             statusUpdates += StatusUpdate(id, status, finalDate)
             return Result.success(true)
         }
@@ -206,6 +274,14 @@ class PollViewModelAndroidUnitTest {
         override fun setUserId(userId: String?) = Unit
         override fun setEnabled(enabled: Boolean) = Unit
         override fun clearUserData() = Unit
+    }
+
+    private fun assertLastErrorContextDoesNotExpose(value: String) {
+        val lastError = analyticsProvider.events.filterIsInstance<AnalyticsEvent.ErrorOccurred>().last()
+        assertFalse(
+            lastError.errorContext?.contains(value, ignoreCase = true) == true,
+            "Analytics error context should not expose `$value`: ${lastError.errorContext}"
+        )
     }
 
     private companion object {

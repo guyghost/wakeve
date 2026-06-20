@@ -26,10 +26,11 @@ class InvitationDeepLinkProcessingContractTest {
 
         assertTrue(
             source.contains("DeepLinkStateManager.pendingInviteCode.collectAsState()") &&
-                source.contains("invitationDeepLinkService.acceptInvitation(inviteCode)") &&
-                source.contains("InvitationDeepLinkAcceptanceResult.Accepted") &&
+                source.contains("invitationDeepLinkService.acceptInvitation(input.code)") &&
+                source.contains("pendingInviteProcessingResult") &&
+                source.contains("action.acceptedEventId") &&
                 source.contains("DeepLinkStateManager.clearPendingInviteCode()") &&
-                source.contains("Screen.EventDetail.createRoute(result.eventId)"),
+                source.contains("Screen.EventDetail.createRoute(action.acceptedEventId)"),
             "Pending invitation codes must be accepted by the server, then cleared and routed to the joined event only on success."
         )
     }
@@ -43,10 +44,12 @@ class InvitationDeepLinkProcessingContractTest {
         assertTrue(
             source.contains("/api/invite/") &&
                 source.contains("/accept") &&
+                source.contains("normalizeInvitationAcceptanceCode(code)") &&
+                source.contains("normalizeInvitationAcceptanceEventId(body.eventId)") &&
                 source.contains("Authorization") &&
                 source.contains("Bearer $") &&
                 source.contains("InvitationDeepLinkAcceptanceResult.Accepted"),
-            "Android invitation deep link service must call the authenticated server accept endpoint before reporting success."
+            "Android invitation deep link service must call the authenticated server accept endpoint and normalize accepted event ids before reporting success."
         )
         assertTrue(
             source.contains("AuthenticationRequired") &&

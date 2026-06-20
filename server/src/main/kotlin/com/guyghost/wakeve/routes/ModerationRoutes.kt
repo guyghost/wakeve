@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.routes
 
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.moderation.ModerationAuditOutcome
 import com.guyghost.wakeve.moderation.ModerationDecisionAction
 import com.guyghost.wakeve.moderation.ModerationRepository
@@ -18,7 +19,8 @@ import kotlinx.serialization.Serializable
 import java.util.UUID
 
 fun io.ktor.server.routing.Route.moderationRoutes(
-    moderationRepository: ModerationRepository
+    moderationRepository: ModerationRepository,
+    database: WakeveDb
 ) {
     route("/moderation") {
         post("/reports") {
@@ -27,12 +29,25 @@ fun io.ktor.server.routing.Route.moderationRoutes(
                 mapOf("error" to "Authentication required")
             )
             val request = call.receive<CreateContentReportRequest>()
+            val eventId = request.eventId?.trim()?.takeIf { it.isNotBlank() }
+            if (eventId != null && !hasModerationEventAccess(database, eventId, userId)) {
+                return@post call.respond(
+                    HttpStatusCode.Forbidden,
+                    mapOf("error" to "You cannot report content for this event")
+                )
+            }
+            if (request.targetType == ReportTarget.EVENT && eventId != null && request.targetId != eventId) {
+                return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "Event reports must target the scoped event")
+                )
+            }
             val report = moderationRepository.createReport(
                 id = "report-${UUID.randomUUID()}",
                 reporterId = userId,
                 targetType = request.targetType,
                 targetId = request.targetId,
-                eventId = request.eventId,
+                eventId = eventId,
                 reason = request.reason,
                 details = request.details
             )
@@ -55,11 +70,32 @@ fun io.ktor.server.routing.Route.moderationRoutes(
                 mapOf("error" to "Authentication required")
             )
             val request = call.receive<CreateUserBlockRequest>()
+            val eventId = request.eventId?.trim()?.takeIf { it.isNotBlank() }
+            if (request.blockedUserId == userId) {
+                return@post call.respond(
+                    HttpStatusCode.BadRequest,
+                    mapOf("error" to "You cannot block yourself")
+                )
+            }
+            if (eventId != null) {
+                if (!hasModerationEventAccess(database, eventId, userId)) {
+                    return@post call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You cannot block users for this event")
+                    )
+                }
+                if (!hasModerationEventAccess(database, eventId, request.blockedUserId)) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Blocked user is not part of this event")
+                    )
+                }
+            }
             val block = moderationRepository.blockUser(
                 id = "block-${UUID.randomUUID()}",
                 blockerUserId = userId,
                 blockedUserId = request.blockedUserId,
-                eventId = request.eventId,
+                eventId = eventId,
                 reason = request.reason
             )
 
@@ -151,6 +187,14 @@ data class CreateModerationDecisionRequest(
 
 private fun io.ktor.server.application.ApplicationCall.authenticatedUserId(): String? =
     principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+
+private fun hasModerationEventAccess(database: WakeveDb, eventId: String, userId: String): Boolean {
+    val event = database.eventQueries.selectById(eventId).executeAsOneOrNull() ?: return false
+    if (event.organizerId == userId) return true
+    return database.participantQueries
+        .selectByEventIdAndUserId(eventId, userId)
+        .executeAsOneOrNull() != null
+}
 
 private fun JWTPrincipal.canModerate(): Boolean {
     val role = payload.getClaim("role")?.asString()

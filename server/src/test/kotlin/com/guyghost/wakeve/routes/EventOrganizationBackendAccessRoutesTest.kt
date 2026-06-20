@@ -311,6 +311,83 @@ class EventOrganizationBackendAccessRoutesTest {
     }
 
     @Test
+    fun `organizer cannot add blank participant or mismatched event participant body`() = testApplication {
+        val fixture = createFixture(status = EventStatus.DRAFT)
+        val organizerToken = createTestJwt(fixture.organizerId)
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val blankParticipant = client.post("/api/events/${fixture.eventId}/participants") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                """
+                {
+                  "eventId": "${fixture.eventId}",
+                  "participantId": "   "
+                }
+                """.trimIndent()
+            )
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, blankParticipant.status, blankParticipant.bodyAsText())
+
+        val mismatchedEvent = client.post("/api/events/${fixture.eventId}/participants") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                """
+                {
+                  "eventId": "another-event",
+                  "participantId": "new-participant"
+                }
+                """.trimIndent()
+            )
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, mismatchedEvent.status, mismatchedEvent.bodyAsText())
+    }
+
+    @Test
+    fun `organizer receives routable web and mobile invitation links`() = testApplication {
+        val fixture = createFixture()
+        val organizerToken = createTestJwt(fixture.organizerId)
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val response = client.post("/api/events/${fixture.eventId}/invite") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody("""{"maxUses":5}""")
+        }
+
+        assertEquals(HttpStatusCode.Created, response.status, response.bodyAsText())
+        val body = json.parseToJsonElement(response.bodyAsText()).jsonObject
+        val code = body["code"]?.jsonPrimitive?.content
+
+        assertNotNull(code)
+        assertEquals(fixture.eventId, body["eventId"]?.jsonPrimitive?.content)
+        assertEquals("https://wakeve.app/invite/$code", body["inviteUrl"]?.jsonPrimitive?.content)
+        assertEquals("wakeve://invite/$code", body["deepLinkUrl"]?.jsonPrimitive?.content)
+    }
+
+    @Test
     fun `non organizer cannot create invitation link for event`() = testApplication {
         val fixture = createFixture()
         val nonOrganizerToken = createTestJwt(fixture.pendingUserId)
@@ -336,6 +413,230 @@ class EventOrganizationBackendAccessRoutesTest {
             response.status,
             "Only the event organizer should be able to create shareable invitation links"
         )
+    }
+
+    @Test
+    fun `malformed event id cannot create invitation link`() = testApplication {
+        val fixture = createFixture()
+        val organizerToken = createTestJwt(fixture.organizerId)
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val response = client.post("/api/events/${fixture.eventId}%3Finvite=true/invite") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody("{}")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        assertEquals(
+            1,
+            fixture.database.invitationQueries.selectByEventId(fixture.eventId).executeAsList().size,
+            "Malformed create-invitation event ids must not create extra invitation records"
+        )
+    }
+
+    @Test
+    fun `encoded delimiter event id cannot create invitation link`() = testApplication {
+        val fixture = createFixture()
+        val organizerToken = createTestJwt(fixture.organizerId)
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val response = client.post("/api/events/${fixture.eventId}%252Fother/invite") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody("{}")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        assertEquals(
+            1,
+            fixture.database.invitationQueries.selectByEventId(fixture.eventId).executeAsList().size,
+            "Encoded-delimiter event ids must not create extra invitation records"
+        )
+    }
+
+    @Test
+    fun `organizer cannot create invitation link with invalid expiry or usage limits`() = testApplication {
+        val fixture = createFixture()
+        val organizerToken = createTestJwt(fixture.organizerId)
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val invalidMaxUsesResponse = client.post("/api/events/${fixture.eventId}/invite") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody("""{"maxUses":0}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, invalidMaxUsesResponse.status)
+        assertTrue(invalidMaxUsesResponse.bodyAsText().contains("maxUses"))
+
+        val invalidExpiryResponse = client.post("/api/events/${fixture.eventId}/invite") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody("""{"expiresAt":"not-a-date"}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, invalidExpiryResponse.status)
+        assertTrue(invalidExpiryResponse.bodyAsText().contains("expiresAt"))
+
+        val pastExpiryResponse = client.post("/api/events/${fixture.eventId}/invite") {
+            header(HttpHeaders.Authorization, "Bearer $organizerToken")
+            contentType(ContentType.Application.Json)
+            setBody("""{"expiresAt":"2000-01-01T00:00:00Z"}""")
+        }
+        assertEquals(HttpStatusCode.BadRequest, pastExpiryResponse.status)
+        assertTrue(pastExpiryResponse.bodyAsText().contains("future"))
+    }
+
+    @Test
+    fun `corrupted invitation expiry does not expose event details and accepts as invalid`() = testApplication {
+        val fixture = createFixture(invitationExpiresAt = "not-a-date")
+        val participantToken = createTestJwt(fixture.pendingUserId)
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val resolveResponse = client.get("/api/invite/${fixture.invitationCode}")
+        val resolveBody = resolveResponse.bodyAsText()
+        assertEquals(HttpStatusCode.Gone, resolveResponse.status)
+        assertTrue(resolveBody.contains("\"isValid\": false"))
+        assertTrue(!resolveBody.contains(fixture.eventId), "Invalid public invitation previews must not expose event IDs")
+        assertTrue(!resolveBody.contains("Weekend Organization"), "Invalid public invitation previews must not expose event titles")
+
+        val acceptResponse = client.post("/api/invite/${fixture.invitationCode}/accept") {
+            header(HttpHeaders.Authorization, "Bearer $participantToken")
+        }
+
+        assertEquals(
+            HttpStatusCode.Gone,
+            acceptResponse.status,
+            "Invalid persisted invitation expiry must not be accepted via lexicographic comparison"
+        )
+    }
+
+    @Test
+    fun `exhausted invitation resolve does not expose event details`() = testApplication {
+        val fixture = createFixture(invitationMaxUses = 1, invitationCurrentUses = 1)
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val response = client.get("/api/invite/${fixture.invitationCode}")
+        val body = response.bodyAsText()
+
+        assertEquals(HttpStatusCode.Gone, response.status, body)
+        assertTrue(body.contains("\"isValid\": false"))
+        assertTrue(!body.contains(fixture.eventId), "Exhausted public invitation previews must not expose event IDs")
+        assertTrue(!body.contains("Weekend Organization"), "Exhausted public invitation previews must not expose event titles")
+    }
+
+    @Test
+    fun `malformed invitation code resolve is rejected before event preview`() = testApplication {
+        val fixture = createFixture()
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val response = client.get("/api/invite/${fixture.invitationCode}%3Fadmin=true")
+        val body = response.bodyAsText()
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, body)
+        assertTrue(!body.contains(fixture.eventId), "Malformed invitation codes must not expose event IDs")
+        assertTrue(!body.contains("Weekend Organization"), "Malformed invitation codes must not expose event titles")
+    }
+
+    @Test
+    fun `encoded delimiter invitation code resolve is rejected before event preview`() = testApplication {
+        val fixture = createFixture()
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val response = client.get("/api/invite/${fixture.invitationCode}%252Fother")
+        val body = response.bodyAsText()
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, body)
+        assertTrue(!body.contains(fixture.eventId), "Encoded-delimiter invitation codes must not expose event IDs")
+        assertTrue(!body.contains("Weekend Organization"), "Encoded-delimiter invitation codes must not expose event titles")
+    }
+
+    @Test
+    fun `malformed invitation code accept is rejected before joining participant`() = testApplication {
+        val fixture = createFixture()
+        val participantToken = createTestJwt(fixture.pendingUserId)
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val response = client.post("/api/invite/${fixture.invitationCode}%23fragment/accept") {
+            header(HttpHeaders.Authorization, "Bearer $participantToken")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        val participant = fixture.database.participantQueries
+            .selectByEventIdAndUserId(fixture.eventId, fixture.pendingUserId)
+            .executeAsOneOrNull()
+        assertEquals(null, participant)
     }
 
     @Test
@@ -452,6 +753,49 @@ class EventOrganizationBackendAccessRoutesTest {
     }
 
     @Test
+    fun `participant rsvp with invalid attendance is rejected and does not validate date`() = testApplication {
+        val fixture = createFixture()
+        val participantToken = createTestJwt(fixture.pendingUserId)
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        client.post("/api/invite/${fixture.invitationCode}/accept") {
+            header(HttpHeaders.Authorization, "Bearer $participantToken")
+        }
+
+        val response = client.post(
+            "/api/events/${fixture.eventId}/participants/${fixture.pendingUserId}/rsvp"
+        ) {
+            header(HttpHeaders.Authorization, "Bearer $participantToken")
+            contentType(ContentType.Application.Json)
+            setBody(
+                """
+                {
+                  "slotId": "${fixture.finalSlotId}",
+                  "attendance": "YES_PLEASE"
+                }
+                """.trimIndent()
+            )
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+
+        val participant = fixture.database.participantQueries
+            .selectByEventIdAndUserId(fixture.eventId, fixture.pendingUserId)
+            .executeAsOne()
+
+        assertEquals(0L, participant.hasValidatedDate)
+    }
+
+    @Test
     fun `participant rsvp without confirmed final slot is rejected and does not validate date`() = testApplication {
         val fixture = createFixture(confirmFinalSlot = false)
         val participantToken = createTestJwt(fixture.pendingUserId)
@@ -501,7 +845,8 @@ class EventOrganizationBackendAccessRoutesTest {
         status: EventStatus = EventStatus.ORGANIZING,
         confirmFinalSlot: Boolean = true,
         invitationMaxUses: Int? = null,
-        invitationCurrentUses: Int = 0
+        invitationCurrentUses: Int = 0,
+        invitationExpiresAt: String? = null
     ): BackendAccessFixture {
         val database = DatabaseProvider.getDatabase(JvmDatabaseFactory(":memory:"))
         val eventRepository = DatabaseEventRepository(database)
@@ -548,6 +893,7 @@ class EventOrganizationBackendAccessRoutesTest {
                 code = invitationCode,
                 eventId = eventId,
                 createdBy = organizerId,
+                expiresAt = invitationExpiresAt,
                 maxUses = invitationMaxUses,
                 currentUses = invitationCurrentUses,
                 createdAt = now

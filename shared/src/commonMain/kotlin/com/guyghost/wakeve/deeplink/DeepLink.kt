@@ -2,6 +2,24 @@ package com.guyghost.wakeve.deeplink
 
 import kotlinx.serialization.Serializable
 
+internal fun normalizeDeepLinkPathParameter(value: String, fieldName: String): String {
+    val normalized = value.trim()
+    val lowercase = normalized.lowercase()
+    require(normalized.isNotEmpty()) { "$fieldName cannot be blank" }
+    require(!normalized.contains("/")) { "$fieldName cannot contain '/'" }
+    require(!normalized.contains("?") && !normalized.contains("#")) {
+        "$fieldName cannot contain URI delimiters"
+    }
+    require(
+        !lowercase.contains("%2f") &&
+            !lowercase.contains("%3f") &&
+            !lowercase.contains("%23")
+    ) {
+        "$fieldName cannot contain encoded URI delimiters"
+    }
+    return normalized
+}
+
 /**
  * Represents a deep link within the Wakeve application.
  *
@@ -271,7 +289,7 @@ enum class DeepLinkRoute(
     ): String {
         var resolvedPath = pattern
         pathParams.forEach { (key, value) ->
-            resolvedPath = resolvedPath.replace("{$key}", value)
+            resolvedPath = resolvedPath.replace("{$key}", normalizeDeepLinkPathParameter(value, key))
         }
 
         val queryString = if (queryParams.isNotEmpty()) {
@@ -313,5 +331,6 @@ enum class DeepLinkRoute(
                 .replace("=", "%3D")
                 .replace(" ", "%20")
         }
+
     }
 }

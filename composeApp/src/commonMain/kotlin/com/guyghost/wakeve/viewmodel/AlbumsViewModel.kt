@@ -94,7 +94,7 @@ class AlbumsViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Erreur lors du chargement des albums"
+                        error = albumListFailureMessage()
                     )
                 }
             }
@@ -147,7 +147,7 @@ class AlbumsViewModel(
                 _uiState.update {
                     it.copy(
                         isSearching = false,
-                        error = e.message ?: "Erreur lors de la recherche"
+                        error = albumSearchFailureMessage()
                     )
                 }
             }
@@ -179,7 +179,7 @@ class AlbumsViewModel(
                 _uiState.update {
                     it.copy(
                         isLoadingDetails = false,
-                        error = e.message ?: "Erreur lors du chargement de l'album"
+                        error = albumDetailFailureMessage()
                     )
                 }
             }
@@ -228,7 +228,7 @@ class AlbumsViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Erreur lors de la création de l'album"
+                        error = albumCreateFailureMessage()
                     )
                 }
             }
@@ -263,7 +263,7 @@ class AlbumsViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Erreur lors de la création de l'album"
+                        error = albumCreateFailureMessage()
                     )
                 }
             }
@@ -292,7 +292,7 @@ class AlbumsViewModel(
                 _uiState.update {
                     it.copy(
                         isLoading = false,
-                        error = e.message ?: "Erreur lors de la suppression de l'album"
+                        error = albumDeleteFailureMessage()
                     )
                 }
             }
@@ -319,7 +319,7 @@ class AlbumsViewModel(
                 }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(error = e.message ?: "Erreur lors de la mise à jour de la couverture")
+                    it.copy(error = albumCoverUpdateFailureMessage())
                 }
             }
         }
@@ -398,7 +398,7 @@ class AlbumsViewModel(
                 _uiState.update { it.copy(sharingSuggestions = suggestions) }
             } catch (e: Exception) {
                 _uiState.update {
-                    it.copy(error = e.message ?: "Erreur lors de la génération des suggestions")
+                    it.copy(error = albumSharingSuggestionFailureMessage())
                 }
             }
         }
@@ -453,3 +453,25 @@ data class SearchResult(
     val relevanceScore: Double,
     val matchedTags: List<String>
 )
+
+internal fun albumListFailureMessage(): String = "Impossible de charger les albums. Réessayez."
+
+internal fun albumSearchFailureMessage(): String = "Impossible de rechercher dans les photos. Réessayez."
+
+internal fun albumDetailFailureMessage(): String = "Impossible d'ouvrir cet album. Réessayez."
+
+internal fun albumCreateFailureMessage(): String = "Impossible de créer l'album. Réessayez."
+
+internal fun albumUpdateFailureMessage(): String = "Impossible de mettre à jour l'album. Réessayez."
+
+internal fun albumDeleteFailureMessage(): String = "Impossible de supprimer l'album. Réessayez."
+
+internal fun albumCoverUpdateFailureMessage(): String = "Impossible de mettre à jour la couverture. Réessayez."
+
+internal fun albumFavoriteUpdateFailureMessage(): String = "Impossible de modifier ce favori. Réessayez."
+
+internal fun albumAddPhotosFailureMessage(): String = "Impossible d'ajouter les photos à l'album. Réessayez."
+
+internal fun albumRemovePhotosFailureMessage(): String = "Impossible de retirer les photos de l'album. Réessayez."
+
+internal fun albumSharingSuggestionFailureMessage(): String = "Impossible de préparer les suggestions de partage. Réessayez."

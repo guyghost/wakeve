@@ -36,11 +36,12 @@ class InvitationShareServerContractTest {
         assertTrue(
             source.contains("/api/events/") &&
                 source.contains("/invite") &&
+                source.contains("normalizeInvitationShareEventId(eventId)") &&
                 source.contains("Authorization") &&
                 source.contains("Bearer $") &&
                 source.contains("CreateInvitationRequest()") &&
                 source.contains("InvitationShareCreationResult.Created"),
-            "Android invitation share service must call the authenticated backend create-invitation endpoint."
+            "Android invitation share service must normalize event ids before calling the authenticated backend create-invitation endpoint."
         )
     }
 
@@ -52,7 +53,7 @@ class InvitationShareServerContractTest {
 
         assertTrue(
             source.contains("invitationCode: String?") &&
-                source.contains("val inviteUrl = invitationCode?.let") &&
+                source.contains("val inviteUrl = createInviteUrl(invitationCode)") &&
                 source.contains("if (inviteUrl != null)") &&
                 source.contains("enabled = inviteUrl != null && !isLoading"),
             "Invitation share screen must not expose copy/share/QR affordances before a backend code exists."

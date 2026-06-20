@@ -354,8 +354,8 @@ class BudgetRepository(private val db: WakeveDb) {
         val item = getBudgetItemById(itemId)
             ?: throw IllegalArgumentException("Budget item not found: $itemId")
         
-        if (actualCost <= 0.0) {
-            throw IllegalArgumentException("Actual cost must be positive")
+        if (!actualCost.isFinite() || actualCost <= 0.0) {
+            throw IllegalArgumentException("Actual cost must be finite and positive")
         }
         
         val now = getCurrentUtcIsoString()

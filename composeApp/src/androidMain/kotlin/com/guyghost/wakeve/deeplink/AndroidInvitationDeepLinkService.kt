@@ -11,7 +11,6 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.header
 import io.ktor.client.request.post
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -21,6 +20,35 @@ sealed class InvitationDeepLinkAcceptanceResult {
     data class AuthenticationRequired(val message: String) : InvitationDeepLinkAcceptanceResult()
     data class Rejected(val message: String) : InvitationDeepLinkAcceptanceResult()
     data class RetryableFailure(val message: String) : InvitationDeepLinkAcceptanceResult()
+}
+
+internal fun normalizeInvitationAcceptanceCode(code: String?): String? {
+    return normalizeDeepLinkPathSegment(code)
+}
+
+internal fun normalizeInvitationAcceptanceEventId(eventId: String?): String? {
+    return normalizeDeepLinkPathSegment(eventId)
+}
+
+internal fun invitationAcceptanceRejectedMessage(status: HttpStatusCode): String {
+    return when (status) {
+        HttpStatusCode.BadRequest -> "Lien d'invitation invalide."
+        HttpStatusCode.NotFound,
+        HttpStatusCode.Gone -> "Invitation invalide ou expirée."
+        else -> "Invitation invalide ou expirée."
+    }
+}
+
+internal fun invitationAcceptanceRetryableFailureMessage(): String {
+    return "Impossible de rejoindre l'événement pour le moment. Réessayez plus tard."
+}
+
+internal fun invitationAcceptanceSuccessMessage(): String {
+    return "Invitation acceptée."
+}
+
+internal fun invitationAcceptanceRejectedByServerMessage(): String {
+    return "Invitation invalide ou expirée."
 }
 
 class AndroidInvitationDeepLinkService(
@@ -35,13 +63,16 @@ class AndroidInvitationDeepLinkService(
     private val tokenStorage by lazy { AndroidSecureTokenStorage(context.applicationContext) }
 
     suspend fun acceptInvitation(code: String): InvitationDeepLinkAcceptanceResult {
+        val normalizedCode = normalizeInvitationAcceptanceCode(code)
+            ?: return InvitationDeepLinkAcceptanceResult.Rejected("Lien d'invitation invalide.")
+
         val accessToken = tokenStorage.getAccessToken()
             ?: return InvitationDeepLinkAcceptanceResult.AuthenticationRequired(
                 "Connectez-vous pour accepter cette invitation."
             )
 
         return try {
-            val response = httpClient.post("${baseUrl.trimEnd('/')}/api/invite/${Uri.encode(code)}/accept") {
+            val response = httpClient.post("${baseUrl.trimEnd('/')}/api/invite/${Uri.encode(normalizedCode)}/accept") {
                 header("Authorization", "Bearer $accessToken")
             }
 
@@ -49,12 +80,15 @@ class AndroidInvitationDeepLinkService(
                 HttpStatusCode.OK -> {
                     val body = response.body<InvitationAcceptResponse>()
                     if (body.success) {
+                        val acceptedEventId = normalizeInvitationAcceptanceEventId(body.eventId)
+                            ?: return InvitationDeepLinkAcceptanceResult.Rejected("Réponse d'invitation invalide.")
+
                         InvitationDeepLinkAcceptanceResult.Accepted(
-                            eventId = body.eventId,
-                            message = body.message
+                            eventId = acceptedEventId,
+                            message = invitationAcceptanceSuccessMessage()
                         )
                     } else {
-                        InvitationDeepLinkAcceptanceResult.Rejected(body.message)
+                        InvitationDeepLinkAcceptanceResult.Rejected(invitationAcceptanceRejectedByServerMessage())
                     }
                 }
                 HttpStatusCode.Unauthorized -> InvitationDeepLinkAcceptanceResult.AuthenticationRequired(
@@ -63,15 +97,15 @@ class AndroidInvitationDeepLinkService(
                 HttpStatusCode.BadRequest,
                 HttpStatusCode.NotFound,
                 HttpStatusCode.Gone -> InvitationDeepLinkAcceptanceResult.Rejected(
-                    response.bodyAsText().ifBlank { "Invitation invalide ou expirée." }
+                    invitationAcceptanceRejectedMessage(response.status)
                 )
                 else -> InvitationDeepLinkAcceptanceResult.RetryableFailure(
-                    "Impossible de rejoindre l'événement pour le moment. Réessayez plus tard."
+                    invitationAcceptanceRetryableFailureMessage()
                 )
             }
         } catch (e: Exception) {
             InvitationDeepLinkAcceptanceResult.RetryableFailure(
-                e.message ?: "Impossible de rejoindre l'événement pour le moment."
+                invitationAcceptanceRetryableFailureMessage()
             )
         }
     }

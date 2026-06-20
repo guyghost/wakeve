@@ -103,6 +103,28 @@ class EventOrganizationPhase2BackendRoutesTest {
     }
 
     @Test
+    fun `poll votes are visible to participants but hidden from non members`() = testApplication {
+        val fixture = createFixture("poll-read-access", status = EventStatus.POLLING, seedVote = true)
+        val participantToken = createTestJwt(fixture.participantId)
+        val nonMemberToken = createTestJwt(fixture.nonMemberId)
+        val client = createJsonClient()
+
+        application {
+            module(fixture.database, fixture.eventRepository)
+        }
+
+        val participantRead = client.get("/api/events/${fixture.eventId}/poll") {
+            header(HttpHeaders.Authorization, "Bearer $participantToken")
+        }
+        val nonMemberRead = client.get("/api/events/${fixture.eventId}/poll") {
+            header(HttpHeaders.Authorization, "Bearer $nonMemberToken")
+        }
+
+        assertEquals(HttpStatusCode.OK, participantRead.status, participantRead.bodyAsText())
+        assertEquals(HttpStatusCode.Forbidden, nonMemberRead.status, nonMemberRead.bodyAsText())
+    }
+
+    @Test
     fun `organizer can confirm an existing voted slot`() = testApplication {
         val fixture = createFixture("confirm-allowed", status = EventStatus.POLLING, seedVote = true)
         val organizerToken = createTestJwt(fixture.organizerId)

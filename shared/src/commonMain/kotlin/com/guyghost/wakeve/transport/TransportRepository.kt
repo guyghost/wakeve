@@ -67,11 +67,12 @@ class TransportRepository(
     ): Result<DepartureLocationRecord> = runCatching {
         requireMutableTransportWorkflow(eventId)
         requireCanSaveDepartureLocation(eventId, participantId, updatedByUserId)
+        val normalizedLocation = location.normalizedAndValidated()
         val now = now()
         transportQueries.upsertDepartureLocation(
             event_id = eventId,
             participant_id = participantId,
-            location_json = json.encodeToString(location),
+            location_json = json.encodeToString(normalizedLocation),
             updated_by_user_id = updatedByUserId,
             updated_at = now
         )
@@ -82,7 +83,7 @@ class TransportRepository(
             operation = "UPSERT",
             timestamp = now
         )
-        DepartureLocationRecord(eventId, participantId, location, updatedByUserId, now)
+        DepartureLocationRecord(eventId, participantId, normalizedLocation, updatedByUserId, now)
     }
 
     fun getDepartureLocation(eventId: String, participantId: String): DepartureLocationRecord? {
@@ -126,8 +127,9 @@ class TransportRepository(
     ): Result<TransportPlan> = runCatching {
         requireMutableTransportWorkflow(eventId)
         requireOrganizer(eventId, generatedByUserId)
-        requireRealSelectedDestination(destination)
-        val readiness = getReadiness(eventId, destination)
+        val normalizedDestination = destination.normalizedAndValidated()
+        requireRealSelectedDestination(normalizedDestination)
+        val readiness = getReadiness(eventId, normalizedDestination)
         require(readiness.canGeneratePlan) {
             "Cannot generate transport plan: departure locations are missing"
         }
@@ -144,7 +146,7 @@ class TransportRepository(
         val routes = confirmedParticipants(eventId).associate { participant ->
             val departure = getDepartureLocation(eventId, participant.userId)?.location
                 ?: error("Missing departure location for ${participant.userId}")
-            val options = optionProvider(participant.userId, departure, destination, eventTime)
+            val options = optionProvider(participant.userId, departure, normalizedDestination, eventTime)
             val option = chooseBestOption(options, optimizationType)
             participant.userId to Route(
                 id = "transport_route_${planId}_${participant.userId}",
@@ -173,7 +175,7 @@ class TransportRepository(
             transportQueries.insertPlan(
                 id = plan.id,
                 event_id = eventId,
-                destination_json = json.encodeToString(destination),
+                destination_json = json.encodeToString(normalizedDestination),
                 optimization_type = optimizationType.name,
                 total_group_cost = plan.totalGroupCost,
                 group_arrivals_json = json.encodeToString(groupArrivals),
@@ -479,6 +481,35 @@ class TransportRepository(
         }
     }
 
+    private fun TransportLocation.normalizedAndValidated(): TransportLocation {
+        val normalizedName = name.trim()
+        val normalizedAddress = address?.trim()?.takeIf { it.isNotBlank() }
+        val normalizedIataCode = iataCode?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
+
+        require(normalizedName.isNotBlank()) { "Transport location name is required" }
+        require(normalizedName.length <= MAX_LOCATION_NAME_LENGTH) {
+            "Transport location name is too long"
+        }
+        require(normalizedAddress == null || normalizedAddress.length <= MAX_LOCATION_ADDRESS_LENGTH) {
+            "Transport location address is too long"
+        }
+        require(latitude == null || (latitude.isFinite() && latitude in -90.0..90.0)) {
+            "Transport location latitude is invalid"
+        }
+        require(longitude == null || (longitude.isFinite() && longitude in -180.0..180.0)) {
+            "Transport location longitude is invalid"
+        }
+        require(normalizedIataCode == null || normalizedIataCode.matches(Regex("[A-Z]{3}"))) {
+            "Transport location IATA code is invalid"
+        }
+
+        return copy(
+            name = normalizedName,
+            address = normalizedAddress,
+            iataCode = normalizedIataCode
+        )
+    }
+
     private fun encodeOptions(options: List<TransportOption>): String {
         return json.encodeToString(ListSerializer(TransportOption.serializer()), options)
     }
@@ -554,5 +585,7 @@ class TransportRepository(
             EventStatus.ORGANIZING
         )
         val replayableTransportSyncOperations = setOf("CREATE", "UPDATE", "DELETE", "UPSERT")
+        const val MAX_LOCATION_NAME_LENGTH = 160
+        const val MAX_LOCATION_ADDRESS_LENGTH = 300
     }
 }

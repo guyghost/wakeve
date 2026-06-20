@@ -15,25 +15,25 @@ class Phase5OrganizationUiContractTest {
         assertTrue(
             source.contains("MeetingList") &&
                 source.contains("""Screen("event/{eventId}/meetings")""") &&
-                source.contains("fun createRoute(eventId: String) = \"event/\$eventId/meetings\""),
+                source.contains("fun createRoute(eventId: String) = \"event/\${routePathSegment(eventId)}/meetings\""),
             "Android navigation must expose an event-scoped meetings route."
         )
         assertTrue(
             source.contains("BudgetOverview") &&
                 source.contains("""Screen("event/{eventId}/budget")""") &&
-                source.contains("fun createRoute(eventId: String) = \"event/\$eventId/budget\""),
+                source.contains("fun createRoute(eventId: String) = \"event/\${routePathSegment(eventId)}/budget\""),
             "Android navigation must expose an event-scoped budget/expenses route."
         )
         assertTrue(
             source.contains("PaymentPot") &&
                 source.contains("""Screen("event/{eventId}/payment")""") &&
-                source.contains("fun createRoute(eventId: String) = \"event/\$eventId/payment\""),
+                source.contains("fun createRoute(eventId: String) = \"event/\${routePathSegment(eventId)}/payment\""),
             "Android navigation must expose an event-scoped payment pot route for ORGANIZING events."
         )
         assertTrue(
             source.contains("Tricount") &&
                 source.contains("""Screen("event/{eventId}/tricount")""") &&
-                source.contains("fun createRoute(eventId: String) = \"event/\$eventId/tricount\""),
+                source.contains("fun createRoute(eventId: String) = \"event/\${routePathSegment(eventId)}/tricount\""),
             "Android navigation must expose an event-scoped Tricount handoff route for ORGANIZING events."
         )
     }

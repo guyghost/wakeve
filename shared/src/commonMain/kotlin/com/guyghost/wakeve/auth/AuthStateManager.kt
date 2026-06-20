@@ -171,7 +171,7 @@ class AuthStateManager(
             }
         } catch (e: Exception) {
             _authState.value = AuthState.Error(
-                message = e.message ?: "Unknown error",
+                message = authProfileRestoreFailureMessage(),
                 code = mapErrorCode(e)
             )
         }
@@ -225,7 +225,7 @@ class AuthStateManager(
             }
         } catch (e: Exception) {
             _authState.value = AuthState.Error(
-                message = e.message ?: "Unknown error",
+                message = authLoginFailureMessage(),
                 code = mapErrorCode(e)
             )
         }
@@ -279,7 +279,7 @@ class AuthStateManager(
             }
         } catch (e: Exception) {
             _authState.value = AuthState.Error(
-                message = e.message ?: "Unknown error",
+                message = authLoginFailureMessage(),
                 code = mapErrorCode(e)
             )
         }
@@ -314,13 +314,13 @@ class AuthStateManager(
                 }
             } else {
                 _authState.value = AuthState.Error(
-                    message = "Token refresh failed",
+                    message = authTokenRefreshFailureMessage(),
                     code = ErrorCode.TOKEN_EXPIRED
                 )
             }
         } catch (e: Exception) {
             _authState.value = AuthState.Error(
-                message = e.message ?: "Unknown error",
+                message = authTokenRefreshFailureMessage(),
                 code = mapErrorCode(e)
             )
         }
@@ -338,7 +338,7 @@ class AuthStateManager(
             _authState.value = AuthState.Unauthenticated
         } catch (e: Exception) {
             _authState.value = AuthState.Error(
-                message = e.message ?: "Logout failed",
+                message = authLogoutFailureMessage(),
                 code = mapErrorCode(e)
             )
         }
@@ -398,12 +398,14 @@ class AuthStateManager(
      * Map exception to error code.
      */
     private fun mapErrorCode(error: Throwable): ErrorCode {
+        val classificationText = error.classificationText()
+
         return when {
-            error.message?.contains("network", ignoreCase = true) == true -> ErrorCode.NETWORK_ERROR
-            error.message?.contains("invalid", ignoreCase = true) == true -> ErrorCode.INVALID_CREDENTIALS
-            error.message?.contains("expired", ignoreCase = true) == true -> ErrorCode.TOKEN_EXPIRED
-            error.message?.contains("server", ignoreCase = true) == true -> ErrorCode.SERVER_ERROR
-            error.message?.contains("cancel", ignoreCase = true) == true -> ErrorCode.USER_CANCELLED
+            classificationText.contains("network", ignoreCase = true) -> ErrorCode.NETWORK_ERROR
+            classificationText.contains("invalid", ignoreCase = true) -> ErrorCode.INVALID_CREDENTIALS
+            classificationText.contains("expired", ignoreCase = true) -> ErrorCode.TOKEN_EXPIRED
+            classificationText.contains("server", ignoreCase = true) -> ErrorCode.SERVER_ERROR
+            classificationText.contains("cancel", ignoreCase = true) -> ErrorCode.USER_CANCELLED
             else -> ErrorCode.UNKNOWN
         }
     }
@@ -576,6 +578,21 @@ class AuthStateManager(
 private fun generateSessionId(): String {
     return "session-${currentTimeMillis()}-${(0..999).random()}"
 }
+
+internal fun authProfileRestoreFailureMessage(): String =
+    "Could not restore your session. Please sign in again."
+
+internal fun authLoginFailureMessage(): String =
+    "Sign-in failed. Please try again."
+
+internal fun authTokenRefreshFailureMessage(): String =
+    "Session refresh failed. Please sign in again."
+
+internal fun authLogoutFailureMessage(): String =
+    "Sign-out failed. Please try again."
+
+private fun Throwable.classificationText(): String =
+    message.orEmpty()
 
 /**
  * Simple authentication error class.

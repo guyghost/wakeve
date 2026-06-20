@@ -185,8 +185,8 @@ class ScenarioManagementStateMachine(
                     )
                 }
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to load scenarios"
+            onFailure = { _ ->
+                val errorMsg = scenarioLoadFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -230,8 +230,8 @@ class ScenarioManagementStateMachine(
                     )
                 }
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to load scenarios"
+            onFailure = { _ ->
+                val errorMsg = scenarioLoadFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -277,8 +277,8 @@ class ScenarioManagementStateMachine(
                 }
                 emitSideEffect(SideEffect.ShowToast("Scenario created successfully"))
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to create scenario"
+            onFailure = { _ ->
+                val errorMsg = scenarioCreateFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -309,8 +309,8 @@ class ScenarioManagementStateMachine(
                 updateState { it.copy(selectedScenario = updated) }
                 emitSideEffect(SideEffect.ShowToast("Scenario updated successfully"))
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to update scenario"
+            onFailure = { _ ->
+                val errorMsg = scenarioUpdateFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -347,8 +347,8 @@ class ScenarioManagementStateMachine(
                 emitSideEffect(SideEffect.ShowToast("Scenario deleted successfully"))
                 emitSideEffect(SideEffect.NavigateBack)
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to delete scenario"
+            onFailure = { _ ->
+                val errorMsg = scenarioDeleteFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -506,15 +506,15 @@ class ScenarioManagementStateMachine(
                         emitSideEffect(SideEffect.ShowToast("Scenario selected successfully!"))
                         emitSideEffect(SideEffect.NavigateTo("meetings/${intent.eventId}"))
                     },
-                    onFailure = { error ->
-                        val errorMsg = error.message ?: "Failed to update event status"
+                    onFailure = { _ ->
+                        val errorMsg = scenarioEventStatusUpdateFailureMessage()
                         updateState { it.copy(isLoading = false, error = errorMsg) }
                         emitSideEffect(SideEffect.ShowError(errorMsg))
                     }
                 )
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to select scenario"
+            onFailure = { _ ->
+                val errorMsg = scenarioSelectionFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -549,8 +549,8 @@ class ScenarioManagementStateMachine(
                 reloadScenarios(intent.eventId)
                 emitSideEffect(SideEffect.ShowToast("Generated ${generated.size} scenario matrix options"))
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to generate scenario matrix"
+            onFailure = { _ ->
+                val errorMsg = scenarioMatrixGenerationFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -592,8 +592,8 @@ class ScenarioManagementStateMachine(
                 emitSideEffect(SideEffect.ShowToast("Scenario matrix published"))
                 emitSideEffect(SideEffect.NavigateTo("event/${intent.eventId}/scenarios"))
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to publish scenario matrix"
+            onFailure = { _ ->
+                val errorMsg = scenarioMatrixPublishFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -628,8 +628,8 @@ class ScenarioManagementStateMachine(
                 emitSideEffect(SideEffect.ShowToast("Scenario selected successfully!"))
                 emitSideEffect(SideEffect.NavigateTo("meetings/${intent.eventId}"))
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to select scenario"
+            onFailure = { _ ->
+                val errorMsg = scenarioSelectionFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -684,8 +684,8 @@ class ScenarioManagementStateMachine(
                 reloadScenarios(currentState.eventId)
                 emitSideEffect(SideEffect.ShowToast("Vote submitted successfully"))
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to submit vote"
+            onFailure = { _ ->
+                val errorMsg = scenarioVoteFailureMessage()
                 updateState { it.copy(error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -784,8 +784,8 @@ class ScenarioManagementStateMachine(
                     )
                 }
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to reload scenarios"
+            onFailure = { _ ->
+                val errorMsg = scenarioReloadFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -804,3 +804,33 @@ class ScenarioManagementStateMachine(
         return participantRecord?.hasValidatedDate == 1L
     }
 }
+
+internal fun scenarioLoadFailureMessage(): String =
+    "Failed to load scenarios"
+
+internal fun scenarioCreateFailureMessage(): String =
+    "Failed to create scenario"
+
+internal fun scenarioUpdateFailureMessage(): String =
+    "Failed to update scenario"
+
+internal fun scenarioDeleteFailureMessage(): String =
+    "Failed to delete scenario"
+
+internal fun scenarioEventStatusUpdateFailureMessage(): String =
+    "Failed to update event status"
+
+internal fun scenarioSelectionFailureMessage(): String =
+    "Failed to select scenario"
+
+internal fun scenarioMatrixGenerationFailureMessage(): String =
+    "Failed to generate scenario matrix"
+
+internal fun scenarioMatrixPublishFailureMessage(): String =
+    "Failed to publish scenario matrix"
+
+internal fun scenarioVoteFailureMessage(): String =
+    "Failed to submit vote"
+
+internal fun scenarioReloadFailureMessage(): String =
+    "Failed to reload scenarios"

@@ -3,6 +3,7 @@ package com.guyghost.wakeve.notification
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -16,9 +17,30 @@ class RichNotificationServiceTest {
 
     @Test
     fun `RichNotificationDeepLinks emits Android-supported routes`() {
-        assertEquals("wakeve://event/event-123", RichNotificationDeepLinks.event("event-123"))
-        assertEquals("wakeve://poll/event-123", RichNotificationDeepLinks.poll("event-123"))
-        assertEquals("wakeve://meeting/meeting-456", RichNotificationDeepLinks.meeting("meeting-456"))
+        assertEquals("wakeve://event/event-123/details", RichNotificationDeepLinks.event("event-123"))
+        assertEquals("wakeve://event/event-123/poll", RichNotificationDeepLinks.poll("event-123"))
+        assertEquals(
+            "wakeve://event/event-123/meetings?meetingId=meeting-456",
+            RichNotificationDeepLinks.meeting(eventId = "event-123", meetingId = "meeting-456")
+        )
+    }
+
+    @Test
+    fun `RichNotificationDeepLinks meeting without event falls back to notifications`() {
+        assertEquals("wakeve://notifications?filter=unread", RichNotificationDeepLinks.meeting("meeting-456"))
+    }
+
+    @Test
+    fun `RichNotificationDeepLinks rejects invalid event scoped IDs`() {
+        assertFailsWith<IllegalArgumentException> {
+            RichNotificationDeepLinks.event(" ")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            RichNotificationDeepLinks.poll("event-123/poll")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            RichNotificationDeepLinks.meeting(eventId = "event-123", meetingId = " ")
+        }
     }
 
     @Test

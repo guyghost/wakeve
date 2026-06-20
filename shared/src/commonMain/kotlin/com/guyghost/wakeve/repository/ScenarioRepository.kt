@@ -35,36 +35,37 @@ class ScenarioRepository(private val db: WakeveDb) {
      */
     suspend fun createScenario(scenario: Scenario): Result<Scenario> {
         return try {
+            val normalized = scenario.normalized()
             val now = getCurrentUtcIsoString()
             db.transaction {
-                val scenarioCountBeforeInsert = scenarioQueries.countByEventId(scenario.eventId).executeAsOne()
-                insertScenario(scenario, now)
+                val scenarioCountBeforeInsert = scenarioQueries.countByEventId(normalized.eventId).executeAsOne()
+                insertScenario(normalized, now)
 
-                val event = eventQueries.selectById(scenario.eventId).executeAsOneOrNull()
+                val event = eventQueries.selectById(normalized.eventId).executeAsOneOrNull()
                 if (scenarioCountBeforeInsert == 0L && event?.status == "CONFIRMED") {
                     eventQueries.updateEventStatus(
                         status = "COMPARING",
                         updatedAt = now,
-                        id = scenario.eventId
+                        id = normalized.eventId
                     )
                     queueSyncMetadata(
-                        id = "sync_scenario_compare_${scenario.eventId}_${scenario.id}",
+                        id = "sync_scenario_compare_${normalized.eventId}_${normalized.id}",
                         entityType = "event",
-                        entityId = scenario.eventId,
+                        entityId = normalized.eventId,
                         operation = "UPDATE",
-                        timestamp = "${now}_COMPARING_${scenario.id}"
+                        timestamp = "${now}_COMPARING_${normalized.id}"
                     )
                 }
 
                 queueSyncMetadata(
-                    id = "sync_scenario_${scenario.id}",
+                    id = "sync_scenario_${normalized.id}",
                     entityType = "scenario",
-                    entityId = scenario.id,
+                    entityId = normalized.id,
                     operation = "CREATE",
-                    timestamp = "${now}_CREATE_${scenario.id}"
+                    timestamp = "${now}_CREATE_${normalized.id}"
                 )
             }
-            Result.success(scenario)
+            Result.success(normalized)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -177,23 +178,24 @@ class ScenarioRepository(private val db: WakeveDb) {
      */
     suspend fun updateScenario(scenario: Scenario): Result<Scenario> {
         return try {
-            requireScenarioExists(scenario.id)
+            val normalized = scenario.normalized()
+            requireScenarioExists(normalized.id)
             val now = getCurrentUtcIsoString()
             scenarioQueries.updateScenarioWithMetadata(
-                name = scenario.name,
-                dateOrPeriod = scenario.dateOrPeriod,
-                location = scenario.location,
-                duration = scenario.duration.toLong(),
-                estimatedParticipants = scenario.estimatedParticipants.toLong(),
-                estimatedBudgetPerPerson = scenario.estimatedBudgetPerPerson,
-                description = scenario.description,
+                name = normalized.name,
+                dateOrPeriod = normalized.dateOrPeriod,
+                location = normalized.location,
+                duration = normalized.duration.toLong(),
+                estimatedParticipants = normalized.estimatedParticipants.toLong(),
+                estimatedBudgetPerPerson = normalized.estimatedBudgetPerPerson,
+                description = normalized.description,
                 updatedAt = now,
-                sourceTimeSlotId = scenario.sourceTimeSlotId,
-                sourcePotentialLocationId = scenario.sourcePotentialLocationId,
-                generationType = scenario.generationType.name,
-                id = scenario.id
+                sourceTimeSlotId = normalized.sourceTimeSlotId,
+                sourcePotentialLocationId = normalized.sourcePotentialLocationId,
+                generationType = normalized.generationType.name,
+                id = normalized.id
             )
-            Result.success(scenario.copy(updatedAt = now))
+            Result.success(normalized.copy(updatedAt = now))
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -485,18 +487,19 @@ class ScenarioRepository(private val db: WakeveDb) {
 
             db.transaction {
                 generated.forEach { scenario ->
-                    insertScenario(scenario, now)
+                    val normalized = scenario.normalized()
+                    insertScenario(normalized, now)
                     queueSyncMetadata(
-                        id = "sync_scenario_${scenario.id}",
+                        id = "sync_scenario_${normalized.id}",
                         entityType = "scenario",
-                        entityId = scenario.id,
+                        entityId = normalized.id,
                         operation = "CREATE",
-                        timestamp = "${now}_MATRIX_CREATE_${scenario.id}"
+                        timestamp = "${now}_MATRIX_CREATE_${normalized.id}"
                     )
                 }
             }
 
-            Result.success(generated)
+            Result.success(generated.map { it.normalized() })
         } catch (e: Exception) {
             Result.failure(e)
         }

@@ -2,6 +2,7 @@ package com.guyghost.wakeve.notification
 
 import com.guyghost.wakeve.Notification
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.deeplink.DeepLinkFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.Clock
@@ -12,12 +13,22 @@ import kotlinx.serialization.json.Json
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+private val richNotificationJson = Json {
+    ignoreUnknownKeys = true
+}
+
 internal object RichNotificationDeepLinks {
-    fun event(eventId: String): String = "wakeve://event/$eventId"
+    fun event(eventId: String): String =
+        DeepLinkFactory.createEventDetailsLink(eventId).fullUri
 
-    fun poll(eventId: String): String = "wakeve://poll/$eventId"
+    fun poll(eventId: String): String =
+        DeepLinkFactory.createPollVoteLink(eventId).fullUri
 
-    fun meeting(meetingId: String): String = "wakeve://meeting/$meetingId"
+    fun meeting(meetingId: String): String =
+        DeepLinkFactory.createNotificationsListLink(filter = "unread").fullUri
+
+    fun meeting(eventId: String, meetingId: String): String =
+        DeepLinkFactory.createMeetingJoinLink(eventId = eventId, meetingId = meetingId).fullUri
 }
 
 internal object RichNotificationActionPolicy {
@@ -71,58 +82,51 @@ class RichNotificationService(
         currentTime: Instant = Clock.System.now()
     ): Result<String> = withContext(Dispatchers.Default) {
         runCatching {
-            // Validate notification
-            notification.validate()?.let { error ->
-                throw IllegalArgumentException("Invalid notification: $error")
-            }
+            val normalizedNotification = normalizeRichNotificationForSend(notification).getOrThrow()
 
             // Check user preferences
-            val preferences = preferencesRepository.getPreferences(notification.userId)
-                ?: defaultNotificationPreferences(notification.userId)
+            val preferences = preferencesRepository.getPreferences(normalizedNotification.userId)
+                ?: defaultNotificationPreferences(normalizedNotification.userId)
 
             // Check if notification should be sent (respecting quiet hours)
-            if (!shouldSendNotification(notification, preferences, currentTime)) {
+            if (!shouldSendNotification(normalizedNotification, preferences, currentTime)) {
                 throw IllegalStateException(
                     "Notification blocked by user preferences or quiet hours"
                 )
             }
 
-            // Get user push tokens
-            val tokens = database.notificationQueries.getTokensByUser(notification.userId)
-                .executeAsList()
-
-            if (tokens.isEmpty()) {
-                throw IllegalStateException("No push tokens registered for user ${notification.userId}")
-            }
-
-            // Generate notification ID if not provided
-            val notificationId = notification.id.takeIf { it.isNotBlank() }
-                ?: Uuid.random().toString()
-
             val nowMs = Clock.System.now().toEpochMilliseconds()
+
+            // Persist notification to database before transport delivery.
+            persistNotification(normalizedNotification.id, normalizedNotification, nowMs)
+
+            // Get user push tokens
+            val tokens = database.notificationQueries.getTokensByUser(normalizedNotification.userId)
+                .executeAsList()
 
             // Send to all user devices based on platform
             for (token in tokens) {
                 when (token.platform.uppercase()) {
                     Platform.ANDROID.name -> {
-                        fcmSender.sendRichNotification(
-                            token = token.token,
-                            notification = notification.copy(id = notificationId)
-                        ).getOrThrow()
+                        runCatching {
+                            fcmSender.sendRichNotification(
+                                token = token.token,
+                                notification = normalizedNotification
+                            ).getOrThrow()
+                        }
                     }
                     Platform.IOS.name -> {
-                        apnsSender.sendRichNotification(
-                            token = token.token,
-                            notification = notification.copy(id = notificationId)
-                        ).getOrThrow()
+                        runCatching {
+                            apnsSender.sendRichNotification(
+                                token = token.token,
+                                notification = normalizedNotification
+                            ).getOrThrow()
+                        }
                     }
                 }
             }
 
-            // Persist notification to database
-            persistNotification(notificationId, notification, nowMs)
-
-            notificationId
+            normalizedNotification.id
         }
     }
 
@@ -203,6 +207,7 @@ class RichNotificationService(
      * @param joinUrl URL for joining the meeting (Zoom, Meet, etc.)
      * @param meetingTitle Meeting title
      * @param startsInMinutes Minutes until meeting starts
+     * @param eventId Optional event identifier for event-scoped meeting navigation
      * @return Result with notification ID on success
      */
     suspend fun sendMeetingStartingWithJoinButton(
@@ -210,7 +215,8 @@ class RichNotificationService(
         userId: String,
         joinUrl: String,
         meetingTitle: String,
-        startsInMinutes: Int = 15
+        startsInMinutes: Int = 15,
+        eventId: String? = null
     ): Result<String> {
         val (title, body) = when {
             startsInMinutes <= 0 -> "Meeting started: $meetingTitle" to "Join now!"
@@ -225,7 +231,13 @@ class RichNotificationService(
             body(body)
             category(NotificationCategory.MEETING_STARTING)
             priority(RichNotificationPriority.HIGH)
-            deepLink(RichNotificationDeepLinks.meeting(meetingId))
+            deepLink(
+                if (eventId.isNullOrBlank()) {
+                    RichNotificationDeepLinks.meeting(meetingId)
+                } else {
+                    RichNotificationDeepLinks.meeting(eventId = eventId, meetingId = meetingId)
+                }
+            )
             customSound("meeting_start_alert")
             vibrationPattern(RichNotification.URGENT_VIBRATION_PATTERN)
             ledColor(RichNotification.URGENT_LED_COLOR)
@@ -276,11 +288,12 @@ class RichNotificationService(
         userId: String,
         limit: Int = 50
     ): List<RichNotification> = withContext(Dispatchers.Default) {
+        val normalizedUserId = normalizeNotificationUserId(userId).getOrThrow()
         database.notificationQueries.getNotifications(
-            user_id = userId,
-            value_ = limit.toLong()
+            user_id = normalizedUserId,
+            value_ = normalizeNotificationHistoryLimit(limit).toLong()
         ).executeAsList()
-            .mapNotNull { it.toRichNotification() }
+            .map { it.toRichNotification() }
     }
 
     /**
@@ -291,9 +304,40 @@ class RichNotificationService(
      */
     suspend fun markAsRead(notificationId: String): Result<Unit> = withContext(Dispatchers.Default) {
         runCatching {
+            val normalizedNotificationId = normalizeNotificationId(notificationId).getOrThrow()
             database.notificationQueries.markAsRead(
                 read_at = Clock.System.now().toEpochMilliseconds(),
-                id = notificationId
+                id = normalizedNotificationId
+            )
+        }
+    }
+
+    /**
+     * Mark a notification as read only if it belongs to the authenticated user.
+     *
+     * @param notificationId The notification identifier
+     * @param userId Expected notification owner
+     * @return Result success or failure
+     */
+    suspend fun markAsReadForUser(
+        notificationId: String,
+        userId: String
+    ): Result<Unit> = withContext(Dispatchers.Default) {
+        runCatching {
+            val normalizedNotificationId = normalizeNotificationId(notificationId).getOrThrow()
+            val normalizedUserId = normalizeNotificationUserId(userId).getOrThrow()
+            val notification = database.notificationQueries
+                .getNotificationById(normalizedNotificationId)
+                .executeAsOneOrNull()
+
+            if (notification?.user_id != normalizedUserId) {
+                error("Notification not found for authenticated user")
+            }
+
+            database.notificationQueries.markAsReadForUser(
+                read_at = Clock.System.now().toEpochMilliseconds(),
+                id = normalizedNotificationId,
+                user_id = normalizedUserId
             )
         }
     }
@@ -306,7 +350,36 @@ class RichNotificationService(
      */
     suspend fun deleteNotification(notificationId: String): Result<Unit> = withContext(Dispatchers.Default) {
         runCatching {
-            database.notificationQueries.deleteNotification(notificationId)
+            database.notificationQueries.deleteNotification(normalizeNotificationId(notificationId).getOrThrow())
+        }
+    }
+
+    /**
+     * Delete a notification only if it belongs to the authenticated user.
+     *
+     * @param notificationId The notification identifier
+     * @param userId Expected notification owner
+     * @return Result success or failure
+     */
+    suspend fun deleteNotificationForUser(
+        notificationId: String,
+        userId: String
+    ): Result<Unit> = withContext(Dispatchers.Default) {
+        runCatching {
+            val normalizedNotificationId = normalizeNotificationId(notificationId).getOrThrow()
+            val normalizedUserId = normalizeNotificationUserId(userId).getOrThrow()
+            val notification = database.notificationQueries
+                .getNotificationById(normalizedNotificationId)
+                .executeAsOneOrNull()
+
+            if (notification?.user_id != normalizedUserId) {
+                error("Notification not found for authenticated user")
+            }
+
+            database.notificationQueries.deleteNotificationForUser(
+                id = normalizedNotificationId,
+                user_id = normalizedUserId
+            )
         }
     }
 
@@ -317,28 +390,10 @@ class RichNotificationService(
         preferences: NotificationPreferences,
         currentTime: Instant
     ): Boolean {
-        // HIGH priority notifications can bypass quiet hours
-        if (notification.priority == RichNotificationPriority.HIGH) return true
-
-        // Check quiet hours for non-high priority
-        val start = preferences.quietHoursStart
-        val end = preferences.quietHoursEnd
-
-        if (start == null || end == null) return true
-
-        // Convert to minutes since midnight
-        val currentMinutes = currentTime.toEpochMilliseconds() / 60000 % 1440
-        val startMinutes = start.hour * 60 + start.minute
-        val endMinutes = end.hour * 60 + end.minute
-
-        // Handle overnight quiet hours
-        val inQuietHours = if (startMinutes > endMinutes) {
-            currentMinutes >= startMinutes || currentMinutes < endMinutes
-        } else {
-            currentMinutes in startMinutes..<endMinutes
-        }
-
-        return !inQuietHours
+        return preferences.shouldSend(
+            type = notification.category.toNotificationType(),
+            currentTime = currentTime
+        )
     }
 
     private fun persistNotification(
@@ -347,7 +402,7 @@ class RichNotificationService(
         timestamp: Long
     ) {
         // Serialize rich notification data
-        val richData = Json.encodeToString(
+        val richData = richNotificationJson.encodeToString(
             RichNotificationData(
                 imageUrl = notification.imageUrl,
                 largeIcon = notification.largeIcon,
@@ -364,7 +419,7 @@ class RichNotificationService(
         database.notificationQueries.insertNotification(
             id = notificationId,
             user_id = notification.userId,
-            type = notification.category.name,
+            type = notification.category.toNotificationType().name,
             title = notification.title,
             body = notification.body,
             data_ = richData,
@@ -376,29 +431,63 @@ class RichNotificationService(
     @OptIn(ExperimentalUuidApi::class)
     private fun generateNotificationId(): String = Uuid.random().toString()
 
-    private fun Notification.toRichNotification(): RichNotification? {
-        return runCatching {
-            val richData = data_?.let {
-                Json.decodeFromString<RichNotificationData>(it)
-            }
+    private fun Notification.toRichNotification(): RichNotification {
+        val richData = data_?.let { rawData ->
+            runCatching {
+                richNotificationJson.decodeFromString<RichNotificationData>(rawData)
+            }.getOrNull()
+        }
 
-            RichNotification(
-                id = id,
-                userId = user_id,
-                title = title,
-                body = body,
-                imageUrl = richData?.imageUrl,
-                largeIcon = richData?.largeIcon,
-                actions = richData?.actions ?: emptyList(),
-                priority = richData?.priority ?: RichNotificationPriority.DEFAULT,
-                category = richData?.category ?: NotificationCategory.GENERAL,
-                deepLink = richData?.deepLink,
-                customSound = richData?.customSound,
-                vibrationPattern = richData?.vibrationPattern,
-                ledColor = richData?.ledColor
-            )
-        }.getOrNull()
+        return RichNotification(
+            id = id,
+            userId = user_id,
+            title = title,
+            body = body,
+            imageUrl = richData?.imageUrl,
+            largeIcon = richData?.largeIcon,
+            actions = richData?.actions ?: emptyList(),
+            priority = richData?.priority ?: RichNotificationPriority.DEFAULT,
+            category = richData?.category ?: type.toNotificationCategory(),
+            deepLink = richData?.deepLink,
+            customSound = richData?.customSound,
+            vibrationPattern = richData?.vibrationPattern,
+            ledColor = richData?.ledColor
+        )
     }
+}
+
+private fun String.toNotificationCategory(): NotificationCategory {
+    return runCatching { NotificationCategory.valueOf(this) }.getOrNull()
+        ?: NotificationCategory.fromString(this)
+        ?: NotificationCategory.GENERAL
+}
+
+internal fun NotificationCategory.toNotificationType(): NotificationType {
+    return when (this) {
+        NotificationCategory.EVENT_INVITE -> NotificationType.EVENT_INVITE
+        NotificationCategory.POLL_REMINDER -> NotificationType.VOTE_REMINDER
+        NotificationCategory.MEETING_STARTING -> NotificationType.MEETING_REMINDER
+        NotificationCategory.SCENARIO_VOTE -> NotificationType.NEW_SCENARIO
+        NotificationCategory.GENERAL -> NotificationType.EVENT_UPDATE
+    }
+}
+
+@OptIn(ExperimentalUuidApi::class)
+internal fun normalizeRichNotificationForSend(
+    notification: RichNotification,
+    fallbackId: String = Uuid.random().toString()
+): Result<RichNotification> {
+    val normalizedId = notification.id.trim().ifBlank { fallbackId.trim() }
+    val normalizedNotification = notification.copy(
+        id = normalizedId,
+        userId = notification.userId.trim(),
+        title = notification.title.trim(),
+        body = notification.body.trim()
+    )
+
+    return normalizedNotification.validate()?.let { error ->
+        Result.failure(IllegalArgumentException("Invalid notification: $error"))
+    } ?: Result.success(normalizedNotification)
 }
 
 /**
@@ -410,7 +499,7 @@ private data class RichNotificationData(
     val largeIcon: String? = null,
     val actions: List<NotificationAction> = emptyList(),
     val priority: RichNotificationPriority = RichNotificationPriority.DEFAULT,
-    val category: NotificationCategory = NotificationCategory.GENERAL,
+    val category: NotificationCategory? = null,
     val deepLink: String? = null,
     val customSound: String? = null,
     val vibrationPattern: List<Int>? = null,

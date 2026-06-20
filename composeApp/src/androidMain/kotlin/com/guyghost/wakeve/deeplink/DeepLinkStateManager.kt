@@ -29,11 +29,33 @@ object DeepLinkStateManager {
      * Update the pending deep link.
      *
      * Call this from MainActivity's onNewIntent() or onCreate() when a deep link is received.
+     * Unsupported links are rejected before they enter app-level navigation state.
      *
      * @param uri The deep link URI to handle
+     * @return true when the URI was accepted for later handling, false when it was rejected
      */
-    fun updatePendingDeepLink(uri: Uri) {
-        _pendingDeepLink.value = uri
+    fun updatePendingDeepLink(uri: Uri): Boolean {
+        val isSupported = runCatching {
+            if (hasUnsupportedDeepLinkUriComponents(uri)) {
+                return@runCatching false
+            }
+
+            isSupportedPendingDeepLink(
+                scheme = uri.scheme,
+                host = uri.host,
+                pathSegments = uri.pathSegments,
+                queryParameters = uri.queryParameterNames.associateWith { name ->
+                    uri.getQueryParameter(name).orEmpty()
+                }
+            )
+        }.getOrDefault(false)
+
+        return if (isSupported) {
+            _pendingDeepLink.value = uri
+            true
+        } else {
+            false
+        }
     }
 
     /**
@@ -57,8 +79,10 @@ object DeepLinkStateManager {
     /**
      * Store an invitation code extracted from a deep link until the app can resolve and accept it.
      */
-    fun updatePendingInviteCode(code: String) {
-        _pendingInviteCode.value = code
+    fun updatePendingInviteCode(code: String): Boolean {
+        val normalizedCode = normalizeDeepLinkPathSegment(code)
+        _pendingInviteCode.value = normalizedCode
+        return normalizedCode != null
     }
 
     /**
@@ -74,4 +98,18 @@ object DeepLinkStateManager {
     fun hasPendingInviteCode(): Boolean {
         return _pendingInviteCode.value != null
     }
+}
+
+internal fun isSupportedPendingDeepLink(
+    scheme: String?,
+    host: String?,
+    pathSegments: List<String>,
+    queryParameters: Map<String, String> = emptyMap()
+): Boolean {
+    return parseDeepLinkParts(
+        scheme = scheme,
+        host = host,
+        pathSegments = pathSegments,
+        queryParameters = queryParameters
+    ) != null
 }

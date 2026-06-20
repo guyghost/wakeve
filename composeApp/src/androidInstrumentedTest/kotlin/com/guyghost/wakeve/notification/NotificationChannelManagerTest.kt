@@ -108,7 +108,7 @@ class NotificationChannelManagerTest {
             verify {
                 mockNotificationManager.createNotificationChannel(match { channel ->
                     channel.id == ChannelId.EVENTS.id &&
-                        channel.importance == NotificationManager.IMPORTANCE_HIGH &&
+                        channel.importance == NotificationManager.IMPORTANCE_DEFAULT &&
                         channel.shouldVibrate()
                 })
             }

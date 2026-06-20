@@ -63,6 +63,9 @@ fun PlanningAgentEvent.toPlanningAgentEventUiItem(): PlanningAgentEventUiItem = 
 
     is PlanningAgentEvent.Failed -> PlanningAgentEventUiItem(
         title = "Error",
-        body = message
+        body = planningAgentFailureDisplayMessage()
     )
 }
+
+internal fun planningAgentFailureDisplayMessage(): String =
+    "L'assistant de planification n'a pas pu terminer. Reessayez."

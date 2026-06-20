@@ -175,7 +175,7 @@ fun ParticipantManagementScreen(
                                         } else {
                                             state = state.copy(
                                                 isError = true,
-                                                errorMessage = result.exceptionOrNull()?.message ?: "Impossible d'ajouter le participant"
+                                                errorMessage = participantAddFailureMessage()
                                             )
                                         }
                                     }
@@ -195,8 +195,8 @@ fun ParticipantManagementScreen(
                         onClick = {
                             state = state.copy(isLoadingContacts = true, isError = false)
                             onContactPickerRequested { result ->
-                                val contacts = result.getOrElse { error ->
-                                    showError(error.message ?: "Impossible d'accéder aux contacts")
+                                val contacts = result.getOrElse {
+                                    showError(contactAccessFailureMessage())
                                     return@onContactPickerRequested
                                 }
                                     .mapNotNull { contact ->
@@ -538,3 +538,9 @@ private fun ParticipantManagementRow.detailsAccessLabel(): String =
 
 private fun ParticipantManagementRow.subtitleLabel(): String =
     "$roleLabel - $statusLabel - ${detailsAccessLabel()}"
+
+internal fun participantAddFailureMessage(): String =
+    "Impossible d'ajouter le participant. Reessayez."
+
+internal fun contactAccessFailureMessage(): String =
+    "Impossible d'acceder aux contacts. Reessayez."

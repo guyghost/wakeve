@@ -113,4 +113,11 @@ WHERE blocker_user_id = ? AND blocked_user_id = ? AND event_id IS NULL AND remov
 
 isUserBlocked:
 SELECT COUNT(*) AS count FROM user_block
-WHERE blocker_user_id = ? AND blocked_user_id = ? AND removed_at IS NULL;
+WHERE blocker_user_id = ? AND blocked_user_id = ? AND event_id IS NULL AND removed_at IS NULL;
+
+isUserBlockedForEvent:
+SELECT COUNT(*) AS count FROM user_block
+WHERE blocker_user_id = ?
+AND blocked_user_id = ?
+AND removed_at IS NULL
+AND (event_id IS NULL OR event_id = ?);

@@ -52,14 +52,20 @@ fun Route.paymentRoutes(
                     ?: return@post call.respond(HttpStatusCode.BadRequest, mapOf("error" to "Event ID required"))
                 val userId = principal.userId
                 val request = call.receive<CreatePaymentPotRequest>()
+                val validatedRequest = validateCreatePaymentPotRequest(request).getOrElse { error ->
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to paymentPotCreateValidationFailureMessage())
+                    )
+                }
 
-                if (request.eventId != eventId) {
+                if (validatedRequest.eventId != eventId) {
                     return@post call.respond(
                         HttpStatusCode.Forbidden,
                         paymentAuditDenial(eventId, userId, "create_payment_pot_scope")
                     )
                 }
-                if (!request.status.equals("ACTIVE", ignoreCase = true)) {
+                if (validatedRequest.status != "ACTIVE") {
                     return@post call.respond(
                         HttpStatusCode.BadRequest,
                         mapOf("error" to "Payment pot creation requires ACTIVE status")
@@ -80,9 +86,8 @@ fun Route.paymentRoutes(
                         mapOf("error" to "Payment pots can only be created while event is ORGANIZING")
                     )
                 }
-                if (request.paymentProvider.equals("TRICOUNT", ignoreCase = true) &&
-                    request.tricountLink != null &&
-                    !repository.isTrustedProviderUrl(request.paymentProvider, request.tricountLink)
+                if (validatedRequest.tricountLink != null &&
+                    !repository.isTrustedProviderUrl(validatedRequest.paymentProvider, validatedRequest.tricountLink)
                 ) {
                     return@post call.respond(
                         HttpStatusCode.UnprocessableEntity,
@@ -96,11 +101,11 @@ fun Route.paymentRoutes(
                 val pot = paymentPotRepository.createPot(
                     eventId = eventId,
                     organizerId = userId,
-                    goalAmount = request.goalAmount,
-                    title = request.title ?: "${event.title} payment pot",
-                    currency = request.currency,
-                    paymentProvider = request.paymentProvider,
-                    tricountGroupUrl = request.tricountLink
+                    goalAmount = validatedRequest.goalAmount,
+                    title = validatedRequest.title ?: "${event.title} payment pot",
+                    currency = validatedRequest.currency,
+                    paymentProvider = validatedRequest.paymentProvider,
+                    tricountGroupUrl = validatedRequest.tricountLink
                 )
                 call.respond(HttpStatusCode.Created, pot.toResponse())
             }
@@ -206,7 +211,36 @@ fun Route.paymentRoutes(
                 )
 
                 val request = call.receive<LinkTricountRequest>()
-                if (!repository.isTrustedProviderUrl(request.provider, request.providerUrl)) {
+                val provider = request.provider.trim().uppercase()
+                val providerId = request.providerId.trim()
+                val providerUrl = request.providerUrl.trim()
+                val syncStatus = request.syncStatus.trim().uppercase()
+
+                if (provider != "TRICOUNT") {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Unsupported provider: $provider")
+                    )
+                }
+                if (providerId.isBlank()) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "providerId is required")
+                    )
+                }
+                if (providerId.length > 200) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "providerId must not exceed 200 characters")
+                    )
+                }
+                if (syncStatus !in setOf("LINKED", "SYNCED")) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "syncStatus must be LINKED or SYNCED")
+                    )
+                }
+                if (!repository.isTrustedProviderUrl(provider, providerUrl)) {
                     return@post call.respond(
                         HttpStatusCode.UnprocessableEntity,
                         mapOf(
@@ -218,10 +252,10 @@ fun Route.paymentRoutes(
 
                 val handoff = repository.linkHandoff(
                     eventId = eventId,
-                    provider = request.provider,
-                    providerId = request.providerId,
-                    providerUrl = request.providerUrl,
-                    syncStatus = request.syncStatus
+                    provider = provider,
+                    providerId = providerId,
+                    providerUrl = providerUrl,
+                    syncStatus = syncStatus
                 )
                 call.respond(HttpStatusCode.Created, handoff)
             }
@@ -263,6 +297,49 @@ private data class PaymentPotResponse(
     val closedAt: String?
 )
 
+private data class ValidatedCreatePaymentPotRequest(
+    val eventId: String,
+    val goalAmount: Double,
+    val currency: String,
+    val paymentProvider: String,
+    val status: String,
+    val title: String?,
+    val tricountLink: String?
+)
+
+private fun validateCreatePaymentPotRequest(request: CreatePaymentPotRequest): Result<ValidatedCreatePaymentPotRequest> =
+    runCatching {
+        val eventId = request.eventId.trim()
+        require(eventId.isNotEmpty()) { "eventId is required" }
+        require(request.goalAmount.isFinite() && request.goalAmount > 0.0) {
+            "goalAmount must be a positive finite amount"
+        }
+
+        val currency = request.currency.trim().uppercase()
+        require(Regex("^[A-Z]{3}$").matches(currency)) { "currency must be a 3-letter ISO currency code" }
+
+        val paymentProvider = request.paymentProvider.trim().uppercase()
+        require(paymentProvider == "TRICOUNT") { "Unsupported paymentProvider: $paymentProvider" }
+
+        val status = request.status.trim().uppercase()
+        require(status == "ACTIVE") { "Payment pot creation requires ACTIVE status" }
+
+        val title = request.title?.trim()?.takeIf { it.isNotEmpty() }
+        require(title == null || title.length <= 120) { "title must not exceed 120 characters" }
+
+        val tricountLink = request.tricountLink?.trim()?.takeIf { it.isNotEmpty() }
+
+        ValidatedCreatePaymentPotRequest(
+            eventId = eventId,
+            goalAmount = request.goalAmount,
+            currency = currency,
+            paymentProvider = paymentProvider,
+            status = status,
+            title = title,
+            tricountLink = tricountLink
+        )
+    }
+
 private fun PaymentPotRecord.toResponse(): PaymentPotResponse =
     PaymentPotResponse(
         id = id,
@@ -301,3 +378,6 @@ private fun paymentAuditDenial(eventId: String, userId: String, action: String):
         "auditReference" to "audit-${eventId.take(12)}-${userId.take(12)}-${System.currentTimeMillis()}",
         "auditAction" to action
     )
+
+internal fun paymentPotCreateValidationFailureMessage(): String =
+    "Invalid payment pot request. Please review the payment details and try again."

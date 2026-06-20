@@ -72,6 +72,53 @@ class MeetingServiceTest {
     }
 
     @Test
+    fun createMeetingNormalizesInputsAndUsesParticipantIdsForLocalRows() = runTest {
+        seedEvent(eventId = "event-normalized", status = "ORGANIZING")
+        seedParticipant(
+            eventId = "event-normalized",
+            participantId = "participant-row-1",
+            userId = "user-1",
+            validated = true
+        )
+
+        val meeting = service.createMeeting(
+            eventId = " event-normalized ",
+            organizerId = " organizer-1 ",
+            platform = MeetingPlatform.ZOOM,
+            title = "  Planning meeting  ",
+            description = "  Sync before departure  ",
+            scheduledFor = Instant.parse("2026-07-18T08:00:00Z"),
+            duration = 1.hours,
+            timezone = " Europe/Paris "
+        ).getOrThrow()
+
+        assertEquals("event-normalized", meeting.eventId)
+        assertEquals("organizer-1", meeting.organizerId)
+        assertEquals("Planning meeting", meeting.title)
+        assertEquals("Sync before departure", meeting.description)
+        assertEquals("Europe/Paris", meeting.timezone)
+
+        val persisted = database.meetingQueries.selectById(meeting.id).executeAsOne()
+        assertTrue(persisted.invitedParticipants.contains("participant-row-1"))
+        assertFalse(persisted.invitedParticipants.contains("user-1"))
+
+        val reminders = database.meetingReminderQueries.selectByMeetingId(meeting.id).executeAsList()
+        assertEquals(4, reminders.size)
+        assertTrue(reminders.all { it.participant_id == "participant-row-1" })
+
+        val creationNotifications = notificationService.sentMessages.filter { it.title.startsWith("Réunion créée:") }
+        assertEquals(1, creationNotifications.size)
+        assertEquals("user-1", creationNotifications.single().userId)
+
+        val sync = database.syncMetadataQueries.selectByEntity("meeting", meeting.id).executeAsList().single()
+        assertTrue(sync.payload.contains("\"eventId\":\"event-normalized\""))
+        assertTrue(sync.payload.contains("\"organizerId\":\"organizer-1\""))
+        assertTrue(sync.payload.contains("\"title\":\"Planning meeting\""))
+        assertFalse(sync.payload.contains(" event-normalized "))
+        assertFalse(sync.payload.contains("  Planning meeting  "))
+    }
+
+    @Test
     fun createMeetingFailsForConfirmedEvent() = runTest {
         seedEvent(eventId = "event-1", status = "CONFIRMED")
         seedParticipant(eventId = "event-1", participantId = "participant-1", userId = "participant-1", validated = true)
@@ -157,9 +204,47 @@ class MeetingServiceTest {
     }
 
     @Test
-    fun respondToInvitationUpdatesStatusAndTimestamps() = runTest {
+    fun sendInvitationsIsIdempotentAndKeepsParticipantRowsSeparateFromUserNotifications() = runTest {
+        seedEvent(eventId = "event-invite-retry", status = "ORGANIZING")
+        seedParticipant(eventId = "event-invite-retry", participantId = "participant-row-1", userId = "user-1", validated = true)
+        seedParticipant(eventId = "event-invite-retry", participantId = "participant-row-2", userId = "user-2", validated = true)
+        seedParticipant(eventId = "event-invite-retry", participantId = "participant-row-3", userId = "user-3", validated = false)
+
+        val meetingId = service.createMeeting(
+            eventId = "event-invite-retry",
+            organizerId = "organizer-1",
+            platform = MeetingPlatform.GOOGLE_MEET,
+            title = "Retry invites",
+            description = null,
+            scheduledFor = Instant.parse("2026-07-18T08:00:00Z"),
+            duration = 1.hours,
+            timezone = "Europe/Paris"
+        ).getOrThrow().id
+
+        val first = service.sendInvitations(" $meetingId ")
+        val second = service.sendInvitations(meetingId)
+
+        assertTrue(first.isSuccess)
+        assertTrue(second.isSuccess)
+
+        val invitations = database.meetingInvitationQueries.selectByMeetingId(meetingId).executeAsList()
+        assertEquals(2, invitations.size)
+        assertTrue(invitations.any { it.participant_id == "participant-row-1" })
+        assertTrue(invitations.any { it.participant_id == "participant-row-2" })
+        assertFalse(invitations.any { it.participant_id == "participant-row-3" })
+        assertFalse(invitations.any { it.participant_id == "user-1" || it.participant_id == "user-2" })
+
+        val invitationNotifications = notificationService.sentMessages.filter { it.title.startsWith("Invitation:") }
+        assertEquals(2, invitationNotifications.size)
+        assertTrue(invitationNotifications.any { it.userId == "user-1" })
+        assertTrue(invitationNotifications.any { it.userId == "user-2" })
+        assertFalse(invitationNotifications.any { it.userId == "user-3" })
+    }
+
+    @Test
+    fun respondToInvitationUpdatesStatusAndTimestampsForInvitationOwner() = runTest {
         seedEvent(eventId = "event-1", status = "ORGANIZING")
-        seedParticipant(eventId = "event-1", participantId = "participant-1", userId = "participant-1", validated = true)
+        seedParticipant(eventId = "event-1", participantId = "participant-row-1", userId = "user-1", validated = true)
 
         val meetingId = service.createMeeting(
             eventId = "event-1",
@@ -176,7 +261,11 @@ class MeetingServiceTest {
         val invitation = database.meetingInvitationQueries.selectByMeetingId(meetingId).executeAsList().firstOrNull()
         assertNotNull(invitation)
 
-        val result = service.respondToInvitation(invitation.id, InvitationStatus.ACCEPTED)
+        val result = service.respondToInvitation(
+            invitationId = " ${invitation.id} ",
+            currentUserId = " user-1 ",
+            status = InvitationStatus.ACCEPTED
+        )
 
         assertTrue(result.isSuccess)
 
@@ -184,6 +273,74 @@ class MeetingServiceTest {
         assertEquals(InvitationStatus.ACCEPTED.name, updated.status)
         assertNotNull(updated.responded_at)
         assertNotNull(updated.accepted_at)
+    }
+
+    @Test
+    fun respondToInvitationRejectsNonOwnerWithoutMutation() = runTest {
+        seedEvent(eventId = "event-invite-auth", status = "ORGANIZING")
+        seedParticipant(eventId = "event-invite-auth", participantId = "participant-row-1", userId = "user-1", validated = true)
+        seedParticipant(eventId = "event-invite-auth", participantId = "participant-row-2", userId = "user-2", validated = true)
+
+        val meetingId = service.createMeeting(
+            eventId = "event-invite-auth",
+            organizerId = "organizer-1",
+            platform = MeetingPlatform.FACETIME,
+            title = "Invitation ownership",
+            description = null,
+            scheduledFor = Clock.System.now(),
+            duration = 1.hours,
+            timezone = "Europe/Paris"
+        ).getOrThrow().id
+
+        service.sendInvitations(meetingId).getOrThrow()
+        val invitation = database.meetingInvitationQueries
+            .selectByMeetingId(meetingId)
+            .executeAsList()
+            .single { it.participant_id == "participant-row-1" }
+
+        val result = service.respondToInvitation(
+            invitationId = invitation.id,
+            currentUserId = "user-2",
+            status = InvitationStatus.DECLINED
+        )
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull() is MeetingException.UnauthorizedAccess)
+        val unchanged = database.meetingInvitationQueries.selectById(invitation.id).executeAsOne()
+        assertEquals(InvitationStatus.PENDING.name, unchanged.status)
+        assertEquals(null, unchanged.responded_at)
+        assertEquals(null, unchanged.accepted_at)
+    }
+
+    @Test
+    fun respondToInvitationRejectsPendingStatusWithoutMutation() = runTest {
+        seedEvent(eventId = "event-invite-pending", status = "ORGANIZING")
+        seedParticipant(eventId = "event-invite-pending", participantId = "participant-row-1", userId = "user-1", validated = true)
+
+        val meetingId = service.createMeeting(
+            eventId = "event-invite-pending",
+            organizerId = "organizer-1",
+            platform = MeetingPlatform.GOOGLE_MEET,
+            title = "Pending response",
+            description = null,
+            scheduledFor = Clock.System.now(),
+            duration = 1.hours,
+            timezone = "Europe/Paris"
+        ).getOrThrow().id
+
+        service.sendInvitations(meetingId).getOrThrow()
+        val invitation = database.meetingInvitationQueries.selectByMeetingId(meetingId).executeAsList().single()
+
+        val result = service.respondToInvitation(
+            invitationId = invitation.id,
+            currentUserId = "user-1",
+            status = InvitationStatus.PENDING
+        )
+
+        assertTrue(result.isFailure)
+        val unchanged = database.meetingInvitationQueries.selectById(invitation.id).executeAsOne()
+        assertEquals(InvitationStatus.PENDING.name, unchanged.status)
+        assertEquals(null, unchanged.responded_at)
     }
 
     @Test

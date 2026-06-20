@@ -187,8 +187,8 @@ class CompleteWorkflowE2ETest {
             id = "meeting-1", eventId = eventId, organizerId = organizerId,
             title = "Planning Meeting", description = "Pre-event planning",
             startTime = Instant.parse("2025-06-10T14:00:00Z"), duration = 1.hours,
-            platform = MeetingPlatform.ZOOM, meetingLink = "https://zoom.us/j/123",
-            hostMeetingId = "123", password = "pwd", invitedParticipants = participantIds,
+            platform = MeetingPlatform.ZOOM, meetingLink = "https://zoom.us/j/1234567890?pwd=ABC123",
+            hostMeetingId = "1234567890", password = "ABC123", invitedParticipants = participantIds,
             status = com.guyghost.wakeve.meeting.MeetingStatus.SCHEDULED,
             createdAt = Clock.System.now().toString()
         )
@@ -442,6 +442,7 @@ class CompleteWorkflowE2ETest {
             selected_by_user_id = organizerId
         )
         seedReadinessDecision(eventId, "MEETINGS", organizerId, now)
+        seedReadinessDecision(eventId, "LODGING", organizerId, now)
         seedReadinessDecision(eventId, "BUDGET_BASELINE", organizerId, now)
         database.tricountHandoffQueries.upsertHandoff(
             eventId = eventId,

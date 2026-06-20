@@ -82,6 +82,17 @@ class EventOrganizationReadinessRepository(
         )
     }
 
+    fun markLodgingNotNeeded(eventId: String, decidedBy: String) {
+        db.organizationReadinessDecisionQueries.upsertDecision(
+            id = "readiness-${Clock.System.now().toEpochMilliseconds()}-${(0..9999).random()}",
+            eventId = eventId,
+            section = "LODGING",
+            notNeeded = 1L,
+            decidedBy = decidedBy,
+            decidedAt = Clock.System.now().toString()
+        )
+    }
+
     fun getReadiness(eventId: String): EventOrganizationReadiness {
         val participants = getParticipantReadiness(eventId)
         val scenario = getScenarioReadiness(eventId)
@@ -169,13 +180,16 @@ class EventOrganizationReadinessRepository(
             .getConfirmedAccommodations(eventId)
             .executeAsList()
             .filter { runCatching { BookingStatus.valueOf(it.booking_status) }.getOrNull() == BookingStatus.CONFIRMED }
-        val finalScenarioCarriesLodgingDecision =
-            db.scenarioQueries.selectSelectedByEventId(eventId).executeAsOneOrNull() != null
-        val complete = confirmed.isNotEmpty() || finalScenarioCarriesLodgingDecision
+        val notNeeded = db.organizationReadinessDecisionQueries
+            .selectByEventAndSection(eventId, "LODGING")
+            .executeAsOneOrNull()
+            ?.notNeeded == 1L
+        val complete = confirmed.isNotEmpty() || notNeeded
         return section(
             eventId = eventId,
             blockers = if (complete) emptyList() else listOf("LODGING_REQUIRED"),
-            count = confirmed.size
+            count = confirmed.size,
+            explicitNotNeeded = notNeeded
         )
     }
 

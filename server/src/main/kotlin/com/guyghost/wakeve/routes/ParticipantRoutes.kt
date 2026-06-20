@@ -67,7 +67,7 @@ fun Route.participantRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to participantListFailureMessage())
                 )
             }
         }
@@ -95,8 +95,22 @@ fun Route.participantRoutes(
                 }
 
                 val request = call.receive<AddParticipantRequest>()
+                val requestEventId = request.eventId.trim()
+                val participantId = request.participantId.trim()
+                if (requestEventId != eventId) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Request eventId must match path event ID")
+                    )
+                }
+                if (participantId.isBlank()) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "participantId is required")
+                    )
+                }
 
-                val result = repository.addParticipant(eventId, request.participantId)
+                val result = repository.addParticipant(eventId, participantId)
                 
                 if (result.isSuccess) {
                     // Award points for inviting a participant (+20 points to organizer)
@@ -118,13 +132,13 @@ fun Route.participantRoutes(
                 } else {
                     call.respond(
                         HttpStatusCode.BadRequest,
-                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Failed to add participant"))
+                        mapOf("error" to participantAddFailureMessage())
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to participantAddFailureMessage())
                 )
             }
         }
@@ -136,10 +150,16 @@ fun Route.participantRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
                 )
-                val participantUserId = call.parameters["userId"] ?: return@post call.respond(
+                val participantUserId = call.parameters["userId"]?.trim() ?: return@post call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Participant user ID required")
                 )
+                if (participantUserId.isBlank()) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "Participant user ID required")
+                    )
+                }
                 val principal = call.principal<JWTPrincipal>()
                     ?: return@post call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
                 val authenticatedUserId = principal.userId
@@ -162,6 +182,14 @@ fun Route.participantRoutes(
                     return@post call.respond(
                         HttpStatusCode.BadRequest,
                         mapOf("error" to "slotId is required")
+                    )
+                }
+
+                val normalizedAttendance = request.attendance.trim().uppercase()
+                if (normalizedAttendance !in setOf("CONFIRMED", "DECLINED", "TENTATIVE")) {
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "attendance must be CONFIRMED, DECLINED, or TENTATIVE")
                     )
                 }
 
@@ -198,7 +226,7 @@ fun Route.participantRoutes(
                         mapOf("error" to "Participant not found")
                     )
 
-                val hasValidatedDate = if (request.attendance.uppercase() == "CONFIRMED") 1L else 0L
+                val hasValidatedDate = if (normalizedAttendance == "CONFIRMED") 1L else 0L
                 database.participantQueries.updateValidation(
                     hasValidatedDate = hasValidatedDate,
                     updatedAt = java.time.Instant.now().toString(),
@@ -211,14 +239,14 @@ fun Route.participantRoutes(
                         eventId = eventId,
                         userId = participantUserId,
                         slotId = requestedSlotId,
-                        attendance = request.attendance.uppercase(),
+                        attendance = normalizedAttendance,
                         hasValidatedDate = hasValidatedDate == 1L
                     )
                 )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to participantRsvpFailureMessage())
                 )
             }
         }
@@ -240,3 +268,12 @@ private fun hasParticipantRouteAccess(
         .selectByEventIdAndUserId(eventId, userId)
         .executeAsOneOrNull() != null
 }
+
+internal fun participantListFailureMessage(): String =
+    "Failed to fetch participants. Please try again."
+
+internal fun participantAddFailureMessage(): String =
+    "Failed to add the participant. Please try again."
+
+internal fun participantRsvpFailureMessage(): String =
+    "Failed to update participant RSVP. Please try again."

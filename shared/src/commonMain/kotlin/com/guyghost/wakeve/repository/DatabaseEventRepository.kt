@@ -417,7 +417,7 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
             )
         } catch (e: Exception) {
             // Log error but don't fail the entire save operation
-            println("⚠️ Failed to sync time slots: ${e.message}")
+            println(databaseEventRepositoryTimeSlotSyncFailureLogMessage())
         }
     }
 
@@ -884,7 +884,7 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
             }
             flowOf(events)
         } catch (e: Exception) {
-            println("⚠️ Error getting paginated events: ${e.message}")
+            println(databaseEventRepositoryPaginatedEventsFailureLogMessage())
             flowOf(emptyList())
         }
     }
@@ -1188,3 +1188,9 @@ class DatabaseEventRepository(private val db: WakeveDb, private val syncManager:
         }
     }
 }
+
+internal fun databaseEventRepositoryTimeSlotSyncFailureLogMessage(): String =
+    "Failed to sync time slots"
+
+internal fun databaseEventRepositoryPaginatedEventsFailureLogMessage(): String =
+    "Failed to load paginated events"

@@ -4,6 +4,8 @@ import com.guyghost.wakeve.notification.NotificationPreferences
 import com.guyghost.wakeve.notification.NotificationRequest
 import com.guyghost.wakeve.notification.NotificationService
 import com.guyghost.wakeve.notification.Platform
+import com.guyghost.wakeve.notification.defaultNotificationPreferences
+import com.guyghost.wakeve.notification.withDeepLink
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
@@ -44,14 +46,14 @@ fun Route.notificationRoutes(
                     .getOrElse { error ->
                         return@post call.respond(
                             HttpStatusCode.BadRequest,
-                            mapOf("error" to error.message)
+                            mapOf("error" to pushTokenValidationFailureMessage())
                         )
                     }
                 val platform = parseNotificationPlatform(request.platform)
                     .getOrElse { error ->
                         return@post call.respond(
                             HttpStatusCode.BadRequest,
-                            mapOf("error" to error.message)
+                            mapOf("error" to notificationPlatformValidationFailureMessage())
                         )
                     }
 
@@ -59,13 +61,18 @@ fun Route.notificationRoutes(
                     userId = userId,
                     platform = platform,
                     token = token
-                )
+                ).getOrElse { error ->
+                    return@post call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to notificationTokenRegisterFailureMessage())
+                    )
+                }
 
                 call.respond(HttpStatusCode.OK, mapOf("success" to true))
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to "Failed to register token: ${e.message}")
+                    mapOf("error" to notificationTokenRegisterFailureMessage())
                 )
             }
         }
@@ -89,17 +96,23 @@ fun Route.notificationRoutes(
                     .getOrElse { error ->
                         return@delete call.respond(
                             HttpStatusCode.BadRequest,
-                            mapOf("error" to error.message)
+                            mapOf("error" to notificationPlatformValidationFailureMessage())
                         )
                     }
 
                 notificationService.unregisterPushToken(userId, platform)
+                    .getOrElse { error ->
+                        return@delete call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to notificationTokenUnregisterFailureMessage())
+                        )
+                    }
 
                 call.respond(HttpStatusCode.OK, mapOf("success" to true))
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to "Failed to unregister token: ${e.message}")
+                    mapOf("error" to notificationTokenUnregisterFailureMessage())
                 )
             }
         }
@@ -128,26 +141,29 @@ fun Route.notificationRoutes(
                 authorization.getOrElse { error ->
                     return@post call.respond(
                         HttpStatusCode.Forbidden,
-                        mapOf("error" to error.message)
+                        mapOf("error" to notificationSendForbiddenMessage())
                     )
                 }
 
-                val notificationId = notificationService.sendNotification(request)
+                val notificationId = notificationService.sendNotification(request.withDeepLink())
                     .getOrElse { error ->
                         return@post call.respond(
                             HttpStatusCode.BadRequest,
-                            mapOf("error" to "Failed to send notification: ${error.message}")
+                            mapOf("error" to notificationSendFailureMessage())
                         )
                     }
 
-                call.respond(HttpStatusCode.OK, mapOf(
-                    "success" to true,
-                    "notificationId" to notificationId
-                ))
+                call.respond(
+                    HttpStatusCode.OK,
+                    SendNotificationResponse(
+                        success = true,
+                        notificationId = notificationId
+                    )
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to "Failed to send notification: ${e.message}")
+                    mapOf("error" to notificationSendFailureMessage())
                 )
             }
         }
@@ -172,7 +188,7 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to "Failed to get notifications: ${e.message}")
+                    mapOf("error" to notificationHistoryFailureMessage())
                 )
             }
         }
@@ -190,13 +206,14 @@ fun Route.notificationRoutes(
                         mapOf("error" to "Missing userId in token")
                     )
 
-                val notifications = notificationService.getUnreadNotifications(userId)
+                val limit = parseNotificationHistoryLimit(call.request.queryParameters["limit"])
+                val notifications = notificationService.getUnreadNotifications(userId, limit)
 
                 call.respond(HttpStatusCode.OK, notifications)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to "Failed to get unread notifications: ${e.message}")
+                    mapOf("error" to unreadNotificationsFailureMessage())
                 )
             }
         }
@@ -227,7 +244,7 @@ fun Route.notificationRoutes(
                     .getOrElse { error ->
                         return@put call.respond(
                             HttpStatusCode.BadRequest,
-                            mapOf("error" to "Failed to mark as read: ${error.message}")
+                            mapOf("error" to notificationMarkReadFailureMessage())
                         )
                     }
 
@@ -235,7 +252,7 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to "Failed to mark as read: ${e.message}")
+                    mapOf("error" to notificationMarkReadFailureMessage())
                 )
             }
         }
@@ -257,7 +274,7 @@ fun Route.notificationRoutes(
                     .getOrElse { error ->
                         return@put call.respond(
                             HttpStatusCode.BadRequest,
-                            mapOf("error" to "Failed to mark all as read: ${error.message}")
+                            mapOf("error" to notificationMarkAllReadFailureMessage())
                         )
                     }
 
@@ -265,7 +282,7 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to "Failed to mark all as read: ${e.message}")
+                    mapOf("error" to notificationMarkAllReadFailureMessage())
                 )
             }
         }
@@ -296,7 +313,7 @@ fun Route.notificationRoutes(
                     .getOrElse { error ->
                         return@delete call.respond(
                             HttpStatusCode.BadRequest,
-                            mapOf("error" to "Failed to delete notification: ${error.message}")
+                            mapOf("error" to notificationDeleteFailureMessage())
                         )
                     }
 
@@ -304,7 +321,7 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to "Failed to delete notification: ${e.message}")
+                    mapOf("error" to notificationDeleteFailureMessage())
                 )
             }
         }
@@ -322,17 +339,16 @@ fun Route.notificationRoutes(
                         mapOf("error" to "Missing userId in token")
                     )
 
-                val preferences = notificationService.getPreferences(userId)
+                val preferences = resolveEffectiveNotificationPreferences(
+                    authenticatedUserId = userId,
+                    storedPreferences = notificationService.getPreferences(userId)
+                )
 
-                if (preferences != null) {
-                    call.respond(HttpStatusCode.OK, preferences)
-                } else {
-                    call.respond(HttpStatusCode.NotFound, mapOf("error" to "Preferences not found"))
-                }
+                call.respond(HttpStatusCode.OK, preferences)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to "Failed to get preferences: ${e.message}")
+                    mapOf("error" to notificationPreferencesReadFailureMessage())
                 )
             }
         }
@@ -356,7 +372,7 @@ fun Route.notificationRoutes(
                 ).getOrElse { error ->
                     return@put call.respond(
                         HttpStatusCode.Forbidden,
-                        mapOf("error" to error.message)
+                        mapOf("error" to notificationPreferencesForbiddenMessage())
                     )
                 }
 
@@ -364,7 +380,7 @@ fun Route.notificationRoutes(
                     .getOrElse { error ->
                         return@put call.respond(
                             HttpStatusCode.BadRequest,
-                            mapOf("error" to "Failed to update preferences: ${error.message}")
+                            mapOf("error" to notificationPreferencesUpdateFailureMessage())
                         )
                     }
 
@@ -372,7 +388,7 @@ fun Route.notificationRoutes(
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to "Failed to update preferences: ${e.message}")
+                    mapOf("error" to notificationPreferencesUpdateFailureMessage())
                 )
             }
         }
@@ -386,6 +402,12 @@ fun Route.notificationRoutes(
 data class RegisterTokenRequest(
     val token: String,
     val platform: String // "android" or "ios"
+)
+
+@kotlinx.serialization.Serializable
+data class SendNotificationResponse(
+    val success: Boolean,
+    val notificationId: String
 )
 
 internal fun validatePushToken(token: String): Result<String> {
@@ -475,6 +497,55 @@ internal fun parseNotificationHistoryLimit(rawLimit: String?): Int {
     val parsedLimit = rawLimit?.trim()?.toIntOrNull() ?: DEFAULT_NOTIFICATION_HISTORY_LIMIT
     return parsedLimit.coerceIn(MIN_NOTIFICATION_HISTORY_LIMIT, MAX_NOTIFICATION_HISTORY_LIMIT)
 }
+
+internal fun resolveEffectiveNotificationPreferences(
+    authenticatedUserId: String,
+    storedPreferences: NotificationPreferences?
+): NotificationPreferences {
+    return storedPreferences ?: defaultNotificationPreferences(authenticatedUserId.trim())
+}
+
+internal fun pushTokenValidationFailureMessage(): String =
+    "Push token is required."
+
+internal fun notificationPlatformValidationFailureMessage(): String =
+    "Notification platform must be android or ios."
+
+internal fun notificationTokenRegisterFailureMessage(): String =
+    "Failed to register notification token. Please try again."
+
+internal fun notificationTokenUnregisterFailureMessage(): String =
+    "Failed to unregister notification token. Please try again."
+
+internal fun notificationSendForbiddenMessage(): String =
+    "You are not allowed to send this notification."
+
+internal fun notificationSendFailureMessage(): String =
+    "Failed to send notification. Please try again."
+
+internal fun notificationHistoryFailureMessage(): String =
+    "Failed to fetch notifications. Please try again."
+
+internal fun unreadNotificationsFailureMessage(): String =
+    "Failed to fetch unread notifications. Please try again."
+
+internal fun notificationMarkReadFailureMessage(): String =
+    "Failed to mark notification as read. Please try again."
+
+internal fun notificationMarkAllReadFailureMessage(): String =
+    "Failed to mark notifications as read. Please try again."
+
+internal fun notificationDeleteFailureMessage(): String =
+    "Failed to delete notification. Please try again."
+
+internal fun notificationPreferencesReadFailureMessage(): String =
+    "Failed to fetch notification preferences. Please try again."
+
+internal fun notificationPreferencesForbiddenMessage(): String =
+    "You are not allowed to update these notification preferences."
+
+internal fun notificationPreferencesUpdateFailureMessage(): String =
+    "Failed to update notification preferences. Please try again."
 
 private const val DEFAULT_NOTIFICATION_HISTORY_LIMIT = 50
 private const val MIN_NOTIFICATION_HISTORY_LIMIT = 1

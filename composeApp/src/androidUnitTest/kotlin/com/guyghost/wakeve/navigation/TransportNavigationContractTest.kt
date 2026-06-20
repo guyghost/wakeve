@@ -15,7 +15,7 @@ class TransportNavigationContractTest {
         assertTrue(
             source.contains("TransportPlanning") &&
                 source.contains("""Screen("event/{eventId}/transport")""") &&
-                source.contains("fun createRoute(eventId: String) = \"event/\$eventId/transport\""),
+                source.contains("fun createRoute(eventId: String) = \"event/\${routePathSegment(eventId)}/transport\""),
             "Android navigation must expose Screen.TransportPlanning as event/{eventId}/transport."
         )
     }

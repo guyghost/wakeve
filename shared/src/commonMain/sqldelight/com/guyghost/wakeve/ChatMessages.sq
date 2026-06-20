@@ -86,6 +86,33 @@ WHERE event_id = ? AND moderation_status = 'APPROVED'
 ORDER BY timestamp DESC
 LIMIT ? OFFSET ?;
 
+selectVisibleMessagesByEvent:
+SELECT cm.* FROM chat_message cm
+WHERE cm.event_id = ?
+AND cm.moderation_status = 'APPROVED'
+AND NOT EXISTS (
+    SELECT 1 FROM user_block ub
+    WHERE ub.blocker_user_id = ?
+    AND ub.blocked_user_id = cm.sender_id
+    AND (ub.event_id IS NULL OR ub.event_id = cm.event_id)
+    AND ub.removed_at IS NULL
+)
+ORDER BY cm.timestamp ASC;
+
+selectVisibleMessagesByEventPaginated:
+SELECT cm.* FROM chat_message cm
+WHERE cm.event_id = ?
+AND cm.moderation_status = 'APPROVED'
+AND NOT EXISTS (
+    SELECT 1 FROM user_block ub
+    WHERE ub.blocker_user_id = ?
+    AND ub.blocked_user_id = cm.sender_id
+    AND (ub.event_id IS NULL OR ub.event_id = cm.event_id)
+    AND ub.removed_at IS NULL
+)
+ORDER BY cm.timestamp DESC
+LIMIT ? OFFSET ?;
+
 selectMessagesByEventAndSection:
 SELECT * FROM chat_message 
 WHERE event_id = ? AND section = ? AND moderation_status = 'APPROVED' 
@@ -342,6 +369,24 @@ SELECT COUNT(*) FROM chat_message WHERE event_id = ? AND section = ?;
 
 countMessagesBySender:
 SELECT COUNT(*) FROM chat_message WHERE event_id = ? AND sender_id = ?;
+
+countApprovedMessagesByEvent:
+SELECT COUNT(*) FROM chat_message WHERE event_id = ? AND moderation_status = 'APPROVED';
+
+countApprovedMessagesBySender:
+SELECT COUNT(*) FROM chat_message WHERE event_id = ? AND sender_id = ? AND moderation_status = 'APPROVED';
+
+countVisibleApprovedMessagesByEvent:
+SELECT COUNT(*) FROM chat_message cm
+WHERE cm.event_id = ?
+AND cm.moderation_status = 'APPROVED'
+AND NOT EXISTS (
+    SELECT 1 FROM user_block ub
+    WHERE ub.blocker_user_id = ?
+    AND ub.blocked_user_id = cm.sender_id
+    AND (ub.event_id IS NULL OR ub.event_id = cm.event_id)
+    AND ub.removed_at IS NULL
+);
 
 countUnreadMessages:
 SELECT COUNT(*) FROM chat_message 

@@ -39,6 +39,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class EventOrganizationPhase4TransportRoutesTest {
@@ -138,6 +139,49 @@ class EventOrganizationPhase4TransportRoutesTest {
         assertEquals(HttpStatusCode.OK, ownDeparture.status)
         assertEquals(HttpStatusCode.Forbidden, anotherParticipantDeparture.status)
         assertEquals(HttpStatusCode.OK, organizerDeparture.status)
+    }
+
+    @Test
+    fun `invalid departure locations are rejected before persistence and sync`() = testApplication {
+        val fixture = createFixture("departure-validation", EventStatus.ORGANIZING)
+        val organizerToken = createTestJwt(fixture.organizerId)
+        val client = createJsonClient()
+        val beforeSyncIds = pendingTransportSyncIds(fixture)
+
+        application {
+            module(fixture.database)
+        }
+
+        val invalidBodies = listOf(
+            departureBodyWithLocation(fixture.confirmedParticipantId, name = "   "),
+            departureBodyWithLocation(fixture.confirmedParticipantId, latitude = 91.0),
+            departureBodyWithLocation(fixture.confirmedParticipantId, longitude = -181.0),
+            departureBodyWithLocation(fixture.confirmedParticipantId, iataCode = "TOOLONG")
+        )
+
+        invalidBodies.forEach { body ->
+            val response = client.put(
+                "/api/events/${fixture.eventId}/transport/departures/${fixture.confirmedParticipantId}"
+            ) {
+                header(HttpHeaders.Authorization, "Bearer $organizerToken")
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+
+            assertEquals(HttpStatusCode.BadRequest, response.status, response.bodyAsText())
+        }
+
+        assertNull(
+            fixture.database.transportQueries
+                .selectDepartureLocation(fixture.eventId, fixture.confirmedParticipantId)
+                .executeAsOneOrNull(),
+            "Invalid departure locations must not be persisted."
+        )
+        assertEquals(
+            beforeSyncIds,
+            pendingTransportSyncIds(fixture),
+            "Invalid departure locations must not queue sync metadata."
+        )
     }
 
     @Test
@@ -739,6 +783,28 @@ class EventOrganizationPhase4TransportRoutesTest {
         """.trimIndent()
     }
 
+    private fun departureBodyWithLocation(
+        participantId: String,
+        name: String = "Paris Gare de Lyon",
+        address: String? = "Paris Gare de Lyon, France",
+        latitude: Double? = 48.8566,
+        longitude: Double? = 2.3522,
+        iataCode: String? = null
+    ): String {
+        val addressLine = address?.let { ""","address":"$it"""" } ?: ""
+        val latitudeLine = latitude?.let { ""","latitude":$it""" } ?: ""
+        val longitudeLine = longitude?.let { ""","longitude":$it""" } ?: ""
+        val iataLine = iataCode?.let { ""","iataCode":"$it"""" } ?: ""
+        return """
+            {
+              "participantId": "$participantId",
+              "location": {
+                "name": "$name"$addressLine$latitudeLine$longitudeLine$iataLine
+              }
+            }
+        """.trimIndent()
+    }
+
     private fun generatePlanBody(): String {
         return """
             {
@@ -758,6 +824,17 @@ class EventOrganizationPhase4TransportRoutesTest {
             created_at = "2026-05-22T10:00:00Z"
         )
     }
+
+    private fun pendingTransportSyncIds(fixture: Phase4TransportFixture): Set<String> =
+        fixture.database.syncMetadataQueries
+            .selectPending()
+            .executeAsList()
+            .filter { row ->
+                row.entityType.startsWith("transport_") &&
+                    (row.entityId == fixture.eventId || row.entityId.startsWith("${fixture.eventId}:"))
+            }
+            .map { it.id }
+            .toSet()
 
     private suspend fun io.ktor.client.statement.HttpResponse.extractId(): String {
         val parsed = json.parseToJsonElement(bodyAsText()).jsonObject

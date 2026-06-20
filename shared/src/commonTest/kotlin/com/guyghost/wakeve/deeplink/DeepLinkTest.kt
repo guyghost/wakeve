@@ -1,11 +1,14 @@
 package com.guyghost.wakeve.deeplink
 
 import com.guyghost.wakeve.notification.DeepLinkInfo
+import com.guyghost.wakeve.notification.NotificationRequest
+import com.guyghost.wakeve.notification.NotificationType
 import com.guyghost.wakeve.notification.createNotificationDataWithDeepLink
 import com.guyghost.wakeve.notification.deepLinkRoute
 import com.guyghost.wakeve.notification.deepLinkUri
 import com.guyghost.wakeve.notification.hasDeepLink
 import com.guyghost.wakeve.notification.parseDeepLinkFromNotificationData
+import com.guyghost.wakeve.notification.withDeepLink
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -258,6 +261,48 @@ class DeepLinkTest {
     }
 
     @Test
+    fun deepLinkRoute_createUri_trimsPathParams() {
+        val uri = DeepLinkRoute.INVITE.createUri(
+            pathParams = mapOf("code" to " invite-code-123 ")
+        )
+
+        assertEquals("wakeve://invite/invite-code-123", uri)
+    }
+
+    @Test
+    fun deepLinkRoute_createUri_rejectsBlankPathParams() {
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkRoute.INVITE.createUri(pathParams = mapOf("code" to " "))
+        }
+    }
+
+    @Test
+    fun deepLinkRoute_createUri_rejectsPathAndQueryInjectedParams() {
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkRoute.INVITE.createUri(pathParams = mapOf("code" to "invite/code"))
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkRoute.EVENT_DETAILS.createUri(pathParams = mapOf("eventId" to "event-123?tab=budget"))
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkRoute.EVENT_DETAILS.createUri(pathParams = mapOf("eventId" to "event-123#fragment"))
+        }
+    }
+
+    @Test
+    fun deepLinkRoute_createUri_rejectsEncodedDelimiterParams() {
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkRoute.INVITE.createUri(pathParams = mapOf("code" to "invite%2Fcode"))
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkRoute.EVENT_DETAILS.createUri(pathParams = mapOf("eventId" to "event-123%3Ftab=budget"))
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkRoute.EVENT_DETAILS.createUri(pathParams = mapOf("eventId" to "event-123%23fragment"))
+        }
+    }
+
+    @Test
     fun deepLinkRoute_createUri_withoutQueryParams_generatesCorrectUri() {
         val uri = DeepLinkRoute.PROFILE.createUri()
 
@@ -292,6 +337,17 @@ class DeepLinkTest {
         assertEquals(DeepLinkRoute.INVITE, deepLink.toDeepLinkRoute())
         assertEquals("invite-code-123", DeepLinkRoute.INVITE.extractParameters(deepLink)["code"])
     }
+
+    @Test
+    fun processDeepLinkUri_invalidUri_returnsStableFailureReason() {
+        val secret = "wakeve-secret-token"
+        val result = processDeepLinkUri("https://$secret/event/123/details", MockDeepLinkHandler())
+
+        val failure = result as DeepLinkResult.Failure
+        assertEquals(deepLinkParseFailureMessage(), failure.reason)
+        assertFalse(failure.reason.contains(secret))
+        assertFalse(failure.reason.contains("wakeve://"))
+    }
 }
 
 /**
@@ -313,6 +369,37 @@ class DeepLinkFactoryTest {
 
         assertEquals("participants", deepLink.getParameter("tab"))
         assertTrue(deepLink.fullUri.contains("tab=participants"))
+    }
+
+    @Test
+    fun createEventDetailsLink_normalizesEventIdAndTab() {
+        val deepLink = DeepLinkFactory.createEventDetailsLink(" event-123 ", " details ")
+
+        assertEquals("event/event-123/details", deepLink.route)
+        assertEquals("details", deepLink.getParameter("tab"))
+    }
+
+    @Test
+    fun createEventDetailsLink_rejectsBlankOrPathInjectedEventId() {
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkFactory.createEventDetailsLink(" ")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkFactory.createEventDetailsLink("event-1/details")
+        }
+    }
+
+    @Test
+    fun createEventDetailsLink_rejectsEncodedDelimiterEventId() {
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkFactory.createEventDetailsLink("event-1%2Fdetails")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkFactory.createEventDetailsLink("event-1%3Ftab=budget")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkFactory.createEventDetailsLink("event-1%23fragment")
+        }
     }
 
     @Test
@@ -357,6 +444,27 @@ class DeepLinkFactoryTest {
         val deepLink = DeepLinkFactory.createMeetingJoinLink("event-123", "meeting-456", autoJoin = true)
 
         assertEquals("true", deepLink.getParameter("autoJoin"))
+    }
+
+    @Test
+    fun createMeetingJoinLink_normalizesIdsAndRejectsBlankMeetingId() {
+        val deepLink = DeepLinkFactory.createMeetingJoinLink(" event-123 ", " meeting-456 ")
+
+        assertEquals("event/event-123/meetings", deepLink.route)
+        assertEquals("meeting-456", deepLink.getParameter("meetingId"))
+
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkFactory.createMeetingJoinLink("event-123", " ")
+        }
+    }
+
+    @Test
+    fun createEventMeetingsLink_createsMeetingsListLinkWithoutMeetingId() {
+        val deepLink = DeepLinkFactory.createEventMeetingsLink(" event-123 ")
+
+        assertEquals("event/event-123/meetings", deepLink.route)
+        assertNull(deepLink.getParameter("meetingId"))
+        assertEquals("wakeve://event/event-123/meetings", deepLink.fullUri)
     }
 
     @Test
@@ -432,6 +540,26 @@ class DeepLinkFactoryTest {
             DeepLinkFactory.createInvitationLink(" ")
         }
     }
+
+    @Test
+    fun createInvitationLink_pathInjectedCode_fails() {
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkFactory.createInvitationLink("invite/code")
+        }
+    }
+
+    @Test
+    fun createInvitationLink_encodedDelimiterCode_fails() {
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkFactory.createInvitationLink("invite%2Fcode")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkFactory.createInvitationLink("invite%3Fadmin=true")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkFactory.createInvitationLink("invite%23fragment")
+        }
+    }
 }
 
 /**
@@ -477,6 +605,80 @@ class NotificationDeepLinkIntegrationTest {
         assertTrue(data["deepLink"]!!.contains("event/event-123/meetings"))
         assertEquals("meet-456", data["param_meetingId"])
         assertEquals("true", data["param_autoJoin"])
+    }
+
+    @Test
+    fun createNotificationDataWithDeepLink_missingRequiredIds_fallsBackToNotifications() {
+        val eventData = createNotificationDataWithDeepLink(
+            eventId = null,
+            deepLinkRoute = DeepLinkRoute.EVENT_DETAILS
+        )
+        val meetingData = createNotificationDataWithDeepLink(
+            eventId = "event-123",
+            deepLinkRoute = DeepLinkRoute.EVENT_MEETINGS,
+            additionalParams = emptyMap()
+        )
+
+        listOf(eventData, meetingData).forEach { data ->
+            assertEquals("NOTIFICATIONS", data["deepLinkRoute"])
+            assertEquals("notifications", data["deepLinkPath"])
+            assertEquals("unread", data["param_filter"])
+            assertFalse(data["deepLink"]!!.contains("event//"))
+        }
+    }
+
+    @Test
+    fun notificationRequestWithExplicitRoute_missingRequiredIds_fallsBackToNotificationsRoute() {
+        val request = NotificationRequest(
+            userId = "user-1",
+            type = NotificationType.MEETING_REMINDER,
+            title = "Meeting soon",
+            body = "Join now",
+            eventId = null,
+            data = emptyMap()
+        )
+
+        val withDeepLink = request.withDeepLink(DeepLinkRoute.EVENT_MEETINGS)
+
+        assertEquals("NOTIFICATIONS", withDeepLink.data["deepLinkRoute"])
+        assertEquals("notifications", withDeepLink.data["deepLinkPath"])
+        assertEquals("unread", withDeepLink.data["param_filter"])
+    }
+
+    @Test
+    fun notificationRequestWithDeepLink_deadlineReminderRoutesToPoll() {
+        val request = NotificationRequest(
+            userId = "user-1",
+            type = NotificationType.DEADLINE_REMINDER,
+            title = "Vote deadline soon",
+            body = "Pick your availability",
+            eventId = "event-123",
+            data = emptyMap()
+        )
+
+        val withDeepLink = request.withDeepLink()
+
+        assertEquals("wakeve://event/event-123/poll", withDeepLink.data["deepLink"])
+        assertEquals("EVENT_POLL", withDeepLink.data["deepLinkRoute"])
+        assertEquals("event/event-123/poll", withDeepLink.data["deepLinkPath"])
+    }
+
+    @Test
+    fun notificationRequestWithDeepLink_eventInviteWithCodeRoutesToInviteFlow() {
+        val request = NotificationRequest(
+            userId = "user-1",
+            type = NotificationType.EVENT_INVITE,
+            title = "You're invited",
+            body = "Join the event",
+            eventId = "event-123",
+            data = mapOf("invitationCode" to "invite-code-123")
+        )
+
+        val withDeepLink = request.withDeepLink()
+
+        assertEquals("wakeve://invite/invite-code-123", withDeepLink.data["deepLink"])
+        assertEquals("INVITE", withDeepLink.data["deepLinkRoute"])
+        assertEquals("invite/invite-code-123", withDeepLink.data["deepLinkPath"])
     }
 
     @Test
@@ -585,7 +787,19 @@ class NotificationDeepLinkIntegrationTest {
 class DeepLinkFactoryNotificationTest {
 
     @Test
-    fun createFromNotification_eventInvite_createsEventDetailsLink() {
+    fun createFromNotification_eventInviteWithCode_createsInviteLink() {
+        val deepLink = DeepLinkFactory.createFromNotification(
+            notificationType = "EVENT_INVITE",
+            eventId = "event-123",
+            additionalParams = mapOf("code" to "invite-code-123")
+        )
+
+        assertEquals("invite/invite-code-123", deepLink.route)
+        assertEquals("wakeve://invite/invite-code-123", deepLink.fullUri)
+    }
+
+    @Test
+    fun createFromNotification_eventInviteWithoutCode_fallsBackToEventDetailsLink() {
         val deepLink = DeepLinkFactory.createFromNotification(
             notificationType = "EVENT_INVITE",
             eventId = "event-123"
@@ -660,13 +874,37 @@ class DeepLinkFactoryNotificationTest {
     }
 
     @Test
-    fun createFromNotification_nullEventId_usesEmptyString() {
+    fun createFromNotification_nullEventId_fallsBackToNotifications() {
         val deepLink = DeepLinkFactory.createFromNotification(
             notificationType = "EVENT_INVITE",
             eventId = null
         )
 
-        assertEquals("event//details", deepLink.route)
+        assertEquals("notifications", deepLink.route)
+        assertEquals("unread", deepLink.getParameter("filter"))
+    }
+
+    @Test
+    fun createFromNotification_eventInviteWithInjectedCode_fallsBackToNotifications() {
+        val deepLink = DeepLinkFactory.createFromNotification(
+            notificationType = "EVENT_INVITE",
+            eventId = "event-123",
+            additionalParams = mapOf("code" to "invite/code")
+        )
+
+        assertEquals("notifications", deepLink.route)
+        assertEquals("unread", deepLink.getParameter("filter"))
+    }
+
+    @Test
+    fun createFromNotification_meetingReminderWithoutMeetingId_fallsBackToNotifications() {
+        val deepLink = DeepLinkFactory.createFromNotification(
+            notificationType = "MEETING_REMINDER",
+            eventId = "event-123"
+        )
+
+        assertEquals("notifications", deepLink.route)
+        assertEquals("unread", deepLink.getParameter("filter"))
     }
 }
 
@@ -768,6 +1006,53 @@ class DeepLinkUriBuilderTest {
             .build()
 
         assertEquals("wakeve://event/123/details", uri)
+    }
+
+    @Test
+    fun builder_withPathParams_trimsValues() {
+        val uri = DeepLinkUriBuilder.route("event/{eventId}/details")
+            .pathParam("eventId", " 123 ")
+            .build()
+
+        assertEquals("wakeve://event/123/details", uri)
+    }
+
+    @Test
+    fun builder_withPathParams_rejectsDelimiters() {
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkUriBuilder.route("event/{eventId}/details")
+                .pathParam("eventId", "event/123")
+                .build()
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkUriBuilder.route("event/{eventId}/details")
+                .pathParam("eventId", "event-123?tab=budget")
+                .build()
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkUriBuilder.route("event/{eventId}/details")
+                .pathParam("eventId", "event-123#fragment")
+                .build()
+        }
+    }
+
+    @Test
+    fun builder_withPathParams_rejectsEncodedDelimiters() {
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkUriBuilder.route("event/{eventId}/details")
+                .pathParam("eventId", "event%2F123")
+                .build()
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkUriBuilder.route("event/{eventId}/details")
+                .pathParam("eventId", "event-123%3Ftab=budget")
+                .build()
+        }
+        assertFailsWith<IllegalArgumentException> {
+            DeepLinkUriBuilder.route("event/{eventId}/details")
+                .pathParam("eventId", "event-123%23fragment")
+                .build()
+        }
     }
 
     @Test

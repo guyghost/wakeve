@@ -3,6 +3,11 @@ package com.guyghost.wakeve.navigation
 import android.net.Uri
 import com.guyghost.wakeve.models.EventType
 
+internal fun routePathSegment(value: String): String = Uri.encode(value)
+
+internal const val NOTIFICATIONS_FILTER_ARG = "filter"
+internal const val NOTIFICATIONS_FILTER_UNREAD = "unread"
+
 /**
  * Sealed class defining all navigation routes in the Wakeve Android app.
  * 
@@ -51,91 +56,102 @@ sealed class Screen(val route: String) {
     }
     data object EventPlanningAssistant : Screen("event_planning_assistant")
     data object EventDetail : Screen("event/{eventId}") {
-        fun createRoute(eventId: String) = "event/$eventId"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}"
     }
     
     // Participant & Poll Management
     data object ParticipantManagement : Screen("event/{eventId}/participants") {
-        fun createRoute(eventId: String) = "event/$eventId/participants"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/participants"
     }
     data object PollVoting : Screen("event/{eventId}/poll/vote") {
-        fun createRoute(eventId: String) = "event/$eventId/poll/vote"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/poll/vote"
     }
     data object PollResults : Screen("event/{eventId}/poll/results") {
-        fun createRoute(eventId: String) = "event/$eventId/poll/results"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/poll/results"
     }
     
     // Scenario Management
     data object ScenarioList : Screen("event/{eventId}/scenarios") {
-        fun createRoute(eventId: String) = "event/$eventId/scenarios"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/scenarios"
     }
     data object ScenarioDetail : Screen("event/{eventId}/scenario/{scenarioId}") {
         fun createRoute(eventId: String, scenarioId: String) = 
-            "event/$eventId/scenario/$scenarioId"
+            "event/${routePathSegment(eventId)}/scenario/${routePathSegment(scenarioId)}"
     }
     data object ScenarioComparison : Screen("event/{eventId}/scenarios/compare") {
-        fun createRoute(eventId: String) = "event/$eventId/scenarios/compare"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/scenarios/compare"
     }
     data object ScenarioManagement : Screen("event/{eventId}/scenarios/manage") {
-        fun createRoute(eventId: String) = "event/$eventId/scenarios/manage"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/scenarios/manage"
     }
     
     // Budget, Payment & Tricount Management
     data object BudgetOverview : Screen("event/{eventId}/budget") {
-        fun createRoute(eventId: String) = "event/$eventId/budget"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/budget"
     }
     data object BudgetDetail : Screen("event/{eventId}/budget/{budgetItemId}") {
         fun createRoute(eventId: String, budgetItemId: String) = 
-            "event/$eventId/budget/$budgetItemId"
+            "event/${routePathSegment(eventId)}/budget/${routePathSegment(budgetItemId)}"
     }
     data object PaymentPot : Screen("event/{eventId}/payment") {
-        fun createRoute(eventId: String) = "event/$eventId/payment"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/payment"
     }
     data object Tricount : Screen("event/{eventId}/tricount") {
-        fun createRoute(eventId: String) = "event/$eventId/tricount"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/tricount"
     }
     
     // Logistics & Planning
     data object Accommodation : Screen("event/{eventId}/accommodation") {
-        fun createRoute(eventId: String) = "event/$eventId/accommodation"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/accommodation"
     }
     data object MealPlanning : Screen("event/{eventId}/meals") {
-        fun createRoute(eventId: String) = "event/$eventId/meals"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/meals"
     }
     data object EquipmentChecklist : Screen("event/{eventId}/equipment") {
-        fun createRoute(eventId: String) = "event/$eventId/equipment"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/equipment"
     }
     data object ActivityPlanning : Screen("event/{eventId}/activities") {
-        fun createRoute(eventId: String) = "event/$eventId/activities"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/activities"
     }
     data object TransportPlanning : Screen("event/{eventId}/transport") {
-        fun createRoute(eventId: String) = "event/$eventId/transport"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/transport"
     }
     
     // Communication
     data object Comments : Screen("event/{eventId}/comments") {
-        fun createRoute(eventId: String) = "event/$eventId/comments"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/comments"
     }
     data object Inbox : Screen("inbox")
     
     // Meetings (Phase 4)
     data object MeetingList : Screen("event/{eventId}/meetings") {
-        fun createRoute(eventId: String) = "event/$eventId/meetings"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/meetings"
     }
     data object MeetingDetail : Screen("meeting/{meetingId}") {
-        fun createRoute(meetingId: String) = "meeting/$meetingId"
+        fun createRoute(meetingId: String) = "meeting/${routePathSegment(meetingId)}"
     }
     
     // Invitation Share
     data object InvitationShare : Screen("event/{eventId}/invite") {
-        fun createRoute(eventId: String) = "event/$eventId/invite"
+        fun createRoute(eventId: String) = "event/${routePathSegment(eventId)}/invite"
     }
 
     // Settings
     data object Settings : Screen("settings")
 
     // Notifications
-    data object Notifications : Screen("notifications")
+    data object Notifications : Screen("notifications?$NOTIFICATIONS_FILTER_ARG={$NOTIFICATIONS_FILTER_ARG}") {
+        private const val BASE_ROUTE = "notifications"
+
+        fun createRoute(filter: String? = null): String {
+            val normalizedFilter = filter?.trim()?.lowercase()
+            return if (normalizedFilter == NOTIFICATIONS_FILTER_UNREAD) {
+                "$BASE_ROUTE?$NOTIFICATIONS_FILTER_ARG=$NOTIFICATIONS_FILTER_UNREAD"
+            } else {
+                BASE_ROUTE
+            }
+        }
+    }
     data object NotificationPreferences : Screen("notifications/preferences")
 
     // Gamification

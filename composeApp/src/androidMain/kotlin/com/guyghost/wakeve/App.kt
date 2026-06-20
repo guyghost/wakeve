@@ -21,7 +21,10 @@ import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
 import com.guyghost.wakeve.deeplink.AndroidInvitationDeepLinkService
 import com.guyghost.wakeve.deeplink.AndroidNavigationDeepLinkHandler
 import com.guyghost.wakeve.deeplink.DeepLinkStateManager
-import com.guyghost.wakeve.deeplink.InvitationDeepLinkAcceptanceResult
+import com.guyghost.wakeve.deeplink.PendingInviteProcessingInput
+import com.guyghost.wakeve.deeplink.pendingInviteProcessingInput
+import com.guyghost.wakeve.deeplink.pendingInviteProcessingResult
+import com.guyghost.wakeve.deeplink.redactDeepLinkForLog
 import com.guyghost.wakeve.navigation.Screen
 import com.guyghost.wakeve.navigation.WakeveAdaptiveNavigationScaffold
 import com.guyghost.wakeve.navigation.WakeveNavHost
@@ -119,7 +122,7 @@ fun App() {
     LaunchedEffect(authState.isAuthenticated) {
         DeepLinkStateManager.pendingDeepLink.collect { uri ->
             if (uri != null) {
-                Log.d("App", "Handling deep link from state manager: $uri")
+                Log.d("App", "Handling deep link from state manager: ${redactDeepLinkForLog(uri.toString())}")
 
                 // Handle deep link
                 val handled = deepLinkHandler.handleDeepLink(
@@ -137,34 +140,34 @@ fun App() {
     }
 
     LaunchedEffect(pendingInviteCode, authState.isAuthenticated) {
-        val inviteCode = pendingInviteCode ?: return@LaunchedEffect
-        if (!authState.isAuthenticated) {
-            navController.navigate(Screen.Auth.route)
-            return@LaunchedEffect
-        }
-        if (processingInviteCode == inviteCode) return@LaunchedEffect
-
-        processingInviteCode = inviteCode
-        when (val result = invitationDeepLinkService.acceptInvitation(inviteCode)) {
-            is InvitationDeepLinkAcceptanceResult.Accepted -> {
-                DeepLinkStateManager.clearPendingInviteCode()
-                processingInviteCode = null
-                Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
-                navController.navigate(Screen.EventDetail.createRoute(result.eventId))
-            }
-            is InvitationDeepLinkAcceptanceResult.AuthenticationRequired -> {
-                processingInviteCode = null
-                Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+        when (
+            val input = pendingInviteProcessingInput(
+                pendingInviteCode = pendingInviteCode,
+                isAuthenticated = authState.isAuthenticated,
+                processingInviteCode = processingInviteCode
+            )
+        ) {
+            PendingInviteProcessingInput.None -> return@LaunchedEffect
+            PendingInviteProcessingInput.RequireAuthentication -> {
                 navController.navigate(Screen.Auth.route)
+                return@LaunchedEffect
             }
-            is InvitationDeepLinkAcceptanceResult.Rejected -> {
-                DeepLinkStateManager.clearPendingInviteCode()
+            is PendingInviteProcessingInput.Accept -> {
+                processingInviteCode = input.code
+                val action = pendingInviteProcessingResult(invitationDeepLinkService.acceptInvitation(input.code))
+                if (action.clearPendingInviteCode) {
+                    DeepLinkStateManager.clearPendingInviteCode()
+                }
                 processingInviteCode = null
-                Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
-            }
-            is InvitationDeepLinkAcceptanceResult.RetryableFailure -> {
-                processingInviteCode = null
-                Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+                Toast.makeText(context, action.message, Toast.LENGTH_LONG).show()
+                when {
+                    action.acceptedEventId != null -> {
+                        navController.navigate(Screen.EventDetail.createRoute(action.acceptedEventId))
+                    }
+                    action.navigateToAuth -> {
+                        navController.navigate(Screen.Auth.route)
+                    }
+                }
             }
         }
     }

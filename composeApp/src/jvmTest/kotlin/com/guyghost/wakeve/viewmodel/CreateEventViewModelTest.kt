@@ -1,12 +1,12 @@
 package com.guyghost.wakeve.viewmodel
 
-import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.analytics.AnalyticsEvent
 import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.TimeOfDay
 import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
@@ -31,7 +31,7 @@ import kotlin.test.assertTrue
 class CreateEventViewModelTest : ViewModelTestBase() {
 
     @Mock
-    private lateinit var eventRepository: EventRepository
+    private lateinit var eventRepository: EventRepositoryInterface
 
     private lateinit var viewModel: CreateEventViewModel
 
@@ -265,9 +265,9 @@ class CreateEventViewModelTest : ViewModelTestBase() {
             end = "2024-12-31T12:00:00Z",
             timezone = "UTC"
         )
-        val errorMessage = "Failed to create event"
+        val errorMessage = "SQL constraint failed for user secret@example.com token=SECRET"
 
-        doReturn(kotlin.Result.failure<Unit>(IllegalArgumentException(errorMessage))).`when`(eventRepository)
+        doReturn(kotlin.Result.failure<Event>(IllegalArgumentException(errorMessage))).`when`(eventRepository)
             .createEvent(any())
 
         // Act
@@ -284,8 +284,17 @@ class CreateEventViewModelTest : ViewModelTestBase() {
         )
         val lastEvent = mockAnalyticsProvider.getLastEvent() as? AnalyticsEvent.ErrorOccurred
         assertEquals("create_event_failed", lastEvent?.errorType, "Error type should match")
-        assertEquals(errorMessage, viewModel.creationError.value, "Error message should match")
+        assertEquals(eventCreationFailureMessage(), viewModel.creationError.value, "Error message should be generic")
+        assertEquals(eventCreationFailureAnalyticsContext(), lastEvent?.errorContext, "Analytics context should be stable")
+        assertDoesNotExposeSensitiveDetails(viewModel.creationError.value.orEmpty())
+        assertDoesNotExposeSensitiveDetails(lastEvent?.errorContext.orEmpty())
         assertFalse(viewModel.isCreating.value, "Should not be creating after error")
+    }
+
+    @Test
+    fun `createEvent failure helpers should use stable safe copy`() {
+        assertEquals("Impossible de creer l'evenement. Reessayez.", eventCreationFailureMessage())
+        assertEquals("event_creation_failed", eventCreationFailureAnalyticsContext())
     }
 
     @Test
@@ -397,5 +406,19 @@ class CreateEventViewModelTest : ViewModelTestBase() {
             updatedAt = "2024-01-01T00:00:00Z",
             eventType = EventType.OTHER
         )
+    }
+
+    private fun assertDoesNotExposeSensitiveDetails(message: String) {
+        listOf(
+            "secret@example.com",
+            "SECRET",
+            "SQL constraint",
+            "token="
+        ).forEach { sensitiveValue ->
+            assertFalse(
+                message.contains(sensitiveValue, ignoreCase = true),
+                "Message should not expose `$sensitiveValue`: $message"
+            )
+        }
     }
 }

@@ -103,7 +103,7 @@ class ProfileViewModel(
                     userBadges = emptyList(),
                     allBadges = emptyList(),
                     leaderboard = emptyList(),
-                    error = error.message ?: "Impossible de charger le profil"
+                    error = profileLoadFailureMessage()
                 )
             }
         }
@@ -124,3 +124,5 @@ class ProfileViewModel(
         _uiState.value = _uiState.value.copy(error = null)
     }
 }
+
+internal fun profileLoadFailureMessage(): String = "Impossible de charger le profil. Réessayez."

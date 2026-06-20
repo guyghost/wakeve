@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.routes
 
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.models.ChatMessageType
 import com.guyghost.wakeve.models.ChatWebSocketMessage
 import com.guyghost.wakeve.models.ChatWebSocketResponse
@@ -74,7 +75,7 @@ class EventChatConnections {
             eventConnections.forEach { (_, connection) ->
                 if (senderId.isNotBlank() &&
                     senderId != connection.userId &&
-                    moderationRepository?.isBlocked(connection.userId, senderId) == true
+                    moderationRepository?.isBlockedForEvent(connection.userId, senderId, eventId) == true
                 ) {
                     return@forEach
                 }
@@ -107,7 +108,10 @@ val eventChatConnections = EventChatConnections()
  * Gère les connexions multiples par événement et diffuse les messages
  * à tous les participants connectés.
  */
-fun Route.chatWebSocketRoute(moderationRepository: ModerationRepository? = null) {
+fun Route.chatWebSocketRoute(
+    database: WakeveDb,
+    moderationRepository: ModerationRepository? = null
+) {
     val connectionManager = eventChatConnections
 
     webSocket("/ws/events/{eventId}/chat") {
@@ -120,6 +124,10 @@ fun Route.chatWebSocketRoute(moderationRepository: ModerationRepository? = null)
                 close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Authentication required"))
                 return@webSocket
             }
+        if (!hasChatWebSocketAccess(database, eventId, userId)) {
+            close(CloseReason(CloseReason.Codes.VIOLATED_POLICY, "Event access required"))
+            return@webSocket
+        }
 
         // Ajouter la connexion au gestionnaire
         val connectionId = connectionManager.addConnection(eventId, userId, this)
@@ -186,7 +194,7 @@ fun Route.chatWebSocketRoute(moderationRepository: ModerationRepository? = null)
                                     content = null
                                 ),
                                 success = false,
-                                errorMessage = "Invalid message format: ${e.message}"
+                                errorMessage = chatWebSocketInvalidMessageFailureMessage()
                             )
                             val errorJson = json.encodeToString(errorResponse)
                             send(Frame.Text(errorJson))
@@ -203,3 +211,14 @@ fun Route.chatWebSocketRoute(moderationRepository: ModerationRepository? = null)
         }
     }
 }
+
+internal fun hasChatWebSocketAccess(database: WakeveDb, eventId: String, userId: String): Boolean {
+    val event = database.eventQueries.selectById(eventId).executeAsOneOrNull() ?: return false
+    if (event.organizerId == userId) return true
+    return database.participantQueries
+        .selectByEventIdAndUserId(eventId, userId)
+        .executeAsOneOrNull() != null
+}
+
+internal fun chatWebSocketInvalidMessageFailureMessage(): String =
+    "Invalid chat message format."
