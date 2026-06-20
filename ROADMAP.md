@@ -328,6 +328,8 @@ Preuves du 2026-06-20:
 
 - `OUTPUT_DIR=$(mktemp -d) ./scripts/profile-release-performance.sh --android-only --build-android --runs 1` genere maintenant une preuve temporaire build-only sans polluer `docs/performance/`: APK release local `composeApp-release-unsigned.apk` produit, `Android Cold Start` marque `SKIPPED` faute de device/emulateur, et les traces runtime restent `PENDING_DEVICE_TRACE`.
 - Le harnais Android utilise `--no-configuration-cache` pour `:composeApp:assembleRelease`, ce qui evite que `processReleaseGoogleServices` transforme une assemblee APK reussie en echec de stockage du configuration cache.
+- `IOS_SIMULATOR='iPhone 17' ./scripts/profile-release-performance.sh --ios-only --build-ios --runs 5` genere `docs/performance/release-performance-2026-06-20T20-58-11Z.md`: build iOS Release simulateur non signee installee, 5 lancements `simctl launch` OK, min 254.0 ms, mediane 264.2 ms, p95/max 290.2 ms, moyenne 271.6 ms.
+- Ce rapport garde cold start device signe, Android runtime, home/list, creation event, scenario matrix et WakeveAI en `PENDING_DEVICE_TRACE`; il ne ferme donc pas les items performance device.
 
 #### 2.3 Notifications et deep links
 
