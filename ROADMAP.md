@@ -11,6 +11,7 @@ Sources consultees:
 - `openspec list --specs`
 - `openspec/changes/*/tasks.md`
 - `docs/APP_STORE_BLOCKER_REGISTER.md`
+- `docs/product/android-product-ux-audit-2026-06-20.md`
 - XcodeBuildMCP iOS Simulator focused WeatherKit/WakeveAI artifacts du 2026-06-20
 - `openspec validate --all --strict`
 
@@ -65,6 +66,7 @@ La roadmap ne doit donc plus partir de "atteindre 60 % de couverture" ou "demarr
 - Le parcours iOS creation -> poll -> scenarios -> organisation est verifie par tests de contrat iOS et tests KMP iOS/JVM; les preuves screenshots multi-ecran restent a collecter avec une automation UI ou une build TestFlight.
 - `add-in-app-account-deletion` est archive cote implementation locale: backend, iOS, tests, wording public, docs App Store et validations locales sont passes. La readiness App Store reste bloquee par les preuves uploaded-build/TestFlight et le marker d'evidence final.
 - `add-ugc-moderation-controls` est archive cote implementation locale; il bloque encore la readiness App Store sur review-build, support/live URL et preuves App Review completes.
+- Audit produit Android du 2026-06-20: `docs/product/android-product-ux-audit-2026-06-20.md` conclut que la surface Android est large mais pas encore prete a scaler publiquement. Priorite locale: remplacer les cartes Home orientees strategie interne par des cartes de coordination utilisateur, puis prouver sur device le cycle creation -> invitation -> vote -> date confirmee -> jour J.
 
 ## Roadmap priorisee
 
@@ -293,6 +295,7 @@ Objectif: consolider sans bloquer artificiellement la premiere soumission.
 - [x] Remplacer l'objectif brut "60 % coverage" par des gates utiles: tests critiques obligatoires, regression tests sur blockers, et coverage reporting si facile a maintenir.
 - [x] Ajouter JaCoCo/Kover seulement si l'outillage s'integre proprement au build KMP.
 - [x] Continuer a mesurer les tests par parcours critique: auth, deletion, moderation, sync, scenarios, calendar, meeting, transport.
+- [ ] Android: capturer un audit device/emulateur du parcours creation -> invitation -> vote -> date confirmee -> jour J avant toute croissance publique.
 
 Preuves du 2026-06-13:
 
@@ -317,6 +320,7 @@ Preuves du 2026-06-20:
 - Gate critique Android renforce: `./scripts/test-critical-release-gates.sh` bloque maintenant les regressions Compose hygiene (`Divider(`, `menuAnchor()` sans parametres et icones directionnelles sans `AutoMirrored`).
 - Passe build Android locale: les flags AGP deprecies non requis sont retires de `gradle.properties`, le theme Android ne modifie plus directement `window.statusBarColor`, `:composeApp:compileDebugKotlinAndroid` ne garde que `android.builtInKotlin=false` / `android.newDsl=false`, et le gate critique bloque la reintroduction de ces regressions.
 - Passe release Android locale: `:composeApp:assembleRelease` passe sans supprimer de ressources localisees faute de valeur par defaut; les cles release manquantes (`badges_count_label`, `duration_label`, notifications, entites, etc.) existent maintenant dans `values/strings.xml` et le gate critique bloque leur suppression.
+- Audit produit Android du 2026-06-20: la Home Android contient des cartes de synthese utiles au diagnostic produit (`Boucle de croissance`, `Signal emotionnel`, `Position strategique`, `Roadmap 6 mois`) mais trop internes pour un utilisateur grand public. Les prochaines corrections Android doivent les transformer en cartes de coordination concretes: prochaine decision de groupe, participants a relancer, budget/transport/programme a completer, recap post-event.
 
 #### 2.2 Observabilite et performance
 
