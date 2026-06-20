@@ -260,7 +260,7 @@ class EventWorkspaceModelsTest {
         val summary = listOf(
             event(
                 id = "future",
-                title = "Weekend trip",
+                title = "Board game night",
                 status = EventStatus.CONFIRMED,
                 finalDate = "2026-06-24T09:00:00Z"
             )
@@ -272,10 +272,35 @@ class EventWorkspaceModelsTest {
 
         assertEquals(EventWidgetKind.Countdown, summary.kind)
         assertEquals("future", summary.eventId)
-        assertEquals("Weekend trip", summary.title)
+        assertEquals("Board game night", summary.title)
         assertEquals("J-4", summary.headline)
         assertEquals("À préparer", summary.body)
         assertEquals("Préparer", summary.actionLabel)
+    }
+
+    @Test
+    fun `event widget summary promotes travel events`() {
+        val summary = listOf(
+            event(
+                id = "travel",
+                title = "Road trip Portugal",
+                status = EventStatus.CONFIRMED,
+                participants = listOf("me", "alice", "sam", "lea"),
+                eventType = EventType.OUTDOOR_ACTIVITY,
+                finalDate = "2026-06-24T09:00:00Z"
+            )
+        ).toEventWidgetSummary(
+            now = Instant.parse("2026-06-20T08:00:00Z"),
+            timeZone = TimeZone.UTC,
+            currentUserId = "me"
+        )
+
+        assertEquals(EventWidgetKind.Travel, summary.kind)
+        assertEquals("travel", summary.eventId)
+        assertEquals("Voyage à préparer", summary.title)
+        assertEquals("Road trip Portugal", summary.headline)
+        assertEquals("4 participants - transport, budget et programme à vérifier", summary.body)
+        assertEquals("Piloter", summary.actionLabel)
     }
 
     @Test
