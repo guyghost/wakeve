@@ -5,6 +5,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$PROJECT_DIR/scripts/lib/report-sanitization.sh"
 OUTPUT_DIR="$PROJECT_DIR/docs/ios-release-screen-evidence"
 FAIL_ON_MISSING=false
 
@@ -55,7 +56,7 @@ mkdir -p "$tmp_dir"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 sanitize_report() {
-    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$report"
+    sanitize_report_file "$report"
 }
 
 inventory="$tmp_dir/inventory.txt"

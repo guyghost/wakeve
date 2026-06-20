@@ -4,6 +4,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+. "$PROJECT_DIR/scripts/lib/report-sanitization.sh"
 OUTPUT_DIR="$PROJECT_DIR/docs/app-store-privacy"
 FAIL_ON_FINDINGS=false
 
@@ -54,7 +55,7 @@ mkdir -p "$tmp_dir"
 trap 'rm -rf "$tmp_dir"' EXIT
 
 sanitize_report() {
-    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$report"
+    sanitize_report_file "$report"
 }
 
 manifest="$PROJECT_DIR/iosApp/src/PrivacyInfo.xcprivacy"

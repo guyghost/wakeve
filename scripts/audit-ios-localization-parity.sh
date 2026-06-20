@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$PROJECT_DIR/scripts/lib/report-sanitization.sh"
 OUTPUT_DIR="$PROJECT_DIR/docs/a11y"
 WRITE_REPORT=false
 FAIL_ON_FINDINGS=false
@@ -62,9 +63,7 @@ else
 fi
 
 sanitize_report() {
-    local report="$1"
-    [ -n "$report" ] && [ -f "$report" ] || return 0
-    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$report"
+    sanitize_report_file "$1"
 }
 
 set +e

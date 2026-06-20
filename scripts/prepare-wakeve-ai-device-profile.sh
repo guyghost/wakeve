@@ -2,6 +2,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "$PROJECT_DIR/scripts/lib/report-sanitization.sh"
 OUTPUT_DIR="${OUTPUT_DIR:-$PROJECT_DIR/docs/performance}"
 TIMESTAMP="$(date -u +"%Y-%m-%dT%H-%M-%SZ")"
 REPORT="$OUTPUT_DIR/wakeve-ai-device-profile-$TIMESTAMP.md"
@@ -11,7 +12,7 @@ TEAM_ID_VALUE="${TEAM_ID:-${APPLE_TEAM_ID:-}}"
 mkdir -p "$OUTPUT_DIR"
 
 sanitize_report() {
-    perl -pi -e 'BEGIN { $home = $ENV{"HOME"} // ""; $home = quotemeta($home); } s/\r//g; s/[ \t]+$//; s/$home/~/g if $home ne "";' "$REPORT"
+    sanitize_report_file "$REPORT"
 }
 
 device_list="$(xcrun devicectl list devices 2>&1 || true)"

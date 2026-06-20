@@ -5,6 +5,7 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+. "$PROJECT_DIR/scripts/lib/report-sanitization.sh"
 OUTPUT_DIR="$PROJECT_DIR/docs/app-store-live-url-aasa"
 ALLOW_FAILURES=false
 TIMEOUT_SECONDS=12
@@ -130,7 +131,7 @@ http_status() {
 }
 
 normalize_report_whitespace() {
-    perl -pi -e 's/\r//g; s/[ \t]+$//' "$report"
+    sanitize_report_file "$report"
 }
 
 {
