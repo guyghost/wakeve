@@ -691,12 +691,12 @@ CREATE INDEX idx_budgetitem_paidBy ON BudgetItem(paidBy);
 ### iOS (SwiftUI)
 
 #### BudgetOverviewView
-- **Location**: `iosApp/iosApp/Views/BudgetOverviewView.swift`
+- **Location**: `iosApp/src/Views/BudgetOverviewView.swift`
 - **Features**: Same as Android
 - **Design**: Liquid Glass with `.glassCard()` and `.continuousCornerRadius()`
 
 #### BudgetDetailView
-- **Location**: `iosApp/iosApp/Views/BudgetDetailView.swift`
+- **Location**: `iosApp/src/Views/BudgetDetailView.swift`
 - **Features**: Same as Android
 - **Design**: Liquid Glass with native SwiftUI sheets and menus
 

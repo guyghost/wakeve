@@ -938,19 +938,19 @@ eventRepository.updateEventStatus("event-123", EventStatus.ORGANIZING)
 ### iOS UI (1,313 lignes)
 
 #### Views
-- **`iosApp/iosApp/Views/ScenarioListView.swift`** (495 lignes)
+- **`iosApp/src/Views/ScenarioListView.swift`** (495 lignes)
   - Équivalent de ScenarioListScreen
   - Design Liquid Glass (`.glassCard()`)
   - Async/await pour data
   - SF Symbols pour icônes
 
-- **`iosApp/iosApp/Views/ScenarioDetailView.swift`** (459 lignes)
+- **`iosApp/src/Views/ScenarioDetailView.swift`** (459 lignes)
   - Équivalent de ScenarioDetailScreen
   - Mode édition avec TextFields
   - Alert de confirmation
   - `.sheet` pour modals
 
-- **`iosApp/iosApp/Views/ScenarioComparisonView.swift`** (359 lignes)
+- **`iosApp/src/Views/ScenarioComparisonView.swift`** (359 lignes)
   - Table de comparaison
   - ScrollView bi-directionnel natif
   - VStack + HStack layout
@@ -1051,7 +1051,7 @@ wakeve/
 - **Code**:
   - Backend: `shared/src/commonMain/kotlin/com/guyghost/wakeve/`
   - Android: `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/`
-  - iOS: `iosApp/iosApp/Views/`
+  - iOS: `iosApp/src/Views/`
   - Server: `server/src/main/kotlin/com/guyghost/wakeve/routes/`
 - **Tests**:
   - Unit: `shared/src/commonTest/kotlin/com/guyghost/wakeve/`

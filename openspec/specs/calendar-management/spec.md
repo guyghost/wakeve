@@ -451,9 +451,9 @@ The calendar integration has been implemented across the shared module and platf
 
 - iOS (Phase 5):
   - `shared/src/iosMain/kotlin/com/guyghost/wakeve/calendar/PlatformCalendarService.ios.kt` — iOS implementation bridging to EventKit
-  - `iosApp/iosApp/Views/CalendarIntegrationCard.swift` — SwiftUI card in Event Details that calls shared CalendarService via Kotlin/Native interop
-  - `iosApp/iosApp/Services/CalendarPermissionsHelper.swift` — helper for requesting EventKit access when needed
-  - `iosApp/iosApp/Tests/CalendarIntegrationTests.swift` — XCTest cases for iOS integration wiring
+  - `iosApp/src/Views/CalendarIntegrationCard.swift` — SwiftUI card in Event Details that calls shared CalendarService via Kotlin/Native interop
+  - `iosApp/src/Services/CalendarPermissionsHelper.swift` — helper for requesting EventKit access when needed
+  - `iosApp/iosAppUITests/CalendarIntegrationUITests.swift` — XCTest UI cases for iOS integration wiring
 
 - Server/API:
   - `server/src/main/kotlin/com/guyghost/wakeve/routes/CalendarRoutes.kt` — endpoints to generate and download ICS files

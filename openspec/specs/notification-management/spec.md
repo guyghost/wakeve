@@ -387,10 +387,10 @@ The system categorizes notifications by urgency:
 - `server/src/main/kotlin/com/guyghost/wakeve/routes/NotificationRoutes.kt`
 
 ### Android
-- `wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/service/FCMService.kt`
+- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/service/FCMService.kt`
 
 ### iOS
-- `iosApp/iosApp/Services/APNsService.swift`
+- `iosApp/src/Services/APNsService.swift`
 
 ## Integration & Cross-References
 

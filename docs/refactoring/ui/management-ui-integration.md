@@ -215,7 +215,7 @@ The screen uses Material3 color system:
 
 ### File Location
 ```
-iosApp/iosApp/Views/ScenarioManagementView.swift
+iosApp/src/Views/ScenarioManagementView.swift
 ```
 
 ### Overview

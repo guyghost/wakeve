@@ -3,12 +3,12 @@
 ## ✅ Tâches Complétées
 
 ### 1. Structure de Répertoires
-- ✅ Créé: `/Users/guy/Developer/dev/wakeve/iosApp/iosApp/ViewModels/`
+- ✅ Créé: `/Users/guy/Developer/dev/wakeve/iosApp/src/ViewModels/`
 
 ### 2. Fichiers Créés
 
 #### EventListViewModel.swift (141 lignes)
-- **Chemin**: `iosApp/iosApp/ViewModels/EventListViewModel.swift`
+- **Chemin**: `iosApp/src/ViewModels/EventListViewModel.swift`
 - **Rôle**: Gère l'affichage de la liste d'événements
 - **Responsabilités**:
   - Crée la state machine via `IosFactory`
@@ -18,7 +18,7 @@
   - Charge les événements à l'initialisation
 
 #### EventDetailViewModel.swift (165 lignes)
-- **Chemin**: `iosApp/iosApp/ViewModels/EventDetailViewModel.swift`
+- **Chemin**: `iosApp/src/ViewModels/EventDetailViewModel.swift`
 - **Rôle**: Gère l'affichage des détails d'un événement
 - **Responsabilités**:
   - Crée la state machine via `IosFactory`
@@ -241,15 +241,15 @@ struct EventDetailViewTest: View {
 ## Fichiers Affectés
 
 ### Créés
-- ✅ `iosApp/iosApp/ViewModels/EventListViewModel.swift` (141 lignes)
-- ✅ `iosApp/iosApp/ViewModels/EventDetailViewModel.swift` (165 lignes)
+- ✅ `iosApp/src/ViewModels/EventListViewModel.swift` (141 lignes)
+- ✅ `iosApp/src/ViewModels/EventDetailViewModel.swift` (165 lignes)
 - ✅ `iosApp/VIEWMODEL_INTEGRATION.md` (documentation)
 
 ### Inchangés (existants)
 - `shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/statemachine/EventManagementStateMachine.kt`
 - `shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/state/EventManagementContract.kt`
 - `shared/src/iosMain/kotlin/com/guyghost/wakeve/di/IosFactory.kt`
-- `iosApp/iosApp/Services/RepositoryProvider.swift`
+- `iosApp/src/Services/RepositoryProvider.swift`
 
 ## Statistiques
 

@@ -203,7 +203,7 @@ Each file includes:
    - Location: `composeApp/src/commonMain/kotlin/.../ui/scenario/`
 
 5. **Implement SwiftUI Screens**
-   - Location: `iosApp/iosApp/Views/Scenario*.swift`
+   - Location: `iosApp/src/Views/Scenario*.swift`
 
 6. **Integrate with DI**
    - Set up Koin module

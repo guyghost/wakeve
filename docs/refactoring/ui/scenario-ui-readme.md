@@ -32,7 +32,7 @@
 ✅ Accessibility (touch targets 44×44px)
 
 ### 2. iOS Screen (SwiftUI)
-📍 **File**: `iosApp/iosApp/Views/ScenarioManagementView.swift`  
+📍 **File**: `iosApp/src/Views/ScenarioManagementView.swift`  
 📊 **Lines**: 763  
 🎨 **Design**: Liquid Glass (SwiftUI native)
 
@@ -95,7 +95,7 @@
 
 1. **Files already in place**:
    - Android: `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/scenario/ScenarioManagementScreen.kt`
-   - iOS: `iosApp/iosApp/Views/ScenarioManagementView.swift`
+   - iOS: `iosApp/src/Views/ScenarioManagementView.swift`
 
 2. **Connect to state machine**:
 

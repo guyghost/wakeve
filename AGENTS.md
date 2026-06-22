@@ -182,13 +182,13 @@ Ce projet utilise plusieurs agents IA spécialisés. L'**orchestrator** (agent p
 | SQLDelight schema | `@codegen` | `shared/src/commonMain/sqldelight/**/*.sq` |
 | Tests unitaires | `@tests` | `shared/src/commonTest/kotlin/**/*.kt` |
 | **Android (Jetpack Compose)** |
-| Composables UI | `@codegen` | `wakeveApp/src/commonMain/kotlin/**/*.kt` |
-| ViewModels | `@codegen` | `wakeveApp/src/commonMain/kotlin/viewmodel/*.kt` |
-| Material Theme | `@codegen` | `wakeveApp/src/commonMain/kotlin/theme/*.kt` |
+| Composables UI | `@codegen` | `composeApp/src/commonMain/kotlin/**/*.kt` |
+| ViewModels | `@codegen` | `composeApp/src/commonMain/kotlin/viewmodel/*.kt` |
+| Material Theme | `@codegen` | `composeApp/src/commonMain/kotlin/theme/*.kt` |
 | **iOS (SwiftUI)** |
-| Views SwiftUI | `@codegen` | `wakeveApp/wakeveApp/Views/*.swift` |
-| Services iOS | `@codegen` | `wakeveApp/wakeveApp/Services/*.swift` |
-| Liquid Glass theme | `@codegen` | `wakeveApp/wakeveApp/Theme/*.swift` |
+| Views SwiftUI | `@codegen` | `iosApp/src/Views/*.swift` |
+| Services iOS | `@codegen` | `iosApp/src/Services/*.swift` |
+| Liquid Glass theme | `@codegen` | `iosApp/src/Theme/*.swift` |
 | **Backend (Ktor)** |
 | Routes API | `@codegen` | `server/src/main/kotlin/**/*.kt` |
 | Tests API | `@tests` | `server/src/test/kotlin/**/*.kt` |
@@ -229,10 +229,10 @@ Orchestrateur:
     - shared/src/iosMain/kotlin/platform/IosTransportProvider.kt
 
     4. Délègue à @codegen: "Crée l'UI Android pour afficher les options de transport"
-    - wakeveApp/src/commonMain/kotlin/ui/TransportOptionsScreen.kt
+    - composeApp/src/commonMain/kotlin/ui/TransportOptionsScreen.kt
 
     5. Délègue à @codegen: "Crée l'UI iOS pour afficher les options de transport"
-    - wakeveApp/wakeveApp/Views/TransportOptionsView.swift
+    - iosApp/src/Views/TransportOptionsView.swift
 
 6. Délègue à @tests: "Ajoute les tests offline pour TransportService"
    - shared/src/commonTest/kotlin/offline/OfflineTransportTest.kt
@@ -323,14 +323,14 @@ Orchestrateur:
 - `shared/src/commonMain/kotlin/com/guyghost/wakeve/calendar/Models.kt` — CalendarEvent, ICSDocument, MeetingReminderTiming
 - `shared/src/androidMain/kotlin/com/guyghost/wakeve/calendar/PlatformCalendarService.android.kt` — Android actual implementation (CalendarContract, runtime permission checks)
 - `shared/src/iosMain/kotlin/com/guyghost/wakeve/calendar/PlatformCalendarService.ios.kt` — iOS actual implementation bridging to EventKit
-- `wakeveApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationCard.kt` — Compose UI card exposing `onAddToCalendar` and `onShareInvite`
-- `wakeveApp/wakeveApp/Views/CalendarIntegrationCard.swift` — SwiftUI card calling the shared CalendarService via Kotlin/Native interop
+- `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationCard.kt` — Compose UI card exposing `onAddToCalendar` and `onShareInvite`
+- `iosApp/src/Views/CalendarIntegrationCard.swift` — SwiftUI card calling the shared CalendarService via Kotlin/Native interop
 - `server/src/main/kotlin/com/guyghost/wakeve/routes/CalendarRoutes.kt` — server endpoints for ICS generation and download
 
 **Tests:**
 - Shared unit tests: `shared/src/commonTest/kotlin/com/guyghost/wakeve/calendar/CalendarServiceTest.kt` (ICS content, timezone, platform result handling)
-- Android instrumented tests: `wakeveApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationInstrumentedTest.kt` (runtime permission and add/update/delete flows)
-- iOS XCTest: `wakeveApp/wakeveApp/Tests/CalendarIntegrationTests.swift` (permission prompts and UI wiring)
+- Android instrumented tests: `composeApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationInstrumentedTest.kt` (runtime permission and add/update/delete flows)
+- iOS XCTest: `iosApp/iosAppUITests/CalendarIntegrationUITests.swift` (permission prompts and UI wiring)
 
 **Interactions:**
 - ← Agent Sondage : Créneau confirmé
@@ -1072,7 +1072,7 @@ Avant de merger dans `main`, vérifier :
 
 #### Android (Jetpack Compose + Material You)
 ```kotlin
-// wakeveApp/src/commonMain/kotlin/theme/
+// composeApp/src/commonMain/kotlin/theme/
 Color.kt           // Palette de couleurs unifiée
 Typography.kt      // Système typographique
 Theme.kt           // Configuration Material Theme 3
@@ -1084,7 +1084,7 @@ WakevButton.kt, WakevCard.kt, WakevTextField.kt
 
 #### iOS (SwiftUI + Liquid Glass)
 ```swift
-// wakeveApp/wakeveApp/Theme/
+// iosApp/src/Theme/
 WakevColors.swift           // Palette de couleurs
 WakevTypography.swift       // Système typographique
 LiquidGlassModifier.swift   // Extensions Liquid Glass
@@ -1147,10 +1147,10 @@ POST   /api/events/{id}/poll/votes
 ./gradlew server:run
 
 # Build Android
-./gradlew wakeveApp:assembleDebug
+./gradlew :composeApp:assembleDebug
 
 # Build iOS (macOS uniquement)
-open wakeveApp/wakeveApp.xcodeproj
+open iosApp/iosApp.xcodeproj
 
 # Format du code Kotlin
 ./gradlew spotlessApply

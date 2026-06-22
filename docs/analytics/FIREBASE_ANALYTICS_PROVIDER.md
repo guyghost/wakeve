@@ -203,8 +203,8 @@ androidMain.dependencies {
 ```
 
 Additional setup required:
-1. Add `google-services.json` to `wakeveApp/src/`
-2. Apply `com.google.gms.google-services` plugin in `wakeveApp/build.gradle.kts`
+1. Add `google-services.json` to `composeApp/src/`
+2. Apply `com.google.gms.google-services` plugin in `composeApp/build.gradle.kts`
 3. Initialize Firebase in Application class
 
 ### iOS

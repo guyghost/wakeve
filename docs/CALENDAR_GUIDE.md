@@ -47,7 +47,7 @@ If the user prefers not to grant calendar access, or to share an invite with oth
 ### Permissions
 
 iOS uses EventKit. The app requests calendar access using `EKEventStore.requestAccess(to: .event)` the first time it needs to create events. The helper is implemented in:
-- `iosApp/iosApp/Services/CalendarPermissionsHelper.swift`
+- `iosApp/src/Services/CalendarPermissionsHelper.swift`
 
 If the user denies permission, Wakeve will offer the ICS download/share flow as an alternative.
 
@@ -58,7 +58,7 @@ If the user denies permission, Wakeve will offer the ICS download/share flow as 
 3. If prompted, allow calendar access.
 4. Wakeve will create an EKEvent and save it to the user's selected calendar. The iOS platform implementation in the shared module is:
   - `shared/src/iosMain/kotlin/com/guyghost/wakeve/calendar/PlatformCalendarService.ios.kt`
-  - UI: `iosApp/iosApp/Views/CalendarIntegrationCard.swift`
+  - UI: `iosApp/src/Views/CalendarIntegrationCard.swift`
 
 ### Sharing / Downloading ICS
 
@@ -94,7 +94,7 @@ Common issues and how to resolve them:
 - Tests:
   - Shared tests: `shared/src/commonTest/kotlin/com/guyghost/wakeve/calendar/CalendarServiceTest.kt`
   - Android instrumented tests: `composeApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationInstrumentedTest.kt`
-  - iOS XCTest targets: `iosApp/iosApp/Tests/CalendarIntegrationTests.swift`
+- iOS XCTest targets: `iosApp/iosAppUITests/CalendarIntegrationUITests.swift`
 
 ## Feedback & Issues
 

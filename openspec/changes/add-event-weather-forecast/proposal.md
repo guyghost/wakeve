@@ -16,8 +16,8 @@ Wakeve plans events around dates and places, but organizers and participants cur
   - `shared/src/commonMain/kotlin/.../weather/` for domain models, service contracts, cache policy, and repository interfaces
   - `shared/src/commonMain/sqldelight/...` for cached weather snapshots and resolved location metadata
   - `shared/src/iosMain/kotlin/...` or iOS bridging services for WeatherKit and MapKit-backed providers
-  - `wakeveApp/wakeveApp/...` for WeatherKit entitlement, MapKit/WeatherKit adapters, and SwiftUI event weather surfaces
-  - `wakeveApp/src/commonMain/kotlin/...` if shared presentation state needs weather status models
+  - `iosApp/src/...` for WeatherKit entitlement, MapKit/WeatherKit adapters, and SwiftUI event weather surfaces
+  - `composeApp/src/commonMain/kotlin/...` if shared presentation state needs weather status models
   - Tests in shared Kotlin, iOS XCTest, and UI snapshots/previews
 
 ## References

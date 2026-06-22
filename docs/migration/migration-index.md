@@ -7,8 +7,8 @@
 - **[MIGRATION_COMPLETE_FILES.md](./MIGRATION_COMPLETE_FILES.md)** - Code complet des fichiers modifiés/créés
 
 ### 📌 Fichiers Source
-- **[iosApp/iosApp/Components/GlassBadge.swift](./iosApp/iosApp/Components/GlassBadge.swift)** - Composant réutilisable (NOUVEAU)
-- **[iosApp/iosApp/Views/EquipmentChecklistView.swift](./iosApp/iosApp/Views/EquipmentChecklistView.swift)** - Vue refactorisée (MODIFIÉ)
+- **[iosApp/src/Components/GlassBadge.swift](./iosApp/src/Components/GlassBadge.swift)** - Composant réutilisable (NOUVEAU)
+- **[iosApp/src/Views/EquipmentChecklistView.swift](./iosApp/src/Views/EquipmentChecklistView.swift)** - Vue refactorisée (MODIFIÉ)
 
 ### 📌 Git
 ```bash
@@ -109,7 +109,7 @@ Components
 
 ```
 wakeve/
-├── iosApp/iosApp/
+├── iosApp/src/
 │   ├── Components/
 │   │   └── GlassBadge.swift .............. (NEW)
 │   └── Views/
@@ -136,7 +136,7 @@ wakeve/
 ## 🔗 References
 
 - [Liquid Glass Guidelines](./iosApp/LIQUID_GLASS_GUIDELINES.md)
-- [ViewExtensions.swift](./iosApp/iosApp/Extensions/ViewExtensions.swift) - Contains `.glassCard()`, `.continuousCornerRadius()`
+- [ViewExtensions.swift](./iosApp/src/Extensions/ViewExtensions.swift) - Contains `.glassCard()`, `.continuousCornerRadius()`
 - [Design System](./AGENTS.md) - Apple HIG & design principles
 
 ---

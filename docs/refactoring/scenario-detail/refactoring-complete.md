@@ -534,8 +534,8 @@ The refactoring of **ScenarioDetailView** from a repository-direct pattern to a 
 2. [Before/After Comparison](./SCENARIODETAILVIEW_BEFORE_AFTER.md)
 3. [Testing Guide](./SCENARIODETAILVIEW_TESTING_GUIDE.md)
 4. [Migration Guide](./SCENARIODETAILVIEW_MIGRATION_CALLSITES.md)
-5. [View File](./iosApp/iosApp/Views/ScenarioDetailView.swift)
-6. [ViewModel File](./iosApp/iosApp/ViewModels/ScenarioDetailViewModel.swift)
+5. [View File](./iosApp/src/Views/ScenarioDetailView.swift)
+6. [ViewModel File](./iosApp/src/ViewModels/ScenarioDetailViewModel.swift)
 
 ---
 
