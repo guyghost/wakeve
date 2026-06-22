@@ -302,10 +302,10 @@ class SyncTask: BGTask {
 - `server/src/main/kotlin/com/guyghost/wakeve/routes/SyncRoutes.kt`
 
 ### Android
-- `wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/service/SyncWorker.kt`
+- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/service/SyncWorker.kt`
 
 ### iOS
-- `wakeveApp/wakeveApp/Services/SyncTask.swift`
+- `iosApp/src/Services/SyncTask.swift`
 
 ## Related Specifications
 

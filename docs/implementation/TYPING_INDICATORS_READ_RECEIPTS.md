@@ -110,7 +110,7 @@ fun MessageStatusIcon(
 
 ### Composant iOS (SwiftUI)
 
-**Nouveau: MessageStatusIconView** (`iosApp/iosApp/Components/MessageStatusIconView.swift`)
+**Nouveau: MessageStatusIconView** (`iosApp/src/Components/MessageStatusIconView.swift`)
 ```swift
 struct MessageStatusIconView: View {
     let status: MessageStatus
@@ -259,7 +259,7 @@ Image(systemName: "checkmark")
 | `composeApp/.../viewmodel/ChatViewModel.kt` | ✅ Existant | Bridge service → UI |
 | `iosApp/.../Views/ChatView.swift` | ✅ Existant | `typingIndicatorRow`, `messageStatusIcon` |
 | `iosApp/.../ViewModel/ChatViewModelSwiftUI.swift` | ✅ Existant | Bridge service → SwiftUI |
-| `iosApp/iosApp/Components/MessageStatusIconView.swift` | 🆕 Créé | Nouveau composant modulaire |
+| `iosApp/src/Components/MessageStatusIconView.swift` | 🆕 Créé | Nouveau composant modulaire |
 
 ---
 

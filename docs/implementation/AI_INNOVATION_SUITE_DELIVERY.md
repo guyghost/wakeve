@@ -255,7 +255,7 @@ composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/
 ### iOS (SwiftUI)
 
 ```
-iosApp/iosApp/
+iosApp/src/
 ├── Siri/
 │   ├── WakeveIntents.intentdefinition   # Intents personnalisés
 │   ├── WakeveIntentExtension/           # Extension Siri

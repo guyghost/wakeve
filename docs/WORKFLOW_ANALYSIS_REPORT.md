@@ -26,7 +26,7 @@
 
 **Android:** `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/event/DraftEventWizard.kt`
 
-**iOS:** `iosApp/iosApp/Views/DraftEventWizardView.swift`
+**iOS:** `iosApp/src/Views/DraftEventWizardView.swift`
 
 | Étape | Android | iOS | Commentaire |
 |-------|---------|-----|-------------|
@@ -63,7 +63,7 @@
 - TopAppBar avec menu utilisateur
 ```
 
-**iOS:** `iosApp/iosApp/Views/ModernHomeView.swift`
+**iOS:** `iosApp/src/Views/ModernHomeView.swift`
 
 ```swift
 // Structure iOS
@@ -101,7 +101,7 @@
 - Organizer actions (edit, delete, start poll)
 ```
 
-**iOS:** `iosApp/iosApp/Views/ModernEventDetailView.swift`
+**iOS:** `iosApp/src/Views/ModernEventDetailView.swift`
 
 ```swift
 // Structure iOS
@@ -336,13 +336,13 @@ Le projet a une base solide avec le DRAFT Wizard cohérent sur les deux platefor
 - `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/navigation/Screen.kt`
 
 **iOS:**
-- `iosApp/iosApp/Views/DraftEventWizardView.swift`
-- `iosApp/iosApp/Views/ModernHomeView.swift`
-- `iosApp/iosApp/Views/ModernEventDetailView.swift`
-- `iosApp/iosApp/Views/ModernEventCreationView.swift`
-- `iosApp/iosApp/Views/CreateEventView.swift`
-- `iosApp/iosApp/Views/EventCreationSheet.swift`
-- `iosApp/iosApp/Views/EventsTabView.swift`
+- `iosApp/src/Views/DraftEventWizardView.swift`
+- `iosApp/src/Views/ModernHomeView.swift`
+- `iosApp/src/Views/ModernEventDetailView.swift`
+- `iosApp/src/Views/ModernEventCreationView.swift`
+- `iosApp/src/Views/CreateEventView.swift`
+- `iosApp/src/Views/EventCreationSheet.swift`
+- `iosApp/src/Views/EventsTabView.swift`
 
 ### Tests Automatisés
 

@@ -5,7 +5,7 @@
 
 ## ✅ Statut: MIGRATION COMPLÈTE
 
-**Fichier**: `iosApp/iosApp/Views/ModernPollVotingView.swift`  
+**Fichier**: `iosApp/src/Views/ModernPollVotingView.swift`  
 **Date**: 28 décembre 2025  
 **Durée**: Migration complète de 3 phases  
 

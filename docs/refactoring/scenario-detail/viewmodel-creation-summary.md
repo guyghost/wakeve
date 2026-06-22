@@ -8,7 +8,7 @@ Création complète du `ScenarioListViewModel.swift` pour iOS avec support compl
 
 ## 📁 Fichiers Créés
 
-### 1. iosApp/iosApp/ViewModels/ScenarioListViewModel.swift
+### 1. iosApp/src/ViewModels/ScenarioListViewModel.swift
 - **Lignes**: 364
 - **Taille**: 12 KB
 - **Description**: ViewModel principal pour iOS avec @MainActor et @Published properties
@@ -244,7 +244,7 @@ Conformité avec les guidelines:
 - `openspec/specs/scenario-management/spec.md`
 - `shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/state/ScenarioManagementContract.kt`
 - `shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/statemachine/ScenarioManagementStateMachine.kt`
-- `iosApp/iosApp/ViewModels/EventListViewModel.swift` (référence)
+- `iosApp/src/ViewModels/EventListViewModel.swift` (référence)
 
 ## 📞 Support
 

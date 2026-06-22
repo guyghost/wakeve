@@ -44,7 +44,7 @@ Unit Tests (ViewModel)        Integration Tests (View + ViewModel)    UI Tests (
 ### Test File Structure
 
 ```swift
-// iosApp/iosApp/Tests/ViewModels/ScenarioDetailViewModelTests.swift
+// iosApp/WakeveTests/ScenarioDetailViewModelTests.swift
 
 import XCTest
 @testable import iosApp
@@ -238,7 +238,7 @@ class ScenarioDetailViewModelTests: XCTestCase {
 ### Test File Structure
 
 ```swift
-// iosApp/iosApp/Tests/Views/ScenarioDetailViewIntegrationTests.swift
+// iosApp/WakeveTests/ScenarioDetailViewIntegrationTests.swift
 
 import XCTest
 import SwiftUI
@@ -342,7 +342,7 @@ class ScenarioDetailViewIntegrationTests: XCTestCase {
 ### Preview Structure
 
 ```swift
-// iosApp/iosApp/Views/ScenarioDetailView+Preview.swift
+// iosApp/src/Views/ScenarioDetailView+Preview.swift
 
 import SwiftUI
 import Shared
@@ -411,7 +411,7 @@ struct ScenarioDetailViewPreview: PreviewProvider {
 ### Visual Regression Testing
 
 ```swift
-// iosApp/iosApp/Tests/Snapshots/ScenarioDetailViewSnapshotTests.swift
+// iosApp/WakeveTests/ScenarioDetailViewSnapshotTests.swift
 
 import XCTest
 import SnapshotTesting  // SwiftUI Testing library

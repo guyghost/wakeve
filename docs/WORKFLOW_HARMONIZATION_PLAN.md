@@ -19,7 +19,7 @@ Assurer 100% de cohérence des workflows utilisateur entre iOS et Android pour l
 
 **Action:**
 ```swift
-// 1. Déprécier les vues alternatives dans iosApp/iosApp/Views/
+// 1. Déprécier les vues alternatives dans iosApp/src/Views/
 @available(*, deprecated, message: "Use DraftEventWizardView instead")
 struct ModernEventCreationView: View { ... }
 
@@ -34,9 +34,9 @@ struct QuickEventCreationSheet: View { ... }
 ```
 
 **Fichiers à modifier:**
-- `iosApp/iosApp/Views/ModernHomeView.swift`
-- `iosApp/iosApp/Views/EventsTabView.swift`
-- `iosApp/iosApp/Views/CreateEventView.swift`
+- `iosApp/src/Views/ModernHomeView.swift`
+- `iosApp/src/Views/EventsTabView.swift`
+- `iosApp/src/Views/CreateEventView.swift`
 
 **Validation:**
 - Vérifier que tous les entry points utilisent `DraftEventWizardView`
@@ -82,7 +82,7 @@ Picker("Filtre", selection: $selectedFilter) {
 ```
 
 **Fichiers à modifier:**
-- `iosApp/iosApp/Views/ModernHomeView.swift`
+- `iosApp/src/Views/ModernHomeView.swift`
 
 **Validation:**
 - Tester chaque filtre (All, Upcoming, Past)
@@ -145,10 +145,10 @@ NavigationLink(destination: PollVotingView(...)) {
 - S'assurer que la navigation depuis EventDetailScreen fonctionne
 
 **Fichiers à créer:**
-- `iosApp/iosApp/Views/PollVotingView.swift`
+- `iosApp/src/Views/PollVotingView.swift`
 
 **Fichiers à modifier:**
-- `iosApp/iosApp/Views/ModernEventDetailView.swift`
+- `iosApp/src/Views/ModernEventDetailView.swift`
 - `composeApp/src/commonMain/kotlin/com/guyghost/wakeve/EventDetailScreen.kt` (vérification)
 
 **Validation:**
@@ -298,7 +298,7 @@ if (event.status == EventStatus.CONFIRMED || event.status == EventStatus.ORGANIZ
 
 **Action:**
 ```swift
-// Créer iosApp/iosApp/Navigation/AppNavigation.swift
+// Créer iosApp/src/Navigation/AppNavigation.swift
 
 enum AppTab: String, CaseIterable {
     case home = "home"
@@ -360,9 +360,9 @@ struct MainTabView: View {
 ```
 
 **Fichiers à créer:**
-- `iosApp/iosApp/Navigation/AppNavigation.swift`
-- `iosApp/iosApp/Views/ExploreView.swift`
-- `iosApp/iosApp/Views/MessagesView.swift`
+- `iosApp/src/Navigation/AppNavigation.swift`
+- `iosApp/src/Views/ExploreView.swift`
+- `iosApp/src/Views/MessagesView.swift`
 
 **Validation:**
 - Tester la navigation entre tabs
@@ -376,7 +376,7 @@ struct MainTabView: View {
 
 **Action:**
 ```swift
-// Créer iosApp/iosApp/Tests/WorkflowTests.swift
+// Créer iosApp/WakeveTests/WorkflowTests.swift
 class WorkflowTests: XCTestCase {
     func testDraftEventWizardSteps() {
         // Tester chaque étape du wizard
@@ -396,7 +396,7 @@ class WorkflowTests: XCTestCase {
 ```
 
 **Fichiers à créer:**
-- `iosApp/iosApp/Tests/WorkflowTests.swift`
+- `iosApp/WakeveTests/WorkflowTests.swift`
 
 ---
 

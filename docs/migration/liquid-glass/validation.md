@@ -3,7 +3,7 @@
 ## 📋 Résumé de la Migration
 
 Date: 28 décembre 2025  
-Fichier: `iosApp/iosApp/Views/ModernEventCreationView.swift`  
+Fichier: `iosApp/src/Views/ModernEventCreationView.swift`  
 Statut: ✅ **COMPLET - PRÊT POUR TESTS**
 
 ---
@@ -260,8 +260,8 @@ Tous les coins utilisent `.continuous` style (Apple standard pour iOS 16+):
 
 - Design System: `.opencode/design-system.md`
 - Liquid Glass Guidelines: `iosApp/LIQUID_GLASS_GUIDELINES.md`
-- LiquidGlassCard Component: `iosApp/iosApp/Components/LiquidGlassCard.swift`
-- View Extensions: `iosApp/iosApp/Extensions/ViewExtensions.swift`
+- LiquidGlassCard Component: `iosApp/src/Components/LiquidGlassCard.swift`
+- View Extensions: `iosApp/src/Extensions/ViewExtensions.swift`
 
 ---
 

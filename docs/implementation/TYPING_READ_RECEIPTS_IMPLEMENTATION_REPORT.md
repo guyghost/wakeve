@@ -88,7 +88,7 @@
 | Fichier | Responsabilité | Status |
 |---------|----------------|--------|
 | `iosApp/.../Views/ChatView.swift` | TypingDotsView, messageStatusIcon | ✅ |
-| `iosApp/iosApp/Components/MessageStatusIconView.swift` | **Nouveau composant modulaire** | 🆕 |
+| `iosApp/src/Components/MessageStatusIconView.swift` | **Nouveau composant modulaire** | 🆕 |
 | `iosApp/.../ViewModel/ChatViewModelSwiftUI.swift` | Bridge service → SwiftUI | ✅ |
 
 ---
@@ -272,7 +272,7 @@ if !viewModel.typingUsers.isEmpty {
 
 ## 📦 Nouveau Composant Créé
 
-### `iosApp/iosApp/Components/MessageStatusIconView.swift`
+### `iosApp/src/Components/MessageStatusIconView.swift`
 
 Ce composant modulaire a été créé pour améliorer la réutilisabilité:
 

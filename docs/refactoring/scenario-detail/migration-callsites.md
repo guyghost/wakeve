@@ -53,15 +53,15 @@ grep -r "ScenarioDetailView(" iosApp --include="*.swift" | grep -v "struct Scena
 ### Expected Locations
 
 ```
-├── iosApp/iosApp/Views/
+├── iosApp/src/Views/
 │   ├── ScenarioManagementView.swift
 │   ├── ScenarioListView.swift
 │   └── (other navigation sources)
 │
-├── iosApp/iosApp/ViewModels/
+├── iosApp/src/ViewModels/
 │   └── (might have preview code)
 │
-└── iosApp/iosApp/Preview Content/
+└── iosApp/src/Preview Content/
     └── (SwiftUI previews)
 ```
 
@@ -656,7 +656,7 @@ If there are serious issues, you can revert:
 
 ```bash
 # Revert specific file
-git checkout iosApp/iosApp/Views/ScenarioDetailView.swift
+git checkout iosApp/src/Views/ScenarioDetailView.swift
 
 # Or revert all changes
 git reset --hard HEAD~1

@@ -849,13 +849,13 @@ fun `createZoomMeeting generates valid meeting ID and password`() {
 
 ### Android
 
-- `wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meeting/MeetingListScreen.kt`
-- `wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meeting/MeetingCreateScreen.kt`
+- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meeting/MeetingListScreen.kt`
+- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/meeting/MeetingCreateScreen.kt`
 
 ### iOS
 
-- `wakeveApp/wakeveApp/Views/MeetingListView.swift`
-- `wakeveApp/wakeveApp/Views/MeetingEditSheet.swift`
+- `iosApp/src/Views/MeetingListView.swift`
+- `iosApp/src/Views/MeetingEditSheet.swift`
 
 ## Production Implementation Details
 

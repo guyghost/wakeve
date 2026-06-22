@@ -320,7 +320,7 @@ fun `test description`() {
 
 ### Android
 
-- `wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/feature/FeatureScreen.kt`
+- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/feature/FeatureScreen.kt`
 - Platform-specific dependencies:
   ```kotlin
   implementation("dependency:name:version")
@@ -328,7 +328,7 @@ fun `test description`() {
 
 ### iOS
 
-- `wakeveApp/wakeveApp/Views/FeatureView.swift`
+- `iosApp/src/Views/FeatureView.swift`
 - Platform-specific considerations:
   - [iOS-specific notes]
 
@@ -383,10 +383,10 @@ SELECT id, field1, created_at FROM old_table;
 - `shared/src/jvmTest/kotlin/com/guyghost/wakeve/[Feature]/[Feature]IntegrationTest.kt`
 
 ### Android UI
-- `wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/[feature]/[Feature]Screen.kt`
+- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/[feature]/[Feature]Screen.kt`
 
 ### iOS UI
-- `wakeveApp/wakeveApp/Views/[Feature]View.swift`
+- `iosApp/src/Views/[Feature]View.swift`
 
 ## Related Specifications
 

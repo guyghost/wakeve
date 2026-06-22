@@ -119,7 +119,7 @@ Keys:
 
 ### 3. iOS Unit Tests
 
-**File**: `iosApp/iosApp/Tests/LocalizationServiceTests.swift`  
+**File**: `iosApp/WakeveTests/LocalizationServiceTests.swift`  
 **Tests**: 25  
 **Framework**: XCTest  
 **Environment**: iOS Simulator/Device with UserDefaults  

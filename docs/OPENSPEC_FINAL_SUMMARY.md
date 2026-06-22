@@ -76,9 +76,9 @@
 | `composeApp/src/androidMain/res/values/strings.xml` | FR | 530 | ✅ Complet |
 | `composeApp/src/androidMain/res/values-en/strings.xml` | EN | 528 | ✅ Complet |
 | `composeApp/src/androidMain/res/values-es/strings.xml` | ES | 530 | ✅ Complet |
-| `iosApp/iosApp/fr.lproj/Localizable.strings` | FR | 530 | ✅ Complet |
-| `iosApp/iosApp/en.lproj/Localizable.strings` | EN | 528 | ✅ Complet |
-| `iosApp/iosApp/es.lproj/Localizable.strings` | ES | 530 | ✅ Complet |
+| `iosApp/src/fr.lproj/Localizable.strings` | FR | 530 | ✅ Complet |
+| `iosApp/src/en.lproj/Localizable.strings` | EN | 528 | ✅ Complet |
+| `iosApp/src/es.lproj/Localizable.strings` | ES | 530 | ✅ Complet |
 
 ### UI Android (4 fichiers)
 
@@ -232,13 +232,13 @@ git add shared/src/androidMain/kotlin/com/guyghost/wakeve/localization/
 git add shared/src/iosMain/kotlin/com/guyghost/wakeve/localization/
 git add shared/src/jvmMain/kotlin/com/guyghost/wakeve/localization/
 git add composeApp/src/androidMain/res/
-git add iosApp/iosApp/*.lproj/
+git add iosApp/src/*.lproj/
 git add composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/event/
 git add composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/screens/
-git add iosApp/iosApp/Views/
+git add iosApp/src/Views/
 git add shared/src/commonTest/kotlin/com/guyghost/wakeve/localization/
 git add composeApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/
-git add iosApp/iosApp/Tests/
+git add iosApp/WakeveTests iosApp/iosAppTests iosApp/iosAppUITests
 git add docs/guides/developer/
 
 # Commiter (Conventional Commits)

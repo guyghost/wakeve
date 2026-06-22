@@ -19,7 +19,7 @@ This document summarizes the implementation of the complete CommentRepository wi
 - **SQL Schema**: `shared/src/commonMain/sqldelight/com/guyghost/wakeve/Comment.sq`
 - **Cache**: `shared/src/commonMain/kotlin/com/guyghost/wakeve/comment/CommentCache.kt`
 - **UI (Android)**: `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/ui/comment/CommentsScreen.kt`
-- **UI (iOS)**: `iosApp/iosApp/Views/CommentsView.swift`
+- **UI (iOS)**: `iosApp/src/Views/CommentsView.swift`
 
 ## Changes Made
 
@@ -67,7 +67,7 @@ fun createCommentRepository(database: WakevDb): CommentRepository {
 }
 ```
 
-### 3. iOS CommentsView.swift (`iosApp/iosApp/Views/`)
+### 3. iOS CommentsView.swift (`iosApp/src/Views/`)
 
 **Features Implemented**:
 - ✅ `CommentRepositoryWrapper` - Swift wrapper for the shared repository
@@ -181,7 +181,7 @@ Created `CommentRepositoryTest.kt` with 20+ test cases:
 |------|--------|-------------|
 | `composeApp/src/androidMain/.../CommentsScreen.kt` | Modified | Added delete/update calls to repository |
 | `shared/src/iosMain/.../IosFactory.kt` | Modified | Added `createCommentRepository()` |
-| `iosApp/iosApp/Views/CommentsView.swift` | Modified | Complete rewrite with real repository |
+| `iosApp/src/Views/CommentsView.swift` | Modified | Complete rewrite with real repository |
 | `shared/src/commonTest/.../CommentRepositoryTest.kt` | Created | Unit tests for repository |
 
 ## Notes

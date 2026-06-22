@@ -7,7 +7,7 @@
 ## 🔴 CRITICAL FIXES (Must fix before merge)
 
 ### 1. ModernHomeView - Touch Targets
-**File**: `iosApp/iosApp/Views/ModernHomeView.swift` (line 462-475)
+**File**: `iosApp/src/Views/ModernHomeView.swift` (line 462-475)
 **Issue**: ParticipantAvatar is 40x40pt, needs 44x44pt minimum
 **Fix**:
 ```swift
@@ -29,7 +29,7 @@ Circle()
 ---
 
 ### 2. ModernHomeView - AdditionalParticipantsCount Accessibility
-**File**: `iosApp/iosApp/Views/ModernHomeView.swift` (line 479-496)
+**File**: `iosApp/src/Views/ModernHomeView.swift` (line 479-496)
 **Issue**: No accessibility label for "+N" badge
 **Fix**:
 ```swift
@@ -59,7 +59,7 @@ struct AdditionalParticipantsCount: View {
 ---
 
 ### 3. ModernHomeView - Calendar Icon Contrast
-**File**: `iosApp/iosApp/Views/ModernHomeView.swift` (line 263-267)
+**File**: `iosApp/src/Views/ModernHomeView.swift` (line 263-267)
 **Issue**: White calendar icon on dark gradient has ~2.5:1 contrast (insufficient)
 **Fix**:
 ```swift
@@ -82,7 +82,7 @@ Image(systemName: "calendar")
 ---
 
 ### 4. DraftEventWizardView - TextField Accessibility Labels
-**File**: `iosApp/iosApp/Views/DraftEventWizardView.swift` (lines 224, 239)
+**File**: `iosApp/src/Views/DraftEventWizardView.swift` (lines 224, 239)
 **Issue**: TextFields have no accessibility labels
 **Fix**:
 ```swift
@@ -116,7 +116,7 @@ TextField(NSLocalizedString("event_description_hint", comment: "Description plac
 ---
 
 ### 5. DraftEventWizardView - Validation Feedback
-**File**: `iosApp/iosApp/Views/DraftEventWizardView.swift` (lines 154-173, 183-191)
+**File**: `iosApp/src/Views/DraftEventWizardView.swift` (lines 154-173, 183-191)
 **Issue**: "Next" button disabled with no VoiceOver announcement
 **Fix**:
 ```swift
@@ -151,7 +151,7 @@ if currentStep < steps.count - 1 {
 ---
 
 ### 6. DraftEventWizardView - Button "Previous" Contrast
-**File**: `iosApp/iosApp/Views/DraftEventWizardView.swift` (lines 147)
+**File**: `iosApp/src/Views/DraftEventWizardView.swift` (lines 147)
 **Issue**: Button with `.secondary.opacity(0.1)` has ~3.5:1 contrast (borderline)
 **Fix**:
 ```swift
@@ -182,7 +182,7 @@ if currentStep > 0 {
 ---
 
 ### 7. ModernEventDetailView - Hero Text Contrast
-**File**: `iosApp/iosApp/Views/ModernEventDetailView.swift` (lines 300-320)
+**File**: `iosApp/src/Views/ModernEventDetailView.swift` (lines 300-320)
 **Issue**: White text on top of dark gradient has ~2.5:1 contrast
 **Fix**:
 ```swift
@@ -207,7 +207,7 @@ VStack(alignment: .leading, spacing: 12) {
 ---
 
 ### 8. ModernEventDetailView - Back Button Label
-**File**: `iosApp/iosApp/Views/ModernEventDetailView.swift` (line 199)
+**File**: `iosApp/src/Views/ModernEventDetailView.swift` (line 199)
 **Issue**: Back button (xmark) has no accessibility label
 **Fix**:
 ```swift
@@ -226,7 +226,7 @@ Button(action: onBack) {
 ---
 
 ### 9. ProfileScreen - Colored Circles Accessibility
-**File**: `iosApp/iosApp/Views/ProfileScreen.swift` (line 120-134)
+**File**: `iosApp/src/Views/ProfileScreen.swift` (line 120-134)
 **Issue**: Colored circles alone don't signify state, need labels
 **Fix**:
 ```swift
@@ -264,7 +264,7 @@ struct PointBreakdownRow: View {
 ---
 
 ### 10. CreateEventView - Saving Overlay VoiceOver
-**File**: `iosApp/iosApp/Views/CreateEventView.swift` (lines 47-76)
+**File**: `iosApp/src/Views/CreateEventView.swift` (lines 47-76)
 **Issue**: Overlay blocks VoiceOver navigation
 **Fix**:
 ```swift

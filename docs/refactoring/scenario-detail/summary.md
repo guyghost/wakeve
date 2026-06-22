@@ -1,7 +1,7 @@
 # ScenarioDetailView Refactoring Summary
 
 **Date**: 2025-12-29  
-**File**: `iosApp/iosApp/Views/ScenarioDetailView.swift`  
+**File**: `iosApp/src/Views/ScenarioDetailView.swift`  
 **Pattern**: State Machine (MVI/FSM) with @Published ViewModel  
 **Status**: ✅ Complete
 
@@ -426,7 +426,7 @@ func testEditFormInitialization() {
 
 ## Files Modified
 
-- ✅ `iosApp/iosApp/Views/ScenarioDetailView.swift` (512 lines)
+- ✅ `iosApp/src/Views/ScenarioDetailView.swift` (512 lines)
 - No changes to `ScenarioDetailViewModel.swift` (already implemented)
 
 ---
