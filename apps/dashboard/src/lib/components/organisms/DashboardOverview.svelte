@@ -31,6 +31,7 @@
     ORGANIZING: 'bg-orange-500',
     FINALIZED: 'bg-emerald-500',
     EXPIRED: 'bg-red-400',
+    ARCHIVED: 'bg-slate-400',
     DELETED: 'bg-red-300'
   }
 </script>

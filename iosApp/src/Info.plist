@@ -4,22 +4,6 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
-	<key>CFBundleDisplayName</key>
-	<string>Wakeve</string>
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>com.guyghost.wakeve</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
-	<key>CFBundlePackageType</key>
-	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
-	<key>CFBundleShortVersionString</key>
-	<string>1.0</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -31,10 +15,10 @@
 			</array>
 		</dict>
 	</array>
-	<key>CFBundleVersion</key>
-	<string>1</string>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
+	<key>INIntentsRestrictedWhileLocked</key>
+	<array/>
+	<key>INIntentsRestrictedWhileProtectedDataUnavailable</key>
+	<array/>
 	<key>INIntentsSupported</key>
 	<array>
 		<string>WakeveCreateEventIntent</string>
@@ -46,28 +30,6 @@
 		<string>WakeveGetStatsIntent</string>
 		<string>WakeveAddReminderIntent</string>
 	</array>
-	<key>INIntentsRestrictedWhileLocked</key>
-	<array/>
-	<key>INIntentsRestrictedWhileProtectedDataUnavailable</key>
-	<array/>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>NSCalendarsUsageDescription</key>
-	<string>Wakeve needs access to your calendar to add confirmed events and send you reminders. No existing calendar data is read or shared.</string>
-	<key>NSContactsUsageDescription</key>
-	<string>Wakeve utilise vos contacts uniquement lorsque vous choisissez des participants à inviter. Seules les adresses email sélectionnées sont ajoutées à l'événement.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Wakeve uses the camera only when you choose to take a photo for an event background.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Wakeve utilise la reconnaissance vocale pour vous permettre de créer et gérer des événements en utilisant votre voix. Vos commandes vocales sont traitées localement sur votre appareil et ne sont pas envoyées à des serveurs tiers.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Wakeve may save event images to your photo library only when you explicitly request it.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Wakeve uses your photo library only when you choose an image for an event background.</string>
-	<key>NSSiriUsageDescription</key>
-	<string>Wakeve uses Siri only when you choose to create shortcuts for event planning actions. Event shortcut details are shared with Siri only for the action you request.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Wakeve utilise votre position pour suggérer des lieux proches lors de la création d'événements. Votre position n'est partagée qu'avec les participants que vous invitez.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -84,20 +46,5 @@
 		<key>UIImageName</key>
 		<string>LaunchIcon</string>
 	</dict>
-	<key>UIStatusBarStyle</key>
-	<string>UIStatusBarStyleDefault</string>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
 </dict>
 </plist>

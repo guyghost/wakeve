@@ -48,7 +48,8 @@ export const STATUS_COLORS: Record<EventStatus, { bg: string; text: string; ring
   ORGANIZING: { bg: 'bg-orange-100', text: 'text-orange-700', ring: 'ring-orange-200' },
   FINALIZED: { bg: 'bg-emerald-100', text: 'text-emerald-700', ring: 'ring-emerald-200' },
   EXPIRED: { bg: 'bg-red-100', text: 'text-red-700', ring: 'ring-red-200' },
-  DELETED: { bg: 'bg-red-100', text: 'text-red-700', ring: 'ring-red-200' }
+  ARCHIVED: { bg: 'bg-slate-100', text: 'text-slate-700', ring: 'ring-slate-200' },
+  DELETED: { bg: 'bg-slate-100', text: 'text-slate-700', ring: 'ring-slate-200' }
 }
 
 export const STATUS_LABELS: Record<EventStatus, string> = {
@@ -59,5 +60,6 @@ export const STATUS_LABELS: Record<EventStatus, string> = {
   ORGANIZING: 'Organisation',
   FINALIZED: 'Finalisé',
   EXPIRED: 'Expiré',
+  ARCHIVED: 'Archivé',
   DELETED: 'Supprimé'
 }

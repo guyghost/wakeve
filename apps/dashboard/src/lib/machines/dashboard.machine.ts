@@ -5,7 +5,10 @@ import type {
   EventDetailedAnalyticsResponse
 } from '$lib/types/api'
 import * as dashboardApi from '$lib/api/dashboard.api'
+import { ApiError } from '$lib/api/client'
 import { actorError, actorOutput } from './actor-event'
+
+export type DashboardErrorKind = 'offline' | 'permission' | 'auth' | 'server'
 
 interface DashboardContext {
   overview: DashboardOverviewResponse | null
@@ -13,12 +16,19 @@ interface DashboardContext {
   selectedEventId: string | null
   analytics: EventDetailedAnalyticsResponse | null
   error: string | null
+  errorKind: DashboardErrorKind | null
   analyticsError: string | null
+  analyticsErrorKind: DashboardErrorKind | null
+  copiedEventId: string | null
+  isOffline: boolean
 }
 
 type DashboardEvent =
   | { type: 'SELECT_EVENT'; id: string }
-  | { type: 'CLOSE_ANALYTICS' }
+  | { type: 'CLOSE_DETAILS' }
+  | { type: 'COPY_LINK_SUCCESS'; id: string }
+  | { type: 'CLEAR_COPY_FEEDBACK' }
+  | { type: 'NETWORK_CHANGED'; isOffline: boolean }
   | { type: 'RELOAD' }
 
 interface LoadDashboardOutput {
@@ -42,6 +52,20 @@ const loadAnalyticsActor = fromPromise(async ({
   return dashboardApi.getEventAnalytics(input.eventId)
 })
 
+function eventError(event: unknown): unknown {
+  return (event as { error?: unknown }).error
+}
+
+function classifyError(error: unknown): DashboardErrorKind {
+  if (typeof navigator !== 'undefined' && !navigator.onLine) return 'offline'
+  if (error instanceof ApiError) {
+    if (error.status === 401) return 'auth'
+    if (error.status === 403) return 'permission'
+  }
+  if (error instanceof TypeError || String(error).includes('Failed to fetch')) return 'offline'
+  return 'server'
+}
+
 export const dashboardMachine = setup({
   types: {
     context: {} as DashboardContext,
@@ -60,34 +84,53 @@ export const dashboardMachine = setup({
     }),
 
     assignLoadError: assign({
-      error: ({ event }) => actorError(event)
+      error: ({ event }) => actorError(event),
+      errorKind: ({ event }) => classifyError(eventError(event))
     }),
 
     assignSelectedEventId: assign({
       selectedEventId: ({ event }) =>
         (event as { type: 'SELECT_EVENT'; id: string }).id,
       analytics: null,
-      analyticsError: null
+      analyticsError: null,
+      analyticsErrorKind: null
+    }),
+
+    assignCopiedEventId: assign({
+      copiedEventId: ({ event }) =>
+        (event as { type: 'COPY_LINK_SUCCESS'; id: string }).id
+    }),
+
+    clearCopyFeedback: assign({
+      copiedEventId: null
+    }),
+
+    assignNetwork: assign({
+      isOffline: ({ event }) =>
+        (event as { type: 'NETWORK_CHANGED'; isOffline: boolean }).isOffline
     }),
 
     assignAnalytics: assign({
       analytics: ({ event }) =>
         actorOutput<EventDetailedAnalyticsResponse>(event),
-      analyticsError: null
+      analyticsError: null,
+      analyticsErrorKind: null
     }),
 
     assignAnalyticsError: assign({
       analyticsError: ({ event }) =>
-        actorError(event)
+        actorError(event),
+      analyticsErrorKind: ({ event }) => classifyError(eventError(event))
     }),
 
     clearSelection: assign({
       selectedEventId: null,
       analytics: null,
-      analyticsError: null
+      analyticsError: null,
+      analyticsErrorKind: null
     }),
 
-    clearError: assign({ error: null })
+    clearError: assign({ error: null, errorKind: null })
   }
 }).createMachine({
   id: 'dashboard',
@@ -98,7 +141,16 @@ export const dashboardMachine = setup({
     selectedEventId: null,
     analytics: null,
     error: null,
-    analyticsError: null
+    errorKind: null,
+    analyticsError: null,
+    analyticsErrorKind: null,
+    copiedEventId: null,
+    isOffline: typeof navigator !== 'undefined' ? !navigator.onLine : false
+  },
+  on: {
+    COPY_LINK_SUCCESS: { actions: 'assignCopiedEventId' },
+    CLEAR_COPY_FEEDBACK: { actions: 'clearCopyFeedback' },
+    NETWORK_CHANGED: { actions: 'assignNetwork' }
   },
   states: {
     loading: {
@@ -131,25 +183,25 @@ export const dashboardMachine = setup({
         src: 'loadAnalytics',
         input: ({ context }) => ({ eventId: context.selectedEventId! }),
         onDone: {
-          target: 'showingAnalytics',
+          target: 'showingDetails',
           actions: 'assignAnalytics'
         },
         onError: {
-          target: 'showingAnalytics',
+          target: 'showingDetails',
           actions: 'assignAnalyticsError'
         }
       },
       on: {
-        CLOSE_ANALYTICS: {
+        CLOSE_DETAILS: {
           target: 'ready',
           actions: 'clearSelection'
         }
       }
     },
 
-    showingAnalytics: {
+    showingDetails: {
       on: {
-        CLOSE_ANALYTICS: {
+        CLOSE_DETAILS: {
           target: 'ready',
           actions: 'clearSelection'
         },
