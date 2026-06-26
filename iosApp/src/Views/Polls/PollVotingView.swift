@@ -43,6 +43,7 @@ struct PollVotingView: View {
         } message: {
             Text(String(localized: "poll.voting.success_message"))
         }
+        .wakevePollAppEntityIdentifier(repository.getPoll(eventId: event.id)?.id ?? "poll-\(event.id)")
     }
 
     private func checkExistingVotes() {

@@ -80,6 +80,7 @@ struct TransportPlanningView: View {
                 bottomPrimaryAction
             }
         }
+        .wakeveTransportAppEntityIdentifier(selectedPlanId ?? "transport-\(event.id)")
     }
 
     private var content: some View {

@@ -8,6 +8,9 @@ struct iOSApp: App {
     @StateObject private var authStateManager: AuthStateManager
     @StateObject private var authService: AuthenticationService
     @StateObject private var deepLinkService: DeepLinkService
+    #if DEBUG
+    @State private var appIntentTestScreen: WakeveIntentTestScreen?
+    #endif
 
     init() {
         let authSvc = AuthenticationService()
@@ -26,31 +29,52 @@ struct iOSApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(authStateManager)
-                .environmentObject(authService)
-                .environmentObject(deepLinkService)
-                .task {
-                    #if DEBUG
-                    if await authStateManager.authenticateForDevelopmentLaunchIfRequested() {
-                        return
-                    }
-                    #endif
-
-                    authStateManager.checkAuthStatus()
+            Group {
+                #if DEBUG
+                if let appIntentTestScreen {
+                    WakeveAppIntentAnnotationTestSurface(
+                        screen: appIntentTestScreen,
+                        onDismiss: {
+                            self.appIntentTestScreen = nil
+                        }
+                    )
+                } else {
+                    appContent
                 }
-                .onOpenURL { url in
-                    // Handle incoming deep links
+                #else
+                appContent
+                #endif
+            }
+        }
+    }
+
+    private var appContent: some View {
+        ContentView()
+            .environmentObject(authStateManager)
+            .environmentObject(authService)
+            .environmentObject(deepLinkService)
+            .task {
+                #if DEBUG
+                if await authStateManager.authenticateForDevelopmentLaunchIfRequested() {
+                    await routePendingAppIntentHandoff()
+                    return
+                }
+                #endif
+
+                authStateManager.checkAuthStatus()
+                await routePendingAppIntentHandoff()
+            }
+            .onOpenURL { url in
+                // Handle incoming deep links
+                handleDeepLink(url)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToEvent"))) { notification in
+                // Handle notification tap deep link
+                if let eventId = notification.userInfo?["eventId"] as? String {
+                    let url = URL(string: "wakeve://event/\(eventId)")!
                     handleDeepLink(url)
                 }
-                .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToEvent"))) { notification in
-                    // Handle notification tap deep link
-                    if let eventId = notification.userInfo?["eventId"] as? String {
-                        let url = URL(string: "wakeve://event/\(eventId)")!
-                        handleDeepLink(url)
-                    }
-                }
-        }
+            }
     }
 
     // MARK: - Deep Link Handling
@@ -74,5 +98,25 @@ struct iOSApp: App {
 
         // Note: ContentView should observe deepLinkService.navigationPath
         // and navigate accordingly
+    }
+
+    private func routePendingAppIntentHandoff() async {
+        #if DEBUG
+        if let testScreen = await WakeveIntentStore.shared.consumeOpenTestScreen() {
+            await MainActor.run {
+                appIntentTestScreen = testScreen
+            }
+            return
+        }
+        #endif
+
+        guard let eventId = await WakeveIntentStore.shared.consumeOpenEventId(),
+              let url = URL(string: "wakeve://event/\(eventId)") else {
+            return
+        }
+
+        await MainActor.run {
+            handleDeepLink(url)
+        }
     }
 }

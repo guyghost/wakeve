@@ -92,6 +92,135 @@ jobs:
         continue-on-error: true  # Server tests have known NPE issues with in-memory DB
 
   # ──────────────────────────────────────────────
+  # iOS App Intents system integration tests
+  # ──────────────────────────────────────────────
+  ios-app-intents-tests:
+    name: iOS AppIntentsTesting
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Check AppIntentsTesting availability
+        shell: bash
+        run: |
+          FRAMEWORK="$(xcode-select -p)/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks/AppIntentsTesting.framework"
+          if [[ ! -d "$FRAMEWORK" ]]; then
+            echo "::error::AppIntentsTesting.framework is not available on this Xcode image. Use an Xcode/iOS runtime that supports AppIntentsTesting."
+            exit 1
+          fi
+
+          if ! xcrun simctl list runtimes | grep -q "iOS 27"; then
+            echo "::error::No iOS 27 simulator runtime is available on this Xcode image. WakeveAppIntentsTests must run on an AppIntentsTesting-compatible runtime."
+            exit 1
+          fi
+
+          echo "AppIntentsTesting.framework and an iOS 27 simulator runtime are available."
+
+      - name: Build App Intents tests
+        run: |
+          xcrun xcodebuild \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme WakeveApp \
+            -testPlan WakeveTest \
+            -destination 'platform=iOS Simulator,OS=27.0,name=iPhone 17 Pro' \
+            -only-testing:WakeveAppIntentsTests \
+            build-for-testing \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) WAKEVE_APP_INTENTS_REQUIRE_RUNTIME_EXECUTION'
+
+      - name: Verify exported App Intents metadata
+        shell: bash
+        run: |
+          APP_BUNDLE="$(find ~/Library/Developer/Xcode/DerivedData -path '*/Build/Products/Debug-iphonesimulator/Wakeve.app' -type d | head -n 1)"
+          METADATA="$APP_BUNDLE/Metadata.appintents/extract.actionsdata"
+          if [[ ! -f "$METADATA" ]]; then
+            echo "::error::Missing Metadata.appintents/extract.actionsdata in Wakeve.app."
+            exit 1
+          fi
+
+          for expected in \
+            "CreateEventIntent" \
+            "UpdateEventIntent" \
+            "InviteParticipantsIntent" \
+            "CreatePollIntent" \
+            "VoteIntent" \
+            "ProposeTransportIntent" \
+            "OpenEventIntent" \
+            "SummarizeEventIntent" \
+            "ViewUpcomingEventsIntent" \
+            "SeedWakeveTestDataIntent" \
+            "ClearWakeveTestDataIntent" \
+            "OpenWakeveScreenForTestIntent" \
+            "DeleteEventForTestIntent" \
+            "FinalizeEventForTestIntent" \
+            "ClosePollForTestIntent" \
+            "Create event with" \
+            "Plan with" \
+            "Open event in" \
+            "Summarize event in" \
+            "Create a poll in" \
+            "Invite participants with" \
+            "Vote in" \
+            "Propose transport with" \
+            "Show upcoming events in"; do
+            if ! strings "$METADATA" | grep -Fq "$expected"; then
+              echo "::error::Expected App Intents metadata string not found: $expected"
+              exit 1
+            fi
+          done
+
+      - name: Run App Intents tests
+        shell: bash
+        run: |
+          set -o pipefail
+          xcrun xcodebuild \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme WakeveApp \
+            -testPlan WakeveTest \
+            -destination 'platform=iOS Simulator,OS=27.0,name=iPhone 17 Pro' \
+            -only-testing:WakeveAppIntentsTests \
+            test-without-building \
+            CODE_SIGNING_ALLOWED=NO | tee app-intents-test.log
+
+      - name: Assert App Intents tests executed without skips
+        shell: bash
+        run: |
+          SUMMARY="$(grep -E 'Executed [0-9]+ tests' app-intents-test.log | tail -n 1 || true)"
+          if [[ -z "$SUMMARY" ]]; then
+            echo "::error::Could not find an App Intents test execution summary."
+            exit 1
+          fi
+
+          if ! grep -Eq 'Executed [1-9][0-9]* tests' <<< "$SUMMARY"; then
+            echo "::error::App Intents test run did not execute any tests: $SUMMARY"
+            exit 1
+          fi
+
+          if grep -Eq 'with [1-9][0-9]* tests? skipped|with [1-9][0-9]* skips?' <<< "$SUMMARY"; then
+            echo "::error::App Intents test run reported skipped tests: $SUMMARY"
+            exit 1
+          fi
+
+          if ! grep -Eq '0 failures' <<< "$SUMMARY"; then
+            echo "::error::App Intents test run did not report zero failures: $SUMMARY"
+            exit 1
+          fi
+
+      - name: Upload App Intents result bundles
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-app-intents-xcresults
+          path: ~/Library/Developer/Xcode/DerivedData/**/Logs/Test/*.xcresult
+          if-no-files-found: ignore
+
+  # ──────────────────────────────────────────────
   # Web App (SvelteKit) build
   # ──────────────────────────────────────────────
   web-build:

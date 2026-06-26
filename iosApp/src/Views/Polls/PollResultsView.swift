@@ -62,6 +62,7 @@ struct PollResultsView: View {
         } message: {
             Text(String(localized: "poll.results.confirm_dialog_message"))
         }
+        .wakevePollAppEntityIdentifier(poll?.id ?? repository.getPoll(eventId: event.id)?.id ?? "poll-\(event.id)")
     }
 
     private func loadPollResults() {

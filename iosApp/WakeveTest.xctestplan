@@ -18,6 +18,14 @@
   },
   "testTargets" : [
     {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:iosApp.xcodeproj",
+        "identifier" : "AA1000080000000000000008",
+        "name" : "WakeveAppIntentsTests"
+      }
+    },
+    {
       "parallelizable" : true,
       "target" : {
         "containerPath" : "container:iosApp.xcodeproj",

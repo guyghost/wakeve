@@ -1,4 +1,5 @@
 import SwiftUI
+import AppIntents
 import Shared
 #if canImport(UIKit)
 import UIKit
@@ -1877,6 +1878,7 @@ struct EventDetailView: View {
             seedPreparedCreationChecklistIfNeeded()
             triggerInvitationLandingHapticIfNeeded()
         }
+        .wakeveEventAppEntityIdentifier(event.id)
     }
 
     private var heroSection: some View {
