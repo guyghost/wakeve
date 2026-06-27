@@ -44,6 +44,17 @@ Ce projet utilise **OpenSpec** pour gérer les changements de manière structur�
 - Changements de configuration mineurs
 - Tests pour comportement existant
 
+### Gate Product Excellence
+
+Pour toute proposition OpenSpec significative et visible par l'utilisateur, consulter `openspec/specs/product-excellence/spec.md` lorsqu'elle existe. La proposition doit expliquer en quoi le changement:
+- aide directement un groupe privé à préparer, décider, coordonner ou finaliser un événement;
+- réduit la charge mentale ou les allers-retours hors de Wakeve;
+- rend clair ce qui est confirmé, en attente, qui doit agir et la prochaine action utile;
+- reste rapide, compréhensible et utilisable sur mobile;
+- évite la dérive vers un réseau social, un chat générique, un gestionnaire de tâches, un calendrier ou un workspace générique.
+
+Une fonctionnalité qui ne satisfait pas ce gate doit être rejetée, différée ou rescopée avant implémentation.
+
 ### Cycle de Vie OpenSpec
 
 #### 1. **Proposition** (`/openspec-proposal`)

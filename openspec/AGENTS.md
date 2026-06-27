@@ -74,6 +74,7 @@ After deployment, create separate PR to:
 
 **Before Creating Specs:**
 - Always check if capability already exists
+- For significant user-facing features, review `openspec/specs/product-excellence/spec.md` when present and include a short product-excellence fit note in the proposal. The note must explain how the change helps a private group prepare an event, reduces organization effort, keeps state clear, remains mobile-usable, and avoids generic social/chat/task/calendar/productivity drift.
 - Prefer modifying existing specs over creating duplicates
 - Use `openspec show [spec]` to review current state
 - If request is ambiguous, ask 1–2 clarifying questions before scaffolding
@@ -168,6 +169,9 @@ New request?
 ## What Changes
 - [Bullet list of changes]
 - [Mark breaking changes with **BREAKING**]
+
+## Product Excellence Fit
+[For significant user-facing work: explain event-organization relevance, mental-load reduction, state clarity, mobile usability, premium execution, and how the feature avoids generic product drift.]
 
 ## Impact
 - Affected specs: [list capabilities]
