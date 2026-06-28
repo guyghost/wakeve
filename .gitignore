@@ -34,4 +34,5 @@ fastlane/report.xml
 .todos/
 dist/
 .ralph/
+.local/qa/
 review-screenshots/
