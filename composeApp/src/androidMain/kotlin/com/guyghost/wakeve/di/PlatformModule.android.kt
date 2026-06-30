@@ -22,6 +22,7 @@ import com.guyghost.wakeve.auth.shell.services.AndroidTokenStorage
 import com.guyghost.wakeve.auth.shell.services.AuthService
 import com.guyghost.wakeve.auth.shell.services.EmailAuthService
 import com.guyghost.wakeve.auth.shell.services.GuestModeService
+import com.guyghost.wakeve.auth.shell.services.AccountDeletionGateway
 import com.guyghost.wakeve.auth.shell.services.TokenStorage
 import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
 import com.guyghost.wakeve.auth.SessionRepository
@@ -33,6 +34,7 @@ import com.guyghost.wakeve.notification.NotificationPreferencesRepositoryInterfa
 import com.guyghost.wakeve.notification.NotificationService
 import com.guyghost.wakeve.repository.ScenarioRepository
 import com.guyghost.wakeve.ui.auth.AuthViewModel
+import com.guyghost.wakeve.auth.AndroidAccountDeletionGateway
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -167,6 +169,10 @@ fun platformModule(): Module = module {
     single {
         GuestModeService(tokenStorage = get())
     }
+
+    single<AccountDeletionGateway> {
+        AndroidAccountDeletionGateway()
+    }
     
     /**
      * Provide AuthStateMachine singleton.
@@ -182,6 +188,7 @@ fun platformModule(): Module = module {
             emailAuthService = get(),
             guestModeService = get(),
             tokenStorage = get(),
+            accountDeletionGateway = get(),
             scope = scope
         )
     }

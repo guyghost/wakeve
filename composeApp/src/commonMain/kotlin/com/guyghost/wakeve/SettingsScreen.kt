@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
@@ -85,6 +86,7 @@ data class SessionDisplayData(
  * @param userName The user's display name (if authenticated)
  * @param onLogout Callback when user taps logout
  * @param onCreateAccount Callback when guest taps "Create Account"
+ * @param onOpenDataManagement Callback when user opens data management
  * @param onBack Callback when user taps back
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,6 +101,7 @@ fun SettingsScreen(
     sessionRepository: SessionRepository? = null,
     onLogout: () -> Unit,
     onCreateAccount: () -> Unit = {},
+    onOpenDataManagement: () -> Unit = {},
     onBack: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
@@ -299,6 +302,45 @@ fun SettingsScreen(
                                     }
                                 }
                             )
+                        }
+                    }
+
+                    // Data Management
+                    item {
+                        Card(
+                            onClick = onOpenDataManagement,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Storage,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Column(modifier = Modifier.padding(start = 12.dp)) {
+                                        Text(
+                                            text = "Gestion des données",
+                                            style = MaterialTheme.typography.titleSmall
+                                        )
+                                        Text(
+                                            text = if (isGuest) {
+                                                "Supprimer les données invité"
+                                            } else {
+                                                "Supprimer le compte"
+                                            },
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 

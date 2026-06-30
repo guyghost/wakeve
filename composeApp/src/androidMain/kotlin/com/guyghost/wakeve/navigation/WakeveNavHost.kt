@@ -36,6 +36,7 @@ import com.guyghost.wakeve.InboxScreen
 import com.guyghost.wakeve.OnboardingScreen
 import com.guyghost.wakeve.ProfileTabScreen
 import com.guyghost.wakeve.SettingsScreen
+import com.guyghost.wakeve.DataManagementScreen
 import com.guyghost.wakeve.SplashScreen
 import com.guyghost.wakeve.deeplink.AndroidInvitationShareService
 import com.guyghost.wakeve.deeplink.AndroidNavigationDeepLinkHandler
@@ -291,8 +292,11 @@ fun WakeveNavHost(
                         }
                         is AuthSideEffect.ShowOTPInput,
                         is AuthSideEffect.HapticFeedback,
-                        is AuthSideEffect.AnimateSuccess -> {
-                            // Handled by EmailAuthScreen or ignored
+                        is AuthSideEffect.AnimateSuccess,
+                        is AuthSideEffect.NavigateToAuth -> {
+                            navController.navigate(Screen.Auth.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
                         }
                     }
                 }
@@ -1207,9 +1211,62 @@ fun WakeveNavHost(
                 onCreateAccount = {
                     navController.navigate(Screen.Auth.route)
                 },
+                onOpenDataManagement = {
+                    navController.navigate(Screen.DataManagement.route)
+                },
                 onBack = {
                     navController.navigateUp()
                 }
+            )
+        }
+
+        composable(Screen.DataManagement.route) {
+            val authViewModel: AuthViewModel = koinInject()
+            val authState by authViewModel.uiState.collectAsState()
+            val context = LocalContext.current
+            var deletionError by remember { mutableStateOf<String?>(null) }
+            var deletionSuccess by remember { mutableStateOf<String?>(null) }
+
+            LaunchedEffect(Unit) {
+                authViewModel.sideEffects.collect { effect ->
+                    when (effect) {
+                        is AuthSideEffect.ShowError -> {
+                            deletionError = effect.message
+                            deletionSuccess = null
+                            Toast.makeText(context, effect.message, Toast.LENGTH_LONG).show()
+                        }
+                        is AuthSideEffect.ShowSuccess -> {
+                            deletionSuccess = effect.message
+                            deletionError = null
+                            Toast.makeText(context, effect.message, Toast.LENGTH_SHORT).show()
+                        }
+                        is AuthSideEffect.NavigateToAuth -> {
+                            navController.navigate(Screen.Auth.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
+                        else -> Unit
+                    }
+                }
+            }
+
+            DataManagementScreen(
+                isGuest = authState.isGuest,
+                isDeleting = authState.isLoading,
+                errorMessage = deletionError,
+                successMessage = deletionSuccess,
+                onConfirmDeletion = {
+                    deletionError = null
+                    deletionSuccess = null
+                    if (authState.isGuest) {
+                        authViewModel.deleteGuestData()
+                    } else {
+                        authViewModel.deleteCurrentAccount()
+                    }
+                },
+                onDismissError = { deletionError = null },
+                onDismissSuccess = { deletionSuccess = null },
+                onBack = { navController.navigateUp() }
             )
         }
         

@@ -141,6 +141,7 @@ sealed class Screen(val route: String) {
 
     // Settings
     data object Settings : Screen("settings")
+    data object DataManagement : Screen("settings/data_management")
 
     // Notifications
     data object Notifications : Screen("notifications?$NOTIFICATIONS_FILTER_ARG={$NOTIFICATIONS_FILTER_ARG}") {

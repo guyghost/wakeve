@@ -83,6 +83,7 @@ class AuthViewModel(
                     is AuthContract.SideEffect.ShowOTPInput -> AuthSideEffect.ShowOTPInput(effect.email, effect.remainingSeconds)
                     is AuthContract.SideEffect.HapticFeedback -> AuthSideEffect.HapticFeedback
                     is AuthContract.SideEffect.AnimateSuccess -> AuthSideEffect.AnimateSuccess
+                    is AuthContract.SideEffect.NavigateToAuthAfterDeletion -> AuthSideEffect.NavigateToAuth
                 }
                 _sideEffects.emit(uiEffect)
             }
@@ -163,6 +164,14 @@ class AuthViewModel(
      */
     fun signOut() {
         authStateMachine.handleIntent(AuthContract.Intent.SignOut)
+    }
+
+    fun deleteCurrentAccount() {
+        authStateMachine.handleIntent(AuthContract.Intent.DeleteAccount)
+    }
+
+    fun deleteGuestData() {
+        authStateMachine.handleIntent(AuthContract.Intent.DeleteGuestData)
     }
 
     /**
@@ -278,4 +287,5 @@ sealed class AuthSideEffect {
     data class ShowOTPInput(val email: String, val remainingSeconds: Int) : AuthSideEffect()
     data object HapticFeedback : AuthSideEffect()
     data object AnimateSuccess : AuthSideEffect()
+    data object NavigateToAuth : AuthSideEffect()
 }
