@@ -963,3 +963,91 @@ enum TransportPlanningOptimizationType: String, CaseIterable, Identifiable, Coda
         }
     }
 }
+
+#if DEBUG
+private enum TransportPlanningPreviewData {
+    static let event = EventFactory.make(
+        title: "Retraite produit",
+        description: "Coordination transport pour un groupe confirme.",
+        participants: UserFactory.group(count: 4).map(\.id),
+        status: .confirmed,
+        finalDate: "2026-09-12T09:00:00Z",
+        eventType: .teamBuilding,
+        expectedParticipants: 4
+    )
+
+    static let destination = TransportLocation(
+        name: "Annecy",
+        address: "Centre-ville",
+        latitude: nil,
+        longitude: nil,
+        iataCode: nil
+    )
+
+    static let readiness = TransportReadiness(
+        eventId: event.id,
+        destination: destination,
+        isComplete: true,
+        canGeneratePlan: true,
+        transportNotNeeded: false,
+        canFinalizeWithoutPlan: false,
+        missingDepartureParticipantIds: [],
+        missingDepartureParticipantNames: []
+    )
+
+    static let plan = TransportPlanningPlan(
+        id: "transport-plan-preview",
+        optimization: .BALANCED,
+        totalCost: 420,
+        currency: "EUR"
+    )
+}
+
+#Preview("Transport Planning - Light") {
+    TransportPlanningView(
+        event: TransportPlanningPreviewData.event,
+        isOrganizer: true,
+        isParticipantConfirmed: true,
+        isReadOnly: false,
+        eventStatus: .confirmed,
+        confirmedDate: TransportPlanningPreviewData.event.finalDate,
+        selectedDestination: TransportPlanningPreviewData.destination,
+        readiness: TransportPlanningPreviewData.readiness,
+        missingDeparture: [],
+        plans: [TransportPlanningPreviewData.plan],
+        selectedPlanId: nil,
+        pendingSync: false,
+        onGenerate: { _ in },
+        onSelectFinalPlan: { _ in },
+        onMarkTransportNotNeeded: {},
+        onSaveDepartureLocation: { _ in },
+        onChooseDestination: {},
+        onBack: {}
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Transport Planning - Dark") {
+    TransportPlanningView(
+        event: TransportPlanningPreviewData.event,
+        isOrganizer: true,
+        isParticipantConfirmed: true,
+        isReadOnly: false,
+        eventStatus: .confirmed,
+        confirmedDate: TransportPlanningPreviewData.event.finalDate,
+        selectedDestination: TransportPlanningPreviewData.destination,
+        readiness: TransportPlanningPreviewData.readiness,
+        missingDeparture: [],
+        plans: [TransportPlanningPreviewData.plan],
+        selectedPlanId: nil,
+        pendingSync: false,
+        onGenerate: { _ in },
+        onSelectFinalPlan: { _ in },
+        onMarkTransportNotNeeded: {},
+        onSaveDepartureLocation: { _ in },
+        onChooseDestination: {},
+        onBack: {}
+    )
+    .preferredColorScheme(.dark)
+}
+#endif

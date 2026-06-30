@@ -168,3 +168,24 @@ struct ModerationStatusBadge: View {
         }
     }
 }
+
+#if DEBUG
+private let moderationPreviewTarget = ModerationActionTarget(
+    type: .comment,
+    targetId: "comment-preview",
+    eventId: "event-preview",
+    authorId: "user-preview",
+    displayName: "Commentaire de Camille",
+    allowsBlock: true
+)
+
+#Preview("Moderation Action - Light") {
+    ModerationActionSheet(target: moderationPreviewTarget)
+        .preferredColorScheme(.light)
+}
+
+#Preview("Moderation Action - Dark") {
+    ModerationActionSheet(target: moderationPreviewTarget)
+        .preferredColorScheme(.dark)
+}
+#endif

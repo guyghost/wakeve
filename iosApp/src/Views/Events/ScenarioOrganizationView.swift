@@ -1710,3 +1710,45 @@ private struct ScenarioOrganizationCard: View {
         return String(format: String(localized: "scenario.matrix_source_format"), slot, destination)
     }
 }
+
+#if DEBUG
+#Preview("Scenario Organization - Light") {
+    ScenarioOrganizationView(
+        event: EventFactory.make(
+            title: "Weekend entre amis",
+            description: "Comparer les options de destination avant de finaliser.",
+            participants: UserFactory.group(count: 5).map(\.id),
+            status: .confirmed,
+            finalDate: "2026-08-14T18:00:00Z",
+            eventType: .outdoorActivity,
+            expectedParticipants: 5
+        ),
+        participantId: UserFactory.organizer.id,
+        repository: EventRepository(),
+        onBack: {},
+        onOpenMeetings: {},
+        onOpenTransport: {}
+    )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Scenario Organization - Dark") {
+    ScenarioOrganizationView(
+        event: EventFactory.make(
+            title: "Weekend entre amis",
+            description: "Comparer les options de destination avant de finaliser.",
+            participants: UserFactory.group(count: 5).map(\.id),
+            status: .confirmed,
+            finalDate: "2026-08-14T18:00:00Z",
+            eventType: .outdoorActivity,
+            expectedParticipants: 5
+        ),
+        participantId: UserFactory.organizer.id,
+        repository: EventRepository(),
+        onBack: {},
+        onOpenMeetings: {},
+        onOpenTransport: {}
+    )
+    .preferredColorScheme(.dark)
+}
+#endif

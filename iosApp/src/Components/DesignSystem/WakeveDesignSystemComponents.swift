@@ -21,7 +21,7 @@ struct WakeveScreenBackground: View {
             case .app:
                 SemanticColor.appBackground(for: colorScheme)
             case .utility:
-                WakeveTheme.EventGradient.utility
+                utilityBackground
             case .profile:
                 WakeveTheme.EventGradient.profile
             case .event:
@@ -31,6 +31,22 @@ struct WakeveScreenBackground: View {
             }
         }
         .ignoresSafeArea()
+    }
+
+    private var utilityBackground: LinearGradient {
+        if colorScheme == .dark {
+            return WakeveTheme.EventGradient.utility
+        }
+
+        return LinearGradient(
+            colors: [
+                WakeveTheme.ColorToken.softIvory,
+                Color(hex: "EEF4F8"),
+                WakeveTheme.ColorToken.paleBlue.opacity(0.36)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
     private var eventBackground: LinearGradient {
