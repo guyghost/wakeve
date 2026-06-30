@@ -8,6 +8,8 @@ import com.guyghost.wakeve.auth.core.models.AuthMethod
 import com.guyghost.wakeve.auth.shell.services.AuthService
 import com.guyghost.wakeve.auth.shell.services.EmailAuthService
 import com.guyghost.wakeve.auth.shell.services.GuestModeService
+import com.guyghost.wakeve.auth.shell.services.AccountDeletionGateway
+import com.guyghost.wakeve.auth.shell.services.UnconfiguredAccountDeletionGateway
 import com.guyghost.wakeve.auth.shell.services.TokenStorage
 import com.guyghost.wakeve.auth.shell.services.TokenKeys
 import com.guyghost.wakeve.auth.shell.statemachine.AuthContract.Intent
@@ -49,6 +51,7 @@ class AuthStateMachine(
     private val emailAuthService: EmailAuthService,
     private val guestModeService: GuestModeService,
     private val tokenStorage: TokenStorage,
+    private val accountDeletionGateway: AccountDeletionGateway = UnconfiguredAccountDeletionGateway(),
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 ) {
     private val _state = MutableStateFlow(State.initial())
@@ -82,6 +85,8 @@ class AuthStateMachine(
             is Intent.CheckExistingSession -> handleCheckSession()
             is Intent.ClearError -> handleClearError()
             is Intent.SignOut -> handleSignOut()
+            is Intent.DeleteAccount -> handleDeleteAccount()
+            is Intent.DeleteGuestData -> handleDeleteGuestData()
         }
     }
 
@@ -351,6 +356,58 @@ class AuthStateMachine(
             }
 
             emitSideEffect(SideEffect.NavigateBack)
+        }
+    }
+
+    private fun handleDeleteAccount() {
+        if (_state.value.isGuest) {
+            handleDeleteGuestData()
+            return
+        }
+
+        updateState { copy(isLoading = true, lastError = null) }
+
+        scope.launch {
+            val accessToken = tokenStorage.getString(TokenKeys.ACCESS_TOKEN)
+            if (accessToken.isNullOrBlank()) {
+                updateState { copy(isLoading = false) }
+                emitSideEffect(SideEffect.ShowError("Authentification requise"))
+                return@launch
+            }
+
+            accountDeletionGateway.deleteAccount(accessToken).fold(
+                onSuccess = {
+                    completeLocalAccountDeletion()
+                    emitSideEffect(SideEffect.ShowSuccess("Compte supprimé"))
+                    emitSideEffect(SideEffect.NavigateToAuthAfterDeletion)
+                },
+                onFailure = {
+                    updateState { copy(isLoading = false) }
+                    emitSideEffect(SideEffect.ShowError("Impossible de supprimer le compte. Réessayez."))
+                }
+            )
+        }
+    }
+
+    private fun handleDeleteGuestData() {
+        updateState { copy(isLoading = true, lastError = null) }
+
+        scope.launch {
+            completeLocalAccountDeletion()
+            emitSideEffect(SideEffect.ShowSuccess("Données invité supprimées"))
+            emitSideEffect(SideEffect.NavigateToAuthAfterDeletion)
+        }
+    }
+
+    private suspend fun completeLocalAccountDeletion() {
+        tokenStorage.clearAll()
+        guestModeService.endGuestSession()
+        authService.signOut()
+
+        updateState {
+            State.initial().copy(
+                isProviderAvailable = isProviderAvailable
+            )
         }
     }
 
