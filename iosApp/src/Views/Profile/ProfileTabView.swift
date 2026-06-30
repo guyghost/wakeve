@@ -13,7 +13,7 @@ struct ProfileTabView: View {
     var onDismiss: (() -> Void)?
     var onSignOut: (() -> Void)?
 
-    @AppStorage("darkMode") private var darkMode = false
+    @Environment(\.colorScheme) private var colorScheme
 
     init(
         userId: String,
@@ -32,7 +32,7 @@ struct ProfileTabView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                WakeveScreenBackground(style: darkMode ? .profile : .grouped)
+                WakeveScreenBackground(style: colorScheme == .dark ? .profile : .grouped)
 
                 ScrollView {
                     VStack(spacing: WakeveTheme.Spacing.xl) {
@@ -349,7 +349,7 @@ struct PreferencesSection: View {
 // MARK: - Appearance Section
 
 struct AppearanceSection: View {
-    @AppStorage("darkMode") private var darkMode = false
+    @AppStorage(UserDefaultsKeys.appearanceMode) private var appearanceModeRaw = WakeveAppearancePreference.system.rawValue
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -358,16 +358,58 @@ struct AppearanceSection: View {
                 .foregroundColor(.primary)
 
             ProfileCard {
-                VStack(spacing: 0) {
-                    // Dark Mode Toggle
-                    PreferenceToggleRow(
-                        icon: darkMode ? "moon.fill" : "sun.max.fill",
-                        title: darkMode ? String(localized: "profile.dark_mode") : String(localized: "profile.light_mode"),
-                        description: darkMode ? String(localized: "profile.dark_mode_desc") : String(localized: "profile.light_mode_desc"),
-                        isOn: $darkMode
-                    )
+                VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                    HStack(spacing: WakeveTheme.Spacing.sm) {
+                        Image(systemName: currentPreference.iconName)
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
+                            .frame(width: 32, height: 32)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(currentPreference.localizedTitle)
+                                .font(WakeveTheme.Typography.bodySemibold)
+                                .foregroundColor(.primary)
+
+                            Text(currentPreference.localizedDescription)
+                                .font(WakeveTheme.Typography.metadata)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    Picker(String(localized: "profile.appearance"), selection: appearanceSelection) {
+                        ForEach(WakeveAppearancePreference.allCases) { preference in
+                            Text(preference.localizedTitle)
+                                .tag(preference)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("appearanceModePicker")
                 }
             }
+        }
+    }
+
+    private var currentPreference: WakeveAppearancePreference {
+        WakeveAppearancePreference(rawValue: appearanceModeRaw) ?? .system
+    }
+
+    private var appearanceSelection: Binding<WakeveAppearancePreference> {
+        Binding(
+            get: { currentPreference },
+            set: { appearanceModeRaw = $0.rawValue }
+        )
+    }
+}
+
+private extension WakeveAppearancePreference {
+    var iconName: String {
+        switch self {
+        case .system:
+            return "circle.lefthalf.filled"
+        case .light:
+            return "sun.max.fill"
+        case .dark:
+            return "moon.fill"
         }
     }
 }

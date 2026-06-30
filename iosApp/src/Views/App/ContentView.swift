@@ -8,6 +8,50 @@ import UIKit
 
 struct UserDefaultsKeys {
     static let hasCompletedOnboarding = "hasCompletedOnboarding"
+    static let appearanceMode = "appearanceMode"
+    static let legacyDarkMode = "darkMode"
+    static let appearanceModeMigrated = "appearanceModeMigrated"
+}
+
+enum WakeveAppearancePreference: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String { rawValue }
+
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system:
+            return nil
+        case .light:
+            return .light
+        case .dark:
+            return .dark
+        }
+    }
+
+    var localizedTitle: String {
+        switch self {
+        case .system:
+            return String(localized: "profile.appearance.system")
+        case .light:
+            return String(localized: "profile.appearance.light")
+        case .dark:
+            return String(localized: "profile.appearance.dark")
+        }
+    }
+
+    var localizedDescription: String {
+        switch self {
+        case .system:
+            return String(localized: "profile.appearance.system_desc")
+        case .light:
+            return String(localized: "profile.light_mode_desc")
+        case .dark:
+            return String(localized: "profile.dark_mode_desc")
+        }
+    }
 }
 
 func hasCompletedOnboarding() -> Bool {
@@ -21,7 +65,9 @@ func markOnboardingComplete() {
 struct ContentView: View {
     @EnvironmentObject var authStateManager: AuthStateManager
     @EnvironmentObject var authService: AuthenticationService
-    @AppStorage("darkMode") private var darkMode = true
+    @AppStorage(UserDefaultsKeys.appearanceMode) private var appearanceModeRaw = WakeveAppearancePreference.system.rawValue
+    @AppStorage(UserDefaultsKeys.legacyDarkMode) private var legacyDarkMode = false
+    @AppStorage(UserDefaultsKeys.appearanceModeMigrated) private var appearanceModeMigrated = false
     @State private var hasOnboarded = false
 
     var body: some View {
@@ -45,9 +91,28 @@ struct ContentView: View {
             }
         }
         .onAppear {
+            migrateLegacyAppearancePreferenceIfNeeded()
             hasOnboarded = hasCompletedOnboarding()
         }
-        .preferredColorScheme(darkMode ? .dark : .light)
+        .preferredColorScheme(appearancePreference.colorScheme)
+    }
+
+    private var appearancePreference: WakeveAppearancePreference {
+        WakeveAppearancePreference(rawValue: appearanceModeRaw) ?? .system
+    }
+
+    private func migrateLegacyAppearancePreferenceIfNeeded() {
+        guard !appearanceModeMigrated else { return }
+
+        let defaults = UserDefaults.standard
+        if defaults.object(forKey: UserDefaultsKeys.appearanceMode) == nil,
+           defaults.object(forKey: UserDefaultsKeys.legacyDarkMode) != nil {
+            appearanceModeRaw = legacyDarkMode
+                ? WakeveAppearancePreference.dark.rawValue
+                : WakeveAppearancePreference.light.rawValue
+        }
+
+        appearanceModeMigrated = true
     }
 
     private func completeOnboarding() {
