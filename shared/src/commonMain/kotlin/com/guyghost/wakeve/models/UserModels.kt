@@ -110,6 +110,18 @@ data class TokenRefreshResponse(
 )
 
 /**
+ * Response returned after an authenticated account deletion request.
+ */
+@Serializable
+data class AccountDeletionResponse(
+    val success: Boolean,
+    val deleted: Boolean,
+    val message: String,
+    val localCleanupRequired: Boolean,
+    val providerRevocationStatus: String
+)
+
+/**
  * Authentication middleware context
  */
 data class AuthContext(
