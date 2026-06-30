@@ -13,6 +13,7 @@ struct OnboardingStepView: View {
     let step: OnboardingStep
     
     @State private var isAnimating = false
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var visibleFeatures: [String] {
@@ -24,9 +25,9 @@ struct OnboardingStepView: View {
             VStack(spacing: dynamicTypeSize.isAccessibilitySize ? WakeveTheme.Spacing.md : WakeveTheme.Spacing.xl) {
                 ZStack {
                     Circle()
-                        .fill(Color.white.opacity(0.08))
+                        .fill(iconBackground)
                         .frame(width: dynamicTypeSize.isAccessibilitySize ? 88 : 132, height: dynamicTypeSize.isAccessibilitySize ? 88 : 132)
-                        .overlay(Circle().stroke(Color.white.opacity(0.12), lineWidth: 1))
+                        .overlay(Circle().stroke(borderColor, lineWidth: 1))
                     
                     Image(systemName: step.icon)
                         .resizable()
@@ -47,13 +48,13 @@ struct OnboardingStepView: View {
                 Text(step.title)
                     .font(dynamicTypeSize.isAccessibilitySize ? WakeveTheme.Typography.title : WakeveTheme.Typography.largeTitle)
                     .multilineTextAlignment(.center)
-                    .foregroundColor(.white)
+                    .foregroundColor(primaryTextColor)
                     .fixedSize(horizontal: false, vertical: true)
                 
                 Text(step.description)
                     .font(dynamicTypeSize.isAccessibilitySize ? WakeveTheme.Typography.callout : WakeveTheme.Typography.body)
                     .multilineTextAlignment(.center)
-                    .foregroundColor(Color.white.opacity(0.78))
+                    .foregroundColor(secondaryTextColor)
                     .padding(.horizontal, WakeveTheme.Spacing.sm)
                     .lineSpacing(3)
                     .fixedSize(horizontal: false, vertical: true)
@@ -73,7 +74,7 @@ struct OnboardingStepView: View {
                             
                             Text(feature)
                                 .font(WakeveTheme.Typography.metadata)
-                                .foregroundColor(Color.white.opacity(0.72))
+                                .foregroundColor(secondaryTextColor)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -85,9 +86,37 @@ struct OnboardingStepView: View {
             .frame(maxWidth: .infinity, minHeight: dynamicTypeSize.isAccessibilitySize ? nil : 520)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white.opacity(0.035))
+        .background(panelBackground)
+        .overlay(
+            RoundedRectangle(cornerRadius: WakeveTheme.Radius.panel, style: .continuous)
+                .stroke(borderColor, lineWidth: 1)
+        )
         .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.panel, style: .continuous))
         .padding(WakeveTheme.Spacing.page)
+    }
+
+    private var primaryTextColor: Color {
+        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+    }
+
+    private var secondaryTextColor: Color {
+        WakeveTheme.ColorToken.secondaryText(for: colorScheme)
+    }
+
+    private var panelBackground: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.035)
+            : SemanticColor.contentSurface(for: colorScheme).opacity(0.82)
+    }
+
+    private var iconBackground: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.08)
+            : WakeveTheme.ColorToken.permissionBlue.opacity(0.12)
+    }
+
+    private var borderColor: Color {
+        WakeveTheme.ColorToken.cardBorder(for: colorScheme)
     }
 }
 
@@ -95,6 +124,7 @@ private struct OnboardingProofCard: View {
     let title: String
     let detail: String
     let icon: String
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(alignment: .top, spacing: WakeveTheme.Spacing.sm) {
@@ -102,34 +132,59 @@ private struct OnboardingProofCard: View {
                 .font(.system(size: 16, weight: .semibold))
                 .foregroundColor(WakeveTheme.ColorToken.permissionBlue)
                 .frame(width: 32, height: 32)
-                .background(Color.white.opacity(0.08))
+                .background(iconBackground)
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(WakeveTheme.Typography.metadata.weight(.semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(primaryTextColor)
 
                 Text(detail)
                     .font(WakeveTheme.Typography.metadata)
-                    .foregroundColor(Color.white.opacity(0.74))
+                    .foregroundColor(secondaryTextColor)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(WakeveTheme.Spacing.md)
-        .background(Color.white.opacity(0.06))
+        .background(cardBackground)
         .overlay(
             RoundedRectangle(cornerRadius: WakeveTheme.Radius.lg, style: .continuous)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                .stroke(borderColor, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: WakeveTheme.Radius.lg, style: .continuous))
         .accessibilityIdentifier("onboardingProofCard")
+    }
+
+    private var primaryTextColor: Color {
+        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+    }
+
+    private var secondaryTextColor: Color {
+        WakeveTheme.ColorToken.secondaryText(for: colorScheme)
+    }
+
+    private var cardBackground: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.06)
+            : SemanticColor.contentSurface(for: colorScheme)
+    }
+
+    private var iconBackground: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.08)
+            : WakeveTheme.ColorToken.controlFill(for: colorScheme)
+    }
+
+    private var borderColor: Color {
+        WakeveTheme.ColorToken.cardBorder(for: colorScheme)
     }
 }
 
 struct OnboardingView: View {
     @State private var currentPage = 0
+    @Environment(\.colorScheme) private var colorScheme
     let onOnboardingComplete: () -> Void
     
     private let onboardingSteps = [
@@ -225,7 +280,10 @@ struct OnboardingView: View {
                 .padding(WakeveTheme.Spacing.page)
                 .background(
                     LinearGradient(
-                        colors: [Color.clear, WakeveTheme.ColorToken.appDark.opacity(0.98)],
+                        colors: [
+                            Color.clear,
+                            SemanticColor.appBackground(for: colorScheme).opacity(0.98)
+                        ],
                         startPoint: .top,
                         endPoint: .bottom
                     )
