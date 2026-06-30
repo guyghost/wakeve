@@ -98,6 +98,17 @@ Backend target:
 - For emulator-local backend development, add `server.url=http://10.0.2.2:8080` to `local.properties`.
 - For command-line overrides, pass `-Pwakeve.serverUrl=http://10.0.2.2:8080`.
 
+Release signing (do not commit keystore files or passwords):
+
+```properties
+RELEASE_STORE_FILE=path/to/upload-keystore.jks
+RELEASE_STORE_PASSWORD=your-store-password
+RELEASE_KEY_ALIAS=your-key-alias
+RELEASE_KEY_PASSWORD=your-key-password
+```
+
+Add these to `local.properties` for local release builds, or export the same names as environment variables in CI. Release builds are signed only when all four values are present.
+
 Build:
 
 ```bash

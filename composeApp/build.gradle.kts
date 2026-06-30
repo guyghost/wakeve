@@ -30,6 +30,26 @@ val serverUrl = (localProperties["server.url"] as? String)
     ?: "https://api.wakeve.app"
 val escapedServerUrl = serverUrl.replace("\\", "\\\\").replace("\"", "\\\"")
 
+// Release signing: set in local.properties (gitignored) or CI environment variables.
+// RELEASE_STORE_FILE=path/to/upload-keystore.jks
+// RELEASE_STORE_PASSWORD=...
+// RELEASE_KEY_ALIAS=...
+// RELEASE_KEY_PASSWORD=...
+fun readReleaseSigningProperty(name: String): String? =
+    (localProperties[name] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+        ?: System.getenv(name)?.trim()?.takeIf { it.isNotEmpty() }
+
+val releaseStoreFile = readReleaseSigningProperty("RELEASE_STORE_FILE")
+val releaseStorePassword = readReleaseSigningProperty("RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = readReleaseSigningProperty("RELEASE_KEY_ALIAS")
+val releaseKeyPassword = readReleaseSigningProperty("RELEASE_KEY_PASSWORD")
+val hasReleaseSigningConfig = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword
+).all { !it.isNullOrBlank() }
+
 kotlin {
     // Android target
     androidTarget {
@@ -202,9 +222,23 @@ android {
         }
     }
     
+    signingConfigs {
+        if (hasReleaseSigningConfig) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
     buildTypes {
         getByName("release") {
             isMinifyEnabled = false
+            if (hasReleaseSigningConfig) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
     
