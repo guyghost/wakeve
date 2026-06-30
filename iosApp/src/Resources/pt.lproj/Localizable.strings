@@ -555,6 +555,10 @@
 "profile.push_notifications" = "Notificações push";
 "profile.push_notifications_desc" = "Receber notificações no dispositivo";
 "profile.appearance" = "Aparência";
+"profile.appearance.system" = "Sistema";
+"profile.appearance.light" = "Claro";
+"profile.appearance.dark" = "Escuro";
+"profile.appearance.system_desc" = "Seguir o ajuste de aparência do iOS";
 "profile.dark_mode" = "Modo escuro";
 "profile.light_mode" = "Modo claro";
 "profile.dark_mode_desc" = "Usar o tema escuro";
