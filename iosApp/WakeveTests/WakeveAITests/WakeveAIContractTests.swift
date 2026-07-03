@@ -20,6 +20,20 @@ final class WakeveAIContractTests: XCTestCase {
         }
     }
 
+    func testWakeveAIMetadataModelsMirrorSharedContract() throws {
+        let source = try readProjectFile("iosApp/src/WakeveAI/WakeveAIModels.swift")
+
+        XCTAssertTrue(source.contains("enum WakeveAIUseCase"))
+        XCTAssertTrue(source.contains("struct WakeveAIInteractionMetadata"))
+        XCTAssertTrue(source.contains("struct WakeveAIValidationResult"))
+        XCTAssertTrue(source.contains("struct WakeveAICostEstimate"))
+        XCTAssertTrue(source.contains("enum WakeveAIInteractionMetadataPolicy"))
+        XCTAssertTrue(source.contains("sanitizedInputSummary"))
+        XCTAssertTrue(source.contains("sanitizedOutputSummary"))
+        XCTAssertTrue(source.contains("reasoningSummary"))
+        XCTAssertTrue(source.contains("latencyMilliseconds"))
+    }
+
     func testCreateEventSmartDraftUsesViewModelAndExplicitActions() throws {
         let source = try readProjectFile("iosApp/src/Views/Events/CreateEventSheet.swift")
 
@@ -40,6 +54,16 @@ final class WakeveAIContractTests: XCTestCase {
         XCTAssertTrue(source.contains("EventDraftGenerator"))
         XCTAssertTrue(source.contains("generateSmartEventDraft()"))
         XCTAssertTrue(source.contains("cancelSmartEventDraft()"))
+    }
+
+    func testCreateEventViewModelAttachesSmartDraftMetadata() throws {
+        let source = try readProjectFile("iosApp/src/ViewModels/CreateEventViewModel.swift")
+        let generation = slice(source, from: "func generateSmartEventDraft()", to: "func cancelSmartEventDraft()")
+
+        XCTAssertTrue(generation.contains("smartEventDraftState.metadata = nil"))
+        XCTAssertTrue(generation.contains("WakeveAIInteractionMetadata.fromMetrics"))
+        XCTAssertTrue(generation.contains("useCase: .eventPlanDraft"))
+        XCTAssertTrue(generation.contains("validation: .needsReview()"))
     }
 
     func testCreateEventViewModelHandlesSmartDraftFallbackTimeoutCancellationAndStreaming() throws {

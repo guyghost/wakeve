@@ -515,6 +515,63 @@ assert_wakeve_ai_device_profile_helper() {
     echo "PASS: WakeveAI device profile helper generates the required 6.6 evidence template"
 }
 
+assert_deterministic_ai_guardrails() {
+    local pattern
+    pattern='(^[[:space:]]*import[[:space:]]+FoundationModels\b|^[[:space:]]*import[[:space:]]+com\.google\.(mlkit|ai)|LanguageModelSession[[:space:]]*\(|SystemLanguageModel\.|FirebaseAiLogicCloudTextGenerationClient[[:space:]]*\(|MlKit(LocalTextGenerationClient|EventPlanningAiAssistant)[[:space:]]*\(|GoogleGenerativeAI|AICore)'
+
+    local deterministic_paths=(
+        "$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/auth/core"
+        "$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/budget"
+        "$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/meeting"
+        "$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/notification"
+        "$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/payment"
+        "$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/poll"
+        "$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/state"
+        "$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/presentation/statemachine"
+        "$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/suggestions"
+        "$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/sync"
+    )
+
+    if grep -RInE "$pattern" "${deterministic_paths[@]}"; then
+        echo "FAIL: AI provider SDK references must stay out of deterministic domain and state-machine code" >&2
+        exit 1
+    fi
+
+    local ui_file_list
+    mkdir -p "$PROJECT_DIR/build/tmp"
+    ui_file_list="$(mktemp "$PROJECT_DIR/build/tmp/deterministic-ai-ui-files.XXXXXX")"
+    find \
+        "$PROJECT_DIR/composeApp/src/commonMain/kotlin/com/guyghost/wakeve" \
+        "$PROJECT_DIR/composeApp/src/androidMain/kotlin/com/guyghost/wakeve" \
+        "$PROJECT_DIR/iosApp/src/Views" \
+        -type f \( \
+            -name '*Screen.kt' -o \
+            -name '*View.kt' -o \
+            -name '*Content.kt' -o \
+            -path '*/ui/*.kt' -o \
+            -name '*.swift' \
+        \) > "$ui_file_list"
+
+    if [ -s "$ui_file_list" ] && xargs grep -nE "$pattern" < "$ui_file_list"; then
+        rm -f "$ui_file_list"
+        echo "FAIL: UI views must dispatch through ViewModels or services instead of AI providers" >&2
+        exit 1
+    fi
+    rm -f "$ui_file_list"
+
+    if ! grep -Fq "data class AiInteractionMetadata" "$PROJECT_DIR/shared/src/commonMain/kotlin/com/guyghost/wakeve/ai/AiInteractionMetadata.kt"; then
+        echo "FAIL: Shared AI interaction metadata contract is missing" >&2
+        exit 1
+    fi
+
+    if ! grep -Fq "struct WakeveAIInteractionMetadata" "$PROJECT_DIR/iosApp/src/WakeveAI/WakeveAIModels.swift"; then
+        echo "FAIL: iOS WakeveAI metadata mirror is missing" >&2
+        exit 1
+    fi
+
+    echo "PASS: deterministic AI guardrails keep providers at edges and metadata contracts present"
+}
+
 assert_weatherkit_device_validation_helper() {
     local output_dir
     local report
@@ -814,6 +871,7 @@ assert_dsa_trader_status_evidence_helper
 assert_notification_review_contract
 assert_ios_profile_legal_notice_links
 assert_wakeve_ai_device_profile_helper
+assert_deterministic_ai_guardrails
 assert_weatherkit_device_validation_helper
 assert_ios_accessibility_source_audit
 assert_ios_release_screen_evidence_integrity
@@ -836,13 +894,16 @@ run ./gradlew :shared:jvmTest \
     --tests com.guyghost.wakeve.scenario.ScenarioMatrixGenerationServiceTest \
     --tests com.guyghost.wakeve.contacts.ContactParticipantSelectionPolicyTest \
     --tests com.guyghost.wakeve.presentation.statemachine.EventManagementStateMachinePollingConfirmationTest \
+    --tests com.guyghost.wakeve.ai.AiInteractionMetadataContractTest \
+    --tests com.guyghost.wakeve.ai.AiOutputMetadataContractTest \
+    --tests com.guyghost.wakeve.ai.DeterministicAiArchitectureGuardTest \
     --tests com.guyghost.wakeve.sync.conflict.ConflictResolutionIntegrationTest
 
 if [ "${RUN_IOS_CONTRACTS:-0}" = "1" ]; then
     run xcodebuild test \
         -project iosApp/iosApp.xcodeproj \
         -scheme WakeveApp \
-        -destination "platform=iOS Simulator,name=iPhone 17" \
+        -destination "${IOS_CONTRACTS_DESTINATION:-platform=iOS Simulator,name=iPhone 17}" \
         -only-testing:WakeveTests/FindingsRegressionTests \
         -only-testing:WakeveTests/WakeveAITests
 fi

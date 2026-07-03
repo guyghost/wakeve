@@ -13,7 +13,8 @@ data class EventPlanDraft(
     val eventType: EventType = EventType.OTHER,
     val constraints: List<String> = emptyList(),
     val missingInformation: List<EventPlanMissingInformation> = emptyList(),
-    val source: EventPlanDraftSource = EventPlanDraftSource.RULE_BASED
+    val source: EventPlanDraftSource = EventPlanDraftSource.RULE_BASED,
+    val metadata: AiInteractionMetadata = source.defaultMetadata()
 ) {
     val hasRequiredCreationFields: Boolean
         get() = destination != null &&
@@ -34,6 +35,32 @@ enum class EventPlanDraftSource {
     RULE_BASED,
     FAKE
 }
+
+internal fun EventPlanDraftSource.defaultMetadata(): AiInteractionMetadata =
+    when (this) {
+        EventPlanDraftSource.ML_KIT_GENAI -> AiRoutingMetadata(
+            route = AiInferenceRoute.ON_DEVICE,
+            providerName = "ML Kit GenAI",
+            modelName = "gemini-nano",
+            cloudUsed = false
+        )
+        EventPlanDraftSource.RULE_BASED -> AiRoutingMetadata(
+            route = AiInferenceRoute.LOCAL_FALLBACK,
+            providerName = "Wakeve rule-based event parser",
+            cloudUsed = false
+        )
+        EventPlanDraftSource.FAKE -> AiRoutingMetadata(
+            route = AiInferenceRoute.LOCAL_FALLBACK,
+            providerName = "Deterministic test event parser",
+            cloudUsed = false
+        )
+    }.defaultMetadata(
+        useCase = AiUseCase.EVENT_PLAN_DRAFT,
+        inputSummary = "Event planning prompt",
+        outputSummary = "Structured event draft",
+        reasoningSummary = "Parsed into typed draft fields for user review.",
+        validation = AiValidationResult.needsReview()
+    )
 
 @Serializable
 enum class EventPlanMissingInformation {

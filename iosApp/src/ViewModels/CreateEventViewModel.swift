@@ -123,6 +123,7 @@ class CreateEventViewModel: StateMachineViewModel<
         smartEventDraftState.streamedDateOptions = []
         smartEventDraftState.streamedChecklist = []
         smartEventDraftState.streamedPolls = []
+        smartEventDraftState.metadata = nil
 
         smartEventDraftTask = Task { [weak self] in
             guard let self else { return }
@@ -151,7 +152,18 @@ class CreateEventViewModel: StateMachineViewModel<
                             self.smartEventDraftState.streamedPolls = polls
                         case .completed(let draft):
                             self.smartEventDraftState.phase = .ready(draft)
-                            self.smartEventDraftState.metrics = WakeveAIMetricsRecorder.shared.snapshot().last
+                            let metrics = WakeveAIMetricsRecorder.shared.snapshot().last
+                            self.smartEventDraftState.metrics = metrics
+                            self.smartEventDraftState.metadata = WakeveAIInteractionMetadata.fromMetrics(
+                                useCase: .eventPlanDraft,
+                                promptId: metrics?.promptId ?? "event_draft_v1",
+                                availability: metrics?.availability ?? .available,
+                                sanitizedInputSummary: "Smart event draft phrase",
+                                sanitizedOutputSummary: "Structured event draft",
+                                reasoningSummary: "Generated typed event draft for explicit user review.",
+                                validation: .needsReview(),
+                                metrics: metrics
+                            )
                         case .failed(let message):
                             self.smartEventDraftState.phase = .failed(message)
                         }

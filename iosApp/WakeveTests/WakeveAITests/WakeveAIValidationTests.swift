@@ -2,6 +2,97 @@ import XCTest
 @testable import Wakeve
 
 final class WakeveAIValidationTests: XCTestCase {
+    func testInteractionMetadataValidationAndApplyPolicy() {
+        let metadata = WakeveAIInteractionMetadata(
+            useCase: .eventPlanDraft,
+            routing: WakeveAIRoutingMetadata(route: .onDevice, providerName: "Foundation Models", modelName: "system", cloudUsed: false),
+            sanitizedInputSummary: "Event draft phrase",
+            sanitizedOutputSummary: "Structured event draft",
+            confidence: 0.8,
+            reasoningSummary: "Generated typed draft for user review.",
+            latencyMilliseconds: 120,
+            validation: .needsReview(),
+            cost: .zeroOnDevice()
+        )
+
+        XCTAssertEqual(WakeveAIInteractionMetadataPolicy.validate(metadata).status, .needsReview)
+        XCTAssertTrue(WakeveAIInteractionMetadataPolicy.canExposeApplyAction(metadata))
+
+        let invalid = WakeveAIInteractionMetadata(
+            useCase: .eventPlanDraft,
+            routing: metadata.routing,
+            sanitizedInputSummary: "",
+            sanitizedOutputSummary: "",
+            confidence: 2,
+            reasoningSummary: "",
+            latencyMilliseconds: -1,
+            validation: .accepted(),
+            cost: WakeveAICostEstimate(
+                known: true,
+                amount: -0.01,
+                currencyCode: "USD",
+                inputUnits: -1,
+                outputUnits: -2
+            )
+        )
+
+        let invalidValidation = WakeveAIInteractionMetadataPolicy.validate(invalid)
+        XCTAssertEqual(invalidValidation.status, .rejected)
+        XCTAssertTrue(invalidValidation.issues.contains("invalid_confidence"))
+        XCTAssertTrue(invalidValidation.issues.contains("missing_input_summary"))
+        XCTAssertTrue(invalidValidation.issues.contains("missing_output_summary"))
+        XCTAssertTrue(invalidValidation.issues.contains("missing_reasoning_summary"))
+        XCTAssertTrue(invalidValidation.issues.contains("invalid_latency"))
+        XCTAssertTrue(invalidValidation.issues.contains("invalid_cost"))
+        XCTAssertTrue(invalidValidation.issues.contains("invalid_input_units"))
+        XCTAssertTrue(invalidValidation.issues.contains("invalid_output_units"))
+
+        let rejected = WakeveAIInteractionMetadata(
+            useCase: .eventPlanDraft,
+            routing: metadata.routing,
+            sanitizedInputSummary: "Event draft phrase",
+            sanitizedOutputSummary: "Invented participant",
+            confidence: 0.4,
+            reasoningSummary: "Validation rejected output.",
+            latencyMilliseconds: 10,
+            validation: .rejected("invented_participant"),
+            cost: .zeroOnDevice()
+        )
+
+        XCTAssertFalse(WakeveAIInteractionMetadataPolicy.canExposeApplyAction(rejected))
+    }
+
+    func testMetadataFromMetricsUsesSanitizedDisclosureAndLatency() {
+        let started = Date()
+        let completed = started.addingTimeInterval(0.25)
+        let metrics = WakeveAIMetrics(
+            promptId: "event_draft_v1",
+            availability: .available,
+            startedAt: started,
+            completedAt: completed,
+            timedOut: false,
+            cancelled: false,
+            validationIssues: []
+        )
+
+        let metadata = WakeveAIInteractionMetadata.fromMetrics(
+            useCase: .eventPlanDraft,
+            promptId: "event_draft_v1",
+            availability: .available,
+            sanitizedInputSummary: "Smart event draft phrase",
+            sanitizedOutputSummary: "Structured event draft",
+            reasoningSummary: "Generated typed event draft for explicit user review.",
+            validation: .needsReview(),
+            metrics: metrics
+        )
+
+        XCTAssertEqual(metadata.routing.route, .onDevice)
+        XCTAssertEqual(metadata.latencyMilliseconds, 250)
+        XCTAssertEqual(metadata.validation.status, .needsReview)
+        XCTAssertFalse(metadata.sanitizedInputSummary.contains("Alice"))
+        XCTAssertTrue(WakeveAIInteractionMetadataPolicy.canExposeApplyAction(metadata))
+    }
+
     func testValidationCoversInitialWakeveAIOutputTypes() {
         let draft = EventDraft(
             title: "Fête plage",
