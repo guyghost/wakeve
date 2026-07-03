@@ -209,6 +209,8 @@ struct AuthenticatedView: View {
     @State private var showEquipmentChecklist = false
     @State private var showActivityPlanning = false
     @State private var selectedMeetingId: String?
+    @State private var selectedScenarioId: String?
+    @State private var selectedCommentSection: CommentSectionType = .general
     @State private var selectedBudget: Budget_?
     @StateObject private var transportPlanningViewModel = TransportPlanningViewModel()
 
@@ -313,9 +315,14 @@ struct AuthenticatedView: View {
             )
             
         case .eventCreation:
-            Text(String(localized: "navigation.placeholder.event_creation"))
-                .font(.title2)
-                .foregroundColor(.secondary)
+            Color.clear
+                .onAppear {
+                    if !showEventCreationSheet {
+                        eventCreationScenario = nil
+                        showEventCreationSheet = true
+                    }
+                    currentView = .eventList
+                }
             
         case .eventDetail:
             if let event = selectedEvent {
@@ -350,6 +357,28 @@ struct AuthenticatedView: View {
                     },
                     onOpenTricount: {
                         currentView = .tricount
+                    },
+                    onOpenAccommodation: {
+                        currentView = .accommodation
+                    },
+                    onOpenMeals: {
+                        currentView = .mealPlanning
+                    },
+                    onOpenEquipment: {
+                        currentView = .equipmentChecklist
+                    },
+                    onOpenActivities: {
+                        currentView = .activityPlanning
+                    },
+                    onOpenComments: {
+                        selectedCommentSection = .general
+                        currentView = .comments
+                    },
+                    onOpenPhotos: {
+                        currentView = .eventPhotos
+                    },
+                    onOpenInvitationShare: {
+                        currentView = .invitationShare
                     },
                     isInvitationLanding: invitationLandingEventId == event.id,
                     onDismissInvitationLanding: {
@@ -478,10 +507,117 @@ struct AuthenticatedView: View {
             
         case .accommodation:
             if let event = selectedEvent {
-                ScenarioOrganizationView(
+                if canAccessDetailedPlanning(for: event) {
+                    AccommodationPlanningRouteView(
+                        event: event,
+                        isOrganizer: event.organizerId == userId,
+                        isReadOnly: isFinalizedOrganizationState(event),
+                        onBack: {
+                            currentView = .eventDetail
+                        },
+                        onOpenComments: {
+                            selectedCommentSection = .accommodation
+                            currentView = .comments
+                        }
+                    )
+                } else {
+                    AccessDenied(message: String(localized: "organization.access.confirm_before_accommodation")) {
+                        currentView = .eventDetail
+                    }
+                }
+            } else {
+                Text(String(localized: "navigation.placeholder.select_event_accommodation"))
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
+            
+        case .mealPlanning:
+            if let event = selectedEvent {
+                if canAccessDetailedPlanning(for: event) {
+                    MealPlanningRouteView(
+                        event: event,
+                        participants: participantModels(for: event),
+                        isOrganizer: event.organizerId == userId,
+                        isReadOnly: isFinalizedOrganizationState(event),
+                        onBack: {
+                            currentView = .eventDetail
+                        },
+                        onOpenComments: {
+                            selectedCommentSection = .meal
+                            currentView = .comments
+                        }
+                    )
+                } else {
+                    AccessDenied(message: String(localized: "organization.access.confirm_before_meals")) {
+                        currentView = .eventDetail
+                    }
+                }
+            } else {
+                Text(String(localized: "navigation.placeholder.select_event_meals"))
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
+            
+        case .equipmentChecklist:
+            if let event = selectedEvent {
+                if canAccessDetailedPlanning(for: event) {
+                    EquipmentChecklistRouteView(
+                        event: event,
+                        isOrganizer: event.organizerId == userId,
+                        isReadOnly: isFinalizedOrganizationState(event),
+                        onBack: {
+                            currentView = .eventDetail
+                        },
+                        onOpenComments: {
+                            selectedCommentSection = .equipment
+                            currentView = .comments
+                        }
+                    )
+                } else {
+                    AccessDenied(message: String(localized: "organization.access.confirm_before_equipment")) {
+                        currentView = .eventDetail
+                    }
+                }
+            } else {
+                Text(String(localized: "navigation.placeholder.select_event_equipment"))
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
+            
+        case .activityPlanning:
+            if let event = selectedEvent {
+                if canAccessDetailedPlanning(for: event) {
+                    ActivityPlanningRouteView(
+                        event: event,
+                        isOrganizer: event.organizerId == userId,
+                        isReadOnly: isFinalizedOrganizationState(event),
+                        onBack: {
+                            currentView = .eventDetail
+                        },
+                        onOpenComments: {
+                            selectedCommentSection = .activity
+                            currentView = .comments
+                        }
+                    )
+                } else {
+                    AccessDenied(message: String(localized: "organization.access.confirm_before_activities")) {
+                        currentView = .eventDetail
+                    }
+                }
+            } else {
+                Text(String(localized: "navigation.placeholder.select_event_activities"))
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
+            
+        case .scenarioDetail:
+            if let event = selectedEvent {
+                ScenarioDetailParityView(
                     event: event,
-                    participantId: userId,
+                    scenarioId: selectedScenarioId,
                     repository: repository,
+                    userId: userId,
+                    isReadOnly: isFinalizedOrganizationState(event),
                     onBack: {
                         currentView = .eventDetail
                     },
@@ -493,35 +629,38 @@ struct AuthenticatedView: View {
                     }
                 )
             } else {
-                Text(String(localized: "navigation.placeholder.select_event_accommodation"))
+                Text(String(localized: "navigation.placeholder.select_event_scenario"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
-            
-        case .mealPlanning:
-            if selectedEvent != nil {
-                // Meal planning stays behind a placeholder until shared types are integrated.
-                Text(String(localized: "events.meal_planning"))
+
+        case .scenarioManagement:
+            if let event = selectedEvent {
+                ScenarioOrganizationView(
+                    event: event,
+                    participantId: userId,
+                    repository: repository,
+                    onBack: {
+                        currentView = .eventDetail
+                    },
+                    onOpenMeetings: {
+                        if let updatedEvent = repository.getEvent(id: event.id) {
+                            selectedEvent = updatedEvent
+                        }
+                        currentView = .meetingList
+                    },
+                    onOpenTransport: {
+                        if let updatedEvent = repository.getEvent(id: event.id) {
+                            selectedEvent = updatedEvent
+                        }
+                        currentView = .transportPlanning
+                    }
+                )
+            } else {
+                Text(String(localized: "navigation.placeholder.select_event_options"))
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
-            
-        case .equipmentChecklist:
-            if selectedEvent != nil {
-                Text(String(localized: "events.equipment_checklist"))
-                    .font(.title2)
-                    .foregroundColor(.secondary)
-            }
-            
-        case .activityPlanning:
-            Text(String(localized: "events.activity_planning"))
-                .font(.title2)
-                .foregroundColor(.secondary)
-            
-        case .scenarioDetail:
-            Text(String(localized: "navigation.placeholder.scenario_detail"))
-                .font(.title2)
-                .foregroundColor(.secondary)
             
         case .budgetDetail:
             if let event = selectedEvent {
@@ -708,6 +847,103 @@ struct AuthenticatedView: View {
                     .font(.title2)
                     .foregroundColor(.secondary)
             }
+
+        case .comments:
+            if let event = selectedEvent {
+                if canAccessDetailedPlanning(for: event) {
+                    EventCommentsRouteView(
+                        event: event,
+                        section: selectedCommentSection,
+                        currentUserId: userId,
+                        isOrganizer: event.organizerId == userId,
+                        onBack: {
+                            currentView = .eventDetail
+                        }
+                    )
+                } else {
+                    AccessDenied(message: String(localized: "organization.access.confirm_before_comments")) {
+                        currentView = .eventDetail
+                    }
+                }
+            } else {
+                Text(String(localized: "navigation.placeholder.select_event_comments"))
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
+
+        case .eventPhotos:
+            if let event = selectedEvent {
+                if canAccessDetailedPlanning(for: event) {
+                    EventPhotosFollowUpRouteView(
+                        event: event,
+                        isReadOnly: isFinalizedOrganizationState(event),
+                        onBack: {
+                            currentView = .eventDetail
+                        }
+                    )
+                } else {
+                    AccessDenied(message: String(localized: "organization.access.confirm_before_photos")) {
+                        currentView = .eventDetail
+                    }
+                }
+            } else {
+                Text(String(localized: "navigation.placeholder.select_event_photos"))
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
+
+        case .invitationShare:
+            if let event = selectedEvent {
+                InvitationShareSheet(
+                    eventId: event.id,
+                    eventTitle: event.title,
+                    invitationCode: InvitationTokenCodec.invitationCode(forEventId: event.id),
+                    onDismiss: {
+                        currentView = .eventDetail
+                    }
+                )
+            } else {
+                Text(String(localized: "navigation.placeholder.select_event_invitation"))
+                    .font(.title2)
+                    .foregroundColor(.secondary)
+            }
+
+        case .notifications:
+            InboxView(
+                userId: userId,
+                onBack: {
+                    currentView = .eventList
+                },
+                unreadCount: $unreadInboxCount
+            )
+
+        case .notificationPreferences:
+            NavigationStack {
+                NotificationPreferencesView(userId: userId)
+            }
+
+        case .settings:
+            ProfileTabView(
+                userId: userId,
+                userName: authStateManager.currentUser?.name,
+                userEmail: authStateManager.currentUser?.email,
+                onDismiss: nil,
+                onSignOut: {
+                    authStateManager.signOut()
+                }
+            )
+
+        case .leaderboard:
+            LeaderboardView()
+
+        case .organizerDashboard:
+            OrganizerDashboardRouteView(
+                events: repository.getAllEvents(),
+                currentUserId: userId,
+                onBack: {
+                    currentView = .eventList
+                }
+            )
             
         case .inbox:
             InboxView(
@@ -782,14 +1018,105 @@ struct AuthenticatedView: View {
         let route = path[0]
         let identifier = path.count > 1 ? path[1] : nil
         let subroute = path.count > 2 ? path[2] : nil
+        let detailId = path.count > 3 ? path[3] : nil
 
         switch (route, identifier, subroute) {
+        case ("home", nil, nil):
+            invitationLandingEventId = nil
+            selectedTab = .home
+            currentView = .eventList
+        case ("profile", nil, nil):
+            invitationLandingEventId = nil
+            selectedTab = .profile
+        case ("settings", _, _):
+            invitationLandingEventId = nil
+            selectedTab = .home
+            currentView = .settings
+        case ("notification_preferences", _, _):
+            invitationLandingEventId = nil
+            selectedTab = .home
+            currentView = .notificationPreferences
+        case ("notifications", _, _):
+            invitationLandingEventId = nil
+            selectedTab = .home
+            currentView = .notifications
+        case ("leaderboard", _, _):
+            invitationLandingEventId = nil
+            selectedTab = .home
+            currentView = .leaderboard
+        case ("organizer_dashboard", _, _):
+            invitationLandingEventId = nil
+            selectedTab = .home
+            currentView = .organizerDashboard
+        case ("event", "create", _):
+            invitationLandingEventId = nil
+            selectedTab = .home
+            eventCreationScenario = nil
+            currentView = .eventCreation
+            showEventCreationSheet = true
         case ("event", let eventId?, nil):
             invitationLandingEventId = nil
             navigateToEvent(eventId: eventId, destination: .eventDetail)
         case ("event", let eventId?, "poll"):
             invitationLandingEventId = nil
             navigateToEvent(eventId: eventId, destination: .pollVoting)
+        case ("event", let eventId?, "poll_results"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .pollResults)
+        case ("event", let eventId?, "participants"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .participantManagement)
+        case ("event", let eventId?, "scenarios"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .scenarioList)
+        case ("event", let eventId?, "scenarios_compare"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .scenarioComparison)
+        case ("event", let eventId?, "scenarios_manage"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .scenarioManagement)
+        case ("event", let eventId?, "scenario"):
+            invitationLandingEventId = nil
+            selectedScenarioId = detailId
+            navigateToEvent(eventId: eventId, destination: .scenarioDetail)
+        case ("event", let eventId?, "budget"):
+            invitationLandingEventId = nil
+            selectedBudget = nil
+            navigateToEvent(eventId: eventId, destination: detailId == nil ? .budgetOverview : .budgetDetail)
+        case ("event", let eventId?, "meetings"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .meetingList)
+        case ("event", let eventId?, "comments"):
+            invitationLandingEventId = nil
+            selectedCommentSection = .general
+            navigateToEvent(eventId: eventId, destination: .comments)
+        case ("event", let eventId?, "invite"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .invitationShare)
+        case ("event", let eventId?, "transport"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .transportPlanning)
+        case ("event", let eventId?, "accommodation"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .accommodation)
+        case ("event", let eventId?, "meals"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .mealPlanning)
+        case ("event", let eventId?, "equipment"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .equipmentChecklist)
+        case ("event", let eventId?, "activities"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .activityPlanning)
+        case ("event", let eventId?, "payment"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .paymentPot)
+        case ("event", let eventId?, "tricount"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .tricount)
+        case ("event", let eventId?, "photos"):
+            invitationLandingEventId = nil
+            navigateToEvent(eventId: eventId, destination: .eventPhotos)
         case ("meeting", let meetingId?, _):
             invitationLandingEventId = nil
             navigateToMeeting(meetingId: meetingId)
@@ -875,12 +1202,50 @@ struct AuthenticatedView: View {
         }
     }
 
+    private func canAccessDetailedPlanning(for event: Event) -> Bool {
+        switch event.status {
+        case .confirmed, .comparing, .organizing, .finalized:
+            return canAccessOrganizationDetails(for: event)
+        default:
+            return false
+        }
+    }
+
     private func canAccessTransportPlanning(for event: Event) -> Bool {
         switch event.status {
         case .confirmed, .organizing, .finalized:
             return canAccessOrganizationDetails(for: event)
         default:
             return false
+        }
+    }
+
+    private func participantModels(for event: Event) -> [ParticipantModel] {
+        if let participantRecords = repository.getParticipantRecords(eventId: event.id), !participantRecords.isEmpty {
+            let participantAccessStates = participantRecords.map { record in
+                ParticipantAccessMapper.shared.fromRepositoryRecord(record: record)
+            }
+            return ParticipantManagementPresentationMapper.shared
+                .map(participants: participantAccessStates)
+                .map { row in
+                    ParticipantModel(
+                        id: row.userIdOrEmail,
+                        name: row.userIdOrEmail,
+                        email: row.userIdOrEmail,
+                        dietaryRestrictions: []
+                    )
+                }
+        }
+
+        let participantIds = repository.getParticipants(eventId: event.id) ?? []
+        let fallbackParticipants = participantIds.isEmpty ? event.participants : participantIds
+        return fallbackParticipants.map { participant in
+            ParticipantModel(
+                id: participant,
+                name: participant,
+                email: participant,
+                dietaryRestrictions: []
+            )
         }
     }
 
@@ -991,12 +1356,16 @@ enum AppView {
     case scenarioList
     case scenarioDetail
     case scenarioComparison
+    case scenarioManagement
     case budgetOverview
     case budgetDetail
     case accommodation
     case mealPlanning
     case equipmentChecklist
     case activityPlanning
+    case comments
+    case eventPhotos
+    case invitationShare
     // Phase 4 - Meetings & Communication
     case inbox
     case meetingList
@@ -1004,6 +1373,11 @@ enum AppView {
     case transportPlanning
     case paymentPot
     case tricount
+    case notifications
+    case notificationPreferences
+    case settings
+    case leaderboard
+    case organizerDashboard
 }
 
 private struct AccessDenied: View {
@@ -1865,6 +2239,13 @@ struct EventDetailView: View {
     let onOpenBudget: () -> Void
     let onOpenPayment: () -> Void
     let onOpenTricount: () -> Void
+    let onOpenAccommodation: () -> Void
+    let onOpenMeals: () -> Void
+    let onOpenEquipment: () -> Void
+    let onOpenActivities: () -> Void
+    let onOpenComments: () -> Void
+    let onOpenPhotos: () -> Void
+    let onOpenInvitationShare: () -> Void
     let isInvitationLanding: Bool
     let onDismissInvitationLanding: () -> Void
     let onBack: () -> Void
@@ -2152,6 +2533,57 @@ struct EventDetailView: View {
                     label: String(localized: "event.detail.organization.transport_label"),
                     value: String(localized: "event.detail.organization.transport_value"),
                     action: onOpenTransport
+                )
+            }
+
+            if canAccessDetailedPlanning {
+                EventDetailActionRow(
+                    icon: "bed.double.fill",
+                    label: String(localized: "event.detail.organization.accommodation_label"),
+                    value: String(localized: "event.detail.organization.accommodation_value"),
+                    action: onOpenAccommodation
+                )
+
+                EventDetailActionRow(
+                    icon: "fork.knife",
+                    label: String(localized: "event.detail.organization.meals_label"),
+                    value: String(localized: "event.detail.organization.meals_value"),
+                    action: onOpenMeals
+                )
+
+                EventDetailActionRow(
+                    icon: "checklist",
+                    label: String(localized: "event.detail.organization.equipment_label"),
+                    value: String(localized: "event.detail.organization.equipment_value"),
+                    action: onOpenEquipment
+                )
+
+                EventDetailActionRow(
+                    icon: "figure.socialdance",
+                    label: String(localized: "event.detail.organization.activities_label"),
+                    value: String(localized: "event.detail.organization.activities_value"),
+                    action: onOpenActivities
+                )
+
+                EventDetailActionRow(
+                    icon: "bubble.left.and.bubble.right.fill",
+                    label: String(localized: "event.detail.organization.comments_label"),
+                    value: String(localized: "event.detail.organization.comments_value"),
+                    action: onOpenComments
+                )
+
+                EventDetailActionRow(
+                    icon: "photo.on.rectangle.angled",
+                    label: String(localized: "event.detail.organization.photos_label"),
+                    value: String(localized: "event.detail.organization.photos_value"),
+                    action: onOpenPhotos
+                )
+
+                EventDetailActionRow(
+                    icon: "square.and.arrow.up",
+                    label: String(localized: "event.detail.organization.invitation_label"),
+                    value: String(localized: "event.detail.organization.invitation_value"),
+                    action: onOpenInvitationShare
                 )
             }
 
@@ -2941,6 +3373,15 @@ struct EventDetailView: View {
             return true
         case .finalized:
             return true
+        default:
+            return false
+        }
+    }
+
+    private var canAccessDetailedPlanning: Bool {
+        switch event.status {
+        case .confirmed, .comparing, .organizing, .finalized:
+            return canAccessOrganizationDetails
         default:
             return false
         }

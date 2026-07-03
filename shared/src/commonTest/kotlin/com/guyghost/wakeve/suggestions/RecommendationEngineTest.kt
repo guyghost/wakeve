@@ -1,5 +1,11 @@
 package com.guyghost.wakeve.suggestions
 
+import com.guyghost.wakeve.ai.AiCostEstimate
+import com.guyghost.wakeve.ai.AiInferenceRoute
+import com.guyghost.wakeve.ai.AiInteractionMetadata
+import com.guyghost.wakeve.ai.AiRoutingMetadata
+import com.guyghost.wakeve.ai.AiUseCase
+import com.guyghost.wakeve.ai.AiValidationResult
 import com.guyghost.wakeve.models.LocationPreferences
 import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioStatus
@@ -267,6 +273,41 @@ class RecommendationEngineTest {
         assertTrue(scoreCostHeavy.overallScore < scoreCostLight.overallScore,
             "Cost-heavy weight should score lower for over-budget scenario")
     }
+
+    @Test
+    fun `AI rationale wording does not affect deterministic scenario score`() {
+        val prefs = defaultPreferences()
+        val scenario = testScenario()
+        val scoreBeforeRationale = RecommendationEngine.calculateScenarioScore(scenario, prefs)
+
+        val optimisticRationale = aiRationaleMetadata("Great fit for the group.")
+        val cautiousRationale = aiRationaleMetadata("Useful option, but review logistics.")
+
+        val scoreAfterOptimisticRationale = RecommendationEngine.calculateScenarioScore(scenario, prefs)
+        val scoreAfterCautiousRationale = RecommendationEngine.calculateScenarioScore(scenario, prefs)
+
+        assertEquals(scoreBeforeRationale, scoreAfterOptimisticRationale)
+        assertEquals(scoreBeforeRationale, scoreAfterCautiousRationale)
+        assertEquals(AiUseCase.SUGGESTION_RATIONALE, optimisticRationale.useCase)
+        assertEquals(AiUseCase.SUGGESTION_RATIONALE, cautiousRationale.useCase)
+    }
+
+    private fun aiRationaleMetadata(outputSummary: String): AiInteractionMetadata =
+        AiInteractionMetadata(
+            useCase = AiUseCase.SUGGESTION_RATIONALE,
+            routing = AiRoutingMetadata(
+                route = AiInferenceRoute.ON_DEVICE,
+                providerName = "Deterministic rationale test",
+                cloudUsed = false
+            ),
+            sanitizedInputSummary = "Scored scenario facts",
+            sanitizedOutputSummary = outputSummary,
+            confidence = 0.7,
+            reasoningSummary = "Generated wording from deterministic score factors.",
+            latencyMillis = 1,
+            validation = AiValidationResult.needsReview(),
+            cost = AiCostEstimate.zeroOnDevice()
+        )
 
     // ========================================================================
     // User Similarity Tests

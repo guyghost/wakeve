@@ -39,6 +39,175 @@ enum WakeveAIError: Error, Equatable {
     case generationFailed(String)
 }
 
+enum WakeveAIUseCase: String, Codable, Equatable, Sendable {
+    case eventPlanDraft
+    case eventSummary
+    case organizerMessage
+    case planningAgent
+    case pollSuggestion
+    case checklist
+    case invitationMessage
+    case transportSuggestion
+    case suggestionRationale
+}
+
+enum WakeveAIInferenceRoute: String, Codable, Equatable, Sendable {
+    case onDevice
+    case cloud
+    case localFallback
+}
+
+struct WakeveAIRoutingMetadata: Codable, Equatable, Sendable {
+    var route: WakeveAIInferenceRoute
+    var providerName: String
+    var modelName: String?
+    var cloudUsed: Bool
+    var reason: String?
+
+    init(
+        route: WakeveAIInferenceRoute,
+        providerName: String,
+        modelName: String? = nil,
+        cloudUsed: Bool = false,
+        reason: String? = nil
+    ) {
+        self.route = route
+        self.providerName = providerName
+        self.modelName = modelName
+        self.cloudUsed = cloudUsed
+        self.reason = reason
+    }
+}
+
+enum WakeveAIValidationStatus: String, Codable, Equatable, Sendable {
+    case accepted
+    case needsReview
+    case rejected
+}
+
+struct WakeveAIValidationResult: Codable, Equatable, Sendable {
+    var status: WakeveAIValidationStatus
+    var issues: [String]
+
+    static func accepted() -> WakeveAIValidationResult {
+        WakeveAIValidationResult(status: .accepted, issues: [])
+    }
+
+    static func needsReview(_ issues: [String] = []) -> WakeveAIValidationResult {
+        WakeveAIValidationResult(status: .needsReview, issues: issues)
+    }
+
+    static func rejected(_ issues: String...) -> WakeveAIValidationResult {
+        WakeveAIValidationResult(status: .rejected, issues: issues)
+    }
+}
+
+struct WakeveAICostEstimate: Codable, Equatable, Sendable {
+    var known: Bool
+    var amount: Double?
+    var currencyCode: String?
+    var inputUnits: Int?
+    var outputUnits: Int?
+
+    static func unknown() -> WakeveAICostEstimate {
+        WakeveAICostEstimate(known: false, amount: nil, currencyCode: nil, inputUnits: nil, outputUnits: nil)
+    }
+
+    static func zeroOnDevice() -> WakeveAICostEstimate {
+        WakeveAICostEstimate(known: true, amount: 0, currencyCode: "USD", inputUnits: nil, outputUnits: nil)
+    }
+}
+
+struct WakeveAIInteractionMetadata: Codable, Equatable, Sendable {
+    var useCase: WakeveAIUseCase
+    var routing: WakeveAIRoutingMetadata
+    var sanitizedInputSummary: String
+    var sanitizedOutputSummary: String
+    var confidence: Double
+    var reasoningSummary: String
+    var latencyMilliseconds: Int?
+    var validation: WakeveAIValidationResult
+    var cost: WakeveAICostEstimate
+
+    static func fromMetrics(
+        useCase: WakeveAIUseCase,
+        promptId: String,
+        availability: WakeveAIAvailability,
+        sanitizedInputSummary: String,
+        sanitizedOutputSummary: String,
+        reasoningSummary: String,
+        validation: WakeveAIValidationResult,
+        metrics: WakeveAIMetrics?
+    ) -> WakeveAIInteractionMetadata {
+        let route: WakeveAIInferenceRoute = availability == .available ? .onDevice : .localFallback
+        let routing = WakeveAIRoutingMetadata(
+            route: route,
+            providerName: route == .onDevice ? "Apple Foundation Models" : "Wakeve local fallback",
+            modelName: route == .onDevice ? "SystemLanguageModel.default" : nil,
+            cloudUsed: false,
+            reason: availability.isAvailable ? nil : availability.discreetMessage
+        )
+
+        return WakeveAIInteractionMetadata(
+            useCase: useCase,
+            routing: routing,
+            sanitizedInputSummary: sanitizedInputSummary.sanitizedMetadataText(fallback: "Input summary unavailable"),
+            sanitizedOutputSummary: sanitizedOutputSummary.sanitizedMetadataText(fallback: "Output summary unavailable"),
+            confidence: route == .onDevice ? 0.8 : 1.0,
+            reasoningSummary: reasoningSummary.sanitizedMetadataText(fallback: "Reasoning summary unavailable"),
+            latencyMilliseconds: metrics?.durationMilliseconds,
+            validation: validation,
+            cost: route == .onDevice ? .zeroOnDevice() : .zeroOnDevice()
+        )
+    }
+}
+
+enum WakeveAIInteractionMetadataPolicy {
+    static func validate(_ metadata: WakeveAIInteractionMetadata?) -> WakeveAIValidationResult {
+        guard let metadata else {
+            return .rejected("missing_metadata")
+        }
+
+        var issues: [String] = []
+        if !(0...1).contains(metadata.confidence) { issues.append("invalid_confidence") }
+        if metadata.sanitizedInputSummary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            issues.append("missing_input_summary")
+        }
+        if metadata.sanitizedOutputSummary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            issues.append("missing_output_summary")
+        }
+        if metadata.reasoningSummary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            issues.append("missing_reasoning_summary")
+        }
+        if let latency = metadata.latencyMilliseconds, latency < 0 {
+            issues.append("invalid_latency")
+        }
+        if let amount = metadata.cost.amount, amount < 0 {
+            issues.append("invalid_cost")
+        }
+        if let inputUnits = metadata.cost.inputUnits, inputUnits < 0 {
+            issues.append("invalid_input_units")
+        }
+        if let outputUnits = metadata.cost.outputUnits, outputUnits < 0 {
+            issues.append("invalid_output_units")
+        }
+        if metadata.validation.status == .rejected {
+            issues.append("output_rejected")
+        }
+        issues.append(contentsOf: metadata.validation.issues)
+
+        let uniqueIssues = Array(Set(issues)).sorted()
+        if !uniqueIssues.isEmpty {
+            return WakeveAIValidationResult(status: .rejected, issues: uniqueIssues)
+        }
+        return metadata.validation.status == .accepted ? .accepted() : .needsReview()
+    }
+
+    static func canExposeApplyAction(_ metadata: WakeveAIInteractionMetadata?) -> Bool {
+        validate(metadata).status != .rejected
+    }
+}
+
 enum WakeveAIValidationIssue: String, Equatable, Hashable, Sendable {
     case emptyRequiredText
     case tooManyItems
@@ -201,6 +370,7 @@ struct SmartEventDraftState: Equatable {
     var streamedChecklist: [ChecklistItem] = []
     var streamedPolls: [PollSuggestion] = []
     var metrics: WakeveAIMetrics?
+    var metadata: WakeveAIInteractionMetadata?
 
     var canGenerate: Bool {
         phrase.trimmingCharacters(in: .whitespacesAndNewlines).count >= 6
@@ -221,4 +391,12 @@ extension EventDraft {
         transportHints: [],
         rationale: ""
     )
+}
+
+private extension String {
+    func sanitizedMetadataText(fallback: String) -> String {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return fallback }
+        return String(trimmed.prefix(240))
+    }
 }

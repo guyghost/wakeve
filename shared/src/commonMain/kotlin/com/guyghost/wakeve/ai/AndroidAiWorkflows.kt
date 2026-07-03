@@ -46,14 +46,28 @@ data class EventAiSummary(
     val preparationAdvice: List<String>,
     val packingChecklist: List<String>,
     val missingInformation: List<String>,
-    val routing: AiRoutingMetadata
+    val routing: AiRoutingMetadata,
+    val metadata: AiInteractionMetadata = routing.defaultMetadata(
+        useCase = AiUseCase.EVENT_SUMMARY,
+        inputSummary = "Event summary context",
+        outputSummary = "Event summary draft",
+        reasoningSummary = "Generated or assembled an event summary for user review.",
+        validation = AiValidationResult.needsReview()
+    )
 )
 
 @Serializable
 data class GeneratedOrganizerMessage(
     val messageType: OrganizerMessageType,
     val body: String,
-    val routing: AiRoutingMetadata
+    val routing: AiRoutingMetadata,
+    val metadata: AiInteractionMetadata = routing.defaultMetadata(
+        useCase = AiUseCase.ORGANIZER_MESSAGE,
+        inputSummary = "Organizer message request",
+        outputSummary = "Organizer message draft",
+        reasoningSummary = "Generated organizer copy from supplied event context.",
+        validation = AiValidationResult.needsReview()
+    )
 )
 
 @Serializable
@@ -88,7 +102,15 @@ data class PlanningAgentSession(
     val title: String,
     val status: PlanningAgentSessionStatus,
     val progressPercent: Int = 0,
-    val pendingConfirmation: PlanningAgentConfirmationRequest? = null
+    val pendingConfirmation: PlanningAgentConfirmationRequest? = null,
+    val metadata: AiInteractionMetadata = AiInteractionMetadata.localFallback(
+        useCase = AiUseCase.PLANNING_AGENT,
+        providerName = "Wakeve planning agent client",
+        sanitizedInputSummary = "Planning agent session context",
+        sanitizedOutputSummary = status.name,
+        reasoningSummary = "Planning-agent events are review-only until user confirmation.",
+        validation = AiValidationResult.needsReview()
+    )
 )
 
 @Serializable

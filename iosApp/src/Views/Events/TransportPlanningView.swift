@@ -1001,6 +1001,8 @@ private enum TransportPlanningPreviewData {
         totalCost: 420,
         currency: "EUR"
     )
+
+    static let previewPendingSync = false
 }
 
 #Preview("Transport Planning - Light") {
@@ -1016,7 +1018,7 @@ private enum TransportPlanningPreviewData {
         missingDeparture: [],
         plans: [TransportPlanningPreviewData.plan],
         selectedPlanId: nil,
-        pendingSync: false,
+        pendingSync: TransportPlanningPreviewData.previewPendingSync,
         onGenerate: { _ in },
         onSelectFinalPlan: { _ in },
         onMarkTransportNotNeeded: {},
@@ -1040,7 +1042,7 @@ private enum TransportPlanningPreviewData {
         missingDeparture: [],
         plans: [TransportPlanningPreviewData.plan],
         selectedPlanId: nil,
-        pendingSync: false,
+        pendingSync: TransportPlanningPreviewData.previewPendingSync,
         onGenerate: { _ in },
         onSelectFinalPlan: { _ in },
         onMarkTransportNotNeeded: {},
