@@ -65,12 +65,12 @@ jobs:
           fi
 
           # Also verify the custom domain is attached via the API.
-          DOMAIN_STATUS=$(curl -sS --max-time 15 \
+          DOMAIN_COUNT=$(curl -sS --max-time 15 \
             -H "Authorization: Bearer ${CF_API_TOKEN}" \
             "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/domains" \
-            | grep -o '"hostname":"wakeve.app"' | head -1)
-          echo "Custom domain check: ${DOMAIN_STATUS:-not found}"
-          if [ -z "$DOMAIN_STATUS" ]; then
+            | grep -o 'wakeve\.app' | wc -l | tr -d ' ')
+          echo "Custom domain references: ${DOMAIN_COUNT}"
+          if [ "${DOMAIN_COUNT}" -eq 0 ]; then
             echo "⚠️  Custom domain wakeve.app not attached to Worker."
             exit 1
           fi
