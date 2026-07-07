@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -17,12 +18,17 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.EventAvailable
+import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.Route
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
@@ -32,8 +38,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.ui.designsystem.WakeveSize
+import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,14 +55,20 @@ fun OnboardingScreen(
     onOnboardingComplete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val pagerState = rememberPagerState { OnboardingStep.entries.size }
+    val steps = onboardingSteps()
+    val pagerState = rememberPagerState { steps.size }
     val scope = rememberCoroutineScope()
     val currentPage by remember { derivedStateOf { pagerState.currentPage } }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Découverte") }
+                title = { Text(stringResource(R.string.onboarding_title)) },
+                actions = {
+                    TextButton(onClick = onOnboardingComplete) {
+                        Text(stringResource(R.string.skip))
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -63,51 +82,21 @@ fun OnboardingScreen(
                 modifier = Modifier.weight(1f),
                 verticalAlignment = Alignment.CenterVertically
             ) { page ->
-                OnboardingStepContent(
-                    step = OnboardingStep.entries[page],
-                    onNext = {
-                        scope.launch {
-                            if (page < OnboardingStep.entries.size - 1) {
-                                pagerState.animateScrollToPage(page + 1)
-                            } else {
-                                onOnboardingComplete()
-                            }
-                        }
-                    },
-                    onSkip = onOnboardingComplete
-                )
+                OnboardingStepContent(step = steps[page])
             }
 
-            // Page indicators
-            Row(
+            PageIndicators(
+                pageCount = steps.size,
+                currentPage = currentPage,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                repeat(OnboardingStep.entries.size) { index ->
-                    val (width, color) = if (index == currentPage) {
-                        32.dp to MaterialTheme.colorScheme.primary
-                    } else {
-                        8.dp to MaterialTheme.colorScheme.secondary
-                    }
+                    .padding(horizontal = WakeveSpacing.lg, vertical = WakeveSpacing.md)
+            )
 
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 4.dp)
-                            .clip(CircleShape)
-                            .background(color)
-                            .height(8.dp)
-                            .width(width)
-                    )
-                }
-            }
-
-            // Bottom button
             Button(
                 onClick = {
                     scope.launch {
-                        if (currentPage < OnboardingStep.entries.size - 1) {
+                        if (currentPage < steps.lastIndex) {
                             pagerState.animateScrollToPage(currentPage + 1)
                         } else {
                             onOnboardingComplete()
@@ -116,29 +105,36 @@ fun OnboardingScreen(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
-                enabled = true
+                    .padding(horizontal = WakeveSpacing.lg, vertical = WakeveSpacing.lg)
+                    .heightIn(min = WakeveSize.minTouchTarget),
+                shape = MaterialTheme.shapes.large
             ) {
-                Text(if (currentPage < OnboardingStep.entries.size - 1) "Suivant" else "Commencer")
+                Text(
+                    text = if (currentPage < steps.lastIndex) {
+                        stringResource(R.string.next)
+                    } else {
+                        stringResource(R.string.get_started_cta)
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     }
 }
 
 @Composable
-fun OnboardingStepContent(
+private fun OnboardingStepContent(
     step: OnboardingStep,
-    onNext: () -> Unit,
-    onSkip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(32.dp),
+            .padding(WakeveSpacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(WakeveSpacing.xxl))
 
         Box(
             modifier = Modifier
@@ -147,23 +143,26 @@ fun OnboardingStepContent(
                 .background(MaterialTheme.colorScheme.primaryContainer),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = step.icon,
-                style = MaterialTheme.typography.displayLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+            Icon(
+                imageVector = step.icon,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(52.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(WakeveSpacing.xl))
 
         Text(
             text = step.title,
             style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading() }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(WakeveSpacing.md))
 
         Text(
             text = step.description,
@@ -174,15 +173,44 @@ fun OnboardingStepContent(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        step.features?.let { features ->
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                features.forEach { feature ->
-                    FeatureRow(feature = feature)
-                }
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(WakeveSpacing.md)
+        ) {
+            step.features.forEach { feature ->
+                FeatureRow(feature = feature)
             }
+        }
+    }
+}
+
+@Composable
+private fun PageIndicators(
+    pageCount: Int,
+    currentPage: Int,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        repeat(pageCount) { index ->
+            val isSelected = index == currentPage
+            Box(
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isSelected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.outlineVariant
+                        }
+                    )
+                    .height(8.dp)
+                    .width(if (isSelected) 32.dp else 8.dp)
+            )
         }
     }
 }
@@ -202,7 +230,7 @@ fun FeatureRow(
             tint = MaterialTheme.colorScheme.primary,
             modifier = Modifier.size(20.dp)
         )
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(WakeveSpacing.md))
         Text(
             text = feature,
             style = MaterialTheme.typography.bodyMedium,
@@ -211,50 +239,55 @@ fun FeatureRow(
     }
 }
 
-enum class OnboardingStep(
+private data class OnboardingStep(
     val title: String,
     val description: String,
-    val icon: String,
-    val features: List<String>?
-) {
-    CREATE_EVENT(
-        title = "Créez vos événements",
-        description = "Organisez facilement des événements entre amis et collègues. Définissez des dates, proposez des créneaux horaires et laissez les participants voter.",
-        icon = "📅",
-        features = listOf(
-            "Création rapide d'événements",
-            "Sondage de disponibilité",
-            "Calcul automatique du meilleur créneau"
-        )
-    ),
-    COLLABORATE(
-        title = "Collaborez en équipe",
-        description = "Travaillez ensemble sur l'organisation de l'événement. Partagez les responsabilités et suivez la progression en temps réel.",
-        icon = "👥",
-        features = listOf(
-            "Gestion des participants",
-            "Attribution des tâches",
-            "Suivi en temps réel"
-        )
-    ),
-    ORGANIZE(
-        title = "Organisez tout en un",
-        description = "Gérez l'hébergement, les repas, les activités et le budget. Tout au même endroit pour une organisation sans faille.",
-        icon = "🎯",
-        features = listOf(
-            "Planification d'hébergement",
-            "Organisation des repas",
-            "Suivi du budget"
-        )
-    ),
-    ENJOY(
-        title = "Profitez de vos événements",
-        description = "Une fois l'organisation terminée, profitez de l'événement avec vos proches sans stress.",
-        icon = "🎉",
-        features = listOf(
-            "Vue d'ensemble",
-            "Rappels intégrés",
-            "Calendrier natif"
+    val icon: ImageVector,
+    val features: List<String>
+)
+
+@Composable
+private fun onboardingSteps(): List<OnboardingStep> {
+    return listOf(
+        OnboardingStep(
+            title = stringResource(R.string.onboarding_create_event_title),
+            description = stringResource(R.string.onboarding_create_event_description),
+            icon = Icons.Default.EventAvailable,
+            features = listOf(
+                stringResource(R.string.onboarding_create_event_feature_fast),
+                stringResource(R.string.onboarding_create_event_feature_poll),
+                stringResource(R.string.onboarding_create_event_feature_best_slot)
+            )
+        ),
+        OnboardingStep(
+            title = stringResource(R.string.onboarding_collaborate_title),
+            description = stringResource(R.string.onboarding_collaborate_description),
+            icon = Icons.Default.Groups,
+            features = listOf(
+                stringResource(R.string.onboarding_collaborate_feature_participants),
+                stringResource(R.string.onboarding_collaborate_feature_roles),
+                stringResource(R.string.onboarding_collaborate_feature_progress)
+            )
+        ),
+        OnboardingStep(
+            title = stringResource(R.string.onboarding_organize_title),
+            description = stringResource(R.string.onboarding_organize_description),
+            icon = Icons.Default.Route,
+            features = listOf(
+                stringResource(R.string.onboarding_organize_feature_lodging),
+                stringResource(R.string.onboarding_organize_feature_meals),
+                stringResource(R.string.onboarding_organize_feature_budget)
+            )
+        ),
+        OnboardingStep(
+            title = stringResource(R.string.onboarding_enjoy_title),
+            description = stringResource(R.string.onboarding_enjoy_description),
+            icon = Icons.Default.CheckCircle,
+            features = listOf(
+                stringResource(R.string.onboarding_enjoy_feature_overview),
+                stringResource(R.string.onboarding_enjoy_feature_reminders),
+                stringResource(R.string.onboarding_enjoy_feature_calendar)
+            )
         )
     )
 }
