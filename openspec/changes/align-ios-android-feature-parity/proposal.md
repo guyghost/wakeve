@@ -1,5 +1,13 @@
 # Change: Align iOS feature parity with Android
 
+> **Status (2026-07-07): DEFERRED to post-App-Store-release.**
+> This change is validated but not started (0/37 tasks). It is out of scope
+> for the first iOS App Store submission. The priority order defined in
+> ROADMAP.md is: (1) close App Store blockers AS-01 to AS-22, (2) finish the
+> two in-flight iOS changes (weather-forecast, on-device-wakeve-ai), (3) then
+> resume deferred work like this parity alignment. Do not start implementation
+> until the App Store P0 gate is closed.
+
 ## Why
 Wakeve's Android app currently exposes a broader routed event-organization surface than iOS. iOS has many of the underlying SwiftUI components and shared KMP services, but several Android routes still resolve to placeholders, partial substitutes, or missing deep-link destinations on iOS.
 

@@ -1,5 +1,11 @@
 # Change: Migrate Android Google auth to Credential Manager
 
+> **Status (2026-07-07): DEFERRED to post-App-Store-release.**
+> This change is validated but not started (0/8 tasks). The deprecated
+> Google Sign-In API produces warnings but does not block the iOS App Store
+> submission or Android functionality. It will be addressed after the App
+> Store P0 gate closes, alongside other Android hardening work.
+
 ## Why
 Android release builds still compile against the deprecated Google Sign-In API (`GoogleSignIn`, `GoogleSignInClient`, and `GoogleSignInOptions`). This keeps auth on an aging API surface and leaves avoidable release warnings in the Android build.
 
