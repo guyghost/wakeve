@@ -49,16 +49,30 @@ jobs:
           command: deploy
 
       - name: Verify deployment
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          sleep 5
-          # Use a browser User-Agent to avoid Cloudflare Bot Fight Mode
-          # blocking datacenter IPs (GitHub Actions runners).
+          sleep 3
+          # Query the Workers.dev subdomain directly to avoid Cloudflare
+          # Bot Fight Mode on the custom domain (returns 403 to datacenter IPs).
           STATUS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 \
-            -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
-            https://wakeve.app/)
-          echo "wakeve.app status: $STATUS"
+            https://wakeve-landing.guyghost.workers.dev/)
+          echo "workers.dev status: $STATUS"
           if [ "$STATUS" != "200" ]; then
-            echo "⚠️  Landing returned $STATUS — check the Worker logs."
+            echo "⚠️  Worker returned $STATUS — check the Worker logs."
             exit 1
           fi
-          echo "✅ Landing deployed successfully."
+
+          # Also verify the custom domain is attached via the API.
+          DOMAIN_STATUS=$(curl -sS --max-time 15 \
+            -H "Authorization: Bearer ${CF_API_TOKEN}" \
+            "https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/workers/domains" \
+            | grep -o '"hostname":"wakeve.app"' | head -1)
+          echo "Custom domain check: ${DOMAIN_STATUS:-not found}"
+          if [ -z "$DOMAIN_STATUS" ]; then
+            echo "⚠️  Custom domain wakeve.app not attached to Worker."
+            exit 1
+          fi
+
+          echo "✅ Landing deployed and custom domain attached."
