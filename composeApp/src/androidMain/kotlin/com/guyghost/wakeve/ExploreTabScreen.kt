@@ -36,11 +36,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -70,6 +67,9 @@ import com.guyghost.wakeve.models.RecommendedEventsResponse
 import com.guyghost.wakeve.models.SearchResultsResponse
 import com.guyghost.wakeve.models.TrendingEventsResponse
 import com.guyghost.wakeve.repository.DatabaseEventRepository
+import com.guyghost.wakeve.ui.designsystem.WakeveElevation
+import com.guyghost.wakeve.ui.designsystem.WakeveSearchBar
+import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
 import kotlinx.coroutines.launch
 
 /**
@@ -231,7 +231,7 @@ fun ExploreTabScreen(
                                 Text(
                                     text = stringResource(R.string.loading),
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -249,7 +249,7 @@ fun ExploreTabScreen(
                             Text(
                                 text = stringResource(R.string.explore_results_count, searchResults.size),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                             )
                         }
@@ -275,7 +275,7 @@ fun ExploreTabScreen(
                             ExploreSectionHeader(
                                 title = stringResource(R.string.explore_trending),
                                 icon = Icons.Default.Favorite,
-                                iconTint = Color(0xFFFF6B35)
+                                iconTint = MaterialTheme.colorScheme.secondary
                             )
                         }
                         item {
@@ -324,7 +324,7 @@ fun ExploreTabScreen(
                         ExploreSectionHeader(
                             title = stringResource(R.string.explore_event_ideas),
                             icon = Icons.Default.Info,
-                            iconTint = Color(0xFFFFC107)
+                            iconTint = MaterialTheme.colorScheme.tertiary
                         )
                     }
                     item {
@@ -369,26 +369,11 @@ private fun ExploreSearchBar(
     onSearchTextChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedTextField(
-        value = searchText,
-        onValueChange = onSearchTextChange,
-        modifier = modifier.fillMaxWidth(),
-        placeholder = {
-            Text(stringResource(R.string.explore_search_hint))
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = stringResource(R.string.search),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        },
-        singleLine = true,
-        shape = RoundedCornerShape(28.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        )
+    WakeveSearchBar(
+        query = searchText,
+        onQueryChange = onSearchTextChange,
+        placeholder = stringResource(R.string.explore_search_hint),
+        modifier = modifier
     )
 }
 
@@ -404,8 +389,8 @@ private fun ExploreCategoryChips(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(horizontal = WakeveSpacing.md, vertical = WakeveSpacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(WakeveSpacing.sm)
     ) {
         ExploreCategoryItem.entries.forEach { category ->
             FilterChip(
@@ -436,7 +421,7 @@ private fun ExploreSectionHeader(
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        modifier = Modifier.padding(horizontal = WakeveSpacing.md, vertical = WakeveSpacing.sm)
     ) {
         Icon(
             imageVector = icon,
@@ -464,10 +449,11 @@ private fun ExploreEventCard(
     Card(
         onClick = onClick,
         modifier = Modifier.width(240.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = WakeveElevation.level1)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -571,10 +557,11 @@ private fun SearchResultCard(
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = WakeveElevation.level1)
     ) {
         Row(
             modifier = Modifier
@@ -584,7 +571,7 @@ private fun SearchResultCard(
         ) {
             // Icon
             Surface(
-                shape = RoundedCornerShape(10.dp),
+                shape = MaterialTheme.shapes.small,
                 color = eventTypeColor(event.eventType).copy(alpha = 0.12f),
                 modifier = Modifier.size(44.dp)
             ) {
@@ -662,7 +649,7 @@ private fun ExploreDiscoveryEmptyState() {
             imageVector = Icons.Default.Search,
             contentDescription = null,
             modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+            tint = MaterialTheme.colorScheme.primary
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
@@ -674,7 +661,7 @@ private fun ExploreDiscoveryEmptyState() {
         Text(
             text = stringResource(R.string.explore_empty_subtitle),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 40.dp)
         )
@@ -693,7 +680,7 @@ private fun ExploreSearchEmptyState(searchText: String) {
             imageVector = Icons.Default.Search,
             contentDescription = null,
             modifier = Modifier.size(56.dp),
-            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
@@ -705,7 +692,7 @@ private fun ExploreSearchEmptyState(searchText: String) {
         Text(
             text = stringResource(R.string.explore_no_results_hint),
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 40.dp)
         )
@@ -827,7 +814,7 @@ private fun TemplateCard(
                 Text(
                     text = template.description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
             Icon(
@@ -877,7 +864,7 @@ private fun TipCard(tip: PlanningTip) {
                 Text(
                     text = tip.content,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
                 )
             }
         }

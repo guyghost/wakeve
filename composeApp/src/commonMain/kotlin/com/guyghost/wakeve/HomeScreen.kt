@@ -34,11 +34,11 @@ import androidx.compose.material.icons.outlined.History
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -61,10 +61,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
@@ -72,16 +72,7 @@ import com.guyghost.wakeve.models.Event
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.presentation.state.EventManagementContract
 import com.guyghost.wakeve.viewmodel.EventManagementViewModel
-import com.guyghost.wakeve.theme.HomeBackgroundDark
-import com.guyghost.wakeve.theme.HomeBackgroundLight
-import com.guyghost.wakeve.theme.HomeGradientBlue
-import com.guyghost.wakeve.theme.HomeGradientGreen
-import com.guyghost.wakeve.theme.HomeGradientOrange
-import com.guyghost.wakeve.theme.HomeGradientTeal
-import com.guyghost.wakeve.theme.HomeTextPrimaryDark
-import com.guyghost.wakeve.theme.HomeTextPrimaryLight
-import com.guyghost.wakeve.theme.HomeTextSecondaryDark
-import com.guyghost.wakeve.theme.HomeTextSecondaryLight
+import com.guyghost.wakeve.ui.designsystem.WakeveElevation
 import kotlinx.datetime.toLocalDateTime
 
 enum class HomeEventFilter(
@@ -175,8 +166,7 @@ fun HomeScreen(
     onNavigateTo: (String) -> Unit = {},
     onShowToast: (String) -> Unit = {},
     onProfileClick: () -> Unit = {},
-    modifier: Modifier = Modifier,
-    isDarkTheme: Boolean = true
+    modifier: Modifier = Modifier
 ) {
     val state by viewModel.state.collectAsState()
     var showMenu by remember { mutableStateOf(false) }
@@ -225,12 +215,12 @@ fun HomeScreen(
                         Text(
                             text = selectedFilter.label,
                             style = MaterialTheme.typography.headlineMedium,
-                            color = if (isDarkTheme) HomeTextPrimaryDark else HomeTextPrimaryLight
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Icon(
                             imageVector = if (showFilterDropdown) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                             contentDescription = "Filtrer",
-                            tint = if (isDarkTheme) HomeTextPrimaryDark else HomeTextPrimaryLight,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 4.dp)
                         )
                     }
@@ -241,14 +231,14 @@ fun HomeScreen(
                         modifier = Modifier
                             .size(40.dp)
                             .background(
-                                color = if (isDarkTheme) Color(0xFF2A2A2A) else Color(0xFFE2E8F0),
+                                color = MaterialTheme.colorScheme.secondaryContainer,
                                 shape = CircleShape
                             )
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = "Créer un événement",
-                            tint = if (isDarkTheme) HomeTextPrimaryDark else HomeTextPrimaryLight,
+                            tint = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -261,13 +251,14 @@ fun HomeScreen(
                             .size(40.dp)
                             .clickable { onProfileClick() },
                         shape = CircleShape,
-                        color = HomeGradientOrange
+                        color = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Text(
                                 text = "U",
                                 style = MaterialTheme.typography.titleMedium,
-                                color = Color.White
+                                color = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }
@@ -276,7 +267,7 @@ fun HomeScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = backgroundColor,
-                    titleContentColor = if (isDarkTheme) HomeTextPrimaryDark else HomeTextPrimaryLight
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
                 ),
                 modifier = Modifier.statusBarsPadding()
             )
@@ -300,7 +291,6 @@ fun HomeScreen(
                 if (state.hasError && filteredEvents.isEmpty()) {
                     ErrorState(
                         error = state.error ?: "Une erreur s'est produite",
-                        isDarkTheme = isDarkTheme,
                         onRetry = {
                             viewModel.dispatch(EventManagementContract.Intent.LoadEvents)
                             viewModel.clearError()
@@ -309,11 +299,10 @@ fun HomeScreen(
                     )
                 } else if (filteredEvents.isEmpty()) {
                     EmptyState(
-                        isDarkTheme = isDarkTheme,
                         onCreateEvent = { onNavigateTo("event_creation") },
                         title = getEmptyStateTitle(selectedFilter),
                         subtitle = getEmptyStateSubtitle(selectedFilter),
-                        isFistLaunch = isFirstLaunch,
+                        isFirstLaunch = isFirstLaunch,
                         onTrySampleEvent = {
                             viewModel.dispatch(EventManagementContract.Intent.SeedSampleEvent)
                         }
@@ -321,7 +310,6 @@ fun HomeScreen(
                 } else {
                     EventsCarousel(
                         events = filteredEvents,
-                        isDarkTheme = isDarkTheme,
                         userId = currentUserId,
                         onEventClick = { event ->
                             viewModel.dispatch(EventManagementContract.Intent.SelectEvent(event.id))
@@ -338,7 +326,6 @@ fun HomeScreen(
                         showFilterDropdown = false
                     },
                     onDismiss = { showFilterDropdown = false },
-                    isDarkTheme = isDarkTheme,
                     draftCount = draftCount
                 )
             }
@@ -389,22 +376,17 @@ private fun FilterDropdownMenu(
     selectedFilter: HomeEventFilter,
     onFilterSelected: (HomeEventFilter) -> Unit,
     onDismiss: () -> Unit,
-    isDarkTheme: Boolean,
     draftCount: Int
 ) {
-    val backgroundColor = if (isDarkTheme) Color(0xFF1E293B) else Color.White
-    val textColor = if (isDarkTheme) HomeTextPrimaryDark else HomeTextPrimaryLight
-    val iconColor = if (isDarkTheme) HomeTextPrimaryDark else HomeTextPrimaryLight
-
     Popup(
         alignment = Alignment.TopStart,
         onDismissRequest = onDismiss,
         properties = PopupProperties(focusable = true)
     ) {
         Card(
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = backgroundColor),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+            shape = MaterialTheme.shapes.medium,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+            elevation = CardDefaults.cardElevation(defaultElevation = WakeveElevation.level3),
             modifier = Modifier
                 .width(280.dp)
                 .padding(top = 60.dp, start = 16.dp)
@@ -426,7 +408,7 @@ private fun FilterDropdownMenu(
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = null,
-                                    tint = textColor,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -435,7 +417,11 @@ private fun FilterDropdownMenu(
                         Icon(
                             imageVector = filter.icon,
                             contentDescription = null,
-                            tint = iconColor,
+                            tint = if (isSelected) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                             modifier = Modifier.size(20.dp)
                         )
 
@@ -444,13 +430,13 @@ private fun FilterDropdownMenu(
                         Text(
                             text = if (showBadge) "${filter.label} ($draftCount)" else filter.label,
                             style = MaterialTheme.typography.bodyLarge,
-                            color = textColor
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
 
                     if (index == 1) {
                         HorizontalDivider(
-                            color = if (isDarkTheme) Color.White.copy(alpha = 0.1f) else Color.Black.copy(alpha = 0.1f),
+                            color = MaterialTheme.colorScheme.outlineVariant,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                         )
                     }
@@ -463,7 +449,6 @@ private fun FilterDropdownMenu(
 @Composable
 private fun EventsCarousel(
     events: List<Event>,
-    isDarkTheme: Boolean,
     userId: String,
     onEventClick: (Event) -> Unit
 ) {
@@ -495,15 +480,17 @@ fun VisualEventCard(
     val isSample = remember(event.id) {
         event.id.startsWith("sample-")
     }
+    val cardContentColor = Color(0xFF0F172A)
+    val badgeContainerColor = Color.White.copy(alpha = 0.72f)
 
     Card(
         onClick = onClick,
         modifier = modifier
             .width(360.dp)
             .height(640.dp),
-        shape = RoundedCornerShape(32.dp),
+        shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(containerColor = theme.backgroundColor),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = WakeveElevation.level3)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Emoji decorations
@@ -535,7 +522,7 @@ fun VisualEventCard(
                     // Sample event badge
                     if (isSample) {
                         Surface(
-                            color = Color.White.copy(alpha = 0.3f),
+                            color = badgeContainerColor,
                             shape = CircleShape
                         ) {
                             Row(
@@ -548,16 +535,16 @@ fun VisualEventCard(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Sample Event",
+                                    text = "Exemple",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White,
+                                    color = cardContentColor,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
                         }
                     } else if (isOrganizer) {
                         Surface(
-                            color = Color.White.copy(alpha = 0.25f),
+                            color = badgeContainerColor,
                             shape = CircleShape
                         ) {
                             Row(
@@ -572,7 +559,7 @@ fun VisualEventCard(
                                 Text(
                                     text = "Organisé par moi",
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = Color.White,
+                                    color = cardContentColor,
                                     fontWeight = FontWeight.SemiBold
                                 )
                             }
@@ -589,7 +576,9 @@ fun VisualEventCard(
                         fontSize = 42.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = Color.White,
+                    color = cardContentColor,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .padding(horizontal = 24.dp, vertical = 32.dp)
                         .fillMaxWidth()
@@ -602,14 +591,10 @@ fun VisualEventCard(
 @Composable
 fun ErrorState(
     error: String,
-    isDarkTheme: Boolean,
     onRetry: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val textColor = if (isDarkTheme) HomeTextPrimaryDark else HomeTextPrimaryLight
-    val textSecondaryColor = if (isDarkTheme) HomeTextSecondaryDark else HomeTextSecondaryLight
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -627,14 +612,14 @@ fun ErrorState(
         Text(
             text = "Une erreur s'est produite",
             style = MaterialTheme.typography.headlineSmall,
-            color = textColor,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = error,
             style = MaterialTheme.typography.bodyMedium,
-            color = textSecondaryColor,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(24.dp))
@@ -660,13 +645,12 @@ fun ErrorState(
 
 @Composable
 fun EmptyState(
-    isDarkTheme: Boolean,
     onCreateEvent: () -> Unit,
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
     onTrySampleEvent: (() -> Unit)? = null,
-    isFistLaunch: Boolean = false
+    isFirstLaunch: Boolean = false
 ) {
     val backgroundColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -686,7 +670,7 @@ fun EmptyState(
             verticalArrangement = Arrangement.Center
         ) {
             // Show festive illustration for first launch
-            if (isFistLaunch) {
+            if (isFirstLaunch) {
                 Text(
                     text = "🎉",
                     fontSize = 80.sp,
@@ -697,14 +681,14 @@ fun EmptyState(
             Icon(
                 imageVector = Icons.Outlined.CalendarToday,
                 contentDescription = null,
-                modifier = Modifier.size(if (isFistLaunch) 48.dp else 80.dp),
+                modifier = Modifier.size(if (isFirstLaunch) 48.dp else 80.dp),
                 tint = iconColor
             )
             
             Spacer(modifier = Modifier.height(24.dp))
             
             Text(
-                text = if (isFistLaunch) "Planifiez ensemble, en quelques secondes" else title,
+                text = if (isFirstLaunch) "Planifiez ensemble, en quelques secondes" else title,
                 style = MaterialTheme.typography.headlineSmall,
                 color = textColor,
                 textAlign = TextAlign.Center
@@ -713,7 +697,7 @@ fun EmptyState(
             Spacer(modifier = Modifier.height(12.dp))
             
             Text(
-                text = if (isFistLaunch) "Créez un évènement, votez pour les meilleures dates, et organisez tout ça ensemble." else subtitle,
+                text = if (isFirstLaunch) "Créez un évènement, votez pour les meilleures dates, et organisez tout ça ensemble." else subtitle,
                 style = MaterialTheme.typography.bodyLarge,
                 color = textSecondaryColor,
                 textAlign = TextAlign.Center
@@ -728,44 +712,32 @@ fun EmptyState(
                 .padding(horizontal = 24.dp, vertical = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Primary CTA: Try sample event (first launch only)
-            if (isFistLaunch && onTrySampleEvent != null) {
-                Button(
-                    onClick = onTrySampleEvent,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = HomeGradientOrange,
-                        contentColor = Color.White
-                    )
-                ) {
-                    Text(
-                        text = "✨ Essayer un évènement exemple",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.White
-                    )
-                }
-            }
-
-            // Secondary CTA: Create own event
             Button(
                 onClick = onCreateEvent,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                shape = RoundedCornerShape(28.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.White,
-                    contentColor = Color.Black
-                )
+                shape = MaterialTheme.shapes.large
             ) {
                 Text(
                     text = "Créer un évènement",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = Color.Black
+                    style = MaterialTheme.typography.titleMedium
                 )
+            }
+
+            if (isFirstLaunch && onTrySampleEvent != null) {
+                FilledTonalButton(
+                    onClick = onTrySampleEvent,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = MaterialTheme.shapes.large
+                ) {
+                    Text(
+                        text = "Essayer un évènement exemple",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
             }
         }
     }
@@ -807,7 +779,6 @@ private fun formatDate(isoDate: String): String {
 @Composable
 fun StatusChip(
     status: EventStatus,
-    isDarkTheme: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val (label, color) = when (status) {
@@ -820,7 +791,7 @@ fun StatusChip(
     }
 
     Surface(
-        color = if (isDarkTheme) color.copy(alpha = 0.2f) else color.copy(alpha = 0.1f),
+        color = color.copy(alpha = 0.14f),
         modifier = modifier.clip(RoundedCornerShape(8.dp))
     ) {
         Text(
