@@ -51,7 +51,11 @@ jobs:
       - name: Verify deployment
         run: |
           sleep 5
-          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 https://wakeve.app/)
+          # Use a browser User-Agent to avoid Cloudflare Bot Fight Mode
+          # blocking datacenter IPs (GitHub Actions runners).
+          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 \
+            -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" \
+            https://wakeve.app/)
           echo "wakeve.app status: $STATUS"
           if [ "$STATUS" != "200" ]; then
             echo "⚠️  Landing returned $STATUS — check the Worker logs."
