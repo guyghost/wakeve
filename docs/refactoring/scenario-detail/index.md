@@ -48,8 +48,8 @@ This refactoring includes **5 comprehensive documents** plus the refactored sour
    - Mock data structures
 
 ### Source Code
-1. [iosApp/iosApp/Views/ScenarioDetailView.swift](./iosApp/iosApp/Views/ScenarioDetailView.swift) - 512 lines
-2. [iosApp/iosApp/ViewModels/ScenarioDetailViewModel.swift](./iosApp/iosApp/ViewModels/ScenarioDetailViewModel.swift) - 345 lines
+1. [iosApp/src/Views/ScenarioDetailView.swift](./iosApp/src/Views/ScenarioDetailView.swift) - 512 lines
+2. [iosApp/src/ViewModels/ScenarioDetailViewModel.swift](./iosApp/src/ViewModels/ScenarioDetailViewModel.swift) - 345 lines
 
 ---
 
@@ -315,8 +315,8 @@ Choose based on your role:
 ### Step 3: Review Code (15 minutes)
 ```
 Review source files:
-- iosApp/iosApp/Views/ScenarioDetailView.swift
-- iosApp/iosApp/ViewModels/ScenarioDetailViewModel.swift
+- iosApp/src/Views/ScenarioDetailView.swift
+- iosApp/src/ViewModels/ScenarioDetailViewModel.swift
 ```
 
 ### Step 4: Take Action (Varies)
@@ -485,8 +485,8 @@ SCENARIODETAILVIEW_REFACTORING_INDEX.md (You are here)
 │   └── Testing strategy & examples
 │
 └── Source Code
-    ├── iosApp/iosApp/Views/ScenarioDetailView.swift (512 lines)
-    └── iosApp/iosApp/ViewModels/ScenarioDetailViewModel.swift (345 lines)
+    ├── iosApp/src/Views/ScenarioDetailView.swift (512 lines)
+    └── iosApp/src/ViewModels/ScenarioDetailViewModel.swift (345 lines)
 ```
 
 ---

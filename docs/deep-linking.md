@@ -6,6 +6,21 @@ Wakeve supports deep linking for direct navigation to specific screens and featu
 
 ## Supported Deep Links
 
+### Release Review Scope
+
+The first App Store release keeps deep-link behavior narrow and review-oriented. Rich notification expansion is deferred until the P0 App Store blockers are closed, because new notification categories, actions, entitlements, or background behaviors can change the review surface.
+
+Priority links for the review build are:
+
+| Review Flow | Custom Scheme | Universal Link | Purpose |
+|-------------|---------------|----------------|---------|
+| Event detail | `wakeve://event/{id}` | `https://wakeve.app/event/{id}` | Open an existing event from email, SMS, notification, or web. |
+| Invite | `wakeve://invite/{token}` | `https://wakeve.app/invite/{token}` | Preserve an invitation token through launch and authentication. |
+| Poll voting | `wakeve://poll/{eventId}` | `https://wakeve.app/poll/{eventId}` | Bring participants directly to the poll flow. |
+| Legal and support | Public web URLs | `https://wakeve.app/privacy`, `https://wakeve.app/terms`, `https://wakeve.app/support` | Keep App Review, account deletion, privacy, and abuse-reporting surfaces reachable without requiring an installed app. |
+
+Meeting links remain supported by the current parsers, but they are not part of the App Review-critical deep-link set. Scenario, organization, payment, and analytics links should not be promoted in store metadata or notifications until their contracts are covered by a change proposal and release evidence.
+
 ### Android & iOS (Custom Scheme)
 
 | Deep Link | Description | Example |
@@ -15,7 +30,7 @@ Wakeve supports deep linking for direct navigation to specific screens and featu
 | `wakeve://meeting/{meetingId}` | Navigate to meeting details | `wakeve://meeting/xyz789` |
 | `wakeve://invite/{token}` | Handle event invite | `wakeve://invite/token12345` |
 
-### iOS (Universal Links - Planned)
+### iOS (Universal Links)
 
 | Deep Link | Description | Example |
 |-----------|-------------|----------|
@@ -24,7 +39,21 @@ Wakeve supports deep linking for direct navigation to specific screens and featu
 | `https://wakeve.app/meeting/{meetingId}` | Navigate to meeting | `https://wakeve.app/meeting/xyz789` |
 | `https://wakeve.app/invite/{token}` | Handle event invite | `https://wakeve.app/invite/token12345` |
 
-**Note:** Universal Links are planned for future implementation. Currently, only the `wakeve://` custom scheme is supported on iOS.
+**Note:** iOS registers the `wakeve://` custom scheme in `Info.plist` and declares `applinks:wakeve.app` in `iosApp/src/Wakeve.entitlements`. The web app serves Apple App Site Association JSON from `/.well-known/apple-app-site-association` and `/apple-app-site-association` when a real `APPLE_TEAM_ID` or `TEAM_ID` is configured. The documented placeholder `ABCDE12345` and invalid Team IDs are rejected. Production still requires the real Apple Developer Team ID, a live `wakeve.app` deployment, and an App ID/provisioning profile with Associated Domains enabled.
+
+## Notification Categories and Actions
+
+The shared notification model currently defines these categories and default actions:
+
+| Category | Identifier | Default Actions | Release Contract Notes |
+|----------|------------|-----------------|------------------------|
+| Event invite | `event_invite` | none | Existing contract. Invite decisions open the app and stay authenticated/idempotent in-app. |
+| Poll reminder | `poll_reminder` | none | Existing contract. Review-flow routing opens the poll screen rather than writing a vote from the notification. |
+| Meeting starting | `meeting_starting` | `join` | Existing contract, but not App Review-critical for the first submission. |
+| Scenario vote | `scenario_vote` | none | Existing contract, but not promoted for first-release App Review evidence; scenario votes stay in-app. |
+| General | `general` | none | Safe default for informational notifications. |
+
+Do not add new notification categories, actions, background execution behavior, or direct-write notification actions without an OpenSpec proposal. For the first review build, prefer a general notification or an existing category that opens one of the priority review links above.
 
 ## Implementation Details
 
@@ -69,6 +98,11 @@ Wakeve supports deep linking for direct navigation to specific screens and featu
 #### Files
 - `DeepLinkService.swift` - Handles deep link parsing and navigation
 - `iOSApp.swift` - Integrates DeepLinkService with SwiftUI
+- `Info.plist` - Registers the `wakeve` custom URL scheme
+- `Wakeve.entitlements` - Declares `applinks:wakeve.app` for Universal Links
+- `apps/landing/src/lib/server/apple-app-site-association.ts` - Builds the AASA response from Apple Team ID environment variables
+- `apps/landing/src/routes/.well-known/apple-app-site-association/+server.ts` - Serves the primary AASA endpoint
+- `apps/landing/src/routes/apple-app-site-association/+server.ts` - Serves the root AASA fallback endpoint
 
 #### Architecture
 
@@ -176,23 +210,18 @@ xcrun simctl open booted "wakeve://event/test123"
    - Future: Prompt for authentication if required
 
 3. **Universal Links (iOS):**
-   - Require proper Apple App Site Association (AASA) file
-   - Must be hosted on `https://wakeve.app/.well-known/apple-app-site-association`
-   - Not yet implemented
+   - Require proper Apple App Site Association (AASA) JSON
+   - Must be hosted on both `https://wakeve.app/.well-known/apple-app-site-association` and `https://wakeve.app/apple-app-site-association`
+   - The repository provides both AASA endpoints, but production must set the real Apple Team ID and serve them over the live domain
 
 ## Future Enhancements
 
-1. **Universal Links (iOS):**
-   - Implement AASA file on server
-   - Configure Associated Domains in Xcode
-   - Support https://wakeve.app/* URLs
-
-2. **Invite Flow:**
+1. **Invite Flow:**
    - Implement invite token validation
    - Show event preview to non-authenticated users
    - Prompt for authentication before accepting invite
 
-3. **Deep Link Analytics:**
+2. **Deep Link Analytics:**
    - Track deep link origins (email, SMS, web)
    - Measure deep link conversion rates
    - Optimize notification content
@@ -214,8 +243,10 @@ xcrun simctl open booted "wakeve://event/test123"
 ### iOS
 
 **Deep link opens in Safari instead of app:**
-- Verify custom scheme is registered in Info.plist (not needed for wakeve://)
-- For https:// links, Universal Links must be configured
+- Verify custom scheme is registered in Info.plist
+- For https:// links, verify `applinks:wakeve.app` is present in the signed app entitlements
+- Verify `APPLE_TEAM_ID` or `TEAM_ID` is configured in production with the real Apple Developer Team ID, not the documented placeholder, so the AASA file contains the real `<Team ID>.com.guyghost.wakeve` app ID
+- Verify both `https://wakeve.app/.well-known/apple-app-site-association` and `https://wakeve.app/apple-app-site-association` respond with `200` and `application/json`
 - Check that onOpenURL is properly set up
 
 **App opens but doesn't navigate:**

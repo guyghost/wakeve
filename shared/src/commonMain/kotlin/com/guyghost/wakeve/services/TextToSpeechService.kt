@@ -90,6 +90,54 @@ interface TextToSpeechService {
 }
 
 /**
+ * Text-to-speech service for builds where no platform speech synthesizer has been wired.
+ */
+object NoConfiguredTextToSpeechService : TextToSpeechService {
+    private const val NOT_CONFIGURED_MESSAGE = "Text-to-speech service is not configured"
+
+    private fun notConfigured(): Nothing =
+        throw IllegalStateException(NOT_CONFIGURED_MESSAGE)
+
+    override suspend fun speak(
+        text: String,
+        language: Language,
+        queueMode: QueueMode
+    ): TTSResult = TTSResult.Error(NOT_CONFIGURED_MESSAGE)
+
+    override suspend fun stop() {
+        notConfigured()
+    }
+
+    override suspend fun pause() {
+        notConfigured()
+    }
+
+    override suspend fun resume() {
+        notConfigured()
+    }
+
+    override fun isSpeaking(): Boolean = false
+
+    override fun isAvailable(): Boolean = false
+
+    override fun setLanguage(language: Language) {
+        notConfigured()
+    }
+
+    override fun getAvailableLanguages(): List<Language> {
+        notConfigured()
+    }
+
+    override fun setSpeechRate(rate: Float) {
+        notConfigured()
+    }
+
+    override fun getSpeechRate(): Float {
+        notConfigured()
+    }
+}
+
+/**
  * Defines how new speech requests are handled relative to the current queue.
  */
 enum class QueueMode {

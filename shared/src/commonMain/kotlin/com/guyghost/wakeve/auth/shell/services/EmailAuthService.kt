@@ -25,7 +25,8 @@ import kotlin.random.Random
 class EmailAuthService(
     private val random: Random = Random.Default,
     private val otpExpiryMinutes: Int = 5,
-    private val maxAttempts: Int = 3
+    private val maxAttempts: Int = 3,
+    private val otpSender: EmailOtpSender = NoConfiguredEmailOtpSender
 ) {
     /**
      * Internal OTP storage (in production, this would be in the backend).
@@ -40,21 +41,33 @@ class EmailAuthService(
      * @return Result indicating success or failure
      */
     suspend fun requestOTP(email: String): Result<Unit> {
+        val normalizedEmail = email.lowercase()
+
         // Generate new OTP using Core pure function
         val otp = generateOTP(random)
         val currentTime = currentTimeMillis()
         val expiry = calculateOTPExpiry(otpExpiryMinutes, currentTime)
 
+        val deliveryResult = try {
+            otpSender.sendOtp(
+                email = email,
+                otp = otp,
+                expiresAtMillis = expiry
+            )
+        } catch (error: Throwable) {
+            return Result.failure(error)
+        }
+
+        deliveryResult.exceptionOrNull()?.let { error ->
+            return Result.failure(error)
+        }
+
         // Store OTP data
-        otpStore[email.lowercase()] = OTPData(
+        otpStore[normalizedEmail] = OTPData(
             otp = otp,
             expiryTimestamp = expiry,
             attempts = 0
         )
-
-        // In production, send email via backend API
-        // For now, log it (will be replaced with actual email sending)
-        println("OTP for $email: $otp")
 
         return Result.success(Unit)
     }
@@ -198,4 +211,28 @@ class EmailAuthService(
             expiresInDays = 30
         )
     }
+}
+
+/**
+ * Sends OTP codes through the configured delivery channel.
+ */
+interface EmailOtpSender {
+    suspend fun sendOtp(
+        email: String,
+        otp: String,
+        expiresAtMillis: Long
+    ): Result<Unit>
+}
+
+/**
+ * Default runtime sender used until a real backend or email provider is wired.
+ */
+object NoConfiguredEmailOtpSender : EmailOtpSender {
+    override suspend fun sendOtp(
+        email: String,
+        otp: String,
+        expiresAtMillis: Long
+    ): Result<Unit> = Result.failure(
+        IllegalStateException("Email OTP sender is not configured")
+    )
 }

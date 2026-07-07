@@ -113,7 +113,7 @@ class NotificationSchedulerTest {
     }
 
     @Test
-    fun `scheduleEventReminder skips past reminders`() = runTest {
+    fun `scheduleEventReminder fails for past reminders`() = runTest {
         val scheduler = AdvancedNotificationScheduler()
         val pastDate = Clock.System.now().minus(2.days)
         val event = createTestEvent(
@@ -123,8 +123,8 @@ class NotificationSchedulerTest {
 
         val result = scheduler.scheduleEventReminder(event)
 
-        assertTrue(result.isSuccess)
-        assertEquals("skipped-past", result.getOrNull())
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("future") == true)
     }
 
     @Test
@@ -139,6 +139,22 @@ class NotificationSchedulerTest {
         val error = result.exceptionOrNull()
         assertNotNull(error)
         assertTrue(error!!.message!!.contains("POLLING"))
+    }
+
+    @Test
+    fun `schedulePollDeadlineReminder fails for past reminders`() = runTest {
+        val scheduler = AdvancedNotificationScheduler()
+        val poll = createTestPoll()
+        val pastDeadline = Clock.System.now().minus(2.days)
+        val pollingEvent = createTestEvent(
+            status = EventStatus.POLLING,
+            deadline = pastDeadline.toString()
+        )
+
+        val result = scheduler.schedulePollDeadlineReminder(poll, pollingEvent)
+
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("future") == true)
     }
 
     @Test
@@ -190,6 +206,34 @@ class NotificationSchedulerTest {
     }
 
     @Test
+    fun `scheduleRecurringReminder fails when all reminders are in the past`() = runTest {
+        val scheduler = AdvancedNotificationScheduler()
+        val pastDate = Clock.System.now().minus(1.days)
+        val event = createTestEvent(
+            status = EventStatus.CONFIRMED,
+            finalDate = pastDate.toString()
+        )
+        val pattern = RecurrencePattern.minimal()
+
+        val result = scheduler.scheduleRecurringReminder(event, pattern)
+
+        assertTrue(result.isFailure)
+        val error = result.exceptionOrNull()
+        assertNotNull(error)
+        assertContains(error!!.message ?: "", "no future reminders remain")
+    }
+
+    @Test
+    fun `notification reminder schedule failure message does not expose platform details`() {
+        val message = notificationReminderScheduleFailureMessage()
+
+        assertFalse(message.contains("SECRET", ignoreCase = true))
+        assertFalse(message.contains("token=", ignoreCase = true))
+        assertFalse(message.contains("internal.local", ignoreCase = true))
+        assertFalse(message.contains("not available on JVM", ignoreCase = true))
+    }
+
+    @Test
     fun `scheduleSmartReminder checks user preferences enabled types`() = runTest {
         val scheduler = AdvancedNotificationScheduler()
         val futureDate = Clock.System.now().plus(2.days)
@@ -224,7 +268,7 @@ class NotificationSchedulerTest {
     }
 
     @Test
-    fun `scheduleSmartReminder skips past reminders`() = runTest {
+    fun `scheduleSmartReminder fails for past reminders`() = runTest {
         val scheduler = AdvancedNotificationScheduler()
         val pastDate = Clock.System.now().minus(2.days)
         val event = createTestEvent(
@@ -235,8 +279,8 @@ class NotificationSchedulerTest {
 
         val result = scheduler.scheduleSmartReminder(event, preferences)
 
-        assertTrue(result.isSuccess)
-        assertEquals("skipped-past", result.getOrNull())
+        assertTrue(result.isFailure)
+        assertTrue(result.exceptionOrNull()?.message?.contains("future") == true)
     }
 
     @Test
@@ -247,6 +291,32 @@ class NotificationSchedulerTest {
 
         // Should succeed even if nothing was scheduled
         assertTrue(result.isSuccess || result.isFailure) // Accept either due to platform unavailability
+    }
+
+    @Test
+    fun `scheduledNotificationIdsForCancellation includes known recurring reminder ids`() {
+        val scheduler = AdvancedNotificationScheduler()
+
+        val ids = scheduler.scheduledNotificationIdsForCancellation(
+            eventId = "event-1",
+            recurringNotificationIds = listOf(
+                "event-event-1-recurring-0",
+                "",
+                "event-event-1-recurring-1",
+                "event-event-1-recurring-0"
+            )
+        )
+
+        assertEquals(
+            listOf(
+                "event-event-1",
+                "poll-event-1",
+                "smart-event-1",
+                "event-event-1-recurring-0",
+                "event-event-1-recurring-1"
+            ),
+            ids
+        )
     }
 
     // ============ Notification Type Priority Tests ============
@@ -283,12 +353,15 @@ class NotificationSchedulerTest {
     @Test
     fun `NotificationPreferences shouldSend respects enabled types`() {
         val preferences = createTestPreferences(
-            enabledTypes = setOf(NotificationType.EVENT_INVITE)
+            enabledTypes = setOf(NotificationType.EVENT_INVITE),
+            quietHoursStart = null,
+            quietHoursEnd = null
         )
-        val now = Clock.System.now()
+        // Use a fixed noon time to avoid quiet-hours interference (deterministic)
+        val noon = Instant.parse("2026-01-15T12:00:00Z")
 
-        assertTrue(preferences.shouldSend(NotificationType.EVENT_INVITE, now))
-        assertFalse(preferences.shouldSend(NotificationType.VOTE_REMINDER, now))
+        assertTrue(preferences.shouldSend(NotificationType.EVENT_INVITE, noon))
+        assertFalse(preferences.shouldSend(NotificationType.VOTE_REMINDER, noon))
     }
 
     @Test
@@ -322,6 +395,31 @@ class NotificationSchedulerTest {
         // Note: This test depends on current time, so we verify the structure
         assertNotNull(preferences.quietHoursStart)
         assertNotNull(preferences.quietHoursEnd)
+    }
+
+    @Test
+    fun `NotificationPreferences shouldSend evaluates quiet hours in supplied timezone`() {
+        val preferences = createTestPreferences(
+            enabledTypes = NotificationType.entries.toSet(),
+            quietHoursStart = QuietTime(22, 0),
+            quietHoursEnd = QuietTime(8, 0)
+        )
+        val eveningInParis = Instant.parse("2026-01-15T21:30:00Z")
+
+        assertTrue(
+            preferences.shouldSend(
+                type = NotificationType.DATE_CONFIRMED,
+                currentTime = eveningInParis,
+                timeZone = TimeZone.UTC
+            )
+        )
+        assertFalse(
+            preferences.shouldSend(
+                type = NotificationType.DATE_CONFIRMED,
+                currentTime = eveningInParis,
+                timeZone = TimeZone.of("Europe/Paris")
+            )
+        )
     }
 
     @Test
@@ -370,9 +468,14 @@ class NotificationSchedulerTest {
         val prefs = defaultNotificationPreferences("user-123")
 
         assertEquals("user-123", prefs.userId)
-        assertTrue(prefs.enabledTypes.contains(NotificationType.EVENT_INVITE))
-        assertTrue(prefs.enabledTypes.contains(NotificationType.VOTE_REMINDER))
-        assertTrue(prefs.enabledTypes.contains(NotificationType.MEETING_REMINDER))
+        assertEquals(NotificationType.entries.toSet(), prefs.enabledTypes)
+        assertTrue(prefs.enabledTypes.contains(NotificationType.EVENT_UPDATE))
+        assertTrue(prefs.enabledTypes.contains(NotificationType.VOTE_CLOSE_REMINDER))
+        assertTrue(prefs.enabledTypes.contains(NotificationType.DEADLINE_REMINDER))
+        assertTrue(prefs.enabledTypes.contains(NotificationType.NEW_COMMENT))
+        assertTrue(prefs.enabledTypes.contains(NotificationType.COMMENT_REPLY))
+        assertTrue(prefs.enabledTypes.contains(NotificationType.PAYMENT_DUE))
+        assertTrue(prefs.enabledTypes.contains(NotificationType.SCENARIO_SELECTED))
         assertTrue(prefs.soundEnabled)
         assertTrue(prefs.vibrationEnabled)
         assertEquals(QuietTime(22, 0), prefs.quietHoursStart)

@@ -35,6 +35,16 @@ class NotificationServiceTest {
         service = NotificationService(database, preferencesRepository, fcmSender, apnsSender)
 
         seedUser("user123")
+
+        // Set deterministic preferences: all types enabled, no quiet hours
+        // This ensures tests are not affected by the current wall-clock time
+        preferencesRepository.setPreferences(
+            defaultNotificationPreferences("user123").copy(
+                enabledTypes = NotificationType.entries.toSet(),
+                quietHoursStart = null,
+                quietHoursEnd = null
+            )
+        )
     }
 
     // ==================== 1. registerPushToken Tests ====================
@@ -57,6 +67,35 @@ class NotificationServiceTest {
         assertEquals("fcm-token-123", token.token)
         assertEquals("user123", token.user_id)
         assertEquals(Platform.ANDROID.name, token.platform)
+    }
+
+    @Test
+    fun registerPushToken_normalizesUserIdAndToken() = runTest {
+        val result = service.registerPushToken(
+            userId = " user123 ",
+            platform = Platform.ANDROID,
+            token = "  fcm-token-123  "
+        )
+
+        assertTrue(result.isSuccess)
+
+        val token = database.notificationQueries
+            .getToken(user_id = "user123", platform = Platform.ANDROID.name)
+            .executeAsOneOrNull()
+
+        assertNotNull(token)
+        assertEquals("user123", token.user_id)
+        assertEquals("fcm-token-123", token.token)
+    }
+
+    @Test
+    fun registerPushToken_failsForBlankUserIdOrToken() = runTest {
+        val blankUserId = service.registerPushToken("  ", Platform.ANDROID, "fcm-token")
+        val blankToken = service.registerPushToken("user123", Platform.ANDROID, "  ")
+
+        assertTrue(blankUserId.isFailure)
+        assertTrue(blankToken.isFailure)
+        assertNull(database.notificationQueries.getToken("user123", Platform.ANDROID.name).executeAsOneOrNull())
     }
 
     @Test
@@ -123,6 +162,34 @@ class NotificationServiceTest {
     }
 
     @Test
+    fun unregisterPushToken_normalizesUserIdBeforeDeleting() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "token-to-remove").getOrThrow()
+
+        val result = service.unregisterPushToken(" user123 ", Platform.ANDROID)
+
+        assertTrue(result.isSuccess)
+        assertNull(
+            database.notificationQueries
+                .getToken(user_id = "user123", platform = Platform.ANDROID.name)
+                .executeAsOneOrNull()
+        )
+    }
+
+    @Test
+    fun unregisterPushToken_failsForBlankUserId() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "token-to-keep").getOrThrow()
+
+        val result = service.unregisterPushToken("  ", Platform.ANDROID)
+
+        assertTrue(result.isFailure)
+        assertNotNull(
+            database.notificationQueries
+                .getToken(user_id = "user123", platform = Platform.ANDROID.name)
+                .executeAsOneOrNull()
+        )
+    }
+
+    @Test
     fun unregisterPushToken_success_whenTokenDoesNotExist() = runTest {
         // Try to unregister non-existent token
         val result = service.unregisterPushToken("user123", Platform.IOS)
@@ -151,6 +218,47 @@ class NotificationServiceTest {
         assertTrue(notificationId.isNotBlank())
         assertTrue(fcmSender.sentTokens.contains("fcm-token-123"))
         assertEquals(1, fcmSender.callCount)
+    }
+
+    @Test
+    fun sendNotification_normalizesTitleBodyAndUserIdBeforeSendAndPersist() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token-123").getOrThrow()
+
+        val result = service.sendNotification(
+            NotificationRequest(
+                userId = " user123 ",
+                type = NotificationType.EVENT_INVITE,
+                title = "  Invitation  ",
+                body = "  Vous etes invite  "
+            )
+        )
+
+        assertTrue(result.isSuccess)
+        val notificationId = result.getOrThrow()
+        assertEquals("Invitation", fcmSender.sentTitles.single())
+        assertEquals("Vous etes invite", fcmSender.sentBodies.single())
+
+        val persisted = database.notificationQueries
+            .getNotificationById(notificationId)
+            .executeAsOneOrNull()
+        assertNotNull(persisted)
+        assertEquals("user123", persisted.user_id)
+        assertEquals("Invitation", persisted.title)
+        assertEquals("Vous etes invite", persisted.body)
+    }
+
+    @Test
+    fun sendNotification_failsForBlankTitleBodyOrUserId() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token-123").getOrThrow()
+
+        val blankTitle = service.sendNotification(createRequest(body = "Body").copy(title = "  "))
+        val blankBody = service.sendNotification(createRequest(body = "  "))
+        val blankUserId = service.sendNotification(createRequest(body = "Body").copy(userId = "  "))
+
+        assertTrue(blankTitle.isFailure)
+        assertTrue(blankBody.isFailure)
+        assertTrue(blankUserId.isFailure)
+        assertEquals(0, fcmSender.callCount)
     }
 
     @Test
@@ -276,8 +384,35 @@ class NotificationServiceTest {
     }
 
     @Test
-    fun sendNotification_fails_whenNoTokensRegistered() = runTest {
-        // No token registered for user
+    fun sendNotification_persistsHistoryWhenNoTokensRegistered() = runTest {
+        val result = service.sendNotification(
+            NotificationRequest(
+                userId = "user123",
+                type = NotificationType.EVENT_INVITE,
+                title = "Invitation",
+                body = "Body"
+            )
+        )
+
+        assertTrue(result.isSuccess)
+        val notificationId = result.getOrThrow()
+        assertEquals(0, fcmSender.callCount)
+        assertEquals(0, apnsSender.callCount)
+
+        val persisted = database.notificationQueries
+            .getNotificationById(notificationId)
+            .executeAsOneOrNull()
+        assertNotNull(persisted)
+        assertEquals("user123", persisted.user_id)
+        assertEquals("Invitation", persisted.title)
+    }
+
+    @Test
+    fun sendNotification_persistsHistoryWhenAllPushTransportsFail() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
+        service.registerPushToken("user123", Platform.IOS, "apns-token").getOrThrow()
+        fcmSender.shouldFail = true
+        apnsSender.shouldFail = true
 
         val result = service.sendNotification(
             NotificationRequest(
@@ -288,8 +423,47 @@ class NotificationServiceTest {
             )
         )
 
-        assertFalse(result.isSuccess)
-        assertTrue(result.exceptionOrNull()?.message?.contains("No push tokens") == true)
+        assertTrue(result.isSuccess)
+        val notificationId = result.getOrThrow()
+        assertEquals(1, fcmSender.callCount)
+        assertEquals(1, apnsSender.callCount)
+        assertTrue(fcmSender.sentTokens.isEmpty())
+        assertTrue(apnsSender.sentTokens.isEmpty())
+
+        assertNotNull(
+            database.notificationQueries
+                .getNotificationById(notificationId)
+                .executeAsOneOrNull()
+        )
+    }
+
+    @Test
+    fun sendNotification_attemptsRemainingTransportsWhenOnePushTransportFails() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
+        service.registerPushToken("user123", Platform.IOS, "apns-token").getOrThrow()
+        fcmSender.shouldFail = true
+
+        val result = service.sendNotification(
+            NotificationRequest(
+                userId = "user123",
+                type = NotificationType.EVENT_INVITE,
+                title = "Invitation",
+                body = "Body"
+            )
+        )
+
+        assertTrue(result.isSuccess)
+        val notificationId = result.getOrThrow()
+        assertEquals(1, fcmSender.callCount)
+        assertEquals(1, apnsSender.callCount)
+        assertTrue(fcmSender.sentTokens.isEmpty())
+        assertEquals(listOf("apns-token"), apnsSender.sentTokens)
+
+        assertNotNull(
+            database.notificationQueries
+                .getNotificationById(notificationId)
+                .executeAsOneOrNull()
+        )
     }
 
     @Test
@@ -365,6 +539,33 @@ class NotificationServiceTest {
         assertTrue(unread.isEmpty())
     }
 
+    @Test
+    fun getUnreadNotifications_respectsLimit() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
+
+        val ids = (1..5).map { index ->
+            service.sendNotification(createRequest("Unread $index")).getOrThrow()
+        }
+
+        val unread = service.getUnreadNotifications("user123", limit = 2)
+
+        assertEquals(2, unread.size)
+        assertTrue(unread.all { notification -> notification.id in ids })
+    }
+
+    @Test
+    fun getUnreadNotifications_normalizesUserIdAndClampsLimit() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
+
+        repeat(3) { index ->
+            service.sendNotification(createRequest("Unread $index")).getOrThrow()
+        }
+
+        val unread = service.getUnreadNotifications(" user123 ", limit = 0)
+
+        assertEquals(1, unread.size)
+    }
+
     // ==================== 5. getNotifications Tests ====================
 
     @Test
@@ -395,6 +596,21 @@ class NotificationServiceTest {
         val notifications = service.getNotifications("user123", limit = 10)
 
         assertEquals(10, notifications.size)
+    }
+
+    @Test
+    fun getNotifications_normalizesUserIdAndClampsLimit() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
+
+        repeat(105) { i ->
+            service.sendNotification(createRequest("Notification $i")).getOrThrow()
+        }
+
+        val minClamped = service.getNotifications(" user123 ", limit = -10)
+        val maxClamped = service.getNotifications(" user123 ", limit = 500)
+
+        assertEquals(1, minClamped.size)
+        assertEquals(100, maxClamped.size)
     }
 
     @Test
@@ -440,6 +656,65 @@ class NotificationServiceTest {
         assertNotNull(dbNotification.read_at)
     }
 
+    @Test
+    fun markAsRead_normalizesNotificationIdAndRejectsBlankId() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
+        val notificationId = service.sendNotification(createRequest("Trimmed id")).getOrThrow()
+
+        val trimmed = service.markAsRead(" $notificationId ")
+        val blank = service.markAsRead("  ")
+
+        assertTrue(trimmed.isSuccess)
+        assertTrue(blank.isFailure)
+        assertTrue(service.getUnreadNotifications("user123").isEmpty())
+    }
+
+    @Test
+    fun markAsReadForUser_rejectsNotificationOwnedByAnotherUser() = runTest {
+        seedNotificationUser("user456")
+        service.registerPushToken("user456", Platform.ANDROID, "fcm-token-456").getOrThrow()
+
+        val notificationId = service.sendNotification(
+            createRequest(body = "Private notification", userId = "user456")
+        ).getOrThrow()
+
+        val result = service.markAsReadForUser(
+            notificationId = notificationId,
+            userId = "user123"
+        )
+
+        assertTrue(result.isFailure)
+        assertEquals(1, service.getUnreadNotifications("user456").size)
+    }
+
+    @Test
+    fun markAsReadForUser_normalizesUserIdBeforeOwnershipCheck() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
+        val notificationId = service.sendNotification(createRequest("Trimmed owner")).getOrThrow()
+
+        val result = service.markAsReadForUser(
+            notificationId = " $notificationId ",
+            userId = " user123 "
+        )
+
+        assertTrue(result.isSuccess)
+        assertTrue(service.getUnreadNotifications("user123").isEmpty())
+    }
+
+    @Test
+    fun markAsReadForUser_failsForBlankUserId() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
+        val notificationId = service.sendNotification(createRequest("Blank owner")).getOrThrow()
+
+        val result = service.markAsReadForUser(
+            notificationId = notificationId,
+            userId = "  "
+        )
+
+        assertTrue(result.isFailure)
+        assertEquals(1, service.getUnreadNotifications("user123").size)
+    }
+
     // ==================== 7. markAllAsRead Tests ====================
 
     @Test
@@ -466,6 +741,30 @@ class NotificationServiceTest {
     fun markAllAsRead_success_whenNoUnread() = runTest {
         val result = service.markAllAsRead("user123")
         assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun markAllAsRead_normalizesUserIdBeforeUpdating() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
+        repeat(2) { i ->
+            service.sendNotification(createRequest("Trimmed notification $i")).getOrThrow()
+        }
+
+        val result = service.markAllAsRead(" user123 ")
+
+        assertTrue(result.isSuccess)
+        assertTrue(service.getUnreadNotifications("user123").isEmpty())
+    }
+
+    @Test
+    fun markAllAsRead_failsForBlankUserId() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
+        service.sendNotification(createRequest("Keep unread")).getOrThrow()
+
+        val result = service.markAllAsRead("  ")
+
+        assertTrue(result.isFailure)
+        assertEquals(1, service.getUnreadNotifications("user123").size)
     }
 
     // ==================== 8. deleteNotification Tests ====================
@@ -496,6 +795,75 @@ class NotificationServiceTest {
     fun deleteNotification_success_whenNotificationDoesNotExist() = runTest {
         val result = service.deleteNotification("non-existent-id")
         assertTrue(result.isSuccess)
+    }
+
+    @Test
+    fun deleteNotification_normalizesNotificationIdAndRejectsBlankId() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
+        val notificationId = service.sendNotification(createRequest("Trimmed delete id")).getOrThrow()
+
+        val trimmed = service.deleteNotification(" $notificationId ")
+        val blank = service.deleteNotification("  ")
+
+        assertTrue(trimmed.isSuccess)
+        assertTrue(blank.isFailure)
+        assertTrue(service.getNotifications("user123").isEmpty())
+    }
+
+    @Test
+    fun deleteNotificationForUser_rejectsNotificationOwnedByAnotherUser() = runTest {
+        seedNotificationUser("user456")
+        service.registerPushToken("user456", Platform.ANDROID, "fcm-token-456").getOrThrow()
+
+        val notificationId = service.sendNotification(
+            createRequest(body = "Do not delete", userId = "user456")
+        ).getOrThrow()
+
+        val result = service.deleteNotificationForUser(
+            notificationId = notificationId,
+            userId = "user123"
+        )
+
+        assertTrue(result.isFailure)
+        assertEquals(1, service.getNotifications("user456").size)
+        assertNotNull(
+            database.notificationQueries
+                .getNotificationById(notificationId)
+                .executeAsOneOrNull()
+        )
+    }
+
+    @Test
+    fun deleteNotificationForUser_normalizesUserIdBeforeOwnershipCheck() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
+        val notificationId = service.sendNotification(createRequest("Trimmed delete")).getOrThrow()
+
+        val result = service.deleteNotificationForUser(
+            notificationId = " $notificationId ",
+            userId = " user123 "
+        )
+
+        assertTrue(result.isSuccess)
+        assertTrue(service.getNotifications("user123").isEmpty())
+    }
+
+    @Test
+    fun deleteNotificationForUser_failsForBlankUserId() = runTest {
+        service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
+        val notificationId = service.sendNotification(createRequest("Blank delete")).getOrThrow()
+
+        val result = service.deleteNotificationForUser(
+            notificationId = notificationId,
+            userId = "  "
+        )
+
+        assertTrue(result.isFailure)
+        assertEquals(1, service.getNotifications("user123").size)
+        assertNotNull(
+            database.notificationQueries
+                .getNotificationById(notificationId)
+                .executeAsOneOrNull()
+        )
     }
 
     // ==================== 9. getPreferences Tests ====================
@@ -534,6 +902,63 @@ class NotificationServiceTest {
         assertTrue(result?.enabledTypes?.contains(NotificationType.EVENT_INVITE) == true)
     }
 
+    @Test
+    fun getPreferences_corruptEnabledTypesFallsBackToDefaultTypes() = runTest {
+        database.userQueries.insertPreferences(
+            user_id = "user123",
+            enabled_types = "not-json",
+            quiet_hours_start = null,
+            quiet_hours_end = null,
+            sound_enabled = 1,
+            vibration_enabled = 1,
+            updated_at = Clock.System.now().toEpochMilliseconds()
+        )
+
+        val repository = NotificationPreferencesRepository(database)
+        val result = repository.getPreferences("user123")
+
+        assertNotNull(result)
+        assertEquals(NotificationType.entries.toSet(), result.enabledTypes)
+    }
+
+    @Test
+    fun getPreferences_emptyEnabledTypesRemainsDisabled() = runTest {
+        database.userQueries.insertPreferences(
+            user_id = "user123",
+            enabled_types = "[]",
+            quiet_hours_start = null,
+            quiet_hours_end = null,
+            sound_enabled = 1,
+            vibration_enabled = 1,
+            updated_at = Clock.System.now().toEpochMilliseconds()
+        )
+
+        val repository = NotificationPreferencesRepository(database)
+        val result = repository.getPreferences("user123")
+
+        assertNotNull(result)
+        assertEquals(emptySet(), result.enabledTypes)
+    }
+
+    @Test
+    fun getPreferences_unknownOnlyEnabledTypesFallsBackToDefaultTypes() = runTest {
+        database.userQueries.insertPreferences(
+            user_id = "user123",
+            enabled_types = """["LEGACY_UNKNOWN_TYPE"]""",
+            quiet_hours_start = null,
+            quiet_hours_end = null,
+            sound_enabled = 1,
+            vibration_enabled = 1,
+            updated_at = Clock.System.now().toEpochMilliseconds()
+        )
+
+        val repository = NotificationPreferencesRepository(database)
+        val result = repository.getPreferences("user123")
+
+        assertNotNull(result)
+        assertEquals(NotificationType.entries.toSet(), result.enabledTypes)
+    }
+
     // ==================== 10. updatePreferences Tests ====================
 
     @Test
@@ -564,14 +989,16 @@ class NotificationServiceTest {
     fun sendNotification_filtersByType_votingRelated() = runTest {
         service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
 
-        // Enable only voting-related types
+        // Enable only voting-related types (no quiet hours for determinism)
         preferencesRepository.setPreferences(
             defaultNotificationPreferences("user123").copy(
                 enabledTypes = setOf(
                     NotificationType.VOTE_REMINDER,
                     NotificationType.VOTE_CLOSE_REMINDER,
                     NotificationType.DATE_CONFIRMED
-                )
+                ),
+                quietHoursStart = null,
+                quietHoursEnd = null
             )
         )
 
@@ -658,13 +1085,53 @@ class NotificationServiceTest {
     }
 
     @Test
+    fun getNotifications_extractsPrimitiveDataFromRichNotificationPayload() = runTest {
+        database.notificationQueries.insertNotification(
+            id = "rich-poll",
+            user_id = "user123",
+            type = NotificationType.VOTE_REMINDER.name,
+            title = "Vote reminder",
+            body = "Open the poll",
+            data_ = """
+                {
+                    "deepLink":"wakeve://event/event-123/poll",
+                    "category":"POLL_REMINDER",
+                    "priority":"DEFAULT",
+                    "actions":[{"identifier":"vote","label":"Vote Now"}],
+                    "imageUrl":null
+                }
+            """.trimIndent(),
+            created_at = 1_000L,
+            sent_at = 1_000L
+        )
+
+        val message = service.getNotifications("user123").single()
+
+        assertEquals(ModelNotificationType.VOTE_CLOSE_REMINDER, message.type)
+        assertEquals("wakeve://event/event-123/poll", message.data["deepLink"])
+        assertEquals("POLL_REMINDER", message.data["category"])
+        assertEquals("DEFAULT", message.data["priority"])
+        assertFalse("actions" in message.data)
+        assertFalse("imageUrl" in message.data)
+    }
+
+    @Test
+    fun decodeNotificationDataMap_returnsEmptyMapForCorruptOrNonObjectPayloads() {
+        assertTrue(decodeNotificationDataMap("{not-json").isEmpty())
+        assertTrue(decodeNotificationDataMap("""["not","object"]""").isEmpty())
+        assertTrue(decodeNotificationDataMap("  ").isEmpty())
+    }
+
+    @Test
     fun getUnreadNotifications_correctlyMapsAllTypes() = runTest {
         service.registerPushToken("user123", Platform.ANDROID, "fcm-token").getOrThrow()
 
-        // Enable all notification types for this test
+        // Enable all notification types for this test (no quiet hours for determinism)
         preferencesRepository.setPreferences(
             defaultNotificationPreferences("user123").copy(
-                enabledTypes = NotificationType.entries.toSet()
+                enabledTypes = NotificationType.entries.toSet(),
+                quietHoursStart = null,
+                quietHoursEnd = null
             )
         )
 
@@ -722,9 +1189,12 @@ class NotificationServiceTest {
 
     // ==================== Helper Methods ====================
 
-    private fun createRequest(body: String): NotificationRequest {
+    private fun createRequest(
+        body: String,
+        userId: String = "user123"
+    ): NotificationRequest {
         return NotificationRequest(
-            userId = "user123",
+            userId = userId,
             type = NotificationType.EVENT_INVITE,
             title = "Test Title",
             body = body
@@ -743,6 +1213,17 @@ class NotificationServiceTest {
             role = "USER",
             created_at = now,
             updated_at = now
+        )
+    }
+
+    private fun seedNotificationUser(userId: String) {
+        seedUser(userId)
+        preferencesRepository.setPreferences(
+            defaultNotificationPreferences(userId).copy(
+                enabledTypes = NotificationType.entries.toSet(),
+                quietHoursStart = null,
+                quietHoursEnd = null
+            )
         )
     }
 }
@@ -782,6 +1263,8 @@ private class InMemoryNotificationPreferencesRepository : NotificationPreference
 
 private class RecordingFCMSender : FCMSender {
     val sentTokens = mutableListOf<String>()
+    val sentTitles = mutableListOf<String>()
+    val sentBodies = mutableListOf<String>()
     var callCount = 0
     var shouldFail = false
     var failureMessage = "FCM Error"
@@ -797,6 +1280,8 @@ private class RecordingFCMSender : FCMSender {
             Result.failure(RuntimeException(failureMessage))
         } else {
             sentTokens += token
+            sentTitles += title
+            sentBodies += body
             Result.success(Unit)
         }
     }
@@ -804,6 +1289,8 @@ private class RecordingFCMSender : FCMSender {
 
 private class RecordingAPNsSender : APNsSender {
     val sentTokens = mutableListOf<String>()
+    val sentTitles = mutableListOf<String>()
+    val sentBodies = mutableListOf<String>()
     var callCount = 0
     var shouldFail = false
     var failureMessage = "APNs Error"
@@ -819,6 +1306,8 @@ private class RecordingAPNsSender : APNsSender {
             Result.failure(RuntimeException(failureMessage))
         } else {
             sentTokens += token
+            sentTitles += title
+            sentBodies += body
             Result.success(Unit)
         }
     }

@@ -3,12 +3,17 @@ package com.guyghost.wakeve.notification
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonObject
 import org.slf4j.LoggerFactory
@@ -19,14 +24,11 @@ import org.slf4j.LoggerFactory
  * Sends push notifications to Android devices via Firebase Cloud Messaging HTTP v1 API.
  * In production, configure FCM_SERVER_KEY environment variable with a valid service account key.
  */
-class ServerFCMSender : FCMSender {
+class ServerFCMSender(
+    private val fcmServerKey: String? = System.getenv("FCM_SERVER_KEY")
+) : FCMSender {
 
     private val logger = LoggerFactory.getLogger("ServerFCMSender")
-
-    // FCM HTTP v1 API endpoint
-    // TODO: Replace with actual project ID from Firebase console
-    private val fcmProjectId = System.getenv("FCM_PROJECT_ID") ?: "wakeve-app"
-    private val fcmServerKey = System.getenv("FCM_SERVER_KEY")
 
     private val httpClient = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -41,10 +43,8 @@ class ServerFCMSender : FCMSender {
         data: Map<String, String>
     ): Result<Unit> = runCatching {
         if (fcmServerKey == null) {
-            // TODO: En production, configurer FCM_SERVER_KEY pour activer l'envoi FCM
-            logger.warn("FCM_SERVER_KEY not configured. Logging notification instead of sending.")
-            logger.info("FCM notification: token=${token.take(20)}..., title=$title, body=$body, data=$data")
-            return@runCatching
+            logger.warn("FCM_SERVER_KEY not configured; notification delivery failed")
+            error("FCM_SERVER_KEY is not configured")
         }
 
         // FCM legacy HTTP API (simpler setup, suitable for server-to-server)
@@ -67,12 +67,38 @@ class ServerFCMSender : FCMSender {
         }
 
         if (response.status != HttpStatusCode.OK) {
-            val responseBody = response.bodyAsText()
-            logger.error("FCM send failed: status=${response.status}, body=$responseBody")
+            logger.error("FCM send failed: status=${response.status}")
             error("FCM send failed with status ${response.status}")
         }
 
-        logger.info("FCM notification sent to ${token.take(20)}...")
+        validateFcmLegacyResponse(response.bodyAsText()).getOrThrow()
+
+        logger.info("FCM notification sent")
+    }
+}
+
+internal fun validateFcmLegacyResponse(responseBody: String): Result<Unit> = runCatching {
+    val jsonObject = runCatching { Json.parseToJsonElement(responseBody).jsonObject }
+        .getOrElse { error("FCM response body is not valid JSON") }
+
+    val success = jsonObject["success"]?.jsonPrimitive?.intOrNull
+        ?: error("FCM response body does not include success count")
+    val failure = jsonObject["failure"]?.jsonPrimitive?.intOrNull
+        ?: error("FCM response body does not include failure count")
+
+    if (failure > 0 || success <= 0) {
+        val firstError = jsonObject["results"]
+            ?.let {
+                runCatching {
+                    it.jsonArray.firstOrNull()
+                        ?.jsonObject
+                        ?.get("error")
+                        ?.jsonPrimitive
+                        ?.contentOrNull
+                }.getOrNull()
+            }
+        val detail = firstError?.let { ": $it" }.orEmpty()
+        error("FCM delivery failed (success=$success, failure=$failure)$detail")
     }
 }
 
@@ -88,15 +114,14 @@ class ServerFCMSender : FCMSender {
  *  - APNS_AUTH_KEY: Contenu du fichier .p8
  *  - APNS_BUNDLE_ID: Bundle ID de l'application iOS
  */
-class ServerAPNsSender : APNsSender {
+class ServerAPNsSender(
+    private val apnsKeyId: String? = System.getenv("APNS_KEY_ID"),
+    private val apnsTeamId: String? = System.getenv("APNS_TEAM_ID"),
+    private val apnsBundleId: String = System.getenv("APNS_BUNDLE_ID") ?: "com.guyghost.wakeve",
+    private val apnsEnvironment: String = System.getenv("APNS_ENVIRONMENT") ?: "development"
+) : APNsSender {
 
     private val logger = LoggerFactory.getLogger("ServerAPNsSender")
-
-    // APNs configuration from environment
-    private val apnsKeyId = System.getenv("APNS_KEY_ID")
-    private val apnsTeamId = System.getenv("APNS_TEAM_ID")
-    private val apnsBundleId = System.getenv("APNS_BUNDLE_ID") ?: "com.guyghost.wakeve"
-    private val apnsEnvironment = System.getenv("APNS_ENVIRONMENT") ?: "development"
 
     private val apnsHost: String
         get() = if (apnsEnvironment == "production") {
@@ -112,16 +137,12 @@ class ServerAPNsSender : APNsSender {
         data: Map<String, String>
     ): Result<Unit> = runCatching {
         if (apnsKeyId == null || apnsTeamId == null) {
-            // TODO: En production, configurer les variables APNs pour activer l'envoi
-            logger.warn("APNs credentials not configured. Logging notification instead of sending.")
-            logger.info("APNs notification: token=${token.take(20)}..., title=$title, body=$body, data=$data")
-            return@runCatching
+            logger.warn("APNs credentials not configured; notification delivery failed")
+            error("APNs credentials are not configured")
         }
 
         // TODO: Implémenter la connexion HTTP/2 avec JWT APNs auth token
-        // Pour le moment, on log la notification
-        logger.info("APNs notification would be sent to $apnsHost/3/device/$token")
-        logger.info("  Payload: title=$title, body=$body, data=$data")
-        logger.info("  Bundle ID: $apnsBundleId")
+        logger.warn("APNs sender is not implemented for host $apnsHost and bundle $apnsBundleId")
+        error("APNs sender is not implemented")
     }
 }

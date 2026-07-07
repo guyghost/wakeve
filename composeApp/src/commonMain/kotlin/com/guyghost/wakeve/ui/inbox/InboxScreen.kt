@@ -18,6 +18,8 @@ import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsOff
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -244,6 +246,8 @@ private fun InboxTopAppBar(
     onMarkAllRead: () -> Unit,
     onRefresh: () -> Unit
 ) {
+    var isOptionsMenuExpanded by remember { mutableStateOf(false) }
+
     LargeTopAppBar(
         title = {
             Text(
@@ -271,15 +275,37 @@ private fun InboxTopAppBar(
             }
             
             // More options
-            IconButton(onClick = { /* TODO: Options menu */ }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Plus d'options"
-                )
+            Box {
+                IconButton(onClick = { isOptionsMenuExpanded = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Plus d'options"
+                    )
+                }
+                DropdownMenu(
+                    expanded = isOptionsMenuExpanded,
+                    onDismissRequest = { isOptionsMenuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Actualiser") },
+                        onClick = {
+                            isOptionsMenuExpanded = false
+                            onRefresh()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Tout marquer comme lu") },
+                        enabled = unreadCount > 0,
+                        onClick = {
+                            isOptionsMenuExpanded = false
+                            onMarkAllRead()
+                        }
+                    )
+                }
             }
         },
         scrollBehavior = scrollBehavior,
-        colors = TopAppBarDefaults.largeTopAppBarColors(
+        colors = TopAppBarDefaults.topAppBarColors(
             containerColor = InboxScreenColors.Surface,
             scrolledContainerColor = InboxScreenColors.Surface
         )

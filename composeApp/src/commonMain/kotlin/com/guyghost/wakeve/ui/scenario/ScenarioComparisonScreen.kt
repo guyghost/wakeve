@@ -54,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.Scenario
 import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.models.ScenarioVotingResult
@@ -109,16 +110,28 @@ fun ScenarioComparisonScreen(
     scenarios: List<ScenarioWithVotes>,
     eventId: String,
     isOrganizer: Boolean = false,
+    eventStatus: EventStatus? = null,
+    isParticipantConfirmed: Boolean? = null,
     onVote: (String) -> Unit = {},
     onSelectWinner: (String) -> Unit = {},
     onNavigateBack: () -> Unit = {},
     onNavigateToMeetings: (String) -> Unit = {},
+    onNavigateToTransport: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedWinnerId by remember { mutableStateOf<String?>(null) }
     var votingForId by remember { mutableStateOf<String?>(null) }
 
     val currencyFormat = remember { NumberFormat.getCurrencyInstance(Locale.FRANCE) }
+    val canAccessDetails = isOrganizer || isParticipantConfirmed == true
+    val canVote = canAccessDetails
+    val canSelectFinal = isOrganizer && eventStatus == EventStatus.COMPARING
+    val canNavigateToMeetings = eventStatus == EventStatus.ORGANIZING ||
+        eventStatus == EventStatus.FINALIZED
+    val canNavigateToTransport = eventStatus == EventStatus.ORGANIZING ||
+        eventStatus == EventStatus.FINALIZED
+    val openMeetings: () -> Unit = { onNavigateToMeetings(eventId) }
+    val openTransport: () -> Unit = { onNavigateToTransport(eventId) }
 
     // Find winning scenario based on score
     val winningScenario = scenarios.maxByOrNull { it.votingResult.score }
@@ -129,7 +142,7 @@ fun ScenarioComparisonScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Compare Scenarios",
+                        text = scenarioComparisonScreenTitle(),
                         style = MaterialTheme.typography.titleLarge
                     )
                 },
@@ -137,7 +150,7 @@ fun ScenarioComparisonScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = scenarioComparisonBackContentDescription()
                         )
                     }
                 },
@@ -160,12 +173,12 @@ fun ScenarioComparisonScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "No scenarios to compare",
+                        text = scenarioComparisonEmptyTitle(),
                         style = MaterialTheme.typography.headlineSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = "Create scenarios to start comparing options",
+                        text = scenarioComparisonEmptyMessage(),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -180,56 +193,97 @@ fun ScenarioComparisonScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Header with winner highlight
-                winningScenario?.let { winner ->
-                    item {
-                        WinnerHighlightCard(
-                            scenarioName = winner.scenario.name,
-                            score = winner.votingResult.score,
-                            isOrganizer = isOrganizer,
-                            onSelectAsWinner = {
-                                selectedWinnerId = winner.scenario.id
-                                onSelectWinner(winner.scenario.id)
-                            },
-                            onViewMeetings = { onNavigateToMeetings(eventId) }
-                        )
-                    }
-                }
-
-                // Scenario comparison cards
-                items(
-                    items = scenarios.sortedByDescending { it.votingResult.score },
-                    key = { it.scenario.id }
-                ) { scenarioWithVotes ->
-                    ComparisonCard(
-                        scenarioWithVotes = scenarioWithVotes,
-                        isLeading = scenarioWithVotes.scenario.id == winningScenario?.scenario?.id,
-                        isSelectedWinner = selectedWinnerId == scenarioWithVotes.scenario.id,
-                        isVoting = votingForId == scenarioWithVotes.scenario.id,
-                        onVote = {
-                            votingForId = scenarioWithVotes.scenario.id
-                            onVote(scenarioWithVotes.scenario.id)
-                        },
-                        onVoteComplete = { votingForId = null },
-                        currencyFormat = currencyFormat
+                item {
+                    ComparisonWorkflowCard(
+                        eventStatus = eventStatus,
+                        isAccessLocked = !canAccessDetails
                     )
                 }
 
-                // Bottom actions
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                if (!canAccessDetails) {
+                    item {
+                        LockedComparisonAccessCard()
+                    }
+                } else {
+                    // Header with winner highlight
+                    winningScenario?.let { winner ->
+                        item {
+                            WinnerHighlightCard(
+                                scenarioName = winner.scenario.name,
+                                score = winner.votingResult.score,
+                                isOrganizer = canSelectFinal,
+                                canViewMeetings = canNavigateToMeetings,
+                                onSelectAsWinner = {
+                                    selectedWinnerId = winner.scenario.id
+                                    onSelectWinner(winner.scenario.id)
+                                },
+                                onViewMeetings = openMeetings
+                            )
+                        }
+                    }
 
-                    if (isOrganizer) {
-                        OutlinedButton(
-                            onClick = { onNavigateToMeetings(eventId) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Skip Comparison - Go to Meetings")
+                    // Scenario comparison cards
+                    items(
+                        items = scenarios.sortedByDescending { it.votingResult.score },
+                        key = { it.scenario.id }
+                    ) { scenarioWithVotes ->
+                        ComparisonCard(
+                            scenarioWithVotes = scenarioWithVotes,
+                            isLeading = scenarioWithVotes.scenario.id == winningScenario?.scenario?.id,
+                            isSelectedWinner = selectedWinnerId == scenarioWithVotes.scenario.id,
+                            isVoting = votingForId == scenarioWithVotes.scenario.id,
+                            canVote = canVote,
+                            onVote = {
+                                votingForId = scenarioWithVotes.scenario.id
+                                onVote(scenarioWithVotes.scenario.id)
+                            },
+                            onVoteComplete = { votingForId = null },
+                            currencyFormat = currencyFormat
+                        )
+                    }
+
+                    // Bottom actions
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        if (isOrganizer && canNavigateToMeetings) {
+                            OutlinedButton(
+                                onClick = openMeetings,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(scenarioComparisonViewMeetingsLabel())
+                            }
+                        }
+                        if (isOrganizer && canNavigateToTransport) {
+                            Button(
+                                onClick = openTransport,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(scenarioComparisonOpenTransportLabel())
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun LockedComparisonAccessCard(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Text(
+            text = scenarioComparisonLockedAccessMessage(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.padding(16.dp)
+        )
     }
 }
 
@@ -241,6 +295,7 @@ private fun WinnerHighlightCard(
     scenarioName: String,
     score: Int,
     isOrganizer: Boolean,
+    canViewMeetings: Boolean,
     onSelectAsWinner: () -> Unit,
     onViewMeetings: () -> Unit,
     modifier: Modifier = Modifier
@@ -267,7 +322,7 @@ private fun WinnerHighlightCard(
             )
 
             Text(
-                text = "Current Leader",
+                text = scenarioComparisonCurrentLeaderLabel(),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -281,7 +336,7 @@ private fun WinnerHighlightCard(
             )
 
             Text(
-                text = "Score: $score",
+                text = scenarioComparisonScoreLabel(score),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
             )
@@ -302,14 +357,16 @@ private fun WinnerHighlightCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Select This Scenario")
+                    Text(scenarioComparisonSelectFinalLabel())
                 }
 
-                OutlinedButton(
-                    onClick = onViewMeetings,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("View Meetings")
+                if (canViewMeetings) {
+                    OutlinedButton(
+                        onClick = onViewMeetings,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(scenarioComparisonViewMeetingsLabel())
+                    }
                 }
             }
         }
@@ -325,6 +382,7 @@ private fun ComparisonCard(
     isLeading: Boolean,
     isSelectedWinner: Boolean,
     isVoting: Boolean,
+    canVote: Boolean,
     onVote: () -> Unit,
     onVoteComplete: () -> Unit,
     currencyFormat: NumberFormat,
@@ -375,7 +433,7 @@ private fun ComparisonCard(
                             modifier = Modifier.padding(top = 4.dp)
                         ) {
                             Text(
-                                text = "Selected",
+                                text = scenarioComparisonSelectedStatusLabel(),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
@@ -401,7 +459,7 @@ private fun ComparisonCard(
                                 modifier = Modifier.size(16.dp)
                             )
                             Text(
-                                text = "Leader",
+                                text = scenarioComparisonLeaderBadgeLabel(),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimary
                             )
@@ -411,6 +469,12 @@ private fun ComparisonCard(
             }
 
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+            Text(
+                text = scenarioComparisonLocationLabel(scenario.location),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
             // Quick stats row
             Row(
@@ -424,7 +488,7 @@ private fun ComparisonCard(
                 )
                 QuickStatChip(
                     icon = Icons.Default.Star,
-                    text = "${votingResult.score} pts",
+                    text = scenarioComparisonPointsLabel(votingResult.score),
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -435,22 +499,17 @@ private fun ComparisonCard(
             ) {
                 QuickStatChip(
                     icon = Icons.Outlined.ConfirmationNumber,
-                    text = "${currencyFormat.format(scenario.estimatedBudgetPerPerson)}/person",
+                    text = scenarioComparisonBudgetPerPersonLabel(
+                        currencyFormat.format(scenario.estimatedBudgetPerPerson)
+                    ),
                     modifier = Modifier.weight(1f)
                 )
                 QuickStatChip(
                     icon = Icons.Outlined.People,
-                    text = "${scenario.estimatedParticipants} people",
+                    text = scenarioComparisonPeopleLabel(scenario.estimatedParticipants),
                     modifier = Modifier.weight(1f)
                 )
             }
-
-            // Location
-            Text(
-                text = "📍 ${scenario.location}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
 
             // Description
             if (scenario.description.isNotBlank()) {
@@ -471,19 +530,19 @@ private fun ComparisonCard(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 VotePill(
-                    label = "Prefer",
+                    label = scenarioComparisonPreferVoteLabel(),
                     count = votingResult.preferCount,
                     percentage = votingResult.preferPercentage,
                     color = MaterialTheme.colorScheme.primary
                 )
                 VotePill(
-                    label = "Neutral",
+                    label = scenarioComparisonNeutralVoteLabel(),
                     count = votingResult.neutralCount,
                     percentage = votingResult.neutralPercentage,
                     color = MaterialTheme.colorScheme.tertiary
                 )
                 VotePill(
-                    label = "Against",
+                    label = scenarioComparisonAgainstVoteLabel(),
                     count = votingResult.againstCount,
                     percentage = votingResult.againstPercentage,
                     color = MaterialTheme.colorScheme.error
@@ -491,7 +550,7 @@ private fun ComparisonCard(
             }
 
             // Voting button
-            if (scenario.status != ScenarioStatus.SELECTED) {
+            if (scenario.status != ScenarioStatus.SELECTED && canVote) {
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                 SingleChoiceSegmentedButtonRow(
@@ -511,11 +570,68 @@ private fun ComparisonCard(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text("👍 Vote for this")
+                            Text(scenarioComparisonVoteForThisLabel())
                         }
                     }
                 }
+            } else if (!canVote) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Text(
+                    text = scenarioComparisonVoteLockedMessage(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
+        }
+    }
+}
+
+@Composable
+private fun ComparisonWorkflowCard(
+    eventStatus: EventStatus?,
+    isAccessLocked: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isAccessLocked) {
+                MaterialTheme.colorScheme.errorContainer
+            } else {
+                MaterialTheme.colorScheme.secondaryContainer
+            }
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = scenarioComparisonWorkflowStatusLabel(eventStatus),
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = if (isAccessLocked) {
+                    MaterialTheme.colorScheme.onErrorContainer
+                } else {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                }
+            )
+            Text(
+                text = if (isAccessLocked) {
+                    scenarioComparisonWorkflowLockedMessage()
+                } else {
+                    scenarioComparisonWorkflowAvailableMessage()
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isAccessLocked) {
+                    MaterialTheme.colorScheme.onErrorContainer
+                } else {
+                    MaterialTheme.colorScheme.onSecondaryContainer
+                }
+            )
         }
     }
 }
@@ -605,3 +721,59 @@ fun ScenarioComparisonPlaceholder(
         CircularProgressIndicator()
     }
 }
+
+internal fun scenarioComparisonScreenTitle(): String = "Comparer les scenarios"
+
+internal fun scenarioComparisonBackContentDescription(): String = "Retour"
+
+internal fun scenarioComparisonEmptyTitle(): String = "Aucun scenario a comparer"
+
+internal fun scenarioComparisonEmptyMessage(): String =
+    "Creez au moins deux scenarios pour comparer les options du groupe."
+
+internal fun scenarioComparisonViewMeetingsLabel(): String = "Voir les reunions"
+
+internal fun scenarioComparisonOpenTransportLabel(): String = "Ouvrir le transport"
+
+internal fun scenarioComparisonLockedAccessMessage(): String =
+    "Confirmez votre presence pour comparer les details des scenarios."
+
+internal fun scenarioComparisonCurrentLeaderLabel(): String = "Option en tete"
+
+internal fun scenarioComparisonScoreLabel(score: Int): String = "Score: $score"
+
+internal fun scenarioComparisonSelectFinalLabel(): String = "Retenir ce scenario"
+
+internal fun scenarioComparisonSelectedStatusLabel(): String = "Retenu"
+
+internal fun scenarioComparisonLeaderBadgeLabel(): String = "En tete"
+
+internal fun scenarioComparisonLocationLabel(location: String): String =
+    "Destination / logement: $location"
+
+internal fun scenarioComparisonPointsLabel(score: Int): String = "$score pts"
+
+internal fun scenarioComparisonBudgetPerPersonLabel(formattedAmount: String): String =
+    "$formattedAmount / personne"
+
+internal fun scenarioComparisonPeopleLabel(count: Int): String = "$count personnes"
+
+internal fun scenarioComparisonPreferVoteLabel(): String = "Pour"
+
+internal fun scenarioComparisonNeutralVoteLabel(): String = "Neutre"
+
+internal fun scenarioComparisonAgainstVoteLabel(): String = "Contre"
+
+internal fun scenarioComparisonVoteForThisLabel(): String = "Voter pour cette option"
+
+internal fun scenarioComparisonVoteLockedMessage(): String =
+    "Confirmez votre presence pour voter et ouvrir les details."
+
+internal fun scenarioComparisonWorkflowStatusLabel(eventStatus: EventStatus?): String =
+    "Statut: ${eventStatus?.name ?: "INCONNU"}"
+
+internal fun scenarioComparisonWorkflowLockedMessage(): String =
+    "Les details des scenarios sont disponibles apres confirmation de presence."
+
+internal fun scenarioComparisonWorkflowAvailableMessage(): String =
+    "Comparez destination, logement, periode, budget, duree et adequation au groupe."

@@ -1,14 +1,15 @@
 package com.guyghost.wakeve.viewmodel
 
 import androidx.lifecycle.viewModelScope
-import com.guyghost.wakeve.repository.EventRepository
 import com.guyghost.wakeve.analytics.AnalyticsEvent
 import com.guyghost.wakeve.analytics.AnalyticsProvider
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventPlanningMode
 import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventType
 import com.guyghost.wakeve.models.PotentialLocation
 import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.repository.EventRepositoryInterface
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -62,7 +63,7 @@ import kotlinx.coroutines.launch
  * @property analyticsProvider Analytics provider for tracking user actions
  */
 class CreateEventViewModel(
-    private val eventRepository: EventRepository,
+    private val eventRepository: EventRepositoryInterface,
     analyticsProvider: AnalyticsProvider
 ) : AnalyticsViewModel(analyticsProvider) {
 
@@ -78,6 +79,9 @@ class CreateEventViewModel(
 
     private val _eventTypeCustom = MutableStateFlow<String?>(null)
     val eventTypeCustom: StateFlow<String?> = _eventTypeCustom.asStateFlow()
+
+    private val _planningMode = MutableStateFlow(EventPlanningMode.TIME_SLOT_POLL)
+    val planningMode: StateFlow<EventPlanningMode> = _planningMode.asStateFlow()
 
     // Optional fields
     private val _minParticipants = MutableStateFlow<Int?>(null)
@@ -129,6 +133,11 @@ class CreateEventViewModel(
         _creationError.value = null
     }
 
+    fun updatePlanningMode(newMode: EventPlanningMode) {
+        _planningMode.value = newMode
+        _creationError.value = null
+    }
+
     fun updateMinParticipants(count: Int?) {
         _minParticipants.value = count?.takeIf { it > 0 }
         _creationError.value = null
@@ -170,25 +179,28 @@ class CreateEventViewModel(
     private fun validateForm(): String? {
         // Required fields
         if (_title.value.isBlank()) {
-            return "Title is required"
+            return eventCreationTitleRequiredMessage()
         }
         if (_description.value.isBlank()) {
-            return "Description is required"
+            return eventCreationDescriptionRequiredMessage()
         }
         if (_timeSlots.value.isEmpty()) {
-            return "At least one time slot is required"
+            return eventCreationTimeSlotRequiredMessage()
+        }
+        if (_planningMode.value == EventPlanningMode.SCENARIO_MATRIX && _potentialLocations.value.isEmpty()) {
+            return eventCreationScenarioDestinationRequiredMessage()
         }
 
         // Conditional validation for custom event type
         if (_eventType.value == EventType.CUSTOM && (_eventTypeCustom.value.isNullOrBlank())) {
-            return "Custom event type requires a description"
+            return eventCreationCustomTypeRequiredMessage()
         }
 
         // Participant count validation
         val min = _minParticipants.value
         val max = _maxParticipants.value
         if (min != null && max != null && max < min) {
-            return "Maximum participants must be greater than or equal to minimum"
+            return eventCreationParticipantRangeMessage()
         }
 
         return null
@@ -240,7 +252,8 @@ class CreateEventViewModel(
                     minParticipants = _minParticipants.value,
                     maxParticipants = _maxParticipants.value,
                     expectedParticipants = _expectedParticipants.value,
-                    heroImageUrl = null
+                    heroImageUrl = null,
+                    planningMode = _planningMode.value
                 )
 
                 val result = eventRepository.createEvent(event)
@@ -258,14 +271,12 @@ class CreateEventViewModel(
                     // Reset form
                     resetForm()
                 } else {
-                    val error = result.exceptionOrNull()?.message ?: "Unknown error"
-                    _creationError.value = error
-                    trackError("create_event_failed", error, isFatal = false)
+                    _creationError.value = eventCreationFailureMessage()
+                    trackError("create_event_failed", eventCreationFailureAnalyticsContext(), isFatal = false)
                 }
             } catch (e: Exception) {
-                val error = e.message ?: "Unknown error"
-                _creationError.value = error
-                trackError("create_event_exception", error, isFatal = false)
+                _creationError.value = eventCreationFailureMessage()
+                trackError("create_event_exception", eventCreationFailureAnalyticsContext(), isFatal = false)
             } finally {
                 _isCreating.value = false
             }
@@ -288,6 +299,7 @@ class CreateEventViewModel(
         _description.value = ""
         _eventType.value = EventType.OTHER
         _eventTypeCustom.value = null
+        _planningMode.value = EventPlanningMode.TIME_SLOT_POLL
         _minParticipants.value = null
         _maxParticipants.value = null
         _expectedParticipants.value = null
@@ -309,3 +321,29 @@ class CreateEventViewModel(
         return java.time.Instant.now().toString()
     }
 }
+
+internal fun eventCreationFailureMessage(): String {
+    return "Impossible de creer l'evenement. Reessayez."
+}
+
+internal fun eventCreationFailureAnalyticsContext(): String {
+    return "event_creation_failed"
+}
+
+internal fun eventCreationTitleRequiredMessage(): String =
+    "Le titre est requis."
+
+internal fun eventCreationDescriptionRequiredMessage(): String =
+    "La description est requise."
+
+internal fun eventCreationTimeSlotRequiredMessage(): String =
+    "Ajoutez au moins un creneau."
+
+internal fun eventCreationScenarioDestinationRequiredMessage(): String =
+    "Ajoutez au moins une destination pour comparer les scenarios."
+
+internal fun eventCreationCustomTypeRequiredMessage(): String =
+    "Decrivez le type d'evenement personnalise."
+
+internal fun eventCreationParticipantRangeMessage(): String =
+    "Le maximum de participants doit etre superieur ou egal au minimum."

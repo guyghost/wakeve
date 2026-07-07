@@ -47,6 +47,7 @@ object MLMetricsHelper {
      * @param block The suspendable operation to measure
      * @return Pair containing the operation result and the metrics event
      */
+    @Suppress("UNCHECKED_CAST")
     suspend fun <T> trackMLPerformance(
         operation: MLOperation,
         block: suspend () -> T
@@ -61,7 +62,7 @@ object MLMetricsHelper {
             success = true
         } catch (e: Exception) {
             success = false
-            errorMessage = e.message
+            errorMessage = mlOperationFailureMessage()
         }
         
         val durationMs = calculateDurationMillis(startTime, getCurrentTimeNanos())
@@ -100,6 +101,7 @@ object MLMetricsHelper {
      * @param block The suspendable operation to measure
      * @return Triple containing the result, confidence score, and metrics event
      */
+    @Suppress("UNCHECKED_CAST")
     suspend fun <T> trackMLPerformanceWithConfidence(
         operation: MLOperation,
         block: suspend () -> Pair<T, Double?>
@@ -114,7 +116,7 @@ object MLMetricsHelper {
             success = true
         } catch (e: Exception) {
             success = false
-            errorMessage = e.message
+            errorMessage = mlOperationFailureMessage()
         }
         
         val durationMs = calculateDurationMillis(startTime, getCurrentTimeNanos())
@@ -142,6 +144,7 @@ object MLMetricsHelper {
      * @param block The suspendable operation to measure
      * @return Triple containing the result, memory usage, and metrics event
      */
+    @Suppress("UNCHECKED_CAST")
     suspend fun <T> trackMLPerformanceWithMemory(
         operation: MLOperation,
         block: suspend () -> T
@@ -157,7 +160,7 @@ object MLMetricsHelper {
             success = true
         } catch (e: Exception) {
             success = false
-            errorMessage = e.message
+            errorMessage = mlOperationFailureMessage()
         }
         
         val memoryAfter = measureMemoryUsageMB()
@@ -189,6 +192,7 @@ object MLMetricsHelper {
      * @param block The suspendable operation to measure
      * @return Quadruple containing result, confidence, memory, and metrics event
      */
+    @Suppress("UNCHECKED_CAST")
     suspend fun <T> trackMLPerformanceComprehensive(
         operation: MLOperation,
         block: suspend () -> Triple<T, Double?, Double?>
@@ -203,7 +207,7 @@ object MLMetricsHelper {
             success = true
         } catch (e: Exception) {
             success = false
-            errorMessage = e.message
+            errorMessage = mlOperationFailureMessage()
         }
         
         val durationMs = calculateDurationMillis(startTime, getCurrentTimeNanos())
@@ -286,6 +290,9 @@ object MLMetricsHelper {
         }
     }
 }
+
+internal fun mlOperationFailureMessage(): String =
+    "ML operation failed. Please try again."
 
 /**
  * Simple Quadruple data class for holding 4 values.

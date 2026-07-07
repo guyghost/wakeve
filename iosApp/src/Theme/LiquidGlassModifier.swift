@@ -7,98 +7,138 @@ import SwiftUI
 /// Uses the native iOS 26+ `.glassEffect()` API with a
 /// `.regularMaterial` fallback for earlier versions.
 struct LiquidGlassModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     var cornerRadius: CGFloat = 20
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), !reduceTransparency {
             content
                 .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         } else {
             content
-                .background(.regularMaterial)
+                .background(fallbackBackground)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
         }
     }
+
+    private var fallbackBackground: AnyShapeStyle {
+        if reduceTransparency {
+            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
+        }
+        return AnyShapeStyle(.regularMaterial)
+    }
 }
 
-// MARK: - Glass Card Modifier
+// MARK: - Content Surface Card Modifier
 ///
-/// Unified glass card modifier with iOS 26+ support.
+/// Unified content card modifier.
 ///
-/// Replaces duplicate implementations from LiquidGlassAnimations.swift
-/// and ViewExtensions.swift.
+/// Content surfaces should stay stable and readable. Liquid Glass is reserved
+/// for navigation, controls, and floating actions.
 struct GlassCardModifier: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
     var cornerRadius: CGFloat = 16
     var material: Material = .regularMaterial
 
-    @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content
-                .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
-        } else {
-            content
-                .background(material)
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
-        }
+        content
+            .background(fill)
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(WakeveTheme.ColorToken.cardBorder(for: colorScheme), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .shadow(color: WakeveTheme.Shadow.subtle.color, radius: WakeveTheme.Shadow.subtle.radius, x: WakeveTheme.Shadow.subtle.x, y: WakeveTheme.Shadow.subtle.y)
+    }
+
+    private var fill: Color {
+        WakeveTheme.ColorToken.cardFill(for: colorScheme)
     }
 }
 
 // MARK: - Thin Glass Modifier
 
 struct ThinGlassModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     var cornerRadius: CGFloat = 16
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), !reduceTransparency {
             content
                 .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         } else {
             content
-                .background(.thinMaterial)
+                .background(fallbackBackground)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
+    }
+
+    private var fallbackBackground: AnyShapeStyle {
+        if reduceTransparency {
+            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
+        }
+        return AnyShapeStyle(.thinMaterial)
     }
 }
 
 // MARK: - Ultra Thin Glass Modifier
 
 struct UltraThinGlassModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     var cornerRadius: CGFloat = 16
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), !reduceTransparency {
             content
                 .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         } else {
             content
-                .background(.ultraThinMaterial)
+                .background(fallbackBackground)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         }
+    }
+
+    private var fallbackBackground: AnyShapeStyle {
+        if reduceTransparency {
+            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
+        }
+        return AnyShapeStyle(.ultraThinMaterial)
     }
 }
 
 // MARK: - Thick Glass Modifier
 
 struct ThickGlassModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     var cornerRadius: CGFloat = 24
 
     @ViewBuilder
     func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), !reduceTransparency {
             content
                 .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
         } else {
             content
-                .background(.thickMaterial)
+                .background(fallbackBackground)
                 .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 .shadow(color: .black.opacity(0.08), radius: 12, x: 0, y: 6)
         }
+    }
+
+    private var fallbackBackground: AnyShapeStyle {
+        if reduceTransparency {
+            return AnyShapeStyle(Color(uiColor: .secondarySystemBackground))
+        }
+        return AnyShapeStyle(.thickMaterial)
     }
 }
 
@@ -111,10 +151,10 @@ extension View {
         modifier(LiquidGlassModifier(cornerRadius: cornerRadius))
     }
 
-    /// Apply glass card style following Apple's Liquid Glass guidelines
+    /// Apply the standard Wakeve content card style.
     /// - Parameters:
     ///   - cornerRadius: Corner radius (default: 16)
-    ///   - material: Material to use for fallback (default: .regularMaterial)
+    ///   - material: Kept for call-site compatibility; content cards are non-glass.
     func glassCard(
         cornerRadius: CGFloat = 16,
         material: Material = .regularMaterial

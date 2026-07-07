@@ -3,9 +3,8 @@ package com.guyghost.wakeve
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -15,14 +14,24 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.guyghost.wakeve.auth.shell.statemachine.AuthStateMachine
-import com.guyghost.wakeve.deeplink.DeepLinkHandler
+import com.guyghost.wakeve.deeplink.AndroidInvitationDeepLinkService
+import com.guyghost.wakeve.deeplink.AndroidNavigationDeepLinkHandler
 import com.guyghost.wakeve.deeplink.DeepLinkStateManager
+import com.guyghost.wakeve.deeplink.PendingInviteProcessingInput
+import com.guyghost.wakeve.deeplink.pendingInviteProcessingInput
+import com.guyghost.wakeve.deeplink.pendingInviteProcessingResult
+import com.guyghost.wakeve.deeplink.redactDeepLinkForLog
 import com.guyghost.wakeve.navigation.Screen
-import com.guyghost.wakeve.navigation.WakeveBottomBar
+import com.guyghost.wakeve.navigation.WakeveAdaptiveNavigationScaffold
 import com.guyghost.wakeve.navigation.WakeveNavHost
+import com.guyghost.wakeve.notification.NotificationPreferences
+import com.guyghost.wakeve.notification.NotificationPreferencesRepositoryInterface
+import com.guyghost.wakeve.notification.defaultNotificationPreferences
+import com.guyghost.wakeve.theme.WakeveTheme
 import com.guyghost.wakeve.ui.auth.AuthViewModel
 import com.guyghost.wakeve.ui.components.ProfileBottomSheet
 import org.koin.compose.koinInject
@@ -71,6 +80,7 @@ fun markOnboardingComplete(context: Context) {
 @Preview
 fun App() {
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     
     // Get AuthStateMachine from Koin
     val authStateMachine: AuthStateMachine = koinInject()
@@ -79,6 +89,8 @@ fun App() {
     // Auth ViewModel for user actions
     val authViewModel: AuthViewModel = koinInject()
     val authUiState by authViewModel.uiState.collectAsState()
+
+    val notificationPreferencesRepository: NotificationPreferencesRepositoryInterface = koinInject()
     
     // Onboarding status
     var hasOnboarded by remember { mutableStateOf(false) }
@@ -88,6 +100,7 @@ fun App() {
     
     // Profile bottom sheet visibility
     var showProfileSheet by remember { mutableStateOf(false) }
+    var notificationPreferences by remember { mutableStateOf<NotificationPreferences?>(null) }
 
     // Inbox unread count for bottom bar badge
     var inboxUnreadCount by remember { mutableStateOf(0) }
@@ -98,24 +111,62 @@ fun App() {
     }
 
     // Handle deep links from DeepLinkStateManager
-    val deepLinkHandler = remember { DeepLinkHandler() }
+    val deepLinkHandler = remember { AndroidNavigationDeepLinkHandler() }
+    val invitationDeepLinkService = remember(context) {
+        AndroidInvitationDeepLinkService(context.applicationContext)
+    }
+    val pendingInviteCode by DeepLinkStateManager.pendingInviteCode.collectAsState()
+    var processingInviteCode by remember { mutableStateOf<String?>(null) }
 
     // Collect deep links from state manager and handle them
-    LaunchedEffect(Unit) {
+    LaunchedEffect(authState.isAuthenticated) {
         DeepLinkStateManager.pendingDeepLink.collect { uri ->
             if (uri != null) {
-                Log.d("App", "Handling deep link from state manager: $uri")
+                Log.d("App", "Handling deep link from state manager: ${redactDeepLinkForLog(uri.toString())}")
 
                 // Handle deep link
                 val handled = deepLinkHandler.handleDeepLink(
                     uri = uri,
                     navController = navController,
-                    isAuthenticated = authState.isAuthenticated || authState.isGuest
+                    isAuthenticated = authState.isAuthenticated
                 )
 
                 if (handled) {
                     // Clear the pending deep link after navigation
                     DeepLinkStateManager.clearPendingDeepLink()
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(pendingInviteCode, authState.isAuthenticated) {
+        when (
+            val input = pendingInviteProcessingInput(
+                pendingInviteCode = pendingInviteCode,
+                isAuthenticated = authState.isAuthenticated,
+                processingInviteCode = processingInviteCode
+            )
+        ) {
+            PendingInviteProcessingInput.None -> return@LaunchedEffect
+            PendingInviteProcessingInput.RequireAuthentication -> {
+                navController.navigate(Screen.Auth.route)
+                return@LaunchedEffect
+            }
+            is PendingInviteProcessingInput.Accept -> {
+                processingInviteCode = input.code
+                val action = pendingInviteProcessingResult(invitationDeepLinkService.acceptInvitation(input.code))
+                if (action.clearPendingInviteCode) {
+                    DeepLinkStateManager.clearPendingInviteCode()
+                }
+                processingInviteCode = null
+                Toast.makeText(context, action.message, Toast.LENGTH_LONG).show()
+                when {
+                    action.acceptedEventId != null -> {
+                        navController.navigate(Screen.EventDetail.createRoute(action.acceptedEventId))
+                    }
+                    action.navigateToAuth -> {
+                        navController.navigate(Screen.Auth.route)
+                    }
                 }
             }
         }
@@ -143,6 +194,12 @@ fun App() {
     val userId = remember(authState) {
         authState.currentUser?.id ?: ""
     }
+
+    LaunchedEffect(userId, showProfileSheet) {
+        if (userId.isBlank() || !showProfileSheet) return@LaunchedEffect
+        notificationPreferences = notificationPreferencesRepository.getPreferences(userId)
+            ?: defaultNotificationPreferences(userId)
+    }
     
     // Determine if bottom bar should be visible
     val currentRoute = navController.currentBackStackEntryFlow.collectAsState(initial = null)
@@ -154,16 +211,11 @@ fun App() {
         )
     }
     
-    MaterialTheme {
-        Scaffold(
-            bottomBar = {
-                if (showBottomBar) {
-                    WakeveBottomBar(
-                        navController = navController,
-                        inboxUnreadCount = inboxUnreadCount
-                    )
-                }
-            }
+    WakeveTheme {
+        WakeveAdaptiveNavigationScaffold(
+            navController = navController,
+            showNavigation = showBottomBar,
+            inboxUnreadCount = inboxUnreadCount
         ) { paddingValues ->
             WakeveNavHost(
                 navController = navController,
@@ -184,30 +236,29 @@ fun App() {
             userPhotoUrl = null, // TODO: Add photo URL when available
             isGuest = authState.isGuest,
             isAuthenticated = authState.isAuthenticated,
-            notificationsEnabled = false, // TODO: Get from preferences
-            calendarSyncEnabled = false, // TODO: Get from preferences
-            emailNotificationsEnabled = false, // TODO: Get from preferences
+            notificationsEnabled = notificationPreferences?.enabledTypes?.isNotEmpty() == true,
+            quietHoursLabel = notificationPreferences.toQuietHoursLabel(),
+            soundAndVibrationLabel = notificationPreferences.toSoundAndVibrationLabel(),
             onNotificationsClick = { 
-                // TODO: Navigate to notifications settings
                 showProfileSheet = false
-                // navController.navigate(Screen.NotificationSettings.route)
+                navController.navigate(Screen.NotificationPreferences.route)
             },
-            onCalendarSyncClick = { 
-                // TODO: Navigate to calendar sync settings
+            onQuietHoursClick = {
                 showProfileSheet = false
+                navController.navigate(Screen.NotificationPreferences.route)
             },
-            onEmailNotificationsClick = { 
-                // TODO: Navigate to email notification settings
+            onSoundAndVibrationClick = {
                 showProfileSheet = false
+                navController.navigate(Screen.NotificationPreferences.route)
             },
             onPrivacyClick = { 
-                // TODO: Show privacy policy
+                uriHandler.openUri(WakeveLegalUrls.PRIVACY)
             },
             onHelpClick = { 
-                // TODO: Show help
+                uriHandler.openUri(WakeveLegalUrls.SUPPORT)
             },
             onTermsClick = { 
-                // TODO: Show terms
+                uriHandler.openUri(WakeveLegalUrls.TERMS)
             },
             onSignOutClick = {
                 authViewModel.signOut()
@@ -224,12 +275,29 @@ fun App() {
     }
 }
 
+private fun NotificationPreferences?.toQuietHoursLabel(): String {
+    val prefs = this ?: return "Non configurées"
+    val start = prefs.quietHoursStart?.toDisplayString()
+    val end = prefs.quietHoursEnd?.toDisplayString()
+    return if (start != null && end != null) "$start - $end" else "Non configurées"
+}
+
+private fun NotificationPreferences?.toSoundAndVibrationLabel(): String {
+    val prefs = this ?: return "Non configurés"
+    return when {
+        prefs.soundEnabled && prefs.vibrationEnabled -> "Sons et vibrations"
+        prefs.soundEnabled -> "Sons"
+        prefs.vibrationEnabled -> "Vibrations"
+        else -> "Désactivés"
+    }
+}
+
 /**
  * App preview for Android Studio.
  */
 @Composable
 fun AppPreview() {
-    MaterialTheme {
+    WakeveTheme(dynamicColor = false) {
         App()
     }
 }

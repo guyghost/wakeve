@@ -10,12 +10,9 @@
         android:shortcutLongLabel="@string/create_event_long_label">
         <intent
             android:action="android.intent.action.VIEW"
+            android:data="wakeve://event/create"
             android:targetPackage="com.guyghost.wakeve"
-            android:targetClass="com.guyghost.wakeve.MainActivity">
-            <extra
-                android:name="shortcut_action"
-                android:value="CREATE_EVENT"/>
-        </intent>
+            android:targetClass="com.guyghost.wakeve.MainActivity" />
         <categories android:name="android.shortcut.conversation"/>
     </shortcut>
     
@@ -28,30 +25,24 @@
         android:shortcutLongLabel="@string/open_calendar_long_label">
         <intent
             android:action="android.intent.action.VIEW"
+            android:data="wakeve://calendar"
             android:targetPackage="com.guyghost.wakeve"
-            android:targetClass="com.guyghost.wakeve.MainActivity">
-            <extra
-                android:name="shortcut_action"
-                android:value="OPEN_CALENDAR"/>
-        </intent>
+            android:targetClass="com.guyghost.wakeve.MainActivity" />
         <categories android:name="android.shortcut.conversation"/>
     </shortcut>
     
-    <!-- Share Event Shortcut -->
+    <!-- Unread Notifications Shortcut -->
     <shortcut
-        android:shortcutId="share_event_shortcut"
+        android:shortcutId="unread_notifications_shortcut"
         android:enabled="true"
         android:icon="@drawable/ic_share"
-        android:shortcutShortLabel="@string/share_event_short_label"
-        android:shortcutLongLabel="@string/share_event_long_label">
+        android:shortcutShortLabel="@string/unread_notifications_short_label"
+        android:shortcutLongLabel="@string/unread_notifications_long_label">
         <intent
             android:action="android.intent.action.VIEW"
+            android:data="wakeve://notifications?filter=unread"
             android:targetPackage="com.guyghost.wakeve"
-            android:targetClass="com.guyghost.wakeve.MainActivity">
-            <extra
-                android:name="shortcut_action"
-                android:value="SEND_INVITATIONS"/>
-        </intent>
+            android:targetClass="com.guyghost.wakeve.MainActivity" />
         <categories android:name="android.shortcut.conversation"/>
     </shortcut>
     

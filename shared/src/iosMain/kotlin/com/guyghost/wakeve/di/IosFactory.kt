@@ -8,7 +8,7 @@ import com.guyghost.wakeve.comment.CommentRepository
 import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.meeting.MeetingRepository
 import com.guyghost.wakeve.meeting.MeetingService
-import com.guyghost.wakeve.meeting.MockMeetingPlatformProvider
+import com.guyghost.wakeve.meeting.UnavailableMeetingPlatformProvider
 import com.guyghost.wakeve.notification.DefaultNotificationService
 import com.guyghost.wakeve.presentation.ObservableStateMachine
 import com.guyghost.wakeve.presentation.state.EventManagementContract
@@ -125,11 +125,12 @@ object IosFactory {
         val loadEventsUseCase = LoadEventsUseCase(eventRepository)
         val createEventUseCase = CreateEventUseCase(eventRepository)
 
-        // Create state machine
+        // Create state machine with sample event seeder support
         val stateMachine = EventManagementStateMachine(
             loadEventsUseCase = loadEventsUseCase,
             createEventUseCase = createEventUseCase,
             eventRepository = eventRepository,
+            sampleEventSeeder = eventRepository as? com.guyghost.wakeve.presentation.statemachine.SampleEventSeeder,
             scope = scope
         )
 
@@ -170,7 +171,7 @@ object IosFactory {
         val calendarService = com.guyghost.wakeve.calendar.CalendarService(database, platformCalendarService)
         val notificationService = DefaultNotificationService()
         val meetingRepository = MeetingRepository(database)
-        val meetingPlatformProvider = MockMeetingPlatformProvider() // Use mock for now, can be replaced with real provider
+        val meetingPlatformProvider = UnavailableMeetingPlatformProvider()
         val meetingService = MeetingService(
             database = database,
             calendarService = calendarService,
@@ -227,6 +228,7 @@ object IosFactory {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
         // Create dependencies
+        val eventRepository: EventRepositoryInterface = DatabaseEventRepository(database)
         val scenarioRepository = ScenarioRepository(database)
         val loadScenariosUseCase = LoadScenariosUseCase(scenarioRepository)
         val createScenarioUseCase = CreateScenarioUseCase(scenarioRepository)
@@ -241,6 +243,8 @@ object IosFactory {
             updateScenarioUseCase = updateScenarioUseCase,
             deleteScenarioUseCase = deleteScenarioUseCase,
             voteScenarioUseCase = voteScenarioUseCase,
+            eventRepository = eventRepository,
+            scenarioRepository = scenarioRepository,
             scope = scope
         )
 

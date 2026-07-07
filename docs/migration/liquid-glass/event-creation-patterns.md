@@ -480,7 +480,7 @@ struct DateTimeButtons: View {
 
 - **Liquid Glass Guidelines**: `iosApp/LIQUID_GLASS_GUIDELINES.md`
 - **Design System**: `.opencode/design-system.md`
-- **Extensions**: `iosApp/iosApp/Extensions/ViewExtensions.swift`
+- **Extensions**: `iosApp/src/Extensions/ViewExtensions.swift`
 - **Apple HIG**: [Human Interface Guidelines - Materials](https://developer.apple.com/design/human-interface-guidelines/materials)
 
 ---

@@ -2,7 +2,6 @@ package com.guyghost.wakeve.presentation.statemachine
 
 import com.guyghost.wakeve.repository.EventRepositoryInterface
 import com.guyghost.wakeve.repository.ScenarioRepository
-import com.guyghost.wakeve.models.ScenarioStatus
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract.Intent
 import com.guyghost.wakeve.presentation.state.ScenarioManagementContract.SideEffect
@@ -136,7 +135,10 @@ class ScenarioManagementStateMachine(
             is Intent.UpdateScenario -> handleUpdateScenario(intent)
             is Intent.DeleteScenario -> handleDeleteScenario(intent)
             is Intent.VoteScenario -> handleVoteScenario(intent)
+            is Intent.GenerateScenarioMatrix -> handleGenerateScenarioMatrix(intent)
+            is Intent.PublishScenarioMatrix -> handlePublishScenarioMatrix(intent)
             is Intent.CompareScenarios -> handleCompareScenarios(intent)
+            is Intent.SelectMatrixScenarioAsFinal -> handleSelectMatrixScenarioAsFinal(intent)
             is Intent.ClearComparison -> handleClearComparison()
             is Intent.ClearError -> handleClearError()
         }
@@ -176,14 +178,15 @@ class ScenarioManagementStateMachine(
                     it.copy(
                         isLoading = false,
                         scenarios = scenarios,
+                        eventStatus = eventRepository?.getEvent(eventId)?.status,
                         votingResults = scenarios.associate { swv ->
                             swv.scenario.id to swv.votingResult
                         }
                     )
                 }
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to load scenarios"
+            onFailure = { _ ->
+                val errorMsg = scenarioLoadFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -220,14 +223,15 @@ class ScenarioManagementStateMachine(
                     it.copy(
                         isLoading = false,
                         scenarios = scenarios,
+                        eventStatus = eventRepository?.getEvent(intent.eventId)?.status,
                         votingResults = scenarios.associate { swv ->
                             swv.scenario.id to swv.votingResult
                         }
                     )
                 }
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to load scenarios"
+            onFailure = { _ ->
+                val errorMsg = scenarioLoadFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -268,10 +272,13 @@ class ScenarioManagementStateMachine(
             onSuccess = { _ ->
                 // Reload scenarios
                 reloadScenarios(intent.scenario.eventId)
+                updateState {
+                    it.copy(eventStatus = eventRepository?.getEvent(intent.scenario.eventId)?.status)
+                }
                 emitSideEffect(SideEffect.ShowToast("Scenario created successfully"))
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to create scenario"
+            onFailure = { _ ->
+                val errorMsg = scenarioCreateFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -302,8 +309,8 @@ class ScenarioManagementStateMachine(
                 updateState { it.copy(selectedScenario = updated) }
                 emitSideEffect(SideEffect.ShowToast("Scenario updated successfully"))
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to update scenario"
+            onFailure = { _ ->
+                val errorMsg = scenarioUpdateFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -340,8 +347,8 @@ class ScenarioManagementStateMachine(
                 emitSideEffect(SideEffect.ShowToast("Scenario deleted successfully"))
                 emitSideEffect(SideEffect.NavigateBack)
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to delete scenario"
+            onFailure = { _ ->
+                val errorMsg = scenarioDeleteFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -399,6 +406,12 @@ class ScenarioManagementStateMachine(
         val scenario = currentState.scenarios.find { it.scenario.id == intent.scenarioId }
 
         if (scenario != null) {
+            if (!canAccessScenarioDetails(scenario.scenario.eventId, currentState.participantId)) {
+                val errorMsg = "Scenario details are available only to confirmed participants"
+                updateState { it.copy(error = errorMsg) }
+                emitSideEffect(SideEffect.ShowError(errorMsg))
+                return
+            }
             updateState { it.copy(selectedScenario = scenario.scenario) }
             emitSideEffect(SideEffect.NavigateTo("scenario/${intent.scenarioId}"))
         } else {
@@ -472,10 +485,9 @@ class ScenarioManagementStateMachine(
             return
         }
 
-        // Update scenario status to SELECTED
-        val scenarioResult = scenarioRepository.updateScenarioStatus(
-            scenarioId = intent.scenarioId,
-            status = ScenarioStatus.SELECTED
+        val scenarioResult = scenarioRepository.selectFinalScenario(
+            eventId = intent.eventId,
+            scenarioId = intent.scenarioId
         )
 
         scenarioResult.fold(
@@ -494,15 +506,130 @@ class ScenarioManagementStateMachine(
                         emitSideEffect(SideEffect.ShowToast("Scenario selected successfully!"))
                         emitSideEffect(SideEffect.NavigateTo("meetings/${intent.eventId}"))
                     },
-                    onFailure = { error ->
-                        val errorMsg = error.message ?: "Failed to update event status"
+                    onFailure = { _ ->
+                        val errorMsg = scenarioEventStatusUpdateFailureMessage()
                         updateState { it.copy(isLoading = false, error = errorMsg) }
                         emitSideEffect(SideEffect.ShowError(errorMsg))
                     }
                 )
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to select scenario"
+            onFailure = { _ ->
+                val errorMsg = scenarioSelectionFailureMessage()
+                updateState { it.copy(isLoading = false, error = errorMsg) }
+                emitSideEffect(SideEffect.ShowError(errorMsg))
+            }
+        )
+    }
+
+    private suspend fun handleGenerateScenarioMatrix(intent: Intent.GenerateScenarioMatrix) {
+        if (eventRepository == null || scenarioRepository == null) {
+            val errorMsg = "Repository not available"
+            updateState { it.copy(error = errorMsg) }
+            emitSideEffect(SideEffect.ShowError(errorMsg))
+            return
+        }
+
+        updateState {
+            it.copy(
+                isLoading = true,
+                error = null,
+                eventId = intent.eventId,
+                participantId = intent.userId
+            )
+        }
+
+        val event = eventRepository.getEvent(intent.eventId)
+        if (!validateOrganizerPermission(event)(intent.userId)) {
+            emitUnauthorizedError("Only event organizer can generate scenario matrix")
+            return
+        }
+
+        scenarioRepository.generateScenarioMatrix(intent.eventId).fold(
+            onSuccess = { generated ->
+                reloadScenarios(intent.eventId)
+                emitSideEffect(SideEffect.ShowToast("Generated ${generated.size} scenario matrix options"))
+            },
+            onFailure = { _ ->
+                val errorMsg = scenarioMatrixGenerationFailureMessage()
+                updateState { it.copy(isLoading = false, error = errorMsg) }
+                emitSideEffect(SideEffect.ShowError(errorMsg))
+            }
+        )
+    }
+
+    private suspend fun handlePublishScenarioMatrix(intent: Intent.PublishScenarioMatrix) {
+        if (eventRepository == null || scenarioRepository == null) {
+            val errorMsg = "Repository not available"
+            updateState { it.copy(error = errorMsg) }
+            emitSideEffect(SideEffect.ShowError(errorMsg))
+            return
+        }
+
+        updateState {
+            it.copy(
+                isLoading = true,
+                error = null,
+                eventId = intent.eventId,
+                participantId = intent.userId
+            )
+        }
+
+        val event = eventRepository.getEvent(intent.eventId)
+        if (!validateOrganizerPermission(event)(intent.userId)) {
+            emitUnauthorizedError("Only event organizer can publish scenario matrix")
+            return
+        }
+
+        scenarioRepository.publishScenarioMatrix(intent.eventId).fold(
+            onSuccess = {
+                reloadScenarios(intent.eventId)
+                updateState {
+                    it.copy(
+                        isLoading = false,
+                        eventStatus = com.guyghost.wakeve.models.EventStatus.COMPARING
+                    )
+                }
+                emitSideEffect(SideEffect.ShowToast("Scenario matrix published"))
+                emitSideEffect(SideEffect.NavigateTo("event/${intent.eventId}/scenarios"))
+            },
+            onFailure = { _ ->
+                val errorMsg = scenarioMatrixPublishFailureMessage()
+                updateState { it.copy(isLoading = false, error = errorMsg) }
+                emitSideEffect(SideEffect.ShowError(errorMsg))
+            }
+        )
+    }
+
+    private suspend fun handleSelectMatrixScenarioAsFinal(intent: Intent.SelectMatrixScenarioAsFinal) {
+        if (eventRepository == null || scenarioRepository == null) {
+            val errorMsg = "Repository not available"
+            updateState { it.copy(error = errorMsg) }
+            emitSideEffect(SideEffect.ShowError(errorMsg))
+            return
+        }
+
+        updateState { it.copy(isLoading = true, error = null) }
+
+        val event = eventRepository.getEvent(intent.eventId)
+        if (!validateOrganizerPermission(event)(intent.userId)) {
+            emitUnauthorizedError("Only event organizer can select final scenario")
+            return
+        }
+
+        scenarioRepository.selectFinalMatrixScenario(intent.eventId, intent.scenarioId).fold(
+            onSuccess = {
+                reloadScenarios(intent.eventId)
+                updateState {
+                    it.copy(
+                        isLoading = false,
+                        eventStatus = com.guyghost.wakeve.models.EventStatus.CONFIRMED
+                    )
+                }
+                emitSideEffect(SideEffect.ShowToast("Scenario selected successfully!"))
+                emitSideEffect(SideEffect.NavigateTo("meetings/${intent.eventId}"))
+            },
+            onFailure = { _ ->
+                val errorMsg = scenarioSelectionFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -539,6 +666,14 @@ class ScenarioManagementStateMachine(
 
         updateState { it.copy(error = null) }
 
+        val scenario = scenarioRepository?.getScenarioById(intent.scenarioId)
+        if (scenario != null && !canAccessScenarioDetails(scenario.eventId, participantId)) {
+            val errorMsg = "Scenario voting is available only to confirmed participants"
+            updateState { it.copy(error = errorMsg) }
+            emitSideEffect(SideEffect.ShowError(errorMsg))
+            return
+        }
+
         voteScenarioUseCase(
             scenarioId = intent.scenarioId,
             participantId = participantId,
@@ -549,8 +684,8 @@ class ScenarioManagementStateMachine(
                 reloadScenarios(currentState.eventId)
                 emitSideEffect(SideEffect.ShowToast("Vote submitted successfully"))
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to submit vote"
+            onFailure = { _ ->
+                val errorMsg = scenarioVoteFailureMessage()
                 updateState { it.copy(error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
@@ -642,17 +777,60 @@ class ScenarioManagementStateMachine(
                     it.copy(
                         isLoading = false,
                         scenarios = scenarios,
+                        eventStatus = eventRepository?.getEvent(eventId)?.status,
                         votingResults = scenarios.associate { swv ->
                             swv.scenario.id to swv.votingResult
                         }
                     )
                 }
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to reload scenarios"
+            onFailure = { _ ->
+                val errorMsg = scenarioReloadFailureMessage()
                 updateState { it.copy(isLoading = false, error = errorMsg) }
                 emitSideEffect(SideEffect.ShowError(errorMsg))
             }
         )
     }
+
+    private fun canAccessScenarioDetails(eventId: String, userId: String): Boolean {
+        if (userId.isBlank()) return false
+        val repository = eventRepository ?: return false
+        val event = repository.getEvent(eventId) ?: return false
+        if (event.organizerId == userId) return true
+
+        val participantRecord = repository.getParticipantRecords(eventId)
+            ?.firstOrNull { it.userId == userId }
+
+        return participantRecord?.hasValidatedDate == 1L
+    }
 }
+
+internal fun scenarioLoadFailureMessage(): String =
+    "Failed to load scenarios"
+
+internal fun scenarioCreateFailureMessage(): String =
+    "Failed to create scenario"
+
+internal fun scenarioUpdateFailureMessage(): String =
+    "Failed to update scenario"
+
+internal fun scenarioDeleteFailureMessage(): String =
+    "Failed to delete scenario"
+
+internal fun scenarioEventStatusUpdateFailureMessage(): String =
+    "Failed to update event status"
+
+internal fun scenarioSelectionFailureMessage(): String =
+    "Failed to select scenario"
+
+internal fun scenarioMatrixGenerationFailureMessage(): String =
+    "Failed to generate scenario matrix"
+
+internal fun scenarioMatrixPublishFailureMessage(): String =
+    "Failed to publish scenario matrix"
+
+internal fun scenarioVoteFailureMessage(): String =
+    "Failed to submit vote"
+
+internal fun scenarioReloadFailureMessage(): String =
+    "Failed to reload scenarios"

@@ -10,9 +10,9 @@
 
 | Phase | Action | Fichiers | Statut |
 |-------|--------|----------|--------|
-| **1.3** | Créer PollVotingView.swift | iosApp/iosApp/Views/PollVotingView.swift | ✅ Créé |
-| **1.3** | Modifier ModernEventDetailView | iosApp/iosApp/Views/ModernEventDetailView.swift | ✅ Modifié |
-| **3.1** | Créer WorkflowTests.swift | iosApp/iosApp/Tests/WorkflowTests.swift | ✅ Créé |
+| **1.3** | Créer PollVotingView.swift | iosApp/src/Views/PollVotingView.swift | ✅ Créé |
+| **1.3** | Modifier ModernEventDetailView | iosApp/src/Views/ModernEventDetailView.swift | ✅ Modifié |
+| **3.1** | Créer WorkflowTests.swift | iosApp/WakeveTests/WorkflowTests.swift | ✅ Créé |
 
 ---
 
@@ -26,7 +26,7 @@ Adopter l'approche screen dédié pour la cohérence avec Android (PollVotingScr
 
 ### 1. Création de PollVotingView.swift
 
-**Fichier:** `iosApp/iosApp/Views/PollVotingView.swift`
+**Fichier:** `iosApp/src/Views/PollVotingView.swift`
 
 **Composants:**
 - ✅ `PollVotingView` - Vue principale de vote
@@ -87,7 +87,7 @@ for (slotId, vote) in votes {
 
 ### 2. Modification de ModernEventDetailView.swift
 
-**Fichier:** `iosApp/iosApp/Views/ModernEventDetailView.swift`
+**Fichier:** `iosApp/src/Views/ModernEventDetailView.swift`
 
 **Modification:** Remplacement de `RSVPButtonsSection` par un bouton de navigation vers PollVotingView
 
@@ -155,7 +155,7 @@ Créer des tests automatisés pour vérifier la cohérence des workflows entre i
 
 ### Création de WorkflowTests.swift
 
-**Fichier:** `iosApp/iosApp/Tests/WorkflowTests.swift`
+**Fichier:** `iosApp/WakeveTests/WorkflowTests.swift`
 
 **Tests implémentés:** 20 tests
 
@@ -368,11 +368,11 @@ Test Suite 'WorkflowTests' passed
 ## 📝 Documentation
 
 **Fichiers créés:**
-- `iosApp/iosApp/Views/PollVotingView.swift`
-- `iosApp/iosApp/Tests/WorkflowTests.swift`
+- `iosApp/src/Views/PollVotingView.swift`
+- `iosApp/WakeveTests/WorkflowTests.swift`
 
 **Fichiers modifiés:**
-- `iosApp/iosApp/Views/ModernEventDetailView.swift`
+- `iosApp/src/Views/ModernEventDetailView.swift`
 
 **Rapports de référence:**
 - `WORKFLOW_ANALYSIS_REPORT.md` - Analyse initiale

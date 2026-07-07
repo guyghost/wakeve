@@ -2,8 +2,8 @@ package com.guyghost.wakeve.notification
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import platform.Foundation.NSBundle
 import platform.Foundation.NSDate
 import platform.Foundation.NSTimeInterval
 import platform.Foundation.NSUUID
@@ -43,8 +43,6 @@ import kotlin.time.Duration.Companion.seconds
  */
 actual class NotificationScheduler {
 
-    private val notificationCenter = UNUserNotificationCenter.currentNotificationCenter()
-
     actual companion object {
         private const val CATEGORY_EVENT = "EVENT_CATEGORY"
         private const val CATEGORY_POLL = "POLL_CATEGORY"
@@ -83,15 +81,40 @@ actual class NotificationScheduler {
         title: String,
         body: String,
         scheduledTime: Instant
-    ): Result<Unit> = withContext(Dispatchers.Default) {
-        runCatching {
-            val notificationId = generateNotificationId("event", eventId)
-            val interval = calculateTimeInterval(scheduledTime)
+    ): Result<Unit> {
+        return scheduleEventReminderWithId(
+            notificationId = generateNotificationId("event", eventId),
+            eventId = eventId,
+            title = title,
+            body = body,
+            scheduledTime = scheduledTime
+        ).map { Unit }
+    }
 
-            if (interval <= 0) {
-                // Time already passed
-                return@runCatching Unit
+    /**
+     * Schedule event reminder using a caller-provided UNNotificationRequest identifier.
+     */
+    actual suspend fun scheduleEventReminderWithId(
+        notificationId: String,
+        eventId: String,
+        title: String,
+        body: String,
+        scheduledTime: Instant
+    ): Result<String> = withContext(Dispatchers.Default) {
+        if (isKotlinNativeTestBundle()) {
+            return@withContext notificationCenterUnavailableWithId()
+        }
+
+        if (notificationId.isBlank()) {
+            return@withContext Result.failure(IllegalArgumentException("Notification ID cannot be blank"))
+        }
+
+        runCatching {
+            val notificationCenter = UNUserNotificationCenter.currentNotificationCenter()
+            val delayMillis = futureScheduleDelayMillis(scheduledTime).getOrElse { error ->
+                return@withContext Result.failure(error)
             }
+            val interval = delayMillis.toDouble() / 1000.0
 
             val content = createNotificationContent(
                 id = notificationId,
@@ -120,7 +143,7 @@ actual class NotificationScheduler {
                 }
             }
 
-            Unit
+            notificationId
         }
     }
 
@@ -137,14 +160,17 @@ actual class NotificationScheduler {
         body: String,
         deadlineTime: Instant
     ): Result<Unit> = withContext(Dispatchers.Default) {
-        runCatching {
-            val notificationId = generateNotificationId("poll", pollId)
-            val interval = calculateTimeInterval(deadlineTime)
+        if (isKotlinNativeTestBundle()) {
+            return@withContext notificationCenterUnavailable()
+        }
 
-            if (interval <= 0) {
-                // Deadline already passed
-                return@runCatching Unit
+        runCatching {
+            val notificationCenter = UNUserNotificationCenter.currentNotificationCenter()
+            val notificationId = generateNotificationId("poll", pollId)
+            val delayMillis = futureScheduleDelayMillis(deadlineTime).getOrElse { error ->
+                return@withContext Result.failure(error)
             }
+            val interval = delayMillis.toDouble() / 1000.0
 
             val content = createNotificationContent(
                 id = notificationId,
@@ -183,7 +209,12 @@ actual class NotificationScheduler {
      */
     actual suspend fun cancelScheduledNotification(notificationId: String): Result<Unit> =
         withContext(Dispatchers.Default) {
+            if (isKotlinNativeTestBundle()) {
+                return@withContext notificationCenterUnavailable()
+            }
+
             runCatching {
+                val notificationCenter = UNUserNotificationCenter.currentNotificationCenter()
                 notificationCenter.removePendingNotificationRequestsWithIdentifiers(
                     listOf(notificationId)
                 )
@@ -199,26 +230,39 @@ actual class NotificationScheduler {
      */
     actual suspend fun cancelAllScheduledNotifications(): Result<Unit> =
         withContext(Dispatchers.Default) {
+            if (isKotlinNativeTestBundle()) {
+                return@withContext notificationCenterUnavailable()
+            }
+
             runCatching {
+                val notificationCenter = UNUserNotificationCenter.currentNotificationCenter()
                 notificationCenter.removeAllPendingNotificationRequests()
                 notificationCenter.removeAllDeliveredNotifications()
             }
         }
 
     /**
-     * Calculate time interval in seconds from now to target time.
-     */
-    private fun calculateTimeInterval(targetTime: Instant): NSTimeInterval {
-        val now = Clock.System.now()
-        val duration = targetTime - now
-        return duration.inWholeSeconds.toDouble()
-    }
-
-    /**
      * Generate unique notification ID.
      */
     private fun generateNotificationId(type: String, id: String): String {
         return "$type-$id"
+    }
+
+    private fun isKotlinNativeTestBundle(): Boolean {
+        val bundlePath = NSBundle.mainBundle.bundleURL.path
+        return bundlePath?.endsWith("/debugTest") == true
+    }
+
+    private fun notificationCenterUnavailable(): Result<Unit> {
+        return Result.failure(
+            IllegalStateException("UNUserNotificationCenter is unavailable in Kotlin/Native debugTest bundles")
+        )
+    }
+
+    private fun notificationCenterUnavailableWithId(): Result<String> {
+        return Result.failure(
+            IllegalStateException("UNUserNotificationCenter is unavailable in Kotlin/Native debugTest bundles")
+        )
     }
 
     /**

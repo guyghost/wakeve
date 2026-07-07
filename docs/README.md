@@ -25,7 +25,9 @@ Bienvenue dans la documentation technique du projet Wakeve, une application mobi
 ### Guides de développement
 - [Koin Setup](guides/developer/koin-setup.md) - Configuration de l'injection de dépendances
 - [KMP Normalization Notes](guides/KMP_NORMALIZATION_NOTES.md) - Mapping des modules et chemins normalisés
-- [iOS Development](guides/ios/README.md) - Guides spécifiques iOS (voir aussi `wakeveApp/wakeveApp/`)
+- [Workflow complet d'organisation d'événement](guides/complete-event-organization-flow.md) - Cycle DRAFT -> FINALIZED, accès, offline-first et commandes de vérification
+- [iOS Development](guides/ios/README.md) - Guides spécifiques iOS (voir aussi `iosApp/`)
+- [iOS Design System](guides/ios/design-system.md) - Tokens et composants SwiftUI unifiés
 
 ### Migration & Refactoring
 - [Migration Index](migration/README.md) - Vue d'ensemble des migrations
@@ -41,6 +43,7 @@ Bienvenue dans la documentation technique du projet Wakeve, une application mobi
 - [Test Reports](testing/reports/index.md) - Rapports de tests
 
 ### Implémentation & Roadmap
+- [Roadmap actuelle](../ROADMAP.md) - Priorites release et suite des changements OpenSpec
 - [PRD Status](implementation/prd-status.md) - Statut des fonctionnalités du PRD
 - [Feature Integration](implementation/feature-integration.md) - Intégration des nouvelles fonctionnalités
 - [Draft Event Wizard](implementation/draft-event-wizard-guide.md) - Documentation UX du wizard de création
@@ -63,7 +66,8 @@ wakeve/
 │  ├─ implementation/      # Statut d'implémentation
 │  ├─ meetings/            # Résumés de sessions
 │  └─ archive/             # Documents historiques
-├─ wakeveApp/wakeveApp/    # Implémentation iOS SwiftUI
+├─ composeApp/             # Implémentation Android Jetpack Compose
+├─ iosApp/                 # Implémentation iOS SwiftUI et projet Xcode
 ├─ openspec/               # Spécifications OpenSpec
 ├─ AGENTS.md               # Workflow OpenSpec et agents IA
 ├─ QUICK_START.md          # Guide de démarrage rapide
@@ -73,7 +77,7 @@ wakeve/
 
 ## Documentation iOS
 
-La documentation spécifique à iOS (Liquid Glass design system, guides SwiftUI, tests iOS) se trouve dans le dossier `wakeveApp/wakeveApp/`. Consultez [guides/ios/README.md](guides/ios/README.md) pour l'index complet.
+La documentation spécifique à iOS (Liquid Glass design system, guides SwiftUI, tests iOS) se trouve dans le dossier `iosApp/`. Consultez [guides/ios/README.md](guides/ios/README.md) pour l'index complet.
 
 ## OpenSpec
 

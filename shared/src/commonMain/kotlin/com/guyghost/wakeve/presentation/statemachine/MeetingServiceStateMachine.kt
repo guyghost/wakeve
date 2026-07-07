@@ -159,8 +159,8 @@ class MeetingServiceStateMachine(
                     )
                 }
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to load meetings"
+            onFailure = { _ ->
+                val errorMsg = meetingLoadFailureMessage()
                 updateState {
                     it.copy(
                         isLoading = false,
@@ -200,8 +200,8 @@ class MeetingServiceStateMachine(
                 emitSideEffect(SideEffect.ShowToast("Meeting created successfully"))
                 emitSideEffect(SideEffect.NavigateTo("meeting/${meeting.id}"))
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to create meeting"
+            onFailure = { _ ->
+                val errorMsg = meetingCreateFailureMessage()
                 updateState {
                     it.copy(
                         isLoading = false,
@@ -237,8 +237,8 @@ class MeetingServiceStateMachine(
                 updateState { it.copy(selectedMeeting = meeting) }
                 emitSideEffect(SideEffect.ShowToast("Meeting updated successfully"))
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to update meeting"
+            onFailure = { _ ->
+                val errorMsg = meetingUpdateFailureMessage()
                 updateState {
                     it.copy(
                         isLoading = false,
@@ -258,7 +258,7 @@ class MeetingServiceStateMachine(
      *
      * Flow:
      * 1. Set isLoading = true
-     * 2. Call cancelMeetingUseCase(meetingId, organizerId)
+     * 2. Call cancelMeetingUseCase(meetingId, currentUserId)
      * 3. On success: reload meetings, clear selectedMeeting, emit ShowToast + NavigateBack
      * 4. On failure: set error, emit ShowError, set isLoading = false
      *
@@ -267,15 +267,7 @@ class MeetingServiceStateMachine(
     private suspend fun handleCancelMeeting(intent: Intent.CancelMeeting) {
         updateState { it.copy(isLoading = true, error = null) }
 
-        // Need organizer ID - get from selected meeting
-        val organizerId = currentState.meetings.find { it.id == intent.meetingId }?.organizerId
-            ?: run {
-                emitSideEffect(SideEffect.ShowError("Cannot cancel meeting: not found"))
-                updateState { it.copy(isLoading = false) }
-                return
-            }
-
-        cancelMeetingUseCase(intent.meetingId, organizerId).fold(
+        cancelMeetingUseCase(intent.meetingId, intent.currentUserId).fold(
             onSuccess = { _ ->
                 // Reload meetings
                 reloadMeetings(currentState.eventId)
@@ -283,8 +275,8 @@ class MeetingServiceStateMachine(
                 emitSideEffect(SideEffect.ShowToast("Meeting cancelled successfully"))
                 emitSideEffect(SideEffect.NavigateBack)
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to cancel meeting"
+            onFailure = { _ ->
+                val errorMsg = meetingCancelFailureMessage()
                 updateState {
                     it.copy(
                         isLoading = false,
@@ -326,8 +318,8 @@ class MeetingServiceStateMachine(
                 }
                 emitSideEffect(SideEffect.ShareMeetingLink(linkResponse.meetingUrl))
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to generate meeting link"
+            onFailure = { _ ->
+                val errorMsg = meetingLinkGenerationFailureMessage()
                 updateState {
                     it.copy(
                         isLoading = false,
@@ -416,8 +408,8 @@ class MeetingServiceStateMachine(
                     )
                 }
             },
-            onFailure = { error ->
-                val errorMsg = error.message ?: "Failed to reload meetings"
+            onFailure = { _ ->
+                val errorMsg = meetingReloadFailureMessage()
                 updateState {
                     it.copy(
                         isLoading = false,
@@ -429,3 +421,21 @@ class MeetingServiceStateMachine(
         )
     }
 }
+
+internal fun meetingLoadFailureMessage(): String =
+    "Failed to load meetings"
+
+internal fun meetingCreateFailureMessage(): String =
+    "Failed to create meeting"
+
+internal fun meetingUpdateFailureMessage(): String =
+    "Failed to update meeting"
+
+internal fun meetingCancelFailureMessage(): String =
+    "Failed to cancel meeting"
+
+internal fun meetingLinkGenerationFailureMessage(): String =
+    "Failed to generate meeting link"
+
+internal fun meetingReloadFailureMessage(): String =
+    "Failed to reload meetings"

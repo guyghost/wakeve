@@ -269,6 +269,65 @@ interface MemoryOptimizedImageProcessor {
 }
 
 /**
+ * Image processor for builds where no platform memory-optimized image processing
+ * implementation has been wired.
+ */
+object NoConfiguredMemoryOptimizedImageProcessor : MemoryOptimizedImageProcessor {
+    private fun notConfigured(): Nothing =
+        throw IllegalStateException("Memory-optimized image processor is not configured")
+
+    override suspend fun processImage(
+        image: Any,
+        config: MemoryOptimizationConfig
+    ): MemoryOptimizedResult {
+        notConfigured()
+    }
+
+    override suspend fun processImagesInBatches(
+        images: List<Any>,
+        config: MemoryOptimizationConfig
+    ): List<MemoryOptimizedResult> {
+        notConfigured()
+    }
+
+    override fun getCurrentMemoryUsageMB(): Double {
+        notConfigured()
+    }
+
+    override fun shouldThrottleProcessing(config: MemoryOptimizationConfig): Boolean {
+        notConfigured()
+    }
+
+    override suspend fun suggestGarbageCollection() {
+        notConfigured()
+    }
+}
+
+/**
+ * Memory pool for builds where no platform image memory pool implementation has been wired.
+ */
+object NoConfiguredImageMemoryPool : ImageMemoryPool {
+    private fun notConfigured(): Nothing =
+        throw IllegalStateException("Image memory pool is not configured")
+
+    override fun acquireBuffer(size: Int): ByteArray? {
+        notConfigured()
+    }
+
+    override fun releaseBuffer(buffer: ByteArray) {
+        notConfigured()
+    }
+
+    override fun clear() {
+        notConfigured()
+    }
+
+    override fun getStatistics(): MemoryPoolStatistics {
+        notConfigured()
+    }
+}
+
+/**
  * Memory usage threshold for warnings.
  */
 enum class MemoryPressureThreshold {

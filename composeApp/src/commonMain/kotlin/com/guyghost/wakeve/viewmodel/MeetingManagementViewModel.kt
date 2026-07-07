@@ -215,7 +215,7 @@ class MeetingManagementViewModel(
      * @param meetingId The ID of the meeting to cancel
      */
     fun cancelMeeting(meetingId: String) {
-        dispatch(MeetingManagementContract.Intent.CancelMeeting(meetingId))
+        dispatch(MeetingManagementContract.Intent.CancelMeeting(meetingId, getCurrentUserId()))
     }
 
     // ========================================================================

@@ -19,7 +19,8 @@ data class CreateEventRequest(
     val eventTypeCustom: String? = null, // Required if eventType == "CUSTOM"
     val minParticipants: Int? = null,
     val maxParticipants: Int? = null,
-    val expectedParticipants: Int? = null
+    val expectedParticipants: Int? = null,
+    val planningMode: String? = null
 )
 
 @Serializable
@@ -47,7 +48,8 @@ data class EventResponse(
     val eventTypeCustom: String? = null,
     val minParticipants: Int? = null,
     val maxParticipants: Int? = null,
-    val expectedParticipants: Int? = null
+    val expectedParticipants: Int? = null,
+    val planningMode: String = "TIME_SLOT_POLL"
 )
 
 @Serializable
@@ -83,6 +85,7 @@ data class PollResponse(
 data class UpdateEventStatusRequest(
     val eventId: String,
     val status: String,  // DRAFT, POLLING, CONFIRMED
+    val slotId: String? = null,
     val finalDate: String? = null
 )
 
@@ -110,7 +113,10 @@ data class CreateScenarioRequest(
     val duration: Int,
     val estimatedParticipants: Int,
     val estimatedBudgetPerPerson: Double,
-    val description: String
+    val description: String,
+    val sourceTimeSlotId: String? = null,
+    val sourcePotentialLocationId: String? = null,
+    val generationType: String? = null
 )
 
 @Serializable
@@ -122,7 +128,10 @@ data class UpdateScenarioRequest(
     val estimatedParticipants: Int? = null,
     val estimatedBudgetPerPerson: Double? = null,
     val description: String? = null,
-    val status: String? = null  // PROPOSED, SELECTED, REJECTED
+    val status: String? = null, // DRAFT, PROPOSED, SELECTED, REJECTED
+    val sourceTimeSlotId: String? = null,
+    val sourcePotentialLocationId: String? = null,
+    val generationType: String? = null
 )
 
 @Serializable
@@ -138,7 +147,10 @@ data class ScenarioResponse(
     val description: String,
     val status: String,
     val createdAt: String,
-    val updatedAt: String
+    val updatedAt: String,
+    val sourceTimeSlotId: String? = null,
+    val sourcePotentialLocationId: String? = null,
+    val generationType: String = "MANUAL"
 )
 
 @Serializable

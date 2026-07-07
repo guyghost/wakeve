@@ -32,6 +32,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,12 +53,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.qrcode.QRCodeWriter
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel
 import com.guyghost.wakeve.R
+import com.guyghost.wakeve.deeplink.normalizeDeepLinkPathSegment
 
 /**
  * Invitation Share Screen for Android.
@@ -70,17 +76,21 @@ import com.guyghost.wakeve.R
 fun InvitationShareScreen(
     eventId: String,
     eventTitle: String,
-    invitationCode: String,
+    invitationCode: String?,
+    isLoading: Boolean = false,
+    errorMessage: String? = null,
+    onRetry: () -> Unit = {},
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val inviteUrl = "https://wakeve.app/invite/$invitationCode"
+    val inviteUrl = createInviteUrl(invitationCode)
+    val shareContent = createInvitationShareContent(eventTitle, invitationCode)
     var qrBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     // Generate QR code on first composition
-    LaunchedEffect(invitationCode) {
-        qrBitmap = generateQRCode(inviteUrl, 512)
+    LaunchedEffect(inviteUrl) {
+        qrBitmap = inviteUrl?.let { generateQRCode(it, 512) }
     }
 
     Scaffold(
@@ -119,115 +129,141 @@ fun InvitationShareScreen(
                 textAlign = TextAlign.Center
             )
 
-            // QR Code Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+            if (isLoading) {
+                CircularProgressIndicator()
+                Text(
+                    text = stringResource(R.string.loading),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.QrCode,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Text(
-                            text = "QR Code",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+            }
 
-                    qrBitmap?.let { bitmap ->
-                        Box(
-                            modifier = Modifier
-                                .size(200.dp)
-                                .background(Color.White, RoundedCornerShape(12.dp))
-                                .padding(8.dp)
+            if (!errorMessage.isNullOrBlank()) {
+                Text(
+                    text = errorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    textAlign = TextAlign.Center
+                )
+                OutlinedButton(onClick = onRetry, enabled = !isLoading) {
+                    Text(stringResource(R.string.retry))
+                }
+            }
+
+            // QR Code Card
+            if (inviteUrl != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Image(
-                                bitmap = bitmap.asImageBitmap(),
-                                contentDescription = stringResource(R.string.invitation_qr_description),
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Fit
+                            Icon(
+                                imageVector = Icons.Default.QrCode,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = "QR Code",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
                             )
                         }
-                    }
 
-                    Text(
-                        text = stringResource(R.string.scan_to_join),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                        qrBitmap?.let { bitmap ->
+                            Box(
+                                modifier = Modifier
+                                    .size(200.dp)
+                                    .background(Color.White, RoundedCornerShape(12.dp))
+                                    .padding(8.dp)
+                            ) {
+                                Image(
+                                    bitmap = bitmap.asImageBitmap(),
+                                    contentDescription = stringResource(R.string.invitation_qr_description),
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Fit
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = stringResource(R.string.scan_to_join),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
             // Link Card
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.invitation_link),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+            if (inviteUrl != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
                     )
-
-                    Row(
+                ) {
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(
-                                MaterialTheme.colorScheme.surface,
-                                RoundedCornerShape(8.dp)
-                            )
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = inviteUrl,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
+                            text = stringResource(R.string.invitation_link),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
 
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        OutlinedButton(
-                            onClick = {
-                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                                val clip = ClipData.newPlainText("Invitation Wakeve", inviteUrl)
-                                clipboard.setPrimaryClip(clip)
-                                Toast.makeText(context, context.getString(R.string.link_copied), Toast.LENGTH_SHORT).show()
-                            }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(
+                                    MaterialTheme.colorScheme.surface,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.ContentCopy,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
+                            Text(
+                                text = inviteUrl,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(stringResource(R.string.invitation_copy))
+
+                            Spacer(modifier = Modifier.width(8.dp))
+
+                            OutlinedButton(
+                                onClick = {
+                                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                                    val clip = ClipData.newPlainText("Invitation Wakeve", inviteUrl)
+                                    clipboard.setPrimaryClip(clip)
+                                    Toast.makeText(context, context.getString(R.string.link_copied), Toast.LENGTH_SHORT).show()
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ContentCopy,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(stringResource(R.string.invitation_copy))
+                            }
                         }
                     }
                 }
@@ -236,11 +272,12 @@ fun InvitationShareScreen(
             // Share Button
             Button(
                 onClick = {
-                    val shareText = context.getString(R.string.invitation_share_text, eventTitle, inviteUrl)
+                    val content = shareContent ?: return@Button
+                    val shareText = context.getString(R.string.invitation_share_text, content.eventTitle, content.inviteUrl)
                     val shareIntent = Intent().apply {
                         action = Intent.ACTION_SEND
                         putExtra(Intent.EXTRA_TEXT, shareText)
-                        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.invitation_share_subject, eventTitle))
+                        putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.invitation_share_subject, content.eventTitle))
                         type = "text/plain"
                     }
                     context.startActivity(Intent.createChooser(shareIntent, context.getString(R.string.invitation_share_chooser)))
@@ -248,6 +285,7 @@ fun InvitationShareScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
+                enabled = inviteUrl != null && !isLoading && shareContent != null,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )
@@ -269,11 +307,36 @@ fun InvitationShareScreen(
     }
 }
 
+internal fun createInviteUrl(invitationCode: String?): String? {
+    return normalizeDeepLinkPathSegment(invitationCode)
+        ?.let { "https://wakeve.app/invite/$it" }
+}
+
+internal data class InvitationShareContent(
+    val eventTitle: String,
+    val inviteUrl: String
+)
+
+internal fun createInvitationShareContent(
+    eventTitle: String,
+    invitationCode: String?
+): InvitationShareContent? {
+    val normalizedTitle = normalizeInvitationShareTitle(eventTitle)
+        .takeIf(String::isNotBlank)
+        ?: return null
+    val inviteUrl = createInviteUrl(invitationCode) ?: return null
+
+    return InvitationShareContent(
+        eventTitle = normalizedTitle,
+        inviteUrl = inviteUrl
+    )
+}
+
+internal fun normalizeInvitationShareTitle(eventTitle: String): String =
+    eventTitle.trim().replace(Regex("\\s+"), " ")
+
 /**
- * Generate a QR code bitmap from a string using Android's built-in APIs.
- *
- * Uses a simple implementation with android.graphics to create a QR code
- * without external dependencies (ZXing-free approach via BitMatrix emulation).
+ * Generate a scannable QR code bitmap from a string.
  *
  * @param content The content to encode in the QR code
  * @param size The pixel dimensions of the QR code image
@@ -281,20 +344,22 @@ fun InvitationShareScreen(
  */
 private fun generateQRCode(content: String, size: Int): Bitmap? {
     return try {
-        // Simple placeholder: generate a bitmap with the content hash pattern
-        // For production, add com.google.zxing:core dependency
+        val hints = mapOf(
+            EncodeHintType.CHARACTER_SET to "UTF-8",
+            EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M,
+            EncodeHintType.MARGIN to 2
+        )
+        val matrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, size, size, hints)
         val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
-        val canvas = android.graphics.Canvas(bitmap)
-        canvas.drawColor(android.graphics.Color.WHITE)
-
-        // Draw a centered text placeholder
-        val paint = android.graphics.Paint().apply {
-            color = android.graphics.Color.BLACK
-            textSize = (size / 10).toFloat()
-            textAlign = android.graphics.Paint.Align.CENTER
-            isAntiAlias = true
+        for (x in 0 until size) {
+            for (y in 0 until size) {
+                bitmap.setPixel(
+                    x,
+                    y,
+                    if (matrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE
+                )
+            }
         }
-        canvas.drawText("QR", size / 2f, size / 2f, paint)
         bitmap
     } catch (e: Exception) {
         null

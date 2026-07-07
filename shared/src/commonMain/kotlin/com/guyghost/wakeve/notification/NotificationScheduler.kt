@@ -41,6 +41,27 @@ expect class NotificationScheduler {
     ): Result<Unit>
 
     /**
+     * Schedule a reminder for an upcoming event using a caller-provided notification ID.
+     *
+     * This is required when several reminders belong to the same event, because the
+     * platform scheduler uses the notification ID as the unique work/request key.
+     *
+     * @param notificationId Unique identifier of the scheduled notification
+     * @param eventId Unique identifier of the event
+     * @param title Notification title
+     * @param body Notification body
+     * @param scheduledTime When to show the notification (UTC timestamp)
+     * @return Result with the scheduled notification ID on success, error on failure
+     */
+    suspend fun scheduleEventReminderWithId(
+        notificationId: String,
+        eventId: String,
+        title: String,
+        body: String,
+        scheduledTime: Instant
+    ): Result<String>
+
+    /**
      * Schedule a reminder for a poll deadline.
      *
      * The notification will be shown at the specified time to remind users

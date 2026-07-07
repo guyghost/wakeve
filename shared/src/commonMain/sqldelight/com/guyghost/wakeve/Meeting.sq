@@ -9,6 +9,11 @@ CREATE TABLE meeting (
     duration TEXT NOT NULL, -- Duration string (e.g., "1h", "30m")
     platform TEXT NOT NULL, -- ZOOM, GOOGLE_MEET, FACETIME
     meetingLink TEXT NOT NULL,
+    provider TEXT NOT NULL DEFAULT '',
+    displayLabel TEXT NOT NULL DEFAULT '',
+    targetUrl TEXT NOT NULL DEFAULT '',
+    creatorId TEXT NOT NULL DEFAULT '',
+    verificationState TEXT NOT NULL DEFAULT 'UNVERIFIED',
     hostMeetingId TEXT NOT NULL,
     password TEXT NOT NULL,
     invitedParticipants TEXT NOT NULL, -- JSON array of participant IDs
@@ -30,9 +35,16 @@ SELECT * FROM meeting WHERE eventId = ? ORDER BY createdAt DESC;
 selectByOrganizerId:
 SELECT * FROM meeting WHERE organizerId = ? ORDER BY createdAt DESC;
 
+selectByHostMeetingId:
+SELECT * FROM meeting WHERE hostMeetingId = ?;
+
 insertMeeting:
-INSERT INTO meeting(id, eventId, organizerId, title, description, startTime, duration, platform, meetingLink, hostMeetingId, password, invitedParticipants, status, createdAt)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT INTO meeting(
+    id, eventId, organizerId, title, description, startTime, duration,
+    platform, meetingLink, provider, displayLabel, targetUrl, creatorId,
+    verificationState, hostMeetingId, password, invitedParticipants, status, createdAt
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 updateMeeting:
 UPDATE meeting

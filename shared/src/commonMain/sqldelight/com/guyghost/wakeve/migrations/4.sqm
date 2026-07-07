@@ -1,0 +1,9 @@
+-- Migration 4: scenario matrix voting metadata.
+
+ALTER TABLE event ADD COLUMN planningMode TEXT NOT NULL DEFAULT 'TIME_SLOT_POLL';
+
+ALTER TABLE scenario ADD COLUMN sourceTimeSlotId TEXT;
+ALTER TABLE scenario ADD COLUMN sourcePotentialLocationId TEXT;
+ALTER TABLE scenario ADD COLUMN generationType TEXT NOT NULL DEFAULT 'MANUAL';
+
+CREATE INDEX IF NOT EXISTS scenario_matrix_sources ON scenario(eventId, sourceTimeSlotId, sourcePotentialLocationId);

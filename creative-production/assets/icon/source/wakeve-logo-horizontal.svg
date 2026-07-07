@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 620" role="img" aria-labelledby="title desc">
+  <title id="title">Wakeve horizontal logo direction</title>
+  <desc id="desc">Wakeve symbol with lowercase wordmark.</desc>
+  <defs>
+    <linearGradient id="word" x1="620" y1="170" x2="1570" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#151B2D"/>
+      <stop offset="1" stop-color="#313238"/>
+    </linearGradient>
+  </defs>
+  <rect width="1800" height="620" fill="#FFFFFF"/>
+  <g transform="translate(56 -198) scale(0.98)">
+    <svg viewBox="0 0 1024 1024" width="640" height="640">
+      <defs>
+        <linearGradient id="ribbonA" x1="188" y1="244" x2="472" y2="780" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#F7FAF8" stop-opacity="0.94"/>
+          <stop offset="0.46" stop-color="#BFD5F2" stop-opacity="0.78"/>
+          <stop offset="1" stop-color="#C9B8EA" stop-opacity="0.70"/>
+        </linearGradient>
+        <linearGradient id="ribbonB" x1="356" y1="760" x2="702" y2="244" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#D7E7F7" stop-opacity="0.72"/>
+          <stop offset="0.52" stop-color="#F6F8F3" stop-opacity="0.92"/>
+          <stop offset="1" stop-color="#F0B58E" stop-opacity="0.68"/>
+        </linearGradient>
+        <linearGradient id="ribbonC" x1="574" y1="258" x2="836" y2="746" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#F8FAF5" stop-opacity="0.90"/>
+          <stop offset="0.46" stop-color="#C5B8EA" stop-opacity="0.76"/>
+          <stop offset="1" stop-color="#90ABD8" stop-opacity="0.70"/>
+        </linearGradient>
+      </defs>
+      <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M212 316 C276 464 328 594 406 732 C454 650 491 571 529 493" stroke="url(#ribbonA)" stroke-width="136"/>
+        <path d="M392 734 C462 594 512 476 590 312 C652 462 702 594 782 724" stroke="url(#ribbonB)" stroke-width="136"/>
+        <path d="M588 318 C652 466 704 596 786 728" stroke="url(#ribbonC)" stroke-width="136"/>
+      </g>
+    </svg>
+  </g>
+  <text x="640" y="386" fill="url(#word)" font-family="Avenir Next, Inter, SF Pro Display, Arial, sans-serif" font-size="230" font-weight="650" letter-spacing="0">wakeve</text>
+</svg>

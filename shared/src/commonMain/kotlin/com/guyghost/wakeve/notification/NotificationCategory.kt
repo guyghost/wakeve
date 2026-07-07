@@ -4,19 +4,20 @@ import kotlinx.serialization.Serializable
 
 /**
  * Notification categories supported by the system.
- * Each category defines the available actions for user interaction.
+ * Categories group notifications and may define default actions that are safe to
+ * expose without a server-mutating direct action handler.
  */
 @Serializable
 enum class NotificationCategory(val identifier: String) {
     /**
      * User invited to event.
-     * Actions: accept/decline/maybe
+     * Invite decisions are handled in-app after opening the event.
      */
     EVENT_INVITE("event_invite"),
 
     /**
      * Poll deadline approaching reminder.
-     * Actions: vote
+     * Poll votes are handled in-app after opening the poll.
      */
     POLL_REMINDER("poll_reminder"),
 
@@ -28,7 +29,7 @@ enum class NotificationCategory(val identifier: String) {
 
     /**
      * New scenario proposed for voting.
-     * Actions: yes/no
+     * Scenario votes are handled in-app after opening the event.
      */
     SCENARIO_VOTE("scenario_vote"),
 
@@ -50,7 +51,8 @@ enum class NotificationCategory(val identifier: String) {
 
 /**
  * Available actions for notification categories.
- * Defines what user can do directly from the notification.
+ * Defines semantic notification actions. Only actions with a wired, reliable
+ * handler should be exposed by default.
  */
 @Serializable
 enum class ActionType {
@@ -87,7 +89,8 @@ enum class ActionType {
 
 /**
  * Represents an actionable button in a notification.
- * Users can tap these to perform actions without opening the app.
+ * Users can tap these to perform actions without opening the app only when the
+ * platform layer wires the action to a real handler.
  */
 @Serializable
 data class NotificationAction(
@@ -142,12 +145,12 @@ data class NotificationAction(
 
 /**
  * Get default actions for a notification category.
- * @return List of actions or empty list for GENERAL category
+ * @return Only actions that are safe to expose by default
  */
 fun NotificationCategory.getDefaultActions(): List<NotificationAction> = when (this) {
-    NotificationCategory.EVENT_INVITE -> NotificationAction.eventInviteActions()
-    NotificationCategory.POLL_REMINDER -> NotificationAction.pollReminderActions()
+    NotificationCategory.EVENT_INVITE -> emptyList()
+    NotificationCategory.POLL_REMINDER -> emptyList()
     NotificationCategory.MEETING_STARTING -> NotificationAction.meetingStartingActions()
-    NotificationCategory.SCENARIO_VOTE -> NotificationAction.scenarioVoteActions()
+    NotificationCategory.SCENARIO_VOTE -> emptyList()
     NotificationCategory.GENERAL -> emptyList()
 }

@@ -89,6 +89,28 @@ class MockEventRepository : EventRepositoryInterface {
         events[id] = updatedEvent
         return Result.success(true)
     }
+
+    override suspend fun confirmEventDate(
+        eventId: String,
+        slotId: String,
+        confirmedByOrganizerId: String
+    ): Result<Boolean> {
+        if (shouldFail) return Result.failure(Exception(failureMessage))
+        val event = events[eventId] ?: return Result.failure(Exception("Event not found"))
+        if (event.organizerId != confirmedByOrganizerId) {
+            return Result.failure(Exception("Only event organizer can confirm dates"))
+        }
+        val selectedSlot = event.proposedSlots.find { it.id == slotId }
+            ?: return Result.failure(Exception("Selected time slot not found"))
+        val finalDate = selectedSlot.start
+            ?: return Result.failure(Exception("Selected time slot has no confirmed start date"))
+
+        events[eventId] = event.copy(
+            status = EventStatus.CONFIRMED,
+            finalDate = finalDate
+        )
+        return Result.success(true)
+    }
     
     override suspend fun saveEvent(event: Event): Result<Event> {
         if (shouldFail) return Result.failure(Exception(failureMessage))
@@ -448,7 +470,8 @@ class EventManagementStateMachineEdgeCasesTest {
             id = "poll-1",
             eventId = eventId,
             votes = mapOf(
-                "slot-1" to mapOf("user-1" to Vote.YES, "user-2" to Vote.YES)
+                "user-1" to mapOf("slot-1" to Vote.YES),
+                "user-2" to mapOf("slot-1" to Vote.YES)
             )
         )
         mockRepository.polls[eventId] = poll

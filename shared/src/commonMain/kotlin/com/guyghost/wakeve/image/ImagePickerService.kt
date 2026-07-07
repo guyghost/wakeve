@@ -36,10 +36,10 @@ import com.guyghost.wakeve.models.PickedImage
  *         // Use the picked image
  *         uploadImage(image.uri)
  *     },
- *     onFailure = { error ->
- *         // Handle error (permission denied, cancellation, etc.)
- *         showError("Failed to pick image: ${error.message}")
- *     }
+    *     onFailure = {
+    *         // Handle error (permission denied, cancellation, etc.)
+    *         showError("Failed to pick image")
+    *     }
  * )
  * 
  * // Pick multiple images with limit
@@ -50,9 +50,9 @@ import com.guyghost.wakeve.models.PickedImage
  *             uploadImage(image.uri)
  *         }
  *     },
- *     onFailure = { error ->
- *         showError("Failed to pick images: ${error.message}")
- *     }
+    *     onFailure = {
+    *         showError("Failed to pick images")
+    *     }
  * )
  * 
  * // Pick image with compression
@@ -61,9 +61,9 @@ import com.guyghost.wakeve.models.PickedImage
  *     onSuccess = { image ->
  *         uploadCompressedImage(image)
  *     },
- *     onFailure = { error ->
- *         showError("Failed to pick compressed image: ${error.message}")
- *     }
+    *     onFailure = {
+    *         showError("Failed to pick compressed image")
+    *     }
  * )
  * ```
  * 

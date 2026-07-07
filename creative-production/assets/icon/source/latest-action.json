@@ -1,0 +1,14 @@
+{
+  "id": "review-renderer-materialized",
+  "action": "write_moodboard_widget_payload",
+  "label": "Materialized Creative Production image review",
+  "createdAt": "2026-06-07T20:01:54.034367Z",
+  "timestamp": "2026-06-07T20:01:54.034367Z",
+  "title": "Wakeve App Icon Direction",
+  "summary": "Review the Liquid Glass ribbon-W icon variants for Wakeve.",
+  "itemCount": 4,
+  "runDirectory": "/Users/guy/Developer/dev/wakeve/creative-production/assets/icon/source",
+  "streamPath": "/Users/guy/Developer/dev/wakeve/creative-production/assets/icon/source/data/stream.json",
+  "runStatePath": "/Users/guy/Developer/dev/wakeve/creative-production/assets/icon/source/run-state.json",
+  "latestActionPath": "/Users/guy/Developer/dev/wakeve/creative-production/assets/icon/source/latest-action.json"
+}

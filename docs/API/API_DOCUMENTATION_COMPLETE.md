@@ -28,7 +28,7 @@
 ### Base URL
 
 ```
-https://api.wakeve.com/v1
+https://api.wakeve.app/v1
 ```
 
 ### API Specifications
@@ -1618,7 +1618,7 @@ enum DeepLinkRoute {
 #### Authentication
 ```bash
 # Login with email
-curl -X POST https://api.wakeve.com/v1/auth/login \
+curl -X POST https://api.wakeve.app/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "user@example.com",
@@ -1626,7 +1626,7 @@ curl -X POST https://api.wakeve.com/v1/auth/login \
   }'
 
 # Google OAuth
-curl -X POST https://api.wakeve.com/v1/auth/oauth/google \
+curl -X POST https://api.wakeve.app/v1/auth/oauth/google \
   -H "Content-Type: application/json" \
   -d '{
     "idToken": "google_id_token",
@@ -1635,7 +1635,7 @@ curl -X POST https://api.wakeve.com/v1/auth/oauth/google \
   }'
 
 # Refresh token
-curl -X POST https://api.wakeve.com/v1/auth/refresh \
+curl -X POST https://api.wakeve.app/v1/auth/refresh \
   -H "Content-Type: application/json" \
   -d '{
     "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
@@ -1645,15 +1645,15 @@ curl -X POST https://api.wakeve.com/v1/auth/refresh \
 #### Events
 ```bash
 # List events with pagination
-curl -X GET "https://api.wakeve.com/v1/events?page=1&limit=20&status=POLLING" \
+curl -X GET "https://api.wakeve.app/v1/events?page=1&limit=20&status=POLLING" \
   -H "Authorization: Bearer {access_token}"
 
 # Get event details
-curl -X GET https://api.wakeve.com/v1/events/event-123 \
+curl -X GET https://api.wakeve.app/v1/events/event-123 \
   -H "Authorization: Bearer {access_token}"
 
 # Create event
-curl -X POST https://api.wakeve.com/v1/events \
+curl -X POST https://api.wakeve.app/v1/events \
   -H "Authorization: Bearer {access_token}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1673,13 +1673,13 @@ curl -X POST https://api.wakeve.com/v1/events \
   }'
 
 # Start poll
-curl -X POST https://api.wakeve.com/v1/events/event-123/start-poll \
+curl -X POST https://api.wakeve.app/v1/events/event-123/start-poll \
   -H "Authorization: Bearer {access_token}" \
   -H "Content-Type: application/json" \
   -d '{"notifyParticipants": true}'
 
 # Confirm date
-curl -X POST https://api.wakeve.com/v1/events/event-123/confirm-date \
+curl -X POST https://api.wakeve.app/v1/events/event-123/confirm-date \
   -H "Authorization: Bearer {access_token}" \
   -H "Content-Type: application/json" \
   -d '{"slotId": "slot-1", "notifyParticipants": true}'
@@ -1688,7 +1688,7 @@ curl -X POST https://api.wakeve.com/v1/events/event-123/confirm-date \
 #### Polls
 ```bash
 # Submit votes
-curl -X POST https://api.wakeve.com/v1/events/event-123/poll/votes \
+curl -X POST https://api.wakeve.app/v1/events/event-123/poll/votes \
   -H "Authorization: Bearer {access_token}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1699,14 +1699,14 @@ curl -X POST https://api.wakeve.com/v1/events/event-123/poll/votes \
   }'
 
 # Get poll results
-curl -X GET https://api.wakeve.com/v1/events/event-123/poll/results \
+curl -X GET https://api.wakeve.app/v1/events/event-123/poll/results \
   -H "Authorization: Bearer {access_token}"
 ```
 
 #### Scenarios
 ```bash
 # Create scenario
-curl -X POST https://api.wakeve.com/v1/events/event-123/scenarios \
+curl -X POST https://api.wakeve.app/v1/events/event-123/scenarios \
   -H "Authorization: Bearer {access_token}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1720,7 +1720,7 @@ curl -X POST https://api.wakeve.com/v1/events/event-123/scenarios \
   }'
 
 # Vote on scenario
-curl -X POST https://api.wakeve.com/v1/events/event-123/scenarios/scenario-1/vote \
+curl -X POST https://api.wakeve.app/v1/events/event-123/scenarios/scenario-1/vote \
   -H "Authorization: Bearer {access_token}" \
   -H "Content-Type: application/json" \
   -d '{"vote": "PREFER"}'
@@ -1729,7 +1729,7 @@ curl -X POST https://api.wakeve.com/v1/events/event-123/scenarios/scenario-1/vot
 #### Meetings
 ```bash
 # Create Zoom meeting
-curl -X POST https://api.wakeve.com/v1/events/event-123/meetings \
+curl -X POST https://api.wakeve.app/v1/events/event-123/meetings \
   -H "Authorization: Bearer {access_token}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -1754,7 +1754,7 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
 
 class WakeveApiClient(
-    private val baseUrl: String = "https://api.wakeve.com/v1",
+    private val baseUrl: String = "https://api.wakeve.app/v1",
     private var accessToken: String? = null
 ) {
     private val client = HttpClient(CIO) {
@@ -1850,7 +1850,7 @@ suspend fun main() {
 import Foundation
 
 class WakeveAPIClient {
-    private let baseURL = "https://api.wakeve.com/v1"
+    private let baseURL = "https://api.wakeve.app/v1"
     private var accessToken: String?
     
     func setToken(_ token: String) {

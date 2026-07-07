@@ -1,0 +1,124 @@
+<svelte:head>
+  <title>Terms of Service - Wakeve</title>
+  <meta
+    name="description"
+    content="Wakeve terms of service for account access, event content, acceptable use, and service limitations."
+  />
+</svelte:head>
+
+<main class="min-h-screen bg-surface-alt">
+  <article class="mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14">
+    <a
+      href="/"
+      class="mb-8 inline-flex text-sm font-medium text-wakeve-600 hover:text-wakeve-700 hover:underline"
+    >
+      Wakeve
+    </a>
+
+    <header class="mb-10 border-b border-border pb-7">
+      <p class="mb-3 text-sm font-medium text-wakeve-600">Effective April 14, 2026</p>
+      <h1 class="text-3xl font-semibold text-gray-950 sm:text-4xl">Terms of Service</h1>
+      <p class="mt-4 text-base leading-7 text-gray-600">
+        By downloading, installing, or using Wakeve, you agree to these terms. If you do not agree,
+        do not use the app.
+      </p>
+    </header>
+
+    <div class="space-y-10 text-gray-700">
+      <section class="space-y-4">
+        <h2 class="text-xl font-semibold text-gray-950">Service</h2>
+        <p class="leading-7">
+          Wakeve is a collaborative event planning app for creating events, inviting participants,
+          voting on schedules, syncing selected events to device calendars, and using supported
+          features offline with later synchronization.
+        </p>
+        <p class="leading-7">
+          The service is provided as is and may be updated, changed, or discontinued where needed.
+        </p>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="text-xl font-semibold text-gray-950">Accounts</h2>
+        <p class="leading-7">
+          You must be at least 13 years old to use Wakeve. Users under 18 must have parental
+          consent. Account access may use email verification, Apple Sign-In, Google Sign-In, or
+          guest mode. Guest mode stores data locally and provides limited functionality.
+        </p>
+        <p class="leading-7">
+          You are responsible for keeping your account secure and for activity performed through
+          your account.
+        </p>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="text-xl font-semibold text-gray-950">User Conduct and Content</h2>
+        <p class="leading-7">
+          You must not use Wakeve for unlawful, harmful, abusive, spam, unauthorized access, or
+          service disruption purposes. You are responsible for event titles, descriptions,
+          locations, messages, and other content you create or share.
+        </p>
+        <p class="leading-7">
+          Wakeve may remove content or suspend accounts that violate these terms or harm other
+          users or the service.
+        </p>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="text-xl font-semibold text-gray-950">Privacy</h2>
+        <p class="leading-7">
+          Your use of Wakeve is also governed by the
+          <a class="font-medium text-wakeve-600 hover:underline" href="/privacy">
+            Privacy Policy
+          </a>.
+          By using the app, you consent to data handling described there.
+        </p>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="text-xl font-semibold text-gray-950">Intellectual Property</h2>
+        <p class="leading-7">
+          Wakeve owns the app, brand, design, code, icons, and related materials. You retain rights
+          to the content you create, and grant Wakeve a limited license to store, sync, and display
+          that content to invited participants as needed to operate the service.
+        </p>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="text-xl font-semibold text-gray-950">Third-Party Services</h2>
+        <p class="leading-7">
+          Wakeve may integrate with calendar services, authentication providers, and push
+          notification services. Your use of those services may be subject to their own terms and
+          privacy policies.
+        </p>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="text-xl font-semibold text-gray-950">Disclaimers and Liability</h2>
+        <p class="leading-7">
+          Wakeve is provided without warranties of uninterrupted operation, error-free behavior, or
+          scheduling accuracy. To the maximum extent permitted by law, Wakeve is not liable for
+          indirect, incidental, special, or consequential damages, loss of data, or actions of other
+          users.
+        </p>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="text-xl font-semibold text-gray-950">Termination, Law, and Contact</h2>
+        <p class="leading-7">
+          You may stop using Wakeve at any time. Authenticated users can start account deletion in
+          the app from Profile Settings, then Data Management, then Delete Account, and guest users
+          can delete local guest data from the same Data Management area. If you cannot access the
+          app, you may request account deletion by email. Wakeve may suspend or terminate accounts
+          that violate these terms. These terms are governed by the laws of France, and disputes
+          are resolved in the courts of Paris, France.
+        </p>
+        <p class="leading-7">
+          For legal questions, contact
+          <a class="font-medium text-wakeve-600 hover:underline" href="mailto:legal@wakeve.app">
+            legal@wakeve.app
+          </a>.
+        </p>
+      </section>
+    </div>
+  </article>
+</main>

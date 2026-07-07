@@ -31,7 +31,7 @@ class AppleOAuth2Service(
     private val keyId: String,
     private val privateKey: String, // PKCS#8 format
     private val redirectUri: String
-) : OAuth2Service {
+) : OAuth2Service, AppleAccountRevocationService {
 
     private val httpClient = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -89,6 +89,26 @@ class AppleOAuth2Service(
         }
 
         return response.body<OAuthTokenResponse>()
+    }
+
+    override suspend fun revokeUserAuthorization(token: String, tokenTypeHint: String): Result<Unit> = runCatching {
+        val clientSecret = generateClientSecret()
+
+        val response = httpClient.post("https://appleid.apple.com/auth/revoke") {
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody(
+                listOf(
+                    "client_id" to clientId,
+                    "client_secret" to clientSecret,
+                    "token" to token,
+                    "token_type_hint" to tokenTypeHint
+                ).formUrlEncode()
+            )
+        }
+
+        if (response.status != HttpStatusCode.OK) {
+            throw OAuth2Exception("Failed to revoke Apple authorization: ${response.status}")
+        }
     }
 
     override fun getAuthorizationUrl(state: String): String {

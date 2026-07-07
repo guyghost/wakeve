@@ -1,0 +1,1 @@
+Plan events together with smart polls, offline sync, and native calendar integration.

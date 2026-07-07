@@ -7,46 +7,42 @@ import com.guyghost.wakeve.models.ImageQuality
 import com.guyghost.wakeve.models.PickedImage
 
 /**
- * iOS stub implementation of ImagePickerService.
- * 
- * This is a placeholder implementation. Full iOS photo picker integration
- * using PHPickerViewController should be implemented in the iosApp module
- * using SwiftUI/UIKit integration.
+ * iOS image picker placeholder.
+ *
+ * Fails explicitly until PHPickerViewController or SwiftUI PhotosPicker is
+ * bridged into this service.
  */
 class IosImagePickerService : ImagePickerService {
-    
-    private var lastPickedImage: PickedImage? = null
-    
+
     override suspend fun pickImage(): Result<PickedImage> {
-        return Result.failure(NotImplementedError("iOS image picker not yet implemented. Use SwiftUI PhotosPicker."))
+        return NoConfiguredImagePickerService.pickImage()
     }
     
     override suspend fun pickMultipleImages(limit: Int): Result<List<PickedImage>> {
-        return Result.failure(NotImplementedError("iOS image picker not yet implemented. Use SwiftUI PhotosPicker."))
+        return NoConfiguredImagePickerService.pickMultipleImages(limit)
     }
     
     override suspend fun pickImageWithCompression(quality: ImageQuality): Result<PickedImage> {
-        return Result.failure(NotImplementedError("iOS image picker not yet implemented. Use SwiftUI PhotosPicker."))
+        return NoConfiguredImagePickerService.pickImageWithCompression(quality)
     }
     
     override suspend fun pickImagesWithConfig(config: ImagePickerConfig): Result<ImageBatchResult> {
-        return Result.failure(NotImplementedError("iOS image picker not yet implemented. Use SwiftUI PhotosPicker."))
+        return NoConfiguredImagePickerService.pickImagesWithConfig(config)
     }
     
     override suspend fun pickVisualMedia(maxItems: Int): Result<List<ModelsImagePickerResult>> {
-        return Result.failure(NotImplementedError("iOS visual media picker not yet implemented. Use SwiftUI PhotosPicker."))
+        return NoConfiguredImagePickerService.pickVisualMedia(maxItems)
     }
     
     override fun isPhotoPickerAvailable(): Boolean {
-        // iOS 14+ has PHPickerViewController available
-        return true
+        return NoConfiguredImagePickerService.isPhotoPickerAvailable()
     }
     
     override fun getLastPickedImage(): PickedImage? {
-        return lastPickedImage
+        return NoConfiguredImagePickerService.getLastPickedImage()
     }
     
     override fun clearCache() {
-        lastPickedImage = null
+        NoConfiguredImagePickerService.clearCache()
     }
 }

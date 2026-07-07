@@ -142,6 +142,7 @@ struct PresetBackgrounds {
 
 struct BackgroundPickerSheet: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     @Binding var selectedBackground: EventBackground
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var showingCamera = false
@@ -170,26 +171,27 @@ struct BackgroundPickerSheet: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 8)
             }
-            .background(Color(hex: "1A1A3E"))
+            .background(sheetBackground)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(String(localized: "events.add_background"))
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(primaryTextColor)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.white)
+                            .foregroundColor(primaryTextColor)
                             .frame(width: 30, height: 30)
-                            .background(Color.white.opacity(0.15))
+                            .background(closeButtonBackground)
                             .clipShape(Circle())
                     }
+                    .accessibilityLabel(String(localized: "common.close"))
                 }
             }
-            .toolbarBackground(Color(hex: "1A1A3E"), for: .navigationBar)
+            .toolbarBackground(sheetBackground, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
         .onChange(of: selectedPhotoItem) { _, newItem in
@@ -234,14 +236,14 @@ struct BackgroundPickerSheet: View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 24))
-                .foregroundColor(.white)
+                .foregroundColor(WakeveTheme.ColorToken.accent(for: colorScheme))
                 .frame(width: 56, height: 56)
-                .background(Color.white.opacity(0.12))
+                .background(sourceButtonBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             
             Text(label)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(secondaryTextColor)
         }
     }
     
@@ -251,7 +253,7 @@ struct BackgroundPickerSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.system(size: 20, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(primaryTextColor)
             
             LazyVGrid(columns: [
                 GridItem(.flexible(), spacing: 12),
@@ -290,6 +292,36 @@ struct BackgroundPickerSheet: View {
             }
             .aspectRatio(0.75, contentMode: .fit)
         }
+        .accessibilityLabel(String(localized: "events.background.select_preset"))
+        .accessibilityValue(
+            selectedBackground == .preset(background)
+                ? String(localized: "common.selected")
+                : String(localized: "common.not_selected")
+        )
+    }
+
+    private var sheetBackground: Color {
+        SemanticColor.appBackground(for: colorScheme)
+    }
+
+    private var primaryTextColor: Color {
+        WakeveTheme.ColorToken.primaryText(for: colorScheme)
+    }
+
+    private var secondaryTextColor: Color {
+        WakeveTheme.ColorToken.secondaryText(for: colorScheme)
+    }
+
+    private var sourceButtonBackground: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.12)
+            : WakeveTheme.ColorToken.controlFill(for: colorScheme)
+    }
+
+    private var closeButtonBackground: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.15)
+            : WakeveTheme.ColorToken.controlFill(for: colorScheme)
     }
 }
 

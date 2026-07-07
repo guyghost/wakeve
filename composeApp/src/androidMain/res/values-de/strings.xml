@@ -283,18 +283,18 @@
     <string name="vote_submitted">Stimme abgegeben</string>
 
     <!-- Scenarios -->
-    <string name="scenarios">Szenarien</string>
-    <string name="create_scenario">Szenario erstellen</string>
-    <string name="edit_scenario">Szenario bearbeiten</string>
-    <string name="delete_scenario">Szenario loeschen</string>
+    <string name="scenarios">Optionen</string>
+    <string name="create_scenario">Option hinzufügen</string>
+    <string name="edit_scenario">Option bearbeiten</string>
+    <string name="delete_scenario">Option loeschen</string>
     <string name="delete_scenario_confirm">Bist du sicher, dass du \"%1$s\" loeschen moechtest? Diese Aktion kann nicht rueckgaengig gemacht werden.</string>
-    <string name="no_scenarios_yet">Noch keine Szenarien vorhanden</string>
-    <string name="no_scenarios_to_compare">Keine Szenarien zum Vergleichen</string>
-    <string name="create_scenarios_to_start">Erstelle Szenarien, um Optionen zu vergleichen</string>
-    <string name="scenario_name">Szenarioname</string>
+    <string name="no_scenarios_yet">Noch keine Optionen vorhanden</string>
+    <string name="no_scenarios_to_compare">Keine Optionen zum Vergleichen</string>
+    <string name="create_scenarios_to_start">Fuege Optionen hinzu, um zu vergleichen</string>
+    <string name="scenario_name">Optionsname</string>
     <string name="scenario_name_hint">z.B.: Wochenende am Meer</string>
     <string name="scenario_description">Beschreibung</string>
-    <string name="scenario_description_hint">Details zu diesem Szenario</string>
+    <string name="scenario_description_hint">Details zu dieser Option</string>
     <string name="date_or_period">Datum oder Zeitraum</string>
     <string name="date_or_period_hint">z.B.: 20.-22. Dezember 2025</string>
     <string name="location">Ort</string>
@@ -305,15 +305,15 @@
     <string name="people_hint">5</string>
     <string name="budget_per_person">Budget pro Person</string>
     <string name="budget_hint">1000</string>
-    <string name="select_as_final_scenario">Als finales Szenario auswaehlen</string>
-    <string name="compare_scenarios">Szenarien vergleichen</string>
+    <string name="select_as_final_scenario">Diese Option behalten</string>
+    <string name="compare_scenarios">Optionen vergleichen</string>
     <string name="compare_scenarios_title">Vergleichen (%1$d ausgewaehlt)</string>
-    <string name="select_at_least_2">Waehle mindestens 2 Szenarien zum Vergleichen aus</string>
-    <string name="scenario_created">Szenario erfolgreich erstellt</string>
-    <string name="scenario_updated">Szenario erfolgreich aktualisiert</string>
-    <string name="scenario_deleted">Szenario erfolgreich geloescht</string>
-    <string name="scenario_selected">Ausgewaehlt</string>
-    <string name="scenario_locked">Dieses Szenario wurde ausgewaehlt. Die Abstimmung ist gesperrt.</string>
+    <string name="select_at_least_2">Waehle mindestens 2 Optionen zum Vergleichen aus</string>
+    <string name="scenario_created">Option hinzugefuegt</string>
+    <string name="scenario_updated">Option aktualisiert</string>
+    <string name="scenario_deleted">Option geloescht</string>
+    <string name="scenario_selected">Ausgewaehlte Option</string>
+    <string name="scenario_locked">Diese Option wurde ausgewaehlt. Die Abstimmung ist gesperrt.</string>
     <string name="view_details">Details anzeigen</string>
     <string name="view_meetings">Meetings anzeigen</string>
 
@@ -327,7 +327,7 @@
     <string name="total_votes">Gesamt: %1$d Stimmen</string>
     <string name="vote_for_this">👍 Dafuer stimmen</string>
     <string name="current_leader">Aktueller Favorit</string>
-    <string name="select_this_scenario">Dieses Szenario auswaehlen</string>
+    <string name="select_this_scenario">Diese Option behalten</string>
     <string name="skip_comparison">Vergleich ueberspringen - Zu den Meetings</string>
     <string name="points">%1$d Pkt.</string>
 
@@ -415,7 +415,7 @@
     <string name="caption_without">ohne Beschriftung</string>
 
     <!-- PRD Features -->
-    <string name="scenario_planning">Szenarioplanung</string>
+    <string name="scenario_planning">Optionen vergleichen</string>
     <string name="budget_overview">Budgetuebersicht</string>
     <string name="accommodation">Unterkunft</string>
     <string name="meal_planning">Essensplanung</string>
@@ -462,7 +462,7 @@
     <!-- Event Detail Status -->
     <string name="status_draft_description">Wird erstellt</string>
     <string name="status_polling_description">Umfrage laeuft</string>
-    <string name="status_comparing_description">Szenarien werden verglichen</string>
+    <string name="status_comparing_description">Optionen werden verglichen</string>
     <string name="status_confirmed_description">Datum bestaetigt</string>
     <string name="status_organizing_description">Organisation laeuft</string>
     <string name="status_finalized_description">Event abgeschlossen</string>
@@ -475,9 +475,9 @@
     <string name="organizing_mode_actions">Aktionen im Organisationsmodus</string>
     <string name="finalized_mode_actions">Aktionen im Abschlussmodus</string>
     <string name="waiting_for_votes">Warten auf die Stimmen der Teilnehmer…</string>
-    <string name="create_scenarios">Szenarien erstellen</string>
+    <string name="create_scenarios">Optionen hinzufuegen</string>
     <string name="configure_budget">Budget konfigurieren</string>
-    <string name="view_scenarios">Szenarien anzeigen</string>
+    <string name="view_scenarios">Optionen anzeigen</string>
     <string name="view_budget">Budget</string>
     <string name="view_accommodation">Unterkunft</string>
     <string name="view_meals">Mahlzeiten</string>
@@ -514,15 +514,15 @@
     <string name="invitation_error">Fehler beim Annehmen der Einladung</string>
 
     <!-- iOS Specific -->
-    <string name="loading_scenarios">Szenarien werden geladen…</string>
-    <string name="choose_scenario_title">Szenario auswaehlen</string>
+    <string name="loading_scenarios">Optionen werden geladen…</string>
+    <string name="choose_scenario_title">Option auswaehlen</string>
     <string name="date_label">Datum</string>
     <string name="duration_label_short">Dauer</string>
     <string name="budget_label">Budget</string>
     <string name="voting_results_label">Abstimmungsergebnisse</string>
     <string name="score_label_short">Punktzahl</string>
-    <string name="no_scenarios_yet_title">Keine Szenarien</string>
-    <string name="organizer_will_add">Der Organisator wird Szenariooptionen fuer dieses Event hinzufuegen.</string>
+    <string name="no_scenarios_yet_title">Keine Optionen</string>
+    <string name="organizer_will_add">Der Organisator wird Optionen fuer dieses Event hinzufuegen.</string>
     <string name="no_meetings_title">Keine Meetings</string>
     <string name="plan_meetings">Plane virtuelle Meetings fuer dein Event</string>
     <string name="loading_label">Laden…</string>
@@ -560,7 +560,7 @@
     <string name="explore_tip_slots_content">Je mehr Termine du vorschlaegst, desto leichter ist es, einen Konsens zu finden.</string>
     <string name="explore_tip_deadline_title">Setze eine klare Frist</string>
     <string name="explore_tip_deadline_content">Eine Abstimmungsfrist motiviert die Teilnehmer, schnell zu antworten.</string>
-    <string name="explore_tip_scenarios_title">Erstelle Szenarien</string>
+    <string name="explore_tip_scenarios_title">Optionen hinzufuegen</string>
     <string name="explore_tip_scenarios_content">Vergleiche verschiedene Optionen (Reiseziel, Unterkunft, Aktivitaeten), um dein Event zu optimieren.</string>
     <string name="explore_tip_budget_title">Teile das Budget frueh mit</string>
     <string name="explore_tip_budget_content">Fruehe Transparenz bei den Kosten vermeidet unangenehme Ueberraschungen.</string>
@@ -592,6 +592,7 @@
     <string name="prefs_weekly_digest_desc">Jeden Montag eine Zusammenfassung erhalten</string>
     <string name="prefs_general">Allgemein</string>
     <string name="prefs_sound">Ton</string>
+    <string name="prefs_vibration">Vibration</string>
     <string name="prefs_do_not_disturb">Nicht stoeren</string>
     <string name="prefs_quiet_hours">Ruhezeiten</string>
     <string name="prefs_quiet_hours_desc">Benachrichtigungen werden in diesem Zeitraum stummgeschaltet.</string>
@@ -650,4 +651,15 @@
     <string name="leaderboard_you">Du</string>
     <string name="leaderboard_badges">%1$d Abzeichen</string>
     <string name="leaderboard_global">Global</string>
+    <string name="badges_count_label">%1$d Abzeichen</string>
+    <string name="duration_label">Dauer</string>
+    <string name="points_value_label">%1$d Punkte</string>
+    <string name="try_again_later">Versuche es später erneut</string>
+    <string name="loading_more">Mehr wird geladen…</string>
+    <string name="notification_event_created">Event erstellt</string>
+    <string name="notification_poll_opened">Umfrage geöffnet</string>
+    <string name="notification_date_confirmed">Datum bestätigt</string>
+    <string name="entity_event">Event</string>
+    <string name="entity_scenario">Option</string>
+    <string name="entity_meeting">Meeting</string>
 </resources>

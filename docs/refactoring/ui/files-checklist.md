@@ -9,7 +9,7 @@
   - Status: Ready to use
 
 ### 2. iOS Source Code
-- ✅ `iosApp/iosApp/Views/ScenarioManagementView.swift`
+- ✅ `iosApp/src/Views/ScenarioManagementView.swift`
   - Size: 25 KB
   - Lines: 763
   - Status: Ready to use
@@ -324,14 +324,14 @@ The following are out of scope (already exist or are future work):
 ### Check files exist
 ```bash
 ls -lh /Users/guy/Developer/dev/wakeve/composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/scenario/ScenarioManagementScreen.kt
-ls -lh /Users/guy/Developer/dev/wakeve/iosApp/iosApp/Views/ScenarioManagementView.swift
+ls -lh /Users/guy/Developer/dev/wakeve/iosApp/src/Views/ScenarioManagementView.swift
 ls -lh /Users/guy/Developer/dev/wakeve/SCENARIO_MANAGEMENT_UI_INTEGRATION.md
 ```
 
 ### Check line counts
 ```bash
 wc -l composeApp/src/commonMain/kotlin/com/guyghost/wakeve/ui/scenario/ScenarioManagementScreen.kt
-wc -l iosApp/iosApp/Views/ScenarioManagementView.swift
+wc -l iosApp/src/Views/ScenarioManagementView.swift
 wc -l SCENARIO_MANAGEMENT_UI_INTEGRATION.md
 ```
 

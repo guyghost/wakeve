@@ -33,11 +33,11 @@ Android (Phase 4)
 iOS (Phase 5)
 - shared/src/iosMain/kotlin/com/guyghost/wakeve/calendar/PlatformCalendarService.ios.kt
   - Actual implementation that bridges to EventKit via Kotlin/Native interop
-- iosApp/iosApp/Views/CalendarIntegrationCard.swift
+- iosApp/src/Views/CalendarIntegrationCard.swift
   - SwiftUI card in Event Details that calls shared CalendarService through the K/N bridge
-- iosApp/iosApp/Services/CalendarPermissionsHelper.swift
+- iosApp/src/Services/CalendarPermissionsHelper.swift
   - Helper that requests EventKit access with `EKEventStore.requestAccess` and handles user-facing prompts
-- iosApp/iosApp/Tests/CalendarIntegrationTests.swift
+- iosApp/iosAppUITests/CalendarIntegrationUITests.swift
   - XCTest cases validating the UI wiring and permission behavior
 
 Server / API
@@ -55,7 +55,7 @@ Server / API
 
 - Android instrumented tests: `composeApp/src/androidInstrumentedTest/kotlin/com/guyghost/wakeve/ui/event/CalendarIntegrationInstrumentedTest.kt` (integration & permission flows)
 
-- iOS XCTest: `iosApp/iosApp/Tests/CalendarIntegrationTests.swift` (UI wiring, permission prompts simulation)
+- iOS XCTest: `iosApp/iosAppUITests/CalendarIntegrationUITests.swift` (UI wiring, permission prompts simulation)
 
 ## Notes and Decisions
 

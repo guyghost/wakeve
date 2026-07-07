@@ -4,19 +4,19 @@ This document records the repository normalization performed for module/path con
 
 ## Module Naming
 
-- Android app Gradle module: `wakeveApp`
+- Android app Gradle module: `composeApp`
 - Shared KMP module: `shared`
 - Backend module: `server`
-- Web module: `webApp`
+- Web module: `apps/landing`
 
 ## Path Mapping
 
 Use these mappings when updating docs, scripts, or local workflows:
 
-- `composeApp/...` -> `wakeveApp/...`
-- `composeApp:<task>` -> `wakeveApp:<task>`
-- `iosApp/iosApp/...` -> `wakeveApp/wakeveApp/...`
-- `iosApp/iosApp.xcodeproj` -> `wakeveApp/wakeveApp.xcodeproj`
+- `wakeveApp/...` -> `composeApp/...`
+- `wakeveApp:<task>` -> `:composeApp:<task>`
+- `iosApp/src/...` -> `iosApp/src/...` (no change)
+- `iosApp/iosApp.xcodeproj` -> `iosApp/iosApp.xcodeproj` (no change)
 
 ## Canonical Build Commands
 
@@ -25,14 +25,14 @@ From repository root:
 ```bash
 ./gradlew build
 ./gradlew shared:test
-./gradlew wakeveApp:assembleDebug
+./gradlew :composeApp:assembleDebug
 ./gradlew server:run
 ```
 
 For iOS project inspection:
 
 ```bash
-xcodebuild -list -project wakeveApp/wakeveApp.xcodeproj
+xcodebuild -list -project iosApp/iosApp.xcodeproj
 ```
 
 ## Legacy Artifacts

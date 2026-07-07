@@ -116,7 +116,7 @@ class SiriVocabularyManager {
             "Toute la journée", "All day", "Todo el día", "Ganzer Tag"
         ]
         
-        print("Registered vocabulary: \(eventTypes.count) event types, \(timeOfDayTerms.count) time terms")
+        debugLog("Registered vocabulary: \(eventTypes.count) event types, \(timeOfDayTerms.count) time terms")
     }
 }
 

@@ -175,6 +175,39 @@ class AccommodationServiceTest {
     }
 
     @Test
+    fun `validateAccommodation rejects checkout before checkin`() {
+        val error = AccommodationService.validateAccommodation(
+            name = "Hotel",
+            capacity = 10,
+            pricePerNight = 20000,
+            totalNights = 3,
+            checkInDate = "2025-12-23",
+            checkOutDate = "2025-12-20"
+        )
+        assertNotNull(error)
+        assertTrue(error.contains("after"))
+    }
+
+    @Test
+    fun `normalizeAccommodation trims trusted text fields`() {
+        val normalized = AccommodationService.normalizeAccommodation(
+            testAccommodation.copy(
+                name = "  Hotel California  ",
+                address = "  123 Main St  ",
+                bookingUrl = "  https://booking.example/hotel  ",
+                notes = "  Free breakfast included  ",
+                totalCost = 1
+            )
+        ).getOrThrow()
+
+        assertEquals("Hotel California", normalized.name)
+        assertEquals("123 Main St", normalized.address)
+        assertEquals("https://booking.example/hotel", normalized.bookingUrl)
+        assertEquals("Free breakfast included", normalized.notes)
+        assertEquals(60000, normalized.totalCost)
+    }
+
+    @Test
     fun `validateRoomAssignment passes with valid data`() {
         val error = AccommodationService.validateRoomAssignment(
             roomNumber = "101",
@@ -215,6 +248,32 @@ class AccommodationServiceTest {
         )
         assertNotNull(error)
         assertTrue(error.contains("Duplicate"))
+    }
+
+    @Test
+    fun `validateRoomAssignment rejects duplicate participants after trimming`() {
+        val error = AccommodationService.validateRoomAssignment(
+            roomNumber = "101",
+            capacity = 3,
+            assignedParticipants = listOf("user-1", " user-1 ")
+        )
+        assertNotNull(error)
+        assertTrue(error.contains("Duplicate"))
+    }
+
+    @Test
+    fun `normalizeRoomAssignment trims room number and participants`() {
+        val normalized = AccommodationService.normalizeRoomAssignment(
+            testRoomAssignment.copy(
+                accommodationId = " acc-1 ",
+                roomNumber = "  Room 101  ",
+                assignedParticipants = listOf(" user-1 ", "user-2 ")
+            )
+        ).getOrThrow()
+
+        assertEquals("acc-1", normalized.accommodationId)
+        assertEquals("Room 101", normalized.roomNumber)
+        assertEquals(listOf("user-1", "user-2"), normalized.assignedParticipants)
     }
 
     @Test

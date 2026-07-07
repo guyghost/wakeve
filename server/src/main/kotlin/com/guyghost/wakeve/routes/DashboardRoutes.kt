@@ -3,12 +3,14 @@ package com.guyghost.wakeve.routes
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.database.WakeveDb
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.route
 import kotlinx.serialization.Serializable
+import kotlin.math.min
 
 /**
  * Dashboard API Routes for Organizer Analytics
@@ -58,18 +60,18 @@ fun io.ktor.server.routing.Route.dashboardRoutes(
                 call.respond(
                     HttpStatusCode.OK,
                     DashboardOverviewResponse(
-                        totalEvents = totalEvents.toInt(),
-                        totalParticipants = totalParticipants.toInt(),
+                        totalEvents = totalEvents.toSafeResponseInt(),
+                        totalParticipants = totalParticipants.toSafeResponseInt(),
                         averageParticipants = avgParticipants,
-                        totalVotes = totalVotes.toInt(),
-                        totalComments = totalComments.toInt(),
-                        eventsByStatus = statusBreakdown.mapValues { it.value.toInt() }
+                        totalVotes = totalVotes.toSafeResponseInt(),
+                        totalComments = totalComments.toSafeResponseInt(),
+                        eventsByStatus = statusBreakdown.mapValues { it.value.toSafeResponseInt() }
                     )
                 )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to (e.message ?: "Failed to fetch dashboard overview"))
+                    mapOf("error" to dashboardOverviewFailureMessage())
                 )
             }
         }
@@ -85,8 +87,28 @@ fun io.ktor.server.routing.Route.dashboardRoutes(
                     )
 
                 val dashboardQueries = database.dashboardQueries
+                val limit = call.parseBoundedDashboardInt(
+                    name = "limit",
+                    default = DEFAULT_DASHBOARD_EVENTS_LIMIT,
+                    min = 1,
+                    max = MAX_DASHBOARD_EVENTS_LIMIT
+                ) ?: return@get
+                val offset = call.parseBoundedDashboardInt(
+                    name = "offset",
+                    default = 0,
+                    min = 0,
+                    max = MAX_DASHBOARD_EVENTS_OFFSET
+                ) ?: return@get
 
-                val events = dashboardQueries.selectEventAnalytics(userId)
+                val totalCount = dashboardQueries.countEventsByOrganizer(userId)
+                    .executeAsOne()
+                    .toSafeResponseInt()
+
+                val events = dashboardQueries.selectEventAnalyticsPaged(
+                    organizerId = userId,
+                    limit = limit.toLong(),
+                    offset = offset.toLong()
+                )
                     .executeAsList()
                     .map { row ->
                         val responseRate = if (row.participantCount > 0 && row.timeSlotCount > 0) {
@@ -104,18 +126,26 @@ fun io.ktor.server.routing.Route.dashboardRoutes(
                             eventType = row.eventType,
                             createdAt = row.createdAt,
                             deadline = row.deadline,
-                            participantCount = row.participantCount.toInt(),
-                            voteCount = row.voteCount.toInt(),
-                            commentCount = row.commentCount.toInt(),
+                            participantCount = row.participantCount.toSafeResponseInt(),
+                            voteCount = row.voteCount.toSafeResponseInt(),
+                            commentCount = row.commentCount.toSafeResponseInt(),
                             responseRate = responseRate
                         )
                     }
 
-                call.respond(HttpStatusCode.OK, DashboardEventsResponse(events = events))
+                call.respond(
+                    HttpStatusCode.OK,
+                    DashboardEventsResponse(
+                        events = events,
+                        totalCount = totalCount,
+                        limit = limit,
+                        offset = offset
+                    )
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to (e.message ?: "Failed to fetch dashboard events"))
+                    mapOf("error" to dashboardEventsFailureMessage())
                 )
             }
         }
@@ -153,12 +183,12 @@ fun io.ktor.server.routing.Route.dashboardRoutes(
                 // Vote timeline
                 val voteTimeline = dashboardQueries.selectVoteTimeline(eventId)
                     .executeAsList()
-                    .map { TimelineEntry(date = it.voteDate ?: "", count = it.voteCount.toInt()) }
+                    .map { TimelineEntry(date = it.voteDate ?: "", count = it.voteCount.toSafeResponseInt()) }
 
                 // Participant timeline
                 val participantTimeline = dashboardQueries.selectParticipantTimeline(eventId)
                     .executeAsList()
-                    .map { TimelineEntry(date = it.joinDate ?: "", count = it.joinCount.toInt()) }
+                    .map { TimelineEntry(date = it.joinDate ?: "", count = it.joinCount.toSafeResponseInt()) }
 
                 // Popular time slots
                 val popularTimeSlots = dashboardQueries.selectPopularTimeSlots(eventId)
@@ -169,10 +199,10 @@ fun io.ktor.server.routing.Route.dashboardRoutes(
                             startTime = row.startTime,
                             endTime = row.endTime,
                             timeOfDay = row.timeOfDay,
-                            yesVotes = row.yesVotes.toInt(),
-                            maybeVotes = row.maybeVotes.toInt(),
-                            noVotes = row.noVotes.toInt(),
-                            totalVotes = row.totalVotes.toInt()
+                            yesVotes = row.yesVotes.toSafeResponseInt(),
+                            maybeVotes = row.maybeVotes.toSafeResponseInt(),
+                            noVotes = row.noVotes.toSafeResponseInt(),
+                            totalVotes = row.totalVotes.toSafeResponseInt()
                         )
                     }
 
@@ -193,14 +223,14 @@ fun io.ktor.server.routing.Route.dashboardRoutes(
                         participantTimeline = participantTimeline,
                         popularTimeSlots = popularTimeSlots,
                         pollCompletionRate = completionRate,
-                        totalParticipants = pollCompletion.totalParticipants.toInt(),
-                        votedParticipants = pollCompletion.votedParticipants.toInt()
+                        totalParticipants = pollCompletion.totalParticipants.toSafeResponseInt(),
+                        votedParticipants = pollCompletion.votedParticipants.toSafeResponseInt()
                     )
                 )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to (e.message ?: "Failed to fetch event analytics"))
+                    mapOf("error" to dashboardEventAnalyticsFailureMessage())
                 )
             }
         }
@@ -221,7 +251,10 @@ data class DashboardOverviewResponse(
 
 @Serializable
 data class DashboardEventsResponse(
-    val events: List<DashboardEventItem>
+    val events: List<DashboardEventItem>,
+    val totalCount: Int,
+    val limit: Int,
+    val offset: Int
 )
 
 @Serializable
@@ -268,3 +301,39 @@ data class PopularTimeSlot(
     val noVotes: Int,
     val totalVotes: Int
 )
+
+private const val DEFAULT_DASHBOARD_EVENTS_LIMIT = 50
+private const val MAX_DASHBOARD_EVENTS_LIMIT = 100
+private const val MAX_DASHBOARD_EVENTS_OFFSET = 10_000
+
+private fun Long.toSafeResponseInt(): Int = min(this, Int.MAX_VALUE.toLong()).toInt()
+
+private suspend fun ApplicationCall.parseBoundedDashboardInt(
+    name: String,
+    default: Int,
+    min: Int,
+    max: Int
+): Int? {
+    val rawValue = request.queryParameters[name]?.trim()
+    if (rawValue.isNullOrEmpty()) return default
+    val parsed = rawValue.toIntOrNull()
+        ?: return respondDashboardQueryError("$name must be an integer")
+    if (parsed < min || parsed > max) {
+        return respondDashboardQueryError("$name must be between $min and $max")
+    }
+    return parsed
+}
+
+private suspend fun ApplicationCall.respondDashboardQueryError(message: String): Int? {
+    respond(HttpStatusCode.BadRequest, mapOf("error" to message))
+    return null
+}
+
+internal fun dashboardOverviewFailureMessage(): String =
+    "Failed to fetch dashboard overview. Please try again."
+
+internal fun dashboardEventsFailureMessage(): String =
+    "Failed to fetch dashboard events. Please try again."
+
+internal fun dashboardEventAnalyticsFailureMessage(): String =
+    "Failed to fetch event analytics. Please try again."

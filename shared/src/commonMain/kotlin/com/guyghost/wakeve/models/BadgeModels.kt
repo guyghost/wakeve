@@ -1,5 +1,6 @@
 package com.guyghost.wakeve.models
 
+import com.guyghost.wakeve.deeplink.DeepLinkFactory
 import com.guyghost.wakeve.util.currentTimeMillis
 import kotlinx.serialization.Serializable
 
@@ -162,12 +163,25 @@ fun BadgeType.getDefaultMessage(eventTitle: String = "votre événement"): Strin
  * Creates a deep link for a specific notification type.
  */
 fun BadgeType.createDeepLink(eventId: String, additionalPath: String? = null): String {
-    val basePath = "wakeve://events/$eventId"
+    val normalizedAdditionalPath = additionalPath?.trim()?.takeIf { it.isNotEmpty() }
     return when {
-        additionalPath != null -> "$basePath/$additionalPath"
-        this == BadgeType.SCENARIO_UNLOCKED -> "$basePath/scenarios"
-        this == BadgeType.MEETING_SCHEDULED -> "$basePath/meetings"
-        this == BadgeType.COMMENT_MENTION -> "$basePath/comments"
-        else -> basePath
+        normalizedAdditionalPath != null -> DeepLinkFactory
+            .createEventDetailsLink(eventId = eventId, tab = normalizedAdditionalPath)
+            .fullUri
+        this == BadgeType.POLL_OPENED || this == BadgeType.POLL_CLOSING_SOON -> DeepLinkFactory
+            .createPollVoteLink(eventId = eventId)
+            .fullUri
+        this == BadgeType.SCENARIO_UNLOCKED -> DeepLinkFactory
+            .createScenarioComparisonLink(eventId = eventId)
+            .fullUri
+        this == BadgeType.MEETING_SCHEDULED -> DeepLinkFactory
+            .createEventMeetingsLink(eventId = eventId)
+            .fullUri
+        this == BadgeType.COMMENT_MENTION -> DeepLinkFactory
+            .createEventDetailsLink(eventId = eventId, tab = "comments")
+            .fullUri
+        else -> DeepLinkFactory
+            .createEventDetailsLink(eventId = eventId)
+            .fullUri
     }
 }

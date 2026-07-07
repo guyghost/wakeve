@@ -13,7 +13,7 @@ import io.ktor.http.isSuccess
  * Ktor-based HTTP client for sync operations (Android implementation)
  */
 class KtorSyncHttpClient(
-    private val baseUrl: String = "http://localhost:8080",
+    private val baseUrl: String = "https://api.wakeve.app",
     private val httpClient: HttpClient = HttpClient()
 ) : SyncHttpClient {
 

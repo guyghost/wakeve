@@ -201,13 +201,13 @@ final class PhotoPickerPermissionHandler {
      */
     static func openSettingsToEnableAccess(from viewController: UIViewController) {
         let alert = UIAlertController(
-            title: "Accès aux photos désactivé",
-            message: "Pour permettre l'accès aux photos, allez dans Paramètres > Confidentialité > Photos et activez l'accès pour Wakeve.",
+            title: String(localized: "photos.permission.disabled_title"),
+            message: String(localized: "photos.permission.disabled_message"),
             preferredStyle: .alert
         )
         
-        alert.addAction(UIAlertAction(title: "Annuler", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Paramètres", style: .default) { _ in
+        alert.addAction(UIAlertAction(title: String(localized: "common.cancel"), style: .cancel))
+        alert.addAction(UIAlertAction(title: String(localized: "photos.permission.settings"), style: .default) { _ in
             if let url = URL(string: UIApplication.openSettingsURLString) {
                 UIApplication.shared.open(url)
             }

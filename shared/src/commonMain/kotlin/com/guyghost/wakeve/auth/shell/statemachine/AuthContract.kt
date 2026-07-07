@@ -115,6 +115,16 @@ object AuthContract {
          * Sign out the current user.
          */
         data object SignOut : Intent
+
+        /**
+         * Delete the authenticated account after server-confirmed erasure.
+         */
+        data object DeleteAccount : Intent
+
+        /**
+         * Delete local-only guest data without contacting the backend.
+         */
+        data object DeleteGuestData : Intent
     }
 
     /**
@@ -165,5 +175,10 @@ object AuthContract {
          * Animate the success state.
          */
         data object AnimateSuccess : SideEffect
+
+        /**
+         * Navigate to the auth screen after account or guest data deletion.
+         */
+        data object NavigateToAuthAfterDeletion : SideEffect
     }
 }

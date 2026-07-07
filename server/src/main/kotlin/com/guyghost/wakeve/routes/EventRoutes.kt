@@ -1,10 +1,13 @@
 package com.guyghost.wakeve.routes
 
+import com.guyghost.wakeve.auth.userId
+import com.guyghost.wakeve.database.WakeveDb
 import com.guyghost.wakeve.repository.DatabaseEventRepository
 import com.guyghost.wakeve.gamification.GamificationService
 import com.guyghost.wakeve.gamification.PointsAction
 import com.guyghost.wakeve.models.CreateEventRequest
 import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.EventStatus
 import com.guyghost.wakeve.models.EventResponse
 import com.guyghost.wakeve.models.EventSearchResult
 import com.guyghost.wakeve.models.NearbyEventResult
@@ -15,8 +18,12 @@ import com.guyghost.wakeve.models.TimeSlot
 import com.guyghost.wakeve.models.TimeSlotResponse
 import com.guyghost.wakeve.models.TrendingEventsResponse
 import com.guyghost.wakeve.models.UpdateEventStatusRequest
+import com.guyghost.wakeve.moderation.ModerationPolicy
+import com.guyghost.wakeve.moderation.ModerationStatus
 import com.guyghost.wakeve.notification.EventNotificationTrigger
 import io.ktor.http.HttpStatusCode
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
@@ -27,13 +34,25 @@ import io.ktor.server.routing.route
 fun io.ktor.server.routing.Route.eventRoutes(
     repository: DatabaseEventRepository,
     gamificationService: GamificationService? = null,
-    eventNotificationTrigger: EventNotificationTrigger? = null
+    eventNotificationTrigger: EventNotificationTrigger? = null,
+    database: WakeveDb? = null,
+    moderationPolicy: ModerationPolicy = ModerationPolicy()
 ) {
     route("/events") {
         // GET /api/events - Get all events
         get {
             try {
-                val events = repository.getAllEvents()
+                val principal = call.principal<JWTPrincipal>() ?: return@get call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Not authenticated")
+                )
+                val currentUserId = principal.userId
+                val events = repository.getAllEvents().filter { event ->
+                    event.organizerId == currentUserId ||
+                        database?.participantQueries
+                            ?.selectByEventIdAndUserId(event.id, currentUserId)
+                            ?.executeAsOneOrNull() != null
+                }
                 val responses = events.map { event ->
                     EventResponse(
                         id = event.id,
@@ -58,14 +77,15 @@ fun io.ktor.server.routing.Route.eventRoutes(
                         eventTypeCustom = event.eventTypeCustom,
                         minParticipants = event.minParticipants,
                         maxParticipants = event.maxParticipants,
-                        expectedParticipants = event.expectedParticipants
+                        expectedParticipants = event.expectedParticipants,
+                        planningMode = event.planningMode.name
                     )
                 }
                 call.respond(HttpStatusCode.OK, mapOf("events" to responses))
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to eventListFailureMessage())
                 )
             }
         }
@@ -73,6 +93,10 @@ fun io.ktor.server.routing.Route.eventRoutes(
         // GET /api/events/{id} - Get specific event
         get("/{id}") {
             try {
+                val principal = call.principal<JWTPrincipal>() ?: return@get call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Not authenticated")
+                )
                 val eventId = call.parameters["id"] ?: return@get call.respond(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "Event ID required")
@@ -82,6 +106,13 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     HttpStatusCode.NotFound,
                     mapOf("error" to "Event not found")
                 )
+
+                if (!canReadEventDetails(database, event, principal.userId)) {
+                    return@get call.respond(
+                        HttpStatusCode.NotFound,
+                        mapOf("error" to "Event not found")
+                    )
+                }
 
                 val response = EventResponse(
                     id = event.id,
@@ -106,13 +137,14 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     eventTypeCustom = event.eventTypeCustom,
                     minParticipants = event.minParticipants,
                     maxParticipants = event.maxParticipants,
-                    expectedParticipants = event.expectedParticipants
+                    expectedParticipants = event.expectedParticipants,
+                    planningMode = event.planningMode.name
                 )
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to eventDetailFailureMessage())
                 )
             }
         }
@@ -120,7 +152,23 @@ fun io.ktor.server.routing.Route.eventRoutes(
         // POST /api/events - Create new event
         post {
             try {
+                val principal = call.principal<JWTPrincipal>() ?: return@post call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Not authenticated")
+                )
+                val organizerId = principal.userId
                 val request = call.receive<CreateEventRequest>()
+                val textFields = listOfNotNull(request.title, request.description, request.eventTypeCustom)
+                val rejectedField = textFields
+                    .map { moderationPolicy.evaluate(it) }
+                    .firstOrNull { it.status == ModerationStatus.REJECTED }
+                if (rejectedField != null) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to rejectedField.userMessage, "reasonCode" to rejectedField.reasonCode)
+                    )
+                    return@post
+                }
                 
                 val timeSlots = request.proposedSlots.map { slot ->
                     TimeSlot(
@@ -139,7 +187,7 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     id = "event_${System.currentTimeMillis()}_${Math.random()}",
                     title = request.title,
                     description = request.description,
-                    organizerId = request.organizerId,
+                    organizerId = organizerId,
                     participants = emptyList(),
                     proposedSlots = timeSlots,
                     deadline = request.deadline,
@@ -153,7 +201,10 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     eventTypeCustom = request.eventTypeCustom,
                     minParticipants = request.minParticipants,
                     maxParticipants = request.maxParticipants,
-                    expectedParticipants = request.expectedParticipants
+                    expectedParticipants = request.expectedParticipants,
+                    planningMode = request.planningMode?.let {
+                        com.guyghost.wakeve.models.EventPlanningMode.valueOf(it)
+                    } ?: com.guyghost.wakeve.models.EventPlanningMode.TIME_SLOT_POLL
                 )
 
                 val result = repository.createEvent(event)
@@ -162,7 +213,7 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     // Award points for creating an event (+50 points)
                     try {
                         gamificationService?.awardPoints(
-                            userId = event.organizerId,
+                            userId = organizerId,
                             action = PointsAction.CREATE_EVENT,
                             eventId = event.id
                         )
@@ -192,19 +243,20 @@ fun io.ktor.server.routing.Route.eventRoutes(
                         eventTypeCustom = event.eventTypeCustom,
                         minParticipants = event.minParticipants,
                         maxParticipants = event.maxParticipants,
-                        expectedParticipants = event.expectedParticipants
+                        expectedParticipants = event.expectedParticipants,
+                        planningMode = event.planningMode.name
                     )
                     call.respond(HttpStatusCode.Created, response)
                 } else {
                     call.respond(
                         HttpStatusCode.BadRequest,
-                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Failed to create event"))
+                        mapOf("error" to eventCreateFailureMessage())
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to eventCreateFailureMessage())
                 )
             }
         }
@@ -213,15 +265,22 @@ fun io.ktor.server.routing.Route.eventRoutes(
         // Query params: q, category, location, dateFrom, dateTo, status, sortBy, offset, limit
         get("/search") {
             try {
-                val query = call.parameters["q"]
-                val category = call.parameters["category"]
-                val location = call.parameters["location"]
-                val dateFrom = call.parameters["dateFrom"]
-                val dateTo = call.parameters["dateTo"]
-                val status = call.parameters["status"]
-                val sortBy = call.parameters["sortBy"] ?: "RELEVANCE"
-                val offset = call.parameters["offset"]?.toIntOrNull() ?: 0
-                val limit = (call.parameters["limit"]?.toIntOrNull() ?: 20).coerceIn(1, 100)
+                val principal = call.principal<JWTPrincipal>() ?: return@get call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Not authenticated")
+                )
+                val currentUserId = principal.userId
+                val queryParameters = call.request.queryParameters
+                val query = queryParameters["q"]
+                val category = queryParameters["category"]
+                val location = queryParameters["location"]
+                val dateFrom = queryParameters["dateFrom"]
+                val dateTo = queryParameters["dateTo"]
+                val status = queryParameters["status"]
+                val sortBy = queryParameters["sortBy"] ?: "RELEVANCE"
+                val offset = (queryParameters["offset"]?.toIntOrNull() ?: 0).coerceAtLeast(0)
+                val limit = (queryParameters["limit"]?.toIntOrNull() ?: 20).coerceIn(1, 100)
+                val candidateLimit = (limit * 5).coerceAtMost(500)
 
                 val results = repository.searchEvents(
                     query = query,
@@ -232,14 +291,25 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     status = status,
                     sortBy = sortBy,
                     offset = offset,
-                    limit = limit
+                    limit = candidateLimit
                 )
+                val visibleEvents = results.events.filter { result ->
+                    canReadEventSearchResult(database, result, currentUserId)
+                }.take(limit)
 
-                call.respond(HttpStatusCode.OK, results)
+                call.respond(
+                    HttpStatusCode.OK,
+                    results.copy(
+                        events = visibleEvents,
+                        totalCount = visibleEvents.size,
+                        limit = limit,
+                        hasMore = results.hasMore && visibleEvents.size == limit
+                    )
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to eventSearchFailureMessage())
                 )
             }
         }
@@ -247,13 +317,25 @@ fun io.ktor.server.routing.Route.eventRoutes(
         // GET /api/events/trending - Events with most participants in last 7 days
         get("/trending") {
             try {
-                val limit = (call.parameters["limit"]?.toIntOrNull() ?: 10).coerceIn(1, 50)
-                val results = repository.getTrendingEvents(limit = limit)
-                call.respond(HttpStatusCode.OK, results)
+                val principal = call.principal<JWTPrincipal>() ?: return@get call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Not authenticated")
+                )
+                val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 10).coerceIn(1, 50)
+                val candidateLimit = (limit * 5).coerceAtMost(250)
+                val results = repository.getTrendingEvents(limit = candidateLimit)
+                call.respond(
+                    HttpStatusCode.OK,
+                    results.copy(
+                        events = results.events.filter { result ->
+                            canReadEventSearchResult(database, result, principal.userId)
+                        }.take(limit)
+                    )
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to trendingEventsFailureMessage())
                 )
             }
         }
@@ -262,9 +344,14 @@ fun io.ktor.server.routing.Route.eventRoutes(
         // Query params: lat, lon, radius (km, default 50)
         get("/nearby") {
             try {
-                val lat = call.parameters["lat"]?.toDoubleOrNull()
-                val lon = call.parameters["lon"]?.toDoubleOrNull()
-                val radius = call.parameters["radius"]?.toDoubleOrNull() ?: 50.0
+                val principal = call.principal<JWTPrincipal>() ?: return@get call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Not authenticated")
+                )
+                val queryParameters = call.request.queryParameters
+                val lat = queryParameters["lat"]?.toDoubleOrNull()
+                val lon = queryParameters["lon"]?.toDoubleOrNull()
+                val radius = queryParameters["radius"]?.toDoubleOrNull() ?: 50.0
 
                 if (lat == null || lon == null) {
                     return@get call.respond(
@@ -273,19 +360,27 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     )
                 }
 
-                val limit = (call.parameters["limit"]?.toIntOrNull() ?: 20).coerceIn(1, 100)
+                val limit = (queryParameters["limit"]?.toIntOrNull() ?: 20).coerceIn(1, 100)
+                val candidateLimit = (limit * 5).coerceAtMost(500)
                 val results = repository.getNearbyEvents(
                     lat = lat,
                     lon = lon,
                     radiusKm = radius,
-                    limit = limit
+                    limit = candidateLimit
                 )
 
-                call.respond(HttpStatusCode.OK, results)
+                call.respond(
+                    HttpStatusCode.OK,
+                    results.copy(
+                        events = results.events.filter { result ->
+                            canReadEventSearchResult(database, result.event, principal.userId)
+                        }.take(limit)
+                    )
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to nearbyEventsFailureMessage())
                 )
             }
         }
@@ -297,15 +392,29 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     HttpStatusCode.BadRequest,
                     mapOf("error" to "User ID required")
                 )
+                val principal = call.principal<JWTPrincipal>() ?: return@get call.respond(
+                    HttpStatusCode.Unauthorized,
+                    mapOf("error" to "Not authenticated")
+                )
+                if (principal.userId != userId) {
+                    return@get call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "You cannot request recommendations for another user")
+                    )
+                }
 
-                val limit = (call.parameters["limit"]?.toIntOrNull() ?: 10).coerceIn(1, 50)
-                val results = repository.getRecommendedEvents(userId = userId, limit = limit)
+                val limit = (call.request.queryParameters["limit"]?.toIntOrNull() ?: 10).coerceIn(1, 50)
+                val candidateLimit = (limit * 5).coerceAtMost(250)
+                val results = repository.getRecommendedEvents(userId = userId, limit = candidateLimit)
 
-                call.respond(HttpStatusCode.OK, results)
+                call.respond(
+                    HttpStatusCode.OK,
+                    results.copy(events = visibleRecommendedEvents(repository, database, results.events, userId, limit))
+                )
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to recommendedEventsFailureMessage())
                 )
             }
         }
@@ -320,7 +429,7 @@ fun io.ktor.server.routing.Route.eventRoutes(
 
                 val request = call.receive<UpdateEventStatusRequest>()
                 val status = try {
-                    com.guyghost.wakeve.models.EventStatus.valueOf(request.status)
+                    EventStatus.valueOf(request.status)
                 } catch (e: IllegalArgumentException) {
                     return@put call.respond(
                         HttpStatusCode.BadRequest,
@@ -328,14 +437,71 @@ fun io.ktor.server.routing.Route.eventRoutes(
                     )
                 }
 
-                val result = repository.updateEventStatus(eventId, status, request.finalDate)
+                val principal = call.principal<JWTPrincipal>()
+                    ?: return@put call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "Not authenticated"))
+                val event = repository.getEvent(eventId) ?: return@put call.respond(
+                    HttpStatusCode.NotFound,
+                    mapOf("error" to "Event not found")
+                )
+
+                if (event.organizerId != principal.userId) {
+                    return@put call.respond(
+                        HttpStatusCode.Forbidden,
+                        mapOf("error" to "Only the organizer can update event status")
+                    )
+                }
+
+                if (!isAllowedEventStatusTransition(event.status, status)) {
+                    return@put call.respond(
+                        HttpStatusCode.Conflict,
+                        mapOf("error" to "Invalid workflow transition: ${event.status.name} -> ${status.name}")
+                    )
+                }
+
+                val notificationFinalDate: String?
+                val result = if (status == EventStatus.CONFIRMED) {
+                    val slotId = request.slotId ?: return@put call.respond(
+                        HttpStatusCode.BadRequest,
+                        mapOf("error" to "slotId is required when confirming an event")
+                    )
+                    val db = database ?: return@put call.respond(
+                        HttpStatusCode.InternalServerError,
+                        mapOf("error" to "Database access is required to confirm a selected slot")
+                    )
+                    val selectedSlot = db.timeSlotQueries.selectById(slotId).executeAsOneOrNull()
+                    if (selectedSlot == null || selectedSlot.eventId != eventId) {
+                        return@put call.respond(
+                            HttpStatusCode.BadRequest,
+                            mapOf("error" to "Selected slot does not belong to this event")
+                        )
+                    }
+
+                    notificationFinalDate = selectedSlot.startTime ?: request.finalDate
+                    repository.updateEventStatus(eventId, status, null).also { updateResult ->
+                        if (updateResult.isSuccess) {
+                            val now = java.time.Instant.now().toString()
+                            db.confirmedDateQueries.deleteByEventId(eventId)
+                            db.confirmedDateQueries.insertConfirmedDate(
+                                id = "confirmed_$eventId",
+                                eventId = eventId,
+                                timeslotId = slotId,
+                                confirmedByOrganizerId = principal.userId,
+                                confirmedAt = now,
+                                updatedAt = now
+                            )
+                        }
+                    }
+                } else {
+                    notificationFinalDate = request.finalDate
+                    repository.updateEventStatus(eventId, status, request.finalDate)
+                }
 
                 if (result.isSuccess) {
                     // Trigger notification for status change (async, non-blocking)
                     eventNotificationTrigger?.onEventStatusChanged(
                         eventId = eventId,
                         newStatus = status.name,
-                        finalDate = request.finalDate
+                        finalDate = notificationFinalDate
                     )
                     val event = repository.getEvent(eventId)
                     if (event != null) {
@@ -374,15 +540,103 @@ fun io.ktor.server.routing.Route.eventRoutes(
                 } else {
                     call.respond(
                         HttpStatusCode.BadRequest,
-                        mapOf("error" to (result.exceptionOrNull()?.message ?: "Failed to update status"))
+                        mapOf("error" to eventStatusUpdateFailureMessage())
                     )
                 }
             } catch (e: Exception) {
                 call.respond(
                     HttpStatusCode.BadRequest,
-                    mapOf("error" to e.message.orEmpty())
+                    mapOf("error" to eventStatusUpdateFailureMessage())
                 )
             }
         }
+    }
+}
+
+private fun canReadEventDetails(database: WakeveDb?, event: Event, userId: String): Boolean {
+    if (event.organizerId == userId) return true
+
+    return database?.participantQueries
+        ?.selectByEventIdAndUserId(event.id, userId)
+        ?.executeAsOneOrNull() != null
+}
+
+private fun canReadEventSearchResult(database: WakeveDb?, event: EventSearchResult, userId: String): Boolean {
+    if (event.organizerId == userId) return true
+
+    return database?.participantQueries
+        ?.selectByEventIdAndUserId(event.id, userId)
+        ?.executeAsOneOrNull() != null
+}
+
+private fun visibleRecommendedEvents(
+    repository: DatabaseEventRepository,
+    database: WakeveDb?,
+    candidates: List<EventSearchResult>,
+    userId: String,
+    limit: Int
+): List<EventSearchResult> {
+    val visibleCandidates = candidates
+        .filter { result -> canReadEventSearchResult(database, result, userId) }
+        .take(limit)
+    if (visibleCandidates.isNotEmpty()) {
+        return visibleCandidates
+    }
+
+    return repository.getAllEvents()
+        .asSequence()
+        .filter { event -> canReadEventDetails(database, event, userId) }
+        .sortedByDescending { it.createdAt }
+        .map { event ->
+            EventSearchResult(
+                id = event.id,
+                title = event.title,
+                description = event.description,
+                organizerId = event.organizerId,
+                status = event.status.name,
+                eventType = event.eventType.name,
+                eventTypeCustom = event.eventTypeCustom,
+                participantCount = event.participants.size,
+                maxParticipants = event.maxParticipants,
+                deadline = event.deadline,
+                createdAt = event.createdAt
+            )
+        }
+        .take(limit)
+        .toList()
+}
+
+internal fun eventListFailureMessage(): String =
+    "Failed to fetch events. Please try again."
+
+internal fun eventDetailFailureMessage(): String =
+    "Failed to fetch event details. Please try again."
+
+internal fun eventCreateFailureMessage(): String =
+    "Failed to create the event. Please try again."
+
+internal fun eventSearchFailureMessage(): String =
+    "Failed to search events. Please try again."
+
+internal fun trendingEventsFailureMessage(): String =
+    "Failed to fetch trending events. Please try again."
+
+internal fun nearbyEventsFailureMessage(): String =
+    "Failed to fetch nearby events. Please try again."
+
+internal fun recommendedEventsFailureMessage(): String =
+    "Failed to fetch recommended events. Please try again."
+
+internal fun eventStatusUpdateFailureMessage(): String =
+    "Failed to update event status. Please try again."
+
+private fun isAllowedEventStatusTransition(current: EventStatus, requested: EventStatus): Boolean {
+    return when (current) {
+        EventStatus.DRAFT -> requested == EventStatus.POLLING
+        EventStatus.POLLING -> requested == EventStatus.CONFIRMED
+        EventStatus.CONFIRMED -> requested == EventStatus.COMPARING
+        EventStatus.COMPARING -> requested == EventStatus.ORGANIZING
+        EventStatus.ORGANIZING -> requested == EventStatus.FINALIZED
+        EventStatus.FINALIZED -> false
     }
 }

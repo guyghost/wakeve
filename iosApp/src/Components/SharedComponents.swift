@@ -1,6 +1,29 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Shared UI Components
+
+enum WakeveHaptics {
+    static func selection() {
+        #if canImport(UIKit)
+        UISelectionFeedbackGenerator().selectionChanged()
+        #endif
+    }
+
+    static func success() {
+        #if canImport(UIKit)
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+        #endif
+    }
+
+    static func warning() {
+        #if canImport(UIKit)
+        UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        #endif
+    }
+}
 
 // MARK: - Vote Enum
 
@@ -181,7 +204,7 @@ struct FilterChip: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(text)
-        .accessibilityHint(isSelected ? "Selected" : "Tap to select")
+        .accessibilityHint(isSelected ? String(localized: "common.selected") : String(localized: "common.double_tap_to_select"))
     }
 }
 
@@ -392,6 +415,7 @@ struct LoadingView: View {
             ProgressView()
                 .progressViewStyle(CircularProgressViewStyle(tint: .wakevePrimary))
                 .scaleEffect(1.2)
+                .accessibilityLabel(message)
 
             Text(message)
                 .font(.subheadline)
@@ -427,7 +451,7 @@ struct ActionRow: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .liquidGlass(cornerRadius: 12)
+            .glassCard(cornerRadius: 12)
         }
         .buttonStyle(.plain)
     }
@@ -525,7 +549,7 @@ struct SharedComponents_Previews: PreviewProvider {
                     InfoRow(label: "Participants", value: "8 persons")
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
 
                 // StatusBadge
                 VStack(alignment: .leading, spacing: 8) {
@@ -540,7 +564,7 @@ struct SharedComponents_Previews: PreviewProvider {
                     }
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
 
                 // FilterChip
                 VStack(alignment: .leading, spacing: 8) {
@@ -555,7 +579,7 @@ struct SharedComponents_Previews: PreviewProvider {
                     }
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
 
                 // VoteChip
                 VStack(alignment: .leading, spacing: 8) {
@@ -570,7 +594,7 @@ struct SharedComponents_Previews: PreviewProvider {
                     }
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
 
                 // SectionHeader
                 VStack(alignment: .leading, spacing: 8) {
@@ -579,11 +603,11 @@ struct SharedComponents_Previews: PreviewProvider {
                         .foregroundColor(.secondary)
 
                     SectionHeader(String(localized: "home.my_events"), actionTitle: String(localized: "common.see_all")) {
-                        print("See all tapped")
+                        debugLog("See all tapped")
                     }
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
 
                 // ActionRow
                 VStack(alignment: .leading, spacing: 8) {
@@ -592,15 +616,15 @@ struct SharedComponents_Previews: PreviewProvider {
                         .foregroundColor(.secondary)
 
                     ActionRow(icon: "calendar.badge.plus", title: String(localized: "events.create")) {
-                        print("Create event tapped")
+                        debugLog("Create event tapped")
                     }
 
                     ActionRow(icon: "gearshape", title: String(localized: "settings.title")) {
-                        print("Settings tapped")
+                        debugLog("Settings tapped")
                     }
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
 
                 // Rating & Price
                 VStack(alignment: .leading, spacing: 8) {
@@ -615,7 +639,7 @@ struct SharedComponents_Previews: PreviewProvider {
                     }
                 }
                 .padding()
-                .liquidGlass(cornerRadius: 16)
+                .glassCard(cornerRadius: 16)
             }
             .padding()
         }

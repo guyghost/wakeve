@@ -15,11 +15,11 @@ wakeve/
 │   ├── src/commonTest/       # Cross-platform tests
 │   ├── src/jvmTest/          # JVM-specific tests
 │   └── src/commonMain/sqldelight/  # Database schema
-├── wakeveApp/               # Android app with Jetpack Compose
+├── composeApp/              # Android app with Jetpack Compose
 │   └── src/commonMain/       # Shared Compose UI
 ├── server/                   # Ktor REST backend
 │   └── src/main/kotlin/      # Server API endpoints
-├── wakeveApp/wakeveApp/      # iOS app (Xcode project)
+├── iosApp/                   # Native iOS SwiftUI app and Xcode project
 └── openspec/                 # Specification documents
     ├── changes/              # Change proposals
     └── specs/                # Capability specifications
@@ -31,9 +31,9 @@ wakeve/
 Wakeve follows the OpenSpec process for structured feature development:
 
 1. **Create GitHub Issue** with change ID (e.g., `add-event-organization`)
-2. **Create Feature Branch** with naming: `change/<change-id>`
+2. **Create Feature Branch** with naming: `codex/<change-id>` for Codex work
 3. **Create Proposal**: `openspec/changes/<change-id>/proposal.md`
-4. **Create Specification**: `openspec/specs/<capability>/spec.md`
+4. **Create Spec Delta**: `openspec/changes/<change-id>/specs/<capability>/spec.md`
 5. **Get Approval** on PR before implementation
 6. **Implement** with tests and documentation
 7. **Merge** to main after code review
@@ -41,8 +41,8 @@ Wakeve follows the OpenSpec process for structured feature development:
 ### Key Files
 - `openspec/AGENTS.md` - AI assistant instructions and conventions
 - `openspec/PROCESS.md` - Simplified workflow documentation
-- `IMPLEMENTATION_CHECKLIST.md` - Current phase checklist
-- `PHASE_3_ROADMAP.md` - Future features and timeline
+- `ROADMAP.md` - Current release-hardening roadmap
+- `QUICK_START.md` - Current setup and validation guide
 
 ## Getting Started
 
@@ -51,7 +51,7 @@ Wakeve follows the OpenSpec process for structured feature development:
 - Java 11+
 - Gradle 8.14+
 - Android SDK (for Android development)
-- Xcode 15+ (for iOS development)
+- Xcode with an available iOS simulator (for iOS development)
 
 ### Building the Project
 
@@ -60,16 +60,16 @@ Wakeve follows the OpenSpec process for structured feature development:
 ./gradlew build
 
 # Run tests
-./gradlew shared:test
+./gradlew :shared:jvmTest
 
 # Run specific test class
-./gradlew shared:test --tests "EventRepositoryTest"
+./gradlew :shared:jvmTest --tests "EventRepositoryTest"
 
 # Build Android app
-./gradlew wakeveApp:build
+./gradlew :composeApp:assembleDebug
 
 # Run Ktor server
-./gradlew server:run
+./gradlew :server:run
 ```
 
 ### Development Environment Setup
@@ -82,7 +82,7 @@ Wakeve follows the OpenSpec process for structured feature development:
 
 2. **Create feature branch**:
    ```bash
-   git checkout -b change/<change-id>
+   git checkout -b codex/<change-id>
    ```
 
 3. **Install dependencies**:
@@ -92,7 +92,7 @@ Wakeve follows the OpenSpec process for structured feature development:
 
 4. **Run tests**:
    ```bash
-   ./gradlew shared:test
+   ./gradlew :shared:jvmTest
    ```
 
 ## Architecture
@@ -136,7 +136,7 @@ com.guyghost.wakeve/
 ├── repositories/     // Data access layer
 ├── services/         // Business logic
 ├── routes/           // API endpoints (server only)
-├── ui/              // UI screens (wakeveApp only)
+├── ui/              // UI screens (composeApp only)
 └── database/        // SQLDelight factories
 ```
 
@@ -190,26 +190,26 @@ class EventRepositoryTest {
 
 ### Running Tests
 ```bash
-# Run all tests
-./gradlew shared:test
+# Run shared JVM tests
+./gradlew :shared:jvmTest
 
 # Run with coverage report
-./gradlew shared:test jacocoTestReport
+./gradlew :shared:testWithCoverage :shared:jacocoCoverageVerification
 
-# Watch mode (for development)
-./gradlew shared:test --watch
+# Run Android unit tests where available
+./gradlew :composeApp:testDebugUnitTest
 ```
 
 ## Git Workflow
 
 ### Branch Naming
-- Feature: `change/<change-id>` (e.g., `change/add-event-organization`)
+- Feature/Codex work: `codex/<change-id>` (e.g., `codex/add-event-organization`)
 - Bugfix: `fix/<issue-number>-<description>`
 - Documentation: `docs/<description>`
 
 ### Commit Message Format
 ```
-[#<issue>] <type>: <description>
+<type>(optional-scope): <description>
 
 <optional body>
 <optional footer>
@@ -219,9 +219,9 @@ class EventRepositoryTest {
 
 **Examples**:
 ```
-[#2] feat: Implement event creation API endpoint
-[#15] fix: Handle timezone conversion correctly
-[#20] test: Add offline sync scenario tests
+feat(events): implement event creation API endpoint
+fix(timezone): handle timezone conversion correctly
+test(sync): add offline sync scenario tests
 ```
 
 ### Code Review Process
@@ -296,7 +296,7 @@ class EventRepositoryTest {
 
 ### Authentication
 - Never store plaintext passwords
-- Use OAuth2 for user authentication (Phase 3)
+- Use the existing OAuth/email/guest authentication flows and secure token storage patterns
 - Rotate tokens regularly
 - Validate all user inputs
 
@@ -371,7 +371,7 @@ What actually happens?
 ## Environment
 - OS: (Android/iOS/JVM)
 - Version: X.Y.Z
-- Branch: change/...
+- Branch: codex/...
 ```
 
 ## Useful Commands
@@ -388,10 +388,10 @@ git fetch origin
 git pull origin main
 
 # Create feature branch
-git checkout -b change/<change-id>
+git checkout -b codex/<change-id>
 
 # Run specific test
-./gradlew shared:test --tests "TestClassName"
+./gradlew :shared:jvmTest --tests "TestClassName"
 
 # Format code
 ./gradlew spotlessApply

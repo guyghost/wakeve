@@ -310,12 +310,12 @@ object BudgetCalculator {
             errors.add("Item name cannot be blank")
         }
         
-        if (item.estimatedCost < 0.0) {
-            errors.add("Estimated cost cannot be negative")
+        if (!item.estimatedCost.isFinite() || item.estimatedCost < 0.0) {
+            errors.add("Estimated cost cannot be negative or non-finite")
         }
         
-        if (item.actualCost < 0.0) {
-            errors.add("Actual cost cannot be negative")
+        if (!item.actualCost.isFinite() || item.actualCost < 0.0) {
+            errors.add("Actual cost cannot be negative or non-finite")
         }
         
         if (item.isPaid == true && item.paidBy == null) {
@@ -328,6 +328,14 @@ object BudgetCalculator {
         
         if (item.sharedBy.isEmpty()) {
             errors.add("Item must be shared by at least one participant")
+        }
+
+        if (item.sharedBy.any { it.isBlank() }) {
+            errors.add("Shared participant IDs cannot be blank")
+        }
+
+        if (item.sharedBy.size != item.sharedBy.distinct().size) {
+            errors.add("Shared participant IDs cannot contain duplicates")
         }
         
         return errors

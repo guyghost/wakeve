@@ -1,6 +1,6 @@
 # ✅ Liquid Glass Migration - Final Validation Checklist
 
-**Fichier Migré**: `iosApp/iosApp/Views/ModernPollVotingView.swift`  
+**Fichier Migré**: `iosApp/src/Views/ModernPollVotingView.swift`  
 **Status**: 🟢 **MIGRATION COMPLÈTE**  
 **Date**: 28 décembre 2025  
 **Version**: 1.0.0
@@ -283,7 +283,7 @@
 
 ### ViewExtensions.swift - Méthodes Utilisées
 - [x] `.glassCard(cornerRadius:material:)` - Used 3 times (lines 112, 151, 371)
-- [x] Extension properly defined in `/iosApp/iosApp/Extensions/ViewExtensions.swift`
+- [x] Extension properly defined in `/iosApp/src/Extensions/ViewExtensions.swift`
 - [x] Implementation: `self.background(material).clipShape(RoundedRectangle(...)).shadow(...)`
 
 **Validation**: ✅ ALL EXTENSIONS AVAILABLE

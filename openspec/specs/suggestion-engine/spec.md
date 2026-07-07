@@ -51,13 +51,11 @@ The Suggestion Engine enhances event planning by reducing decision paralysis and
 - **Accommodation Selection**: User needs lodging → system filters and ranks options
 - **Transport Coordination**: Users need to meet → system suggests optimal meeting points
 - **Budget Optimization**: User has budget constraints → system finds best value options
-
 ## Requirements
-
 ### Requirement: Multi-Criteria Scoring Algorithm
-**ID**: `SUGG-001`
-
 The system SHALL score all suggestions using a weighted 5-criteria algorithm.
+
+**ID**: `SUGG-001`
 
 **Scoring Formula**:
 ```
@@ -90,9 +88,9 @@ finalScore = (costScore × 0.30) + (personalizationScore × 0.25) +
   - Return final weighted score
 
 ### Requirement: User Profile Learning
-**ID**: `SUGG-002`
-
 The system SHALL maintain and update user profiles based on interactions.
+
+**ID**: `SUGG-002`
 
 **Profile Components**:
 - **Preferences**: Explicit user likes/dislikes (beach vs mountain, luxury vs budget)
@@ -117,9 +115,9 @@ The system SHALL maintain and update user profiles based on interactions.
   - Personalize based on first interactions
 
 ### Requirement: Destination Suggestions
-**ID**: `SUGG-003`
-
 The system SHALL provide destination recommendations based on event context.
+
+**ID**: `SUGG-003`
 
 **Input Parameters**:
 - Budget range (min/max per person)
@@ -138,9 +136,9 @@ The system SHALL provide destination recommendations based on event context.
   - Return ranked list of 10 destinations
 
 ### Requirement: Accommodation Suggestions
-**ID**: `SUGG-004`
-
 The system SHALL provide accommodation recommendations based on destination and user profile.
+
+**ID**: `SUGG-004`
 
 **Input Parameters**:
 - Destination ID
@@ -175,9 +173,9 @@ finalScore = (capacityScore × 0.25) + (amenityScore × 0.20) +
   - Include accessibility notes in reasons
 
 ### Requirement: Transport Suggestions
-**ID**: `SUGG-005`
-
 The system SHALL suggest optimal meeting points and transport options.
+
+**ID**: `SUGG-005`
 
 **Input Parameters**:
 - Participant locations
@@ -195,9 +193,9 @@ The system SHALL suggest optimal meeting points and transport options.
   - Provide cost and time estimates for each participant
 
 ### Requirement: A/B Testing Framework
-**ID**: `SUGG-006`
-
 The system SHALL support A/B testing of suggestion algorithms.
+
+**ID**: `SUGG-006`
 
 **Testable Variants**:
 - Scoring weights (e.g., 30/25/20/15/10 vs 25/30/20/15/10)
@@ -211,6 +209,20 @@ The system SHALL support A/B testing of suggestion algorithms.
   - Apply variant B weights for all suggestions
   - Track user engagement metrics
   - Log variant assignment for analysis
+
+### Requirement: Deterministic Suggestion Scoring
+Suggestion ranking, scoring, filtering, and eligibility decisions SHALL be deterministic functions of typed request data, provider facts, user preferences, and explicit scoring weights. AI MAY generate bounded explanatory copy or rationale only after deterministic scoring has selected the facts it may describe.
+
+#### Scenario: LLM wording changes
+- **GIVEN** two AI-generated rationales use different wording for the same scored destination
+- **WHEN** Wakeve ranks the suggestions
+- **THEN** the ranking and scores remain unchanged
+- **AND** only the reviewable rationale text differs.
+
+#### Scenario: AI rationale invents a score factor
+- **WHEN** generated rationale references a cost, availability, participant preference, or transport fact that is absent from the deterministic scoring inputs
+- **THEN** Wakeve rejects or downgrades the rationale
+- **AND** the suggestion score and rank remain based only on deterministic inputs.
 
 ## Data Models
 

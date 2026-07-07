@@ -600,7 +600,7 @@ struct EventListView: View {
 
 ### Android
 ```
-wakeveApp/src/
+composeApp/src/
 ├── commonMain/kotlin/
 │   └── viewmodel/
 │       ├── EventManagementViewModel.kt    # Wrapper StateMachine
@@ -618,7 +618,7 @@ wakeveApp/src/
 
 ### iOS
 ```
-wakeveApp/wakeveApp/
+iosApp/src/
 ├── ViewModels/
 │   ├── EventListViewModel.swift          # Wrapper StateMachine
 │   ├── EventDetailViewModel.swift

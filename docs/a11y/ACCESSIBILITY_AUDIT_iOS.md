@@ -8,7 +8,7 @@
 ---
 
 ## 1. ModernHomeView
-**Fichier:** `iosApp/iosApp/Views/ModernHomeView.swift`  
+**Fichier:** `iosApp/src/Views/ModernHomeView.swift`  
 **Type:** Vue principale (accueil)
 
 ### État Général
@@ -78,7 +78,7 @@
 ---
 
 ## 2. DraftEventWizardView
-**Fichier:** `iosApp/iosApp/Views/DraftEventWizardView.swift`  
+**Fichier:** `iosApp/src/Views/DraftEventWizardView.swift`  
 **Type:** Wizard multi-étapes
 
 ### État Général
@@ -151,7 +151,7 @@
 ---
 
 ## 3. ModernEventDetailView
-**Fichier:** `iosApp/iosApp/Views/ModernEventDetailView.swift`  
+**Fichier:** `iosApp/src/Views/ModernEventDetailView.swift`  
 **Type:** Détail événement
 
 ### État Général
@@ -218,7 +218,7 @@
 ---
 
 ## 4. EventsTabView (ErrorsTabView)
-**Fichier:** `iosApp/iosApp/Views/EventsTabView.swift`  
+**Fichier:** `iosApp/src/Views/EventsTabView.swift`  
 **Type:** Onglet principal
 
 ### État Général
@@ -268,7 +268,7 @@
 ---
 
 ## 5. ProfileScreen
-**Fichier:** `iosApp/iosApp/Views/ProfileScreen.swift`  
+**Fichier:** `iosApp/src/Views/ProfileScreen.swift`  
 **Type:** Profil utilisateur
 
 ### État Général
@@ -330,7 +330,7 @@
 ---
 
 ## 6. ExploreView
-**Fichier:** `iosApp/iosApp/Views/ExploreView.swift`  
+**Fichier:** `iosApp/src/Views/ExploreView.swift`  
 **Type:** Découverte événements
 
 ### État Général
@@ -380,7 +380,7 @@
 ---
 
 ## 7. SettingsView
-**Fichier:** `iosApp/iosApp/Views/SettingsView.swift`  
+**Fichier:** `iosApp/src/Views/SettingsView.swift`  
 **Type:** Configuration
 
 ### État Général
@@ -431,7 +431,7 @@ Aucun problème majeur identifié. ✅
 ---
 
 ## 8. CreateEventView
-**Fichier:** `iosApp/iosApp/Views/CreateEventView.swift`  
+**Fichier:** `iosApp/src/Views/CreateEventView.swift`  
 **Type:** Wrapper pour DraftEventWizard
 
 ### État Général

@@ -121,7 +121,7 @@
 
 ### ✅ Android - Intégration Complète
 
-**Fichier**: `wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/App.kt`
+**Fichier**: `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/App.kt`
 
 #### Routes Implémentées
 ```kotlin
@@ -173,7 +173,7 @@ EventDetail (ModernEventDetailView)
 
 ### 🟡 iOS - Plan d'Intégration Documenté
 
-**Fichier principal**: `wakeveApp/wakeveApp/ContentView.swift`
+**Fichier principal**: `iosApp/src/ContentView.swift`
 
 #### État Actuel
 - ✅ Toutes les vues SwiftUI créées et accessibles
@@ -183,7 +183,7 @@ EventDetail (ModernEventDetailView)
 
 #### Vues Existantes
 ```
-wakeveApp/wakeveApp/Views/
+iosApp/src/Views/
 ├── ScenarioListView.swift
 ├── ScenarioDetailView.swift
 ├── ScenarioComparisonView.swift
@@ -254,7 +254,7 @@ BUILD SUCCESSFUL in 4s
 ```
 
 ```bash
-$ ./gradlew :wakeveApp:compileDebugKotlinAndroid
+$ ./gradlew :composeApp:compileDebugKotlinAndroid
 BUILD SUCCESSFUL in 538ms
 ```
 
@@ -266,38 +266,38 @@ BUILD SUCCESSFUL in 538ms
 
 | Feature | Écran | Route | Fichier |
 |---------|--------|-------|---------|
-| **Home** | HomeScreen | HOME | `wakeveApp/src/commonMain/.../HomeScreen.kt` |
-| **Création Event** | EventCreationScreen | EVENT_CREATION | `wakeveApp/src/commonMain/.../EventCreationScreen.kt` |
-| **Détail Event** | ModernEventDetailView | EVENT_DETAIL | `wakeveApp/src/commonMain/.../ModernEventDetailView.kt` |
-| **Participants** | ParticipantManagementScreen | PARTICIPANT_MANAGEMENT | `wakeveApp/src/commonMain/.../ParticipantManagementScreen.kt` |
-| **Vote Sondage** | PollVotingScreen | POLL_VOTING | `wakeveApp/src/commonMain/.../PollVotingScreen.kt` |
-| **Résultats** | PollResultsScreen | POLL_RESULTS | `wakeveApp/src/commonMain/.../PollResultsScreen.kt` |
-| **Scénarios** | ScenarioListScreen | SCENARIO_LIST | `wakeveApp/src/androidMain/.../ScenarioListScreen.kt` |
-| **Détail Scénario** | ScenarioDetailScreen | SCENARIO_DETAIL | `wakeveApp/src/androidMain/.../ScenarioDetailScreen.kt` |
-| **Comparaison** | ScenarioComparisonScreen | SCENARIO_COMPARISON | `wakeveApp/src/androidMain/.../ScenarioComparisonScreen.kt` |
-| **Budget Aperçu** | BudgetOverviewScreen | BUDGET_OVERVIEW | `wakeveApp/src/androidMain/.../BudgetOverviewScreen.kt` |
-| **Budget Détail** | BudgetDetailScreen | BUDGET_DETAIL | `wakeveApp/src/androidMain/.../BudgetDetailScreen.kt` |
-| **Hébergement** | AccommodationScreen | ACCOMMODATION | `wakeveApp/src/androidMain/.../AccommodationScreen.kt` |
-| **Repas** | MealPlanningScreen | MEAL_PLANNING | `wakeveApp/src/androidMain/.../MealPlanningScreen.kt` |
-| **Équipements** | EquipmentChecklistScreen | EQUIPMENT_CHECKLIST | `wakeveApp/src/androidMain/.../EquipmentChecklistScreen.kt` |
-| **Activités** | ActivityPlanningScreen | ACTIVITY_PLANNING | `wakeveApp/src/androidMain/.../ActivityPlanningScreen.kt` |
-| **Commentaires** | CommentsScreen | COMMENTS | `wakeveApp/src/androidMain/.../CommentsScreen.kt` |
+| **Home** | HomeScreen | HOME | `composeApp/src/commonMain/.../HomeScreen.kt` |
+| **Création Event** | EventCreationScreen | EVENT_CREATION | `composeApp/src/commonMain/.../EventCreationScreen.kt` |
+| **Détail Event** | ModernEventDetailView | EVENT_DETAIL | `composeApp/src/commonMain/.../ModernEventDetailView.kt` |
+| **Participants** | ParticipantManagementScreen | PARTICIPANT_MANAGEMENT | `composeApp/src/commonMain/.../ParticipantManagementScreen.kt` |
+| **Vote Sondage** | PollVotingScreen | POLL_VOTING | `composeApp/src/commonMain/.../PollVotingScreen.kt` |
+| **Résultats** | PollResultsScreen | POLL_RESULTS | `composeApp/src/commonMain/.../PollResultsScreen.kt` |
+| **Scénarios** | ScenarioListScreen | SCENARIO_LIST | `composeApp/src/androidMain/.../ScenarioListScreen.kt` |
+| **Détail Scénario** | ScenarioDetailScreen | SCENARIO_DETAIL | `composeApp/src/androidMain/.../ScenarioDetailScreen.kt` |
+| **Comparaison** | ScenarioComparisonScreen | SCENARIO_COMPARISON | `composeApp/src/androidMain/.../ScenarioComparisonScreen.kt` |
+| **Budget Aperçu** | BudgetOverviewScreen | BUDGET_OVERVIEW | `composeApp/src/androidMain/.../BudgetOverviewScreen.kt` |
+| **Budget Détail** | BudgetDetailScreen | BUDGET_DETAIL | `composeApp/src/androidMain/.../BudgetDetailScreen.kt` |
+| **Hébergement** | AccommodationScreen | ACCOMMODATION | `composeApp/src/androidMain/.../AccommodationScreen.kt` |
+| **Repas** | MealPlanningScreen | MEAL_PLANNING | `composeApp/src/androidMain/.../MealPlanningScreen.kt` |
+| **Équipements** | EquipmentChecklistScreen | EQUIPMENT_CHECKLIST | `composeApp/src/androidMain/.../EquipmentChecklistScreen.kt` |
+| **Activités** | ActivityPlanningScreen | ACTIVITY_PLANNING | `composeApp/src/androidMain/.../ActivityPlanningScreen.kt` |
+| **Commentaires** | CommentsScreen | COMMENTS | `composeApp/src/androidMain/.../CommentsScreen.kt` |
 
 ### ✅ iOS - Toutes les Vues Créées
 
 | Feature | Vue | Fichier |
 |---------|------|---------|
-| **Scénarios** | ScenarioListView | `wakeveApp/wakeveApp/Views/ScenarioListView.swift` |
-| **Détail Scénario** | ScenarioDetailView | `wakeveApp/wakeveApp/Views/ScenarioDetailView.swift` |
-| **Comparaison** | ScenarioComparisonView | `wakeveApp/wakeveApp/Views/ScenarioComparisonView.swift` |
-| **Budget Aperçu** | BudgetOverviewView | `wakeveApp/wakeveApp/Views/BudgetOverviewView.swift` |
-| **Budget Détail** | BudgetDetailView | `wakeveApp/wakeveApp/Views/BudgetDetailView.swift` |
-| **Hébergement** | AccommodationView | `wakeveApp/wakeveApp/Views/AccommodationView.swift` |
-| **Repas** | MealPlanningView | `wakeveApp/wakeveApp/Views/MealPlanningView.swift` |
-| **Équipements** | EquipmentChecklistView | `wakeveApp/wakeveApp/Views/EquipmentChecklistView.swift` |
-| **Activités** | ActivityPlanningView | `wakeveApp/wakeveApp/Views/ActivityPlanningView.swift` |
-| **Commentaires** | CommentsView | `wakeveApp/wakeveApp/Views/CommentsView.swift` |
-| **Comment Button** | CommentButton | `wakeveApp/wakeveApp/Components/CommentButton.swift` |
+| **Scénarios** | ScenarioListView | `iosApp/src/Views/ScenarioListView.swift` |
+| **Détail Scénario** | ScenarioDetailView | `iosApp/src/Views/ScenarioDetailView.swift` |
+| **Comparaison** | ScenarioComparisonView | `iosApp/src/Views/ScenarioComparisonView.swift` |
+| **Budget Aperçu** | BudgetOverviewView | `iosApp/src/Views/BudgetOverviewView.swift` |
+| **Budget Détail** | BudgetDetailView | `iosApp/src/Views/BudgetDetailView.swift` |
+| **Hébergement** | AccommodationView | `iosApp/src/Views/AccommodationView.swift` |
+| **Repas** | MealPlanningView | `iosApp/src/Views/MealPlanningView.swift` |
+| **Équipements** | EquipmentChecklistView | `iosApp/src/Views/EquipmentChecklistView.swift` |
+| **Activités** | ActivityPlanningView | `iosApp/src/Views/ActivityPlanningView.swift` |
+| **Commentaires** | CommentsView | `iosApp/src/Views/CommentsView.swift` |
+| **Comment Button** | CommentButton | `iosApp/src/Components/CommentButton.swift` |
 
 ---
 
@@ -338,7 +338,7 @@ BUILD SUCCESSFUL in 538ms
 ### 2. 🔄 Finaliser Intégration iOS (Priorité MOYENNE)
 
 - **Tâche**: Implémenter le plan d'intégration documenté
-- **Fichier**: `wakeveApp/wakeveApp/ContentView.swift`
+- **Fichier**: `iosApp/src/ContentView.swift`
 - **Estimation**: 1-2 jours
 - **Actions**:
   - Ajouter les cas `AppView` manquants

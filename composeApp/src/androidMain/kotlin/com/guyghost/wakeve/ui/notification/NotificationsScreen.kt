@@ -50,6 +50,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +69,12 @@ import java.util.Locale
 import java.util.concurrent.TimeUnit
 import androidx.compose.ui.res.stringResource
 import com.guyghost.wakeve.R
+import com.guyghost.wakeve.models.NotificationMessage
+import com.guyghost.wakeve.models.NotificationType
+import com.guyghost.wakeve.notification.NotificationService
+import com.guyghost.wakeve.notification.resolveNotificationClickTarget
+import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
 
 // MARK: - Models
 
@@ -94,9 +101,11 @@ enum class NotificationItemType(
 data class NotificationItem(
     val id: String,
     val type: NotificationItemType,
+    val notificationType: NotificationType? = null,
     val title: String,
     val body: String,
     val eventId: String? = null,
+    val clickTarget: String? = eventId,
     val isRead: Boolean = false,
     val createdAt: Date = Date()
 ) {
@@ -128,7 +137,74 @@ data class NotificationItem(
                     SimpleDateFormat("dd/MM", Locale.FRANCE).format(createdAt)
                 }
             }
-        }
+    }
+}
+
+enum class NotificationInboxFilter {
+    ALL,
+    UNREAD
+}
+
+internal fun parseNotificationInboxFilter(value: String?): NotificationInboxFilter {
+    return when (value?.trim()?.lowercase()) {
+        "unread" -> NotificationInboxFilter.UNREAD
+        else -> NotificationInboxFilter.ALL
+    }
+}
+
+internal fun filterNotificationItems(
+    notifications: List<NotificationItem>,
+    filter: NotificationInboxFilter
+): List<NotificationItem> {
+    return when (filter) {
+        NotificationInboxFilter.ALL -> notifications
+        NotificationInboxFilter.UNREAD -> notifications.filter { !it.isRead }
+    }
+}
+
+internal fun notificationInboxErrorMessage(error: Throwable? = null): String {
+    return "Impossible de charger les notifications."
+}
+
+internal data class NotificationAttentionCue(
+    val label: String,
+    val requiresAttention: Boolean
+)
+
+internal fun notificationAttentionCue(notification: NotificationItem): NotificationAttentionCue {
+    return when (notification.notificationType) {
+        NotificationType.DEADLINE_REMINDER,
+        NotificationType.VOTE_CLOSE_REMINDER -> NotificationAttentionCue(
+            label = "Action attendue - evite de bloquer le groupe",
+            requiresAttention = true
+        )
+        NotificationType.MENTION -> NotificationAttentionCue(
+            label = "Action requise - vous etes mentionne",
+            requiresAttention = true
+        )
+        NotificationType.EVENT_CONFIRMED -> NotificationAttentionCue(
+            label = "Important - date validee",
+            requiresAttention = true
+        )
+        NotificationType.PARTICIPANT_JOINED -> NotificationAttentionCue(
+            label = "Utile - presence du groupe mise a jour",
+            requiresAttention = false
+        )
+        NotificationType.VOTE_SUBMITTED -> NotificationAttentionCue(
+            label = "Info utile - vote enregistre",
+            requiresAttention = false
+        )
+        NotificationType.COMMENT_POSTED,
+        NotificationType.COMMENT_REPLY -> NotificationAttentionCue(
+            label = "Conversation - faible priorite",
+            requiresAttention = false
+        )
+        NotificationType.EVENT_UPDATE,
+        null -> NotificationAttentionCue(
+            label = "Info - bruit limite",
+            requiresAttention = false
+        )
+    }
 }
 
 // MARK: - Screen
@@ -139,18 +215,47 @@ fun NotificationsScreen(
     onBack: () -> Unit,
     onNavigateToPreferences: () -> Unit,
     onNotificationClick: (String) -> Unit = {},
+    userId: String? = null,
+    notificationService: NotificationService? = null,
+    initialFilter: NotificationInboxFilter = NotificationInboxFilter.ALL,
     modifier: Modifier = Modifier
 ) {
-    var notifications by remember { mutableStateOf(sampleNotifications) }
+    val scope = rememberCoroutineScope()
+    var notifications by remember { mutableStateOf<List<NotificationItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
+    var loadErrorMessage by remember { mutableStateOf<String?>(null) }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    fun loadNotifications() {
+        if (notificationService == null || userId.isNullOrBlank()) return
+        scope.launch {
+            isLoading = true
+            loadErrorMessage = null
+            try {
+                notifications = notificationService.getNotifications(userId)
+                    .map(NotificationMessage::toNotificationItem)
+            } catch (e: Exception) {
+                loadErrorMessage = notificationInboxErrorMessage(e)
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    LaunchedEffect(notificationService, userId) {
+        loadNotifications()
+    }
 
     val unreadCount = remember(notifications) {
         notifications.count { !it.isRead }
     }
 
-    val groupedNotifications = remember(notifications) {
-        notifications
+    val visibleNotifications = remember(notifications, initialFilter) {
+        filterNotificationItems(notifications, initialFilter)
+    }
+
+    val groupedNotifications = remember(visibleNotifications) {
+        visibleNotifications
             .sortedByDescending { it.createdAt }
             .groupBy { it.dateGroup }
             .toSortedMap(compareBy { it.ordinal })
@@ -177,7 +282,18 @@ fun NotificationsScreen(
                 actions = {
                     if (unreadCount > 0) {
                         TextButton(onClick = {
-                            notifications = notifications.map { it.copy(isRead = true) }
+                            if (notificationService != null && !userId.isNullOrBlank()) {
+                                scope.launch {
+                                    val result = notificationService.markAllAsRead(userId)
+                                    if (result.isSuccess) {
+                                        loadNotifications()
+                                    } else {
+                                        loadErrorMessage = notificationInboxErrorMessage(result.exceptionOrNull())
+                                    }
+                                }
+                            } else {
+                                notifications = notifications.map { it.copy(isRead = true) }
+                            }
                         }) {
                             Text(
                                 text = stringResource(R.string.mark_all_read),
@@ -194,7 +310,7 @@ fun NotificationsScreen(
                     }
                 },
                 scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.largeTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     scrolledContainerColor = MaterialTheme.colorScheme.surface
                 )
@@ -214,7 +330,14 @@ fun NotificationsScreen(
                     )
                 }
 
-                notifications.isEmpty() -> {
+                loadErrorMessage != null && notifications.isEmpty() -> {
+                    NotificationErrorState(
+                        message = loadErrorMessage.orEmpty(),
+                        onRetry = { loadNotifications() }
+                    )
+                }
+
+                visibleNotifications.isEmpty() -> {
                     EmptyNotificationsState()
                 }
 
@@ -243,15 +366,47 @@ fun NotificationsScreen(
                                 SwipeToDismissNotificationRow(
                                     notification = notification,
                                     onMarkAsRead = {
-                                        notifications = notifications.map {
-                                            if (it.id == notification.id) it.copy(isRead = true) else it
+                                        if (notificationService != null && !userId.isNullOrBlank()) {
+                                            scope.launch {
+                                                val result = notificationService.markAsReadForUser(notification.id, userId)
+                                                if (result.isSuccess) {
+                                                    loadNotifications()
+                                                } else {
+                                                    loadErrorMessage = notificationInboxErrorMessage(result.exceptionOrNull())
+                                                }
+                                            }
+                                        } else {
+                                            notifications = notifications.map {
+                                                if (it.id == notification.id) it.copy(isRead = true) else it
+                                            }
                                         }
                                     },
                                     onDelete = {
-                                        notifications = notifications.filter { it.id != notification.id }
+                                        if (notificationService != null && !userId.isNullOrBlank()) {
+                                            scope.launch {
+                                                val result = notificationService.deleteNotificationForUser(notification.id, userId)
+                                                if (result.isSuccess) {
+                                                    loadNotifications()
+                                                } else {
+                                                    loadErrorMessage = notificationInboxErrorMessage(result.exceptionOrNull())
+                                                }
+                                            }
+                                        } else {
+                                            notifications = notifications.filter { it.id != notification.id }
+                                        }
                                     },
                                     onClick = {
-                                        notification.eventId?.let { onNotificationClick(it) }
+                                        if (!notification.isRead && notificationService != null && !userId.isNullOrBlank()) {
+                                            scope.launch {
+                                                val result = notificationService.markAsReadForUser(notification.id, userId)
+                                                if (result.isSuccess) {
+                                                    loadNotifications()
+                                                } else {
+                                                    loadErrorMessage = notificationInboxErrorMessage(result.exceptionOrNull())
+                                                }
+                                            }
+                                        }
+                                        notification.clickTarget?.let(onNotificationClick)
                                     }
                                 )
                                 HorizontalDivider(
@@ -350,6 +505,8 @@ private fun NotificationRow(
     notification: NotificationItem,
     onClick: () -> Unit
 ) {
+    val attentionCue = notificationAttentionCue(notification)
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -413,6 +570,20 @@ private fun NotificationRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = attentionCue.label,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (attentionCue.requiresAttention) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
 
         // Unread indicator
@@ -467,69 +638,70 @@ private fun EmptyNotificationsState() {
     }
 }
 
-// MARK: - Sample Data
+@Composable
+private fun NotificationErrorState(
+    message: String,
+    onRetry: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Filled.NotificationsOff,
+            contentDescription = null,
+            modifier = Modifier.size(80.dp),
+            tint = MaterialTheme.colorScheme.error
+        )
 
-private val sampleNotifications = listOf(
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = message,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        TextButton(onClick = onRetry) {
+            Text(text = "Réessayer")
+        }
+    }
+}
+
+private fun NotificationMessage.toNotificationItem(): NotificationItem =
     NotificationItem(
-        id = "n1",
-        type = NotificationItemType.VOTE,
-        title = "Nouveaux votes",
-        body = "3 personnes ont vote pour \"Week-end ski 2024\"",
-        eventId = "event1",
-        isRead = false,
-        createdAt = Date(System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5))
-    ),
-    NotificationItem(
-        id = "n2",
-        type = NotificationItemType.COMMENT,
-        title = "Alice a commente",
-        body = "\"Reunion famille\" : Super idee pour le restaurant !",
-        eventId = "event2",
-        isRead = false,
-        createdAt = Date(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(1))
-    ),
-    NotificationItem(
-        id = "n3",
-        type = NotificationItemType.STATUS_CHANGE,
-        title = "Date confirmee !",
-        body = "La date de \"Voyage Espagne\" est confirmee : 15 mars 2026",
-        eventId = "event3",
-        isRead = true,
-        createdAt = Date(System.currentTimeMillis() - TimeUnit.HOURS.toMillis(2))
-    ),
-    NotificationItem(
-        id = "n4",
-        type = NotificationItemType.DEADLINE,
-        title = "Deadline approche",
-        body = "Il reste 1 heure pour voter sur \"Anniversaire Bob\"",
-        eventId = "event4",
-        isRead = false,
-        createdAt = Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1))
-    ),
-    NotificationItem(
-        id = "n5",
-        type = NotificationItemType.REMINDER,
-        title = "C'est aujourd'hui !",
-        body = "\"Week-end montagne\" a lieu aujourd'hui. Bonne journee !",
-        eventId = "event5",
-        isRead = true,
-        createdAt = Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(1) - TimeUnit.HOURS.toMillis(1))
-    ),
-    NotificationItem(
-        id = "n6",
-        type = NotificationItemType.INVITE,
-        title = "Nouvelle invitation",
-        body = "Marc vous invite a \"Soiree jeux de societe\"",
-        eventId = "event6",
-        isRead = true,
-        createdAt = Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(3))
-    ),
-    NotificationItem(
-        id = "n7",
-        type = NotificationItemType.EVENT_UPDATE,
-        title = "Resume de la semaine",
-        body = "Vous avez 5 notifications non lues. 3 votes, 2 commentaires.",
-        isRead = true,
-        createdAt = Date(System.currentTimeMillis() - TimeUnit.DAYS.toMillis(7))
+        id = id,
+        type = type.toItemType(),
+        notificationType = type,
+        title = title,
+        body = body,
+        eventId = data["eventId"] ?: data["event_id"],
+        clickTarget = resolveNotificationClickTarget(data),
+        isRead = readAt != null,
+        createdAt = sentAt.toDateOrNow()
     )
-)
+
+private fun NotificationType.toItemType(): NotificationItemType =
+    when (this) {
+        NotificationType.VOTE_SUBMITTED,
+        NotificationType.VOTE_CLOSE_REMINDER -> NotificationItemType.VOTE
+        NotificationType.COMMENT_POSTED,
+        NotificationType.COMMENT_REPLY,
+        NotificationType.MENTION -> NotificationItemType.COMMENT
+        NotificationType.EVENT_CONFIRMED,
+        NotificationType.PARTICIPANT_JOINED -> NotificationItemType.STATUS_CHANGE
+        NotificationType.DEADLINE_REMINDER -> NotificationItemType.DEADLINE
+        NotificationType.EVENT_UPDATE -> NotificationItemType.EVENT_UPDATE
+    }
+
+private fun String?.toDateOrNow(): Date =
+    runCatching {
+        this?.let { Date(Instant.parse(it).toEpochMilliseconds()) }
+    }.getOrNull() ?: Date()

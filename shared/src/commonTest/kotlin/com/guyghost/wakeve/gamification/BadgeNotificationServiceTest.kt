@@ -10,6 +10,7 @@ import com.guyghost.wakeve.auth.core.logic.currentTimeMillis
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -233,7 +234,7 @@ class BadgeNotificationServiceTest {
         val eventId = "event-123"
         
         assertEquals(
-            "wakeve://events/$eventId",
+            "wakeve://event/$eventId/details",
             BadgeType.EVENT_CREATED.createDeepLink(eventId)
         )
     }
@@ -243,7 +244,7 @@ class BadgeNotificationServiceTest {
         val eventId = "event-123"
         
         assertEquals(
-            "wakeve://events/$eventId/scenarios",
+            "wakeve://event/$eventId/scenarios",
             BadgeType.SCENARIO_UNLOCKED.createDeepLink(eventId)
         )
     }
@@ -253,7 +254,7 @@ class BadgeNotificationServiceTest {
         val eventId = "event-123"
         
         assertEquals(
-            "wakeve://events/$eventId/meetings",
+            "wakeve://event/$eventId/meetings",
             BadgeType.MEETING_SCHEDULED.createDeepLink(eventId)
         )
     }
@@ -263,8 +264,22 @@ class BadgeNotificationServiceTest {
         val eventId = "event-123"
         
         assertEquals(
-            "wakeve://events/$eventId/comments",
+            "wakeve://event/$eventId/details?tab=comments",
             BadgeType.COMMENT_MENTION.createDeepLink(eventId)
+        )
+    }
+
+    @Test
+    fun `BadgeType createDeepLink returns poll route for poll badges`() {
+        val eventId = "event-123"
+
+        assertEquals(
+            "wakeve://event/$eventId/poll",
+            BadgeType.POLL_OPENED.createDeepLink(eventId)
+        )
+        assertEquals(
+            "wakeve://event/$eventId/poll",
+            BadgeType.POLL_CLOSING_SOON.createDeepLink(eventId)
         )
     }
 
@@ -274,9 +289,27 @@ class BadgeNotificationServiceTest {
         val additionalPath = "photos"
         
         assertEquals(
-            "wakeve://events/$eventId/photos",
+            "wakeve://event/$eventId/details?tab=photos",
             BadgeType.EVENT_CREATED.createDeepLink(eventId, additionalPath)
         )
+    }
+
+    @Test
+    fun `BadgeType createDeepLink normalizes event id and additional path`() {
+        assertEquals(
+            "wakeve://event/event-123/details?tab=photos",
+            BadgeType.EVENT_CREATED.createDeepLink(" event-123 ", " photos ")
+        )
+    }
+
+    @Test
+    fun `BadgeType createDeepLink rejects blank and path injected event ids`() {
+        assertFailsWith<IllegalArgumentException> {
+            BadgeType.EVENT_CREATED.createDeepLink(" ")
+        }
+        assertFailsWith<IllegalArgumentException> {
+            BadgeType.EVENT_CREATED.createDeepLink("event-123/details")
+        }
     }
 
     // ========== BadgeNotificationService Interface Tests ==========

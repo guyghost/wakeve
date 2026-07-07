@@ -11,12 +11,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Comment
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Comment
 import androidx.compose.material.icons.filled.Euro
 import androidx.compose.material.icons.filled.Hotel
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocalActivity
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Share
@@ -63,9 +63,13 @@ fun ModernEventDetailView(
     onNavigateToHome: () -> Unit,
     onAddToCalendar: () -> Unit = {},
     onShareInvite: () -> Unit = {},
+    dayOfSummary: EventDayOfSummary? = null,
+    destinationSummary: EventDestinationSummary? = null,
+    settlementSummary: EventSettlementSummary? = null,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
+    val openBudget = onNavigateToBudgetOverview
     
     Scaffold(
         topBar = {
@@ -73,12 +77,12 @@ fun ModernEventDetailView(
                 title = { Text(event.title) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateToHome) {
-                        Icon(Icons.Default.ArrowBack, stringResource(R.string.navigate_back))
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.navigate_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = onNavigateToComments) {
-                        Icon(Icons.Default.Comment, stringResource(R.string.participants))
+                        Icon(Icons.AutoMirrored.Filled.Comment, stringResource(R.string.participants))
                     }
                 }
             )
@@ -97,28 +101,33 @@ fun ModernEventDetailView(
             
             // Event Description
             EventDescriptionCard(event)
+
+            EventNextStepCard(event.status)
+
+            dayOfSummary?.let {
+                EventDayOfSummaryCard(summary = it)
+            }
+
+            destinationSummary?.let {
+                EventDestinationSummaryCard(summary = it, onOpenScenarios = onNavigateToScenarioList)
+            }
+
+            settlementSummary?.let {
+                EventSettlementSummaryCard(summary = it, onOpenSettlements = openBudget)
+            }
             
             // Action Buttons based on event status
             when (event.status) {
-                EventStatus.DRAFT -> {
-                    DraftModeActions(
-                        onNavigateToScenarioList = onNavigateToScenarioList,
-                        onNavigateToBudgetOverview = onNavigateToBudgetOverview
-                    )
-                }
-                EventStatus.POLLING -> {
-                    PollingModeActions()
-                }
                 EventStatus.COMPARING -> {
                     ComparingModeActions(
                         onNavigateToScenarioList = onNavigateToScenarioList,
-                        onNavigateToBudgetOverview = onNavigateToBudgetOverview
+                        onOpenBudget = openBudget
                     )
                 }
                 EventStatus.CONFIRMED -> {
                     ConfirmedModeActions(
                         onNavigateToScenarioList = onNavigateToScenarioList,
-                        onNavigateToBudgetOverview = onNavigateToBudgetOverview,
+                        onOpenBudget = openBudget,
                         onNavigateToAccommodation = onNavigateToAccommodation,
                         onNavigateToMealPlanning = onNavigateToMealPlanning,
                         onNavigateToEquipmentChecklist = onNavigateToEquipmentChecklist,
@@ -130,7 +139,7 @@ fun ModernEventDetailView(
                 EventStatus.ORGANIZING -> {
                     OrganizingModeActions(
                         onNavigateToScenarioList = onNavigateToScenarioList,
-                        onNavigateToBudgetOverview = onNavigateToBudgetOverview,
+                        onOpenBudget = openBudget,
                         onNavigateToAccommodation = onNavigateToAccommodation,
                         onNavigateToMealPlanning = onNavigateToMealPlanning,
                         onNavigateToEquipmentChecklist = onNavigateToEquipmentChecklist,
@@ -138,18 +147,200 @@ fun ModernEventDetailView(
                     )
                 }
                 EventStatus.FINALIZED -> {
-                    FinalizedModeActions(
-                        onNavigateToScenarioList = onNavigateToScenarioList,
-                        onNavigateToBudgetOverview = onNavigateToBudgetOverview,
-                        onNavigateToAccommodation = onNavigateToAccommodation,
-                        onNavigateToMealPlanning = onNavigateToMealPlanning,
-                        onNavigateToEquipmentChecklist = onNavigateToEquipmentChecklist,
-                        onNavigateToActivityPlanning = onNavigateToActivityPlanning,
-                        onAddToCalendar = onAddToCalendar,
-                        onShareInvite = onShareInvite
+                    FinalizedModeActions()
+                }
+                EventStatus.DRAFT -> {
+                    DraftModeActions(
+                        onNavigateToScenarioList = onNavigateToScenarioList
                     )
                 }
+                EventStatus.POLLING -> {
+                    PollingModeActions()
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun EventDestinationSummaryCard(
+    summary: EventDestinationSummary,
+    onOpenScenarios: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = summary.statusLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = summary.primaryLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.detailsLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            summary.options.forEach { option ->
+                Text(
+                    text = "${option.typeLabel} - ${option.title}: ${option.body}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = summary.nextActionLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            if (summary.canOpenScenarios) {
+                Button(
+                    onClick = onOpenScenarios,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.view_scenarios))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventSettlementSummaryCard(
+    summary: EventSettlementSummary,
+    onOpenSettlements: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = summary.statusLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = summary.body,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = summary.totalLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            summary.lines.forEach { line ->
+                Text(
+                    text = line.sentence,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Button(
+                onClick = onOpenSettlements,
+                enabled = summary.canOpenBudget,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(summary.actionLabel)
+            }
+        }
+    }
+}
+
+@Composable
+private fun EventDayOfSummaryCard(summary: EventDayOfSummary) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = summary.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = summary.controlLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = summary.attendanceLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.missingLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = summary.arrivalTrackingLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = summary.missingPeopleLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                summary.checklist.forEach { item ->
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            text = "${item.statusLabel} - ${item.title}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (item.isBlocking) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            }
+                        )
+                        Text(
+                            text = item.body,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+            Text(
+                text = summary.nextActionLabel,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
@@ -174,7 +365,7 @@ private fun EventStatusHeader(event: Event) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = event.status.name.lowercase().replaceFirstChar { it.uppercase() },
+                text = eventDetailStatusLabel(event.status),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = when (event.status) {
@@ -211,6 +402,32 @@ private fun EventStatusHeader(event: Event) {
 }
 
 @Composable
+private fun EventNextStepCard(status: EventStatus) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Text(
+                text = eventDetailNextStepTitle(status),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = eventDetailNextStepBody(status),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
 private fun EventDescriptionCard(event: Event) {
     Card(
         modifier = Modifier.fillMaxWidth()
@@ -234,15 +451,14 @@ private fun EventDescriptionCard(event: Event) {
 
 @Composable
 private fun DraftModeActions(
-    onNavigateToScenarioList: () -> Unit,
-    onNavigateToBudgetOverview: () -> Unit
+    onNavigateToScenarioList: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = stringResource(R.string.draft_mode_actions),
+            text = eventDetailNextStepTitle(EventStatus.DRAFT),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -251,18 +467,9 @@ private fun DraftModeActions(
             onClick = onNavigateToScenarioList,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.List, contentDescription = null)
+            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text(stringResource(R.string.create_scenarios))
-        }
-        
-        Button(
-            onClick = onNavigateToBudgetOverview,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.Euro, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.configure_budget))
         }
     }
 }
@@ -274,7 +481,7 @@ private fun PollingModeActions() {
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = stringResource(R.string.polling_mode_actions),
+            text = eventDetailNextStepTitle(EventStatus.POLLING),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -290,14 +497,14 @@ private fun PollingModeActions() {
 @Composable
 private fun ComparingModeActions(
     onNavigateToScenarioList: () -> Unit,
-    onNavigateToBudgetOverview: () -> Unit
+    onOpenBudget: () -> Unit
 ) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = stringResource(R.string.comparing_mode_actions),
+            text = eventDetailNextStepTitle(EventStatus.COMPARING),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -306,13 +513,13 @@ private fun ComparingModeActions(
             onClick = onNavigateToScenarioList,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.List, contentDescription = null)
+            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text(stringResource(R.string.view_scenarios))
         }
         
         Button(
-            onClick = onNavigateToBudgetOverview,
+            onClick = onOpenBudget,
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.Euro, contentDescription = null)
@@ -325,7 +532,7 @@ private fun ComparingModeActions(
 @Composable
 private fun ConfirmedModeActions(
     onNavigateToScenarioList: () -> Unit,
-    onNavigateToBudgetOverview: () -> Unit,
+    onOpenBudget: () -> Unit,
     onNavigateToAccommodation: () -> Unit,
     onNavigateToMealPlanning: () -> Unit,
     onNavigateToEquipmentChecklist: () -> Unit,
@@ -338,7 +545,7 @@ private fun ConfirmedModeActions(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = stringResource(R.string.confirmed_mode_actions),
+            text = eventDetailNextStepTitle(EventStatus.CONFIRMED),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -371,13 +578,13 @@ private fun ConfirmedModeActions(
             onClick = onNavigateToScenarioList,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.List, contentDescription = null)
+            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text(stringResource(R.string.view_scenarios))
         }
         
         Button(
-            onClick = onNavigateToBudgetOverview,
+            onClick = onOpenBudget,
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.Euro, contentDescription = null)
@@ -426,7 +633,7 @@ private fun ConfirmedModeActions(
 @Composable
 private fun OrganizingModeActions(
     onNavigateToScenarioList: () -> Unit,
-    onNavigateToBudgetOverview: () -> Unit,
+    onOpenBudget: () -> Unit,
     onNavigateToAccommodation: () -> Unit,
     onNavigateToMealPlanning: () -> Unit,
     onNavigateToEquipmentChecklist: () -> Unit,
@@ -437,7 +644,7 @@ private fun OrganizingModeActions(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = stringResource(R.string.organizing_mode_actions),
+            text = eventDetailNextStepTitle(EventStatus.ORGANIZING),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
@@ -446,13 +653,13 @@ private fun OrganizingModeActions(
             onClick = onNavigateToScenarioList,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Default.List, contentDescription = null)
+            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
             Spacer(modifier = Modifier.width(8.dp))
             Text(stringResource(R.string.view_scenarios))
         }
         
         Button(
-            onClick = onNavigateToBudgetOverview,
+            onClick = onOpenBudget,
             modifier = Modifier.fillMaxWidth()
         ) {
             Icon(Icons.Default.Euro, contentDescription = null)
@@ -500,101 +707,49 @@ private fun OrganizingModeActions(
 
 @Composable
 private fun FinalizedModeActions(
-    onNavigateToScenarioList: () -> Unit,
-    onNavigateToBudgetOverview: () -> Unit,
-    onNavigateToAccommodation: () -> Unit,
-    onNavigateToMealPlanning: () -> Unit,
-    onNavigateToEquipmentChecklist: () -> Unit,
-    onNavigateToActivityPlanning: () -> Unit,
-    onAddToCalendar: () -> Unit,
-    onShareInvite: () -> Unit
 ) {
+    val readOnly = true
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = stringResource(R.string.finalized_mode_actions),
+            text = eventDetailNextStepTitle(EventStatus.FINALIZED),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold
         )
 
-        Button(
-            onClick = onAddToCalendar,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary
-            )
-        ) {
-            Icon(Icons.Default.CalendarMonth, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.add_to_calendar))
-        }
-
-        Button(
-            onClick = onShareInvite,
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.secondary
-            )
-        ) {
-            Icon(Icons.Default.Share, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.share_invitation))
-        }
-        
-        Button(
-            onClick = onNavigateToScenarioList,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.List, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.view_scenarios))
-        }
-        
-        Button(
-            onClick = onNavigateToBudgetOverview,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.Euro, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.view_budget))
-        }
-        
-        Button(
-            onClick = onNavigateToAccommodation,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.Hotel, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.view_accommodation))
-        }
-        
-        Button(
-            onClick = onNavigateToMealPlanning,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.Restaurant, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.view_meals))
-        }
-        
-        Button(
-            onClick = onNavigateToEquipmentChecklist,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.ShoppingBag, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.view_equipment))
-        }
-        
-        Button(
-            onClick = onNavigateToActivityPlanning,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(Icons.Default.LocalActivity, contentDescription = null)
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(stringResource(R.string.view_activities))
-        }
+        Text(
+            text = eventDetailNextStepBody(EventStatus.FINALIZED),
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (readOnly) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+        )
     }
+}
+
+internal fun eventDetailStatusLabel(status: EventStatus): String = when (status) {
+    EventStatus.DRAFT -> "Brouillon"
+    EventStatus.POLLING -> "Sondage"
+    EventStatus.COMPARING -> "Comparaison"
+    EventStatus.CONFIRMED -> "Date confirmee"
+    EventStatus.ORGANIZING -> "Organisation"
+    EventStatus.FINALIZED -> "Finalise"
+}
+
+internal fun eventDetailNextStepTitle(status: EventStatus): String = when (status) {
+    EventStatus.DRAFT -> "Terminer la creation"
+    EventStatus.POLLING -> "Obtenir les votes"
+    EventStatus.COMPARING -> "Choisir la meilleure option"
+    EventStatus.CONFIRMED -> "Inviter et preparer"
+    EventStatus.ORGANIZING -> "Piloter l'evenement"
+    EventStatus.FINALIZED -> "Consulter le recapitulatif"
+}
+
+internal fun eventDetailNextStepBody(status: EventStatus): String = when (status) {
+    EventStatus.DRAFT -> "Ajoutez les informations manquantes, puis lancez le sondage quand l'evenement est pret."
+    EventStatus.POLLING -> "Relancez les participants qui n'ont pas vote avant de confirmer la date."
+    EventStatus.COMPARING -> "Comparez destination, budget et contraintes avant de selectionner le scenario final."
+    EventStatus.CONFIRMED -> "Partagez l'invitation, ajoutez l'evenement au calendrier et preparez les details pratiques."
+    EventStatus.ORGANIZING -> "Suivez budget, hebergement, repas, materiel et activites depuis ce centre de controle."
+    EventStatus.FINALIZED -> "L'evenement est verrouille; gardez le recapitulatif accessible pour les participants."
 }

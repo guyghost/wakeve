@@ -8,16 +8,15 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -26,8 +25,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.guyghost.wakeve.R
 import com.guyghost.wakeve.ui.auth.components.AppleSignInButton
+import com.guyghost.wakeve.ui.auth.components.EmailSignInButton
 import com.guyghost.wakeve.ui.auth.components.GoogleSignInButton
 import com.guyghost.wakeve.ui.auth.components.SkipButton
+import com.guyghost.wakeve.ui.designsystem.WakeveSpacing
 
 /**
  * Main authentication screen for Wakeve.
@@ -61,19 +62,13 @@ fun AuthScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.primaryContainer,
-                        MaterialTheme.colorScheme.surface
-                    )
-                )
-            )
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(WakeveSpacing.lg)
                 .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -88,7 +83,7 @@ fun AuthScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(WakeveSpacing.xxl))
 
             // Welcome message
             Text(
@@ -96,10 +91,11 @@ fun AuthScreen(
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics { heading() }
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(WakeveSpacing.sm))
 
             Text(
                 text = stringResource(R.string.auth_subtitle),
@@ -108,7 +104,7 @@ fun AuthScreen(
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(48.dp))
+            Spacer(modifier = Modifier.height(WakeveSpacing.xxl))
 
             // Error message
             errorMessage?.let { error ->
@@ -117,7 +113,7 @@ fun AuthScreen(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.errorContainer
                     ),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Text(
                         text = error,
@@ -126,7 +122,7 @@ fun AuthScreen(
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
                 }
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(WakeveSpacing.lg))
             }
 
             // Google Sign-In
@@ -135,7 +131,7 @@ fun AuthScreen(
                 enabled = !isLoading
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(WakeveSpacing.md))
 
             // Apple Sign-In
             AppleSignInButton(
@@ -143,7 +139,7 @@ fun AuthScreen(
                 enabled = !isLoading
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(WakeveSpacing.md))
 
             // Divider with "or"
             Row(
@@ -160,30 +156,15 @@ fun AuthScreen(
                 HorizontalDivider(modifier = Modifier.weight(1f))
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(WakeveSpacing.md))
 
             // Email Sign-In
-            OutlinedButton(
+            EmailSignInButton(
                 onClick = onEmailSignIn,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                enabled = !isLoading,
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Email,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = stringResource(R.string.sign_in_with_email),
-                    style = MaterialTheme.typography.labelLarge
-                )
-            }
+                enabled = !isLoading
+            )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(WakeveSpacing.xl))
 
             // Terms and conditions text
             Text(
@@ -200,7 +181,7 @@ fun AuthScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.3f)),
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f)),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
@@ -261,7 +242,7 @@ fun EmailAuthScreen(
         ) {
             IconButton(onClick = onBack) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.back)
                 )
             }

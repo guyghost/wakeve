@@ -143,9 +143,18 @@ class RichNotificationManager(
         val notification = builder.build()
         try {
             notificationManager.notify(notificationId, notification)
-            Log.d(TAG, "Rich notification shown: id=$notificationId, title=$title")
+            Log.d(
+                TAG,
+                richNotificationShownLogMessage(
+                    notificationId = notificationId,
+                    actionCount = actions.size,
+                    hasLargeIcon = largeIcon != null,
+                    hasBigPicture = bigPicture != null,
+                    hasContentIntent = contentIntent != null
+                )
+            )
         } catch (e: SecurityException) {
-            Log.e(TAG, "Failed to show notification: ${e.message}", e)
+            Log.e(TAG, notificationFailureLogMessage("show rich notification"), e)
         }
     }
 
@@ -191,9 +200,15 @@ class RichNotificationManager(
         val notification = builder.build()
         try {
             notificationManager.notify(notificationId, notification)
-            Log.d(TAG, "Progress notification shown: id=$notificationId, title=$title, indeterminate=$indeterminate")
+            Log.d(
+                TAG,
+                progressNotificationShownLogMessage(
+                    notificationId = notificationId,
+                    indeterminate = indeterminate
+                )
+            )
         } catch (e: SecurityException) {
-            Log.e(TAG, "Failed to show progress notification: ${e.message}", e)
+            Log.e(TAG, notificationFailureLogMessage("show progress notification"), e)
         }
     }
 
@@ -234,9 +249,17 @@ class RichNotificationManager(
         val notification = builder.build()
         try {
             notificationManager.notify(notificationId, notification)
-            Log.d(TAG, "Progress notification updated: id=$notificationId, progress=$progress/$max")
+            Log.d(
+                TAG,
+                progressNotificationUpdatedLogMessage(
+                    notificationId = notificationId,
+                    progress = progress,
+                    max = max,
+                    indeterminate = indeterminate
+                )
+            )
         } catch (e: SecurityException) {
-            Log.e(TAG, "Failed to update progress notification: ${e.message}", e)
+            Log.e(TAG, notificationFailureLogMessage("update progress notification"), e)
         }
     }
 
@@ -303,7 +326,7 @@ class RichNotificationManager(
             imageLoader.execute(request)
             loadedBitmap
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to load image from URI: $uri", e)
+            Log.e(TAG, imageLoadFailureLogMessage(), e)
             null
         }
     }
@@ -386,9 +409,47 @@ class RichNotificationManager(
         val notification = builder.build()
         try {
             notificationManager.notify(notificationId, notification)
-            Log.d(TAG, "Inline reply notification shown: id=$notificationId, title=$title")
+            Log.d(TAG, inlineReplyNotificationShownLogMessage(notificationId))
         } catch (e: SecurityException) {
-            Log.e(TAG, "Failed to show inline reply notification: ${e.message}", e)
+            Log.e(TAG, notificationFailureLogMessage("show inline reply notification"), e)
         }
     }
+}
+
+internal fun richNotificationShownLogMessage(
+    notificationId: Int,
+    actionCount: Int,
+    hasLargeIcon: Boolean,
+    hasBigPicture: Boolean,
+    hasContentIntent: Boolean
+): String {
+    return "Rich notification shown: id=$notificationId, actions=$actionCount, largeIcon=$hasLargeIcon, bigPicture=$hasBigPicture, contentIntent=$hasContentIntent"
+}
+
+internal fun progressNotificationShownLogMessage(
+    notificationId: Int,
+    indeterminate: Boolean
+): String {
+    return "Progress notification shown: id=$notificationId, indeterminate=$indeterminate"
+}
+
+internal fun progressNotificationUpdatedLogMessage(
+    notificationId: Int,
+    progress: Int,
+    max: Int,
+    indeterminate: Boolean
+): String {
+    return "Progress notification updated: id=$notificationId, progress=$progress/$max, indeterminate=$indeterminate"
+}
+
+internal fun inlineReplyNotificationShownLogMessage(notificationId: Int): String {
+    return "Inline reply notification shown: id=$notificationId"
+}
+
+internal fun imageLoadFailureLogMessage(): String {
+    return "Failed to load notification image"
+}
+
+internal fun notificationFailureLogMessage(operation: String): String {
+    return "Failed to $operation"
 }

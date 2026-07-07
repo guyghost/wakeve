@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
@@ -22,8 +22,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -112,6 +112,7 @@ fun MeetingDetailScreen(
     meetingId: String,
     viewModel: MeetingManagementViewModel,
     isOrganizer: Boolean = false,
+    currentUserId: String = "anonymous",
     onBack: () -> Unit,
     onDeleted: () -> Unit
 ) {
@@ -136,6 +137,7 @@ fun MeetingDetailScreen(
         state = state,
         meetingId = meetingId,
         isOrganizer = isOrganizer,
+        currentUserId = currentUserId,
         onDispatch = { viewModel.dispatch(it) },
         onBack = onBack,
         onDeleted = onDeleted
@@ -151,6 +153,7 @@ private fun MeetingDetailContent(
     state: MeetingManagementContract.State,
     meetingId: String,
     isOrganizer: Boolean,
+    currentUserId: String,
     onDispatch: (MeetingManagementContract.Intent) -> Unit,
     onBack: () -> Unit,
     onDeleted: () -> Unit
@@ -178,10 +181,10 @@ private fun MeetingDetailContent(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Meeting Details") },
+                title = { Text(meetingDetailScreenTitle()) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = meetingDetailBackContentDescription())
                     }
                 },
                 actions = {
@@ -199,14 +202,14 @@ private fun MeetingDetailContent(
                                 ))
                                 isEditing = false
                             }) {
-                                Icon(Icons.Default.Edit, contentDescription = "Save")
+                                Icon(Icons.Default.Edit, contentDescription = meetingDetailSaveContentDescription())
                             }
                         } else {
                             IconButton(onClick = { isEditing = true }) {
-                                Icon(Icons.Default.Edit, contentDescription = "Edit")
+                                Icon(Icons.Default.Edit, contentDescription = meetingDetailEditContentDescription())
                             }
                             IconButton(onClick = { showDeleteDialog = true }) {
-                                Icon(Icons.Default.Delete, contentDescription = "Delete")
+                                Icon(Icons.Default.Delete, contentDescription = meetingDetailDeleteContentDescription())
                             }
                         }
                     }
@@ -228,7 +231,7 @@ private fun MeetingDetailContent(
                 ) {
                     CircularProgressIndicator()
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Loading meeting details...")
+                    Text(meetingDetailLoadingMessage())
                 }
                 return@Scaffold
             }
@@ -245,12 +248,12 @@ private fun MeetingDetailContent(
                         modifier = Modifier.padding(16.dp)
                     ) {
                         Text(
-                            text = "Error",
+                            text = meetingDetailErrorTitle(),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
                         Text(
-                            text = state.error ?: "Unknown error",
+                            text = state.error ?: meetingDetailUnknownErrorMessage(),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.padding(top = 8.dp)
@@ -262,7 +265,7 @@ private fun MeetingDetailContent(
                     onClick = { onDispatch(MeetingManagementContract.Intent.ClearError) },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Retry")
+                    Text(meetingDetailRetryLabel())
                 }
                 return@Scaffold
             }
@@ -317,12 +320,12 @@ private fun MeetingDetailContent(
 
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Meeting") },
-            text = { Text("Are you sure you want to delete \"${meeting.title}\"? This action cannot be undone.") },
+            title = { Text(meetingDetailDeleteDialogTitle()) },
+            text = { Text(meetingDetailDeleteDialogMessage(meeting.title)) },
             confirmButton = {
                 Button(
                     onClick = {
-                        onDispatch(MeetingManagementContract.Intent.CancelMeeting(meetingId))
+                        onDispatch(MeetingManagementContract.Intent.CancelMeeting(meetingId, currentUserId))
                         showDeleteDialog = false
                         onDeleted()
                     },
@@ -330,12 +333,12 @@ private fun MeetingDetailContent(
                         containerColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Delete")
+                    Text(meetingDetailDeleteActionLabel())
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(meetingDetailCancelActionLabel())
                 }
             }
         )
@@ -370,7 +373,7 @@ private fun MeetingInfoCard(
                 androidx.compose.material3.OutlinedTextField(
                     value = editTitle,
                     onValueChange = onTitleChange,
-                    label = { Text("Meeting Title") },
+                    label = { Text(meetingDetailTitleFieldLabel()) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -389,7 +392,7 @@ private fun MeetingInfoCard(
                 androidx.compose.material3.OutlinedTextField(
                     value = editDescription,
                     onValueChange = onDescriptionChange,
-                    label = { Text("Description (optional)") },
+                    label = { Text(meetingDetailDescriptionFieldLabel()) },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3,
                     maxLines = 5
@@ -403,12 +406,12 @@ private fun MeetingInfoCard(
             }
 
             // Divider
-            Divider()
+            HorizontalDivider()
 
             // Platform and time
-            MeetingDetailsRow(label = "Platform", value = meeting.platform.name)
-            MeetingDetailsRow(label = "Date & Time", value = formatDateTime(meeting.scheduledFor))
-            MeetingDetailsRow(label = "Duration", value = formatDuration(meeting.duration))
+            MeetingDetailsRow(label = meetingDetailPlatformLabel(), value = platformDisplayLabel(meeting.platform))
+            MeetingDetailsRow(label = meetingDetailDateTimeLabel(), value = formatDateTime(meeting.scheduledFor))
+            MeetingDetailsRow(label = meetingDetailDurationLabel(), value = formatDuration(meeting.duration))
 
             // Actions for organizer
             if (isOrganizer) {
@@ -425,7 +428,7 @@ private fun MeetingInfoCard(
                     ) {
                         Icon(Icons.Default.Edit, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Save Changes")
+                        Text(meetingDetailSaveChangesLabel())
                     }
 
                     Button(
@@ -437,7 +440,7 @@ private fun MeetingInfoCard(
                     ) {
                         Icon(Icons.Default.Delete, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Delete Meeting")
+                        Text(meetingDetailDeleteMeetingLabel())
                     }
                 }
             }
@@ -466,7 +469,7 @@ private fun MeetingLinkCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Meeting Link",
+                text = meetingDetailLinkTitle(),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
@@ -481,7 +484,7 @@ private fun MeetingLinkCard(
                 )
             } else {
                 Text(
-                    text = "No link generated yet",
+                    text = meetingDetailNoLinkMessage(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -497,7 +500,7 @@ private fun MeetingLinkCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Generate link:",
+                        text = meetingDetailGenerateLinkLabel(),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f)
                     )
@@ -561,7 +564,32 @@ private fun MeetingDetailsRow(
  */
 private fun formatDateTime(instant: Instant): String {
     val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-    return "${localDateTime.month.name.take(3)} ${localDateTime.dayOfMonth}, ${localDateTime.year} at ${localDateTime.hour.toString().padStart(2, '0')}:${localDateTime.minute.toString().padStart(2, '0')}"
+    val frenchMonths = listOf(
+        "janv.",
+        "févr.",
+        "mars",
+        "avr.",
+        "mai",
+        "juin",
+        "juil.",
+        "août",
+        "sept.",
+        "oct.",
+        "nov.",
+        "déc."
+    )
+    val month = frenchMonths.getOrElse(localDateTime.monthNumber - 1) { "" }
+    val hour = localDateTime.hour.toString().padStart(2, '0')
+    val minute = localDateTime.minute.toString().padStart(2, '0')
+    return "${localDateTime.dayOfMonth} $month ${localDateTime.year} à $hour:$minute"
+}
+
+private fun platformDisplayLabel(platform: MeetingPlatform): String = when (platform) {
+    MeetingPlatform.ZOOM -> "Zoom"
+    MeetingPlatform.GOOGLE_MEET -> "Google Meet"
+    MeetingPlatform.FACETIME -> "FaceTime"
+    MeetingPlatform.TEAMS -> "Microsoft Teams"
+    MeetingPlatform.WEBEX -> "Webex (réunion personnalisée)"
 }
 
 /**
@@ -572,6 +600,53 @@ private fun formatDuration(duration: Duration): String {
     val minutes = (duration.inWholeMinutes % 60)
     return "${hours}h ${minutes}m"
 }
+
+internal fun meetingDetailScreenTitle(): String = "Détails de la réunion"
+
+internal fun meetingDetailBackContentDescription(): String = "Retour"
+
+internal fun meetingDetailSaveContentDescription(): String = "Enregistrer les modifications"
+
+internal fun meetingDetailEditContentDescription(): String = "Modifier la réunion"
+
+internal fun meetingDetailDeleteContentDescription(): String = "Supprimer la réunion"
+
+internal fun meetingDetailLoadingMessage(): String = "Chargement des détails de la réunion..."
+
+internal fun meetingDetailErrorTitle(): String = "Erreur"
+
+internal fun meetingDetailUnknownErrorMessage(): String = "Erreur inconnue"
+
+internal fun meetingDetailRetryLabel(): String = "Réessayer"
+
+internal fun meetingDetailDeleteDialogTitle(): String = "Supprimer la réunion ?"
+
+internal fun meetingDetailDeleteDialogMessage(meetingTitle: String): String =
+    "Voulez-vous vraiment supprimer \"$meetingTitle\" ? Cette action est définitive."
+
+internal fun meetingDetailDeleteActionLabel(): String = "Supprimer"
+
+internal fun meetingDetailCancelActionLabel(): String = "Annuler"
+
+internal fun meetingDetailTitleFieldLabel(): String = "Titre de la réunion"
+
+internal fun meetingDetailDescriptionFieldLabel(): String = "Description (optionnelle)"
+
+internal fun meetingDetailPlatformLabel(): String = "Plateforme"
+
+internal fun meetingDetailDateTimeLabel(): String = "Date et heure"
+
+internal fun meetingDetailDurationLabel(): String = "Durée"
+
+internal fun meetingDetailSaveChangesLabel(): String = "Enregistrer"
+
+internal fun meetingDetailDeleteMeetingLabel(): String = "Supprimer"
+
+internal fun meetingDetailLinkTitle(): String = "Lien de réunion"
+
+internal fun meetingDetailNoLinkMessage(): String = "Aucun lien généré pour le moment"
+
+internal fun meetingDetailGenerateLinkLabel(): String = "Générer un lien :"
 
 /**
  * Helper to return null if blank string

@@ -1,7 +1,7 @@
 package com.guyghost.wakeve.ui.comment
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Comment
+import androidx.compose.material.icons.automirrored.outlined.Comment
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.FloatingActionButton
@@ -36,7 +36,7 @@ fun CommentFab(
             }
         ) {
             Icon(
-                imageVector = Icons.Outlined.Comment,
+                imageVector = Icons.AutoMirrored.Outlined.Comment,
                 contentDescription = if (commentCount == 0) "Aucun commentaire" else "$commentCount commentaires"
             )
         }

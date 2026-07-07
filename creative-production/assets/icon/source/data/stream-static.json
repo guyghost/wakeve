@@ -1,0 +1,50 @@
+{
+  "meta": {
+    "title": "Wakeve App Icon Direction",
+    "summary": "Review the Liquid Glass ribbon-W icon variants for Wakeve.",
+    "source": "review_renderer",
+    "itemCount": 4
+  },
+  "items": [
+    {
+      "id": "wakeve-ios-dark",
+      "title": "iOS App Icon Dark",
+      "caption": "Primary dark icon with a deep navy/graphite background and translucent W ribbon mark.",
+      "tone": "app icon",
+      "prompt": "Wakeve iOS app icon dark. No text. Deep midnight navy and warm charcoal gradient background, centered abstract W made from three thick rounded translucent glass ribbons, Liquid Glass edge reflections, subtle internal glow, warm peach halo, readable at small sizes.",
+      "imageUrl": "generated/mcp-thumbs/wakeve-ios-dark.jpg",
+      "previewImageUrl": "generated/mcp-thumbs/wakeve-ios-dark.jpg",
+      "sourceImageUrl": "generated/wakeve-ios-dark.png"
+    },
+    {
+      "id": "wakeve-ios-light",
+      "title": "iOS App Icon Light",
+      "caption": "Light appearance with pearl/mist background and a warmer blue-lavender-peach ribbon mark.",
+      "tone": "app icon",
+      "prompt": "Wakeve iOS app icon light. No text. Soft pearl and mist blue gradient background, abstract W from three rounded translucent ribbons, muted blue, soft lavender, warm peach accent, simple silhouette, no calendar or checklist cues.",
+      "imageUrl": "generated/mcp-thumbs/wakeve-ios-light.jpg",
+      "previewImageUrl": "generated/mcp-thumbs/wakeve-ios-light.jpg",
+      "sourceImageUrl": "generated/wakeve-ios-light.png"
+    },
+    {
+      "id": "wakeve-ios-tinted-dark",
+      "title": "iOS Tinted Dark",
+      "caption": "Higher-contrast dark tinted export for the iOS icon catalog.",
+      "tone": "app icon",
+      "prompt": "Wakeve tinted dark iOS icon. No text. Dark graphite/navy background, stronger pearl/lavender/blue foreground glass W, simplified contrast for tinted icon rendering.",
+      "imageUrl": "generated/mcp-thumbs/wakeve-ios-tinted-dark.jpg",
+      "previewImageUrl": "generated/mcp-thumbs/wakeve-ios-tinted-dark.jpg",
+      "sourceImageUrl": "generated/wakeve-ios-tinted-dark.png"
+    },
+    {
+      "id": "wakeve-ios-tinted-light",
+      "title": "iOS Tinted Light",
+      "caption": "Light tinted export with a pale pearl field and blue-lavender glass symbol.",
+      "tone": "app icon",
+      "prompt": "Wakeve tinted light iOS icon. No text. Pale pearl background, soft blue-lavender tint through the glass W, clean thick rounded ribbons, no hard outlines or saturated purple.",
+      "imageUrl": "generated/mcp-thumbs/wakeve-ios-tinted-light.jpg",
+      "previewImageUrl": "generated/mcp-thumbs/wakeve-ios-tinted-light.jpg",
+      "sourceImageUrl": "generated/wakeve-ios-tinted-light.png"
+    }
+  ]
+}

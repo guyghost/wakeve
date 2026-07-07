@@ -16,6 +16,9 @@ struct CommentItemView: View {
     var onDelete: (String) -> Void = { _ in }
     var onPin: (String, Bool) -> Void = { _, _ in }
     var onUserClick: (String) -> Void = { _ in }
+    var onReportComment: (Comment_) -> Void = { _ in }
+    var onReportUser: (String, String) -> Void = { _, _ in }
+    var onBlockUser: (String, String) -> Void = { _, _ in }
 
     @State private var showMenu: Bool = false
 
@@ -61,30 +64,54 @@ struct CommentItemView: View {
                     }
 
                     // More options menu
-                    if comment.canEdit(currentUserId) || comment.canDelete(currentUserId, isOrganizer) {
+                    if !comment.isDeleted {
                         Menu {
                             Button(action: { onReply(comment.id, comment.authorName) }) {
-                                Label("Reply", systemImage: "arrow.uturn.backward")
+                                Label(String(localized: "comment.action.reply"), systemImage: "arrow.uturn.backward")
                             }
 
                             if comment.canEdit(currentUserId) {
                                 Button(action: { onEdit(comment.id, comment.content) }) {
-                                    Label("Edit", systemImage: "pencil")
+                                    Label(String(localized: "comment.action.edit"), systemImage: "pencil")
                                 }
                             }
 
                             if comment.canPin(currentUserId, isOrganizer) {
                                 Button(action: { onPin(comment.id, !comment.isPinned) }) {
-                                    Label(comment.isPinned ? "Unpin" : "Pin", systemImage: "pin")
+                                    Label(
+                                        String(localized: comment.isPinned ? "comment.action.unpin" : "comment.action.pin"),
+                                        systemImage: "pin"
+                                    )
                                 }
+                            }
+
+                            Divider()
+
+                            Button(action: { onReportComment(comment) }) {
+                                Label(String(localized: "moderation.report_content"), systemImage: "exclamationmark.bubble")
+                            }
+                            .accessibilityIdentifier("reportCommentAction")
+
+                            Button(action: { onReportUser(comment.authorId, comment.authorName) }) {
+                                Label(String(localized: "moderation.report_user"), systemImage: "person.crop.circle.badge.exclamationmark")
+                            }
+                            .accessibilityIdentifier("reportUserAction")
+
+                            if comment.authorId != currentUserId {
+                                Button(role: .destructive, action: { onBlockUser(comment.authorId, comment.authorName) }) {
+                                    Label(String(localized: "moderation.block_user"), systemImage: "person.crop.circle.badge.xmark")
+                                }
+                                .accessibilityIdentifier("blockUserAction")
                             }
 
                             Divider()
 
                             if comment.canDelete(currentUserId, isOrganizer) {
                                 Button(role: .destructive, action: { onDelete(comment.id) }) {
-                                    Label(comment.authorId == currentUserId ? "Delete" : "Remove",
-                                          systemImage: "trash")
+                                    Label(
+                                        String(localized: comment.authorId == currentUserId ? "common.delete" : "common.remove"),
+                                        systemImage: "trash"
+                                    )
                                 }
                             }
                         } label: {
@@ -95,16 +122,22 @@ struct CommentItemView: View {
                 }
 
                 // Content with highlighted mentions
-                AttributedComment(
-                    content: comment.content,
-                    mentions: comment.mentions,
-                    isDeleted: comment.isDeleted
-                )
+                if comment.isModerationHidden {
+                    ModeratedCommentNotice(status: comment.moderationStatusString)
+                } else {
+                    AttributedComment(
+                        content: comment.content,
+                        mentions: comment.mentions,
+                        isDeleted: comment.isDeleted
+                    )
+                }
+
+                ModerationStatusBadge(status: comment.moderationStatusString)
 
                 // Reply button (for parent comments only)
                 if isParent && !comment.isDeleted {
                     Button(action: { onReply(comment.id, comment.authorName) }) {
-                        Text("Reply")
+                        Text(String(localized: "comment.action.reply"))
                             .font(.body)
                             .foregroundColor(WakeveColors.primary)
                     }
@@ -159,7 +192,7 @@ struct AttributedComment: View {
 
     var body: some View {
         if isDeleted {
-            Text("[Deleted]")
+            Text(String(localized: "comment.deleted"))
                 .font(.body)
                 .foregroundColor(WakeveColors.onSurfaceVariant)
                 .italic()
@@ -183,6 +216,28 @@ struct AttributedComment: View {
     }
 }
 
+struct ModeratedCommentNotice: View {
+    let status: String
+
+    var body: some View {
+        Label(message, systemImage: status == "REJECTED" ? "xmark.octagon" : "eye.slash")
+            .font(.body)
+            .foregroundColor(WakeveColors.onSurfaceVariant)
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(WakeveColors.surface.opacity(0.55), in: RoundedRectangle(cornerRadius: 12))
+            .accessibilityIdentifier("moderatedCommentNotice")
+    }
+
+    private var message: String {
+        switch status {
+        case "REJECTED": return String(localized: "moderation.rejected_content_notice")
+        case "HIDDEN": return String(localized: "moderation.hidden_content_notice")
+        default: return String(localized: "moderation.hidden_content_notice")
+        }
+    }
+}
+
 /// Get initials from name
 func getInitials(_ name: String) -> String {
     let parts = name.split(separator: " ")
@@ -200,19 +255,35 @@ func formatTimestamp(_ timestamp: String) -> String {
         let interval = now.timeIntervalSince(date)
 
         if interval < 60 {
-            return "Just now"
+            return String(localized: "comment.time.just_now")
         } else if interval < 3600 {
-            return "\(Int(interval / 60))m ago"
+            return String(
+                format: String(localized: "comment.time.minutes_ago_format"),
+                locale: Locale.autoupdatingCurrent,
+                arguments: [Int64(interval / 60)]
+            )
         } else if interval < 86400 {
-            return "\(Int(interval / 3600))h ago"
+            return String(
+                format: String(localized: "comment.time.hours_ago_format"),
+                locale: Locale.autoupdatingCurrent,
+                arguments: [Int64(interval / 3600)]
+            )
         } else if interval < 604800 {
-            return "\(Int(interval / 86400))d ago"
+            return String(
+                format: String(localized: "comment.time.days_ago_format"),
+                locale: Locale.autoupdatingCurrent,
+                arguments: [Int64(interval / 86400)]
+            )
         } else {
-            return "\(Int(interval / 604800))w ago"
+            return String(
+                format: String(localized: "comment.time.weeks_ago_format"),
+                locale: Locale.autoupdatingCurrent,
+                arguments: [Int64(interval / 604800)]
+            )
         }
     }
 
-    return "Unknown time"
+    return String(localized: "comment.time.unknown")
 }
 
 /// ISO 8601 date formatter
@@ -228,9 +299,20 @@ private func ISO8601DateFormatter() -> DateFormatter {
 
 extension Comment_ {
     // Properties are already in camelCase in the generated Swift header
-    var isPinned: Bool { false } // TODO: Add pinned support to database schema
+    var isPinned: Bool { false } // Pinned comments are not in the current shared schema.
     
     var isDeleted: Bool { content == "[Deleted]" || content == "[deleted]" }
+
+    var moderationStatusString: String {
+        if content.contains("[Pending Review]") { return "PENDING_REVIEW" }
+        if content.contains("[Rejected]") { return "REJECTED" }
+        if content.contains("[Hidden]") { return "HIDDEN" }
+        return "APPROVED"
+    }
+
+    var isModerationHidden: Bool {
+        moderationStatusString == "REJECTED" || moderationStatusString == "HIDDEN"
+    }
     
     var mentions: [String] {
         // Extract @mentions from content
@@ -258,6 +340,45 @@ extension Comment_ {
 
 // MARK: - CommentThread Extensions
 
+#if DEBUG
+#Preview("Comment Item - Parent Light") {
+    CommentItemView(
+        comment: CommentFactory.organizerComment,
+        isPinned: true,
+        currentUserId: UserFactory.organizer.id,
+        isOrganizer: true,
+        isParent: true
+    )
+    .padding()
+    .background(WakeveScreenBackground(style: .grouped))
+    .preferredColorScheme(.light)
+}
+
+#Preview("Comment Item - Reply Dark") {
+    CommentItemView(
+        comment: CommentFactory.participantReply,
+        isPinned: false,
+        currentUserId: UserFactory.organizer.id,
+        isOrganizer: true,
+        isParent: false
+    )
+    .padding()
+    .background(WakeveScreenBackground(style: .grouped))
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Comment Item - Deleted") {
+    CommentItemView(
+        comment: CommentFactory.deletedComment,
+        isPinned: false,
+        currentUserId: UserFactory.organizer.id,
+        isOrganizer: true,
+        isParent: true
+    )
+    .padding()
+    .background(WakeveScreenBackground(style: .grouped))
+}
+#endif
 extension CommentThread {
     var hasMoreReplies: Bool { comment.replyCount > Int32(replies.count) }
 }

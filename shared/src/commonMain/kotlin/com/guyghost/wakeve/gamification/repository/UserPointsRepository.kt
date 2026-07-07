@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.gamification.repository
 
 import com.guyghost.wakeve.gamification.UserPoints
+import kotlinx.datetime.Clock
 
 /**
  * Repository interface for managing user points.
@@ -46,7 +47,7 @@ class InMemoryUserPointsRepository : UserPointsRepository {
             commentPoints = 0,
             participationPoints = 0,
             decayPoints = 0,
-            lastUpdated = ""
+            lastUpdated = now()
         )
         pointsMap[userId] = userPoints
         return userPoints
@@ -57,7 +58,7 @@ class InMemoryUserPointsRepository : UserPointsRepository {
         val updated = current.copy(
             eventCreationPoints = current.eventCreationPoints + points,
             totalPoints = current.totalPoints + points,
-            lastUpdated = ""
+            lastUpdated = now()
         )
         pointsMap[userId] = updated
         return updated
@@ -68,7 +69,7 @@ class InMemoryUserPointsRepository : UserPointsRepository {
         val updated = current.copy(
             votingPoints = current.votingPoints + points,
             totalPoints = current.totalPoints + points,
-            lastUpdated = ""
+            lastUpdated = now()
         )
         pointsMap[userId] = updated
         return updated
@@ -79,7 +80,7 @@ class InMemoryUserPointsRepository : UserPointsRepository {
         val updated = current.copy(
             commentPoints = current.commentPoints + points,
             totalPoints = current.totalPoints + points,
-            lastUpdated = ""
+            lastUpdated = now()
         )
         pointsMap[userId] = updated
         return updated
@@ -90,7 +91,7 @@ class InMemoryUserPointsRepository : UserPointsRepository {
         val updated = current.copy(
             participationPoints = current.participationPoints + points,
             totalPoints = current.totalPoints + points,
-            lastUpdated = ""
+            lastUpdated = now()
         )
         pointsMap[userId] = updated
         return updated
@@ -105,7 +106,7 @@ class InMemoryUserPointsRepository : UserPointsRepository {
         val updated = current.copy(
             totalPoints = newTotal,
             decayPoints = current.decayPoints + decayAmount,
-            lastUpdated = ""
+            lastUpdated = now()
         )
         pointsMap[userId] = updated
         return updated
@@ -139,4 +140,6 @@ class InMemoryUserPointsRepository : UserPointsRepository {
     override suspend fun deleteUserPoints(userId: String) {
         pointsMap.remove(userId)
     }
+
+    private fun now(): String = Clock.System.now().toString()
 }

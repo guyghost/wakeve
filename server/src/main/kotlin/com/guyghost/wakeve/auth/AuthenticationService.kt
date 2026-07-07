@@ -12,6 +12,8 @@ import com.guyghost.wakeve.models.OAuthLoginResponse
 import com.guyghost.wakeve.models.OAuthProvider
 import com.guyghost.wakeve.models.User
 import com.guyghost.wakeve.models.UserDTO
+import com.guyghost.wakeve.security.AuditLogger
+import com.guyghost.wakeve.security.SecurityAuditLogger
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.principal
@@ -29,12 +31,23 @@ class AuthenticationService(
     private val jwtIssuer: String,
     private val jwtAudience: String,
     googleService: GoogleOAuth2Service? = null,
-    appleService: AppleOAuth2Service? = null
+    appleService: AppleOAuth2Service? = null,
+    auditLogger: SecurityAuditLogger = AuditLogger(),
+    appleRevocationService: AppleAccountRevocationService? = appleService
 ) {
     private val userRepository = UserRepository(db)
+    private val sessionRepository = SessionRepository(db)
     private val googleOAuth2 = googleService
     private val appleOAuth2 = appleService
     private val jwtAlgorithm = Algorithm.HMAC256(jwtSecret)
+    private val accountDeletionService = AccountDeletionService(
+        userRepository = userRepository,
+        sessionRepository = sessionRepository,
+        auditLogger = auditLogger,
+        appleRevocationService = appleRevocationService,
+        jwtExpiryResolver = { token -> verifyJwtToken(token)?.expiresAtAsInstant?.toString() },
+        defaultJwtExpiryProvider = { calculateTokenExpiry(3600) }
+    )
 
     /**
      * Handle OAuth2 login from authorization code
@@ -234,6 +247,16 @@ class AuthenticationService(
      */
     suspend fun cleanupExpiredTokens(): Result<Unit> {
         return userRepository.cleanupExpiredTokens()
+    }
+
+    /**
+     * Delete an authenticated account and remove server-side credentials.
+     *
+     * The operation is idempotent: if the user has already been deleted, the
+     * service still returns success so repeated client calls are safe.
+     */
+    suspend fun deleteAccount(userId: String, currentJwtToken: String? = null): Result<AccountDeletionResult> = runCatching {
+        accountDeletionService.deleteAccount(userId, currentJwtToken).getOrThrow()
     }
 
     /**

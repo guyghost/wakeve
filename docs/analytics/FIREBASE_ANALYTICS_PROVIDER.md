@@ -2,7 +2,9 @@
 
 ## Overview
 
-This document describes the implementation of Firebase Analytics Provider for Android and iOS platforms with offline queue support as part of Phase 6 Analytics P1.2.
+This document describes the implementation of the analytics provider abstraction with offline queue support as part of Phase 6 Analytics P1.2.
+
+For the first App Store review build, iOS remains local-only: the iOS actual provider queues events for consent and deletion flows but does not link or emit to a third-party Firebase Analytics SDK. Android keeps the Firebase Analytics implementation.
 
 ## Implementation Summary
 
@@ -29,9 +31,9 @@ This document describes the implementation of Firebase Analytics Provider for An
 
 4. **FirebaseAnalyticsProvider** (iosMain)
    - `shared/src/iosMain/kotlin/com/guyghost/wakeve/analytics/FirebaseAnalyticsProvider.kt`
-   - Firebase SDK integration via CocoaPods (cocoapods.FirebaseAnalytics)
-   - NSDictionary-based event logging
-   - Automatic event-specific parameter mapping
+   - Local-only queue implementation for the first App Store review build
+   - No Firebase iOS SDK bridge linked or emitted to in the current release path
+   - User properties and user ID setters are no-ops until an iOS analytics SDK is intentionally enabled
    - Offline queue integration
 
 5. **FirebaseAnalyticsProvider** (jvmMain)
@@ -85,18 +87,12 @@ This document describes the implementation of Firebase Analytics Provider for An
 
 ### FirebaseAnalyticsProvider (iOS)
 
-- **Immediate logging**: Events sent to Firebase Analytics immediately
-- **NSDictionary mapping**: Automatic conversion of Kotlin types to NSDictionary:
-  - String → NSString
-  - Int → numberWithInt()
-  - Long → numberWithLong()
-  - Double → numberWithDouble()
-  - Boolean → numberWithBool()
-  - Other → NSString(value?.toString())
-- **Event-specific parameters**: Pre-mapped parameters for each event type
+- **Local-only queue**: Events are queued locally for consent-aware retention and deletion flows
+- **No third-party emission**: No Firebase iOS SDK bridge is linked or called for the first App Store review build
+- **User identity setters**: `setUserProperty()` and `setUserId()` are no-ops until an iOS analytics SDK is intentionally enabled
 - **RGPD compliance**: Support for enable/disable and clear user data
-- **Offline backup**: All events queued for offline recovery
-- **Periodic sync**: Background sync job (to be implemented with network monitoring)
+- **Offline backup**: Events are queued locally while analytics remains enabled
+- **Sync**: Disabled on iOS for the first App Store review build
 
 ### FirebaseAnalyticsProvider (JVM)
 
@@ -207,31 +203,20 @@ androidMain.dependencies {
 ```
 
 Additional setup required:
-1. Add `google-services.json` to `wakeveApp/src/`
-2. Apply `com.google.gms.google-services` plugin in `wakeveApp/build.gradle.kts`
+1. Add `google-services.json` to `composeApp/src/`
+2. Apply `com.google.gms.google-services` plugin in `composeApp/build.gradle.kts`
 3. Initialize Firebase in Application class
 
 ### iOS
 
-Firebase Analytics needs to be added via CocoaPods:
+No Firebase Analytics CocoaPod is enabled for the first App Store review build. To enable third-party analytics on iOS later, create an OpenSpec proposal first and update:
 
-1. Create or update `Podfile` in wakeveApp
-2. Add `pod 'Firebase/Analytics'` to Podfile
-3. Run `pod install`
-4. Initialize Firebase in AppDelegate
-
-Example Podfile:
-
-```ruby
-target 'wakeveApp' do
-  use_frameworks!
-  use_modular_headers!
-
-  pod 'Firebase/Analytics'
-
-  # Add other dependencies as needed
-end
-```
+1. `shared/src/iosMain/kotlin/com/guyghost/wakeve/analytics/FirebaseAnalyticsProvider.kt`
+2. the iOS dependency setup and initialization path
+3. `iosApp/src/PrivacyInfo.xcprivacy`
+4. `docs/APP_STORE_PRIVACY_LABELS.md`
+5. `docs/APP_STORE_PRIVACY_EVIDENCE.md`
+6. App Store Connect privacy answers
 
 ## RGPD Compliance
 
@@ -257,11 +242,10 @@ The implementation supports full RGPD compliance:
 
 ### Queue Operation
 
-1. Events are immediately sent to Firebase Analytics (if online)
-2. Events are queued for offline backup
-3. Queue persists events during offline
-4. On reconnection, sync job processes queue
-5. Failed events are retried up to 3 times
+1. Android events are sent to Firebase Analytics and queued for offline backup.
+2. iOS events are queued locally only for the first App Store review build.
+3. Queue entries can be cleared when consent is revoked or user data is deleted.
+4. Android retry handling applies to events with retry count below the max retry threshold.
 
 ### Retry Logic
 

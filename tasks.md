@@ -1334,7 +1334,7 @@ Implémentation complète de l'image picker iOS avec PHPickerViewController selo
   - `createConfiguredService()` - Service avec configuration
 
 ### 5. PhotoPickerPermissionHandler.swift (Shell iOS Swift)
-- **Fichier**: `iosApp/iosApp/PhotoPickerPermissionHandler.swift`
+- **Fichier**: `iosApp/src/PhotoPickerPermissionHandler.swift`
 - **Contenu**:
   - `authorizationStatus()` - Vérification status permission
   - `isAuthorized()` / `isDenied()` / `isNotDetermined()` - Helpers
@@ -1344,7 +1344,7 @@ Implémentation complète de l'image picker iOS avec PHPickerViewController selo
   - `presentImagePicker()` - Convenience method
 
 ### 6. ChatView.swift (Modifié)
-- **Fichier**: `iosApp/iosApp/Views/ChatView.swift`
+- **Fichier**: `iosApp/src/Views/ChatView.swift`
 - **Modifications**:
   - Ajout imports Photos, PhotosUI, UIKit
   - Intégration `handleImagePicker()` dans le menu attachment

@@ -319,7 +319,7 @@ The application is fully protected against SQL injection through the use of SQLD
 
 **Android Implementation**:
 ```kotlin
-// wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/security/CertificatePinning.kt
+// composeApp/src/androidMain/kotlin/com/guyghost/wakeve/security/CertificatePinning.kt
 object CertificatePinning {
     val PINNED_CERTIFICATES = arrayOf(
         "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
@@ -340,7 +340,7 @@ object CertificatePinning {
 
 **iOS Implementation**:
 ```swift
-// wakeveApp/wakeveApp/Security/CertificatePinning.swift
+// iosApp/src/Security/CertificatePinning.swift
 class CertificatePinningDelegate: NSObject, URLSessionDelegate {
     func urlSession(
         _ session: URLSession,
@@ -406,7 +406,7 @@ actual fun createPinnedHttpClient(): HttpClient {
 
 #### iOS - Keychain Implementation ✅
 
-**File**: `wakeveApp/wakeveApp/Services/SecureTokenStorage.swift`
+**File**: `iosApp/src/Services/SecureTokenStorage.swift`
 
 **Positive Findings**:
 ```swift
@@ -437,7 +437,7 @@ private func storeData(_ data: Data, forKey key: String) throws {
 
 #### Android - Keystore Implementation ✅
 
-**File**: `wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/security/AndroidSecureTokenStorage.kt`
+**File**: `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/security/AndroidSecureTokenStorage.kt`
 
 **Positive Findings**:
 ```kotlin
@@ -1026,8 +1026,8 @@ The Wakeve application demonstrates a solid security foundation with several exc
 - `server/src/main/kotlin/com/guyghost/wakeve/Application.kt`
 
 **Secure Storage**:
-- `wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/security/AndroidSecureTokenStorage.kt`
-- `wakeveApp/wakeveApp/Services/SecureTokenStorage.swift`
+- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/security/AndroidSecureTokenStorage.kt`
+- `iosApp/src/Services/SecureTokenStorage.swift`
 
 **Database Schemas**:
 - `shared/src/commonMain/sqldelight/com/guyghost/wakeve/Event.sq`

@@ -128,46 +128,6 @@ abstract class BaseDeepLinkHandler : DeepLinkHandlerInterface {
 }
 
 /**
- * A mock implementation of DeepLinkHandler for testing purposes.
- */
-class MockDeepLinkHandler : BaseDeepLinkHandler() {
-    private val handledDeepLinks = mutableListOf<DeepLink>()
-
-    override fun canHandleDeepLink(deepLink: DeepLink): Boolean {
-        return true
-    }
-
-    override fun handleDefault(deepLink: DeepLink): Boolean {
-        handledDeepLinks.add(deepLink)
-        return true
-    }
-
-    /**
-     * Gets all deep links that were handled.
-     *
-     * @return List of handled deep links
-     */
-    fun getHandledDeepLinks(): List<DeepLink> = handledDeepLinks.toList()
-
-    /**
-     * Clears the list of handled deep links.
-     */
-    fun clearHandledDeepLinks() {
-        handledDeepLinks.clear()
-    }
-
-    /**
-     * Checks if a specific deep link was handled.
-     *
-     * @param uri The URI to check
-     * @return True if the deep link was handled
-     */
-    fun wasHandled(uri: String): Boolean {
-        return handledDeepLinks.any { it.fullUri == uri }
-    }
-}
-
-/**
  * Result of handling a deep link.
  */
 sealed class DeepLinkResult {
@@ -206,7 +166,7 @@ sealed class DeepLinkResult {
  */
 fun processDeepLinkUri(uri: String, handler: DeepLinkHandlerInterface): DeepLinkResult {
     val deepLink = DeepLink.parse(uri).getOrElse {
-        return DeepLinkResult.Failure("Failed to parse URI: ${it.message}")
+        return DeepLinkResult.Failure(deepLinkParseFailureMessage())
     }
 
     val route = deepLink.toDeepLinkRoute()
@@ -222,3 +182,5 @@ fun processDeepLinkUri(uri: String, handler: DeepLinkHandlerInterface): DeepLink
         DeepLinkResult.NoHandler(deepLink)
     }
 }
+
+internal fun deepLinkParseFailureMessage(): String = "Failed to parse URI"

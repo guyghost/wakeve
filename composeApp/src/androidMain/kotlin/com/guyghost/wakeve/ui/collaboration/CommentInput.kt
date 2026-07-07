@@ -5,7 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -81,7 +81,7 @@ fun CommentInput(
                 modifier = Modifier
                     .fillMaxWidth()
                     .focusRequester(focusRequester),
-                placeholder = { Text("Add a comment...") },
+                placeholder = { Text(commentInputPlaceholder()) },
                 minLines = 1,
                 maxLines = 4,
                 shape = RoundedCornerShape(24.dp),
@@ -101,8 +101,8 @@ fun CommentInput(
                         enabled = text.isNotBlank()
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Send,
-                            contentDescription = "Send",
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = commentSendContentDescription(),
                             tint = if (text.isNotBlank()) {
                                 WakeveColors.primary
                             } else {
@@ -142,6 +142,12 @@ fun CommentInput(
         }
     }
 }
+
+internal fun commentInputPlaceholder(): String =
+    "Ajouter un commentaire..."
+
+internal fun commentSendContentDescription(): String =
+    "Envoyer le commentaire"
 
 /**
  * Mention Autocomplete Dropdown

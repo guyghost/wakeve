@@ -1,6 +1,8 @@
 package com.guyghost.wakeve.routes
 
 import com.guyghost.wakeve.auth.AuthenticationService
+import com.guyghost.wakeve.auth.EmailOtpSender
+import com.guyghost.wakeve.auth.NoConfiguredEmailOtpSender
 import com.guyghost.wakeve.auth.OtpManager
 import com.guyghost.wakeve.models.AppleAuthRequest
 import com.guyghost.wakeve.models.AuthErrorResponse
@@ -33,7 +35,11 @@ import java.util.UUID
  * - POST /api/auth/guest - Create guest session
  * - POST /api/auth/refresh - Refresh access token
  */
-fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager = OtpManager()) {
+fun Route.authRoutes(
+    authService: AuthenticationService,
+    otpManager: OtpManager = OtpManager(),
+    emailOtpSender: EmailOtpSender = NoConfiguredEmailOtpSender
+) {
     route("/auth") {
         
         // ========== OAuth Authentication ==========
@@ -42,9 +48,10 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
         post("/google") {
             try {
                 val request = call.receive<GoogleAuthRequest>()
+                val idToken = request.idToken.trim()
                 
                 // Validate request
-                if (request.idToken.isBlank()) {
+                if (!isValidAuthSecret(idToken)) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         AuthErrorResponse("INVALID_TOKEN", "Google ID token is required")
@@ -56,7 +63,7 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
                 val response = authService.loginWithOAuth(
                     OAuthLoginRequest(
                         provider = OAuthProvider.GOOGLE.name.lowercase(),
-                        idToken = request.idToken
+                        idToken = idToken
                     )
                 )
                     .getOrThrow()
@@ -71,9 +78,10 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
         post("/apple") {
             try {
                 val request = call.receive<AppleAuthRequest>()
+                val idToken = request.idToken.trim()
                 
                 // Validate request
-                if (request.idToken.isBlank()) {
+                if (!isValidAuthSecret(idToken)) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         AuthErrorResponse("INVALID_TOKEN", "Apple identity token is required")
@@ -85,7 +93,7 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
                 val response = authService.loginWithOAuth(
                     OAuthLoginRequest(
                         provider = OAuthProvider.APPLE.name.lowercase(),
-                        idToken = request.idToken
+                        idToken = idToken
                     )
                 ).getOrThrow()
                 
@@ -101,9 +109,10 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
         post("/email/request") {
             try {
                 val request = call.receive<EmailOTPRequest>()
+                val email = normalizeEmail(request.email)
                 
                 // Validate email format
-                if (!isValidEmail(request.email)) {
+                if (!isValidEmail(email)) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         AuthErrorResponse("INVALID_EMAIL", "Invalid email format")
@@ -112,7 +121,7 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
                 }
                 
                 // Vérifier le rate limiting
-                if (otpManager.isRateLimited(request.email)) {
+                if (otpManager.isRateLimited(email)) {
                     call.respond(
                         HttpStatusCode.TooManyRequests,
                         AuthErrorResponse(
@@ -124,7 +133,7 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
                 }
 
                 // Générer et stocker l'OTP
-                val otp = otpManager.generateOtp(request.email)
+                val otp = otpManager.generateOtp(email)
 
                 if (otp == null) {
                     call.respond(
@@ -137,14 +146,33 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
                     return@post
                 }
 
-                // En production, envoyer l'email ici.
-                // Pour le développement, l'OTP est loggé par OtpManager.
+                val deliveryResult = try {
+                    emailOtpSender.sendOtp(
+                        email = email,
+                        otp = otp,
+                        expiresInSeconds = 300
+                    )
+                } catch (error: Throwable) {
+                    Result.failure(error)
+                }
+
+                if (deliveryResult.isFailure) {
+                    otpManager.discardOtp(email)
+                    call.respond(
+                        HttpStatusCode.ServiceUnavailable,
+                        AuthErrorResponse(
+                            "EMAIL_OTP_UNAVAILABLE",
+                            emailOtpUnavailableMessage()
+                        )
+                    )
+                    return@post
+                }
 
                 call.respond(
                     HttpStatusCode.OK,
                     OTPRequestResponse(
                         success = true,
-                        message = "OTP envoyé à ${request.email}",
+                        message = "OTP envoyé à $email",
                         expiresInSeconds = 300
                     )
                 )
@@ -157,9 +185,11 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
         post("/email/verify") {
             try {
                 val request = call.receive<EmailOTPVerifyRequest>()
+                val email = normalizeEmail(request.email)
+                val otp = request.otp.trim()
                 
                 // Validate OTP format (6 digits)
-                if (request.otp.length != 6 || !request.otp.all { it.isDigit() }) {
+                if (otp.length != 6 || !otp.all { it.isDigit() }) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         AuthErrorResponse("INVALID_OTP", "OTP must be 6 digits")
@@ -168,7 +198,7 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
                 }
                 
                 // Valider le format de l'email
-                if (!isValidEmail(request.email)) {
+                if (!isValidEmail(email)) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         AuthErrorResponse("INVALID_EMAIL", "Invalid email format")
@@ -177,10 +207,10 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
                 }
 
                 // Vérifier l'OTP
-                val isValid = otpManager.verifyOtp(request.email, request.otp)
+                val isValid = otpManager.verifyOtp(email, otp)
 
                 if (!isValid) {
-                    val remaining = otpManager.remainingAttempts(request.email)
+                    val remaining = otpManager.remainingAttempts(email)
                     val message = if (remaining > 0) {
                         "Code OTP invalide. $remaining tentative(s) restante(s)."
                     } else {
@@ -194,7 +224,7 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
                 }
 
                 // OTP valide : authentifier l'utilisateur
-                val authResponse = authService.loginWithEmail(request.email).getOrThrow()
+                val authResponse = authService.loginWithEmail(email).getOrThrow()
                 call.respond(HttpStatusCode.OK, authResponse)
             } catch (e: Exception) {
                 call.handleAuthError(e)
@@ -207,7 +237,15 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
         post("/guest") {
             try {
                 val request = call.receive<GuestSessionRequest>()
-                val authResponse = authService.loginAsGuest(request.deviceId).getOrThrow()
+                val deviceId = request.deviceId?.trim()
+                if (deviceId != null && (deviceId.isBlank() || deviceId.length > MAX_DEVICE_ID_LENGTH)) {
+                    call.respond(
+                        HttpStatusCode.BadRequest,
+                        AuthErrorResponse("INVALID_DEVICE_ID", "Device ID is invalid")
+                    )
+                    return@post
+                }
+                val authResponse = authService.loginAsGuest(deviceId).getOrThrow()
                 call.respond(HttpStatusCode.OK, authResponse)
             } catch (e: Exception) {
                 call.handleAuthError(e)
@@ -220,8 +258,9 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
         post("/refresh") {
             try {
                 val request = call.receive<TokenRefreshRequest>()
+                val refreshToken = request.refreshToken.trim()
                 
-                if (request.refreshToken.isBlank()) {
+                if (!isValidAuthSecret(refreshToken)) {
                     call.respond(
                         HttpStatusCode.BadRequest,
                         AuthErrorResponse("INVALID_REQUEST", "Refresh token is required")
@@ -229,7 +268,7 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
                     return@post
                 }
                 
-                val response = authService.refreshToken(request.refreshToken).getOrThrow()
+                val response = authService.refreshToken(refreshToken).getOrThrow()
                 call.respond(HttpStatusCode.OK, response)
             } catch (e: Exception) {
                 call.handleAuthError(e)
@@ -241,7 +280,11 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
         // Get authorization URLs (for frontend redirect)
         get("/google/url") {
             try {
-                val state = call.request.queryParameters["state"] ?: UUID.randomUUID().toString()
+                val state = call.request.queryParameters["state"].normalizedOAuthState()
+                    ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        AuthErrorResponse("INVALID_STATE", "OAuth state is invalid")
+                    )
                 val url = authService.getAuthorizationUrl(OAuthProvider.GOOGLE, state)
                 call.respond(HttpStatusCode.OK, mapOf("url" to url))
             } catch (e: Exception) {
@@ -251,7 +294,11 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
         
         get("/apple/url") {
             try {
-                val state = call.request.queryParameters["state"] ?: UUID.randomUUID().toString()
+                val state = call.request.queryParameters["state"].normalizedOAuthState()
+                    ?: return@get call.respond(
+                        HttpStatusCode.BadRequest,
+                        AuthErrorResponse("INVALID_STATE", "OAuth state is invalid")
+                    )
                 val url = authService.getAuthorizationUrl(OAuthProvider.APPLE, state)
                 call.respond(HttpStatusCode.OK, mapOf("url" to url))
             } catch (e: Exception) {
@@ -268,8 +315,24 @@ fun Route.authRoutes(authService: AuthenticationService, otpManager: OtpManager 
  * @return true if the email format is valid
  */
 private fun isValidEmail(email: String): Boolean {
+    if (email.length !in 3..MAX_EMAIL_LENGTH) return false
     val emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$".toRegex()
     return emailRegex.matches(email)
+}
+
+private const val MAX_EMAIL_LENGTH = 320
+private const val MAX_AUTH_SECRET_LENGTH = 8_192
+private const val MAX_DEVICE_ID_LENGTH = 200
+private const val MAX_OAUTH_STATE_LENGTH = 512
+
+private fun normalizeEmail(email: String): String = email.trim().lowercase()
+
+private fun isValidAuthSecret(secret: String): Boolean =
+    secret.isNotBlank() && secret.length <= MAX_AUTH_SECRET_LENGTH
+
+private fun String?.normalizedOAuthState(): String? {
+    val state = this?.trim().takeUnless { it.isNullOrEmpty() } ?: UUID.randomUUID().toString()
+    return state.takeIf { it.length <= MAX_OAUTH_STATE_LENGTH }
 }
 
 /**
@@ -292,13 +355,13 @@ private suspend fun ApplicationCall.handleAuthError(e: Exception) {
         is IllegalArgumentException -> {
             respond(
                 HttpStatusCode.BadRequest,
-                AuthErrorResponse("INVALID_REQUEST", e.message ?: "Invalid request")
+                AuthErrorResponse("INVALID_REQUEST", invalidAuthRequestFailureMessage())
             )
         }
         is com.guyghost.wakeve.auth.OAuth2Exception -> {
             respond(
                 HttpStatusCode.Unauthorized,
-                AuthErrorResponse("AUTH_FAILED", e.message ?: "Authentication failed")
+                AuthErrorResponse("AUTH_FAILED", authFailedFailureMessage())
             )
         }
         else -> {
@@ -309,3 +372,12 @@ private suspend fun ApplicationCall.handleAuthError(e: Exception) {
         }
     }
 }
+
+internal fun emailOtpUnavailableMessage(): String =
+    "Email OTP delivery is temporarily unavailable. Please try again later."
+
+internal fun invalidAuthRequestFailureMessage(): String =
+    "Invalid authentication request. Please review the details and try again."
+
+internal fun authFailedFailureMessage(): String =
+    "Authentication failed. Please try again."

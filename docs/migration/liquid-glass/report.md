@@ -1,7 +1,7 @@
 # Migration Liquid Glass - ModernPollVotingView ✅ COMPLÈTE
 
 **Date**: 28 décembre 2025  
-**Fichier**: `iosApp/iosApp/Views/ModernPollVotingView.swift`  
+**Fichier**: `iosApp/src/Views/ModernPollVotingView.swift`  
 **Statut**: ✅ MIGRATION COMPLÉTÉE AVEC SUCCÈS
 
 ---

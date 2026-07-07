@@ -7,6 +7,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.Serializable
 
 /**
  * Service for calculating analytics metrics.
@@ -15,6 +16,7 @@ import kotlinx.datetime.toLocalDateTime
  */
 class AnalyticsDashboard(private val database: WakeveDb) {
 
+    @Serializable
     data class Metrics(
         val mau: Int,
         val dau: Int,
@@ -23,6 +25,7 @@ class AnalyticsDashboard(private val database: WakeveDb) {
         val retention: Double
     )
 
+    @Serializable
     data class FunnelStep(
         val step: String,
         val count: Int,

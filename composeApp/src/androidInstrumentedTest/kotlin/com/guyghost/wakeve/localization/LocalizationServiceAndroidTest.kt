@@ -52,7 +52,7 @@ class LocalizationServiceAndroidTest {
      * THEN a non-null instance is returned
      */
     @Test
-    fun `getInstance returns non-null instance`() {
+    fun getInstance_returns_non_null_instance() {
         assertNotNull(localizationService)
     }
 
@@ -64,7 +64,7 @@ class LocalizationServiceAndroidTest {
      * THEN the same instance is returned
      */
     @Test
-    fun `getInstance returns singleton instance`() {
+    fun getInstance_returns_singleton_instance() {
         val instance1 = LocalizationService.getInstance()
         val instance2 = LocalizationService.getInstance()
         assertEquals(instance1, instance2)
@@ -80,7 +80,7 @@ class LocalizationServiceAndroidTest {
      * THEN a valid AppLocale is returned (system or fallback)
      */
     @Test
-    fun `getCurrentLocale returns valid AppLocale by default`() {
+    fun getCurrentLocale_returns_valid_AppLocale_by_default() {
         val currentLocale = localizationService.getCurrentLocale()
         assertTrue(currentLocale in AppLocale.values())
     }
@@ -93,7 +93,7 @@ class LocalizationServiceAndroidTest {
      * THEN that locale is returned
      */
     @Test
-    fun `getCurrentLocale returns persisted locale`() {
+    fun getCurrentLocale_returns_persisted_locale() {
         localizationService.setLocale(AppLocale.FRENCH)
         val currentLocale = localizationService.getCurrentLocale()
         assertEquals(AppLocale.FRENCH, currentLocale)
@@ -107,7 +107,7 @@ class LocalizationServiceAndroidTest {
      * THEN each change is reflected
      */
     @Test
-    fun `getCurrentLocale reflects all locale changes`() {
+    fun getCurrentLocale_reflects_all_locale_changes() {
         localizationService.setLocale(AppLocale.SPANISH)
         assertEquals(AppLocale.SPANISH, localizationService.getCurrentLocale())
         
@@ -128,7 +128,7 @@ class LocalizationServiceAndroidTest {
      * THEN the locale code is persisted to SharedPreferences
      */
     @Test
-    fun `setLocale persists to SharedPreferences`() {
+    fun setLocale_persists_to_SharedPreferences() {
         localizationService.setLocale(AppLocale.FRENCH)
         
         val prefs = context.getSharedPreferences("wakeve_settings", Context.MODE_PRIVATE)
@@ -145,7 +145,7 @@ class LocalizationServiceAndroidTest {
      * THEN each is correctly persisted
      */
     @Test
-    fun `setLocale persists all supported locales`() {
+    fun setLocale_persists_all_supported_locales() {
         val prefs = context.getSharedPreferences("wakeve_settings", Context.MODE_PRIVATE)
         
         localizationService.setLocale(AppLocale.FRENCH)
@@ -166,7 +166,7 @@ class LocalizationServiceAndroidTest {
      * THEN the new locale is persisted
      */
     @Test
-    fun `setLocale overrides persisted locale`() {
+    fun setLocale_overrides_persisted_locale() {
         localizationService.setLocale(AppLocale.FRENCH)
         localizationService.setLocale(AppLocale.ENGLISH)
         
@@ -184,7 +184,7 @@ class LocalizationServiceAndroidTest {
      * THEN the Android Configuration is updated (no exception thrown)
      */
     @Test
-    fun `setLocale updates Configuration without error`() {
+    fun setLocale_updates_Configuration_without_error() {
         // Should not throw any exception
         localizationService.setLocale(AppLocale.FRENCH)
         localizationService.setLocale(AppLocale.SPANISH)
@@ -201,7 +201,7 @@ class LocalizationServiceAndroidTest {
      * THEN a non-empty string is returned
      */
     @Test
-    fun `getString returns non-empty value for valid key`() {
+    fun getString_returns_non_empty_value_for_valid_key() {
         val result = localizationService.getString("save")
         assertNotNull(result)
         assertTrue(result.isNotEmpty())
@@ -215,7 +215,7 @@ class LocalizationServiceAndroidTest {
      * THEN different non-empty values are returned
      */
     @Test
-    fun `getString returns different values for different keys`() {
+    fun getString_returns_different_values_for_different_keys() {
         val save = localizationService.getString("save")
         val cancel = localizationService.getString("cancel")
         
@@ -235,7 +235,7 @@ class LocalizationServiceAndroidTest {
      * THEN the string is formatted with the arguments
      */
     @Test
-    fun `getString with args includes argument value`() {
+    fun getString_with_args_includes_argument_value() {
         // Using a format string (e.g., "%d items")
         // Note: Actual test depends on translation files having format strings
         val result = localizationService.getString("test_format", 42)
@@ -252,7 +252,7 @@ class LocalizationServiceAndroidTest {
      * THEN a string is returned (either translated or English fallback)
      */
     @Test
-    fun `getString falls back gracefully`() {
+    fun getString_falls_back_gracefully() {
         localizationService.setLocale(AppLocale.SPANISH)
         
         // Try a key that should exist in all languages
@@ -269,7 +269,7 @@ class LocalizationServiceAndroidTest {
      * THEN the key itself is returned as fallback
      */
     @Test
-    fun `getString returns key for non-existent key`() {
+    fun getString_returns_key_for_non_existent_key() {
         val nonExistentKey = "completely_nonexistent_key_12345"
         val result = localizationService.getString(nonExistentKey)
         // Should return the key itself when not found
@@ -284,7 +284,7 @@ class LocalizationServiceAndroidTest {
      * THEN different translations may be returned (if available)
      */
     @Test
-    fun `getString respects locale changes`() {
+    fun getString_respects_locale_changes() {
         localizationService.setLocale(AppLocale.ENGLISH)
         val englishString = localizationService.getString("save")
         
@@ -308,7 +308,7 @@ class LocalizationServiceAndroidTest {
      * THEN everything works together
      */
     @Test
-    fun `complete flow - initialize, set locale, get string`() {
+    fun complete_flow_initialize_set_locale_get_string() {
         // Set to French
         localizationService.setLocale(AppLocale.FRENCH)
         
@@ -329,7 +329,7 @@ class LocalizationServiceAndroidTest {
      * THEN the persisted locale is still active
      */
     @Test
-    fun `locale persists across getInstance calls`() {
+    fun locale_persists_across_getInstance_calls() {
         localizationService.setLocale(AppLocale.SPANISH)
         
         // Get a new instance
@@ -347,7 +347,7 @@ class LocalizationServiceAndroidTest {
      * THEN all arguments are formatted
      */
     @Test
-    fun `getString with multiple args formats all arguments`() {
+    fun getString_with_multiple_args_formats_all_arguments() {
         // This test depends on having a format string in the translation files
         // Using a simple format string for now
         val result = localizationService.getString("test_format", 10, 20)
@@ -364,7 +364,7 @@ class LocalizationServiceAndroidTest {
      * THEN it returns gracefully (fallback)
      */
     @Test
-    fun `getString with empty key returns gracefully`() {
+    fun getString_with_empty_key_returns_gracefully() {
         val result = localizationService.getString("")
         assertNotNull(result)
         // Should return the key or a fallback
@@ -378,7 +378,7 @@ class LocalizationServiceAndroidTest {
      * THEN it returns gracefully
      */
     @Test
-    fun `getString with null-like key returns gracefully`() {
+    fun getString_with_null_like_key_returns_gracefully() {
         val result = localizationService.getString("null")
         assertNotNull(result)
     }
@@ -391,7 +391,7 @@ class LocalizationServiceAndroidTest {
      * THEN all changes are applied without error
      */
     @Test
-    fun `rapid locale changes work correctly`() {
+    fun rapid_locale_changes_work_correctly() {
         for (i in 0..10) {
             localizationService.setLocale(AppLocale.ENGLISH)
             localizationService.setLocale(AppLocale.FRENCH)
@@ -410,7 +410,7 @@ class LocalizationServiceAndroidTest {
      * THEN the same result is returned each time
      */
     @Test
-    fun `getString returns consistent results`() {
+    fun getString_returns_consistent_results() {
         val key = "save"
         val result1 = localizationService.getString(key)
         val result2 = localizationService.getString(key)

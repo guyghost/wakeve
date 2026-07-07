@@ -1,9 +1,8 @@
 package com.guyghost.wakeve.analytics
 
 import android.os.Bundle
+import com.google.firebase.FirebaseApp
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.analytics.ktx.analytics
-import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -24,7 +23,7 @@ actual class FirebaseAnalyticsProvider actual constructor(
 ) : AnalyticsProvider {
 
     private val firebaseAnalytics: FirebaseAnalytics by lazy {
-        Firebase.analytics
+        FirebaseAnalytics.getInstance(FirebaseApp.getInstance().applicationContext)
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

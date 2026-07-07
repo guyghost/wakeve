@@ -154,7 +154,7 @@ fun Route.sessionRoutes(sessionManager: SessionManager) {
                         HttpStatusCode.InternalServerError,
                         RevokeSessionResponse(
                             success = false,
-                            message = "Failed to revoke session: ${e.message}"
+                            message = "Failed to revoke session"
                         )
                     )
                 }
@@ -197,7 +197,7 @@ fun Route.sessionRoutes(sessionManager: SessionManager) {
                         HttpStatusCode.InternalServerError,
                         mapOf(
                             "success" to false,
-                            "error" to "Failed to revoke sessions: ${e.message}"
+                            "error" to "Failed to revoke sessions"
                         )
                     )
                 }
@@ -214,7 +214,7 @@ fun Route.sessionRoutes(sessionManager: SessionManager) {
                     val sessionId = principal.sessionId
                     val session = sessionManager.getSession(sessionId)
 
-                    if (session == null) {
+                    if (session == null || session.userId != principal.userId) {
                         return@get call.respond(
                             HttpStatusCode.NotFound,
                             mapOf("error" to "Current session not found")
@@ -237,7 +237,7 @@ fun Route.sessionRoutes(sessionManager: SessionManager) {
                     call.application.log.error("Error fetching current session", e)
                     call.respond(
                         HttpStatusCode.InternalServerError,
-                        mapOf("error" to "Failed to fetch current session: ${e.message}")
+                        mapOf("error" to "Failed to fetch current session")
                     )
                 }
             }

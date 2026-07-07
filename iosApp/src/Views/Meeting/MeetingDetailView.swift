@@ -1,0 +1,500 @@
+import SwiftUI
+import Shared
+
+// MARK: - MeetingDetailView
+
+struct MeetingDetailView: View {
+    let meetingId: String
+    let eventId: String
+    let currentUserId: String
+    let isOrganizer: Bool
+    let isReadOnly: Bool
+
+    @StateObject private var viewModel: MeetingDetailViewModel
+    @State private var showGenerateLinkSheet = false
+    @State private var showDeleteConfirm = false
+    @Environment(\.dismiss) private var dismiss
+    private let previewMeeting: VirtualMeeting?
+
+    init(
+        meetingId: String,
+        eventId: String,
+        currentUserId: String,
+        isOrganizer: Bool,
+        isReadOnly: Bool
+    ) {
+        self.meetingId = meetingId
+        self.eventId = eventId
+        self.currentUserId = currentUserId
+        self.isOrganizer = isOrganizer
+        self.isReadOnly = isReadOnly
+        self._viewModel = StateObject(
+            wrappedValue: MeetingDetailViewModel(
+                meetingId: meetingId,
+                eventId: eventId,
+                currentUserId: currentUserId,
+                canMutateMeetings: isOrganizer && !isReadOnly
+            )
+        )
+        self.previewMeeting = nil
+    }
+
+    init(meetingId: String, eventId: String) {
+        self.init(
+            meetingId: meetingId,
+            eventId: eventId,
+            currentUserId: "anonymous-user",
+            isOrganizer: false,
+            isReadOnly: true
+        )
+    }
+
+#if DEBUG
+    init(
+        meetingId: String,
+        eventId: String,
+        currentUserId: String,
+        isOrganizer: Bool,
+        isReadOnly: Bool,
+        previewMeeting: VirtualMeeting
+    ) {
+        self.meetingId = meetingId
+        self.eventId = eventId
+        self.currentUserId = currentUserId
+        self.isOrganizer = isOrganizer
+        self.isReadOnly = isReadOnly
+        self._viewModel = StateObject(
+            wrappedValue: MeetingDetailViewModel(
+                meetingId: meetingId,
+                eventId: eventId,
+                currentUserId: currentUserId,
+                canMutateMeetings: isOrganizer && !isReadOnly
+            )
+        )
+        self.previewMeeting = previewMeeting
+    }
+
+    init(meetingId: String, eventId: String, previewMeeting: VirtualMeeting) {
+        self.init(
+            meetingId: meetingId,
+            eventId: eventId,
+            currentUserId: previewMeeting.organizerId,
+            isOrganizer: true,
+            isReadOnly: false,
+            previewMeeting: previewMeeting
+        )
+    }
+#endif
+
+    var body: some View {
+        ZStack {
+            WakeveScreenBackground(style: .grouped)
+
+            Group {
+                if shouldShowLoading {
+                    loadingView
+                } else if let meeting {
+                    contentView(meeting: meeting)
+                } else {
+                    errorView
+                }
+            }
+        }
+        .navigationTitle(String(localized: "meetings.detail_title"))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if canMutateMeetings {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Menu {
+                        Button {
+                            showGenerateLinkSheet = true
+                        } label: {
+                            Label(String(localized: "meetings.generate_link"), systemImage: "link")
+                        }
+                        Divider()
+                        Button(role: .destructive) {
+                            showDeleteConfirm = true
+                        } label: {
+                            Label(String(localized: "meetings.cancel"), systemImage: "xmark.circle")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showGenerateLinkSheet) {
+            if let meeting {
+                MeetingGenerateLinkSheet(
+                    meeting: meeting,
+                    onGenerate: { platform in
+                        guard canMutateMeetings, !isPreviewing else {
+                            showGenerateLinkSheet = false
+                            return
+                        }
+                        viewModel.generateMeetingLink(
+                            platform: platform,
+                            currentUserId: currentUserId,
+                            isOrganizer: isOrganizer,
+                            isReadOnly: isReadOnly
+                        )
+                        showGenerateLinkSheet = false
+                    },
+                    onCancel: { showGenerateLinkSheet = false }
+                )
+            }
+        }
+        .confirmationDialog(
+            String(localized: "meetings.cancel_confirm"),
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "meetings.cancel"), role: .destructive) {
+                if canMutateMeetings && !isPreviewing {
+                    viewModel.cancelMeeting(currentUserId: currentUserId)
+                }
+                dismiss()
+            }
+            Button(String(localized: "meetings.keep"), role: .cancel) {}
+        }
+        .onAppear {
+            guard !isPreviewing else { return }
+            viewModel.loadMeetings()
+        }
+    }
+
+    // MARK: - Loading
+
+    private var loadingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .scaleEffect(1.2)
+                .tint(WakeveTheme.ColorToken.permissionBlue)
+                .accessibilityLabel(String(localized: "common.loading"))
+            Text(String(localized: "common.loading"))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Error
+
+    private var errorView: some View {
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.xl) {
+            VStack(spacing: WakeveTheme.Spacing.md) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.largeTitle)
+                    .foregroundStyle(.orange)
+                Text(String(localized: "meetings.not_found"))
+                    .font(WakeveTheme.Typography.title2)
+                Text(String(localized: "meetings.not_found_subtitle"))
+                    .font(WakeveTheme.Typography.body)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .padding(WakeveTheme.Spacing.page)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Content
+
+    private func contentView(meeting: VirtualMeeting) -> some View {
+        ScrollView {
+            VStack(spacing: WakeveTheme.Spacing.md) {
+                headerCard(meeting: meeting)
+
+                if !meeting.meetingUrl.isEmpty {
+                    meetingUrlCard(url: meeting.meetingUrl)
+                }
+
+                detailsCard(meeting: meeting)
+                actionButtons(meeting: meeting)
+            }
+            .padding(WakeveTheme.Spacing.page)
+        }
+    }
+
+    // MARK: - Cards
+
+    private func headerCard(meeting: VirtualMeeting) -> some View {
+        WakeveContentCard(prominence: .prominent, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(spacing: WakeveTheme.Spacing.md) {
+                ZStack {
+                    Circle()
+                        .fill(platformColor(meeting.platform).opacity(0.15))
+                        .frame(width: 72, height: 72)
+                    Image(systemName: platformIcon(meeting.platform))
+                        .font(.system(size: 32))
+                        .foregroundStyle(platformColor(meeting.platform))
+                }
+
+                Text(meeting.title)
+                    .font(WakeveTheme.Typography.title2)
+                    .multilineTextAlignment(.center)
+
+                statusBadge(meeting.status)
+
+                HStack(spacing: WakeveTheme.Spacing.md) {
+                    Label(platformDisplayName(meeting.platform), systemImage: platformIcon(meeting.platform))
+                        .font(WakeveTheme.Typography.metadata)
+                        .foregroundStyle(.secondary)
+                    Label(formatScheduledFor(meeting.scheduledFor), systemImage: "calendar")
+                        .font(WakeveTheme.Typography.metadata)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private func meetingUrlCard(url: String) -> some View {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                Label(String(localized: "meetings.link_label"), systemImage: "link")
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundStyle(.primary)
+
+                HStack(spacing: WakeveTheme.Spacing.sm) {
+                    Text(url)
+                        .font(WakeveTheme.Typography.metadata)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                    Spacer()
+                    Button {
+                        UIPasteboard.general.string = url
+                        WakeveHaptics.success()
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                            .foregroundStyle(WakeveTheme.ColorToken.permissionBlue)
+                    }
+                    .accessibilityLabel(String(localized: "invitation.copy"))
+                    if let meetingURL = URL(string: url) {
+                        Link(destination: meetingURL) {
+                            Image(systemName: "arrow.up.right.square")
+                                .foregroundStyle(WakeveTheme.ColorToken.permissionBlue)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func detailsCard(meeting: VirtualMeeting) -> some View {
+        WakeveContentCard(prominence: .regular, cornerRadius: WakeveTheme.Radius.xl, padding: WakeveTheme.Spacing.lg) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.md) {
+                Label(String(localized: "meetings.detail_title"), systemImage: "info.circle.fill")
+                    .font(WakeveTheme.Typography.bodySemibold)
+                    .foregroundStyle(.primary)
+
+                Divider()
+
+                detailRow(
+                    icon: "clock",
+                    label: String(localized: "meetings.duration"),
+                    value: "\(meeting.duration / 60) \(String(localized: "meetings.minutes"))"
+                )
+                detailRow(
+                    icon: "globe",
+                    label: String(localized: "meetings.timezone"),
+                    value: meeting.timezone
+                )
+                if let desc = meeting.description_, !desc.isEmpty {
+                    detailRow(
+                        icon: "text.alignleft",
+                        label: String(localized: "meetings.description_label"),
+                        value: desc
+                    )
+                }
+            }
+        }
+    }
+
+    private func generatedLinkCard(linkResponse: MeetingLinkResponse) -> some View {
+        WakeveContentCard(prominence: .subtle, cornerRadius: WakeveTheme.Radius.lg, padding: WakeveTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.sm) {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                    Text(String(localized: "meetings.generated_link"))
+                        .font(WakeveTheme.Typography.bodySemibold)
+                    Spacer()
+                    Button(String(localized: "invitation.copy")) {
+                        UIPasteboard.general.string = linkResponse.meetingUrl
+                        WakeveHaptics.success()
+                    }
+                    .font(WakeveTheme.Typography.metadata.weight(.semibold))
+                }
+                Text(linkResponse.meetingUrl)
+                    .font(WakeveTheme.Typography.metadata)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func actionButtons(meeting: VirtualMeeting) -> some View {
+        VStack(spacing: WakeveTheme.Spacing.sm) {
+            if let url = URL(string: meeting.meetingUrl), !meeting.meetingUrl.isEmpty {
+                Link(destination: url) {
+                    HStack {
+                        Image(systemName: "video.fill")
+                        Text(String(localized: "meetings.join"))
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 56)
+                    .background(WakeveTheme.ColorToken.permissionBlue, in: Capsule())
+                    .foregroundStyle(.white)
+                }
+            }
+
+            WakeveActionButton(
+                String(localized: "meetings.share_link"),
+                systemImage: "square.and.arrow.up",
+                variant: .secondary,
+                isDisabled: meeting.meetingUrl.isEmpty
+            ) {
+                WakeveHaptics.selection()
+                shareLink(meeting.meetingUrl)
+            }
+        }
+    }
+
+    // MARK: - Detail Row
+
+    private func detailRow(icon: String, label: String, value: String) -> some View {
+        HStack(alignment: .top) {
+            Image(systemName: icon)
+                .foregroundStyle(WakeveTheme.ColorToken.permissionBlue)
+                .frame(width: 20)
+            VStack(alignment: .leading, spacing: WakeveTheme.Spacing.xs) {
+                Text(label)
+                    .font(WakeveTheme.Typography.metadata)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .font(WakeveTheme.Typography.body)
+                    .foregroundStyle(.primary)
+            }
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func platformIcon(_ platform: MeetingPlatform) -> String {
+        switch platform {
+        case .zoom:       return "video.fill"
+        case .googleMeet: return "video.circle.fill"
+        case .facetime:   return "facetime"
+        case .teams:      return "person.3.fill"
+        case .webex:      return "antenna.radiowaves.left.and.right"
+        default:          return "video"
+        }
+    }
+
+    private func platformColor(_ platform: MeetingPlatform) -> Color {
+        switch platform {
+        case .zoom:       return .blue
+        case .googleMeet: return .green
+        case .facetime:   return .green
+        case .teams:      return .purple
+        case .webex:      return .orange
+        default:          return .gray
+        }
+    }
+
+    private func platformDisplayName(_ platform: MeetingPlatform) -> String {
+        switch platform {
+        case .zoom:       return "Zoom"
+        case .googleMeet: return "Google Meet"
+        case .facetime:   return "FaceTime"
+        case .teams:      return "Teams"
+        case .webex:      return "Webex"
+        default:          return String(localized: "meetings.platform_other")
+        }
+    }
+
+    private func formatScheduledFor(_ instant: Kotlinx_datetimeInstant) -> String {
+        let ms = instant.toEpochMilliseconds()
+        let date = Date(timeIntervalSince1970: Double(ms) / 1000)
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        formatter.locale = .current
+        return formatter.string(from: date)
+    }
+
+    private func statusBadge(_ status: MeetingStatus_) -> some View {
+        let (label, color): (String, Color) = {
+            switch status {
+            case .scheduled:  return (String(localized: "meetings.scheduled"), .blue)
+            case .started:    return (String(localized: "meetings.started"), .green)
+            case .ended:      return (String(localized: "meetings.ended"), .secondary)
+            case .cancelled:  return (String(localized: "meetings.cancelled"), .red)
+            default:          return (String(localized: "meetings.status_unknown"), .gray)
+            }
+        }()
+        return Text(label)
+            .font(.caption.bold())
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .background(color.opacity(0.15), in: Capsule())
+            .foregroundStyle(color)
+    }
+
+    private func shareLink(_ url: String) {
+        guard !url.isEmpty else { return }
+        let av = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let root = scene.windows.first?.rootViewController {
+            root.present(av, animated: true)
+        }
+    }
+
+    private var isPreviewing: Bool {
+        previewMeeting != nil
+    }
+
+    private var shouldShowLoading: Bool {
+        !isPreviewing && viewModel.isLoading
+    }
+
+    private var meeting: VirtualMeeting? {
+        previewMeeting ?? viewModel.meeting
+    }
+
+    private var canMutateMeetings: Bool {
+        isOrganizer && !isReadOnly
+    }
+}
+
+// MARK: - Preview
+
+#if DEBUG
+#Preview("Meeting Detail - Light") {
+    NavigationStack {
+        MeetingDetailView(
+            meetingId: MeetingFactory.scheduled.id,
+            eventId: "preview-event",
+            currentUserId: MeetingFactory.scheduled.organizerId,
+            isOrganizer: true,
+            isReadOnly: false,
+            previewMeeting: MeetingFactory.scheduled
+        )
+    }
+    .preferredColorScheme(.light)
+}
+
+#Preview("Meeting Detail - Dark") {
+    NavigationStack {
+        MeetingDetailView(
+            meetingId: MeetingFactory.started.id,
+            eventId: "preview-event",
+            currentUserId: MeetingFactory.started.organizerId,
+            isOrganizer: true,
+            isReadOnly: false,
+            previewMeeting: MeetingFactory.started
+        )
+    }
+    .preferredColorScheme(.dark)
+}
+#endif

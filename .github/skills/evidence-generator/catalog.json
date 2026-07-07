@@ -1,0 +1,203 @@
+{
+  "version": "1.0.0",
+  "generated_from": ".github/workflows/store-readiness.yml (search: _EVIDENCE_COMPLETE)",
+  "notes": "The 'gated' set is exactly the markers the store-readiness workflow greps for. 'ungated' docs support the submission but are not final-signoff gates. When a short alias is ambiguous, prefer the gated file.",
+  "gated": [
+    {
+      "file": "docs/APP_STORE_ACCOUNT_ACCESS_EVIDENCE.md",
+      "marker": "APP_STORE_ACCOUNT_ACCESS_EVIDENCE_COMPLETE",
+      "title": "App Store Account Access Evidence",
+      "short_topic": "Apple Account",
+      "scope": "App Store Connect account access, roles, agreements, and 2FA for the Wakeve release operator.",
+      "complements": ["APP_STORE_REVIEW_ACCESS_EVIDENCE.md"],
+      "apple_topic": "App Store Connect account roles and submission permissions",
+      "aliases": ["account-access", "account", "asc-account"]
+    },
+    {
+      "file": "docs/APP_STORE_APP_INFORMATION_EVIDENCE.md",
+      "marker": "APP_STORE_APP_INFORMATION_EVIDENCE_COMPLETE",
+      "title": "App Store App Information Evidence",
+      "short_topic": "App Information",
+      "scope": "App record app information fields (name, subtitle, privacy URL, support URL, category, age rating).",
+      "complements": ["APP_STORE_CONNECT_FIELD_MAP.md"],
+      "apple_topic": "App information and metadata",
+      "aliases": ["app-information", "app-info", "metadata"]
+    },
+    {
+      "file": "docs/APP_STORE_CONTENT_RIGHTS_EVIDENCE.md",
+      "marker": "APP_STORE_CONTENT_RIGHTS_EVIDENCE_COMPLETE",
+      "title": "App Store Content Rights Evidence",
+      "short_topic": "Content Rights",
+      "scope": "Content rights declarations: does Wakeve distribute third-party content, and are licenses held.",
+      "complements": ["APP_STORE_LICENSE_NOTICES_EVIDENCE.md"],
+      "apple_topic": "Content rights and copyright",
+      "aliases": ["content-rights", "copyright"]
+    },
+    {
+      "file": "docs/APP_STORE_DSA_TRADER_STATUS_EVIDENCE.md",
+      "marker": "APP_STORE_DSA_TRADER_STATUS_EVIDENCE_COMPLETE",
+      "title": "App Store DSA Trader Status Evidence",
+      "short_topic": "DSA Trader Status",
+      "scope": "EU Digital Services Act trader status information for EU distribution.",
+      "complements": ["APP_STORE_PAYMENT_COMPLIANCE.md"],
+      "apple_topic": "Digital Services Act trader status",
+      "aliases": ["dsa", "dsa-trader", "trader-status"]
+    },
+    {
+      "file": "docs/APP_STORE_EULA_EVIDENCE.md",
+      "marker": "APP_STORE_EULA_EVIDENCE_COMPLETE",
+      "title": "App Store EULA Evidence",
+      "short_topic": "EULA",
+      "scope": "End User License Agreement availability and App Store alignment.",
+      "complements": ["APP_STORE_THIRD_PARTY_NOTICES.md"],
+      "apple_topic": "EULA and standard Apple terms",
+      "aliases": ["eula", "license-agreement"]
+    },
+    {
+      "file": "docs/APP_STORE_EXPORT_COMPLIANCE_EVIDENCE.md",
+      "marker": "APP_STORE_EXPORT_COMPLIANCE_EVIDENCE_COMPLETE",
+      "title": "App Store Export Compliance Evidence",
+      "short_topic": "Export Compliance",
+      "scope": "Export compliance / cryptography / embargo answers for the submission.",
+      "complements": ["APP_STORE_FINAL_SIGNOFF.md"],
+      "apple_topic": "Export compliance",
+      "aliases": ["export", "export-compliance", "encryption"]
+    },
+    {
+      "file": "docs/APP_STORE_LICENSE_NOTICES_EVIDENCE.md",
+      "marker": "APP_STORE_LICENSE_NOTICES_EVIDENCE_COMPLETE",
+      "title": "App Store License Notices Evidence",
+      "short_topic": "License Notices",
+      "scope": "Open-source and third-party license notices surfaced in-app and/or on the web.",
+      "complements": ["APP_STORE_LICENSE_INVENTORY_DRAFT.md", "APP_STORE_THIRD_PARTY_NOTICES.md"],
+      "apple_topic": "Attribution and license notices",
+      "aliases": ["license-notices", "notices", "opensource"]
+    },
+    {
+      "file": "docs/APP_STORE_LIVE_URL_AASA_EVIDENCE.md",
+      "marker": "APP_STORE_LIVE_URL_AASA_EVIDENCE_COMPLETE",
+      "title": "App Store Live URL And AASA Evidence",
+      "short_topic": "Live URL And AASA",
+      "scope": "Public legal/support URLs, third-party notices, and the apple-app-site-association endpoints.",
+      "complements": ["APP_STORE_OBSERVABILITY_EVIDENCE.md"],
+      "apple_topic": "Associated domains and universal links",
+      "aliases": ["live-url", "aasa", "universal-links", "associated-domains"]
+    },
+    {
+      "file": "docs/APP_STORE_MEDIA_LOCALIZATION_EVIDENCE.md",
+      "marker": "APP_STORE_MEDIA_LOCALIZATION_EVIDENCE_COMPLETE",
+      "title": "App Store Media And Localization Evidence",
+      "short_topic": "Media And Localization",
+      "scope": "Screenshots, app previews, and localized metadata for all supported locales.",
+      "complements": ["APP_STORE_APP_INFORMATION_EVIDENCE.md"],
+      "apple_topic": "App Store screenshots and localization",
+      "aliases": ["media", "localization", "screenshots", "locales"]
+    },
+    {
+      "file": "docs/APP_STORE_OBSERVABILITY_EVIDENCE.md",
+      "marker": "APP_STORE_OBSERVABILITY_EVIDENCE_COMPLETE",
+      "title": "App Store Observability Evidence",
+      "short_topic": "Observability",
+      "scope": "Post-upload monitoring of the TestFlight review build and backend health.",
+      "complements": ["APP_STORE_LIVE_URL_AASA_EVIDENCE.md"],
+      "apple_topic": "App monitoring and crash reporting",
+      "aliases": ["observability", "monitoring", "telemetry"]
+    },
+    {
+      "file": "docs/APP_STORE_PRICING_AVAILABILITY_EVIDENCE.md",
+      "marker": "APP_STORE_PRICING_AVAILABILITY_EVIDENCE_COMPLETE",
+      "title": "App Store Pricing And Availability Evidence",
+      "short_topic": "Pricing And Availability",
+      "scope": "Pricing tier, availability regions, and pre-order configuration.",
+      "complements": ["APP_STORE_AVAILABILITY_DECISIONS.md", "APP_STORE_AVAILABILITY_EVIDENCE.md"],
+      "apple_topic": "Pricing and availability",
+      "aliases": ["pricing", "availability", "regions"]
+    },
+    {
+      "file": "docs/APP_STORE_RELEASE_ARTIFACT_EVIDENCE.md",
+      "marker": "APP_STORE_RELEASE_ARTIFACT_EVIDENCE_COMPLETE",
+      "title": "App Store Release Artifact Evidence",
+      "short_topic": "Release Artifact",
+      "scope": "The uploaded build artifact: version, build number, signing, and provenance.",
+      "complements": ["APP_STORE_VERSIONING_EVIDENCE.md"],
+      "apple_topic": "Builds and upload",
+      "aliases": ["release-artifact", "artifact", "build"]
+    },
+    {
+      "file": "docs/APP_STORE_RELEASE_CONTROL_EVIDENCE.md",
+      "marker": "APP_STORE_RELEASE_CONTROL_EVIDENCE_COMPLETE",
+      "title": "App Store Release Control Evidence",
+      "short_topic": "Release Control",
+      "scope": "Release-control ownership, phased rollout, and rollback authority.",
+      "complements": ["APP_STORE_FINAL_SIGNOFF.md"],
+      "apple_topic": "Release management",
+      "aliases": ["release-control", "rollout", "phased-release"]
+    },
+    {
+      "file": "docs/APP_STORE_REVIEW_ACCESS_EVIDENCE.md",
+      "marker": "APP_STORE_REVIEW_ACCESS_EVIDENCE_COMPLETE",
+      "title": "App Store Review Access Evidence",
+      "short_topic": "Review Access",
+      "scope": "Demo account / demo mode and review notes so App Review can exercise all features.",
+      "complements": ["APP_STORE_ACCOUNT_ACCESS_EVIDENCE.md"],
+      "apple_topic": "App Review access and demo accounts",
+      "aliases": ["review-access", "demo-account", "review-notes"]
+    },
+    {
+      "file": "docs/APP_STORE_SDK_PRIVACY_EVIDENCE.md",
+      "marker": "APP_STORE_SDK_PRIVACY_EVIDENCE_COMPLETE",
+      "title": "App Store SDK Privacy And Signature Evidence",
+      "short_topic": "SDK Privacy",
+      "scope": "Third-party SDK privacy declarations and required SDK signatures (iOS 26 SDK requirement).",
+      "complements": ["APP_STORE_PRIVACY_LABELS.md", "APP_STORE_PRIVACY_EVIDENCE.md"],
+      "apple_topic": "SDK privacy and signatures",
+      "aliases": ["sdk-privacy", "sdk", "signatures"]
+    },
+    {
+      "file": "docs/APP_STORE_VERSIONING_EVIDENCE.md",
+      "marker": "APP_STORE_VERSIONING_EVIDENCE_COMPLETE",
+      "title": "App Store Versioning Evidence",
+      "short_topic": "Versioning",
+      "scope": "Marketing version, build number monotonicity, and release-tag linkage.",
+      "complements": ["APP_STORE_RELEASE_ARTIFACT_EVIDENCE.md"],
+      "apple_topic": "Versioning",
+      "aliases": ["versioning", "version", "build-number"]
+    }
+  ],
+  "signoff": [
+    {
+      "file": "docs/APP_STORE_FINAL_SIGNOFF.md",
+      "marker": "APP_STORE_FINAL_SIGNOFF_COMPLETE",
+      "title": "App Store Final Signoff",
+      "short_topic": "Final Signoff",
+      "scope": "Auditable final release record required in addition to environment variables before the final upload.",
+      "complements": ["APP_STORE_BLOCKER_REGISTER.md", "APP_STORE_READINESS.md"],
+      "apple_topic": "Submission finality",
+      "aliases": ["final-signoff", "signoff", "final"]
+    }
+  ],
+  "ungated": [
+    { "file": "docs/APP_STORE_BLOCKER_REGISTER.md", "title": "App Store Blocker Register", "aliases": ["blocker", "blockers", "blocker-register"] },
+    { "file": "docs/APP_STORE_READINESS.md", "title": "App Store Readiness", "aliases": ["readiness"] },
+    { "file": "docs/APP_STORE_LAUNCH_CHECKLIST.md", "title": "App Store Launch Checklist", "aliases": ["launch-checklist", "checklist"] },
+    { "file": "docs/APP_STORE_SUBMISSION_RUNBOOK.md", "title": "App Store Submission Runbook", "aliases": ["runbook", "submission-runbook"] },
+    { "file": "docs/APP_STORE_REVIEW_GUIDELINE_AUDIT.md", "title": "App Store Review Guideline Audit", "aliases": ["review-guidelines", "guideline-audit"] },
+    { "file": "docs/APP_STORE_CONNECT_FIELD_MAP.md", "title": "App Store Connect Field Map", "aliases": ["field-map", "connect-field-map"] },
+    { "file": "docs/APP_STORE_PRODUCT_BLOCKER_APPROVAL.md", "title": "App Store Product Blocker Approval", "aliases": ["product-blocker", "blocker-approval"] },
+    { "file": "docs/APP_STORE_PRIVACY_LABELS.md", "title": "App Store Privacy Labels", "aliases": ["privacy-labels"] },
+    { "file": "docs/APP_STORE_PRIVACY_EVIDENCE.md", "title": "App Store Privacy Evidence", "aliases": ["privacy", "privacy-evidence"] },
+    { "file": "docs/APP_STORE_ACCESSIBILITY_EVIDENCE.md", "title": "App Store Accessibility Evidence", "aliases": ["accessibility", "a11y"] },
+    { "file": "docs/APP_STORE_ACCESSIBILITY_LABELS.md", "title": "App Store Accessibility Labels", "aliases": ["accessibility-labels"] },
+    { "file": "docs/APP_STORE_ACCOUNT_DELETION_EVIDENCE.md", "title": "App Store Account Deletion Evidence", "aliases": ["account-deletion", "deletion"] },
+    { "file": "docs/APP_STORE_AGE_RATING.md", "title": "App Store Age Rating", "aliases": ["age-rating"] },
+    { "file": "docs/APP_STORE_CAPABILITIES_EVIDENCE.md", "title": "App Store Capabilities Evidence", "aliases": ["capabilities"] },
+    { "file": "docs/APP_STORE_PAYMENT_COMPLIANCE.md", "title": "App Store Payment Compliance", "aliases": ["payment-compliance"] },
+    { "file": "docs/APP_STORE_PAYMENT_EVIDENCE.md", "title": "App Store Payment Evidence", "aliases": ["payment", "payment-evidence"] },
+    { "file": "docs/APP_STORE_TESTFLIGHT_EVIDENCE.md", "title": "App Store TestFlight Evidence", "aliases": ["testflight"] },
+    { "file": "docs/APP_STORE_THIRD_PARTY_NOTICES.md", "title": "App Store Third Party Notices", "aliases": ["third-party", "third-party-notices"] },
+    { "file": "docs/APP_STORE_LICENSE_INVENTORY_DRAFT.md", "title": "App Store License Inventory Draft", "aliases": ["license-inventory"] },
+    { "file": "docs/APP_STORE_AVAILABILITY_DECISIONS.md", "title": "App Store Availability Decisions", "aliases": ["availability-decisions"] },
+    { "file": "docs/APP_STORE_AVAILABILITY_EVIDENCE.md", "title": "App Store Availability Evidence", "aliases": ["availability-evidence"] },
+    { "file": "docs/APP_STORE_UGC_MODERATION_EVIDENCE.md", "title": "App Store UGC Moderation Evidence", "aliases": ["ugc", "ugc-moderation"] }
+  ]
+}

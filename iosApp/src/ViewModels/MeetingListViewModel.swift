@@ -36,21 +36,34 @@ class MeetingListViewModel: StateMachineViewModel<
 
     /// The event ID this view is managing meetings for
     private let eventId: String
+    private let currentUserId: String
+    @Published var pendingSync: Bool
+    @Published var isOnline: Bool
 
     // MARK: - Initialization
 
-    init(eventId: String) {
+    init(eventId: String, currentUserId: String) {
         self.eventId = eventId
+        self.currentUserId = currentUserId
+        let initialPendingSync = Self.hasPendingSync(eventId: eventId)
+        self.pendingSync = initialPendingSync
+        self.isOnline = !initialPendingSync
 
         let database = RepositoryProvider.shared.database
         let wrapper = IosFactory.shared.createMeetingStateMachine(database: database)
         super.init(stateMachineWrapper: wrapper)
     }
 
+    convenience init(eventId: String) {
+        self.init(eventId: eventId, currentUserId: "anonymous-user")
+    }
+
     // MARK: - Public Methods
 
     /// Load meetings for the current event
     func loadMeetings() {
+        pendingSync = hasPendingSync()
+        isOnline = !pendingSync
         dispatch(MeetingManagementContractIntentLoadMeetings(eventId: eventId))
     }
 
@@ -66,7 +79,7 @@ class MeetingListViewModel: StateMachineViewModel<
     ) {
         let request = CreateMeetingRequest(
             eventId: eventId,
-            organizerId: getCurrentUserId(),
+            organizerId: currentUserId,
             platform: platform,
             title: title,
             description: description,
@@ -100,12 +113,31 @@ class MeetingListViewModel: StateMachineViewModel<
     }
 
     /// Cancel a meeting
-    func cancelMeeting(meetingId: String) {
-        dispatch(MeetingManagementContractIntentCancelMeeting(meetingId: meetingId))
+    func cancelMeeting(
+        meetingId: String,
+        currentUserId: String? = nil,
+        isOrganizer: Bool = false,
+        isReadOnly: Bool = true
+    ) {
+        let actorId = currentUserId ?? self.currentUserId
+        guard isOrganizer && !isReadOnly && !actorId.isEmpty else {
+            return
+        }
+        dispatch(MeetingManagementContractIntentCancelMeeting(meetingId: meetingId, currentUserId: actorId))
     }
 
     /// Generate a meeting link for a specific platform
-    func generateMeetingLink(meetingId: String, platform: Shared.MeetingPlatform) {
+    func generateMeetingLink(
+        meetingId: String,
+        platform: Shared.MeetingPlatform,
+        currentUserId: String? = nil,
+        isOrganizer: Bool = false,
+        isReadOnly: Bool = true
+    ) {
+        let actorId = currentUserId ?? self.currentUserId
+        guard isOrganizer && !isReadOnly && !actorId.isEmpty else {
+            return
+        }
         dispatch(MeetingManagementContractIntentGenerateMeetingLink(meetingId: meetingId, platform: platform))
     }
 
@@ -198,12 +230,18 @@ class MeetingListViewModel: StateMachineViewModel<
 
     /// Share a meeting link
     private func shareMeetingLink(url: String) {
-        print("Share meeting link: \(url)")
+        debugLog("Share meeting link: \(url)")
     }
 
-    /// Get the current user ID (placeholder)
-    private func getCurrentUserId() -> String {
-        return "user-placeholder"
+    private func hasPendingSync() -> Bool {
+        Self.hasPendingSync(eventId: eventId)
+    }
+
+    private static func hasPendingSync(eventId: String) -> Bool {
+        RepositoryProvider.shared.database.syncMetadataQueries.selectPending().executeAsList().contains { pending in
+            pending.entityType == "meeting" &&
+                (pending.entityId == eventId || pending.entityId.hasPrefix("\(eventId):") || pending.entityId.contains(eventId))
+        }
     }
 }
 

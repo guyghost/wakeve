@@ -36,10 +36,10 @@ import com.guyghost.wakeve.models.PickedDocument
  *         // Use the picked document
  *         uploadDocument(document.uri)
  *     },
- *     onFailure = { error ->
- *         // Handle error (permission denied, cancellation, etc.)
- *         showError("Failed to pick document: ${error.message}")
- *     }
+    *     onFailure = {
+    *         // Handle error (permission denied, cancellation, etc.)
+    *         showError("Failed to pick document")
+    *     }
  * )
  *
  * // Pick multiple documents
@@ -50,9 +50,9 @@ import com.guyghost.wakeve.models.PickedDocument
  *             uploadDocument(document.uri)
  *         }
  *     },
- *     onFailure = { error ->
- *         showError("Failed to pick documents: ${error.message}")
- *     }
+    *     onFailure = {
+    *         showError("Failed to pick documents")
+    *     }
  * )
  *
  * // Pick a specific document type
@@ -61,9 +61,9 @@ import com.guyghost.wakeve.models.PickedDocument
  *     onSuccess = { pdf ->
  *         processPdf(pdf.uri)
  *     },
- *     onFailure = { error ->
- *         showError("Failed to pick PDF: ${error.message}")
- *     }
+    *     onFailure = {
+    *         showError("Failed to pick PDF")
+    *     }
  * )
  * ```
  *

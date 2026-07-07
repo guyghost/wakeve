@@ -1,6 +1,7 @@
 package com.guyghost.wakeve.chat
 
 import com.guyghost.wakeve.database.WakeveDb
+import com.guyghost.wakeve.Chat_message
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -98,14 +99,14 @@ class ChatService(
                 true
             } else {
                 _connectionState.value = WebSocketConnectionState.ERROR
-                _connectionEvents.emit(ConnectionEvent.Error("Connection failed"))
-                handleDisconnect(eventId, "Connection failed")
+                _connectionEvents.emit(ConnectionEvent.Error(chatConnectionFailureMessage()))
+                handleDisconnect(eventId, chatConnectionFailureMessage())
                 false
             }
         } catch (e: Exception) {
             _connectionState.value = WebSocketConnectionState.ERROR
-            _connectionEvents.emit(ConnectionEvent.Error("Connection failed: ${e.message}"))
-            handleDisconnect(eventId, e.message ?: "Unknown error")
+            _connectionEvents.emit(ConnectionEvent.Error(chatConnectionFailureMessage()))
+            handleDisconnect(eventId, chatConnectionFailureMessage())
             false
         }
     }
@@ -121,7 +122,7 @@ class ChatService(
                     val wsMessage = json.decodeFromString(WebSocketMessage.serializer(), messageJson)
                     handleIncomingMessage(wsMessage)
                 } catch (e: Exception) {
-                    println("[ChatService] Error parsing WebSocket message: ${e.message}")
+                    println("[ChatService] Error parsing WebSocket message")
                 }
             }
         }
@@ -327,7 +328,7 @@ class ChatService(
                 println("[ChatService] No database available, using empty message list")
             }
         } catch (e: Exception) {
-            println("[ChatService] Error loading cached messages: ${e.message}")
+            println("[ChatService] Error loading cached messages")
             _messages.value = emptyList()
         }
     }
@@ -336,15 +337,15 @@ class ChatService(
      * Load messages from database.
      */
     private suspend fun loadMessagesFromDatabase(eventId: String, limit: Int): List<ChatMessage> = withContext(Dispatchers.Default) {
-        try {
-            // Database access - implementation depends on SQLDelight generation
-            // The actual query implementation should be provided by platform-specific code
-            println("[ChatService] Loading messages for event: $eventId")
-            emptyList()
-        } catch (e: Exception) {
-            println("[ChatService] Error loading messages: ${e.message}")
-            emptyList()
-        }
+        val db = database ?: return@withContext emptyList()
+        db.chatMessagesQueries
+            .selectMessagesByEventPaginated(
+                event_id = eventId,
+                value_ = limit.toLong(),
+                value__ = 0L
+            )
+            .executeAsList()
+            .map { it.toChatMessage() }
     }
     
     /**
@@ -352,14 +353,7 @@ class ChatService(
      * Called after successful WebSocket send.
      */
     private suspend fun insertMessageToDatabase(message: ChatMessage) {
-        withContext(Dispatchers.Default) {
-            try {
-                // Database insertion - implementation depends on SQLDelight generation
-                println("[ChatService] Would insert message: ${message.id}")
-            } catch (e: Exception) {
-                println("[ChatService] Error inserting message: ${e.message}")
-            }
-        }
+        saveMessageToDatabase(message)
     }
     
     /**
@@ -385,7 +379,10 @@ class ChatService(
      */
     private fun queueOfflineMessage(message: ChatMessage) {
         _offlineQueue.update { queue -> queue + message.copy(isOffline = true) }
-        scope.launch { _connectionEvents.emit(ConnectionEvent.MessageQueued(message.id)) }
+        scope.launch {
+            saveMessageToDatabase(message.copy(isOffline = true))
+            _connectionEvents.emit(ConnectionEvent.MessageQueued(message.id))
+        }
     }
     
     /**
@@ -415,7 +412,7 @@ class ChatService(
                 _messages.update { messages -> messages.map { if (it.id == message.id) it.copy(status = MessageStatus.DELIVERED) else it } }
                 println("[ChatService] Message sent: ${message.id}")
             } catch (e: Exception) {
-                println("[ChatService] Error sending message: ${e.message}")
+                println("[ChatService] Error sending message")
                 _messages.update { messages -> messages.map { if (it.id == message.id) it.copy(status = MessageStatus.FAILED) else it } }
                 queueOfflineMessage(message.copy(status = MessageStatus.FAILED))
             }
@@ -426,12 +423,41 @@ class ChatService(
      * Save message to SQLite database.
      */
     private suspend fun saveMessageToDatabase(message: ChatMessage) = withContext(Dispatchers.Default) {
+        saveMessageToDatabaseNow(message)
+    }
+
+    private fun saveMessageToDatabaseNow(message: ChatMessage) {
         try {
-            // Database persistence - implementation depends on SQLDelight generation
-            // The actual insert implementation should be provided by platform-specific code
-            println("[ChatService] Would save message: ${message.id}")
+            val db = database ?: return
+            if (db.chatMessagesQueries.selectMessageById(message.id).executeAsOneOrNull() != null) {
+                return
+            }
+
+            val now = getCurrentTimestamp()
+            db.chatMessagesQueries.insertMessage(
+                id = message.id,
+                event_id = message.eventId,
+                sender_id = message.senderId,
+                sender_name = message.senderName,
+                sender_avatar_url = null,
+                content = message.content,
+                section = message.section?.name,
+                section_item_id = null,
+                parent_message_id = message.parentId,
+                timestamp = message.timestamp,
+                status = message.status.name,
+                is_offline = if (message.isOffline) 1L else 0L,
+                reply_count = 0L,
+                edit_timestamp = null,
+                is_edited = 0L,
+                reactions_json = json.encodeToString(message.reactions.map { ReactionDto(it.userId, it.emoji, it.timestamp) }),
+                read_by_json = json.encodeToString(message.readBy),
+                moderation_status = "APPROVED",
+                created_at = now,
+                updated_at = now
+            )
         } catch (e: Exception) {
-            println("[ChatService] Error saving message: ${e.message}")
+            println("[ChatService] Error saving message")
         }
     }
     
@@ -445,7 +471,7 @@ class ChatService(
                 val messageJson = json.encodeToString(wsMessage)
                 webSocketClient?.send(messageJson)
             } catch (e: Exception) {
-                println("[ChatService] Error sending WebSocket message: ${e.message}")
+                println("[ChatService] Error sending WebSocket message")
             }
         }
     }
@@ -478,6 +504,7 @@ class ChatService(
         _messages.update { messages ->
             if (messages.any { it.id == chatMessage.id }) messages else messages + chatMessage
         }
+        saveMessageToDatabaseNow(chatMessage)
     }
     
     private fun handleIncomingTyping(payload: TypingPayload) {
@@ -555,6 +582,34 @@ class ChatService(
     }
 }
 
+private fun Chat_message.toChatMessage(): ChatMessage {
+    return ChatMessage(
+        id = id,
+        eventId = event_id,
+        senderId = sender_id,
+        senderName = sender_name,
+        content = content,
+        section = section?.let { runCatching { CommentSection.valueOf(it) }.getOrNull() },
+        parentId = parent_message_id,
+        timestamp = timestamp,
+        reactions = parseStoredReactions(reactions_json),
+        status = runCatching { MessageStatus.valueOf(status) }.getOrDefault(MessageStatus.SENT),
+        readBy = parseStoredReadBy(read_by_json),
+        isOffline = is_offline != 0L
+    )
+}
+
+private fun parseStoredReactions(jsonString: String?): List<Reaction> {
+    if (jsonString.isNullOrBlank()) return emptyList()
+    return Json.decodeFromString<List<ReactionDto>>(jsonString)
+        .map { Reaction(it.userId, it.emoji, it.timestamp) }
+}
+
+private fun parseStoredReadBy(jsonString: String?): List<String> {
+    if (jsonString.isNullOrBlank()) return emptyList()
+    return Json.decodeFromString(jsonString)
+}
+
 /**
  * Data Transfer Object for reactions.
  */
@@ -577,3 +632,5 @@ sealed class ConnectionEvent {
     data class QueueFlushed(val count: Int) : ConnectionEvent()
     data class Error(val message: String) : ConnectionEvent()
 }
+
+internal fun chatConnectionFailureMessage(): String = "Chat connection failed. Please try again."

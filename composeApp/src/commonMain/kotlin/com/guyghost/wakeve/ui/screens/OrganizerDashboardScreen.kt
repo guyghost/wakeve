@@ -21,15 +21,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Percent
 import androidx.compose.material.icons.filled.ThumbUp
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -48,27 +49,25 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.guyghost.wakeve.models.Event
+import com.guyghost.wakeve.models.TimeSlot
+import com.guyghost.wakeve.models.Vote
 
 // ==================== Data Models ====================
 
 data class DashboardOverviewData(
-    val totalEvents: Int = 12,
-    val totalParticipants: Int = 87,
-    val averageParticipants: Double = 7.25,
-    val totalVotes: Int = 234,
-    val totalComments: Int = 56,
-    val eventsByStatus: Map<String, Int> = mapOf(
-        "DRAFT" to 3,
-        "POLLING" to 2,
-        "CONFIRMED" to 4,
-        "FINALIZED" to 3
-    )
+    val totalEvents: Int,
+    val totalParticipants: Int,
+    val averageParticipants: Double,
+    val totalVotes: Int,
+    val totalComments: Int,
+    val averageResponseRate: Double,
+    val eventsByStatus: Map<String, Int>
 )
 
 data class DashboardEventData(
@@ -79,24 +78,16 @@ data class DashboardEventData(
     val participantCount: Int,
     val voteCount: Int,
     val commentCount: Int,
-    val responseRate: Double
+    val responseRate: Double,
+    val votedParticipants: Int,
+    val timeSlotVotes: List<TimeSlotVotes>
 )
 
 data class EventAnalyticsData(
-    val voteTimeline: List<Pair<String, Int>> = listOf(
-        "01/10" to 3, "02/10" to 7, "03/10" to 12, "04/10" to 8, "05/10" to 15, "06/10" to 5, "07/10" to 2
-    ),
-    val participantTimeline: List<Pair<String, Int>> = listOf(
-        "01/10" to 2, "02/10" to 4, "03/10" to 3, "04/10" to 5, "05/10" to 1
-    ),
-    val popularTimeSlots: List<TimeSlotVotes> = listOf(
-        TimeSlotVotes("Apres-midi", 12, 3, 2),
-        TimeSlotVotes("Matin", 8, 5, 4),
-        TimeSlotVotes("Soiree", 6, 7, 4)
-    ),
-    val pollCompletionRate: Double = 85.0,
-    val totalParticipants: Int = 15,
-    val votedParticipants: Int = 13
+    val popularTimeSlots: List<TimeSlotVotes>,
+    val pollCompletionRate: Double,
+    val totalParticipants: Int,
+    val votedParticipants: Int
 )
 
 data class TimeSlotVotes(
@@ -114,18 +105,23 @@ data class TimeSlotVotes(
 @Composable
 fun OrganizerDashboardScreen(
     onNavigateBack: () -> Unit,
+    events: List<Event>,
+    currentUserId: String,
+    pollVotesByEvent: Map<String, Map<String, Map<String, Vote>>> = emptyMap(),
+    isLoading: Boolean = false,
+    error: String? = null,
     modifier: Modifier = Modifier
 ) {
-    val overview = remember { DashboardOverviewData() }
-
-    val events = remember {
-        listOf(
-            DashboardEventData("1", "Anniversaire Marie", "CONFIRMED", "BIRTHDAY", 15, 42, 8, 87.5),
-            DashboardEventData("2", "Team Building Q4", "POLLING", "TEAM_BUILDING", 22, 38, 12, 65.0),
-            DashboardEventData("3", "Soiree de Noel", "DRAFT", "PARTY", 8, 0, 3, 0.0),
-            DashboardEventData("4", "Reunion Projet Alpha", "FINALIZED", "CONFERENCE", 10, 28, 5, 93.0),
-            DashboardEventData("5", "Brunch Dominical", "CONFIRMED", "FOOD_TASTING", 6, 18, 4, 100.0)
-        )
+    val dashboardEvents = remember(events, currentUserId, pollVotesByEvent) {
+        events
+            .filter { it.organizerId == currentUserId }
+            .map { event ->
+                event.toDashboardEventData(pollVotesByEvent[event.id].orEmpty())
+            }
+            .sortedByDescending { it.eventId }
+    }
+    val overview = remember(dashboardEvents) {
+        dashboardEvents.toOverviewData()
     }
 
     var selectedEvent by remember { mutableStateOf<DashboardEventData?>(null) }
@@ -182,40 +178,44 @@ fun OrganizerDashboardScreen(
                 SummaryCardsRowSecond(overview)
             }
 
-            // Status Breakdown
-            item {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Evenements par statut",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
+            if (isLoading) {
+                item { LoadingDashboardCard() }
+            } else if (dashboardEvents.isEmpty()) {
+                item { EmptyOrganizerDashboardCard(error = error) }
+            } else {
+                item {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Evenements par statut",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
 
-            item {
-                StatusBreakdownCard(overview.eventsByStatus)
-            }
+                item {
+                    StatusBreakdownCard(overview.eventsByStatus)
+                }
 
-            // Events List
-            item {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Mes evenements",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
+                item {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Mes evenements",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
 
-            items(events, key = { it.eventId }) { event ->
-                EventAnalyticsCard(
-                    event = event,
-                    onClick = {
-                        selectedEvent = event
-                        showDetailSheet = true
-                    }
-                )
+                items(dashboardEvents, key = { it.eventId }) { event ->
+                    EventAnalyticsCard(
+                        event = event,
+                        onClick = {
+                            selectedEvent = event
+                            showDetailSheet = true
+                        }
+                    )
+                }
             }
 
             item {
@@ -230,12 +230,78 @@ fun OrganizerDashboardScreen(
             onDismissRequest = { showDetailSheet = false },
             sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ) {
+            val event = selectedEvent!!
             EventDetailedAnalyticsContent(
-                event = selectedEvent!!,
-                analytics = remember { EventAnalyticsData() }
+                event = event,
+                analytics = remember(event) {
+                    EventAnalyticsData(
+                        popularTimeSlots = event.timeSlotVotes,
+                        pollCompletionRate = event.responseRate,
+                        totalParticipants = event.participantCount,
+                        votedParticipants = event.votedParticipants
+                    )
+                }
             )
         }
     }
+}
+
+private fun Event.toDashboardEventData(
+    pollVotes: Map<String, Map<String, Vote>>
+): DashboardEventData {
+    val participantCount = participants.distinct().size
+    val votedParticipants = pollVotes.keys.size
+    val voteCount = pollVotes.values.sumOf { it.size }
+    val responseRate = if (participantCount > 0) {
+        (votedParticipants.toDouble() / participantCount.toDouble()) * 100.0
+    } else {
+        0.0
+    }
+
+    return DashboardEventData(
+        eventId = id,
+        title = title,
+        status = status.name,
+        eventType = eventType.name,
+        participantCount = participantCount,
+        voteCount = voteCount,
+        commentCount = 0,
+        responseRate = responseRate,
+        votedParticipants = votedParticipants,
+        timeSlotVotes = proposedSlots.map { slot ->
+            slot.toTimeSlotVotes(pollVotes)
+        }
+    )
+}
+
+private fun TimeSlot.toTimeSlotVotes(
+    pollVotes: Map<String, Map<String, Vote>>
+): TimeSlotVotes {
+    val votes = pollVotes.values.mapNotNull { it[id] }
+    return TimeSlotVotes(
+        label = dashboardLabel(),
+        yesVotes = votes.count { it == Vote.YES },
+        maybeVotes = votes.count { it == Vote.MAYBE },
+        noVotes = votes.count { it == Vote.NO }
+    )
+}
+
+private fun TimeSlot.dashboardLabel(): String =
+    start?.substringBefore('T')
+        ?: timeOfDay.name.lowercase().replace('_', ' ')
+
+private fun List<DashboardEventData>.toOverviewData(): DashboardOverviewData {
+    val totalParticipants = sumOf { it.participantCount }
+    val totalEvents = size
+    return DashboardOverviewData(
+        totalEvents = totalEvents,
+        totalParticipants = totalParticipants,
+        averageParticipants = if (totalEvents > 0) totalParticipants.toDouble() / totalEvents else 0.0,
+        totalVotes = sumOf { it.voteCount },
+        totalComments = sumOf { it.commentCount },
+        averageResponseRate = if (totalEvents > 0) sumOf { it.responseRate } / totalEvents else 0.0,
+        eventsByStatus = groupingBy { it.status }.eachCount()
+    )
 }
 
 // ==================== Summary Cards ====================
@@ -250,21 +316,21 @@ private fun SummaryCardsRow(overview: DashboardOverviewData) {
             icon = Icons.Default.CalendarMonth,
             title = "Evenements",
             value = "${overview.totalEvents}",
-            color = Color(0xFF2563EB),
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f)
         )
         DashboardSummaryCard(
             icon = Icons.Default.Groups,
             title = "Participants",
             value = "${overview.totalParticipants}",
-            color = Color(0xFF16A34A),
+            color = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.weight(1f)
         )
         DashboardSummaryCard(
-            icon = Icons.Default.TrendingUp,
+            icon = Icons.AutoMirrored.Filled.TrendingUp,
             title = "Moy. / evt",
             value = String.format("%.1f", overview.averageParticipants),
-            color = Color(0xFF9333EA),
+            color = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.weight(1f)
         )
     }
@@ -280,23 +346,79 @@ private fun SummaryCardsRowSecond(overview: DashboardOverviewData) {
             icon = Icons.Default.ThumbUp,
             title = "Votes",
             value = "${overview.totalVotes}",
-            color = Color(0xFFEA580C),
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f)
         )
         DashboardSummaryCard(
             icon = Icons.Default.ChatBubble,
             title = "Commentaires",
             value = "${overview.totalComments}",
-            color = Color(0xFF0D9488),
+            color = MaterialTheme.colorScheme.secondary,
             modifier = Modifier.weight(1f)
         )
         DashboardSummaryCard(
             icon = Icons.Default.Percent,
             title = "Taux rep.",
-            value = "78%",
-            color = Color(0xFFDC2626),
+            value = String.format("%.0f%%", overview.averageResponseRate),
+            color = MaterialTheme.colorScheme.tertiary,
             modifier = Modifier.weight(1f)
         )
+    }
+}
+
+@Composable
+private fun LoadingDashboardCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+            Text(
+                text = "Chargement des evenements...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun EmptyOrganizerDashboardCard(error: String?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Aucun evenement organise",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = error ?: "Les statistiques apparaitront ici quand vous aurez cree votre premier evenement.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -358,14 +480,6 @@ private fun StatusBreakdownCard(eventsByStatus: Map<String, Int>) {
         "ORGANIZING" to "Organisation",
         "FINALIZED" to "Finalise"
     )
-    val statusColors = mapOf(
-        "DRAFT" to Color.Gray,
-        "POLLING" to Color(0xFF2563EB),
-        "COMPARING" to Color(0xFF4F46E5),
-        "CONFIRMED" to Color(0xFF16A34A),
-        "ORGANIZING" to Color(0xFFEA580C),
-        "FINALIZED" to Color(0xFF9333EA)
-    )
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -379,7 +493,7 @@ private fun StatusBreakdownCard(eventsByStatus: Map<String, Int>) {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             eventsByStatus.entries.sortedByDescending { it.value }.forEach { (status, count) ->
-                val color = statusColors[status] ?: Color.Gray
+                val color = dashboardStatusColor(status)
                 val label = statusLabels[status] ?: status
                 val fraction by animateFloatAsState(
                     targetValue = count.toFloat() / total.toFloat(),
@@ -441,16 +555,7 @@ private fun EventAnalyticsCard(
         "ORGANIZING" to "Organisation",
         "FINALIZED" to "Finalise"
     )
-    val statusColors = mapOf(
-        "DRAFT" to Color.Gray,
-        "POLLING" to Color(0xFF2563EB),
-        "COMPARING" to Color(0xFF4F46E5),
-        "CONFIRMED" to Color(0xFF16A34A),
-        "ORGANIZING" to Color(0xFFEA580C),
-        "FINALIZED" to Color(0xFF9333EA)
-    )
-
-    val color = statusColors[event.status] ?: Color.Gray
+    val color = dashboardStatusColor(event.status)
 
     Card(
         onClick = onClick,
@@ -520,6 +625,18 @@ private fun EventAnalyticsCard(
 }
 
 @Composable
+private fun dashboardStatusColor(status: String): Color =
+    when (status) {
+        "DRAFT" -> MaterialTheme.colorScheme.outline
+        "POLLING" -> MaterialTheme.colorScheme.primary
+        "COMPARING" -> MaterialTheme.colorScheme.secondary
+        "CONFIRMED" -> MaterialTheme.colorScheme.tertiary
+        "ORGANIZING" -> MaterialTheme.colorScheme.primary
+        "FINALIZED" -> MaterialTheme.colorScheme.secondary
+        else -> MaterialTheme.colorScheme.outline
+    }
+
+@Composable
 private fun MiniStat(label: String, value: String) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -571,25 +688,6 @@ private fun EventDetailedAnalyticsContent(
             )
         }
 
-        // Vote Timeline
-        item {
-            TimelineChartCard(
-                title = "Chronologie des votes",
-                entries = analytics.voteTimeline,
-                color = Color(0xFF2563EB)
-            )
-        }
-
-        // Participant Timeline
-        item {
-            TimelineChartCard(
-                title = "Chronologie des inscriptions",
-                entries = analytics.participantTimeline,
-                color = Color(0xFF16A34A)
-            )
-        }
-
-        // Popular Time Slots
         item {
             PopularTimeSlotsCard(slots = analytics.popularTimeSlots)
         }
@@ -624,16 +722,17 @@ private fun PollCompletionCard(
 
             // Circular progress
             val animatedProgress by animateFloatAsState(
-                targetValue = (completionRate / 100.0).toFloat(),
+                targetValue = (completionRate / 100.0).toFloat().coerceIn(0f, 1f),
                 animationSpec = tween(800),
                 label = "pollCompletion"
             )
 
             val progressColor = when {
-                completionRate > 75 -> Color(0xFF16A34A)
-                completionRate > 50 -> Color(0xFFEA580C)
-                else -> Color(0xFFDC2626)
+                completionRate > 75 -> MaterialTheme.colorScheme.tertiary
+                completionRate > 50 -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.error
             }
+            val outlineColor = MaterialTheme.colorScheme.outline
 
             Box(
                 contentAlignment = Alignment.Center,
@@ -644,7 +743,7 @@ private fun PollCompletionCard(
                     modifier = Modifier.size(100.dp)
                 ) {
                     drawArc(
-                        color = Color.Gray.copy(alpha = 0.15f),
+                        color = outlineColor.copy(alpha = 0.15f),
                         startAngle = 0f,
                         sweepAngle = 360f,
                         useCenter = false,
@@ -679,83 +778,11 @@ private fun PollCompletionCard(
 }
 
 @Composable
-private fun TimelineChartCard(
-    title: String,
-    entries: List<Pair<String, Int>>,
-    color: Color
-) {
-    val maxCount = entries.maxOfOrNull { it.second } ?: 1
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            // Bar chart
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                entries.forEach { (date, count) ->
-                    val fraction by animateFloatAsState(
-                        targetValue = count.toFloat() / maxCount.toFloat(),
-                        animationSpec = tween(600),
-                        label = "bar_$date"
-                    )
-
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Bottom,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = "$count",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Box(
-                            modifier = Modifier
-                                .width(16.dp)
-                                .height((fraction * 70).dp.coerceAtLeast(4.dp))
-                                .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(color, color.copy(alpha = 0.6f))
-                                    )
-                                )
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = date,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun PopularTimeSlotsCard(slots: List<TimeSlotVotes>) {
+    val yesColor = MaterialTheme.colorScheme.tertiary
+    val maybeColor = MaterialTheme.colorScheme.primary
+    val noColor = MaterialTheme.colorScheme.error
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -772,6 +799,14 @@ private fun PopularTimeSlotsCard(slots: List<TimeSlotVotes>) {
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
+
+            if (slots.isEmpty()) {
+                Text(
+                    text = "Aucun creneau disponible pour cet evenement.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             slots.forEachIndexed { index, slot ->
                 val total = slot.totalVotes.coerceAtLeast(1)
@@ -792,7 +827,7 @@ private fun PopularTimeSlotsCard(slots: List<TimeSlotVotes>) {
                                 .size(26.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (index == 0) Color(0xFF9333EA) else Color.Gray
+                                    if (index == 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
                                 )
                         ) {
                             Text(
@@ -830,21 +865,21 @@ private fun PopularTimeSlotsCard(slots: List<TimeSlotVotes>) {
                                 .weight(yesFraction.coerceAtLeast(0.01f))
                                 .height(14.dp)
                                 .clip(RoundedCornerShape(3.dp))
-                                .background(Color(0xFF16A34A))
+                                .background(yesColor)
                         )
                         Box(
                             modifier = Modifier
                                 .weight(maybeFraction.coerceAtLeast(0.01f))
                                 .height(14.dp)
                                 .clip(RoundedCornerShape(3.dp))
-                                .background(Color(0xFFEA580C))
+                                .background(maybeColor)
                         )
                         Box(
                             modifier = Modifier
                                 .weight(noFraction.coerceAtLeast(0.01f))
                                 .height(14.dp)
                                 .clip(RoundedCornerShape(3.dp))
-                                .background(Color(0xFFDC2626))
+                                .background(noColor)
                         )
                     }
 
@@ -853,9 +888,9 @@ private fun PopularTimeSlotsCard(slots: List<TimeSlotVotes>) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        VoteLegend(color = Color(0xFF16A34A), label = "Oui: ${slot.yesVotes}")
-                        VoteLegend(color = Color(0xFFEA580C), label = "Peut-etre: ${slot.maybeVotes}")
-                        VoteLegend(color = Color(0xFFDC2626), label = "Non: ${slot.noVotes}")
+                        VoteLegend(color = yesColor, label = "Oui: ${slot.yesVotes}")
+                        VoteLegend(color = maybeColor, label = "Peut-etre: ${slot.maybeVotes}")
+                        VoteLegend(color = noColor, label = "Non: ${slot.noVotes}")
                     }
                 }
 

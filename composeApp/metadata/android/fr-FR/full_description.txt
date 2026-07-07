@@ -1,0 +1,36 @@
+Wakeve est la façon la plus simple de planifier des événements avec vos amis, votre famille ou votre équipe. Finis les débats interminables dans les groupes de discussion — laissez chacun voter pour la meilleure date et heure, puis confirmez en un tap.
+
+✨ FONCTIONNALITÉS PRINCIPALES
+
+🗓️ Sondages & Votes Intelligents
+Créez des sondages avec des créneaux flexibles (matin, après-midi, soirée ou journée entière). Les participants votent OUI, PEUT-ÊTRE ou NON. Wakeve calcule automatiquement le meilleur moment pour tout le monde grâce à un scoring pondéré.
+
+📱 Fonctionne Hors Ligne
+Pas de réseau ? Pas de problème. Wakeve fonctionne entièrement hors ligne — vos événements, votes et modifications se synchronisent automatiquement quand vous êtes de retour en ligne.
+
+🌍 Multi-Plateforme
+Partagez des événements avec n'importe qui — ils bénéficieront de la meilleure expérience sur leur plateforme avec le design natif Android Material You ou iOS Liquid Glass.
+
+📅 Intégration Calendrier
+Ajoutez les événements confirmés directement dans votre calendrier natif en un tap. Recevez des rappels et ne ratez plus aucun événement.
+
+🎯 Types d'Événements Flexibles
+Anniversaires, team building, mariages, escapades weekend, soirées jeux et bien plus. Wakeve s'adapte à tout type d'événement avec des suggestions intelligentes.
+
+👥 Gestion des Participants
+Définissez un minimum et maximum de participants. Invitez vos amis et laissez le groupe décider ensemble.
+
+📍 Suggestions de Lieux
+Ajoutez des lieux potentiels et laissez le groupe comparer les options côte à côte.
+
+🔒 Confidentialité d'Abord
+Vos données restent sur votre appareil. Wakeve utilise une architecture locale d'abord avec synchronisation chiffrée — pas d'exploitation de données, pas de publicités.
+
+🎯 IDÉAL POUR
+• Des amis qui organisent une soirée
+• Des familles qui planifient des vacances
+• Des équipes qui schedulent des séminaires
+• Des couples qui préparent des soirées romantiques
+• Tous ceux qui en ont assez des texts « ça vous va quand ? »
+
+Téléchargez Wakeve et commencez à planifier ensemble !

@@ -68,14 +68,14 @@ mkdir -p composeApp/src/androidMain/res/values-de
 
 ```bash
 # Créer le dossier pour l'allemand
-mkdir -p iosApp/iosApp/de.lproj
+mkdir -p iosApp/src/de.lproj
 ```
 
 **Vérification** :
 ```bash
 # Vérifier que les dossiers sont créés
 ls -la composeApp/src/androidMain/res/
-ls -la iosApp/iosApp/
+ls -la iosApp/src/
 ```
 
 ---
@@ -130,7 +130,7 @@ Créer `composeApp/src/androidMain/res/values-de/strings.xml` :
 
 ### iOS - `de.lproj/Localizable.strings`
 
-Créer `iosApp/iosApp/de.lproj/Localizable.strings` :
+Créer `iosApp/src/de.lproj/Localizable.strings` :
 
 ```
 /* App */
@@ -347,7 +347,7 @@ fun `tapping on German selects it`() {
 
 **iOS** :
 
-Créer `iosApp/iosApp/Tests/SettingsViewTests.swift` :
+Créer `iosApp/iosAppTests/SettingsViewTests.swift` :
 
 ```swift
 func testLanguageOptionDisplaysGerman() {
@@ -439,9 +439,9 @@ Créez une Pull Request avec :
 
 2. **Fichiers modifiés** :
    - `composeApp/src/androidMain/res/values-de/strings.xml` (nouveau)
-   - `iosApp/iosApp/de.lproj/Localizable.strings` (nouveau)
+   - `iosApp/src/de.lproj/Localizable.strings` (nouveau)
    - `shared/src/commonMain/kotlin/com/guyghost/wakeve/localization/AppLocale.kt`
-   - `iosApp/iosApp/Views/SettingsView.swift`
+   - `iosApp/src/Views/SettingsView.swift`
    - Tests ajoutés
 
 3. **Checklist de review** :
@@ -462,7 +462,7 @@ Voici un exemple complet pour ajouter l'italien :
 
 ```bash
 mkdir -p composeApp/src/androidMain/res/values-it
-mkdir -p iosApp/iosApp/it.lproj
+mkdir -p iosApp/src/it.lproj
 ```
 
 ### 2. Fichiers de traduction
@@ -549,7 +549,7 @@ Pour les langues comme l'arabe, l'hébreu, le persan, etc. :
 **Fichiers** :
 ```bash
 mkdir -p composeApp/src/androidMain/res/values-ar
-mkdir -p iosApp/iosApp/ar.lproj
+mkdir -p iosApp/src/ar.lproj
 ```
 
 **Mises à jour nécessaires** :

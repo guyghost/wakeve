@@ -56,36 +56,15 @@ data class UpdateEquipmentItemRequest(
     val sharedCost: Long? = null,
     val notes: String? = null
 ) {
-    fun applyTo(itemId: String, eventId: String): EquipmentItem {
-        // This method assumes we are constructing a full object to update.
-        // But usually update requires fetching the old one first to merge.
-        // The route does: repository.updateEquipmentItem(request.applyTo(itemId, eventId))
-        // This implies this method returns a complete EquipmentItem.
-        // WITHOUT the original item, we cannot merge nulls correctly (partial update).
-        // The route implementation in EquipmentRoutes.kt line 254 seems to assume we can just create the item.
-        // But repository.updateEquipmentItem likely needs the full state.
-        // If the route doesn't fetch the existing item first, this is risky.
-        // Looking at the route code:
-        /*
-          val updatedItem = repository.updateEquipmentItem(request.applyTo(itemId, eventId))
-        */
-        // It does NOT fetch the item first. This implies the route logic in EquipmentRoutes.kt is flawed 
-        // for a PATCH/PUT if it handles partial updates (nullable fields).
-        // However, to fix COMPILATION, I must provide this method.
-        // I will return a dummy item with the fields provided, but this logic will likely need runtime fixing.
-        // For now, I'll return an item with defaults for missing fields to satisfy the type.
-        
-        return EquipmentItem(
-            id = itemId,
-            eventId = eventId,
-            name = name ?: "",
-            category = category ?: EquipmentCategory.OTHER,
-            quantity = quantity ?: 1,
-            assignedTo = assignedTo,
-            status = status ?: ItemStatus.NEEDED,
-            sharedCost = sharedCost,
-            notes = notes,
-            createdAt = "", // Should be preserved
+    fun applyTo(existing: EquipmentItem): EquipmentItem {
+        return existing.copy(
+            name = name ?: existing.name,
+            category = category ?: existing.category,
+            quantity = quantity ?: existing.quantity,
+            assignedTo = assignedTo ?: existing.assignedTo,
+            status = status ?: existing.status,
+            sharedCost = sharedCost ?: existing.sharedCost,
+            notes = notes ?: existing.notes,
             updatedAt = java.time.Instant.now().toString()
         )
     }

@@ -43,19 +43,33 @@ class ExploreViewModel: ObservableObject {
 
     // MARK: - Private Properties
 
-    private let repository: DatabaseEventRepository
+    private let repository: DatabaseEventRepository?
 
     // MARK: - Initialization
 
-    init() {
-        self.repository = RepositoryProvider.shared.databaseRepository
-        loadAll()
+    init(
+        autoload: Bool = true,
+        selectedCategory: EventCategoryItem = .all,
+        trendingEvents: [ExploreEventItem] = [],
+        nearbyEvents: [ExploreEventItem] = [],
+        recommendedEvents: [ExploreEventItem] = []
+    ) {
+        self.repository = autoload ? RepositoryProvider.shared.databaseRepository : nil
+        self.selectedCategory = selectedCategory
+        self.trendingEvents = trendingEvents
+        self.nearbyEvents = nearbyEvents
+        self.recommendedEvents = recommendedEvents
+
+        if autoload {
+            loadAll()
+        }
     }
 
     // MARK: - Public Methods
 
     /// Load all discovery sections (trending, nearby, recommended)
     func loadAll() {
+        guard repository != nil else { return }
         isLoading = true
         errorMessage = nil
 
@@ -68,6 +82,7 @@ class ExploreViewModel: ObservableObject {
 
     /// Refresh all data (pull-to-refresh)
     func refresh() {
+        guard repository != nil else { return }
         isRefreshing = true
         errorMessage = nil
 
@@ -107,58 +122,43 @@ class ExploreViewModel: ObservableObject {
     // MARK: - Private Methods
 
     private func loadTrending() async {
-        do {
-            let response = repository.getTrendingEvents(limit: 10)
-            let items = response.events.map { mapToExploreItem($0) }
-            await MainActor.run {
-                self.trendingEvents = items
-            }
-        } catch {
-            await MainActor.run {
-                self.errorMessage = error.localizedDescription
-            }
+        guard let repository else { return }
+        let response = repository.getTrendingEvents(limit: 10)
+        let items = response.events.map { mapToExploreItem($0) }
+        await MainActor.run {
+            self.trendingEvents = items
         }
     }
 
     private func loadRecommended() async {
+        guard let repository else { return }
         // Use a placeholder userId. In production, this comes from auth.
-        do {
-            let response = repository.getRecommendedEvents(userId: "current_user", limit: 10)
-            let items = response.events.map { mapToExploreItem($0) }
-            await MainActor.run {
-                self.recommendedEvents = items
-            }
-        } catch {
-            await MainActor.run {
-                self.errorMessage = error.localizedDescription
-            }
+        let response = repository.getRecommendedEvents(userId: "current_user", limit: 10)
+        let items = response.events.map { mapToExploreItem($0) }
+        await MainActor.run {
+            self.recommendedEvents = items
         }
     }
 
     private func performSearch() async {
+        guard let repository else { return }
         let query = searchText.trimmingCharacters(in: .whitespaces)
         let categoryFilter: String? = selectedCategory == .all ? nil : selectedCategory.eventTypes.first
 
-        do {
-            let response = repository.searchEvents(
-                query: query.isEmpty ? nil : query,
-                category: categoryFilter,
-                location: nil,
-                dateFrom: nil,
-                dateTo: nil,
-                status: nil,
-                sortBy: "RELEVANCE",
-                offset: 0,
-                limit: 30
-            )
-            let items = response.events.map { mapToExploreItem($0) }
-            await MainActor.run {
-                self.searchResults = items
-            }
-        } catch {
-            await MainActor.run {
-                self.errorMessage = error.localizedDescription
-            }
+        let response = repository.searchEvents(
+            query: query.isEmpty ? nil : query,
+            category: categoryFilter,
+            location: nil,
+            dateFrom: nil,
+            dateTo: nil,
+            status: nil,
+            sortBy: "RELEVANCE",
+            offset: 0,
+            limit: 30
+        )
+        let items = response.events.map { mapToExploreItem($0) }
+        await MainActor.run {
+            self.searchResults = items
         }
     }
 
@@ -759,4 +759,3 @@ extension EventScenario {
         )
     ]
 }
-

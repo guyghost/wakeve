@@ -1,5 +1,23 @@
 # Suggestion Management Specification
 
+## Purpose
+
+The Suggestion Management capability provides personalized recommendations for event planning options based on user preferences, historical behavior, and aggregate planning signals.
+
+## Requirements
+
+### Requirement: Personalized Planning Suggestions MUST be available
+The system MUST provide personalized event planning suggestions based on user preferences, historical behavior, and aggregate planning signals.
+
+#### Scenario: Generate suggestions from planning context
+- **GIVEN** an event has planning context and user preference data
+- **WHEN** suggestions are requested for scenarios, destinations, activities, restaurants, transport, or lodging
+- **THEN** the system returns ranked recommendations with scores derived from the configured recommendation strategy
+
+*(Requirements are merged from archived changes; legacy implementation notes remain below.)*
+
+---
+
 ## Version
 **Version**: 1.0.0
 **Status**: ✅ Implémenté

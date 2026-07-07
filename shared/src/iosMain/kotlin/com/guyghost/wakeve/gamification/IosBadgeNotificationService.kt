@@ -1,22 +1,41 @@
 package com.guyghost.wakeve.gamification
 
 import com.guyghost.wakeve.models.BadgeNotification
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
+import platform.Foundation.NSNumber
+import platform.Foundation.NSUUID
+import platform.UIKit.UIApplication
+import platform.UserNotifications.UNAuthorizationOptionAlert
+import platform.UserNotifications.UNAuthorizationOptionBadge
+import platform.UserNotifications.UNAuthorizationOptionSound
+import platform.UserNotifications.UNAuthorizationStatusAuthorized
+import platform.UserNotifications.UNAuthorizationStatusEphemeral
+import platform.UserNotifications.UNAuthorizationStatusProvisional
+import platform.UserNotifications.UNMutableNotificationContent
+import platform.UserNotifications.UNNotificationRequest
+import platform.UserNotifications.UNNotificationSound
+import platform.UserNotifications.UNTimeIntervalNotificationTrigger
+import platform.UserNotifications.UNUserNotificationCenter
 
 /**
- * iOS stub implementation of BadgeNotificationService.
- * 
- * This is a placeholder implementation. Full iOS notification support
- * using UNUserNotificationCenter should be implemented in the iosApp module.
+ * iOS badge notification service backed by UNUserNotificationCenter.
  */
 class IosBadgeNotificationService : BadgeNotificationService {
+    private var cachedNotificationEnabled = false
     
     override suspend fun showBadgeUnlockedNotification(
         userId: String,
         badge: Badge,
         pointsEarned: Int
     ) {
-        // Stub: iOS notifications should be handled in SwiftUI using UNUserNotificationCenter
-        println("iOS Badge notification: ${badge.name} unlocked with $pointsEarned points")
+        sendLocalNotification(
+            id = "badge-${badge.id}-${NSUUID.UUID().UUIDString}",
+            title = "Badge unlocked: ${badge.name}",
+            message = "+$pointsEarned points - ${badge.description}",
+            badgeCount = null,
+            deepLink = null
+        )
     }
     
     override suspend fun showPointsEarnedNotification(
@@ -24,40 +43,100 @@ class IosBadgeNotificationService : BadgeNotificationService {
         points: Int,
         action: String
     ) {
-        // Stub: iOS notifications should be handled in SwiftUI using UNUserNotificationCenter
-        println("iOS Points notification: $points points earned for $action")
+        sendLocalNotification(
+            id = "points-$userId-${NSUUID.UUID().UUIDString}",
+            title = "Points earned",
+            message = "+$points for $action",
+            badgeCount = null,
+            deepLink = null
+        )
     }
     
     override suspend fun showVoiceAssistantError(
         userId: String,
         error: String
     ) {
-        // Stub: iOS notifications should be handled in SwiftUI using UNUserNotificationCenter
-        println("iOS Voice assistant error: $error")
+        sendLocalNotification(
+            id = "voice-error-$userId-${NSUUID.UUID().UUIDString}",
+            title = "Voice assistant unavailable",
+            message = error,
+            badgeCount = null,
+            deepLink = null
+        )
     }
     
     override suspend fun sendBadgeNotification(notification: BadgeNotification) {
-        // Stub: iOS notifications should be handled in SwiftUI
-        println("iOS Badge notification: ${notification.title}")
+        if (!notification.isValid()) return
+
+        sendLocalNotification(
+            id = notification.id,
+            title = notification.title,
+            message = notification.message,
+            badgeCount = notification.badgeCount,
+            deepLink = notification.deepLink
+        )
     }
     
     override suspend fun clearBadgeNotification(notificationId: String) {
-        // Stub: iOS notifications should be handled in SwiftUI
-        println("iOS Clear notification: $notificationId")
+        val center = UNUserNotificationCenter.currentNotificationCenter()
+        center.removePendingNotificationRequestsWithIdentifiers(listOf(notificationId))
+        center.removeDeliveredNotificationsWithIdentifiers(listOf(notificationId))
     }
     
     override suspend fun updateBadgeCount(count: Int) {
-        // Stub: iOS badge count should be set via UIApplication.shared.applicationIconBadgeNumber in SwiftUI
-        println("iOS Badge count: $count")
+        UIApplication.sharedApplication.applicationIconBadgeNumber = count.toLong()
     }
     
     override suspend fun requestNotificationPermission(): Boolean {
-        // Stub: iOS notification permission should be requested via UNUserNotificationCenter in SwiftUI
-        return false
+        val center = UNUserNotificationCenter.currentNotificationCenter()
+        val options = UNAuthorizationOptionAlert or UNAuthorizationOptionSound or UNAuthorizationOptionBadge
+        return suspendCoroutine { continuation ->
+            center.requestAuthorizationWithOptions(options) { granted, _ ->
+                cachedNotificationEnabled = granted
+                continuation.resume(granted)
+            }
+        }
     }
     
     override fun isNotificationEnabled(): Boolean {
-        // Stub: iOS notification status should be checked via UNUserNotificationCenter in SwiftUI
-        return false
+        UNUserNotificationCenter.currentNotificationCenter().getNotificationSettingsWithCompletionHandler { settings ->
+            val status = settings?.authorizationStatus
+            cachedNotificationEnabled = status == UNAuthorizationStatusAuthorized ||
+                status == UNAuthorizationStatusProvisional ||
+                status == UNAuthorizationStatusEphemeral
+        }
+        return cachedNotificationEnabled
+    }
+
+    private fun sendLocalNotification(
+        id: String,
+        title: String,
+        message: String,
+        badgeCount: Int?,
+        deepLink: String?
+    ) {
+        val content = UNMutableNotificationContent()
+        content.setTitle(title)
+        content.setBody(message)
+        content.setSound(UNNotificationSound.defaultSound())
+
+        if (badgeCount != null) {
+            content.setBadge(NSNumber(int = badgeCount))
+        }
+
+        if (!deepLink.isNullOrBlank()) {
+            content.setUserInfo(mapOf<Any?, Any?>("deep_link" to deepLink))
+        }
+
+        val trigger = UNTimeIntervalNotificationTrigger.triggerWithTimeInterval(
+            timeInterval = 1.0,
+            repeats = false
+        )
+        val request = UNNotificationRequest.requestWithIdentifier(id, content, trigger)
+        UNUserNotificationCenter.currentNotificationCenter().addNotificationRequest(request) { error ->
+            if (error != null) {
+                cachedNotificationEnabled = false
+            }
+        }
     }
 }

@@ -39,7 +39,7 @@ class OnboardingEdgeCasesTest {
      * Then: All calls should succeed and state should be true
      */
     @Test
-    fun `multiple rapid calls to markOnboardingComplete are safe`() {
+    fun multiple_rapid_calls_to_markOnboardingComplete_are_safe() {
         // Act: Call markOnboardingComplete multiple times
         repeat(5) {
             markOnboardingComplete(context)
@@ -60,7 +60,7 @@ class OnboardingEdgeCasesTest {
      * Then: All reads should return true
      */
     @Test
-    fun `concurrent reads return consistent state`() {
+    fun concurrent_reads_return_consistent_state() {
         // Arrange: Mark onboarding complete
         markOnboardingComplete(context)
 
@@ -90,7 +90,7 @@ class OnboardingEdgeCasesTest {
      * Then: Should return false gracefully (no crash)
      */
     @Test
-    fun `hasCompletedOnboarding handles empty preferences gracefully`() {
+    fun hasCompletedOnboarding_handles_empty_preferences_gracefully() {
         // Arrange: Context has no preferences set (done in setup)
 
         // Act & Assert: Should return false without throwing exception
@@ -116,7 +116,7 @@ class OnboardingEdgeCasesTest {
      * Then: State should persist regardless of network status
      */
     @Test
-    fun `onboarding persistence works offline`() {
+    fun onboarding_persistence_works_offline() {
         // Note: We can't actually disconnect network in unit tests,
         // but this validates that our persistence mechanism (SharedPreferences)
         // doesn't depend on network
@@ -145,7 +145,7 @@ class OnboardingEdgeCasesTest {
      * Then: Our app should still read its own preferences correctly
      */
     @Test
-    fun `preferences are isolated per package`() {
+    fun preferences_are_isolated_per_package() {
         // Arrange: Set a preference value
         markOnboardingComplete(context)
         assertTrue(
@@ -175,7 +175,7 @@ class OnboardingEdgeCasesTest {
      * Then: Should return correct boolean value
      */
     @Test
-    fun `onboarding preference type is respected as boolean`() {
+    fun onboarding_preference_type_is_respected_as_boolean() {
         // Arrange: Mark onboarding complete
         markOnboardingComplete(context)
 
@@ -205,7 +205,7 @@ class OnboardingEdgeCasesTest {
      * Then: hasCompletedOnboarding should return false again
      */
     @Test
-    fun `clearing preferences resets onboarding state`() {
+    fun clearing_preferences_resets_onboarding_state() {
         // Arrange: Mark onboarding complete
         markOnboardingComplete(context)
         assertTrue(
@@ -234,7 +234,7 @@ class OnboardingEdgeCasesTest {
      * Then: Should not throw error and state remains true
      */
     @Test
-    fun `markOnboardingComplete is idempotent`() {
+    fun markOnboardingComplete_is_idempotent() {
         // Arrange: Mark complete once
         markOnboardingComplete(context)
         assertTrue(

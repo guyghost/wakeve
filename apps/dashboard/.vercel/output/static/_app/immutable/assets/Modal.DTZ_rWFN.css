@@ -1,0 +1,1 @@
+@keyframes svelte-32v57s-dialog-in{0%{opacity:0;transform:translateY(1rem)scale(.97)}to{opacity:1;transform:translateY(0)scale(1)}}dialog.svelte-32v57s::backdrop{animation:.2s ease-out svelte-32v57s-backdrop-in}@keyframes svelte-32v57s-backdrop-in{0%{opacity:0}to{opacity:1}}

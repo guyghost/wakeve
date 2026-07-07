@@ -14,6 +14,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -149,7 +150,10 @@ fun TimeSlotInput(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(),
+                        .menuAnchor(
+                            type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                            enabled = enabled
+                        ),
                     enabled = enabled,
                     colors = OutlinedTextFieldDefaults.colors()
                 )
@@ -253,7 +257,10 @@ fun TimeSlotInput(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .menuAnchor(),
+                        .menuAnchor(
+                            type = ExposedDropdownMenuAnchorType.PrimaryNotEditable,
+                            enabled = enabled
+                        ),
                     enabled = enabled,
                     colors = OutlinedTextFieldDefaults.colors()
                 )

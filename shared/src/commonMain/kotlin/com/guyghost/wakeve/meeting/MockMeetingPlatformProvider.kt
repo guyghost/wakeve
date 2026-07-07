@@ -1,13 +1,16 @@
 package com.guyghost.wakeve.meeting
 
 import com.guyghost.wakeve.models.MeetingPlatform
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
 
 /**
- * Provider de plateforme de réunion (mocké pour l'instant)
+ * Legacy provider kept for source compatibility. Production code must inject a real provider.
  */
+@Deprecated(
+    message = "Inject a configured provider in production or a deterministic provider in tests.",
+    replaceWith = ReplaceWith("UnavailableMeetingPlatformProvider()")
+)
 class MockMeetingPlatformProvider : MeetingPlatformProvider {
     override suspend fun generateMeetingLink(
         platform: MeetingPlatform,
@@ -16,27 +19,37 @@ class MockMeetingPlatformProvider : MeetingPlatformProvider {
         startTime: Instant,
         duration: Duration
     ): String {
-        // Génère des liens mockés pour chaque plateforme
-        return when (platform) {
-            MeetingPlatform.ZOOM -> "https://zoom.us/j/${generateMeetingId()}"
-            MeetingPlatform.GOOGLE_MEET -> "https://meet.google.com/${generateMeetingId()}"
-            MeetingPlatform.FACETIME -> "facetime://${generateMeetingId()}"
-            MeetingPlatform.TEAMS -> "https://teams.microsoft.com/l/meetup-join/${generateMeetingId()}"
-            MeetingPlatform.WEBEX -> "https://webex.com/j/${generateMeetingId()}"
-        }
+        error("Meeting link provider is not configured for $platform")
     }
     
     override fun getHostMeetingId(meetingLink: String): String {
-        // Extrait l'ID depuis le lien
-        return meetingLink.substringAfterLast("/")
+        error("Meeting link provider is not configured")
     }
     
     override fun cancelMeeting(platform: MeetingPlatform, hostMeetingId: String) {
-        // Simule l'annulation
-        println("Cancelling meeting $hostMeetingId on $platform")
+        error("Meeting link provider is not configured for $platform")
     }
-    
-    private fun generateMeetingId(): String {
-        return "${Clock.System.now().toEpochMilliseconds()}"
+}
+
+/**
+ * Production-safe provider used when no real meeting platform integration is configured.
+ */
+class UnavailableMeetingPlatformProvider : MeetingPlatformProvider {
+    override suspend fun generateMeetingLink(
+        platform: MeetingPlatform,
+        title: String,
+        description: String?,
+        startTime: Instant,
+        duration: Duration
+    ): String {
+        error("Meeting link provider is not configured for $platform")
+    }
+
+    override fun getHostMeetingId(meetingLink: String): String {
+        error("Meeting link provider is not configured")
+    }
+
+    override fun cancelMeeting(platform: MeetingPlatform, hostMeetingId: String) {
+        error("Meeting link provider is not configured for $platform")
     }
 }

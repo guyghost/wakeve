@@ -1,5 +1,9 @@
 # Notification Management Specification
 
+## Purpose
+
+The Notification Management capability provides cross-platform reminders and event workflow notifications while respecting user preferences, permissions, and offline-first delivery state.
+
 ## Version
 **Version**: 1.0.0
 **Status**: ✅ Implémenté
@@ -8,9 +12,7 @@
 ## Overview
 
 The notification system provides cross-platform push notifications using Firebase Cloud Messaging (FCM) for Android and Apple Push Notification Service (APNs) for iOS. It supports multiple notification types, user preferences, quiet hours, and notification history.
-
 ## Requirements
-
 ### Requirement: Notification Service
 The system SHALL provide a unified notification service for cross-platform push notifications.
 
@@ -97,6 +99,71 @@ The system SHALL maintain a notification history.
 - **GIVEN** user views notification
 - **WHEN** they interact with it
 - **THEN** the system SHALL mark it as read and update badge
+
+### Requirement: Workflow Notification Triggers MUST be emitted
+Wakeve MUST schedule notifications for key workflow events including invitation, poll start, vote reminder, date confirmation, scenario publication, logistics changes, payment updates, and finalization.
+
+#### Scenario: Date confirmation notifies confirmed participants
+- **GIVEN** an event poll has a selected final date
+- **WHEN** the organizer confirms the date
+- **THEN** confirmed and invited participants receive a notification according to preferences
+- **AND** notification history stores the event id, type, delivery state, and deep link
+- **AND** delivery is queued if the device or backend is offline
+
+### Requirement: Notification Preference Enforcement MUST be respected
+Wakeve MUST respect user notification preferences and quiet hours for all organization notifications except critical security messages.
+
+#### Scenario: Quiet hours defer a budget update notification
+- **GIVEN** a participant has quiet hours enabled
+- **WHEN** a non-critical budget update notification is scheduled during quiet hours
+- **THEN** the notification is deferred until quiet hours end
+- **AND** the notification history records the deferred state
+
+### Requirement: InboxViewModel iOS
+L'application iOS MUST fournir un InboxViewModel connecté au NotificationService KMP
+comme unique source de vérité pour les notifications.
+
+#### Scenario: Chargement des notifications
+- **WHEN** l'utilisateur ouvre l'InboxView
+- **THEN** le InboxViewModel appelle NotificationService.getNotifications()
+- **AND** les NotificationMessage KMP sont mappées en InboxItemModel SwiftUI
+- **AND** l'état loading est affiché pendant le chargement
+- **AND** les erreurs sont affichées si le chargement échoue
+
+#### Scenario: Marquer comme lu
+- **WHEN** l'utilisateur ouvre le détail d'une notification
+- **THEN** le ViewModel appelle NotificationService.markAsRead(id)
+- **AND** le unreadCount est mis à jour
+- **AND** le badge de l'app est mis à jour
+
+#### Scenario: Marquer tout comme lu
+- **WHEN** l'utilisateur utilise l'action "Mark All Read"
+- **THEN** le ViewModel appelle NotificationService.markAllAsRead()
+- **AND** toutes les notifications apparaissent comme lues
+
+### Requirement: NotificationPreferencesView iOS
+L'application iOS MUST fournir un écran de configuration des préférences de notification
+en parité fonctionnelle avec l'Android NotificationPreferencesScreen.
+
+#### Scenario: Configuration des types de notification
+- **WHEN** l'utilisateur accède aux préférences de notification
+- **THEN** chaque type de notification affiche un toggle on/off
+- **AND** les changements sont sauvegardés via NotificationPreferencesRepository
+
+#### Scenario: Configuration des quiet hours
+- **WHEN** l'utilisateur configure les heures silencieuses
+- **THEN** un time picker permet de choisir start et end
+- **AND** les notifications non-urgentes sont silenciées pendant ces heures
+
+### Requirement: InboxView connectée aux données réelles
+L'InboxView iOS MUST afficher les notifications réelles du NotificationService
+au lieu des données mockées.
+
+#### Scenario: Affichage des notifications réelles
+- **WHEN** l'InboxView apparaît
+- **THEN** les données proviennent du NotificationService KMP
+- **AND** plus aucune donnée mockée n'est utilisée
+- **AND** le pull-to-refresh recharge les données
 
 ## Data Models
 
@@ -320,10 +387,10 @@ The system categorizes notifications by urgency:
 - `server/src/main/kotlin/com/guyghost/wakeve/routes/NotificationRoutes.kt`
 
 ### Android
-- `wakeveApp/src/androidMain/kotlin/com/guyghost/wakeve/service/FCMService.kt`
+- `composeApp/src/androidMain/kotlin/com/guyghost/wakeve/service/FCMService.kt`
 
 ### iOS
-- `iosApp/iosApp/Services/APNsService.swift`
+- `iosApp/src/Services/APNsService.swift`
 
 ## Integration & Cross-References
 

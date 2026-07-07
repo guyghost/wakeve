@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import BackgroundTasks
 
@@ -60,9 +61,9 @@ class BackgroundTokenRefreshManager {
 
         do {
             try BGTaskScheduler.shared.submit(request)
-            print("✅ Background token refresh scheduled")
+            debugLog("✅ Background token refresh scheduled")
         } catch {
-            print("❌ Failed to schedule background token refresh: \\(error)")
+            debugLog("❌ Failed to schedule background token refresh: \\(error)")
         }
     }
 
@@ -73,7 +74,7 @@ class BackgroundTokenRefreshManager {
      */
     func cancelTokenRefresh() {
         BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: taskIdentifier)
-        print("🚫 Background token refresh cancelled")
+        debugLog("🚫 Background token refresh cancelled")
     }
 
     /**
@@ -85,14 +86,14 @@ class BackgroundTokenRefreshManager {
 
         // Set expiration handler
         task.expirationHandler = {
-            print("⚠️ Background token refresh task expired")
+            debugLog("⚠️ Background token refresh task expired")
             task.setTaskCompleted(success: false)
         }
 
         // Perform the refresh
         Task {
             guard let authManager = authStateManager else {
-                print("❌ AuthStateManager not available")
+                debugLog("❌ AuthStateManager not available")
                 task.setTaskCompleted(success: false)
                 return
             }
@@ -101,7 +102,7 @@ class BackgroundTokenRefreshManager {
             await authManager.refreshTokenIfNeeded()
             
             // Refresh completed (errors handled internally by AuthStateManager)
-            print("✅ Background token refresh completed")
+            debugLog("✅ Background token refresh completed")
             task.setTaskCompleted(success: true)
         }
     }
@@ -116,16 +117,17 @@ extension BackgroundTokenRefreshManager {
      * In Xcode, use: e -l objc -- (void)[[BGTaskScheduler sharedScheduler] _simulateLaunchForTaskWithIdentifier:@"com.guyghost.wakeve.tokenrefresh"]
      */
     func simulateBackgroundRefresh() {
-        print("🧪 Simulating background token refresh")
+        debugLog("🧪 Simulating background token refresh")
 
         Task {
             guard let authManager = authStateManager else {
-                print("❌ AuthStateManager not available")
+                debugLog("❌ AuthStateManager not available")
                 return
             }
 
             await authManager.refreshTokenIfNeeded()
-            print("✅ Simulated refresh completed")
+            debugLog("✅ Simulated refresh completed")
         }
     }
 }
+#endif
