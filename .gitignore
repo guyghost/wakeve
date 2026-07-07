@@ -35,3 +35,11 @@ fastlane/report.xml
 dist/
 .ralph/
 review-screenshots/
+
+# SvelteKit / Cloudflare adapter build artifacts
+.svelte-kit/
+.vercel/
+apps/landing/.svelte-kit/
+apps/landing/.vercel/
+apps/landing/build/
+.wrangler/
