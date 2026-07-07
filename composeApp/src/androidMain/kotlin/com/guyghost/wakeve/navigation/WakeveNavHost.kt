@@ -280,6 +280,12 @@ fun WakeveNavHost(
                         is AuthSideEffect.NavigateToEmailAuth -> {
                             navController.navigate(Screen.EmailAuth.route)
                         }
+                        is AuthSideEffect.NavigateToAuthAfterDeletion -> {
+                            navController.navigate(Screen.Auth.route) {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
                         is AuthSideEffect.ShowError -> {
                             Toast.makeText(context, effect.message, Toast.LENGTH_LONG).show()
                         }
@@ -337,6 +343,12 @@ fun WakeveNavHost(
                         is AuthSideEffect.NavigateToOnboarding -> {
                             navController.navigate(Screen.Onboarding.route) {
                                 popUpTo(Screen.Auth.route) { inclusive = true }
+                            }
+                        }
+                        is AuthSideEffect.NavigateToAuthAfterDeletion -> {
+                            navController.navigate(Screen.Auth.route) {
+                                popUpTo(0) { inclusive = true }
+                                launchSingleTop = true
                             }
                         }
                         is AuthSideEffect.NavigateBack -> {

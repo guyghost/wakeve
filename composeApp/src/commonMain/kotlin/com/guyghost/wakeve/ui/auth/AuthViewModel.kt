@@ -83,6 +83,7 @@ class AuthViewModel(
                     is AuthContract.SideEffect.ShowOTPInput -> AuthSideEffect.ShowOTPInput(effect.email, effect.remainingSeconds)
                     is AuthContract.SideEffect.HapticFeedback -> AuthSideEffect.HapticFeedback
                     is AuthContract.SideEffect.AnimateSuccess -> AuthSideEffect.AnimateSuccess
+                    is AuthContract.SideEffect.NavigateToAuthAfterDeletion -> AuthSideEffect.NavigateToAuthAfterDeletion
                 }
                 _sideEffects.emit(uiEffect)
             }
@@ -272,6 +273,7 @@ sealed class AuthSideEffect {
     data object NavigateToHome : AuthSideEffect()
     data object NavigateToOnboarding : AuthSideEffect()
     data object NavigateToEmailAuth : AuthSideEffect()
+    data object NavigateToAuthAfterDeletion : AuthSideEffect()
     data object NavigateBack : AuthSideEffect()
     data class ShowError(val message: String) : AuthSideEffect()
     data class ShowSuccess(val message: String) : AuthSideEffect()

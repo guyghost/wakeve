@@ -10,6 +10,7 @@ import com.guyghost.wakeve.models.AccountDeletionResponse
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
@@ -51,6 +52,10 @@ class AuthStateMachineAccountDeletionTest {
         assertFalse(tokenStorage.hasAccessToken)
         assertFalse(stateMachine.state.value.isAuthenticated)
         assertFalse(stateMachine.state.value.isGuest)
+        assertTrue(
+            stateMachine.sideEffect.first { it is AuthContract.SideEffect.NavigateToAuthAfterDeletion }
+                is AuthContract.SideEffect.NavigateToAuthAfterDeletion
+        )
     }
 
     @Test
@@ -103,6 +108,10 @@ class AuthStateMachineAccountDeletionTest {
 
         assertFalse(gateway.deleteCalled)
         assertFalse(tokenStorage.contains("guest_user_id"))
+        assertTrue(
+            stateMachine.sideEffect.first { it is AuthContract.SideEffect.NavigateToAuthAfterDeletion }
+                is AuthContract.SideEffect.NavigateToAuthAfterDeletion
+        )
     }
 
     private class FakeAccountDeletionGateway(

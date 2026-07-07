@@ -123,6 +123,7 @@ class AppStateManager {
         return when (event) {
             is AuthContract.SideEffect.NavigateToMain -> NavigationEvent.NavigateToHome
             is AuthContract.SideEffect.NavigateToOnboarding -> NavigationEvent.NavigateToOnboarding
+            is AuthContract.SideEffect.NavigateToAuthAfterDeletion -> NavigationEvent.NavigateToAuth
             is AuthContract.SideEffect.ShowError -> NavigationEvent.ShowError(event.message)
             else -> null
         }
