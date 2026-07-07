@@ -273,10 +273,10 @@ internal fun List<Event>.toViralLoopSummary(
     ) ?: return EventViralLoopSummary(
         eventId = null,
         title = "Invitations et retours",
-        headline = "Aucun événement à partager",
-        inviteReasonLabel = "Invitation : il manque un événement concret à proposer.",
-        installReasonLabel = "Pourquoi ouvrir Wakeve : Wakeve doit d'abord montrer un groupe actif.",
-        returnReasonLabel = "À suivre : créez un premier événement réutilisable.",
+        headline = "Aucun lien à partager",
+        inviteReasonLabel = "Créez un événement pour générer une invitation claire.",
+        installReasonLabel = "Les participants verront date, vote et détails au même endroit.",
+        returnReasonLabel = "À suivre : lancez un premier événement puis partagez-le.",
         actionLabel = "Créer",
         action = null
     )
@@ -363,15 +363,15 @@ internal fun List<Event>.toEmotionalSummary(
     ) ?: return EventEmotionalSummary(
         eventId = null,
         title = "Ambiance du groupe",
-        headline = "Valeur encore abstraite",
-        scoreLabel = "Confiance du groupe : 20/100",
-        excitementLabel = "Excitation : faible tant qu'aucun événement n'existe.",
-        anticipationLabel = "Anticipation : aucune date à attendre.",
-        engagementLabel = "Engagement : aucun groupe actif.",
-        groupFeelingLabel = "Sentiment de groupe : absent.",
-        serenityLabel = "Sérénité : l'utilisateur ne voit pas encore ce que Wakeve remplace.",
-        controlLabel = "Contrôle : aucune décision centralisée.",
-        nextActionLabel = "Créez un premier événement concret pour rendre la valeur visible.",
+        headline = "Aucun groupe actif",
+        scoreLabel = "Clarté du groupe : en attente",
+        excitementLabel = "État : aucun événement actif.",
+        anticipationLabel = "Prochaine étape : créer le premier rendez-vous.",
+        engagementLabel = "Participants : aucune invitation envoyée.",
+        groupFeelingLabel = "Décision : pas encore de date ni d'options.",
+        serenityLabel = "Organisation : tout commencera dans le premier événement.",
+        controlLabel = "Suivi : les actions apparaîtront ici ensuite.",
+        nextActionLabel = "Créez un événement pour rendre le plan visible.",
         actionLabel = "Créer",
         action = null
     )
@@ -909,7 +909,7 @@ internal fun List<Event>.toEventWidgetSummary(
             headline = nextTask.workspaceActionTitle(currentUserId),
             body = nextTask.workspaceActionButtonLabel(currentUserId),
             userInterestLabel = "Utilité : 7/10",
-            rationaleLabel = "Prochaine tâche : il ramene l'organisateur vers le prochain blocage.",
+            rationaleLabel = "Prochaine tâche : il ramène l'organisateur vers le prochain blocage.",
             actionLabel = "Continuer"
         )
     }
@@ -919,9 +919,9 @@ internal fun List<Event>.toEventWidgetSummary(
         eventId = null,
         title = "Wakeve",
         headline = "Aucun événement actif",
-        body = "Créez un événement pour afficher le prochain rendez-vous ici.",
-        userInterestLabel = "Utilité : a activer",
-        rationaleLabel = "Aucune action rapide sans événement actif.",
+        body = "Créez un événement pour afficher le prochain rendez-vous et les décisions en attente.",
+        userInterestLabel = "Prêt à démarrer",
+        rationaleLabel = "Le prochain événement apparaîtra ici avec ses actions utiles.",
         actionLabel = "Créer"
     )
 }

@@ -286,10 +286,10 @@ class EventWorkspaceModelsTest {
         val summary = emptyList<Event>().toViralLoopSummary(currentUserId = "me", pollVotes = emptyMap())
 
         assertEquals(null, summary.eventId)
-        assertEquals("Aucun événement à partager", summary.headline)
-        assertEquals("Invitation : il manque un événement concret à proposer.", summary.inviteReasonLabel)
-        assertEquals("Pourquoi ouvrir Wakeve : Wakeve doit d'abord montrer un groupe actif.", summary.installReasonLabel)
-        assertEquals("À suivre : créez un premier événement réutilisable.", summary.returnReasonLabel)
+        assertEquals("Aucun lien à partager", summary.headline)
+        assertEquals("Créez un événement pour générer une invitation claire.", summary.inviteReasonLabel)
+        assertEquals("Les participants verront date, vote et détails au même endroit.", summary.installReasonLabel)
+        assertEquals("À suivre : lancez un premier événement puis partagez-le.", summary.returnReasonLabel)
         assertEquals("Créer", summary.actionLabel)
         assertEquals(null, summary.action)
     }
@@ -300,11 +300,11 @@ class EventWorkspaceModelsTest {
 
         assertEquals(null, summary.eventId)
         assertEquals("Ambiance du groupe", summary.title)
-        assertEquals("Valeur encore abstraite", summary.headline)
-        assertEquals("Confiance du groupe : 20/100", summary.scoreLabel)
-        assertEquals("Excitation : faible tant qu'aucun événement n'existe.", summary.excitementLabel)
-        assertEquals("Sentiment de groupe : absent.", summary.groupFeelingLabel)
-        assertEquals("Créez un premier événement concret pour rendre la valeur visible.", summary.nextActionLabel)
+        assertEquals("Aucun groupe actif", summary.headline)
+        assertEquals("Clarté du groupe : en attente", summary.scoreLabel)
+        assertEquals("État : aucun événement actif.", summary.excitementLabel)
+        assertEquals("Décision : pas encore de date ni d'options.", summary.groupFeelingLabel)
+        assertEquals("Créez un événement pour rendre le plan visible.", summary.nextActionLabel)
         assertEquals("Créer", summary.actionLabel)
         assertEquals(null, summary.action)
     }
@@ -817,7 +817,7 @@ class EventWorkspaceModelsTest {
         assertEquals("Continuer", summary.body)
         assertEquals("Utilité : 7/10", summary.userInterestLabel)
         assertEquals(
-            "Prochaine tâche : il ramene l'organisateur vers le prochain blocage.",
+            "Prochaine tâche : il ramène l'organisateur vers le prochain blocage.",
             summary.rationaleLabel
         )
         assertEquals("Continuer", summary.actionLabel)
@@ -835,9 +835,9 @@ class EventWorkspaceModelsTest {
         assertEquals(null, summary.eventId)
         assertEquals("Wakeve", summary.title)
         assertEquals("Aucun événement actif", summary.headline)
-        assertEquals("Créez un événement pour afficher le prochain rendez-vous ici.", summary.body)
-        assertEquals("Utilité : a activer", summary.userInterestLabel)
-        assertEquals("Aucune action rapide sans événement actif.", summary.rationaleLabel)
+        assertEquals("Créez un événement pour afficher le prochain rendez-vous et les décisions en attente.", summary.body)
+        assertEquals("Prêt à démarrer", summary.userInterestLabel)
+        assertEquals("Le prochain événement apparaîtra ici avec ses actions utiles.", summary.rationaleLabel)
         assertEquals("Créer", summary.actionLabel)
     }
 

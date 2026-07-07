@@ -111,6 +111,7 @@ fun EventWorkspaceScreen(
                         ),
                         onFilterChange = onFilterChange,
                         onSearchChange = onSearchChange,
+                        onCreateEvent = onCreateEvent,
                         onSelectEvent = { eventId -> onSelectEvent(eventId, false) },
                         onSummaryAction = { summary ->
                             when (summary.action) {
@@ -187,6 +188,7 @@ fun EventWorkspaceScreen(
                     adaptiveInfo = adaptiveInfo,
                     onFilterChange = onFilterChange,
                     onSearchChange = onSearchChange,
+                    onCreateEvent = onCreateEvent,
                     onSelectEvent = { eventId -> onSelectEvent(eventId, true) },
                     onSummaryAction = { summary ->
                         when (summary.action) {
@@ -252,6 +254,7 @@ private fun EventListPane(
     adaptiveInfo: WakeveAdaptiveInfo,
     onFilterChange: (EventListFilter) -> Unit,
     onSearchChange: (String) -> Unit,
+    onCreateEvent: () -> Unit,
     onSelectEvent: (String) -> Unit,
     onSummaryAction: (EventWorkspaceActionSummary) -> Unit,
     onViralLoopAction: (EventViralLoopSummary) -> Unit,
@@ -281,31 +284,39 @@ private fun EventListPane(
             layout = adaptiveInfo.filterLayout,
             modifier = Modifier.testTag("event_filter_${adaptiveInfo.filterLayout.name.lowercase()}")
         )
-        EventWidgetSummaryCard(
-            summary = state.widgetSummary,
-            onAction = { onWidgetAction(state.widgetSummary) }
-        )
-        EventViralLoopSummaryCard(
-            summary = state.viralLoopSummary,
-            onAction = { onViralLoopAction(state.viralLoopSummary) }
-        )
-        EventEmotionalSummaryCard(
-            summary = state.emotionalSummary,
-            onAction = { onEmotionalAction(state.emotionalSummary) }
-        )
-        EventStrategicSummaryCard(
-            summary = state.strategicSummary,
-            onAction = { onStrategicAction(state.strategicSummary) }
-        )
-        EventRoadmapSummaryCard(
-            summary = state.roadmapSummary,
-            onAction = { onRoadmapAction(state.roadmapSummary) }
-        )
-        state.actionSummary?.let { summary ->
-            WorkspaceActionSummaryCard(
-                summary = summary,
-                onAction = { onSummaryAction(summary) }
+        val hasWorkspaceSummary = state.widgetSummary.kind != EventWidgetKind.Empty ||
+            state.viralLoopSummary.eventId != null ||
+            state.emotionalSummary.eventId != null ||
+            state.strategicSummary.eventId != null ||
+            state.roadmapSummary.eventId != null ||
+            state.actionSummary != null
+        if (hasWorkspaceSummary) {
+            EventWidgetSummaryCard(
+                summary = state.widgetSummary,
+                onAction = { onWidgetAction(state.widgetSummary) }
             )
+            EventViralLoopSummaryCard(
+                summary = state.viralLoopSummary,
+                onAction = { onViralLoopAction(state.viralLoopSummary) }
+            )
+            EventEmotionalSummaryCard(
+                summary = state.emotionalSummary,
+                onAction = { onEmotionalAction(state.emotionalSummary) }
+            )
+            EventStrategicSummaryCard(
+                summary = state.strategicSummary,
+                onAction = { onStrategicAction(state.strategicSummary) }
+            )
+            EventRoadmapSummaryCard(
+                summary = state.roadmapSummary,
+                onAction = { onRoadmapAction(state.roadmapSummary) }
+            )
+            state.actionSummary?.let { summary ->
+                WorkspaceActionSummaryCard(
+                    summary = summary,
+                    onAction = { onSummaryAction(summary) }
+                )
+            }
         }
         when {
             state.isLoading && state.events.isEmpty() -> {
@@ -323,11 +334,22 @@ private fun EventListPane(
                 )
             }
             state.events.isEmpty() -> {
+                val isFirstEventPrompt = state.widgetSummary.kind == EventWidgetKind.Empty &&
+                    state.searchQuery.isBlank() &&
+                    state.selectedFilter == EventListFilter.Upcoming
                 WakeveStateMessage(
-                    title = "Aucun événement",
-                    body = "Créez un événement ou changez de filtre pour continuer.",
-                    actionLabel = "Actualiser",
-                    onAction = onRetry,
+                    title = if (isFirstEventPrompt) {
+                        "Créez votre premier événement"
+                    } else {
+                        "Aucun événement à afficher"
+                    },
+                    body = if (isFirstEventPrompt) {
+                        "Commencez par proposer une date, inviter le groupe et suivre les décisions au même endroit."
+                    } else {
+                        "Essayez un autre filtre ou créez un événement pour continuer."
+                    },
+                    actionLabel = "Créer un événement",
+                    onAction = onCreateEvent,
                     icon = Icons.Default.CalendarMonth,
                     modifier = Modifier.fillMaxSize()
                 )

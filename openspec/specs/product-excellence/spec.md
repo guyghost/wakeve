@@ -90,3 +90,18 @@ Future significant OpenSpec proposals for user-facing features MUST state how th
 - **GIVEN** a future proposal adds a capability that does not reduce event organization effort or improve event decisions
 - **WHEN** the proposal is reviewed against product excellence
 - **THEN** the proposal is rejected, deferred, or rewritten before implementation begins.
+
+### Requirement: Deterministic AI Product Gate
+User-facing AI proposals SHALL explain how AI remains reviewable, event-scoped, metadata-backed, and subordinate to deterministic workflow state. Proposals SHALL identify which deterministic model, state machine, validator, or use case owns any eventual state change.
+
+#### Scenario: Future AI proposal changes event data
+- **GIVEN** a future proposal adds AI-assisted event updates
+- **WHEN** the proposal is reviewed against product excellence
+- **THEN** it identifies the deterministic owner that applies the update after user confirmation
+- **AND** it describes metadata, validation, rejected-output behavior, and fallback behavior when AI is unavailable.
+
+#### Scenario: AI would make an irreversible decision
+- **GIVEN** a proposed feature allows AI to send invitations, confirm payments, finalize events, modify permissions, or resolve sync conflicts without explicit user confirmation and deterministic guards
+- **WHEN** the proposal is reviewed
+- **THEN** Wakeve rejects or rescopes the feature before implementation.
+
